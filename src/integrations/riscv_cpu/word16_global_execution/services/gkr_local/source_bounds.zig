@@ -125,6 +125,55 @@ pub const Report = struct {
         self.* = undefined;
     }
 };
+/// Separate OP declaration/report envelope: legacy report layout is untouched.
+/// Local lookup challenges are independent per physical proof. Global RAM and
+/// Wire share the manifest challenge and are therefore bounded jointly.
+pub const OpTowerTruthDeclaration = struct { calls: u32, first_id: u32, frontier_log: u32, arithmetic_log: u32 };
+pub const OpTruthScope = struct {
+    bytes: Bound,
+    carries: Bound,
+    ssa: Bound,
+    canonical_writes: u64,
+};
+pub const OpReport = struct {
+    base: Report,
+    op_truth_scopes: []OpTruthScope,
+    pub fn deinit(self: *@This()) void {
+        self.base.allocator.free(self.op_truth_scopes);
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+const OpInventory = struct { cpu_spans: []const Types.OpTowerSpan, truths: []const OpTowerTruthDeclaration, scopes: []OpTruthScope };
+pub fn deriveForOp(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDeclaration, truth: []const Wire.TruthDeclaration, requests: []const P.Request, cpu_spans: []const Types.OpTowerSpan, miller: []const OpTowerTruthDeclaration) !OpReport {
+    if (cpu_spans.len != cpu.len or requests.len != cpu.len) return error.InvalidOpTowerInventory;
+    var next_cpu: u64 = 1;
+    for (cpu, requests, cpu_spans) |declaration, request, span| {
+        try span.validate(declaration.bridges);
+        var services = try plus(request.bulk.ecalls(), request.sponge.calls);
+        services = try plus(services, request.base.memory.ls_count);
+        services = try plus(services, request.ls_dword);
+        for (request.calls) |calls| services = try plus(services, calls);
+        services = try plus(services, span.calls);
+        if (services > request.base.cpu.steps) return error.InvalidCombinedServiceCount;
+        if (span.calls != 0) {
+            if (span.first_id != next_cpu) return error.InvalidOpTowerCoverage;
+            next_cpu = try plus(next_cpu, span.calls);
+        }
+    }
+    var next_truth: u64 = 1;
+    const Tower = A.crypto.bn254_tower.narrow;
+    for (miller) |declaration| {
+        try Tower.equations.LayoutForField(.frontier, core.fields.om31.OM31).validateGeometry(declaration.calls, declaration.first_id, declaration.frontier_log);
+        try Tower.equations.LayoutForField(.arithmetic, core.fields.om31.OM31).validateGeometry(declaration.calls, declaration.first_id, declaration.arithmetic_log);
+        if (declaration.first_id != next_truth) return error.InvalidOpTowerCoverage;
+        next_truth = try plus(next_truth, declaration.calls);
+    }
+    if (next_cpu != next_truth) return error.InvalidOpTowerCoverage;
+    const scopes = try a.alloc(OpTruthScope, miller.len);
+    errdefer a.free(scopes);
+    return .{ .base = try deriveMode(a, program_log, cpu, truth, requests, .{ .cpu_spans = cpu_spans, .truths = miller, .scopes = scopes }), .op_truth_scopes = scopes };
+}
 fn plus(a: u64, b: u64) !u64 {
     return std.math.add(u64, a, b);
 }
@@ -240,7 +289,11 @@ pub fn validateInventory(cpu: usize, truth: usize) !usize {
     return count;
 }
 pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDeclaration, truth: []const Wire.TruthDeclaration, requests: []const P.Request) !Report {
-    const count = try validateInventory(cpu.len, truth.len);
+    return deriveMode(a, program_log, cpu, truth, requests, null);
+}
+fn deriveMode(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDeclaration, truth: []const Wire.TruthDeclaration, requests: []const P.Request, op: ?OpInventory) !Report {
+    const truth_count = try std.math.add(usize, truth.len, if (op) |inventory| inventory.truths.len else 0);
+    const count = try validateInventory(cpu.len, truth_count);
     if (requests.len != cpu.len) return error.CandidateSourceShapeExceeded;
     _ = try rows(program_log);
     const cpus = try a.alloc(CpuScope, cpu.len);
@@ -253,7 +306,11 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
     var degrees = ConditionalDegrees{};
     for (cpu, requests, cpus, 0..) |declaration, request, *scope, ordinal| {
         // Explicit supported scope; unknown v3 families/layouts cannot enter these bounds.
-        try Scope.declaration(declaration);
+        if (op != null) {
+            var legacy = declaration;
+            legacy.bridges.tower = null;
+            try Scope.declaration(legacy);
+        } else try Scope.declaration(declaration);
         try Scope.request(request);
         try P.bulkCounts(request.bulk);
         try declaration.geometry.validate();
@@ -340,6 +397,17 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
             try addCpuRole(scope, origin, log);
             try globalSlots(&global_slots, origin, log);
         };
+        if (op) |inventory| {
+            const span = inventory.cpu_spans[ordinal];
+            if (declaration.bridges.tower) |log| {
+                const origin = Frame.Origin{ .tower = {} };
+                try includeRole(&shape, origin, log, try Meta.forOrigin(origin), &columns, &constraints, &instances);
+                try addCpuRole(scope, origin, log);
+                try globalSlots(&global_slots, origin, log);
+            }
+            // Exact signed topology, not the field-valued residual claim.
+            try global.add(.{ .ram = .{ .positive = try times(80, span.calls), .negative = try times(80, span.calls) }, .wire = .{ .positive = try times(20, span.calls), .negative = try times(12, span.calls) } });
+        }
         try scope.owner_table.validate();
         if (scope.owner_table.unit_consumer_mass != 0 and scope.owner_table.valid_provider_support != A.crypto.bulk_memory.types.TABLE_ENTRIES) return error.CandidateSourceRelationShape;
         try finishProof(&shape, columns, constraints, instances, 1);
@@ -427,6 +495,42 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         }
         try global.add(try Mass.truth(declaration));
     }
+    if (op) |inventory| {
+        const Tower = A.crypto.bn254_tower.narrow;
+        const FL = Tower.equations.LayoutForField(.frontier, core.fields.om31.OM31);
+        const AL = Tower.equations.LayoutForField(.arithmetic, core.fields.om31.OM31);
+        for (inventory.truths, inventory.scopes) |declaration, *scope| {
+            const f = try rows(declaration.frontier_log);
+            const arithmetic = try rows(declaration.arithmetic_log);
+            const active = try times(declaration.calls, Tower.dag.STEPS);
+            const ssa_mass = try times(declaration.calls, Tower.dag.READS);
+            scope.* = .{
+                .bytes = .{ .arity = 1, .unit_consumer_mass = try times(active, Tower.micro.BYTE_QUERIES), .valid_provider_support = 256, .denominator_slots = try times(arithmetic, Tower.micro.BYTE_QUERIES + 1) },
+                .carries = .{ .arity = 1, .unit_consumer_mass = try times(active, Tower.micro.CARRY_QUERIES), .valid_provider_support = Tower.micro.CARRY_LIMIT, .denominator_slots = try times(arithmetic, Tower.micro.CARRY_QUERIES + 1) },
+                // Source-owned fixed fanouts expand to this many unit writes;
+                // no producer supplies a weight or an unconstrained SSA edge.
+                .ssa = .{ .model = .unit_consistency, .arity = 35, .unit_positive_mass = ssa_mass, .unit_negative_mass = ssa_mass, .denominator_slots = try plus(try times(arithmetic, 8), f) },
+                .canonical_writes = active,
+            };
+            inline for (.{ "bytes", "carries", "ssa" }) |name| {
+                const bound = @field(scope, name);
+                try bound.validate();
+                try degrees.add(bound);
+            }
+            try shape.includeCells(declaration.frontier_log, FL.widths());
+            try shape.includeCells(declaration.arithmetic_log, AL.widths());
+            var columns: usize = 0;
+            for (FL.widths()) |width| columns = try std.math.add(usize, columns, width);
+            for (AL.widths()) |width| columns = try std.math.add(usize, columns, width);
+            shape.max_trace_log = @max(shape.max_trace_log, @max(declaration.frontier_log, declaration.arithmetic_log));
+            shape.max_air_degree = @max(shape.max_air_degree, 3);
+            shape.max_samples_per_column = @max(shape.max_samples_per_column, 2);
+            shape.max_tuple_arity = @max(shape.max_tuple_arity, 35);
+            try finishProof(&shape, columns, FL.CONSTRAINTS + AL.CONSTRAINTS, 0, 1);
+            global_slots[2] = try plus(global_slots[2], try plus(arithmetic, f));
+            try global.add(.{ .wire = .{ .positive = try times(12, declaration.calls), .negative = try times(20, declaration.calls) } });
+        }
+    }
     // Global namespaces remain independently closed, with ordinary signed
     // bounds including readonly program-use multiplicity. No field residue sum.
     inline for (.{ "ram", "kio", "wire" }) |name| {
@@ -446,7 +550,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
     // Necessary lookup-only budget; all omitted protocol terms remain explicit
     // false qualifications in Report, never a whole-protocol certificate.
     try degrees.requireLookupOnlyBits(Policy.TARGET_BITS);
-    return .{ .allocator = a, .shape = shape, .cpu_scopes = cpus, .truth_scopes = truths, .global_signed = global, .global_denominator_slots = global_slots, .conditional_degrees = degrees };
+    return .{ .accounting_profile = if (op != null) "rv64-source-derived-op-miller-lookup/v1" else ACCOUNTING_PROFILE, .allocator = a, .shape = shape, .cpu_scopes = cpus, .truth_scopes = truths, .global_signed = global, .global_denominator_slots = global_slots, .conditional_degrees = degrees };
 }
 
 test "weighted JUMPDEST OWNER support is partitioned from unit token mass and characteristic checked" {
