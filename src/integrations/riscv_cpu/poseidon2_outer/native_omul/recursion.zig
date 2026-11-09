@@ -363,3 +363,27 @@ pub fn proveDirectoryWithOptions(a: std.mem.Allocator, config: @import("../../rv
     session.result = null;
     return result;
 }
+
+/// Small closed-program integration gate only. It enters the SAME native
+/// verifier callbacks and completion path as directory proving. No fixture
+/// caller can substitute a native acceptance flag or a proposed outer key.
+pub fn proveFixture(a: std.mem.Allocator, source: Runtime.SourceDirectory, bundle: *const Bundle.Bundle, limits: Limits) !Result {
+    if (!@import("builtin").is_test) return error.OpRootFixtureOnly;
+    const suite = source.source_suite orelse return error.OpSourceSuiteRequiresExplicitReceiver;
+    if (limits.members == 0 or limits.members > 256 or limits.proof_bytes == 0 or limits.sidecar_bytes == 0 or limits.sidecar_bytes > 64 << 20) return error.InvalidOpRecursionLimits;
+    var session = Session{ .allocator = a, .profile = source.metadata.profile, .limits = limits, .started = try std.time.Timer.start() };
+    defer session.deinit();
+    if (limits.artifact_directory) |path| {
+        try std.fs.cwd().makeDir(path);
+        session.directory = try std.fs.cwd().openDir(path, .{});
+    }
+    try session.source_leaves.ensureTotalCapacity(a, limits.members);
+    var closed = try bundle.verifyWithHooksForSourceSuite(a, source.inventory, source.setups, source.requests, source.metadata.spans, source.cpu_keys, source.truths, source.truth_keys, source.miller, suite, .{ .context = &session, .cpu = Session.cpu, .truth = Session.truth, .truth_local = Session.localTruth, .miller = Session.miller, .miller_local = Session.localMiller });
+    defer closed.deinit(a);
+    const output = try @import("../../word16_global_execution/ethereum/terminal.zig").require(source.image, source.requests[source.requests.len - 1].base.cpu, source.terminal);
+    if (!std.mem.eql(u8, &output, &source.output)) return error.OpRootOutputAuthority;
+    try Session.complete(&session, a, .{ .source_suite = suite, .source_security = source.source_security, .image = source.image, .metadata = source.metadata, .requests = source.requests, .expected = source.expected, .cpu_keys = source.cpu_keys, .truth_keys = source.truth_keys, .truth_local_keys = source.truth_local_keys, .output_address = source.output_address, .setups = source.setups, .truths = source.truths, .miller = source.miller, .inventory = source.inventory, .native = &closed, .output = output });
+    const result = session.result orelse return error.OpRecursiveExecutionIncomplete;
+    session.result = null;
+    return result;
+}

@@ -145,3 +145,7 @@ test {
 test {
     _ = @import("poseidon2_outer/sponge_local_gkr/physical_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/root_test.zig");
+}

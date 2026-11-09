@@ -1,0 +1,168 @@
+{
+  "schema": "op-miller-local-suite-complete-root-v1",
+  "scope": "complete pinned synthetic one-ECALL CPU+Miller execution; not Kona/block throughput",
+  "source_suite": {
+    "version": 1,
+    "cpu": 1,
+    "truth": "classic",
+    "miller": "local_gkr",
+    "sponge": 0
+  },
+  "instructions": 1,
+  "root_bytes": 693812,
+  "members": 2,
+  "reductions": 1,
+  "recursion_ns": 45630457584,
+  "native_production_included": false,
+  "optimization": "ReleaseFast",
+  "root_stage_budget_bytes": 12884901888,
+  "root_stage_budget_includes": "fresh fixture source owner plus native reverification, root keys/witnesses/proofs; upstream native fixture allocations are separate",
+  "final_root_heap_external_zero": true,
+  "artifacts": [
+    {
+      "file": "cells.bin",
+      "bytes": 3696,
+      "sha256": "9c41d31b2c5757e8d86dca29a44635ff60f474301d73da8cfc89e005ece20ea8"
+    },
+    {
+      "file": "native-op.bin",
+      "bytes": 1052596,
+      "sha256": "0dad2f3ccb88d7f4709c91115aac46cf645e9e5dd5b6c3b740082010380fd472"
+    },
+    {
+      "file": "node-000000.bin",
+      "bytes": 660712,
+      "sha256": "e091026b0dad5a25459dcd56c6616c2236c9d43f2e8ebfed1f9a8216b50ba9c9"
+    },
+    {
+      "file": "node-000001.bin",
+      "bytes": 630504,
+      "sha256": "15849d91b106603af37ef8c456d1d4e81f32902761da794cca345e284c52c83e"
+    },
+    {
+      "file": "node-000002.bin",
+      "bytes": 693812,
+      "sha256": "edd53de28a56bdb2272f165cb9977a5b658427e82b0082d4d64e72e47fa06c32"
+    },
+    {
+      "file": "root-gkr-shapes.bin",
+      "bytes": 437,
+      "sha256": "c21aa461e733a070bbbe4c86684e9cea63761443e2f741782b4e8df277eed6b9"
+    },
+    {
+      "file": "root-sidecar.bin",
+      "bytes": 472,
+      "sha256": "0d23a13e6ee27dcdbc4e4fd79e778d5ddbc327a69518a00bb1cf7e8fb965f741"
+    },
+    {
+      "file": "root.bin",
+      "bytes": 693812,
+      "sha256": "edd53de28a56bdb2272f165cb9977a5b658427e82b0082d4d64e72e47fa06c32"
+    }
+  ],
+  "nodes": [
+    {
+      "schema": "op-p2-r6-pending-node/v1",
+      "kind": "CPU",
+      "ordinal": 0,
+      "source_identity": "5fb41947df2acb933bf5e9e1429f17b03354110ba102665df33ad69cd71ae074",
+      "profile": "op_target_b4_q72_p0_fold4_v1",
+      "output": [
+        378925867,
+        1728213963,
+        120402352,
+        804725264,
+        626263822,
+        1669552177,
+        689999924,
+        1994676887,
+        1992957235
+      ],
+      "proof_sha256": "e091026b0dad5a25459dcd56c6616c2236c9d43f2e8ebfed1f9a8216b50ba9c9",
+      "complete_execution": false
+    },
+    {
+      "schema": "op-p2-r6-pending-node/v1",
+      "kind": "Miller-local-GKR",
+      "ordinal": 1,
+      "source_identity": "a0aef772b3a102d63425bbc0e361f47591b5cdd32df2e30d8c0810a05b0d4b78",
+      "profile": "op_target_b4_q72_p0_fold4_v1",
+      "output": [
+        2020544290,
+        1271113827,
+        2080024449,
+        87403906,
+        67410993,
+        1467773387,
+        1028518375,
+        96019798,
+        1226070781
+      ],
+      "proof_sha256": "15849d91b106603af37ef8c456d1d4e81f32902761da794cca345e284c52c83e",
+      "complete_execution": false
+    },
+    {
+      "schema": "op-p2-r6-pending-node/v1",
+      "kind": "fold",
+      "ordinal": 2,
+      "source_identity": "64187dfc20780e24b46d15a1c433a49279a84ee97670853933aa7e9b13663b9c",
+      "profile": "op_target_b4_q72_p0_fold4_v1",
+      "output": [
+        1570657480,
+        702296705,
+        1650273527,
+        1928187726,
+        546063757,
+        708772011,
+        350443097,
+        1003947763,
+        1874243034
+      ],
+      "proof_sha256": "edd53de28a56bdb2272f165cb9977a5b658427e82b0082d4d64e72e47fa06c32",
+      "complete_execution": false
+    }
+  ],
+  "fresh_receiver": {
+    "separate_process": true,
+    "native_proof_physically_absent": true,
+    "source_directory_files": [
+      "cells.bin",
+      "fixture-source.json"
+    ],
+    "outer_source_ns": 9361456458,
+    "root_and_adversaries_ns": 263992625,
+    "fixture_owner_bootstrap_included_in_outer_source_ns": false,
+    "final_heap_external_zero": true
+  },
+  "controls_passed": [
+    "Fresh source image/program/CPU+Miller keys rebuilt without proof or VK input",
+    "Actual native Bundle.verifyWithHooksForSourceSuite feeds the production recursive collector",
+    "Complete RAM/Wire closure and exact terminal PC/HALT/length/output",
+    "Physical root corruption",
+    "Valid same-profile wrong-key root proof positive control then root rejection",
+    "Missing/duplicate/reordered execution leaves",
+    "Dropped/swapped independently selected suite",
+    "Opposite Miller Wire claims preserving aggregate closure rejected by authenticated frame",
+    "Wrong canonical late Miller receipt preserving manifest rejected",
+    "Coherently reframed wrong terminal PC/HALT/output length rejected"
+  ],
+  "commands": {
+    "produce": "STWO_OP_SUITE_ROOT_OUT=<new-directory> zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseFast -Driscv-test-filter='OP Miller suite complete CPU and local GKR physical recursive root' -j1",
+    "fresh": "STWO_OP_SUITE_ROOT_VERIFY=<directory> zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseFast -Driscv-test-filter='OP Miller suite fresh source-only physical root and adversaries' -j1"
+  },
+  "logs": [
+    "/private/tmp/op-miller-suite-complete-root-v1.log",
+    "/private/tmp/op-miller-suite-fresh-root-v1.log"
+  ],
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/miller-local-source-suite-root-v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admitted": false,
+  "heavy_execution_or_proof_rerun": false,
+  "remaining": [
+    "Actual selected Kona block qualification under suite3",
+    "Heavy tenfold performance target remains unproven; heavy rerun not authorized",
+    "Detached sponge frontier and live native-dot outer roster integration",
+    "Anchored derivation/joined checkpoint/accumulation/settlement gates remain open"
+  ]
+}

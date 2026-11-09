@@ -25,6 +25,7 @@ const Context = struct {
     root: []const u8,
     verified: ?Verified = null,
     qualification: bool = false,
+    qualification_miller: bool = false,
     timer: std.time.Timer,
     fn receive(raw: ?*anyopaque, a: std.mem.Allocator, source: Runtime.SourceDirectory) !void {
         const self: *@This() = @ptrCast(@alignCast(raw orelse return error.MissingOpRootSession));
@@ -128,6 +129,7 @@ const Context = struct {
         try @import("receiver.zig").verifyPlan(a, &plan, &topology, self.root);
         if (comptime @import("builtin").is_test) {
             if (self.qualification) try @import("qualification.zig").run(a, source, self.metadata, &plan, &topology, self.root);
+            if (self.qualification_miller) try @import("qualification.zig").runMiller(a, source, self.metadata, &plan, &topology, self.root);
         }
         self.verified = .{ .members = leaves.len, .root_bytes = self.root.len, .source_ns = source_ns, .root_verify_ns = self.timer.read() - source_ns, .total_ns = self.timer.read() };
         std.debug.print("OP_P2_ROOT_ONLY accepted=true complete=true members={} bytes={} source_ns={} root_verify_ns={} native_PCS_GKR_verified=false security_qualified=false\n", .{ leaves.len, self.root.len, source_ns, self.timer.read() - source_ns });
@@ -150,6 +152,20 @@ fn verifyBytesMode(a: std.mem.Allocator, config: @import("../../rv64_ethereum_re
     defer metadata.deinit(a);
     var context = Context{ .profile = profile, .metadata = metadata.metadata, .root = root, .templates = templates, .timer = try std.time.Timer.start(), .qualification = qualification };
     try Runtime.withSourceDirectoryWithOptions(a, config, source_directory, profile, resources, options, &context, Context.receive);
+    return context.verified orelse error.OpRootSourceIncomplete;
+}
+/// Test-only adapter for an independently rebuilt synthetic program image.
+/// Reuses the production source-only receiver; never reads native proof bytes.
+pub fn verifyFixtureSource(a: std.mem.Allocator, source: Runtime.SourceDirectory, root: []const u8, sidecar: []const u8, templates: []const u8, qualify_miller: bool) !Verified {
+    if (!@import("builtin").is_test) return error.OpRootFixtureOnly;
+    const limits = Limits{};
+    try validateLimits(limits);
+    if (root.len == 0 or root.len > limits.proof_bytes or sidecar.len > limits.sidecar_bytes or templates.len > Templates.MAX_BYTES) return error.OpRootInputBudget;
+    _ = try Templates.preflight(templates);
+    var metadata = try Sidecar.decode(a, sidecar, .{ .bytes = limits.sidecar_bytes });
+    defer metadata.deinit(a);
+    var context = Context{ .profile = source.metadata.profile, .metadata = metadata.metadata, .root = root, .templates = templates, .timer = try std.time.Timer.start(), .qualification_miller = qualify_miller };
+    try Context.receive(&context, a, source);
     return context.verified orelse error.OpRootSourceIncomplete;
 }
 pub fn verifyDirectory(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, root_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, limits: Limits) !Verified {

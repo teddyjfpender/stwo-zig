@@ -32,7 +32,18 @@ fn authority(source: Runtime.SourceDirectory) Receiver.Authority {
     return .{ .source_suite = source.source_suite, .image = source.image, .output = .{ .address = source.output_address, .bytes = source.output }, .profile = source.metadata.profile, .setups = source.setups, .requests = source.requests, .spans = source.metadata.spans, .cpu_keys = source.cpu_keys, .truths = source.truths, .truth_keys = source.truth_keys, .truth_local_keys = source.inventory.truth_local_keys, .miller = source.miller, .expected = source.expected };
 }
 pub fn run(a: std.mem.Allocator, source: Runtime.SourceDirectory, metadata: Receiver.Metadata, plan: *const Receiver.Plan, topology: *const Topology, root: []const u8) !void {
+    return runMode(a, source, metadata, plan, topology, root, false);
+}
+pub fn runMiller(a: std.mem.Allocator, source: Runtime.SourceDirectory, metadata: Receiver.Metadata, plan: *const Receiver.Plan, topology: *const Topology, root: []const u8) !void {
+    return runMode(a, source, metadata, plan, topology, root, true);
+}
+fn runMode(a: std.mem.Allocator, source: Runtime.SourceDirectory, metadata: Receiver.Metadata, plan: *const Receiver.Plan, topology: *const Topology, root: []const u8, miller_only: bool) !void {
     if (!@import("builtin").is_test) return error.OpRootQualificationIsTestOnly;
+    if (miller_only) {
+        var present = false;
+        for (source.miller) |item| present = present or item.local_key != null;
+        if (!present) return error.OpRootQualificationNeedsMiller;
+    }
     const bytes = try a.dupe(u8, root);
     defer a.free(bytes);
     bytes[40] ^= 1;
@@ -109,46 +120,48 @@ pub fn run(a: std.mem.Allocator, source: Runtime.SourceDirectory, metadata: Rece
         try reject(@import("receiver.zig").verifyPlan(a, &changed_receipt, topology, root));
         break;
     }
-    // Balanced service debt keeps every aggregate sum closed. It must still
-    // alter authenticated leaf frames and fail against the OLD valid root.
-    var cpu_index: ?usize = null;
-    var offset: usize = 0;
-    for (source.setups, 0..) |setup, i| {
-        var slots = try @import("../../word16_global_execution/services/gkr_local/cpu_components.zig").Plan.initForOp(a, setup);
-        defer slots.deinit();
-        for (slots.slots) |slot| {
-            const kio = switch (slot.origin) {
-                .sponge => true,
-                .bridge => |family| family == .keccak,
-                else => false,
-            };
-            if (kio and cpu_index == null) {
-                cpu_index = i;
-                offset = slot.claim_offset + 1;
+    if (!miller_only) {
+        // Balanced service debt keeps every aggregate sum closed. It must still
+        // alter authenticated leaf frames and fail against the OLD valid root.
+        var cpu_index: ?usize = null;
+        var offset: usize = 0;
+        for (source.setups, 0..) |setup, i| {
+            var slots = try @import("../../word16_global_execution/services/gkr_local/cpu_components.zig").Plan.initForOp(a, setup);
+            defer slots.deinit();
+            for (slots.slots) |slot| {
+                const kio = switch (slot.origin) {
+                    .sponge => true,
+                    .bridge => |family| family == .keccak,
+                    else => false,
+                };
+                if (kio and cpu_index == null) {
+                    cpu_index = i;
+                    offset = slot.claim_offset + 1;
+                }
             }
         }
+        var truth_index: ?usize = null;
+        for (source.truths, 0..) |truth, j| if (truth == .keccak) {
+            truth_index = source.setups.len + j;
+            break;
+        };
+        const cpu = cpu_index orelse return error.OpRootQualificationNeedsKeccak;
+        const truth = truth_index orelse return error.OpRootQualificationNeedsKeccak;
+        const cclaims = try a.dupe(O, leaves[cpu].claims);
+        defer a.free(cclaims);
+        const tclaims = try a.dupe(O, leaves[truth].claims);
+        defer a.free(tclaims);
+        const local_truth = source.inventory.truth_local_keys.len != 0 and source.inventory.truth_local_keys[truth - source.setups.len] != null;
+        if (offset >= cclaims.len or tclaims.len != (if (local_truth) @as(usize, 2) else 5)) return error.OpRootQualificationClaimShape;
+        cclaims[offset] = cclaims[offset].add(O.one());
+        const debt: usize = if (local_truth) 0 else 3;
+        tclaims[debt] = tclaims[debt].sub(O.one());
+        leaves[cpu].claims = cclaims;
+        leaves[truth].claims = tclaims;
+        var balanced = try Receiver.prepare(a, authority(source), changed);
+        defer balanced.deinit();
+        try reject(@import("receiver.zig").verifyPlan(a, &balanced, topology, root));
     }
-    var truth_index: ?usize = null;
-    for (source.truths, 0..) |truth, j| if (truth == .keccak) {
-        truth_index = source.setups.len + j;
-        break;
-    };
-    const cpu = cpu_index orelse return error.OpRootQualificationNeedsKeccak;
-    const truth = truth_index orelse return error.OpRootQualificationNeedsKeccak;
-    const cclaims = try a.dupe(O, leaves[cpu].claims);
-    defer a.free(cclaims);
-    const tclaims = try a.dupe(O, leaves[truth].claims);
-    defer a.free(tclaims);
-    const local_truth = source.inventory.truth_local_keys.len != 0 and source.inventory.truth_local_keys[truth - source.setups.len] != null;
-    if (offset >= cclaims.len or tclaims.len != (if (local_truth) @as(usize, 2) else 5)) return error.OpRootQualificationClaimShape;
-    cclaims[offset] = cclaims[offset].add(O.one());
-    const debt: usize = if (local_truth) 0 else 3;
-    tclaims[debt] = tclaims[debt].sub(O.one());
-    leaves[cpu].claims = cclaims;
-    leaves[truth].claims = tclaims;
-    var balanced = try Receiver.prepare(a, authority(source), changed);
-    defer balanced.deinit();
-    try reject(@import("receiver.zig").verifyPlan(a, &balanced, topology, root));
 
     // Full terminal policy is independent of the claimed endpoint and digest.
     const requests = try a.dupe(@import("../../word16_global_execution/services/protocol.zig").Request, source.requests);
