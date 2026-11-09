@@ -57,6 +57,14 @@ pub fn check() builder.context.Error!void {
     if (failure) |err| return err;
 }
 
+/// Explicit optional arithmetic sidecars use the same scoped error latch.
+pub fn currentContext() *Context {
+    return ctx();
+}
+pub fn recordFailure(err: builder.context.Error) void {
+    if (failure == null) failure = err;
+}
+
 fn ctx() *Context {
     return active orelse @panic("circuit lane used outside begin/finish");
 }

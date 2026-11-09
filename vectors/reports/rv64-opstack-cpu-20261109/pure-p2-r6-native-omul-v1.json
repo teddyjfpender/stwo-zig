@@ -1,0 +1,14 @@
+{
+  "schema": "op-r6-native-omul-qualification-v1",
+  "scope": "tiny actual six-component native proof plus numerical complete recursive verifier; not execution admission or performance qualification",
+  "production_admission": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "wire_magic": "STP26G01",
+  "component": {"main_columns":24,"fixed_columns":9,"interaction_columns":24,"arithmetic_constraints":8,"lookup_constraints":3,"max_degree":3,"quotient_expansion":2},
+  "fixture": {"native_omul_calls":2,"native_omul_padded_rows":16,"legacy_arithmetic_padded_rows":512,"proof_bytes":530608},
+  "checks": ["native tower arithmetic parity on 64 vectors", "all eight output-coordinate mutations", "complete six-coordinate QM31 Var tuple and fanout authority", "arbitrary-fixed-column degree-3 finite difference", "trace/actual extraction parity", "seven legacy QM31 rows removed per genuine full OM31 product", "legacy five-component authority rejects sidecar outputs", "fresh independently source-derived FIXED key", "six physical claims in transcript and complete Var/range closure", "physical native proof and captured verification", "canonical claim encoding", "expected output mutation", "corrupted intermediate product", "prefix mutation", "balanced legacy/native claim mutation", "complete six-component in-circuit native proof verification", "in-circuit output mutation"],
+  "commands": ["zig build check-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='OP R6' -j1", "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='OP R6' -j1"],
+  "pending": ["actual source-shard row and gate census", "physical recursive R6 leaf and fold", "durable fresh root-only R6 receiver", "matched complete-block timing", "heavy end-to-end tenfold target"]
+}

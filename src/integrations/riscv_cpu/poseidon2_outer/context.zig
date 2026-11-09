@@ -26,6 +26,7 @@ pub const Context = struct {
     allocator: std.mem.Allocator,
     base: Algebra,
     calls: std.ArrayList(L.Gate) = .empty,
+    native_mul_calls: std.ArrayList(@import("native_omul/row.zig").Gate) = .empty,
     usage: ?Usage = null,
     finalized: bool = false,
     poisoned: bool = false,
@@ -45,6 +46,7 @@ pub const Context = struct {
     pub fn deinit(self: *Context) void {
         if (self.usage) |*u| u.deinit();
         self.calls.deinit(self.allocator);
+        self.native_mul_calls.deinit(self.allocator);
         self.base.deinit();
         self.* = undefined;
     }
@@ -71,6 +73,45 @@ pub const Context = struct {
         try self.calls.append(self.allocator, gate);
         return outputs;
     }
+    /// Opt-in R6 product. Reserved outputs have exactly one sidecar producer;
+    /// they are never guessed self-yields in the generic arithmetic table.
+    pub fn nativeOmul(self: *Context, inputs: [4]Var) B.context.Error![2]Var {
+        if (self.poisoned or self.finalized) return error.InvalidWitnessOrigin;
+        errdefer self.poisoned = true;
+        for (inputs) |input| if (input.idx >= self.base.circuit.n_vars) return error.InvalidWitnessOrigin;
+        const O = Core.fields.om31.OM31;
+        const a = O{ .c0 = if (self.base.trace_only) Q.zero() else self.base.get(inputs[0]), .c1 = if (self.base.trace_only) Q.zero() else self.base.get(inputs[1]) };
+        const b = O{ .c0 = if (self.base.trace_only) Q.zero() else self.base.get(inputs[2]), .c1 = if (self.base.trace_only) Q.zero() else self.base.get(inputs[3]) };
+        const product = a.mul(b);
+        const outputs = [2]Var{ try self.base.newVar(product.c0), try self.base.newVar(product.c1) };
+        try self.native_mul_calls.append(self.allocator, .{ .inputs = .{ inputs[0].idx, inputs[1].idx, inputs[2].idx, inputs[3].idx }, .outputs = .{ outputs[0].idx, outputs[1].idx } });
+        return outputs;
+    }
+    pub fn sourceMultiplicities(self: *const Context, a: std.mem.Allocator) !B.circuit.Multiplicities {
+        var counts = try self.base.circuit.computeMultiplicities(a);
+        errdefer counts.deinit(a);
+        for (self.calls.items) |gate| {
+            for (gate.inputs) |input| {
+                if (input >= counts.n_uses.len) return error.InvalidPoseidonPortAddress;
+                counts.n_uses[input] = try std.math.add(u32, counts.n_uses[input], 1);
+            }
+            for (gate.outputs) |output| {
+                if (output >= counts.n_yields.len or counts.n_yields[output] != 0) return error.PoseidonProducerConflict;
+                counts.n_yields[output] = 1;
+            }
+        }
+        for (self.native_mul_calls.items) |gate| {
+            for (gate.inputs) |input| {
+                if (input >= counts.n_uses.len) return error.InvalidPoseidonPortAddress;
+                counts.n_uses[input] = try std.math.add(u32, counts.n_uses[input], 1);
+            }
+            for (gate.outputs) |output| {
+                if (output >= counts.n_yields.len or counts.n_yields[output] != 0) return error.PoseidonProducerConflict;
+                counts.n_yields[output] = 1;
+            }
+        }
+        return counts;
+    }
     pub fn setOutputs(self: *Context, outputs: []const Var) !void {
         if (self.poisoned or self.finalized) return error.PoseidonContextClosed;
         try self.base.setOutputs(outputs);
@@ -84,6 +125,7 @@ pub const Context = struct {
         var total = try std.math.add(u64, try std.math.mul(u64, 2, binary + c.eq.items.len), c.m31_to_u32.items.len + c.output.items.len);
         total = try std.math.add(u64, total, try std.math.mul(u64, L.WIDTH, self.calls.items.len));
         if (mixed) total = try std.math.add(u64, total, 6 * c.blake_g_gate.items.len + 3 * c.triple_xor.items.len + c.permutation.nTerms());
+        total = try std.math.add(u64, total, try std.math.mul(u64, 6, self.native_mul_calls.items.len));
         if (total >= Core.fields.m31.Modulus) return error.InvalidPoseidonSourceUsage;
     }
     pub fn finalize(self: *Context) !void {
@@ -100,18 +142,8 @@ pub const Context = struct {
         try self.requireRoster(mixed);
         try self.base.finalize(false);
         try self.requireRoster(mixed);
-        var counts = try self.base.circuit.computeMultiplicities(self.allocator);
+        var counts = try self.sourceMultiplicities(self.allocator);
         defer counts.deinit(self.allocator);
-        for (self.calls.items) |gate| {
-            for (gate.inputs) |input| {
-                if (input >= counts.n_uses.len) return error.InvalidPoseidonPortAddress;
-                counts.n_uses[input] = try std.math.add(u32, counts.n_uses[input], 1);
-            }
-            for (gate.outputs) |output| {
-                if (output >= counts.n_yields.len or counts.n_yields[output] != 0) return error.PoseidonProducerConflict;
-                counts.n_yields[output] = 1;
-            }
-        }
         for (counts.n_yields) |count| if (count != 1) return error.PoseidonMissingProducer;
         const owned = try self.allocator.dupe(u32, counts.n_uses);
         errdefer self.allocator.free(owned);
@@ -155,6 +187,13 @@ pub const Context = struct {
             }
             P.permute(&state);
             for (gate.outputs, state) |output, value| if (!self.base.get(.{ .idx = output }).eql(Q.fromBase(value))) return false;
+        }
+        for (self.native_mul_calls.items) |gate| {
+            const O = Core.fields.om31.OM31;
+            const a = O{ .c0 = self.base.get(.{ .idx = gate.inputs[0] }), .c1 = self.base.get(.{ .idx = gate.inputs[1] }) };
+            const b = O{ .c0 = self.base.get(.{ .idx = gate.inputs[2] }), .c1 = self.base.get(.{ .idx = gate.inputs[3] }) };
+            const product = a.mul(b);
+            if (!self.base.get(.{ .idx = gate.outputs[0] }).eql(product.c0) or !self.base.get(.{ .idx = gate.outputs[1] }).eql(product.c1)) return false;
         }
         return true;
     }

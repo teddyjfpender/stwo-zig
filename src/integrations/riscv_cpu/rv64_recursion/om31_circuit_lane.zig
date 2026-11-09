@@ -73,6 +73,26 @@ const Ops = struct {
     }
 };
 const A = core.fields.om31.Quadratic(q.Lane, Ops);
+pub const FullMulHook = *const fn (Lane, Lane) @import("stwo_circuit_frontend").builder.context.Error!Lane;
+threadlocal var full_mul_hook: ?FullMulHook = null;
+pub const FullMulScope = struct {
+    previous: ?FullMulHook,
+    pub fn init(hook: FullMulHook) FullMulScope {
+        const previous = full_mul_hook;
+        full_mul_hook = hook;
+        return .{ .previous = previous };
+    }
+    pub fn deinit(self: *FullMulScope) void {
+        full_mul_hook = self.previous;
+    }
+};
+fn delegated(x: Lane, y: Lane) ?Lane {
+    const hook = full_mul_hook orelse return null;
+    return hook(x, y) catch |err| {
+        q.recordFailure(err);
+        return Lane.zero();
+    };
+}
 pub const Lane = struct {
     c0: q.Lane,
     c1: q.Lane,
@@ -139,6 +159,7 @@ pub const Lane = struct {
             // a witness value. Use the original tower's inner-field product.
             if (y.c1.v.idx == 0) return x.mulInner(y.c0);
             if (x.c1.v.idx == 0) return y.mulInner(x.c0);
+            if (delegated(x, y)) |result| return result;
             // Every QM31 add/sub/mul consumes one arithmetic row. The native
             // Karatsuba formula saves a multiplication but costs nine rows;
             // four schoolbook products plus the fixed-u map cost seven.
@@ -151,6 +172,7 @@ pub const Lane = struct {
             const bc = x.c1.mul(y.c0);
             return .{ .c0 = ac.add(Ops.mulByU(bd)), .c1 = ad.add(bc) };
         }
+        if (delegated(x, y)) |result| return result;
         const before = beforeOperation();
         defer recordOperation(.full_mul, before);
         return wrap(arithmetic(x).mul(arithmetic(y)));
