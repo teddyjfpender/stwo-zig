@@ -806,6 +806,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Repair the malformed synthetic SSZ positive fixture exposed by newly mandatory execution: actual body/witness ends are 49/29, not 44/36. Preserve decoder bytes and explicitly require rejection of each old offset. Require that test by name and raise the discovery floor. Follow the canonical catalog forwarding edge for an existing step uniqueness check while retaining every count and identity assertion; no GPU implementation, pins or expectations change."
+    },
+    {
+      "id": "live_generation_preparation_owner",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Move complete exact backend preparation into live generation so candidate mode does not perform the same full kernel verification in a redundant prior process. Preserve prepare_exact_backend and every kernel/pin check unchanged, preserve explicit generated-file and carried-evidence behavior, and retain independent check-generated verification. No proof-result caching, new CLI flag or admission bypass."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

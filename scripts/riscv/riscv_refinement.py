@@ -173,13 +173,20 @@ def evidence(args: argparse.Namespace, paths: Paths) -> sail.SailEvidence:
 def _prepared_outputs_with_evidence(
     args: argparse.Namespace,
     paths: Paths,
+    *,
+    prepare_live: bool = False,
 ) -> tuple[dict[Path, bytes], sail.SailEvidence]:
     if not args.no_export_air:
         render.export_air(paths)
     else:
         render.validate_air_export(paths.uniqueness_ir)
         render.validate_air_program_export(paths.air_program_ir)
-    sail_evidence = evidence(args, paths)
+    if prepare_live and not reuses_committed_sail_evidence(args) and getattr(args, "sail_generated_file", None) is None:
+        sail_evidence = sail.prepare_exact_backend(
+            paths.root, args.sail_riscv_dir, args.sail_bin, False,
+        )
+    else:
+        sail_evidence = evidence(args, paths)
     return render.artifacts(paths, sail_evidence), sail_evidence
 
 
@@ -187,7 +194,7 @@ def prepared_outputs(
     args: argparse.Namespace,
     paths: Paths,
 ) -> dict[Path, bytes]:
-    outputs, _ = _prepared_outputs_with_evidence(args, paths)
+    outputs, _ = _prepared_outputs_with_evidence(args, paths, prepare_live=True)
     return outputs
 
 

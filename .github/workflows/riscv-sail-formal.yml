@@ -227,6 +227,7 @@ jobs:
       # theorem backend from that exact configuration, and kernel-checks the
       # cross-project bridge against the theorem library built above.
       - name: Generate the exact RV32IM Sail theorem backend
+        if: inputs.regenerate_bindings != true
         run: |
           set -euo pipefail
           python3 scripts/riscv/riscv_refinement.py prepare-sail \

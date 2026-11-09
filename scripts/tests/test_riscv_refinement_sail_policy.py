@@ -56,6 +56,30 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
         generation = source.split("- name: Regenerate source-bound candidate with the live pinned owner", 1)[1].split("      - name:", 1)[0]
         self.assertEqual(2, generation.count('--air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air"'))
 
+    def test_generation_owns_full_live_preparation_and_preserves_explicit_inputs(self):
+        paths = Paths(ROOT)
+        for prepare_live, carried, generated_file in ((True, False, None), (False, False, None), (True, True, None), (True, False, Path("exact.lean"))):
+            args = Namespace(no_export_air=False, reuse_committed_sail_evidence=carried,
+                             sail_generated_file=generated_file, sail_riscv_dir=None if carried else Path("model"), sail_bin=None if carried else Path("sail"))
+            qualified = object()
+            with mock.patch.object(render, "export_air") as export, mock.patch.object(
+                sail, "prepare_exact_backend", return_value=qualified,
+            ) as prepare, mock.patch.object(riscv_refinement, "evidence", return_value=qualified) as evidence, mock.patch.object(
+                render, "artifacts", return_value={},
+            ) as artifacts:
+                self.assertEqual(({}, qualified), riscv_refinement._prepared_outputs_with_evidence(args, paths, prepare_live=prepare_live))
+            export.assert_called_once_with(paths)
+            artifacts.assert_called_once_with(paths, qualified)
+            if prepare_live and not carried and generated_file is None:
+                prepare.assert_called_once_with(ROOT, Path("model"), Path("sail"), False)
+                evidence.assert_not_called()
+            else:
+                prepare.assert_not_called()
+                evidence.assert_called_once_with(args, paths)
+        source = (ROOT / ".github/workflows/riscv-sail-formal.yml").read_text()
+        step = source.split("- name: Generate the exact RV32IM Sail theorem backend", 1)[1].split("      - name:", 1)[0]
+        self.assertIn("if: inputs.regenerate_bindings != true", step)
+
     def test_pilot_composition_digests_follow_generated_air(self) -> None:
         composition = (
             ROOT / sail_lean_bridge.COMPOSITION_SOURCE
