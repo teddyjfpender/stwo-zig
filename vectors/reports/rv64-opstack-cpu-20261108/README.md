@@ -19,6 +19,21 @@ paired performance claims. Stage one remains mostly serial at the chosen
 worker time increases from contention. No memory multiplier is established.
 Recursion and authenticated L1 derivation are additional work.
 
+The subsequent [capture and packed-accumulation qualification](capture-and-packed-accumulation.json)
+uses four bounded capture jobs and directly accumulates packed native constraints.
+The selected heavy guest completes native production in **1,222.972 s** and fresh
+reception in **32.358 s**, with both corruption controls rejecting. All 120 proof
+and statement artifacts match the preceding selected-guest run; timing and
+schedule telemetry are excluded. Capture falls from 111.239 to 48.286 s. Peak
+RSS rises to **49.979 GiB**. This is another single development qualification,
+not a quiet median, and includes no recursion. The prefix ABBA establishes a
+7.2% constraint-row stage reduction but no whole-prefix wall improvement.
+
+The [AArch64 grouped lookup-dot experiment](rejected-arm-lookup-dot.json) also
+preserves physical proofs and passes fresh receivers, but produces no useful
+local-GKR or total-wall improvement in the cold ABBA comparison. Its production
+dispatch change is rejected; broader zero-coordinate reference tests remain.
+
 The [heavy execution recursion receipt](heavy-recursion-ternary.json) closes OP
 121065789: 102 CPU and 24 service proofs, 126 wraps and 64 ternary folds. A
 separate strict receiver accepts and both physical leaf corruption and a missing

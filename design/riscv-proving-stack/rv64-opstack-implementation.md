@@ -1,13 +1,21 @@
 # OP Stack execution implementation contract
 
-**Mainnet CPU continuation (2026-11-06):** six historical OP Mainnet cases now
-match native/RV64/Unicorn execution, and mainnet blocks 120794432 and 121057303 have complete
-native CPU STARK bundles with fresh reception and proof-corruption rejection.
-The branch is rebased onto GPU `bf2b6c072d51341f1c733f05f870d70b4c15834b`.
+**Mainnet CPU continuation (2026-11-09):** six historical OP Mainnet cases
+match native/RV64/Unicorn execution. Blocks 120794432, 121057303 and the heavy
+121065789 have complete native CPU bundles, fresh reception and proof-corruption
+rejection. The heavy block's selected guest completes native production in
+1,298 s with 91 CPU and 24 service proofs. Separate execution-only recursive
+roots also complete, including a 126-leaf, 64-fold heavy-block M6 qualification
+on the original guest. These are separate timings and fixtures, not one combined
+benchmark. The strict recursive receiver still requires native and recursive
+proof material and statement-specific authority.
 Use the [current runbook](../../opstack/README.md) and
-[mainnet measurements](../../vectors/reports/rv64-opstack-mainnet-20261106/README.md).
-The initial checkpoint below is historical; L1 derivation/binding, recursive
-closure and settlement remain open, with no SNARK wrapper.
+[CPU qualification receipts](../../vectors/reports/rv64-opstack-cpu-20261108/README.md).
+Physical anchored derivation, an in-circuit OD/OP join, an accumulating checkpoint
+and practical settlement remain open. Security is a 128-bit target under
+documented assumptions, not a whole-protocol certificate. The initial checkpoint
+below and the GPU base import at `bf2b6c072d51341f1c733f05f870d70b4c15834b`
+are historical; no new GPU qualification is claimed.
 
 ## Initial checkpoint (historical)
 

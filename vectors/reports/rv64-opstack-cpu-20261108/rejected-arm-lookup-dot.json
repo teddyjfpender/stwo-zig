@@ -1,0 +1,38 @@
+{
+  "scope": "Cold ABBA first-segment diagnostic only. Every proof byte matches; fresh prefix receivers accept and strict complete receiver refuses.",
+  "records": [
+    {
+      "case": "control",
+      "all_proofs_byte_identical": true,
+      "complete_block": false,
+      "produce_ns": 16448082000,
+      "receive_ns": 1659000417,
+      "local_gkr_prove_seconds": 5.176617
+    },
+    {
+      "case": "dot",
+      "all_proofs_byte_identical": true,
+      "complete_block": false,
+      "produce_ns": 16656592625,
+      "receive_ns": 1661443750,
+      "local_gkr_prove_seconds": 5.202245
+    },
+    {
+      "case": "dot",
+      "all_proofs_byte_identical": true,
+      "complete_block": false,
+      "produce_ns": 17075122792,
+      "receive_ns": 1708864459,
+      "local_gkr_prove_seconds": 5.379774
+    },
+    {
+      "case": "control",
+      "all_proofs_byte_identical": true,
+      "complete_block": false,
+      "produce_ns": 17390922125,
+      "receive_ns": 1716958000,
+      "local_gkr_prove_seconds": 5.562537
+    }
+  ],
+  "decision": "Rejected: no repeatable end-to-end or local-GKR improvement; AArch64 production dispatch remains scalar."
+}

@@ -107,7 +107,7 @@ test "octic dot groups match scalar reduction across all tuple widths" {
                 coordinate.* = M.fromCanonical(if (round == 0) fields.m31.Modulus - 1 else random.random().uintLessThan(u32, fields.m31.Modulus));
             }
             coefficient.* = O.fromM31Array(coordinates);
-            value.* = M.fromCanonical(if (round == 0) fields.m31.Modulus - 1 else random.random().uintLessThan(u32, fields.m31.Modulus));
+            value.* = M.fromCanonical(if (round == 0) fields.m31.Modulus - 1 else if (round % 3 == 0 and random.random().boolean()) 0 else random.random().uintLessThan(u32, fields.m31.Modulus));
         }
         for (0..R.MAX_ARITY + 1) |len| {
             const offset = if (round % 2 == 0) O.zero() else coefficients[0];
