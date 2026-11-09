@@ -22,6 +22,7 @@ sys.path.insert(0, str(HERE))
 import transition_capture as C
 from transition_transport_cache import Cache, claim_id
 from prepare import validate_tree
+from cache_refresh import missing_code_leaves
 
 
 def hash_file(path):
@@ -64,25 +65,31 @@ def validate(source, candidate):
 
 
 
-def resume_kv(previous, output, candidate, pin, host_hash, limit):
+def resume_kv(previous, output, candidate, pin, host_hash, limit, evict_keccak=()):
     old=C.read_json(previous/'capture-run.json',1 << 20)
     if old['candidate']!=candidate or old['upstream_revision']!=pin['revision'] or old['patch_sha256']!=pin['patch_sha256'] or old['host_sha256']!=host_hash:
         raise ValueError('resume source or claim mismatch')
     output.mkdir(parents=True,exist_ok=False)
     C.write_new(output/'kvformat',b'directory')
-    total=count=0
+    total=count=copied=copied_bytes=0
+    evictions=set(evict_keccak);removed=[]
     with C.kv_reader(previous/'kv','directory') as rows:
         for key,value in rows:
             total+=len(value);count+=1
             if len(key)!=32 or key[0] not in (1,2,3,4,5,6) or total>limit or count>1000000 or len(value)>1 << 20:
                 raise ValueError('resume KV bounds exceeded')
-            if key[0]==2 and C.keccak(value)[1:]!=key[1:]:
-                raise ValueError('resume Keccak mismatch')
+            if key[0]==2:
+                digest=C.keccak(value)
+                if digest[1:]!=key[1:]:raise ValueError('resume Keccak mismatch')
+                if digest in evictions:
+                    removed.append(digest.hex());continue
             if key[0]==4 and hashlib.sha256(value).digest()[1:]!=key[1:]:
                 raise ValueError('resume SHA256 mismatch')
             name=key.hex();directory=output/name[:4];directory.mkdir(exist_ok=True)
             with (directory/(name[4:]+'.txt')).open('xb') as f:f.write(value.hex().encode())
-    return {'rows':count,'decoded_bytes':total}
+            copied+=1;copied_bytes+=len(value)
+    if set(removed)!={x.hex()for x in evictions}:raise ValueError('refresh source changed before copy')
+    return {'rows':copied,'decoded_bytes':copied_bytes,'source_rows':count,'source_decoded_bytes':total,'evicted_account_leaves':removed}
 
 
 
@@ -99,7 +106,7 @@ def kv_usage(path):
     return decoded,allocated,count
 
 
-def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resume=None,header_window=1,transport_cache=None):
+def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resume=None,header_window=1,transport_cache=None,stop_on_failure=False,code_provenance=(),refresh_missing_code=False):
     if not 1<=seconds<=180 or not 1<=kv_limit<=64 << 20 or not 1<=header_window<=32:
         raise ValueError('capture limits invalid')
     for url in (l1,l2,beacon):C.endpoint_label(url)
@@ -107,8 +114,22 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
     if transport_cache is not None:Cache(transport_cache,claim_id(v))
     binary=source/'rust/target/debug/kona-host'
     if binary.is_symlink() or not binary.is_file():raise ValueError('prepared native executable missing')
+    provenance_paths=list(code_provenance)
+    if resume is not None and (resume/'l2-adapter/code-provenance.json').is_file():
+        provenance_paths.insert(0,resume/'l2-adapter/code-provenance.json')
+    if len(provenance_paths)>16:raise ValueError('provenance input count cap')
+    for path in provenance_paths:
+        C.read_json(path,16<<20)
+    refresh=None
+    if refresh_missing_code:
+        if resume is None:raise ValueError('code refresh requires existing capture')
+        import transition_rpc_adapter as A
+        advice=A.Adapter('https://example.invalid',code_provenance=provenance_paths,provenance_block=v['previous']['hash'])
+        header=C.decode_rlp((candidate/'previous.rlp').read_bytes())
+        refresh=missing_code_leaves(resume/'kv',header[3],advice.code_accounts.keys())
     output.mkdir(parents=True,exist_ok=False)
-    resumed=resume_kv(resume,output/'kv',v,pin,hash_file(binary),kv_limit) if resume else None
+    evict=[bytes.fromhex(x['leaf_hash'])for x in refresh['evictions']]if refresh else ()
+    resumed=resume_kv(resume,output/'kv',v,pin,hash_file(binary),kv_limit,evict) if resume else None
     started=time.monotonic()
     deadline=started+seconds
     children=[];logs=[];host=None;reason='failed';peak=0;peak_allocated=0
@@ -122,6 +143,9 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
             command=[sys.executable,str(HERE.parent/'transition_rpc_adapter.py'),'--rpc',rpc,'--port',str(port),'--seconds',str(seconds),'--header-window',str(header_window),'--output',str(output/(label+'-adapter'))]
             if label=='l1' and transport_cache is not None:
                 command += ['--transport-cache',str(transport_cache),'--cache-claim',claim_id(v)]
+            if label=='l2' and provenance_paths:
+                command += ['--provenance-block',v['previous']['hash']]
+                for path in provenance_paths:command += ['--code-provenance',str(path)]
             proc=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,env=child_env);children.append(proc)
             ready=False
             while time.monotonic()<deadline and proc.poll() is None:
@@ -146,6 +170,8 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
             peak=max(peak,total);peak_allocated=max(peak_allocated,allocated)
             if total>kv_limit or allocated>4<<30 or count>1000000:reason='kv_limit';break
             if any(p.stat().st_size>2 << 20 for p in output.glob('*.log')):reason='log_limit';break
+            if stop_on_failure and any(b'\"adapter_failure\"' in p.read_bytes() for p in output.glob('*-adapter.log')):
+                reason='diagnostic_adapter_failure';break
             if time.monotonic()>=deadline:reason='deadline';break
             if any(p.poll() is not None for p in children[:-1]):reason='adapter_exited';break
             time.sleep(.25)
@@ -168,7 +194,7 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
                 'upstream_revision':pin['revision'],'patch_sha256':pin['patch_sha256'],'host_sha256':hash_file(binary),
                 'candidate':v,'upstream_native_client_accepted':reason=='native_accepted',
                 'complete_exported_witness':False,'derivation_accepted':False,'proof_verified':False,'guest_executed':False,
-                'host_exit_code':host.returncode if host else None,'resumed_kv':resumed,'header_window':header_window,'transport_cache':str(transport_cache) if transport_cache else None}
+                'host_exit_code':host.returncode if host else None,'resumed_kv':resumed,'header_window':header_window,'transport_cache':str(transport_cache) if transport_cache else None,'stop_on_adapter_failure':stop_on_failure,'code_provenance_inputs':[{'sha256':hash_file(p),'path':str(p)}for p in provenance_paths],'code_provenance_refresh':refresh}
         C.write_new(output/'capture-run.json',(json.dumps(result,indent=2)+'\n').encode())
     return result
 
@@ -177,8 +203,8 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--source',type=Path,required=True);p.add_argument('--candidate',type=Path,required=True)
     p.add_argument('--l1-rpc',required=True);p.add_argument('--l2-rpc',required=True);p.add_argument('--beacon',required=True)
-    p.add_argument('--output',type=Path,required=True);p.add_argument('--seconds',type=int,default=180);p.add_argument('--resume',type=Path);p.add_argument('--header-window',type=int,default=1);p.add_argument('--transport-cache',type=Path)
+    p.add_argument('--output',type=Path,required=True);p.add_argument('--seconds',type=int,default=180);p.add_argument('--resume',type=Path);p.add_argument('--header-window',type=int,default=1);p.add_argument('--transport-cache',type=Path);p.add_argument('--stop-on-adapter-failure',action='store_true');p.add_argument('--code-provenance',type=Path,action='append',default=[]);p.add_argument('--refresh-missing-code-provenance',action='store_true')
     a=p.parse_args()
-    try:print(json.dumps(run(a.source.resolve(),a.candidate.resolve(),a.l1_rpc,a.l2_rpc,a.beacon,a.output.absolute(),a.seconds,resume=a.resume.resolve() if a.resume else None,header_window=a.header_window,transport_cache=a.transport_cache.resolve() if a.transport_cache else None),indent=2))
+    try:print(json.dumps(run(a.source.resolve(),a.candidate.resolve(),a.l1_rpc,a.l2_rpc,a.beacon,a.output.absolute(),a.seconds,resume=a.resume.resolve() if a.resume else None,header_window=a.header_window,transport_cache=a.transport_cache.resolve() if a.transport_cache else None,stop_on_failure=a.stop_on_adapter_failure,code_provenance=[p.resolve()for p in a.code_provenance],refresh_missing_code=a.refresh_missing_code_provenance),indent=2))
     except (ValueError,OSError,KeyError,TypeError,subprocess.SubprocessError) as error:
         print(json.dumps({'status':'capture_host_failed','error_type':type(error).__name__}));raise SystemExit(1)from None

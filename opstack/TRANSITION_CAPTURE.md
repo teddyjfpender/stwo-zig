@@ -307,3 +307,36 @@ otherwise valid proofs, truncation, excess count, duplicate commitment and a
 changed setup byte were rejected. No RV64 execution or STARK proof is involved.
 The exported material has55770ordinary records and15sidecars; complete-witness,
 derivation and physical-proof acceptance remain separate gates.
+
+### Durable code provenance during resumed capture
+
+A30second diagnostic stopped at the first failure after13.8seconds and isolated
+one missing code hash. The native KV already held its account proof, so a resumed
+client could read the account without triggering another RPC proof. The fresh
+adapter had lost the address that supplied that code hash. Its refusal was
+correct; retrying an unknown code request could not reconstruct that address.
+
+The adapter now exports bounded account-proof provenance. A resumed adapter
+re-verifies every mapping against the independently pinned prior header before
+using its address/block for `eth_getCode`. Claimed hash/address changes and a
+changed header reject; code bytes still require their exact hash. A bounded
+failure ledger distinguishes upstream transport errors from static validation
+errors and records only public hex proof selectors, never arbitrary RPC bodies
+or endpoint credentials.
+
+For older captures with no provenance file, explicit
+`--refresh-missing-code-provenance` inspects only account leaves reachable from
+the pinned prior state root. It verifies every cached node hash, skips unknown
+subtrees, and identifies nonempty code hashes that have neither a verified code
+preimage nor authenticated address provenance. Only those account-leaf cache
+entries are omitted from a NEW resumed cache. Kona's existing address-bearing
+account hint then refetches the leaf normally. No state value or preimage is
+manufactured and the initial state root never changes. Future provenance is
+retained. The default does not evict anything.
+
+On the actual capture, this authenticated inspection visited7787nodes and100
+account leaves and identified exactly one missing-code leaf, hash
+`69d3d3bddc13f6c45dcd230e2a0aac31b4366f9473d5b347c925ec0539216216`.
+The coherent-root tests exclude unrelated valid-looking leaves and reject
+corrupted cached hashes. `--stop-on-adapter-failure` ends diagnostic capture at
+the first surfaced error rather than exhausting the deadline blindly.

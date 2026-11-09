@@ -104,6 +104,42 @@ class AdapterTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'duplicate'):adapter.dispatch('eth_getProof',['0x'+'00'*20,['0x0','0x'+'00'*32],'latest'])
             rpc.assert_not_called()
 
+    def test_durable_code_provenance_reverified_without_new_account_query(self):
+        import tempfile
+        f=json.loads(zlib.decompress((Path(__file__).parent/'fixtures/recent-storage-code.json.zlib').read_bytes()))
+        with tempfile.TemporaryDirectory()as directory:
+            root=Path(directory);original=A.Adapter('https://example.invalid')
+            with patch.object(C,'rpc',side_effect=[f['block'],f['proof']]):
+                original.dispatch('eth_getProof',[f['proof']['address'],['0x0','0x1','0x2'],f['block']['hash']])
+            original.export(root/'old');advice=root/'old/code-provenance.json'
+            resumed=A.Adapter('https://example.invalid',code_provenance=[advice],provenance_block=f['block']['hash'])
+            with patch.object(C,'rpc',return_value=f['code'])as rpc:
+                self.assertEqual(resumed.dispatch('debug_dbGet',['0x63'+f['proof']['codeHash'][2:]]),f['code'])
+            self.assertEqual(rpc.call_args.args[1],'eth_getCode')
+            with self.assertRaisesRegex(ValueError,'expected block'):
+                A.Adapter('https://example.invalid',code_provenance=[advice],provenance_block='0x'+'44'*32)
+            data=json.loads(advice.read_bytes());key=next(iter(data['entries']))
+            data['entries'][key]['address']='0x'+'55'*20
+            bad=root/'bad.json';bad.write_text(json.dumps(data))
+            empty=A.Adapter('https://example.invalid')
+            with self.assertRaises(ValueError):empty.load_provenance(bad,f['block']['hash'])
+            self.assertEqual(empty.code_accounts,{})
+            data=json.loads(advice.read_bytes());entry=data['entries'].pop(key);entry['account']['codeHash']='0x'+'66'*32;data['entries']['66'*32]=entry
+            bad.write_text(json.dumps(data))
+            with self.assertRaises(ValueError):empty.load_provenance(bad,f['block']['hash'])
+            self.assertEqual(empty.code_accounts,{})
+
+    def test_failure_ledger_is_finite_and_redacts_unrecognized_data(self):
+        adapter=A.Adapter('https://example.invalid');adapter.method_counts['eth_getProof']=1
+        request={'method':'eth_getProof','params':['0x'+'11'*20,['0x0'],{'blockHash':'0x'+'22'*32,'requireCanonical':True}]}
+        row=adapter.record_failure(request,C.RpcFailure('rpc_error',429,-32005))
+        self.assertEqual(row['upstream']['http_status'],429)
+        self.assertEqual(row['proof_request']['slots'],['0x'+'00'*32])
+        row=adapter.record_failure({'method':'secret-url','params':['TOKEN=EXAMPLE']},ValueError('TOKEN=EXAMPLE'))
+        self.assertNotIn('EXAMPLE',json.dumps(row));self.assertNotIn('secret-url',json.dumps(row))
+        for _ in range(100):adapter.record_failure(request,ValueError('storage proof slot mismatch'))
+        self.assertEqual(len(adapter.failures),64);self.assertEqual(adapter.failure_count,102)
+
     def test_readahead_authenticates_parent_chain_and_reuses_hash_cache(self):
         head,parent=json.loads((Path(__file__).parent/'fixtures/transition-159257842-headers.json').read_text())
         adapter=A.Adapter('https://example.invalid',header_window=2)

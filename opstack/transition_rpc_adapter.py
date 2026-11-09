@@ -150,13 +150,12 @@ def storage_slot(value):
     return raw.rjust(32, b"\x00")
 
 
-def verified_proof(block, address, slots, proof):
+def verified_account(root, address, proof):
     """Authenticate every account/storage node before caching any preimage."""
-    C.header_rlp(block)
     address = C.unhex(address, 20)
     if C.unhex(proof["address"], 20) != address:
         raise ValueError("proof address mismatch")
-    raw = C.verify_trie_value(C.unhex(block["stateRoot"], 32), C.keccak(address), proof["accountProof"], allow_absence=True)
+    raw = C.verify_trie_value(root, C.keccak(address), proof["accountProof"], allow_absence=True)
     empty_root = C.keccak(C.rlp(b""))
     empty_code = C.keccak(b"")
     if raw is None:
@@ -170,6 +169,13 @@ def verified_proof(block, address, slots, proof):
         raise ValueError("invalid account integer")
     if nonce != integer(proof["nonce"]) or balance != integer(proof["balance"], 256) or storage != C.unhex(proof["storageHash"], 32) or code != C.unhex(proof["codeHash"], 32):
         raise ValueError("proof fields differ from authenticated account")
+    records = {C.keccak(C.unhex(v)): C.unhex(v) for v in proof["accountProof"]}
+    return records, code if raw is not None else None, storage
+
+
+def verified_proof(block, address, slots, proof):
+    C.header_rlp(block)
+    records, code, storage = verified_account(C.unhex(block["stateRoot"],32), address, proof)
     proofs = proof["storageProof"]
     if not isinstance(proofs, list) or len(proofs) != len(slots):
         raise ValueError("storage proof count mismatch")
@@ -182,11 +188,11 @@ def verified_proof(block, address, slots, proof):
         if not isinstance(value, bytes) or len(value) > 32 or (value and value[0] == 0) or value != integer(item["value"], 256):
             raise ValueError("storage value differs from authenticated trie")
         records.update({C.keccak(C.unhex(v)): C.unhex(v) for v in item["proof"]})
-    return records, code if raw is not None else None
+    return records, code
 
 
 class Adapter:
-    def __init__(self, upstream, record_limit=MAX_RECORD_BYTES, header_window=1, transport_cache=None, cache_claim=None):
+    def __init__(self, upstream, record_limit=MAX_RECORD_BYTES, header_window=1, transport_cache=None, cache_claim=None, code_provenance=(), provenance_block=None):
         C.endpoint_label(upstream)
         if not 1 <= record_limit <= MAX_RECORD_BYTES:
             raise ValueError("invalid record budget")
@@ -203,8 +209,62 @@ class Adapter:
         self.headers = OrderedDict()
         self.header_bytes = 0
         self.code_accounts = {}
+        self.code_proofs = {}
+        self.code_proof_bytes = 0
         self.missing_preimages = {}
         self.method_counts = {}
+        self.failures = []
+        self.failure_count = 0
+        for provenance in code_provenance:
+            self.load_provenance(provenance, provenance_block)
+
+    def remember_code(self, code, address, block, proof):
+        if code is None or code.hex() in self.code_proofs:
+            return
+        account = dict(proof);account["storageProof"] = []
+        entry = {"header_rlp": C.header_rlp(block).hex(), "address": address, "account": account}
+        size = len(json.dumps(entry))
+        if len(self.code_proofs) >= 8192 or self.code_proof_bytes + size > 16 << 20:
+            raise ValueError("code provenance byte or count cap")
+        self.code_accounts[code] = (address, block["hash"])
+        self.code_proofs[code.hex()] = entry
+        self.code_proof_bytes += size
+
+    def load_provenance(self, path, expected_block):
+        expected = C.unhex(expected_block,32)
+        data = C.read_json(Path(path),16 << 20)
+        if set(data) != {"schema","entries"} or data["schema"] != "op-code-provenance-v1" or not isinstance(data["entries"],dict) or len(data["entries"]) > 8192:
+            raise ValueError("code provenance framing")
+        pending = []
+        for key, entry in data["entries"].items():
+            code = C.unhex(key,32)
+            if key != code.hex() or entry.get("account",{}).get("storageProof") != []:
+                raise ValueError("noncanonical code provenance")
+            if set(entry) != {"header_rlp","address","account"}:
+                raise ValueError("code provenance entry framing")
+            raw = C.unhex(entry["header_rlp"])
+            if len(raw)>4096 or C.keccak(raw) != expected:
+                raise ValueError("code provenance expected block mismatch")
+            header = C.decode_rlp(raw)
+            if not isinstance(header,list) or len(header)<15:
+                raise ValueError("code provenance header")
+            records, actual, _ = verified_account(header[3],entry["address"],entry["account"])
+            if actual != code:
+                raise ValueError("code provenance hash mismatch")
+            size = len(json.dumps(entry))
+            pending.append((code,entry,records,size))
+        added = sum(size for code,_,_,size in pending if code.hex() not in self.code_proofs)
+        if self.code_proof_bytes+added > 16<<20 or len(set(self.code_proofs)|set(data["entries"]))>8192:
+            raise ValueError("code provenance byte or count cap")
+        # Validate all advice and aggregate resource debt before publication.
+        all_records = {}
+        for _,_,records,_ in pending:
+            all_records.update(records)
+        self.retain(all_records)
+        for code,entry,records,size in pending:
+            if code.hex() not in self.code_proofs:
+                self.code_proofs[code.hex()] = entry;self.code_proof_bytes += size
+                self.code_accounts[code] = (entry["address"],"0x"+expected.hex())
 
     def retain(self, records):
         added = 0
@@ -325,8 +385,7 @@ class Adapter:
             if code is not None and code not in self.code_accounts and len(self.code_accounts) >= 8192:
                 raise ValueError("code provenance count budget exceeded")
             self.retain(records)
-            if code is not None:
-                self.code_accounts[code] = (address, block["hash"])
+            self.remember_code(code, address, block, result)
             return result
         if method == "debug_dbGet":
             if len(params) != 1:
@@ -359,10 +418,37 @@ class Adapter:
             return C.rpc(self.upstream, method, params, cap=MAX_RESPONSE)
         raise UnsupportedMethod("unsupported capture method; no fabricated preimage/witness")
 
+    def record_failure(self, request, error):
+        import re
+        row = {"method": request.get("method") if request.get("method") in self.method_counts else "other",
+               "error_type": type(error).__name__}
+        if isinstance(error, C.RpcFailure):
+            row["upstream"] = error.report
+        elif type(error) is ValueError and error.args and isinstance(error.args[0], str) and re.fullmatch(r"[A-Za-z0-9 /_-]{1,96}", error.args[0]):
+            row["validation"] = error.args[0]
+        # Only public-chain hex selectors enter diagnostic artifacts. Never
+        # serialize arbitrary RPC bodies, endpoint URLs or unknown parameters.
+        params = request.get("params", [])
+        try:
+            if row["method"] == "eth_getProof" and len(params) == 3:
+                block = params[2].get("blockHash") if isinstance(params[2], dict) else params[2]
+                row["proof_request"] = {"address": "0x" + C.unhex(params[0],20).hex(),
+                                        "slots": ["0x" + storage_slot(x).hex() for x in params[1][:64]],
+                                        "block_hash": "0x" + C.unhex(block,32).hex()}
+            elif row["method"] == "debug_dbGet" and len(params) == 1:
+                key = C.unhex(params[0])
+                if len(key) in (32,33):row["preimage_key"] = "0x" + key.hex()
+        except (ValueError, KeyError, TypeError):
+            pass
+        self.failure_count += 1
+        if len(self.failures) < 64:self.failures.append(row)
+        return row
+
     def export(self, directory):
         directory.mkdir(parents=True, exist_ok=False)
+        C.write_new(directory / "code-provenance.json", (json.dumps({"schema":"op-code-provenance-v1","entries":self.code_proofs}) + "\n").encode())
         C.write_new(directory / "records.json", (json.dumps([(k.hex(), v.hex()) for k, v in sorted(self.records.items())]) + "\n").encode())
-        C.write_new(directory / "capture.json", (json.dumps({"records": len(self.records), "bytes": self.record_bytes, "preimage_hashes_verified": True, "complete_witness": False, "derivation_accepted": False, "proof_verified": False, "missing_preimages": self.missing_preimages, "method_counts": self.method_counts, "prefetched_headers": self.prefetched_headers}, indent=2) + "\n").encode())
+        C.write_new(directory / "capture.json", (json.dumps({"records": len(self.records), "bytes": self.record_bytes, "preimage_hashes_verified": True, "complete_witness": False, "derivation_accepted": False, "proof_verified": False, "missing_preimages": self.missing_preimages, "method_counts": self.method_counts, "prefetched_headers": self.prefetched_headers, "failure_count": self.failure_count, "failures": self.failures}, indent=2) + "\n").encode())
 
 
 def serve(adapter, port, max_requests, seconds):
@@ -382,10 +468,13 @@ def serve(adapter, port, max_requests, seconds):
                 if not isinstance(req, dict) or req.get("jsonrpc") != "2.0" or not isinstance(req.get("method"), str):
                     raise ValueError("invalid RPC request")
                 value = {"jsonrpc": "2.0", "id": req.get("id"), "result": adapter.dispatch(req["method"], req.get("params", []))}
-            except UnsupportedMethod:
+            except UnsupportedMethod as error:
+                print(json.dumps({"adapter_failure": adapter.record_failure(req, error)}), flush=True)
                 value = {"jsonrpc": "2.0", "id": req.get("id"),
                          "error": {"code": -32601, "message": "capture method not supported"}}
-            except (ValueError, KeyError, TypeError, C.RpcFailure):
+            except (ValueError, KeyError, TypeError, C.RpcFailure) as error:
+                request = req if isinstance(locals().get("req"), dict) else {}
+                print(json.dumps({"adapter_failure": adapter.record_failure(request, error)}), flush=True)
                 value = {"jsonrpc": "2.0", "id": req.get("id") if isinstance(locals().get("req"), dict) else None,
                          "error": {"code": -32000, "message": "capture method failed or unsupported"}}
             raw = json.dumps(value).encode()
@@ -421,10 +510,12 @@ def main():
     p.add_argument("--header-window", type=int, default=1)
     p.add_argument("--transport-cache", type=Path)
     p.add_argument("--cache-claim")
+    p.add_argument("--code-provenance", type=Path, action="append", default=[])
+    p.add_argument("--provenance-block")
     a = p.parse_args()
     if not 1 <= a.seconds <= 180 or not 1 <= a.max_requests <= 10000 or not 1024 <= a.port <= 65535:
         raise ValueError("adapter limits invalid")
-    adapter = Adapter(a.rpc, header_window=a.header_window, transport_cache=a.transport_cache, cache_claim=a.cache_claim)
+    adapter = Adapter(a.rpc, header_window=a.header_window, transport_cache=a.transport_cache, cache_claim=a.cache_claim, code_provenance=a.code_provenance, provenance_block=a.provenance_block)
     try:
         if a.block:
             adapter.dispatch("debug_getRawHeader", [a.block])

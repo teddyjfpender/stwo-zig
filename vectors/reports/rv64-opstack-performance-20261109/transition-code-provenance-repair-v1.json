@@ -1,0 +1,113 @@
+{
+  "schema": "op-capture-code-provenance-repair-v1",
+  "date": "2026-11-09",
+  "diagnostic": {
+    "status": "diagnostic_adapter_failure",
+    "elapsed_seconds": 13.795716334017925,
+    "seconds_cap": 30,
+    "decoded_kv_bytes_cap": 67108864,
+    "peak_observed_decoded_kv_bytes": 38019764,
+    "filesystem_kv_bytes_cap": 4294967296,
+    "peak_observed_allocated_kv_bytes": 751767552,
+    "kv_rows": 178695,
+    "upstream_revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+    "patch_sha256": "2442649ee5790fd9c38fbbf5790735b8ea4c5b0bbb2fda3a894a77aedbd7a233",
+    "host_sha256": "862556839311e69c180eb998b190edb45aec23706fbb5a0174e96309a4e39bbd",
+    "candidate": {
+      "l1-anchor": {
+        "number": 26378629,
+        "hash": "0xad0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9",
+        "header_sha256": "af8437ddb8878bf2381cd161d11104b64691c101e118e98efb9c2a5c9ad7a30c"
+      },
+      "previous": {
+        "number": 159321793,
+        "hash": "0x3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+        "header_sha256": "bae79a42074a2b8b09661a69c94296c9a5c40f51d0396a02c91e56408b32f867",
+        "output_root": "0x94625ee179240693eae780eb83dd89ed052b586030073af009949d722e6b613a"
+      },
+      "next": {
+        "number": 159321794,
+        "hash": "0x241301a29d2566cb6e850f36dc27d4ade11b8c815295fc94416cf53c87f41714",
+        "header_sha256": "503879ea89be68dd15743ce33a6fbe102a21e68b9f9eba1971c14b8f34aeea45",
+        "output_root": "0xead7bdb1bc28a437fabe299df41cda2af89c3149d7380be180ff49240e542aed"
+      }
+    },
+    "upstream_native_client_accepted": false,
+    "complete_exported_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false,
+    "guest_executed": false,
+    "host_exit_code": -2,
+    "resumed_kv": {
+      "rows": 178695,
+      "decoded_bytes": 38019764
+    },
+    "header_window": 32,
+    "transport_cache": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/l1-transport-cache",
+    "stop_on_adapter_failure": true
+  },
+  "failure_ledger": {
+    "records": 0,
+    "bytes": 0,
+    "preimage_hashes_verified": true,
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false,
+    "missing_preimages": {
+      "6b4e4826e90d72a38c66eecc25fbe40e0902e517cd53efbea0eed3c60e370aa7": 4
+    },
+    "method_counts": {
+      "debug_dbGet": 4
+    },
+    "prefetched_headers": 0,
+    "failure_count": 4,
+    "failures": [
+      {
+        "method": "debug_dbGet",
+        "error_type": "UnsupportedMethod",
+        "preimage_key": "0x636b4e4826e90d72a38c66eecc25fbe40e0902e517cd53efbea0eed3c60e370aa7"
+      },
+      {
+        "method": "debug_dbGet",
+        "error_type": "UnsupportedMethod",
+        "preimage_key": "0x6b4e4826e90d72a38c66eecc25fbe40e0902e517cd53efbea0eed3c60e370aa7"
+      },
+      {
+        "method": "debug_dbGet",
+        "error_type": "UnsupportedMethod",
+        "preimage_key": "0x636b4e4826e90d72a38c66eecc25fbe40e0902e517cd53efbea0eed3c60e370aa7"
+      },
+      {
+        "method": "debug_dbGet",
+        "error_type": "UnsupportedMethod",
+        "preimage_key": "0x6b4e4826e90d72a38c66eecc25fbe40e0902e517cd53efbea0eed3c60e370aa7"
+      }
+    ]
+  },
+  "offline_account_root_inspection": {
+    "state_root": "7e77c23c053933fd100f7a5fd28de93d854c1c10d8e0ededbfb0b3a9681900a2",
+    "visited_cached_nodes": 7787,
+    "verified_account_leaves": 100,
+    "evictions": [
+      {
+        "leaf_hash": "69d3d3bddc13f6c45dcd230e2a0aac31b4366f9473d5b347c925ec0539216216",
+        "code_hash": "6b4e4826e90d72a38c66eecc25fbe40e0902e517cd53efbea0eed3c60e370aa7"
+      }
+    ],
+    "distinct_missing_code_hashes": 1
+  },
+  "cause": "Native account proof nodes survived resume; ephemeral codeHash/address mapping did not. A cached leaf can avoid the address-bearing RPC hint.",
+  "repair": "Bounded persisted proof provenance is independently verified under pinned prior header. For legacy caches, opt-in removal only of authenticated reachable account leaves lacking both a verified code preimage and proof-derived address provenance forces the original native account hint.",
+  "validation": {
+    "focused_python_tests_passed": 37,
+    "changed_provenance_address_or_code_hash_rejected": true,
+    "wrong_expected_header_rejected": true,
+    "no_new_account_query_needed_for_reverified_provenance": true,
+    "unreachable_fake_leaf_excluded": true,
+    "mutated_cached_node_hash_rejected": true
+  },
+  "pending": "Fail-fast bounded native capture with exact single-leaf refresh; no complete witness or execution acceptance claimed",
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false
+}
