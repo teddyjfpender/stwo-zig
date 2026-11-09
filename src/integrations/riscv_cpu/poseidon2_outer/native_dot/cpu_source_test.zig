@@ -1,5 +1,5 @@
-//! Retained small-block CPU source only. Optional R6 golden wrapper parity;
-//! R7 never commits columns or constructs an outer proof in this gate.
+//! Retained small CPU source; explicit opt-in physical leaf qualification.
+//! Default remains source-only. No R7 recursive/root admission.
 const std = @import("std");
 const Core = @import("stwo_core");
 const Engine = @import("stwo_prover_engine");
@@ -81,7 +81,10 @@ fn cpu(raw: ?*anyopaque, a: std.mem.Allocator, v: Bundle.CpuVerified) !void {
             state.golden_parity = true;
         }
     }
-    {
+    if (std.posix.getenv("STWO_OP_R7_CPU_PHYSICAL")) |path| {
+        state.r7 = try @import("cpu_physical.zig").run(a, view, path, &state.phases);
+        state.output_parity = true;
+    } else {
         var owner = try @import("cpu_source.zig").build(a, view, false, &state.phases);
         defer owner.deinit();
         try std.testing.expect(try owner.isCircuitValid());
@@ -117,10 +120,44 @@ test "OP R7 actual small CPU source lowering and unchanged R6 golden proof" {
     if (state.golden_parity) for (&r7_masks, [_]usize{ 12, 29, 48, 0 }) |*n, extra| {
         n.* += extra;
     };
-    const json = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-r7-actual-small-cpu-source-v1", .old = state.old.?, .r7 = state.r7.?, .r6_golden_proof_exact = state.golden_parity, .native_bundle_fresh_received = true, .same_public_output = state.output_parity, .old_declared_masks = state.old_masks, .r7_declared_masks = r7_masks, .old_sample_refs = state.old_sample_refs, .r7_sample_refs = if (state.golden_parity) state.old_sample_refs + 113 else 0, .masks_derived_from_physical_role_layouts_without_r7_key_construction = true, .r7_source_only = true, .r7_physical_cpu_leaf_proved = false, .heavy_run = false, .production_admission = false, .peak_live_bytes = budget.snapshot().peak_live_bytes, .phases = state.phases }, .{ .whitespace = .indent_2 });
+    const json = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-r7-actual-small-cpu-source-v1", .old = state.old.?, .r7 = state.r7.?, .r6_golden_proof_exact = state.golden_parity, .native_bundle_fresh_received = true, .same_public_output = state.output_parity, .old_declared_masks = state.old_masks, .r7_declared_masks = r7_masks, .old_sample_refs = state.old_sample_refs, .r7_sample_refs = if (state.golden_parity) state.old_sample_refs + 113 else 0, .masks_derived_from_physical_role_layouts_without_r7_key_construction = true, .r7_source_only = std.posix.getenv("STWO_OP_R7_CPU_PHYSICAL") == null, .r7_physical_cpu_leaf_proved = std.posix.getenv("STWO_OP_R7_CPU_PHYSICAL") != null, .heavy_run = false, .production_admission = false, .peak_live_bytes = budget.snapshot().peak_live_bytes, .phases = state.phases }, .{ .whitespace = .indent_2 });
     defer a.free(json);
     var file = try std.fs.cwd().createFile(report_path, .{});
     defer file.close();
     try file.writeAll(json);
     std.debug.print("OP_R7_CPU_SOURCE {s}\n", .{json});
+}
+
+// Artifact inspection never proves again; the physical producer and fresh
+// source receiver gate must have succeeded before this audit is meaningful.
+test "OP R7 persisted CPU physical artifact opening census" {
+    const path = std.posix.getenv("STWO_OP_R7_CPU_AUDIT") orelse return error.SkipZigTest;
+    const a = std.testing.allocator;
+    var dir = try std.fs.cwd().openDir(path, .{});
+    defer dir.close();
+    const encoded = try dir.readFileAlloc(a, "leaf.bin", 16 << 20);
+    defer a.free(encoded);
+    const P = @import("outer_proof.zig");
+    try std.testing.expectEqualStrings("STP27I02", encoded[0..8]);
+    var proof = try P.Wire.decodeProofBytesBinary(a, encoded[P.HEADER_BYTES..]);
+    defer proof.deinit(a);
+    var masks: [4]usize = @splat(0);
+    var columns: [4]usize = @splat(0);
+    var refs: usize = 0;
+    var shifted: usize = 0;
+    try std.testing.expectEqual(@as(usize, 4), proof.commitment_scheme_proof.sampled_values.items.len);
+    for (proof.commitment_scheme_proof.sampled_values.items, &masks, &columns) |tree, *n, *cols| {
+        cols.* = tree.len;
+        for (tree) |values| {
+            n.* += values.len;
+            if (values.len == 2) shifted += 1;
+        }
+        refs += n.*;
+    }
+    try std.testing.expectEqualDeep([4]usize{ 108, 550, 368, 16 }, masks);
+    try std.testing.expectEqual(@as(usize, 1042), refs);
+    try std.testing.expectEqual(@as(usize, 1114), refs + shifted);
+    const json = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-r7-physical-opening-census-v2", .source = "durable physical proof sampled_values after fresh source reception", .masks = masks, .columns = columns, .mask_sample_values = refs, .deep_sample_plan_terms = refs + shifted, .pcs = proof.commitment_scheme_proof.config, .root_only_accepted = false }, .{ .whitespace = .indent_2 });
+    defer a.free(json);
+    try @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, "openings.json", json);
 }

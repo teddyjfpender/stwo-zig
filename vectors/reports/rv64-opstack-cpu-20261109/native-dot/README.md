@@ -193,3 +193,31 @@ versus R6's **264,302,592**: **17.75% fewer**. Declared masks are
 `[108,550,368,16]`; sampled references 1114. The default-null path still produces
 the entire old R6 golden proof byte-for-byte. This is actual source/cost
 qualification, not an R7 CPU proof or block speed measurement.
+
+### Actual small R7-v2 CPU physical leaf
+
+`actual-small-cpu-physical-v2.json` qualifies the retained 796,406-step block's
+CPU wrapper, using the same nine public output words as R6. The producer key
+and witness are destroyed before a new trace-only source and key are compiled
+and the durable proof is verified. Altering the expected public output is
+rejected. This is one CPU outer leaf, not the complete block or a root proof.
+
+The proof is 681,484 bytes. Its producer spends 17.907 s proving, 4.425 s in
+cold setup, and 0.306 s constructing the source. Independent receiver source
+and setup take 4.645 s; fresh verification takes 0.035 s. Peak accounted live
+memory is 4,490,503,353 bytes under a 32 GiB cap, and final live allocation is
+zero. Per-stage wall/user/system data are committed in the receipt. MAIN and
+INTER commitments remain the largest stages at 5.949 s and 5.353 s. Concurrent
+engineering was allowed: these numbers qualify behavior and identify work,
+but are not a controlled speedup measurement.
+
+To reproduce the physical gate, set `STWO_OP_R7_CPU_CONFIG`,
+`STWO_OP_R7_CPU_NATIVE`, `STWO_OP_R7_CPU_REPORT`, and a **new** output directory
+in `STWO_OP_R7_CPU_PHYSICAL`, then run the focused `OP R7 actual small CPU
+source` test. Omitting the last variable retains the source-only gate. The
+separate `OP R7 persisted CPU physical artifact opening census` test reads
+`STWO_OP_R7_CPU_AUDIT` and only decodes existing artifacts; it never re-proves.
+
+R7 recursive statement/fold/root admission and its composed source ledger
+remain closed. The old R6 golden proof remains separately byte-qualified;
+R7 intentionally uses a distinct eight-role authority and wire protocol.
