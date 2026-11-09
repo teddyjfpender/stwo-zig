@@ -80,4 +80,11 @@ The repository owner approved this exact transaction and opening the RFC on
 2026-11-09. Inspection pins OM31's existing prefixed Blake2s hasher; the older
 circuit profiles use the plain family. The draft's plain-family wording does
 not authorize changing OM31's implementation. Hosted provider and consumer
-acceptance remains pending; every original full-package command is retained.
+acceptance is source-pinned below; every original full-package command is retained.
+
+Provider run 42614444674 at 40f0b8a49 passes all six original receiver/package
+commands. Consumer run 42633268309 at e5c81ed08 passes its independent BLAKE3
+corpus and complete package, 292/293 tests passing with one existing skip.
+All child positive/negative checks and the 293-case floor remain intact.
+Later source changes require their own relevant acceptance; these are bounded
+CPU contract results, without block, recursive-parent, GPU or timing qualification.
