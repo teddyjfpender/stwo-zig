@@ -144,7 +144,12 @@ pub fn Native(comptime op: anytype) type {
             for (&in, 0..) |*x, i| x.* = operand(packet, i);
             for (d.canonical_inputs) |i| if (in[i] >= modulusOf(packet)) return error.CurveDomain;
             var w: Witness = undefined;
-            if (comptime @TypeOf(op) == spec.SecpKind) {
+            if (comptime @TypeOf(op) == spec.TowerKind) {
+                var values: [18]u256 = undefined;
+                for (&values, in) |*dst, x| dst.* = @intCast(x);
+                const result = @import("../../../ethereum_services/bn254_tower.zig").compute(&values);
+                for (&w.out, result) |*dst, x| dst.* = x;
+            } else if (comptime @TypeOf(op) == spec.SecpKind) {
                 const sw = secpWitness(op, &in);
                 w.out = sw.out;
                 w.wit = sw.wit;

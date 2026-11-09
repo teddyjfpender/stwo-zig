@@ -29,6 +29,8 @@ pub const exec = @import("../../../ethereum_services/curves.zig");
 pub const Op = exec.Op;
 pub const ALL = exec.ALL;
 pub const COUNT = exec.COUNT;
+/// Separate OP-only candidate key; deliberately absent from exec.ALL.
+pub const TowerKind = @import("../../../ethereum_services/bn254_tower.zig").Kind;
 pub const index = exec.index;
 pub fn tag(op: Op) u32 {
     return @intCast(exec.tag(op));
@@ -199,10 +201,11 @@ pub fn secpDef(comptime kind: SecpKind) Def {
 /// Generic truth key: a curve/field `Op` or a secp `SecpKind`. Every
 /// layout/equation/trace/component authority below is keyed by it.
 pub fn checkKey(comptime K: type) void {
-    if (K != Op and K != SecpKind) @compileError("curve truth key must be curves.Op or secp256k1 Kind");
+    if (K != Op and K != SecpKind and K != TowerKind) @compileError("unsupported carried truth key");
 }
 pub fn defOf(comptime key: anytype) Def {
     checkKey(@TypeOf(key));
+    if (@TypeOf(key) == TowerKind) return @import("../bn254_tower/spec.zig").def(key);
     return if (@TypeOf(key) == Op) def(key) else secpDef(key);
 }
 /// Wire35 program kind (the Op ordinal 5..11, or the secp kind 1/2).
@@ -212,6 +215,7 @@ pub fn kindOf(comptime key: anytype) u32 {
 }
 pub fn tagOf(comptime key: anytype) u32 {
     checkKey(@TypeOf(key));
+    if (@TypeOf(key) == TowerKind) return @import("../../../ethereum_services/bn254_tower.zig").TAG;
     return if (@TypeOf(key) == Op) tag(key) else switch (key) {
         .add => 0x20011,
         .double => 0x20012,
@@ -222,7 +226,7 @@ pub fn tagOf(comptime key: anytype) u32 {
 /// wire for secp (the IDs the Word16 bridge publishes, `outputWire`).
 pub fn wireLabel(comptime key: anytype, id: usize) u32 {
     const d = comptime defOf(key);
-    if (@TypeOf(key) == Op or id < d.coords) return @intCast(id);
+    if (@TypeOf(key) == Op or @TypeOf(key) == TowerKind or id < d.coords) return @intCast(id);
     return secp.get(key).outputs[id - d.coords];
 }
 
