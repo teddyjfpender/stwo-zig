@@ -917,7 +917,7 @@
       "net_code_budget": 20,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "A source/binary-pinned gdb replay proves the Debug helper faults in the 628608-byte cyclic denominator stack probe below the unchanged worker admission. Move the byte-identical four-slot equations into a private per-slot helper: Debug never-inline, optimized always-inline. Preserve slot order, common bases, field operations, output shape, all residual/parity/drain tests and stack ceilings. Rollback restores the exact original equations as one body; no public API or GPU change."
+      "positive_growth_justification": "Source/binary-pinned gdb proves Debug stack-probe faults in the 628608-byte denominator owner and, after its dispatcher shrinks to 25872 bytes, beneath the 557616-byte terms owner. Extract byte-identical slot and grouped-term expressions into private Debug never-inline / optimized always-inline helpers. Preserve common bases, term count, operation/result order, tuple authority, residual/parity/drain tests and stack ceilings. The original three-element result arity remains a compile-time invariant. Combined helper allowance stays +20, no new API, flags, scripts or GPU change."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
