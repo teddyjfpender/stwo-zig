@@ -242,6 +242,10 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(1, len(proof_commands))
         self.assertIn("--artifact-dir", proof_commands[0])
         self.assertIn("--report-out", proof_commands[0])
+        proof_index = commands.index(proof_commands[0])
+        self.assertEqual(1, proof_index)
+        self.assertLess(proof_index, next(i for i, command in enumerate(commands) if "-Doptimize=Debug" in command))
+        self.assertLess(proof_index, next(i for i, command in enumerate(commands) if "test-riscv-profile-partition" in command))
 
     def test_riscv_parallel_residual_and_drain_contracts_run_in_both_modes(self) -> None:
         commands = self.policy["lanes"]["riscv_cpu"]["commands"]

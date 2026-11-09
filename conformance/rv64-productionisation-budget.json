@@ -841,6 +841,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Retain exact command output and inspect only failed test binaries inside the existing CPU cache. Existing hosted workflow records binary hashes and bounded worker/evaluator prologues before teardown. Diagnostics leave failure status, timeouts, stack limits and production logic unchanged; no launcher or runtime flag."
+    },
+    {
+      "id": "fresh_cpu_proof_before_profile_diagnostics",
+      "net_code_budget": 10,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "The existing ReleaseFast CLI build remains first; unchanged proof production, fresh verification and trace commands precede independent Debug/profile diagnostics. Preserve every exact command, check and fail-fast result. Discovery test pins this ownership order; no gate is skipped or reclassified."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

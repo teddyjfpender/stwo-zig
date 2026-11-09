@@ -611,6 +611,20 @@
           "-j2"
         ],
         [
+          "python3",
+          "scripts/riscv/riscv_pr_proof_smoke.py",
+          "--cli",
+          "zig-out/bin/stwo-zig-riscv-cpu",
+          "--artifact-dir",
+          "{output_dir}/riscv-pr-proof-smoke",
+          "--report-out",
+          "{output_dir}/riscv-pr-proof-smoke.json"
+        ],
+        [
+          "python3",
+          "scripts/riscv/riscv_trace_vectors.py"
+        ],
+        [
           "zig",
           "build",
           "test-riscv-observation-contracts",
@@ -625,20 +639,6 @@
           "stwo-zig-riscv-cpu",
           "-Doptimize=ReleaseFast",
           "-j2"
-        ],
-        [
-          "python3",
-          "scripts/riscv/riscv_pr_proof_smoke.py",
-          "--cli",
-          "zig-out/bin/stwo-zig-riscv-cpu",
-          "--artifact-dir",
-          "{output_dir}/riscv-pr-proof-smoke",
-          "--report-out",
-          "{output_dir}/riscv-pr-proof-smoke.json"
-        ],
-        [
-          "python3",
-          "scripts/riscv/riscv_trace_vectors.py"
         ]
       ],
       "local": "hosted"
