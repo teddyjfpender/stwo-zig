@@ -652,6 +652,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Strengthen the FRI differential to use independent u64 remainder arithmetic and authenticate the complete reference against the pinned oracle digest before comparing optimized outputs. The first run showed disagreement in both the field-based reference and optimized output; do not infer an implementation correction from an unvalidated reference. Existing oracle digest, all 128 outputs and seven subsequent folds remain required."
+    },
+    {
+      "id": "delivery_live_sail_binding_regeneration",
+      "net_code_budget": 80,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Rebind two internal Lean composition source identities to canonical current AIR exports, with source-file hashes verified first, then use the existing pinned Sail/Lean workflow and generator to produce a kernel-checked candidate. Default verification still requires committed artifacts, full publication and clean live receipt minting. Explicit regeneration retains baseline rejection, immutable source and candidate diff without promoting receipts or weakening proof/axiom/pin rules; no local compiler or new launcher."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

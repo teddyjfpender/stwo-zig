@@ -19,7 +19,9 @@
 # riscv-refinement.yml; this job is the capability that makes the
 # Sail-present run hosted instead of a laptop prerequisite.
 #
-# Fail-closed contract: there is no skip path anywhere in this workflow. A
+# Fail-closed verification contract: normal mode has no skipped proof leg.
+# Explicit candidate regeneration reproduces source-bound artifacts for review;
+# it never runs the publication admission or mints a release receipt. A
 # Sail release that cannot be downloaded or fails its sha256 check, an
 # unbuildable workspace, a Lean toolchain that cannot be provisioned, digest
 # drift between the committed artifacts and the freshly generated Sail
@@ -36,6 +38,11 @@ on:
     # clean-room so the three heavy formal jobs do not contend.
     - cron: "41 3 * * *"
   workflow_dispatch:
+    inputs:
+      regenerate_bindings:
+        description: Produce a fresh source-bound candidate; never mint a release receipt
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -48,7 +55,7 @@ concurrency:
 
 jobs:
   sail-present-refinement:
-    name: Sail-present 46-opcode FV-1/FV-2 publication gate
+    name: ${{ inputs.regenerate_bindings && 'Candidate Sail binding regeneration' || 'Sail-present 46-opcode FV-1/FV-2 publication gate' }}
     runs-on: ubuntu-latest
     # Cold path: Sail simulator cmake build + Spike build (~30 min), Sail
     # --lean backend generation (bounded at 30 min inside prepare-sail),
@@ -59,6 +66,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
@@ -74,9 +83,30 @@ jobs:
       # publication gate below is expensive, while committed manifest drift is
       # deterministic and can be rejected from the carried evidence immediately.
       - name: Fail fast on committed generated-artifact drift
+        if: inputs.regenerate_bindings != true
         run: >-
           python3 scripts/riscv/riscv_refinement.py check-generated
           --reuse-committed-sail-evidence
+
+      # Candidate mode reproduces the owner after an explicit source repair.
+      # It records the old receipt rejection; normal verification still refuses it.
+      - name: Record immutable candidate source and baseline rejection
+        if: inputs.regenerate_bindings == true
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          mkdir -p "$OUT"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain=v1)"
+          git rev-parse HEAD > "$OUT/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/source-tree.txt"
+          cat /proc/meminfo > "$OUT/host-memory.txt"
+          printf '%s\n' "Candidate source reproduction only; no publication or release receipt is minted." > "$OUT/qualification-scope.txt"
+          set +e
+          python3 scripts/riscv/riscv_refinement.py check-generated --no-export-air --reuse-committed-sail-evidence > "$OUT/baseline-check.log" 2>&1
+          STATUS=$?
+          set -e
+          printf '%s\n' "$STATUS" > "$OUT/baseline-check-exit.txt"
 
       - name: Setup Lean at the pinned toolchain
         uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9  # v1.5.0
@@ -197,7 +227,21 @@ jobs:
       # hashes), coverage, negative controls, Python unit tests, Lean
       # build, proof-escape scan, and the axiom audit.
       #
+      - name: Regenerate source-bound candidate with the live pinned owner
+        if: inputs.regenerate_bindings == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          python3 scripts/riscv/riscv_refinement.py generate --no-export-air \
+            --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
+            --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/generation.log"
+          python3 scripts/riscv/riscv_refinement.py check-generated --no-export-air \
+            --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
+            --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/check-generated.log"
+
       - name: Run the Sail-present 46-opcode FV-1/FV-2 publication gate
+        if: inputs.regenerate_bindings != true
         env:
           STWO_SAIL_RISCV_DIR: ${{ runner.tool_cache }}/stwo-zig/riscv-formal/source/sail-riscv
           SAIL: ${{ runner.temp }}/sail/bin/sail
@@ -211,6 +255,7 @@ jobs:
       # (scripts/riscv/riscv_refinement.py excludes the receipt path from its
       # clean-repository check, so the deletion does not trip it).
       - name: Mint the live-evidence refinement receipt
+        if: inputs.regenerate_bindings != true
         run: |
           set -euo pipefail
           rm -f formal/riscv-refinement/refinement-receipt.json
@@ -222,6 +267,16 @@ jobs:
 
       # Save even after a red run: a drift investigation needs the warm
       # toolchain far more than a green run does.
+      - name: Retain candidate owner output even after rejection
+        if: always() && inputs.regenerate_bindings == true
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          mkdir -p "$OUT"
+          git diff --exit-code -- src scripts conformance .github
+          git diff --binary -- formal/riscv-refinement > "$OUT/generated-bindings.patch"
+          git status --porcelain=v1 > "$OUT/worktree-status.txt"
+
       - name: Save pinned formal toolchain workspace
         if: always()
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
@@ -237,9 +292,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
-          name: riscv-sail-refinement-receipt-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: riscv-sail-${{ inputs.regenerate_bindings && 'candidate' || 'refinement' }}-receipt-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/refinement-receipt.json
             ${{ runner.temp }}/riscv-formal-tools-receipt.json
+            ${{ runner.temp }}/riscv-sail-binding-candidate
           if-no-files-found: warn
           retention-days: 90

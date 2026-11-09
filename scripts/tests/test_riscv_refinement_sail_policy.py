@@ -26,6 +26,24 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
                     "RiscvRefinement.Publication.TeamA.Pilots",
                 ], sail_lean_bridge._formal_bridge_targets(Paths(root)))
 
+    def test_hosted_sail_candidate_keeps_normal_admission_and_owner_checks(self):
+        source = (ROOT / ".github/workflows/riscv-sail-formal.yml").read_text()
+        self.assertIn("default: false", source)
+        for name in ("Fail fast on committed generated-artifact drift",
+                     "Run the Sail-present 46-opcode FV-1/FV-2 publication gate",
+                     "Mint the live-evidence refinement receipt"):
+            step = source.split("- name: " + name, 1)[1].split("      - name:", 1)[0]
+            self.assertIn("if: inputs.regenerate_bindings != true", step)
+        for token in ("lake build", "prepare-sail", "riscv_formal_tools.py prepare",
+                      'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+                      "git diff --exit-code -- src scripts conformance .github",
+                      "--no-export-air", "--sail-riscv-dir", "--sail-bin",
+                      "baseline-check-exit.txt", "generated-bindings.patch",
+                      "if: always() && inputs.regenerate_bindings == true"):
+            self.assertIn(token, source)
+        self.assertNotIn("git push", source)
+        self.assertNotIn("--reuse-committed-sail-evidence", source.split("- name: Regenerate source-bound candidate with the live pinned owner", 1)[1].split("      - name:", 1)[0])
+
     def test_pilot_composition_digests_follow_generated_air(self) -> None:
         composition = (
             ROOT / sail_lean_bridge.COMPOSITION_SOURCE
