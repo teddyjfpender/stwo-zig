@@ -202,6 +202,21 @@ test "serialized sponge local GKR child verifies source closure and independent 
     try std.testing.expectError(error.LocalGkrReceiptMismatch, verifyPending(a, scope, g, &decoded.proof, bad_receipt, boundary));
     // Equal-and-opposite field debt across namespaces is not cancellation:
     // tuple coefficients/offsets are drawn independently after MAIN.
+    const A = @import("stwo_riscv_frontend").rv64_air;
+    const drow = A.witness.physical(0, (try g.instances())[0].row_log);
+    const drows = try (try g.instances())[0].rows();
+    const pointer_at = A.crypto.keccak_sponge.layout.call.pointer * drows + drow;
+    const range_at = A.witness.physical(0, (try g.instances())[6].row_log);
+    const old_pointer = source.main[0][pointer_at];
+    const old_count = source.main[6][range_at];
+    source.main[0][pointer_at] = old_pointer.add(core.fields.m31.M31.fromCanonical(8));
+    source.main[6][range_at] = old_count.sub(core.fields.m31.M31.one());
+    // A complete source mutation with opposed namespace debt still cannot
+    // close under the independent denominator draws. It is not just a forged
+    // claimed output vector. Actual PCS MAIN binding is the next enclosing gate.
+    try std.testing.expectError(error.UnclosedLocalGkr, proveUnboundWithOptions(a, scope, g, provider, boundary, .{ .coefficient_encoding = .fixed4 }));
+    source.main[0][pointer_at] = old_pointer;
+    source.main[6][range_at] = old_count;
     const zero = [_]O{ O.zero(), O.one() };
     const plus = [_]O{ O.one(), checked.challenges.owner.offset };
     const minus = [_]O{ O.one().neg(), checked.challenges.u8 };

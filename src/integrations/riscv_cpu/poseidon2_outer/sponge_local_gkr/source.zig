@@ -10,6 +10,8 @@ const M = core.fields.m31.M31;
 pub const Source = struct {
     allocator: std.mem.Allocator,
     geometry: R.Geometry,
+    instances: [8]R.Instance,
+    row_counts: [8]usize,
     main: [8][]M,
     pub fn init(a: std.mem.Allocator, g: R.Geometry, calls: []const K.types.Call, words: []const K.types.State) !Source {
         const instances = try g.instances();
@@ -25,7 +27,8 @@ pub const Source = struct {
         }
         if (checked_perms != g.permutations or checked_words != words.len) return error.SpongeLocalSourceMismatch;
 
-        var out = Source{ .allocator = a, .geometry = g, .main = undefined };
+        var out = Source{ .allocator = a, .geometry = g, .instances = instances, .row_counts = undefined, .main = undefined };
+        for (instances, &out.row_counts) |instance, *n| n.* = try instance.rows();
         var allocated: usize = 0;
         errdefer for (out.main[0..allocated]) |v| a.free(v);
         for (instances, &out.main) |instance, *values| {
@@ -88,14 +91,14 @@ pub const Source = struct {
         unreachable;
     }
     pub fn setRow(self: *Source, comptime role: R.Role, logical: usize, m: *const [R.mainWidth(role)]M) void {
-        const instance = (self.geometry.instances() catch unreachable)[index(role)];
-        const rows = instance.rows() catch unreachable;
+        const instance = self.instances[index(role)];
+        const rows = self.row_counts[index(role)];
         const physical = A.witness.physical(logical, instance.row_log);
         for (m, 0..) |v, c| self.main[index(role)][c * rows + physical] = v;
     }
     pub fn row(self: *const Source, comptime role: R.Role, logical: usize) [R.mainWidth(role)]M {
-        const instance = (self.geometry.instances() catch unreachable)[index(role)];
-        const rows = instance.rows() catch unreachable;
+        const instance = self.instances[index(role)];
+        const rows = self.row_counts[index(role)];
         const physical = A.witness.physical(logical, instance.row_log);
         var m: [R.mainWidth(role)]M = undefined;
         for (&m, 0..) |*v, c| v.* = self.main[index(role)][c * rows + physical];
@@ -130,7 +133,7 @@ pub const Source = struct {
                         return;
                     }
                 }
-                const instance = (s.source.geometry.instances() catch unreachable)[index(role)];
+                const instance = s.source.instances[index(role)];
                 const physical = A.witness.physical(logical, instance.row_log);
                 const values = s.source.main[index(role)];
                 const sum = @as(u64, values[physical].v) + weight.v;
@@ -153,16 +156,16 @@ pub const Source = struct {
 pub fn fixedRow(comptime role: R.Role, logical: usize, log: u32) [R.fixedWidth(role)]M {
     if (role == .u16 or role == .u8) return .{M.fromCanonical(@intCast(logical))};
     if (role == .and_) return .{ M.fromCanonical(@intCast(logical % 256)), M.fromCanonical(@intCast(logical / 256)), M.fromCanonical(@intCast((logical % 256) & (logical / 256))) };
-    if (role == .word) return .{ M.fromCanonical(@intCast(logical % 18)), M.fromCanonical(@intFromBool(logical % 18 == 0)), M.fromCanonical(@intFromBool(logical % 18 == 17)) };
-    if (role == .lane) return .{ M.fromCanonical(@intCast(logical % 25)), M.fromCanonical(@intFromBool(logical % 25 < 17)), M.fromCanonical(@intFromBool(logical % 25 == 16)) };
+    if (role == .word) return .{ M.fromCanonical(@intCast(logical % 18)), M.fromCanonical(@intFromBool(logical % 18 == 0)), M.fromCanonical(@intFromBool(logical % 18 == 17)), M.fromCanonical(@intFromBool(logical == 0)) };
+    if (role == .lane) return .{ M.fromCanonical(@intCast(logical % 25)), M.fromCanonical(@intFromBool(logical % 25 < 17)), M.fromCanonical(@intFromBool(logical % 25 == 16)), M.fromCanonical(@intFromBool(logical == 0)) };
     return .{ M.fromCanonical(@intCast(logical)), M.fromCanonical(@intFromBool(logical == 0)), M.fromCanonical(@intFromBool(logical + 1 == @as(usize, 1) << @intCast(log))) };
 }
-pub fn emitRaw(comptime role: R.Role, comptime F: type, f: *const [R.fixedWidth(role)]F, m: *const [R.mainWidth(role)]F, first_id: u32, sink: anytype) void {
+pub fn emitRaw(comptime role: R.Role, comptime F: type, f: *const [R.fixedWidth(role)]F, m: *const [R.mainWidth(role)]F, first_id: anytype, sink: anytype) void {
     switch (role) {
         .descriptor => S.descriptor.emitRaw(F, m, sink),
         .state => S.state.emitRaw(F, m, sink),
-        .header => S.header.emitRaw(F, f[0], m, A.evaluation.qFor(F, first_id), sink),
-        .word => S.word.emitRaw(F, f, m, sink),
+        .header => S.header.emitRaw(F, f[0], m, A.evaluation.scalarFor(F, first_id), sink),
+        .word => S.word.emitRaw(F, f[0..3], m, sink),
         .lane => S.lane.emitRaw(F, m, sink),
         .u16 => sink.emit(K.equations.RANGE16, f.*, m[0].neg()),
         .u8 => sink.emit(K.equations.RANGE8, f.*, m[0].neg()),

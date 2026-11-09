@@ -135,3 +135,13 @@ test {
 test {
     _ = @import("poseidon2_outer/sponge_local_gkr/native.zig");
 }
+test {
+    _ = @import("poseidon2_outer/sponge_local_gkr/component.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/sponge_local_gkr/semantic.zig");
+}
+test {
+    _ = @import("poseidon2_outer/sponge_local_gkr/physical_test.zig");
+}

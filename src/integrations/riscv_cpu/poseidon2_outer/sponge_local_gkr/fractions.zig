@@ -50,7 +50,7 @@ pub fn List(comptime F: type, comptime role: R.Role) type {
         }
     };
 }
-pub fn collect(comptime F: type, comptime role: R.Role, f: *const [R.fixedWidth(role)]F, m: *const [R.mainWidth(role)]F, first_id: u32, ch: ChallengesFor(E.ConstFor(F))) List(F, role) {
+pub fn collect(comptime F: type, comptime role: R.Role, f: *const [R.fixedWidth(role)]F, m: *const [R.mainWidth(role)]F, first_id: E.CountFor(E.ConstFor(F)), ch: ChallengesFor(E.ConstFor(F))) List(F, role) {
     var list = List(F, role){ .ch = ch };
     Source.emitRaw(role, F, f, m, first_id, &list);
     return list;

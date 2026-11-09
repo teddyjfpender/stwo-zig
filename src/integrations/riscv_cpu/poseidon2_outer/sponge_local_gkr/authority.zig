@@ -21,6 +21,7 @@ pub fn mainWidth(role: Role) usize {
 pub fn fixedWidth(role: Role) usize {
     return switch (role) {
         .and_ => 3,
+        .word, .lane => 4,
         .u16, .u8 => 1,
         else => 3,
     };
@@ -106,7 +107,7 @@ test "serialized sponge authority derives ordered role geometry and bounds" {
     for (instances, [_]u32{ 7, 11, 8, 12, 13, 16, 8, 16 }) |instance, log| try std.testing.expectEqual(log, instance.row_log);
     var width: usize = 0;
     for (instances[0..5]) |instance| width += mainWidth(instance.role) + fixedWidth(instance.role) + interactionWidth(instance.role);
-    try std.testing.expectEqual(@as(usize, 465), width);
+    try std.testing.expectEqual(@as(usize, 467), width);
     try std.testing.expectError(error.SpongeLocalGeometry, (Geometry{ .calls = 1, .permutations = 0, .first_id = 1 }).instances());
     try std.testing.expectError(error.SpongeLocalGeometry, (Geometry{ .calls = 1, .permutations = 1, .first_id = core.fields.m31.Modulus - 1 }).instances());
     try std.testing.expectError(error.SpongeLocalGeometry, (Geometry{ .calls = 200000, .permutations = 200000, .first_id = 1 }).instances());
