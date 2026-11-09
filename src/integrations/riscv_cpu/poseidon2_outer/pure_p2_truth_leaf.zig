@@ -32,6 +32,21 @@ pub const View = struct {
     pub fn build(self: View, a: std.mem.Allocator, trace_only: bool) !C.PoseidonContext {
         return self.buildMode(a, trace_only, true);
     }
+    pub fn emitInto(self: View, a: std.mem.Allocator, ctx: *C.Context, trace_only: bool) !@import("pure_p2_source_emission.zig").Emission {
+        const detail = try self.emitDetails(a, ctx, trace_only);
+        return .{ .output = detail.output, .mutation_ports = .{ detail.ports[0], detail.ports[1], detail.ports[4], detail.ports[7] } };
+    }
+    const Details = struct { output: [9]C.Var, ports: [8]C.Var };
+    fn emitDetails(self: View, a: std.mem.Allocator, ctx: *C.Context, trace_only: bool) !Details {
+        _ = try C.sidecar(ctx);
+        const proof = try V.proof.guess(ctx, self.values, self.shape);
+        var frame = Frame.Frame.init(ctx);
+        var statement = try Full.Statement.init(&frame, self.key, self.truth, self.expected, self.manifest, self.claims, .{ .fixed = proof.commitments[0], .main = proof.commitments[1] });
+        _ = try V.verify(ctx, self.shape, &proof, &statement);
+        const output = try frame.finish();
+        if (!trace_only) for (output, try self.expectedOutput(a)) |wire, expected| try std.testing.expect(ctx.get(wire).eql(expected));
+        return .{ .output = output, .ports = .{ proof.sampled_values[1][0][0].c0.v, statement.claims[0].c0.v, frame.free_words.items[0].get(), frame.free_words.items[1].get(), frame.free_words.items[9 + 18 + 8].get(), frame.free_words.items[frame.free_words.items.len - 2].get(), frame.free_words.items[frame.free_words.items.len - 1].get(), output[8] } };
+    }
     fn buildMode(self: View, a: std.mem.Allocator, trace_only: bool, diagnostic_checks: bool) !C.PoseidonContext {
         var structural = @import("../rv64_recursion/circuit_lane.zig").StructuralScope.init();
         defer structural.deinit();
@@ -41,19 +56,15 @@ pub const View = struct {
         var active = true;
         defer if (active) C.finish() catch {};
         const ctx = owner.algebra();
-        const proof = try V.proof.guess(ctx, self.values, self.shape);
-        var frame = Frame.Frame.init(ctx);
-        var statement = try Full.Statement.init(&frame, self.key, self.truth, self.expected, self.manifest, self.claims, .{ .fixed = proof.commitments[0], .main = proof.commitments[1] });
-        _ = try V.verify(ctx, self.shape, &proof, &statement);
-        const output = try frame.finish();
-        if (!trace_only) for (output, try self.expectedOutput(a)) |wire, expected| try std.testing.expect(ctx.get(wire).eql(expected));
+        const emitted = try self.emitDetails(a, ctx, trace_only);
+        const output = emitted.output;
         try C.finish();
         active = false;
         try owner.setOutputs(&output);
         try owner.finalize();
         if (!trace_only and diagnostic_checks) {
             try std.testing.expect(try owner.isCircuitValid());
-            for ([_]C.Var{ proof.sampled_values[1][0][0].c0.v, statement.claims[0].c0.v, frame.free_words.items[0].get(), frame.free_words.items[1].get(), frame.free_words.items[9 + 18 + 8].get(), frame.free_words.items[frame.free_words.items.len - 2].get(), frame.free_words.items[frame.free_words.items.len - 1].get(), output[8] }) |port| {
+            for (emitted.ports) |port| {
                 const original = ctx.get(port);
                 ctx.value_table.items[port.idx] = original.add(C.Q.one());
                 const accepted = try owner.isCircuitValid();

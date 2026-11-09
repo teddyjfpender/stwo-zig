@@ -1,4 +1,4 @@
-//! Borrowed views of the three typed detached-source native verifiers.
+//! Borrowed views of every typed detached-runtime native verifier.
 //! No pointer in a view may escape its synchronous callback without ownership.
 const std = @import("std");
 const C = @import("../full_p2_common.zig");
@@ -9,11 +9,21 @@ pub const View = union(enum) {
     cpu: @import("../sponge_cpu/leaf.zig").View,
     detached: @import("../sponge_local_gkr/leaf.zig").View,
     truth: @import("../truth_local_gkr/leaf.zig").View,
+    classic_truth: @import("../pure_p2_truth_leaf.zig").View,
+    classic_miller: @import("../pure_p2_tower_leaf.zig").View,
+    local_miller: @import("../miller_local_gkr/leaf.zig").View,
     pub fn ordinal(self: View) u32 {
         return switch (self) {
             .cpu => |v| v.expected.ordinal,
             .detached => |v| v.ordinal,
-            .truth => |v| v.expected.ordinal,
+            inline .truth, .classic_truth, .classic_miller, .local_miller => |v| v.expected.ordinal,
+        };
+    }
+    /// Identity of the selected native protocol key, including local-GKR
+    /// flavor. Local keys deliberately differ from their classic base keys.
+    pub fn fixedIdentity(self: View) [32]u8 {
+        return switch (self) {
+            inline else => |v| v.key.identity,
         };
     }
     pub fn manifest(self: View) [36]u8 {
@@ -25,7 +35,8 @@ pub const View = union(enum) {
         return switch (self) {
             .cpu => |v| v.key.profile,
             .detached => |v| v.key.profile,
-            .truth => |v| v.key.base.profile,
+            inline .truth, .local_miller => |v| v.key.base.profile,
+            inline .classic_truth, .classic_miller => |v| v.key.profile,
         };
     }
     pub fn expected(self: View, a: std.mem.Allocator) !Fold.Digest {
@@ -56,6 +67,30 @@ pub const View = union(enum) {
                 var out = v;
                 out.shape = shape;
                 break :blk .{ .detached = out };
+            },
+            .classic_truth => |v| blk: {
+                if (!std.meta.eql(v.expected, try v.key.expected(v.truth, v.expected.ordinal))) return error.DetachedSourceAuthority;
+                if (v.values.cap_log != 0) return error.DetachedSourceCapVariant;
+                shape.* = try @import("../pure_p2_truth_statement.zig").geometry(a, v.key, v.truth);
+                var out = v;
+                out.shape = shape;
+                break :blk .{ .classic_truth = out };
+            },
+            .classic_miller => |v| blk: {
+                if (!std.meta.eql(v.expected, try v.key.expected(v.span, v.expected.ordinal))) return error.DetachedSourceAuthority;
+                if (v.values.cap_log != 0) return error.DetachedSourceCapVariant;
+                shape.* = try @import("../pure_p2_tower_statement.zig").geometry(a, v.key);
+                var out = v;
+                out.shape = shape;
+                break :blk .{ .classic_miller = out };
+            },
+            .local_miller => |v| blk: {
+                try @import("../miller_local_gkr/worker.zig").validateExpected(v.key, v.span, v.expected);
+                if (v.values.cap_log != 0) return error.DetachedSourceCapVariant;
+                shape.* = try @import("../miller_local_gkr/statement.zig").geometry(a, v.key, v.span);
+                var out = v;
+                out.shape = shape;
+                break :blk .{ .local_miller = out };
             },
             .truth => |v| blk: {
                 try @import("../truth_local_gkr/worker.zig").validateExpected(v.key, v.truth, v.expected);

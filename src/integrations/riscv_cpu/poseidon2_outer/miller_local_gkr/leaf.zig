@@ -32,6 +32,17 @@ pub const View = struct {
     pub fn buildForProving(self: View, a: std.mem.Allocator) !C.PoseidonContext {
         return self.buildMode(a, false, false);
     }
+    pub fn emitInto(self: View, a: std.mem.Allocator, ctx: *C.Context, trace_only: bool) !@import("../pure_p2_source_emission.zig").Emission {
+        _ = try C.sidecar(ctx);
+        const proof = try V.proof.guess(ctx, self.values, self.shape);
+        var frame = Frame.Frame.init(ctx);
+        var statement = try Full.Statement.init(&frame, self.key, self.span, self.expected, self.manifest, self.receipt, self.claims, .{ .fixed = proof.commitments[0], .main = proof.commitments[1] }, self.local);
+        defer statement.deinit(ctx);
+        _ = try V.verify(ctx, self.shape, &proof, &statement);
+        const output = try frame.finish();
+        if (!trace_only) for (output, try self.expectedOutput(a)) |wire, want| try std.testing.expect(ctx.get(wire).eql(want));
+        return .{ .output = output, .mutation_ports = [_]C.Var{ statement.pending.artifact.claims_to_verify_by_instance[0][0].c0.v, proof.sampled_values[1][0][0].c0.v, statement.claims[0].c0.v, output[8] } };
+    }
     fn buildMode(self: View, a: std.mem.Allocator, trace_only: bool, diagnostics: bool) !C.PoseidonContext {
         var structural = @import("../../rv64_recursion/circuit_lane.zig").StructuralScope.init();
         defer structural.deinit();
@@ -41,20 +52,15 @@ pub const View = struct {
         var active = true;
         defer if (active) C.finish() catch {};
         const ctx = owner.algebra();
-        const proof = try V.proof.guess(ctx, self.values, self.shape);
-        var frame = Frame.Frame.init(ctx);
-        var statement = try Full.Statement.init(&frame, self.key, self.span, self.expected, self.manifest, self.receipt, self.claims, .{ .fixed = proof.commitments[0], .main = proof.commitments[1] }, self.local);
-        defer statement.deinit(ctx);
-        _ = try V.verify(ctx, self.shape, &proof, &statement);
-        const output = try frame.finish();
-        if (!trace_only) for (output, try self.expectedOutput(a)) |wire, want| try std.testing.expect(ctx.get(wire).eql(want));
+        const emitted = try self.emitInto(a, ctx, trace_only);
+        const output = emitted.output;
         try C.finish();
         active = false;
         try owner.setOutputs(&output);
         try owner.finalize();
         if (!trace_only and diagnostics) {
             try std.testing.expect(try owner.isCircuitValid());
-            for ([_]C.Var{ statement.pending.artifact.claims_to_verify_by_instance[0][0].c0.v, proof.sampled_values[1][0][0].c0.v, statement.claims[0].c0.v, output[8] }) |port| {
+            for (emitted.mutation_ports) |port| {
                 const old = ctx.get(port);
                 ctx.value_table.items[port.idx] = old.add(C.Q.one());
                 const accepted = try owner.isCircuitValid();

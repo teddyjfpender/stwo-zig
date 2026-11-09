@@ -37,16 +37,21 @@ pub fn detached(a: std.mem.Allocator, worker: *const D.Worker, encoded: *const D
     var capture: Capture = undefined;
     _ = try D.verifyWithCapture(a, worker.geometry, worker.key, worker.expected.ordinal, manifest, main, encoded, &capture);
     defer capture.deinit(a);
+    return detachedCaptured(a, worker.key, worker.geometry, worker.expected.ordinal, manifest, main, encoded, &capture, sink);
+}
+/// Reuse the receiver's existing fresh physical capture; do not verify the
+/// native proof a second time while constructing its recursive source view.
+pub fn detachedCaptured(a: std.mem.Allocator, key: *const @import("../sponge_local_gkr/key.zig").Key, geometry: @import("../sponge_local_gkr/authority.zig").Geometry, ordinal: u32, manifest: [36]u8, main: [36]u8, encoded: *const D.Encoded, capture: *const Capture, sink: Sink) !void {
     var arena = std.heap.ArenaAllocator.init(a);
     defer arena.deinit();
     const scratch = arena.allocator();
     var parsed = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
     defer parsed.deinit(a);
-    var local = try @import("../sponge_local_gkr/native.zig").decode(a, worker.geometry, encoded.local);
+    var local = try @import("../sponge_local_gkr/native.zig").decode(a, geometry, encoded.local);
     defer local.deinit();
-    const shape = try @import("../sponge_local_gkr/capture.zig").geometry(scratch, worker.geometry, worker.key);
-    const values = try V.proof.fromNative(scratch, &parsed, &capture, &shape);
-    try sink.visit(sink.context, a, .{ .detached = .{ .key = worker.key, .geometry = worker.geometry, .ordinal = worker.expected.ordinal, .manifest = manifest, .main = main, .receipt = encoded.receipt, .claims = encoded.claims, .child = &local.proof, .shape = &shape, .values = &values } });
+    const shape = try @import("../sponge_local_gkr/capture.zig").geometry(scratch, geometry, key);
+    const values = try V.proof.fromNative(scratch, &parsed, capture, &shape);
+    try sink.visit(sink.context, a, .{ .detached = .{ .key = key, .geometry = geometry, .ordinal = ordinal, .manifest = manifest, .main = main, .receipt = encoded.receipt, .claims = encoded.claims, .child = &local.proof, .shape = &shape, .values = &values } });
 }
 pub fn truth(a: std.mem.Allocator, key: *const K.Key, declaration: R.Truth, expected: Manifest.Expected, manifest: [36]u8, main: [36]u8, encoded: *const K.Encoded, capture: *const Capture, sink: Sink) !void {
     var arena = std.heap.ArenaAllocator.init(a);
@@ -60,4 +65,39 @@ pub fn truth(a: std.mem.Allocator, key: *const K.Key, declaration: R.Truth, expe
     const shape = try @import("../truth_local_gkr/statement.zig").geometry(scratch, key, declaration);
     const values = try V.proof.fromNative(scratch, &parsed, capture, &shape);
     try sink.visit(sink.context, a, .{ .truth = .{ .key = key, .truth = declaration, .expected = expected, .manifest = manifest, .main = main, .receipt = encoded.receipt, .claims = encoded.claims, .local = &local.proof, .shape = &shape, .values = &values } });
+}
+
+/// Caller has physically verified encoded under the concrete independently
+/// derived source key. Capture/proof/local buffers are borrowed only until visit.
+pub fn classicTruth(a: std.mem.Allocator, key: *const @import("../pure_p2_truth_worker.zig").Key, declaration: R.Truth, expected: Manifest.Expected, manifest: [36]u8, main: [36]u8, encoded: *const @import("../pure_p2_truth_worker.zig").Encoded, capture: *const Capture, sink: Sink) !void {
+    var arena = std.heap.ArenaAllocator.init(a);
+    defer arena.deinit();
+    const scratch = arena.allocator();
+    var parsed = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
+    defer parsed.deinit(a);
+    const shape = try @import("../pure_p2_truth_statement.zig").geometry(scratch, key, declaration);
+    const values = try V.proof.fromNative(scratch, &parsed, capture, &shape);
+    try sink.visit(sink.context, a, .{ .classic_truth = .{ .key = key, .truth = declaration, .expected = expected, .manifest = manifest, .main = main, .claims = encoded.claims, .shape = &shape, .values = &values } });
+}
+pub fn classicMiller(a: std.mem.Allocator, key: *const @import("../pure_p2_tower_worker.zig").Key, span: @import("../pure_p2_tower_worker.zig").Span, expected: Manifest.Expected, manifest: [36]u8, main: [36]u8, encoded: *const @import("../pure_p2_tower_worker.zig").Encoded, capture: *const Capture, sink: Sink) !void {
+    var arena = std.heap.ArenaAllocator.init(a);
+    defer arena.deinit();
+    const scratch = arena.allocator();
+    var parsed = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
+    defer parsed.deinit(a);
+    const shape = try @import("../pure_p2_tower_statement.zig").geometry(scratch, key);
+    const values = try V.proof.fromNative(scratch, &parsed, capture, &shape);
+    try sink.visit(sink.context, a, .{ .classic_miller = .{ .key = key, .span = span, .expected = expected, .manifest = manifest, .main = main, .claims = encoded.claims, .shape = &shape, .values = &values } });
+}
+pub fn localMiller(a: std.mem.Allocator, key: *const @import("../miller_local_gkr/worker.zig").Key, span: @import("../miller_local_gkr/worker.zig").Span, expected: Manifest.Expected, manifest: [36]u8, main: [36]u8, encoded: *const @import("../miller_local_gkr/worker.zig").Encoded, capture: *const Capture, sink: Sink) !void {
+    var arena = std.heap.ArenaAllocator.init(a);
+    defer arena.deinit();
+    const scratch = arena.allocator();
+    var parsed = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
+    defer parsed.deinit(a);
+    var local = try @import("../miller_local_gkr/native.zig").decode(a, try key.geometry(span), encoded.local);
+    defer local.deinit();
+    const shape = try @import("../miller_local_gkr/statement.zig").geometry(scratch, key, span);
+    const values = try V.proof.fromNative(scratch, &parsed, capture, &shape);
+    try sink.visit(sink.context, a, .{ .local_miller = .{ .key = key, .span = span, .expected = expected, .manifest = manifest, .main = main, .receipt = encoded.receipt, .claims = encoded.claims, .local = &local.proof, .shape = &shape, .values = &values } });
 }
