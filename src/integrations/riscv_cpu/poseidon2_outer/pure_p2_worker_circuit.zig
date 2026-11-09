@@ -10,8 +10,11 @@ fn mixId(ctx: *C.Context, channel: *C.Channel, id: [32]u8) !void {
     try channel.mixConstU32s(ctx, &words);
 }
 pub fn mixBegin(ctx: *C.Context, channel: *C.Channel, ordinal: F.Word, statement: F.Digest, fixed: C.Hash, binding: Binding) !void {
+    return mixBeginForKind(ctx, channel, 0, ordinal, statement, fixed, binding);
+}
+pub fn mixBeginForKind(ctx: *C.Context, channel: *C.Channel, comptime kind: u32, ordinal: F.Word, statement: F.Digest, fixed: C.Hash, binding: Binding) !void {
     try channel.mixConfig(ctx, binding.profile.config());
-    const prefix = [_]F.Word{ try B.wrappers.constU32(C.Q, ctx, 0x4f505739), try B.wrappers.constU32(C.Q, ctx, 1), try B.wrappers.constU32(C.Q, ctx, 9), try B.wrappers.constU32(C.Q, ctx, 0), ordinal };
+    const prefix = [_]F.Word{ try B.wrappers.constU32(C.Q, ctx, 0x4f505739), try B.wrappers.constU32(C.Q, ctx, 1), try B.wrappers.constU32(C.Q, ctx, 9), try B.wrappers.constU32(C.Q, ctx, kind), ordinal };
     try channel.mixU32s(ctx, &prefix);
     try mixId(ctx, channel, binding.profile.identity());
     try channel.mixU32s(ctx, &statement);

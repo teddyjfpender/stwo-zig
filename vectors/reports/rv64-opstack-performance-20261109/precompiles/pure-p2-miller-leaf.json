@@ -1,0 +1,47 @@
+{
+  "schema": "stwo.opstack.pure-p2-miller-leaf.v1",
+  "scope": "one actual Miller truth fragment, not complete execution or heavy block",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission_open": false,
+  "source_authority": "narrow_equations.EquationsForField with original MAIN/range/SSA/Wire residuals",
+  "native": {
+    "framed_bytes": 558184,
+    "fresh_independently_rebuilt_key_and_PCS_capture": true,
+    "worker_peak_requested_bytes": 499410100,
+    "worker_hard_limit_bytes": 1073741824
+  },
+  "recursive_circuit": {
+    "arithmetic_gates": 1175658,
+    "poseidon_permutations": 25992,
+    "main_cells": 40895488,
+    "fixed_cells": 19268352,
+    "interaction_cells": 40507392,
+    "total_trace_cells": 100671232,
+    "public_frame_words": 70,
+    "BLAKE_gates": 0,
+    "XOR_gates": 0,
+    "immutable_structural_lowering": true
+  },
+  "physical": {
+    "proof_bytes": 642244,
+    "graph_build_seconds": 0.087967875,
+    "production_including_authority_seconds": 22.520595708,
+    "fresh_source_key_and_receive_seconds": 1.982994625,
+    "concurrent_engineering": true,
+    "controlled_benchmark": false
+  },
+  "qualification": [
+    "ReleaseSafe actual native assignment and expected public-frame parity",
+    "ReleaseFast physical outer proof and fresh trace-only source authority",
+    "MAIN sample / SSA claim / ninth output circuit mutations rejected",
+    "wrong ninth output / physical proof mutation rejected",
+    "independent native expected output and unclosed whole-execution Wire refusal"
+  ],
+  "remaining": [
+    "leaf coverage in a complete native execution inventory",
+    "OP CPU and service fold/root qualification",
+    "real block and heavy-block performance qualification"
+  ]
+}
