@@ -108,3 +108,27 @@ carried identities and byte ranges still pass, but the strict canonical writer
 rejects all24 cases. This rules out relying on algebraic congruence alone.
 See `guest/dense-direct-physical-v2.json`. BYTE-local-GKR projection is next;
 production SSA/frontier joins and recursive admission remain closed.
+
+## BYTE-local GKR checkpoint (equal-log control)
+
+The closed public-packet fixture now proves its355-term BYTE relation using the
+existing checkpointed LogUp-GKR engine, without constructing a dense fact plane
+or allocating the classic1432-column interaction witness. The source reader and
+terminal projection invoke the **same** range-fraction emitter, including the
+negative committed MAIN multiplicity and padded0/1 lanes. The original complete
+arithmetic/canonicality emitter is unchanged. A verified child still needs the
+physical16-column Eq/prefix binding; the public output debt keeps8 classic
+columns. Fresh reception recomputes the GKR transcript and expected source key.
+
+Actual equal-log8 proofs: multiply113,736B +20,284B GKR =134,020B (43.5% below
+classic237,192B); square79,592B +20,284B =99,876B (50.9% below203,304B). Native
+MAIN+INTER cells drop641,792→281,344 and543,488→183,040 respectively; GKR work
+is additional and these are not wall-time claims. Changed Eq/prefix/output
+openings, wrong input scope and corrupted child proofs reject. Receipt:
+`guest/dense-byte-local-gkr-v1.json`.
+
+Both components are currently log8. The required next gate separates the BYTE
+provider at log8 from arithmetic at log9, with a shared local challenge and
+cross-instance closure, so a lifted-domain mask error cannot hide behind equal
+geometry. Production joins, recursive authority and security admission remain
+closed throughout.

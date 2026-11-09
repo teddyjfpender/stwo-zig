@@ -21,12 +21,18 @@ pub fn Trace(comptime kind: S.Kind) type {
         main: []M,
         inter: []M,
         pub fn init(a: std.mem.Allocator, input: *const [S.inputs(kind)]u256) !Self {
+            return initImpl(a, input, true);
+        }
+        pub fn initMainOnly(a: std.mem.Allocator, input: *const [S.inputs(kind)]u256) !Self {
+            return initImpl(a, input, false);
+        }
+        fn initImpl(a: std.mem.Allocator, input: *const [S.inputs(kind)]u256, comptime with_inter: bool) !Self {
             const f = try fixedAlloc(a);
             errdefer a.free(f);
             const m = try a.alloc(M, RL.MAIN * C.ROWS);
             errdefer a.free(m);
             @memset(m, M.zero());
-            const inter = try a.alloc(M, L.INTER * C.ROWS);
+            const inter = try a.alloc(M, if (with_inter) L.INTER * C.ROWS else 0);
             errdefer a.free(inter);
             @memset(inter, M.zero());
             const out = Self{ .allocator = a, .fixed = f, .main = m, .inter = inter };
@@ -110,6 +116,7 @@ pub fn Trace(comptime kind: S.Kind) type {
             return claim;
         }
         pub fn generate(self: *Self, ch: C.Challenges, expected: [12]u256) !Q {
+            if (self.inter.len != L.INTER * C.ROWS) return error.DenseClassicInteractionNotAllocated;
             const claim = try expectedClaim(ch, expected);
             var range = Q.zero();
             var output = Q.zero();

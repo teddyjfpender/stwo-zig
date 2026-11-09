@@ -1,0 +1,66 @@
+{
+  "schema": "op-dense-byte-local-gkr-v1",
+  "scope": "closed equal-log8 public-packet prototype; mixed-log gate pending",
+  "security_qualified": false,
+  "production_admission_open": false,
+  "profile": "OM31 q12/P0 correctness-only",
+  "local_instance": {
+    "count": 1,
+    "variables": 17,
+    "row_log": 8,
+    "lane_log": 9,
+    "terms": 355,
+    "padded_lanes": 512,
+    "positive_queries_per_call": 4248,
+    "field_characteristic": 2147483647,
+    "negative_provider": "committed MAIN.MULT, immutable BYTE fixed table"
+  },
+  "shape": {
+    "multiply": {
+      "main": 1075,
+      "inter": 24,
+      "native_bytes": 113736,
+      "gkr_bytes": 20284,
+      "total_bytes": 134020,
+      "classic_bytes": 237192,
+      "proof_reduction": 0.4349725117204627,
+      "native_sha256": "52ae97a725818638200942dd83ac3e6f3d29b90e57e6a3471803e4db1c025ff0",
+      "gkr_sha256": "f6e569cd64cb7369b3e4e658f3d20057ed02386b4c7413019ac1663a8fa1b70b",
+      "committed_main_inter_cells": 281344,
+      "classic_committed_main_inter_cells": 641792
+    },
+    "square": {
+      "main": 691,
+      "inter": 24,
+      "native_bytes": 79592,
+      "gkr_bytes": 20284,
+      "total_bytes": 99876,
+      "classic_bytes": 203304,
+      "proof_reduction": 0.5087356864596859,
+      "native_sha256": "db9d6bd26fe19444bf7777b262b253d20af367060c87d2ef6a9c05ccb2a35bfc",
+      "gkr_sha256": "113fe628c2037ff43cd4a83f545695c690a396fdde9f084a2c3b883fe496c7b9",
+      "committed_main_inter_cells": 183040,
+      "classic_committed_main_inter_cells": 543488
+    }
+  },
+  "qualified": [
+    "original complete arithmetic/canonical writer emitter reused",
+    "source-streamed checkpointed GKR with fixed4 honest encoding",
+    "independently verified child before terminal data construction",
+    "zero local LogUp sum and nonzero projective denominator",
+    "physical16-column Eq/prefix source binding on authenticated MAIN",
+    "unchanged8-column public output debt",
+    "fresh source fixed key and GKR recomputation",
+    "changed Eq/prefix/output openings rejected",
+    "wrong public input scope and corrupted GKR rejected",
+    "classic INTER allocation omitted; hard whole allocator cap2GiB"
+  ],
+  "pending": [
+    "split BYTElog8 versus arithmeticlog9 mixed-domain gate",
+    "explicit projected-equation degree and row-mask adversaries",
+    "production typedSSA/RAM/Wire/frontier joins",
+    "recursive source factory",
+    "resource/security ledger and runtime admission"
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/dense-direct-local-gkr-v1"
+}

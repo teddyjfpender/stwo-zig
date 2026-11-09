@@ -36,13 +36,13 @@ pub fn Layout(comptime kind: S.Kind) type {
 inline fn k(comptime F: type, v: u32) F {
     return E.qFor(F, v);
 }
-fn fraction(comptime kind: S.Kind, comptime F: type, v: anytype, ch: Challenges, index: usize) struct { F, E.SecureFor(F) } {
+pub fn rangeFraction(comptime kind: S.Kind, comptime F: type, v: anytype, beta: Q, index: usize) struct { F, E.SecureFor(F) } {
     const L = Layout(kind);
-    if (index < L.Row.BYTE_QUERIES) return .{ v.main(0), E.splatFor(F, ch.byte).sub(E.liftFor(F, A.query(kind, F, v, index))) };
-    if (index == L.Row.BYTE_QUERIES) return .{ v.main(L.Row.MULT).neg(), E.splatFor(F, ch.byte).sub(E.liftFor(F, v.fixed(A.FIX_BYTE))) };
+    if (index < L.Row.BYTE_QUERIES) return .{ v.main(0), E.splatFor(F, beta).sub(E.liftFor(F, A.query(kind, F, v, index))) };
+    if (index == L.Row.BYTE_QUERIES) return .{ v.main(L.Row.MULT).neg(), E.splatFor(F, beta).sub(E.liftFor(F, v.fixed(A.FIX_BYTE))) };
     return .{ F.zero(), E.SecureFor(F).one() };
 }
-fn outputDenominator(comptime kind: S.Kind, comptime F: type, v: anytype, ch: Challenges) E.SecureFor(F) {
+pub fn outputDenominator(comptime kind: S.Kind, comptime F: type, v: anytype, ch: Challenges) E.SecureFor(F) {
     const L = Layout(kind);
     var tuple: [35]F = undefined;
     tuple[0] = k(F, KIND);
@@ -64,8 +64,8 @@ pub fn emit(comptime kind: S.Kind, comptime F: type, v: anytype, input: *const [
     for (0..L.BATCHES) |b| {
         var delta = secure(F, v, 8 * b, false);
         if (b > 0) delta = delta.sub(secure(F, v, 8 * (b - 1), false)) else delta = delta.sub(secure(F, v, L.BYTE_LAST, true));
-        const left = fraction(kind, F, v, ch, 2 * b);
-        const right = fraction(kind, F, v, ch, 2 * b + 1);
+        const left = rangeFraction(kind, F, v, ch.byte, 2 * b);
+        const right = rangeFraction(kind, F, v, ch.byte, 2 * b + 1);
         sink.emit(delta.mul(left[1]).mul(right[1]).sub(E.mulBaseFor(F, right[1], left[0])).sub(E.mulBaseFor(F, left[1], right[0])));
     }
     const inv_rows = Q.fromBase((M.fromCanonical(ROWS).inv() catch unreachable));

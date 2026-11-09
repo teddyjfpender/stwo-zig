@@ -90,6 +90,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-curves-truth", .description = "BN254/BLS12-381 curve and field truth AIRs: big-integer oracle, group law and adversarial rows", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-runtime", .description = "Qualify bounded OP-only Miller runtime events and legacy rejection", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-tower", .description = "OP-only sparse BN254 tower candidate: independent algebra and carried truth", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-op-dense-local-gkr", .description = "Closed direct dense BYTE-local GKR physical fixture", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-dense-proof", .description = "Closed direct dense BN254 polynomial physical fixture", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-tower-proof", .description = "OP-only sparse tower physical truth and fresh receiver qualification", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-native-join", .description = "Closed OP Miller CPU local GKR, truth and global RAM/Wire join", .scope = .riscv_cpu },
