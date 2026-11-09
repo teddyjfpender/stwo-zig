@@ -1,0 +1,212 @@
+{
+  "schema": "op-grouped-r7-max2-terminal-b2-actual-small-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "native_profile": "op_target_b4_q72_p0_fold4_v1",
+  "nonterminal_outer_profile": "op_target_b4_q72_p0_fold4_v1",
+  "terminal_outer_profile": "op_control_b2_q144_p0_fold4_v1",
+  "arithmetization": "r7",
+  "native_members": {
+    "CPU": 1,
+    "detached_sponge": 1,
+    "local_GKR_Keccak": 1,
+    "classic_SHA256": 1
+  },
+  "native_bundle_bytes": 5045776,
+  "groups": 2,
+  "fold_proofs": 1,
+  "workers": 8,
+  "cap_bytes": 34359738368,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "root_bytes": 1211984,
+  "root_sha256": "4c52d4239fb092df7971a08b7e9a9c1fcfb4389c27e24de63d3b184736866b3c",
+  "source_identity": "44cd59ebaed6708f08808a9d030c6d98faae193462e758874814eab5c9db1175",
+  "canonical_public_root": "1ad68e7f5072665ce26106685b2a8d4af0636f31b1db881bea370918ef0f602b80793f2d",
+  "nodes": [
+    {
+      "ordinal": 0,
+      "operation": "group",
+      "span_first_count": [
+        0,
+        2
+      ],
+      "proof_bytes": 707276,
+      "proof_sha256": "279ce6686f2e3652ff0612e9206ae83a755eea88463e21926a2aa64865b2f29e",
+      "prove_persist_verify_ns": 31548559583,
+      "stage_seconds": {
+        "op_p2.main_generation": 0.646606,
+        "op_p2.main_commit": 9.833546,
+        "op_p2.interaction_generation": 0.494167,
+        "op_p2.interaction_commit": 10.741583,
+        "draw_random_coeff": 1.2e-05,
+        "composition_trace_extract": 1.6e-05,
+        "composition_evaluation": 2.064099,
+        "composition_interpolate_and_split": 0.031325,
+        "composition_commit": 4.136062,
+        "oods_point_and_mask_points": 9.5e-05,
+        "sampled_value_evaluation": 0.112157,
+        "sampled_value_channel_mix": 0.00099,
+        "fri_quotient_build_and_commit": 2.448883,
+        "proof_of_work": 8e-06,
+        "fri_decommit": 0.124573,
+        "trace_decommit": 0.779124,
+        "constraint_check_and_assembly": 0.000451
+      },
+      "model": {
+        "raw": [
+          49451,
+          2281008,
+          2992,
+          78357,
+          65536,
+          132274,
+          345960,
+          208546
+        ],
+        "logs": [
+          16,
+          22,
+          12,
+          17,
+          16,
+          18,
+          19,
+          18
+        ],
+        "total_cells": 295170048
+      }
+    },
+    {
+      "ordinal": 1,
+      "operation": "group",
+      "span_first_count": [
+        2,
+        2
+      ],
+      "proof_bytes": 705764,
+      "proof_sha256": "2f3f4f919552b0d17951f083450d74671fe17487358cf317a10a290261fec833",
+      "prove_persist_verify_ns": 39461610750,
+      "stage_seconds": {
+        "op_p2.main_generation": 0.784372,
+        "op_p2.main_commit": 13.160354,
+        "op_p2.interaction_generation": 0.715975,
+        "op_p2.interaction_commit": 12.989697,
+        "draw_random_coeff": 1e-05,
+        "composition_trace_extract": 1.4e-05,
+        "composition_evaluation": 3.954265,
+        "composition_interpolate_and_split": 0.028274,
+        "composition_commit": 4.119544,
+        "oods_point_and_mask_points": 7.1e-05,
+        "sampled_value_evaluation": 0.135672,
+        "sampled_value_channel_mix": 0.000899,
+        "fri_quotient_build_and_commit": 2.618972,
+        "proof_of_work": 7e-06,
+        "fri_decommit": 0.122424,
+        "trace_decommit": 0.742063,
+        "constraint_check_and_assembly": 0.000385
+      },
+      "model": {
+        "raw": [
+          23629,
+          2893420,
+          459,
+          95579,
+          65536,
+          188871,
+          1169208,
+          126952
+        ],
+        "logs": [
+          15,
+          22,
+          9,
+          17,
+          16,
+          18,
+          21,
+          17
+        ],
+        "total_cells": 372981248
+      }
+    },
+    {
+      "ordinal": 2,
+      "operation": "canonical_R7_fold",
+      "span_first_count": [
+        0,
+        4
+      ],
+      "proof_bytes": 1211984,
+      "proof_sha256": "4c52d4239fb092df7971a08b7e9a9c1fcfb4389c27e24de63d3b184736866b3c",
+      "prove_persist_verify_ns": 9087790750,
+      "stage_seconds": {
+        "op_p2.main_generation": 0.588466,
+        "op_p2.main_commit": 2.539639,
+        "op_p2.interaction_generation": 0.337474,
+        "op_p2.interaction_commit": 2.195598,
+        "draw_random_coeff": 8e-06,
+        "composition_trace_extract": 1.6e-05,
+        "composition_evaluation": 1.071541,
+        "composition_interpolate_and_split": 0.012939,
+        "composition_commit": 1.035743,
+        "oods_point_and_mask_points": 9.2e-05,
+        "sampled_value_evaluation": 0.070149,
+        "sampled_value_channel_mix": 0.000932,
+        "fri_quotient_build_and_commit": 0.668889,
+        "proof_of_work": 7e-06,
+        "fri_decommit": 0.042151,
+        "trace_decommit": 0.434458,
+        "constraint_check_and_assembly": 0.000372
+      }
+    }
+  ],
+  "timing": {
+    "producer_ns": 106125157375,
+    "fresh_receiver_ns": 27916028917,
+    "fresh_source_group_and_fold_key_ns": 23079977834,
+    "fresh_physical_root_read_verify_ns": 62670041,
+    "separate_source_only_qualifier_ns": 25969307958,
+    "separate_source_only_physical_root_read_verify_ns": 61854917,
+    "whole_test_wall_seconds": 134.05,
+    "whole_test_user_seconds": 927.11,
+    "whole_test_system_seconds": 4.84,
+    "native_production_additional_not_rerun": true
+  },
+  "memory": {
+    "requested_peak_bytes": 7413206566,
+    "RSS_peak_bytes": 7454703616,
+    "separate_fresh_qualifier_requested_peak_bytes": 4126535933,
+    "final_live": 0,
+    "final_external": 0,
+    "major_faults": 0
+  },
+  "qualification": {
+    "two_genuine_eight_role_R7_groups_and_canonical_R7_fold_physical": true,
+    "full_RAM_KIO_Wire_terminal43B_and_manifest_closure": true,
+    "same_canonical_public_root_as_R6_max2_and_max4": true,
+    "fresh_source_only_native_bin_absent": true,
+    "physical_attack_controls": 9,
+    "valid_R6_B2_MAX2_same_statement_proof_rejected_by_R7_key": true,
+    "restored_positive": true,
+    "wrong_explicit_arithmetic_policy_rejected_before_wide_keys": true,
+    "focused_tests_passed": 61,
+    "no_prover_code_changes_since_one_group_gate": true,
+    "old_R7_default_fold_source_identity_and_retained_proof_control": "prior qualified 0a9cb4aa5 / canonical fold seam6543c167e; unchanged in this receipt-only gate"
+  },
+  "scope": [
+    "Single ReleaseSafe qualification run; not a controlled performance benchmark.",
+    "Actual SMALL block only; no heavy execution/proof or native proof regeneration.",
+    "Serial max2 is slower than the one-group control and uses less peak memory; no speedup claim.",
+    "Both groups use B4/q72; only the final canonical R7 fold uses B2/q144.",
+    "R7 default fold domain remains unchanged; complete group root explicitly uses canonical R6 tree domain.",
+    "Existing R6 default proof metadata/identity controls remain qualified.",
+    "Production source-suite admission remains closed."
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-r7-max2-terminal-b2-physical-v1",
+  "logs": [
+    "/private/tmp/op-r7-runtime-max2-b2-physical.log",
+    "/private/tmp/op-r7-runtime-max2-b2-qualification.log"
+  ]
+}
