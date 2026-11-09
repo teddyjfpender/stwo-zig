@@ -44,7 +44,7 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             lane="riscv_cpu_integration",
             build_file="src/integrations/riscv_cpu/build.zig",
             consumers={"riscv_cpu", "aggregate_cpu", "aggregate_metal"},
-            steps=("test-blake3-proof-contracts", "test"),
+            steps=("test-blake3-proof-contracts", "test-detached-child-capture", "test"),
         )
 
     def test_circuit_provider_runs_existing_cpu_receiver_contracts_first(self):

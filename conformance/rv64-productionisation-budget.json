@@ -918,6 +918,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Source/binary-pinned gdb proves Debug stack-probe faults in the 628608-byte denominator owner and, after its dispatcher shrinks to 25872 bytes, beneath the 557616-byte terms owner. Extract byte-identical slot and grouped-term expressions into private Debug never-inline / optimized always-inline helpers. Preserve common bases, term count, operation/result order, tuple authority, residual/parity/drain tests and stack ceilings. The original three-element result arity remains a compile-time invariant. Combined helper allowance stays +20, no new API, flags, scripts or GPU change."
+    },
+    {
+      "id": "admitted_cpu_child_capture_fixture_installation",
+      "net_code_budget": 2,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Provision the existing mandatory child-capture test with an archived CPU proof whose key and expected statement exactly match the unchanged committed admission. CI owns installation from an immutable archive commit, checks independent admission/key/expected/proof pins and records all input digests before execution. Preserve missing-input rejection, required test discovery and all production interfaces. No producer-derived key authority, new golden bytes, runtime flags or launcher. Two catalog/routing lines collect the same required case with minimum-one discovery before the long package suite, preserving the dedicated BLAKE3 corpus and original full command. This keeps RFC #324 cumulative code at +37 of +40 and makes missing/invalid fixture rejection immediate."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

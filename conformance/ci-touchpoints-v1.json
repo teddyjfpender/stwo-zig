@@ -252,6 +252,15 @@
         [
           "zig",
           "build",
+          "test-detached-child-capture",
+          "--build-file",
+          "src/integrations/riscv_cpu/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
           "test",
           "--build-file",
           "src/integrations/riscv_cpu/build.zig",

@@ -59,6 +59,7 @@ pub fn build(b: *std.Build) void {
 
     for ([_]struct { step: []const u8, root: []const u8, minimum: usize }{
         .{ .step = "test-blake3-proof-contracts", .root = "blake3_proof_contract_test_root.zig", .minimum = 22 },
+        .{ .step = "test-detached-child-capture", .root = "recursive_segment_v2_detached_child_transcript.zig", .minimum = 1 },
         .{ .step = "test-word16-image-program-contracts", .root = "word16_image_program_contract_test_root.zig", .minimum = 23 },
         .{ .step = "test-distributed-binary-contracts", .root = "distributed_binary_contract_test_root.zig", .minimum = 13 },
         .{ .step = "test-division-contracts", .root = "division_contract_test_root.zig", .minimum = 7 },
