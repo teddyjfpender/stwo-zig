@@ -883,6 +883,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "User-requested standalone pinned FRI pair with explicit canonical runtime guards and independent frozen expected limbs, plus hosted exact-main/current source comparisons and LLVM IR. Preserve production arithmetic and every golden; distinguish a passing reduced case from reproducing the full failure. No new launcher or runtime flag; no timing trust before byte identity."
+    },
+    {
+      "id": "approved_runtime_profile_fixture_rfc326",
+      "net_code_budget": 20,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "RFC #326 authorizes only the exact runtime-profile expected digest and an existing-test process-usage mutation. Preserve all eight cases and complete-source rejection; null restoration and fresh admission verify ownership without production hashing or schema changes. Rollback restores this test-only transaction."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

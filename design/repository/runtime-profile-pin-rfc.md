@@ -1,6 +1,7 @@
-# Draft RFC: runtime-profile source digest fixture
+# Approved RFC: runtime-profile source digest fixture
 
-Status: draft; no issue, owner approval or golden-pin change is recorded.
+Status: approved in [RFC #326](https://github.com/teddyjfpender/stwo-zig/issues/326).
+Owner decision: [approved by the repository owner, recorded by delegate](https://github.com/teddyjfpender/stwo-zig/issues/326#issuecomment-6739261335).
 Owners: `riscv-frontend`, with `prover-api` consulted for the source schema.
 
 ## Affected contract and decision requested
@@ -26,7 +27,7 @@ exactly; normal current-source admission rejects that projection. A synthetic
 non-null process-usage record changes the current source identity, rejects
 the former source binding and is admitted only after a normal fresh join.
 The retained diagnostic has four passing cases in each mode. These diagnostic
-cases do not replace the original eight-case target, which remains failing.
+cases do not replace acceptance of the original eight-case target.
 
 Preserving the historical digest would require a deliberate source-encoding
 compatibility policy or versioned interface. Ignoring process usage to obtain
@@ -39,8 +40,8 @@ The proposed edit changes only the fixture expectation and adds a mutation
 branch within the existing complete-source binding test. It does not change
 production hashing, validation, JSON, proof or wire bytes, public signatures,
 error tags, dependencies or schema versions. No package version bump is
-proposed for a test-only correction; the owner must explicitly confirm that
-classification under ENGINEERING_STANDARDS.md section 6 before implementation.
+required for this test-only correction; the approved owner decision confirms
+that classification under ENGINEERING_STANDARDS.md section 6.
 There is no dual-admission window: historical projected source identities
 remain invalid for current records. No consumer changes are proposed.
 
@@ -63,6 +64,7 @@ or scripts, with documentation/configuration/receipts counted separately.
 Existing complete-source binding owns the new mutation branch. Rollback
 restores the test-only patch; production behavior is unchanged throughout.
 
-This document is a reviewable proposal. BC-R2 classifies golden changes as
-contract changes, and AC-1 requires an approved RFC issue. No permission to
-open that issue, post a comment or apply the proposed pin is inferred.
+The owner approved this exact test-only transaction and opening its RFC on
+2026-11-09. The existing eight-case target is mandatory in Debug and ReleaseFast
+before the original full frontend command in its hosted CPU lane. Hosted
+acceptance remains pending until those commands actually execute successfully.

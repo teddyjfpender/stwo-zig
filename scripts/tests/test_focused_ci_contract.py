@@ -142,8 +142,9 @@ class PlannerContractTests(unittest.TestCase):
             }.issubset(selected)
         )
         commands = self.policy["lanes"]["riscv_frontend"]["commands"]
-        self.assertEqual(1, len(commands))
-        self.assertIn("src/frontends/riscv/build.zig", commands[0])
+        self.assertEqual(3, len(commands))
+        for command, step, mode in zip(commands, ("test-air-runtime-profile", "test-air-runtime-profile", "test"), ("Debug", "ReleaseFast", "Debug")):
+            self.assertEqual(["zig", "build", step, "--build-file", "src/frontends/riscv/build.zig", f"-Doptimize={mode}", "-j2"], command)
 
     def test_cairo_frontend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/frontends/cairo/air/components/add_ap.zig")

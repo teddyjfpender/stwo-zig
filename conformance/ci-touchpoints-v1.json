@@ -181,6 +181,24 @@
         [
           "zig",
           "build",
+          "test-air-runtime-profile",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-air-runtime-profile",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
           "test",
           "--build-file",
           "src/frontends/riscv/build.zig",

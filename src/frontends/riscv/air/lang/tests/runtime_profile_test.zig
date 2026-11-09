@@ -192,7 +192,7 @@ test "runtime profile: exact static, stage, task, and hardware evidence joins de
     try std.testing.expectEqual(@as(u64, 1), profile.tasks.task_count);
     try std.testing.expectEqual(@as(?u64, 20), profile.tasks.critical_path_ns);
     try std.testing.expectEqualStrings(
-        "427aa2e4f024e7996734808f58255c7a23aba58402b26f218f82398c213db38f",
+        "f215072722d632f872f3ce0fb3fa123c6160e0e8e80604424aef1faf201f0c60",
         &std.fmt.bytesToHex(profile.profile_digest, .lower),
     );
 
@@ -217,6 +217,21 @@ test "runtime profile: complete source records are bound beyond their aggregates
         &tasks,
         exactObservation(),
     );
+
+    fixture.child[0].process_usage = .{
+        .user_seconds = 0.5,
+        .system_seconds = 0.25,
+        .minor_faults = 1,
+        .major_faults = 0,
+        .voluntary_switches = 2,
+        .involuntary_switches = 0,
+    };
+    try std.testing.expectError(error.InvalidRuntimeProfile, baseline.validateAgainstSources(&static, &stages, &tasks));
+    const usage_mutation = try runtime_profile.join(&static, &stages, &tasks, exactObservation());
+    try usage_mutation.validateAgainstSources(&static, &stages, &tasks);
+    try std.testing.expect(!std.mem.eql(u8, &baseline.stages.source_digest, &usage_mutation.stages.source_digest));
+    fixture.child[0].process_usage = null;
+    try baseline.validateAgainstSources(&static, &stages, &tasks);
 
     fixture.child[0].seconds =
         21.0 / @as(f64, @floatFromInt(std.time.ns_per_s));
