@@ -177,6 +177,11 @@ fn validate(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, 
     const presence = Manifest.Relations{ .ram = true, .kio = setup.bridges.keccak != null or setup.bridges.sponge.any(), .wire = Legacy.wirePresent(setup.bridges) or (span != null and span.?.calls != 0) };
     if (!std.meta.eql(expected.global_relations, presence)) return error.PoseidonNativeRelationMismatch;
 }
+/// Receiver-owned public RAM boundary authority, shared by native and recursive
+/// acceptance. It does not verify any physical proof or global closure alone.
+pub fn checkPublicClaims(request: P.Request, plan: *const Components.Plan, shared: Manifest.Shared, claims: []const O) !void {
+    return publicClaims(request, plan, shared, claims);
+}
 fn publicClaims(request: P.Request, plan: *const Components.Plan, shared: Manifest.Shared, claims: []const O) !void {
     if (claims.len != plan.claim_count) return error.PoseidonNativeClaims;
     for (claims) |value| for (value.toM31Array()) |word| if (word.v >= core.fields.m31.Modulus) return error.PoseidonNativeClaims;
