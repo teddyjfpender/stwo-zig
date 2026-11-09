@@ -196,6 +196,7 @@ pub fn addProduct(context: Context) void {
         rv64_execution.dependOn(&executable.step);
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "rv64-op-native", .source = "src/integrations/riscv_cpu/rv64_op_native_main.zig" },
         .{ .name = "rv64-word16-ethereum-native", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_native_main.zig" },
         .{ .name = "rv64-om-classic-control", .source = "src/integrations/riscv_cpu/rv64_om_classic_control_main.zig" },
         .{ .name = "rv64-word16-ethereum", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_main.zig" },

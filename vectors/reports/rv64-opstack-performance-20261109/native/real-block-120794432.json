@@ -1,0 +1,110 @@
+{
+  "schema": "op-pure-p2-real-block-native/v1",
+  "status": "complete-native-production-and-fresh-process-reception-qualified",
+  "production_admitted": false,
+  "recursive_proof": false,
+  "block": 120794432,
+  "execution_profile": "ethereum_services_op_v1",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "build_mode": "ReleaseSafe",
+  "layout": "ordinary-layout-correctness-control; optimized v3 GKR layout pending separate fixture qualification",
+  "instructions": 796406,
+  "terminal_pc": 3600,
+  "expected_output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+  "elf_sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930",
+  "input_sha256": "610ca2169a1f3b8aa25f354a81325f2b448d1644947828bce6c5c3bfd3d42887",
+  "source_native_agreement": [
+    "steps",
+    "all32 final registers",
+    "terminal PC",
+    "43-byte output"
+  ],
+  "counts": {
+    "cpu": 1,
+    "keccak_truth_permutations": 338,
+    "sha256_truth_calls": 34,
+    "miller_truth_calls": 0,
+    "public_ram_words": 29884
+  },
+  "native_cells": {
+    "fixed": 40875392,
+    "main": 99211744,
+    "interaction": 98153984
+  },
+  "bundle_bytes": 6909628,
+  "bundle_sha256": "97daba77d203e7da4a467e6806ec5f3fbeccf28e2a8570bbbcc0284e6b57c238",
+  "stage_one_bytes": 98128,
+  "physical_proofs": [
+    {
+      "bytes": 1955900,
+      "claims": 18,
+      "sha256": "653c7e268a7899000dbcec8f5b44c0e1560e3a538381696b0f88c5ef9c6e8d60"
+    },
+    {
+      "bytes": 2750576,
+      "claims": 5,
+      "sha256": "079e84d13e5fe01aaba7ad7fc8755b43550f8f5c95899a7cfc687ebd8c3854e7"
+    },
+    {
+      "bytes": 2104216,
+      "claims": 1,
+      "sha256": "de26294f4f201f3e62c233b6a10284cf99ae6ad0384c3e6668bd740bd34a37e0"
+    }
+  ],
+  "timings": {
+    "producer_wall_seconds": 28.61,
+    "capture_seconds": 0.073120958,
+    "fixed_setup_and_admission_seconds": 3.670288875,
+    "native_prove_seconds": 24.270956292,
+    "receiver_wall_seconds": 4.63
+  },
+  "requested_limits": {
+    "whole_runtime_heap_and_restored_mappings": 34359738368,
+    "disk": 206158430208,
+    "simultaneous_restored_mappings": 12884901888
+  },
+  "observed_maxrss_bytes": {
+    "producer": 3594797056,
+    "receiver": 2293727232
+  },
+  "qualification": [
+    "fresh process rebuilds pinned immutable image and all source keys",
+    "canonical9-coordinate stage-one framing",
+    "bounded whole-inventory metadata",
+    "exact service coverage",
+    "local GKR physical binding",
+    "all native physical PCS proofs",
+    "global RAM/KIO/Wire closure",
+    "pinned terminal halt, length and output checked from authenticated RAM"
+  ],
+  "raw_artifacts": {
+    "native-op.bin": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small/native-op.bin",
+      "bytes": 6909628,
+      "sha256": "97daba77d203e7da4a467e6806ec5f3fbeccf28e2a8570bbbcc0284e6b57c238"
+    },
+    "native-op.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small/native-op.json",
+      "bytes": 3735,
+      "sha256": "7910ed6fe6cfdf4cfcd1bb7c8e54779f38ba57aa20d7ee471b623143b614d046"
+    },
+    "cells.bin": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small/cells.bin",
+      "bytes": 1374680,
+      "sha256": "c2cd4380c4b9f6a168182837c2741540cf302ae74e0683b9353bb53f070fcea7"
+    },
+    "native-op-timing.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small/native-op-timing.json",
+      "bytes": 276,
+      "sha256": "742bd3dc5904bd59fefd04b491bd96d67f45d39b0c251516359b8534d25204f9"
+    }
+  },
+  "limitations": [
+    "one small real block, no full heavy native proof yet",
+    "no recursive aggregate in this receipt",
+    "not a claimed speedup versus prior guest/profile",
+    "immutable image/program load and publication appear only in process wall in this initial timing version",
+    "ordinary layout is a correctness control, not optimized v3 architecture"
+  ]
+}

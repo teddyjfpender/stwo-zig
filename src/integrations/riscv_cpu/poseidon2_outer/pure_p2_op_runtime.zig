@@ -1,0 +1,365 @@
+//! Explicit experimental OP pure-P2 native block route. No legacy protocol
+//! selector is changed. Fresh reception reconstructs source keys from the pinned
+//! image and validates the entire inventory before accepting native claims.
+const std = @import("std");
+const front = @import("stwo_riscv_frontend");
+const engine = @import("stwo_prover_engine");
+const Request = @import("../rv64_ethereum_request.zig");
+const Image = @import("../word16_execution/expected_image.zig");
+const Program = @import("../word16_execution/program.zig").Program;
+const Capture = @import("pure_p2_op_capture.zig");
+const R = @import("../word16_global_execution/services/roster.zig");
+const P = @import("../word16_global_execution/services/protocol.zig");
+const T = @import("../word16_global_execution/services/types.zig");
+const Wire = @import("../word16_global_execution/services/wire.zig");
+const Bounds = @import("../word16_global_execution/services/gkr_local/source_bounds.zig");
+const Coordinator = @import("../word16_global_execution/services/gkr_local/coordinator.zig");
+const Plan = @import("../word16_global_execution/ethereum/plan.zig");
+const Receiver = @import("../word16_global_execution/ethereum/receiver.zig");
+const Terminal = @import("../word16_global_execution/ethereum/terminal.zig");
+const Keys = @import("../word16_global_execution/ethereum/keys.zig");
+const Key = @import("pure_p2_fixed_key.zig").Key;
+const Truth = @import("pure_p2_truth_worker.zig");
+const Miller = @import("pure_p2_tower_worker.zig");
+const Inv = @import("pure_p2_op_inventory.zig");
+const Bundle = @import("pure_p2_op_bundle.zig");
+const Producer = @import("pure_p2_op_producer.zig");
+const Store = @import("pure_p2_retained_main.zig").Store;
+const Cells = @import("../word16_execution/cells_wire.zig");
+const Profile = @import("pure_p2_worker_protocol.zig").Profile;
+pub const Metadata = struct {
+    schema: u32 = 1,
+    profile: Profile,
+    cpus: []const Wire.CpuDeclaration,
+    requests: []const Wire.CompactRequest,
+    spans: []const T.OpTowerSpan,
+    truths: []const Wire.TruthDeclaration,
+    miller: []const Bounds.OpTowerTruthDeclaration,
+    memory_words: u32,
+    fn validate(self: Metadata) !void {
+        if (self.schema != 1 or self.profile == .reference_b2_q24_p0 or self.cpus.len == 0 or self.cpus.len != self.requests.len or self.cpus.len != self.spans.len or self.cpus.len + self.truths.len + self.miller.len > 256 or self.memory_words >= 1 << 23) return error.InvalidOpNativeMetadata;
+    }
+};
+pub const Resources = struct {
+    live_bytes: usize = 32 << 30,
+    disk_bytes: usize = 192 << 30,
+    mapped_bytes: usize = 12 << 30,
+    gkr_bytes: usize = 12 << 30,
+    global_bytes: usize = 2 << 30,
+    truth_live_bytes: usize = 8 << 30,
+    truth_main_bytes: usize = 2 << 30,
+    truth_interaction_bytes: usize = 4 << 30,
+    truth_advice_bytes: usize = 256 << 20,
+    proof_bytes: usize = 64 << 20,
+    bundle_bytes: usize = 2 << 30,
+};
+const Authority = struct {
+    allocator: std.mem.Allocator,
+    native_truth: Keys.Owner,
+    setups: []*const R.CpuSetup,
+    cpu_keys: []*const Key,
+    truth_keys: []*const Truth.Key,
+    miller: []Inv.MillerDeclaration,
+    cpu_owners: std.ArrayList(*R.CpuSetup) = .empty,
+    key_owners: std.ArrayList(*Key) = .empty,
+    truth_owners: std.ArrayList(*Truth.Key) = .empty,
+    miller_owners: std.ArrayList(*Miller.Key) = .empty,
+    fn deinit(self: *Authority) void {
+        const a = self.allocator;
+        for (self.key_owners.items) |key| {
+            key.deinit();
+            a.destroy(key);
+        }
+        for (self.cpu_owners.items) |setup| {
+            setup.deinit();
+            a.destroy(setup);
+        }
+        for (self.truth_owners.items) |key| {
+            key.deinit();
+            a.destroy(key);
+        }
+        for (self.miller_owners.items) |key| {
+            key.deinit();
+            a.destroy(key);
+        }
+        self.key_owners.deinit(a);
+        self.cpu_owners.deinit(a);
+        self.truth_owners.deinit(a);
+        self.miller_owners.deinit(a);
+        a.free(self.setups);
+        a.free(self.cpu_keys);
+        a.free(self.truth_keys);
+        a.free(self.miller);
+        self.native_truth.deinit();
+        self.* = undefined;
+    }
+    fn init(a: std.mem.Allocator, image: *const Image.Owner, m: Metadata) !Authority {
+        try m.validate();
+        const setups = try a.alloc(*const R.CpuSetup, m.cpus.len);
+        errdefer a.free(setups);
+        const cpu_keys = try a.alloc(*const Key, m.cpus.len);
+        errdefer a.free(cpu_keys);
+        const truth_keys = try a.alloc(*const Truth.Key, m.truths.len);
+        errdefer a.free(truth_keys);
+        const miller = try a.alloc(Inv.MillerDeclaration, m.miller.len);
+        errdefer a.free(miller);
+        var native_truth = try Keys.Owner.init(a, image, &.{}, m.truths);
+        errdefer native_truth.deinit();
+        var self = Authority{ .allocator = a, .native_truth = native_truth, .setups = setups, .cpu_keys = cpu_keys, .truth_keys = truth_keys, .miller = miller };
+        // Child-owner cleanup only on error; outer arrays/native_truth retain
+        // the preceding error guards until successful return.
+        errdefer {
+            for (self.key_owners.items) |k| {
+                k.deinit();
+                a.destroy(k);
+            }
+            for (self.cpu_owners.items) |s| {
+                s.deinit();
+                a.destroy(s);
+            }
+            for (self.truth_owners.items) |k| {
+                k.deinit();
+                a.destroy(k);
+            }
+            for (self.miller_owners.items) |k| {
+                k.deinit();
+                a.destroy(k);
+            }
+            self.key_owners.deinit(a);
+            self.cpu_owners.deinit(a);
+            self.truth_owners.deinit(a);
+            self.miller_owners.deinit(a);
+        }
+        for (m.cpus, 0..) |d, i| {
+            var reused = false;
+            for (m.cpus[0..i], 0..) |prior, j| if (std.meta.eql(prior, d)) {
+                setups[i] = setups[j];
+                cpu_keys[i] = cpu_keys[j];
+                reused = true;
+                break;
+            };
+            if (reused) continue;
+            try self.cpu_owners.ensureUnusedCapacity(a, 1);
+            try self.key_owners.ensureUnusedCapacity(a, 1);
+            const setup = try a.create(R.CpuSetup);
+            setup.* = R.CpuSetup.initForOpWithAuthorityAndSuiteAndCaches(a, &image.authority, d.geometry, d.bridges, @import("../word16_execution/pcs_suite.zig").Suite.production(), .{}) catch |err| {
+                a.destroy(setup);
+                return err;
+            };
+            self.cpu_owners.appendAssumeCapacity(setup);
+            setups[i] = setup;
+            const key = try a.create(Key);
+            key.* = Key.initForOp(a, setup, m.profile) catch |err| {
+                a.destroy(key);
+                return err;
+            };
+            self.key_owners.appendAssumeCapacity(key);
+            cpu_keys[i] = key;
+        }
+        for (self.native_truth.truths, 0..) |truth, i| {
+            var reused = false;
+            for (self.truth_owners.items) |key| {
+                key.require(truth) catch continue;
+                truth_keys[i] = key;
+                reused = true;
+                break;
+            }
+            if (reused) continue;
+            try self.truth_owners.ensureUnusedCapacity(a, 1);
+            const key = try a.create(Truth.Key);
+            key.* = Truth.Key.init(a, truth, m.profile) catch |err| {
+                a.destroy(key);
+                return err;
+            };
+            self.truth_owners.appendAssumeCapacity(key);
+            truth_keys[i] = key;
+        }
+        for (m.miller, miller) |d, *out| {
+            var found: ?*Miller.Key = null;
+            for (self.miller_owners.items) |key| if (key.frontier_log == d.frontier_log and key.arithmetic_log == d.arithmetic_log) {
+                found = key;
+                break;
+            };
+            if (found == null) {
+                try self.miller_owners.ensureUnusedCapacity(a, 1);
+                const key = try a.create(Miller.Key);
+                key.* = Miller.Key.init(a, m.profile, d.frontier_log, d.arithmetic_log) catch |err| {
+                    a.destroy(key);
+                    return err;
+                };
+                self.miller_owners.appendAssumeCapacity(key);
+                found = key;
+            }
+            out.* = .{ .key = found.?, .span = .{ .calls = d.calls, .first_id = d.first_id } };
+        }
+        return self;
+    }
+};
+fn requests(a: std.mem.Allocator, m: Metadata, cells: Cells.Owned) ![]P.Request {
+    const out = try a.alloc(P.Request, m.requests.len);
+    for (m.requests, out, 0..) |r, *v, i| v.* = r.expand(if (i == 0) cells.initial else &.{}, if (i + 1 == out.len) cells.terminal else &.{});
+    return out;
+}
+/// Receiver: metadata selects cost only. Bounds are checked before constructing
+/// any wide source key; the independent config pins software/input/terminal.
+pub fn verifyDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
+    try Request.validateBudgetForOp(config);
+    var image = try Image.Owner.initForOp(a, config);
+    defer image.deinit();
+    var program = try Program.initWithAuthority(a, &image.authority);
+    defer program.deinit();
+    var dir = try std.fs.cwd().openDir(path, .{});
+    defer dir.close();
+    const json = try dir.readFileAlloc(a, "native-op.json", 4 << 20);
+    defer a.free(json);
+    const parsed = try std.json.parseFromSlice(Metadata, a, json, .{});
+    defer parsed.deinit();
+    const m = parsed.value;
+    try m.validate();
+    if (m.profile != profile) return error.InvalidOpNativeProfile;
+    const cells = try Cells.read(a, dir, m.memory_words);
+    defer cells.deinit(a);
+    const req = try requests(a, m, cells);
+    defer a.free(req);
+    var bounds = try Bounds.deriveForOp(a, program.log_size, m.cpus, m.truths, req, m.spans, m.miller);
+    defer bounds.deinit();
+    var authority = try Authority.init(a, &image, m);
+    defer authority.deinit();
+    const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
+    var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
+    defer inventory.deinit();
+    const raw = try dir.readFileAlloc(a, "native-op.bin", resources.bundle_bytes);
+    defer a.free(raw);
+    var bundle = try Bundle.decode(a, raw, inventory.workers.len, .{ .bytes = resources.bundle_bytes, .proof_bytes = resources.proof_bytes });
+    defer bundle.deinit(a);
+    try bundle.verify(a, &inventory, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller);
+    _ = try Terminal.require(&image, req[req.len - 1].base.cpu, cells.terminal);
+    std.debug.print("OP_NATIVE_RECEIVER accepted=true complete=true steps={} CPU={} truth={} miller={} profile={s}\n", .{ expected.total_steps, m.cpus.len, m.truths.len, m.miller.len, @tagName(profile) });
+}
+
+pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
+    return produceDirectoryMode(a, config, path, profile, resources, false);
+}
+fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, capture_only: bool) !void {
+    if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
+    try Request.validateBudgetForOp(config);
+    var image = try Image.Owner.initForOp(a, config);
+    defer image.deinit();
+    var program = try Program.initWithAuthority(a, &image.authority);
+    defer program.deinit();
+    // The initial real-block reference uses the already qualified ordinary OP
+    // geometry. Later geometry tuning is independent from native acceptance.
+    const layout = Plan.CpuLayout{ .reserve_arithmetic_row = true };
+    var timer = try std.time.Timer.start();
+    var captured = try Capture.Owner.init(a, config, &image, &program);
+    defer captured.deinit();
+    const capture_ns = timer.read();
+    const count = captured.native.len;
+    const declarations = try a.alloc(Wire.CpuDeclaration, count);
+    defer a.free(declarations);
+    const req = try a.alloc(P.Request, count);
+    defer a.free(req);
+    const spans = try a.alloc(T.OpTowerSpan, count);
+    defer a.free(spans);
+    const compact = try a.alloc(Wire.CompactRequest, count);
+    defer a.free(compact);
+    var next: u32 = 1;
+    var total: [T.FAMILIES]u32 = @splat(0);
+    for (captured.native, 0..) |n, i| {
+        declarations[i] = try Plan.cpuForSegment(n, &captured.advice, i, count, captured.advice.initial.len, layout);
+        const calls = std.math.cast(u32, captured.advice.tower[i].len) orelse return error.InvalidOpTowerCoverage;
+        spans[i] = if (calls == 0) .{} else .{ .calls = calls, .first_id = next };
+        next = try std.math.add(u32, next, calls);
+        if (calls != 0) declarations[i].bridges.tower = try @import("../word16_execution/coverage.zig").minimalPrefixLog(try std.math.mul(u32, calls, 32));
+        req[i] = try Coordinator.requestView(captured.native, &captured.advice, i);
+        try Coordinator.routeDword(&req[i], declarations[i].bridges, captured.advice.events[i]);
+        for (&total, req[i].calls) |*sum, value| sum.* = try std.math.add(u32, sum.*, value);
+        total[0] = try std.math.add(u32, total[0], req[i].sponge.perms);
+    }
+    try Coordinator.assignSpongeIds(req);
+    for (req, compact) |r, *out| out.* = Wire.CompactRequest.from(r);
+    const truth_declarations = try Plan.truthsForServiceCounts(a, total, .{}, 18);
+    defer a.free(truth_declarations);
+    var tower = std.ArrayList(Bounds.OpTowerTruthDeclaration).empty;
+    defer tower.deinit(a);
+    var first: u32 = 1;
+    while (first < next) {
+        const calls = @min(1023, next - first);
+        const log = @max(15, try @import("../word16_execution/coverage.zig").minimalPrefixLog(try std.math.mul(u32, calls, 32)));
+        try tower.append(a, .{ .calls = calls, .first_id = first, .frontier_log = log, .arithmetic_log = log });
+        first += calls;
+    }
+    const metadata = Metadata{ .profile = profile, .cpus = declarations, .requests = compact, .spans = spans, .truths = truth_declarations, .miller = tower.items, .memory_words = @intCast(captured.advice.initial.len) };
+    try metadata.validate();
+    var bounds = try Bounds.deriveForOp(a, program.log_size, declarations, truth_declarations, req, spans, tower.items);
+    defer bounds.deinit();
+    if (capture_only) {
+        try std.fs.cwd().makePath(path);
+        var out = try std.fs.cwd().openDir(path, .{});
+        defer out.close();
+        try @import("../word16_execution/driver.zig").writeJson(a, out, "native-op-plan.json", .{ .proof_verified = false, .complete_execution = true, .steps = captured.steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers, .metadata = metadata, .cells = bounds.base.shape.native_trace_cells, .capture_ns = capture_ns });
+        std.debug.print("OP_NATIVE_CAPTURE complete=true proof_verified=false steps={} CPU={} truth={} miller={} cells={any} capture_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bounds.base.shape.native_trace_cells, capture_ns });
+        return;
+    }
+    var authority = try Authority.init(a, &image, metadata);
+    defer authority.deinit();
+    const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
+    var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
+    defer inventory.deinit();
+    try std.fs.cwd().makePath(path);
+    var dir = try std.fs.cwd().openDir(path, .{});
+    defer dir.close();
+    const parking = try std.fs.path.join(a, &.{ path, "parked-main" });
+    defer a.free(parking);
+    try std.fs.cwd().makePath(parking);
+    var store = try Store.init(a, parking, resources.disk_bytes, resources.mapped_bytes);
+    defer store.deinit();
+    const ready_ns = timer.read();
+    var bundle = try Producer.produce(a, &inventory, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, captured.native, &captured.advice, &store, .{
+        .cpu = .{ .gkr_bytes = resources.gkr_bytes, .global_bytes = resources.global_bytes },
+        .truth = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .advice_bytes = resources.truth_advice_bytes },
+        .miller = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .advice_bytes = resources.truth_advice_bytes },
+    });
+    defer bundle.deinit(a);
+    const prove_ns = timer.read() - ready_ns;
+    const bytes = try Bundle.encode(a, &bundle, .{ .bytes = resources.bundle_bytes, .proof_bytes = resources.proof_bytes });
+    defer a.free(bytes);
+    try @import("../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, "native-op.bin", bytes);
+    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op.json", metadata);
+    try Cells.write(dir, captured.advice.initial, captured.advice.terminal);
+    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - capture_ns, .prove_ns = prove_ns, .production_admitted = false });
+    try std.posix.fsync(dir.fd);
+    std.debug.print("OP_NATIVE_PRODUCER complete=true steps={} CPU={} truth={} miller={} bytes={} capture_ns={} prove_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bytes.len, capture_ns, prove_ns });
+}
+
+/// Explicit executable entrypoint; never attached to the legacy Ethereum CLI.
+pub fn main() !void {
+    const base = std.heap.smp_allocator;
+    const args = try std.process.argsAlloc(base);
+    defer std.process.argsFree(base, args);
+    if (args.len < 4 or args.len > 5 or (!std.mem.eql(u8, args[1], "prove") and !std.mem.eql(u8, args[1], "verify") and !std.mem.eql(u8, args[1], "capture"))) return error.ExpectedOpNativeModeConfigDirectoryAndOptionalResources;
+    const raw = try std.fs.cwd().readFileAlloc(base, args[2], 16384);
+    defer base.free(raw);
+    const config = try std.json.parseFromSlice(Request.Config, base, raw, .{});
+    defer config.deinit();
+    var resources: Resources = .{};
+    var owner: ?std.json.Parsed(Resources) = null;
+    defer if (owner) |*v| v.deinit();
+    if (args.len == 5) {
+        const bytes = try std.fs.cwd().readFileAlloc(base, args[4], 16384);
+        defer base.free(bytes);
+        owner = try std.json.parseFromSlice(Resources, base, bytes, .{});
+        resources = owner.?.value;
+    }
+    if (resources.live_bytes == 0 or resources.disk_bytes == 0 or resources.mapped_bytes == 0) return error.InvalidOpNativeResources;
+    const budget = try engine.host_budget_allocator.SharedHostBudget.create(base, resources.live_bytes);
+    defer budget.destroy();
+    const a = budget.allocator();
+    var pool: engine.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = if (config.value.workers != 0) config.value.workers else 8 });
+    defer pool.deinit();
+    var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    const profile = Profile.op_target_b4_q72_p0_fold4_v1;
+    if (std.mem.eql(u8, args[1], "verify")) try verifyDirectory(a, config.value, args[3], profile, resources) else try produceDirectoryMode(a, config.value, args[3], profile, resources, std.mem.eql(u8, args[1], "capture"));
+}

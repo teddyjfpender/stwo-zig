@@ -119,6 +119,7 @@ pub const Setup = struct {
             // a direct v3 setup is a distinct identity, never silently shared.
             .ethereum_services_v3 => "stwo-zig/rv64/ethereum-services-rom/v3\x00",
             .ethereum_services_v3_zbb => "stwo-zig/rv64/ethereum-services-rom/v3-zbb\x00",
+            .ethereum_services_op_v1 => "stwo-zig/rv64/op-services-rom/v1\x00",
         };
         if (service_domain) |domain| {
             var service_hash = Blake2s.init(.{});

@@ -36,7 +36,8 @@ pub const Config = struct {
 /// Zbb profile itself for ethereum_services_v3_zbb (its ROM decodes Zbb BINARY).
 /// Legacy native-statement profile: every Ethereum route (v2, v3, v3_zbb)
 /// runs under the v2-decoded byte-ROM statement (packets are advice for the
-/// Word16 route, whose ROM is `romProfile`).
+/// Word16 route, whose ROM is `romProfile`). The explicit OP-native candidate
+/// has its own authority and ROM profile; legacy loaders refuse it.
 pub fn authorityProfile(config: Config) rv.execution_profile.Profile {
     _ = config;
     return .ethereum_services_v2;
@@ -44,7 +45,11 @@ pub fn authorityProfile(config: Config) rv.execution_profile.Profile {
 /// Word16 execution ROM profile: the Zbb route needs the v3_zbb ROM (the only
 /// ROM that decodes Zbb BINARY rows); every other route keeps the v2 ROM.
 pub fn romProfile(config: Config) rv.execution_profile.Profile {
-    return if (config.execution_profile == .ethereum_services_v3_zbb) .ethereum_services_v3_zbb else .ethereum_services_v2;
+    return switch (config.execution_profile) {
+        .ethereum_services_v3_zbb => .ethereum_services_v3_zbb,
+        .ethereum_services_op_v1 => .ethereum_services_op_v1,
+        else => .ethereum_services_v2,
+    };
 }
 pub fn tapeProfile(config: Config) rv.execution_profile.Profile {
     return config.execution_profile;
@@ -165,9 +170,20 @@ pub const Program = struct {
     }
 };
 
-pub fn validateBudget(config: Config) !void {
+fn validateNumericBudget(config: Config) !void {
     if (config.batch_steps == 0 or config.batch_steps >= 1 << 23 or config.max_steps == 0 or config.max_steps > 10000000000 or config.workers > 32 or !frontend.rv64_air.state_policy.isCyclic(config.state_policy)) return error.InvalidEthereumProofBudget;
+}
+
+pub fn validateBudget(config: Config) !void {
+    try validateNumericBudget(config);
     if (config.execution_profile != .ethereum_services_v2 and !rv.execution_profile.isV3(config.execution_profile)) return error.UnsupportedEthereumExecutionProfile;
+}
+
+/// Explicit OP-native candidate only. No legacy loader/CLI calls this path.
+pub fn validateBudgetForOp(config: Config) !void {
+    try validateNumericBudget(config);
+    if (config.execution_profile != .ethereum_services_op_v1) return error.UnsupportedEthereumExecutionProfile;
+    if (config.batch_steps >= 1 << 22) return error.OpNativeClockCapacity;
 }
 
 /// Runtime scheduling is separate from the statement and proof transcript.
