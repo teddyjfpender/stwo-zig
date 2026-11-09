@@ -86,6 +86,7 @@ test "observation contracts: required named discovery" {
         "witness code wire borrows its retained hex allocation",
         "canonical sealed identity wire reopens to its unsigned bytes",
         "snapshot reader handles unaligned exact bytes",
+        "strict SSZ code inventory classifies legacy, delegation, and empty",
     }) |required| {
         var found = false;
         for (@import("builtin").test_functions) |entry| {

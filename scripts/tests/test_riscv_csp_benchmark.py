@@ -795,6 +795,8 @@ class BuildRegistrationTests(unittest.TestCase):
         catalog = (
             csp.ROOT / "build_support" / "products" / "catalog.zig"
         ).read_text(encoding="utf-8")
+        self.assertIn('pub const steps = @import("step_catalog.zig").steps;', catalog)
+        catalog += (csp.ROOT / "build_support/products/step_catalog.zig").read_text(encoding="utf-8")
         self.assertEqual(1, product.count('"riscv-csp-bench"'))
         self.assertEqual(1, catalog.count('.name = "riscv-csp-bench"'))
         self.assertEqual(1, catalog.count('.name = "riscv-csp-bench-metal"'))

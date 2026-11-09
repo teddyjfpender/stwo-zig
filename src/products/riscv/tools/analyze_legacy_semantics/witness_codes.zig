@@ -173,13 +173,13 @@ test "strict SSZ code inventory classifies legacy, delegation, and empty" {
         0,    0,
         0,    0,
         0,    0,
-        44,   0,
+        49,   0,
         0,    0,
         12,   0,
         0,    0,
         12,   0,
         0,    0,
-        36,   0,
+        29,   0,
         0,    0,
         12,   0,
         0,    0,
@@ -200,4 +200,12 @@ test "strict SSZ code inventory classifies legacy, delegation, and empty" {
     try std.testing.expectEqual(Classification.legacy, inventory.codes[0].classification);
     try std.testing.expectEqual(Classification.eip7702_delegation, inventory.codes[1].classification);
     try std.testing.expectEqual(Classification.empty, inventory.codes[2].classification);
+    // Each old synthetic offset exceeded its actual container boundary.
+    // Keep the strict decoder's rejection of both malformed forms explicit.
+    for ([_][2]u32{ .{ 22, 44 }, .{ 34, 36 } }) |invalid_offset| {
+        var invalid = transport;
+        const offset = invalid_offset[0];
+        std.mem.writeInt(u32, invalid[offset..][0..4], invalid_offset[1], .little);
+        try std.testing.expectError(error.InvalidStatelessInput, parse(std.testing.allocator, &invalid));
+    }
 }

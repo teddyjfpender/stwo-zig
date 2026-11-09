@@ -799,6 +799,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Execute the thirteen existing OM31 polynomial-oracle, inversion, ring, Frobenius, encoding and packed/batch atomicity properties through both the normal core product and package field roots. Add exact-name discovery in the collector, not arithmetic changes or a protocol selection. Preserve every existing test body, dedicated step and source-bound Sail production closure."
+    },
+    {
+      "id": "retained_host_contract_repairs",
+      "net_code_budget": 35,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair the malformed synthetic SSZ positive fixture exposed by newly mandatory execution: actual body/witness ends are 49/29, not 44/36. Preserve decoder bytes and explicitly require rejection of each old offset. Require that test by name and raise the discovery floor. Follow the canonical catalog forwarding edge for an existing step uniqueness check while retaining every count and identity assertion; no GPU implementation, pins or expectations change."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
