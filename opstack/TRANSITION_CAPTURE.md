@@ -376,3 +376,19 @@ with urllib's close-per-request path and0.170second warm keepalive median. Four
 pooled calls used one connection. This small network sample is not a proving-time
 benchmark. Capture's default remains unchanged; the next bounded run explicitly
 selects the pooled transport.
+
+### Provider quotas and explicit pacing
+
+Capture records the selected upstream endpoint labels. A replacement endpoint is
+qualified by chain10, the exact pinned header/state root, a full verified proof,
+and a verified code hash before use. This does not reset authenticated progress.
+The dRPC public endpoint qualified cryptographically but then reached its public
+quota; PublicNode reported that archive queries require a personal token. Neither
+condition permits changing the expected root or inventing missing state.
+
+`--rpc-min-interval-seconds` explicitly paces all adapter requests, including
+retries and parallel header work, through one owned clock. The default is0.
+The next official-endpoint capture uses0.30seconds to avoid the faster keepalive
+path bursting into rate limits. The capture deadline also bounds queued requests;
+validation failures remain fail-fast. Pacing and endpoint choices are included in
+the capture receipt. No provider throughput or proving-time guarantee is implied.

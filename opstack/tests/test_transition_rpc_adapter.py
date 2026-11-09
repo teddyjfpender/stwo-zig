@@ -104,6 +104,19 @@ class AdapterTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'duplicate'):adapter.dispatch('eth_getProof',['0x'+'00'*20,['0x0','0x'+'00'*32],'latest'])
             rpc.assert_not_called()
 
+    def test_global_pacing_respects_capture_deadline(self):
+        now=[0.0]
+        adapter=A.Adapter('https://example.invalid',rpc_min_interval=.25)
+        with patch('time.monotonic',side_effect=lambda:now[0]),patch('time.sleep',side_effect=lambda value:now.__setitem__(0,now[0]+value)),patch.object(C,'rpc',return_value='ok'):
+            for _ in range(3):self.assertEqual(adapter.remote('eth_chainId',[]),'ok')
+        self.assertAlmostEqual(adapter.pacing_wait_seconds,.5)
+        adapter.deadline=.6
+        with patch('time.monotonic',return_value=.5),patch.object(C,'rpc')as rpc:
+            with self.assertRaises(C.RpcFailure):adapter.remote('eth_chainId',[])
+            rpc.assert_not_called()
+        for interval in (-1,3,float('nan'),float('inf')):
+            with self.assertRaises(ValueError):A.Adapter('https://example.invalid',rpc_min_interval=interval)
+
     def test_actual_recovered_internal_contract_code_provenance(self):
         import tempfile
         f=json.loads(zlib.decompress((Path(__file__).parent/'fixtures/recovered-code-provenance.json.zlib').read_bytes()))

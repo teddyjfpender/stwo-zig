@@ -192,12 +192,19 @@ def verified_proof(block, address, slots, proof):
 
 
 class Adapter:
-    def __init__(self, upstream, record_limit=MAX_RECORD_BYTES, header_window=1, transport_cache=None, cache_claim=None, code_provenance=(), provenance_block=None, pooled_rpc=False):
+    def __init__(self, upstream, record_limit=MAX_RECORD_BYTES, header_window=1, transport_cache=None, cache_claim=None, code_provenance=(), provenance_block=None, pooled_rpc=False, rpc_min_interval=0):
         C.endpoint_label(upstream)
         if not 1 <= record_limit <= MAX_RECORD_BYTES:
             raise ValueError("invalid record budget")
         if not 1 <= header_window <= 32:
             raise ValueError("header window invalid")
+        import math, threading
+        if not isinstance(rpc_min_interval,(int,float)) or not math.isfinite(rpc_min_interval) or not 0 <= rpc_min_interval <= 2:
+            raise ValueError("RPC pacing interval invalid")
+        self.rpc_min_interval = rpc_min_interval
+        self.pacing_lock = threading.Lock()
+        self.next_request_at = 0
+        self.pacing_wait_seconds = 0
         self.upstream, self.record_limit = upstream, record_limit
         self.header_window = header_window
         self.prefetched_headers = 0
@@ -227,6 +234,15 @@ class Adapter:
     def remote(self, method, params, *, cap=MAX_RESPONSE, timeout=12):
         import time
         for attempt in range(3):
+            with self.pacing_lock:
+                now = time.monotonic()
+                target = max(now,self.next_request_at)
+                if self.deadline is not None and target >= self.deadline:
+                    raise C.RpcFailure("capture_deadline")
+                self.next_request_at = target + self.rpc_min_interval
+                delay = target - now
+                self.pacing_wait_seconds += delay
+            if delay > 0:time.sleep(delay)
             remaining = self.deadline - time.monotonic() if self.deadline is not None else timeout
             if remaining <= 0:
                 raise C.RpcFailure("capture_deadline")
@@ -474,7 +490,7 @@ class Adapter:
         directory.mkdir(parents=True, exist_ok=False)
         C.write_new(directory / "code-provenance.json", (json.dumps({"schema":"op-code-provenance-v1","entries":self.code_proofs}) + "\n").encode())
         C.write_new(directory / "records.json", (json.dumps([(k.hex(), v.hex()) for k, v in sorted(self.records.items())]) + "\n").encode())
-        C.write_new(directory / "capture.json", (json.dumps({"records": len(self.records), "bytes": self.record_bytes, "preimage_hashes_verified": True, "complete_witness": False, "derivation_accepted": False, "proof_verified": False, "missing_preimages": self.missing_preimages, "method_counts": self.method_counts, "prefetched_headers": self.prefetched_headers, "failure_count": self.failure_count, "transport_retries": self.transport_retries, "http_pool": {"requests":self.transport.requests,"connections_created":self.transport.connections_created} if self.transport else None, "failures": self.failures}, indent=2) + "\n").encode())
+        C.write_new(directory / "capture.json", (json.dumps({"records": len(self.records), "bytes": self.record_bytes, "preimage_hashes_verified": True, "complete_witness": False, "derivation_accepted": False, "proof_verified": False, "missing_preimages": self.missing_preimages, "method_counts": self.method_counts, "prefetched_headers": self.prefetched_headers, "failure_count": self.failure_count, "transport_retries": self.transport_retries, "rpc_min_interval": self.rpc_min_interval, "pacing_wait_seconds": self.pacing_wait_seconds, "http_pool": {"requests":self.transport.requests,"connections_created":self.transport.connections_created} if self.transport else None, "failures": self.failures}, indent=2) + "\n").encode())
 
 
 def serve(adapter, port, max_requests, seconds):
@@ -539,10 +555,11 @@ def main():
     p.add_argument("--code-provenance", type=Path, action="append", default=[])
     p.add_argument("--provenance-block")
     p.add_argument("--pooled-rpc", action="store_true")
+    p.add_argument("--rpc-min-interval-seconds", type=float, default=0)
     a = p.parse_args()
     if not 1 <= a.seconds <= 180 or not 1 <= a.max_requests <= 10000 or not 1024 <= a.port <= 65535:
         raise ValueError("adapter limits invalid")
-    adapter = Adapter(a.rpc, header_window=a.header_window, transport_cache=a.transport_cache, cache_claim=a.cache_claim, code_provenance=a.code_provenance, provenance_block=a.provenance_block, pooled_rpc=a.pooled_rpc)
+    adapter = Adapter(a.rpc, header_window=a.header_window, transport_cache=a.transport_cache, cache_claim=a.cache_claim, code_provenance=a.code_provenance, provenance_block=a.provenance_block, pooled_rpc=a.pooled_rpc, rpc_min_interval=a.rpc_min_interval_seconds)
     import time
     adapter.deadline = time.monotonic() + a.seconds
     try:

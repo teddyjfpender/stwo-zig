@@ -1,0 +1,200 @@
+{
+  "schema": "op-provider-state-and-pacing-v1",
+  "date": "2026-11-09",
+  "independent_snapshot_probe": {
+    "request": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "slots": [
+        "0xec7cba19fa8a60681a61ca61b6f579f9983770a8fd144c1f67720827fe74cfce"
+      ],
+      "block_hash": "0x3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0"
+    },
+    "endpoints": [
+      {
+        "endpoint": "https://optimism-rpc.publicnode.com",
+        "proof_verified": false,
+        "status": "rpc_error",
+        "http_status": null,
+        "rpc_code": -32602
+      },
+      {
+        "endpoint": "https://public.1rpc.io",
+        "proof_verified": false,
+        "status": "rpc_error",
+        "http_status": null,
+        "rpc_code": -32602
+      },
+      {
+        "endpoint": "https://optimism.drpc.org",
+        "proof_verified": true,
+        "state_root": "0x7e77c23c053933fd100f7a5fd28de93d854c1c10d8e0ededbfb0b3a9681900a2",
+        "storage_values": [
+          "0x18e4d51cfc415dd8f"
+        ]
+      }
+    ]
+  },
+  "numeric_selector_probe": {
+    "request": {
+      "address": "0x5520385bfcf07ec87c4c53a7d8d65595dff69fa4",
+      "slots": [
+        "0x0000000000000000000000000000000000000000000000000000000000000005"
+      ],
+      "block_hash": "0x3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0"
+    },
+    "endpoints": [
+      {
+        "endpoint": "https://optimism-rpc.publicnode.com",
+        "selector": "pinned_numeric_block",
+        "proof_verified": false,
+        "status": "rpc_error",
+        "http_status": 403,
+        "rpc_code": -32602
+      },
+      {
+        "endpoint": "https://public.1rpc.io",
+        "selector": "pinned_numeric_block",
+        "proof_verified": false,
+        "status": "rpc_error",
+        "http_status": null,
+        "rpc_code": -32602
+      }
+    ]
+  },
+  "public_provider_error_details": [
+    {
+      "endpoint": "https://optimism-rpc.publicnode.com",
+      "http": 403,
+      "rpc_code": -32602,
+      "public_error_redacted": "Archive requests require a personal token. Get one at: [url]",
+      "has_result": false
+    },
+    {
+      "endpoint": "https://public.1rpc.io/op",
+      "error_type": "JSONDecodeError"
+    },
+    {
+      "endpoint": "https://optimism.drpc.org",
+      "http": null,
+      "rpc_code": null,
+      "public_error_redacted": "",
+      "has_result": true
+    }
+  ],
+  "drpc_state_and_code": {
+    "records": 18,
+    "bytes": 9255,
+    "preimage_hashes_verified": true,
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false,
+    "missing_preimages": {},
+    "method_counts": {
+      "eth_getProof": 1,
+      "debug_dbGet": 1
+    },
+    "prefetched_headers": 0,
+    "failure_count": 0,
+    "transport_retries": 0,
+    "http_pool": {
+      "requests": 3,
+      "connections_created": 1
+    },
+    "failures": []
+  },
+  "actual_explicit_provider_run": {
+    "status": "diagnostic_adapter_failure",
+    "elapsed_seconds": 32.60674774996005,
+    "seconds_cap": 180,
+    "decoded_kv_bytes_cap": 67108864,
+    "peak_observed_decoded_kv_bytes": 40548185,
+    "filesystem_kv_bytes_cap": 4294967296,
+    "peak_observed_allocated_kv_bytes": 771149824,
+    "kv_rows": 182883,
+    "upstream_revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+    "patch_sha256": "2442649ee5790fd9c38fbbf5790735b8ea4c5b0bbb2fda3a894a77aedbd7a233",
+    "host_sha256": "862556839311e69c180eb998b190edb45aec23706fbb5a0174e96309a4e39bbd",
+    "candidate": {
+      "l1-anchor": {
+        "number": 26378629,
+        "hash": "0xad0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9",
+        "header_sha256": "af8437ddb8878bf2381cd161d11104b64691c101e118e98efb9c2a5c9ad7a30c"
+      },
+      "previous": {
+        "number": 159321793,
+        "hash": "0x3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+        "header_sha256": "bae79a42074a2b8b09661a69c94296c9a5c40f51d0396a02c91e56408b32f867",
+        "output_root": "0x94625ee179240693eae780eb83dd89ed052b586030073af009949d722e6b613a"
+      },
+      "next": {
+        "number": 159321794,
+        "hash": "0x241301a29d2566cb6e850f36dc27d4ade11b8c815295fc94416cf53c87f41714",
+        "header_sha256": "503879ea89be68dd15743ce33a6fbe102a21e68b9f9eba1971c14b8f34aeea45",
+        "output_root": "0xead7bdb1bc28a437fabe299df41cda2af89c3149d7380be180ff49240e542aed"
+      }
+    },
+    "upstream_native_client_accepted": false,
+    "complete_exported_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false,
+    "guest_executed": false,
+    "host_exit_code": -2,
+    "resumed_kv": {
+      "rows": 182705,
+      "decoded_bytes": 40452426,
+      "source_rows": 182705,
+      "source_decoded_bytes": 40452426,
+      "evicted_account_leaves": []
+    },
+    "header_window": 32,
+    "transport_cache": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/l1-transport-cache",
+    "stop_on_adapter_failure": true,
+    "code_provenance_inputs": [
+      {
+        "sha256": "5aa3bea72e077c7b82ba253e8073989f06ce7ede5ed229c82bd7da1fac68e83e",
+        "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/native-capture-attempt8/l2-adapter/code-provenance.json"
+      },
+      {
+        "sha256": "3b4ed1f075a7b9b64bff3e401f794df4b399e4b0f6f66d5ad326e238431c47e4",
+        "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/qualified-drpc-state/code-provenance.json"
+      }
+    ],
+    "code_provenance_refresh": null,
+    "verified_record_supplements": {
+      "inputs": [
+        {
+          "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/qualified-drpc-state/records.json",
+          "sha256": "ee4ee8ad73a128a79de5d44741861128341a121bff7c67d7f31ad9b46c7ce03c"
+        }
+      ],
+      "rows_added": 5,
+      "decoded_bytes_added": 1754
+    },
+    "pooled_rpc": true,
+    "upstream_endpoints": {
+      "l1": "https://rpc.flashbots.net",
+      "l2": "https://optimism.drpc.org",
+      "beacon": "https://ethereum-beacon-api.publicnode.com"
+    }
+  },
+  "pacing": {
+    "opt_in": true,
+    "default_seconds": 0,
+    "next_official_run_seconds": 0.3,
+    "shared_across_adapter_threads": true,
+    "deadline_before_queued_request": true,
+    "validation_never_retried": true
+  },
+  "validation": {
+    "focused_python_tests_passed": 46,
+    "clock_deadline_and_nonfinite_interval_controls": true
+  },
+  "sources": [
+    "https://optimism.publicnode.com/",
+    "https://drpc.org/docs/optimism-api",
+    "https://docs.1rpc.io/using-the-web3-api/networks"
+  ],
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false
+}

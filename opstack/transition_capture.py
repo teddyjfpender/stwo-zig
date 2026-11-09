@@ -220,6 +220,10 @@ class RpcFailure(Exception):
 
 def classify_error(error):
     message = str(error.get("message", "")).lower()
+    if "archive" in message and "token" in message:
+        return "archive_auth_required"
+    if "rate limit" in message:
+        return "rate_limited"
     if "10,000" in message and "proof" in message:
         return "historical_proof_window_10000"
     if "not whitelisted" in message or "not found" in message or "not supported" in message:

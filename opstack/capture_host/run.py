@@ -130,7 +130,7 @@ def supplement_records(kv, paths, limit):
     return {'inputs':inputs,'rows_added':added,'decoded_bytes_added':added_bytes}
 
 
-def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resume=None,header_window=1,transport_cache=None,stop_on_failure=False,code_provenance=(),refresh_missing_code=False,verified_records=(),pooled_rpc=False):
+def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resume=None,header_window=1,transport_cache=None,stop_on_failure=False,code_provenance=(),refresh_missing_code=False,verified_records=(),pooled_rpc=False,rpc_min_interval=0):
     if not 1<=seconds<=180 or not 1<=kv_limit<=64 << 20 or not 1<=header_window<=32:
         raise ValueError('capture limits invalid')
     for url in (l1,l2,beacon):C.endpoint_label(url)
@@ -167,6 +167,7 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
             log=(output/(label+'-adapter.log')).open('xb');logs.append(log)
             command=[sys.executable,str(HERE.parent/'transition_rpc_adapter.py'),'--rpc',rpc,'--port',str(port),'--seconds',str(seconds),'--header-window',str(header_window),'--output',str(output/(label+'-adapter'))]
             if pooled_rpc:command += ['--pooled-rpc']
+            if rpc_min_interval:command += ['--rpc-min-interval-seconds',str(rpc_min_interval)]
             if label=='l1' and transport_cache is not None:
                 command += ['--transport-cache',str(transport_cache),'--cache-claim',claim_id(v)]
             if label=='l2' and provenance_paths:
@@ -220,7 +221,7 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
                 'upstream_revision':pin['revision'],'patch_sha256':pin['patch_sha256'],'host_sha256':hash_file(binary),
                 'candidate':v,'upstream_native_client_accepted':reason=='native_accepted',
                 'complete_exported_witness':False,'derivation_accepted':False,'proof_verified':False,'guest_executed':False,
-                'host_exit_code':host.returncode if host else None,'resumed_kv':resumed,'header_window':header_window,'transport_cache':str(transport_cache) if transport_cache else None,'stop_on_adapter_failure':stop_on_failure,'code_provenance_inputs':[{'sha256':hash_file(p),'path':str(p)}for p in provenance_paths],'code_provenance_refresh':refresh,'verified_record_supplements':supplements,'pooled_rpc':pooled_rpc}
+                'host_exit_code':host.returncode if host else None,'resumed_kv':resumed,'header_window':header_window,'transport_cache':str(transport_cache) if transport_cache else None,'stop_on_adapter_failure':stop_on_failure,'code_provenance_inputs':[{'sha256':hash_file(p),'path':str(p)}for p in provenance_paths],'code_provenance_refresh':refresh,'verified_record_supplements':supplements,'pooled_rpc':pooled_rpc,'rpc_min_interval':rpc_min_interval,'upstream_endpoints':{'l1':C.endpoint_label(l1),'l2':C.endpoint_label(l2),'beacon':C.endpoint_label(beacon)}}
         C.write_new(output/'capture-run.json',(json.dumps(result,indent=2)+'\n').encode())
     return result
 
@@ -229,8 +230,8 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--source',type=Path,required=True);p.add_argument('--candidate',type=Path,required=True)
     p.add_argument('--l1-rpc',required=True);p.add_argument('--l2-rpc',required=True);p.add_argument('--beacon',required=True)
-    p.add_argument('--output',type=Path,required=True);p.add_argument('--seconds',type=int,default=180);p.add_argument('--resume',type=Path);p.add_argument('--header-window',type=int,default=1);p.add_argument('--transport-cache',type=Path);p.add_argument('--stop-on-adapter-failure',action='store_true');p.add_argument('--code-provenance',type=Path,action='append',default=[]);p.add_argument('--refresh-missing-code-provenance',action='store_true');p.add_argument('--verified-records',type=Path,action='append',default=[]);p.add_argument('--pooled-rpc',action='store_true')
+    p.add_argument('--output',type=Path,required=True);p.add_argument('--seconds',type=int,default=180);p.add_argument('--resume',type=Path);p.add_argument('--header-window',type=int,default=1);p.add_argument('--transport-cache',type=Path);p.add_argument('--stop-on-adapter-failure',action='store_true');p.add_argument('--code-provenance',type=Path,action='append',default=[]);p.add_argument('--refresh-missing-code-provenance',action='store_true');p.add_argument('--verified-records',type=Path,action='append',default=[]);p.add_argument('--pooled-rpc',action='store_true');p.add_argument('--rpc-min-interval-seconds',type=float,default=0)
     a=p.parse_args()
-    try:print(json.dumps(run(a.source.resolve(),a.candidate.resolve(),a.l1_rpc,a.l2_rpc,a.beacon,a.output.absolute(),a.seconds,resume=a.resume.resolve() if a.resume else None,header_window=a.header_window,transport_cache=a.transport_cache.resolve() if a.transport_cache else None,stop_on_failure=a.stop_on_adapter_failure,code_provenance=[p.resolve()for p in a.code_provenance],refresh_missing_code=a.refresh_missing_code_provenance,verified_records=[p.resolve()for p in a.verified_records],pooled_rpc=a.pooled_rpc),indent=2))
+    try:print(json.dumps(run(a.source.resolve(),a.candidate.resolve(),a.l1_rpc,a.l2_rpc,a.beacon,a.output.absolute(),a.seconds,resume=a.resume.resolve() if a.resume else None,header_window=a.header_window,transport_cache=a.transport_cache.resolve() if a.transport_cache else None,stop_on_failure=a.stop_on_adapter_failure,code_provenance=[p.resolve()for p in a.code_provenance],refresh_missing_code=a.refresh_missing_code_provenance,verified_records=[p.resolve()for p in a.verified_records],pooled_rpc=a.pooled_rpc,rpc_min_interval=a.rpc_min_interval_seconds),indent=2))
     except (ValueError,OSError,KeyError,TypeError,subprocess.SubprocessError) as error:
         print(json.dumps({'status':'capture_host_failed','error_type':type(error).__name__}));raise SystemExit(1)from None
