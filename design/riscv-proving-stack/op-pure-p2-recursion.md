@@ -374,30 +374,6 @@ and the final root receiver are still required. No root execution admission has
 opened. The field-lifted interpreter is shared with the native component; the
 P2 equations use the same row authority and are cross-checked against actual
 native point/composition verification in this gate.
-## Complete Miller truth leaf
-
-The source-owned Miller worker now has a complete recursive statement using
-its original frontier/arithmetic MAIN, range, SSA and global Wire equations.
-Its source-derived masks preserve global-domain offsets for the smaller
-frontier. Native worker framing, local challenge domains and all four physical
-claims enter the circuit transcript. The root-facing frame contains 70 raw u32
-words (scope roots, statement, manifest, claims and call span), hashed to nine
-canonical M31 outputs. This authenticates a truth fragment; execution acceptance
-still requires every CPU/service leaf and global closure.
-
-The actual native target-profile fragment and its captured PCS/FRI proof pass
-numeric circuit checks and an independently reconstructed trace-only outer
-receiver. The [receipt](../../vectors/reports/rv64-opstack-performance-20261109/precompiles/pure-p2-miller-leaf.json)
-records 100.67M padded cells, a 642,244-byte outer proof, and rejected source,
-claim, output and physical-proof mutations. Its 22.52 s production and 1.98 s
-fresh reception were measured during concurrent engineering and are qualification
-samples, not a heavy-block benchmark or a claimed speedup.
-
-Reproduce the bounded physical gate with
-`STWO_OP_P2_TOWER_PHYSICAL=1 zig build test-riscv64-op-tower-recursion -Doptimize=ReleaseFast -j1`.
-The default ReleaseSafe target runs numerical and mutation qualification without
-producing the large outer proof. New execution admission remains closed.
-
 ### Heterogeneous source fold and receiver boundary
 
 `pure_p2_fold.zig` is the concrete binary fold authority. Each child carries its
