@@ -771,6 +771,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Repair the observed hosted candidate failure on missing AIR export by invoking the existing exact production export owner before expensive provisioning, retaining all 46 opcode inputs and binding both candidate generation/check to those same fresh paths. Add workflow ordering/input coverage; keep normal publication and receipt admission unchanged."
+    },
+    {
+      "id": "bounded_observer_developer_ci_ownership",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Close the observed dev_test unowned-source failure by routing four bounded observer directories and the shared contracts to their existing complete RISC-V CPU lane. Mark that heavy lane hosted so the developer entrypoint and prepush cannot launch complete proof builds on the laptop. Verify normal/check modes defer without a tool probe; preserve every CI command and discovery floor."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

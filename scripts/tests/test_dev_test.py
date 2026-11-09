@@ -122,7 +122,13 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_extra_ci_lanes_use_host_policy_and_shared_template_owner(self):
         deferred = []
-        with mock.patch("scripts.dev_test.sys.platform", "linux"):
+        policy = dev_test.ci_scope_plan.strict_json(ROOT / "conformance/ci-touchpoints-v1.json")
+        # Exercise template delegation with an explicitly local fixture; the
+        # real complete RISC-V CPU lane is now hosted and tested separately.
+        policy["lanes"]["riscv_cpu"]["local"] = "run"
+        with mock.patch("scripts.dev_test.sys.platform", "linux"), mock.patch(
+            "scripts.dev_test.ci_scope_plan.strict_json", return_value=policy,
+        ):
             commands = dev_test.commands_for_paths(ROOT, ["build_support/products/riscv_cpu.zig"], deferred=deferred)
         self.assertIn("aggregate_metal", deferred)
         self.assertIn("build_graph", deferred)
@@ -134,6 +140,23 @@ class DevTestPlanTests(unittest.TestCase):
             self.assertIn("--output", command)
         with self.assertRaisesRegex(dev_test.DevTestError, "requires hosted validation"):
             dev_test.commands_for_paths(ROOT, ["build_support/products/riscv_cpu.zig"])
+
+    def test_bounded_observers_defer_the_complete_cpu_lane_without_compilation(self):
+        paths = [
+            "src/products/riscv/tools/observations/journal.zig",
+            "src/products/riscv/tools/observation_contracts.zig",
+            *["src/products/riscv/tools/" + name + "/app.zig" for name in
+              ("pc_hotspot", "memcpy_hotspot", "function_value", "memcpy_admission")],
+        ]
+        for check_only in (False, True):
+            for path in paths:
+                deferred = []
+                with self.subTest(path=path, check_only=check_only), mock.patch(
+                    "scripts.dev_test.subprocess.run", side_effect=AssertionError("unexpected local tool"),
+                ):
+                    commands = dev_test.commands_for_paths(ROOT, [path], check_only=check_only, deferred=deferred)
+                self.assertEqual([], commands)
+                self.assertEqual(["riscv_cpu"], deferred)
 
     def test_resource_and_fixture_owners_use_focused_contracts(self):
         for filename, step in (

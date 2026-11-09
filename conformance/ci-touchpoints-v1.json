@@ -637,7 +637,8 @@
           "python3",
           "scripts/riscv/riscv_trace_vectors.py"
         ]
-      ]
+      ],
+      "local": "hosted"
     },
     "cairo_cpu": {
       "host": "linux",
@@ -1628,6 +1629,19 @@
       "lanes": [
         "static",
         "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/products/riscv/tools/pc_hotspot",
+        "src/products/riscv/tools/memcpy_hotspot",
+        "src/products/riscv/tools/function_value",
+        "src/products/riscv/tools/memcpy_admission",
+        "src/products/riscv/tools/observations",
+        "src/products/riscv/tools/observation_contracts.zig"
+      ],
+      "lanes": [
+        "riscv_cpu"
       ]
     }
   ],
