@@ -74,12 +74,14 @@ export function registerPackedOm31Tests(deploy) {
       b.push(dense, base);
     }
     const values = await c.vectors(a, b);
+    const reference = await c.referenceProducts(a, b);
     a.forEach((x, i) => {
       const y = b[i];
       assert.equal(values[4 * i], packed(x));
       assert.equal(values[4 * i + 1], packed(x.map((v, j) => mod(v + y[j]))));
       assert.equal(values[4 * i + 2], packed(x.map((v, j) => mod(v - y[j]))));
       assert.equal(values[4 * i + 3], packed(product(x, y)));
+      assert.equal(values[4 * i + 3], reference[i]);
     });
     for (let i = 0; i < 8; ++i) {
       const invalid = zero();

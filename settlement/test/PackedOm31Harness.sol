@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.26;
 import {NativeOm31Packed as P} from "../src/NativeOm31Packed.sol";
+import {NativeFriFold} from "../src/NativeFriFold.sol";
 
 contract PackedOm31Harness {
     function vectors(uint32[8][] calldata a, uint32[8][] calldata b) external pure returns (bytes32[] memory results) {
@@ -14,6 +15,12 @@ contract PackedOm31Harness {
             results[4 * i + 2] = P.sub(x, y);
             results[4 * i + 3] = P.mul(x, y);
         }
+    }
+
+    function referenceProducts(uint32[8][] calldata a, uint32[8][] calldata b) external pure returns (bytes32[] memory results) {
+        require(a.length == b.length);
+        results = new bytes32[](a.length);
+        for (uint256 i; i < a.length; ++i) results[i] = P.fromLimbs(NativeFriFold.multiply(a[i], b[i]));
     }
 
     function wire(bytes32 value) external pure returns (uint32[8] memory) {

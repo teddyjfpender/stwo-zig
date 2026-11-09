@@ -419,3 +419,12 @@ receivers accepting. Fanout is removed from production; its [patch](rejected-cpu
 and bounded-admission tests remain recoverable. The native two-lane schedule is
 a different mechanism and keeps its earlier complete-block qualification.
 These are one-run development qualifications, not a controlled repeated speedup.
+
+The subsequent [packed tower kernel](solidity-packed-tower.json) removes expanded
+input/output arrays and reduces only the final eight coordinates. Dense
+64-multiply gas falls **508,926 → 192,367**; the 2,048-node mixed AIR falls
+**6,783,106 → 4,100,021**, and the real 177-node pinned AIR falls
+**1,064,808 → 637,484**. Both the independent polynomial model and original
+array tower agree on basis, edge and dense vectors. All 24 default settlement
+tests pass; the three external-fixture skips remain. This supersedes the dense
+tradeoff above without changing proof bytes or verifier authority.
