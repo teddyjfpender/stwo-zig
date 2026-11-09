@@ -11,7 +11,6 @@ const native_relation_challenges = dependency_0.native_relation_challenges;
 const leaf_authority = dependency_0.leaf_authority;
 const semantics = dependency_0.semantics;
 const arithmetic = dependency_0.arithmetic;
-const air = dependency_0.air;
 const relation_interaction = dependency_0.relation_interaction;
 const manifest_mod = dependency_0.manifest_mod;
 const roster = dependency_0.roster;

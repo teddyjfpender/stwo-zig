@@ -1,31 +1,30 @@
 //! Cold domain audit for authenticated segment transcript rows.
 
-const air = @import("air/mod.zig");
-const binding = air.universal_relation_binding;
-const relation_interaction = air.relation_interaction;
-const schedule = air.verifier_schedule;
-const universal = air.universal_challenges;
+const binding = @import("air/universal_relation_binding.zig");
+const relation_interaction = @import("air/relation_interaction.zig");
+const schedule = @import("air/verifier_schedule.zig");
+const universal = @import("air/universal_challenges.zig");
 const segment_witness = @import("segment_transcript_witness.zig");
 
-const control_witness = air.control_witness;
-const transcript_air_witness = air.transcript_air_witness;
-const transcript_binding_witness = air.transcript_binding_witness;
-const transcript_state_witness = air.transcript_state_witness;
-const transcript_word_witness = air.transcript_word_witness;
-const transcript_payload_witness = air.transcript_payload_witness;
-const relation_challenge_witness = air.relation_challenge_witness;
-const verifier_randomness_witness = air.verifier_randomness_witness;
+const control_witness = @import("air/control_witness.zig");
+const transcript_air_witness = @import("air/transcript_air_witness.zig");
+const transcript_binding_witness = @import("air/transcript_binding_witness.zig");
+const transcript_state_witness = @import("air/transcript_state_witness.zig");
+const transcript_word_witness = @import("air/transcript_word_witness.zig");
+const transcript_payload_witness = @import("air/transcript_payload_witness.zig");
+const relation_challenge_witness = @import("air/relation_challenge_witness.zig");
+const verifier_randomness_witness = @import("air/verifier_randomness_witness.zig");
 
-const ControlRelation = binding.Binding(air.control);
-const TranscriptAirRelation = binding.Binding(air.transcript_air);
-const TranscriptBindingRelation = binding.Binding(air.transcript_binding);
-const TranscriptStateRelation = binding.Binding(air.transcript_state);
-const TranscriptWordRelation = binding.Binding(air.transcript_word);
-const TranscriptPayloadRelation = binding.Binding(air.transcript_payload);
-const PowCheckRelation = binding.Binding(air.pow_check);
-const PowFrameRelation = binding.Binding(air.pow_frame);
-const RelationChallengeRelation = binding.Binding(air.relation_challenge);
-const VerifierRandomnessRelation = binding.Binding(air.verifier_randomness);
+const ControlRelation = binding.Binding(@import("air/control.zig"));
+const TranscriptAirRelation = binding.Binding(@import("air/transcript_air.zig"));
+const TranscriptBindingRelation = binding.Binding(@import("air/transcript_binding.zig"));
+const TranscriptStateRelation = binding.Binding(@import("air/transcript_state.zig"));
+const TranscriptWordRelation = binding.Binding(@import("air/transcript_word.zig"));
+const TranscriptPayloadRelation = binding.Binding(@import("air/transcript_payload.zig"));
+const PowCheckRelation = binding.Binding(@import("air/pow_check.zig"));
+const PowFrameRelation = binding.Binding(@import("air/pow_frame.zig"));
+const RelationChallengeRelation = binding.Binding(@import("air/relation_challenge.zig"));
+const VerifierRandomnessRelation = binding.Binding(@import("air/verifier_randomness.zig"));
 
 pub fn audit(
     self: anytype,
