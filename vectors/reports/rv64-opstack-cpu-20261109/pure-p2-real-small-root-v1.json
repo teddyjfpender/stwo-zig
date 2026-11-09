@@ -1,0 +1,64 @@
+{
+  "scope": "OP120794432 complete physical recursive root from native-bundle ingress, with source-owned final-root receiver; NOT standalone fresh root-only handoff",
+  "qualification": "ReleaseSafe quiet32GiB requested-host-budget correctness control; no performance promotion",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "native_producer_control": {
+    "instructions": 796406,
+    "CPU_members": 1,
+    "truth_members": 2,
+    "wall_seconds": 17.05,
+    "pipeline_seconds": 12.931,
+    "included_in_recursion_seconds": false
+  },
+  "recursion": {
+    "members": 3,
+    "folds": 2,
+    "root_bytes": 667304,
+    "total_ns": 436567409083,
+    "nodes": [
+      {
+        "kind": "CPU",
+        "proof_bytes": 693916,
+        "source_prove_ns": 72593276375,
+        "fresh_receive_ns": 15740036584
+      },
+      {
+        "kind": "keccak",
+        "proof_bytes": 699424,
+        "source_prove_ns": 77157664125,
+        "fresh_receive_ns": 16101236917
+      },
+      {
+        "kind": "sha256",
+        "proof_bytes": 700456,
+        "source_prove_ns": 75335076709,
+        "fresh_receive_ns": 16317510166
+      },
+      {
+        "kind": "fold",
+        "proof_bytes": 666056,
+        "source_prove_ns": 38921907125,
+        "fresh_receive_ns": 8012733667
+      },
+      {
+        "kind": "fold",
+        "proof_bytes": 667304,
+        "source_prove_ns": 38610834083,
+        "fresh_receive_ns": 8192301834
+      }
+    ],
+    "complete": true,
+    "source_owned_topology": true,
+    "full_terminal_policy": true,
+    "global_RAM_KIO_Wire_closed": true
+  },
+  "remaining": [
+    "standalone fresh root-only source/template handoff without native PCS/GKR re-verification",
+    "actual source-class census via trace-only reconstruction",
+    "substantial OM31 arithmetic and setup/retention optimization",
+    "matched heavy-block10x target remains unmet"
+  ],
+  "production_admission_open": false
+}

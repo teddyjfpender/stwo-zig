@@ -405,3 +405,19 @@ not a controlled speed comparison or a heavy-block projection. Swapped children,
 a changed ninth output limb and a corrupted parent proof reject. Exact receipt:
 `pure-p2-heterogeneous-fold-v1.json`. Independent execution root admission and a
 real complete-block root remain separate gates.
+
+### Actual complete small OP block physical root
+
+Block120794432 now passes the complete three-leaf physical recursion gate: one
+CPU, one Keccak and one SHA leaf, two source-exact heterogeneous folds, final
+root667,304 bytes. It checks the independently reconstructed inventory, whole
+manifest, RAM/KIO/Wire closure and full pinned terminal policy. Under a32GiB
+requested-host budget, the quiet ReleaseSafe correctness run took436.567s from
+fresh native-bundle ingress through the final root check. Native production
+(17.05s process wall,12.931s pipeline) is separate. This is an opt-in correctness
+result, not a speed improvement. It is too expensive for the heavy-block goal.
+The current producer verifies native fragments before wrapping; it is not yet a
+standalone fresh root-only handoff. That separate receiver must reconstruct all
+source templates from bounded metadata without native PCS/GKR re-verification.
+Receipt:`pure-p2-real-small-root-v1.json`. Actual source-class counts will be
+obtained by trace-only reconstruction rather than re-running this long proof.
