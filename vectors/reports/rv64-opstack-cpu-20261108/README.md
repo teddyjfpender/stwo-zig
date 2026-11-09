@@ -428,3 +428,34 @@ input/output arrays and reduces only the final eight coordinates. Dense
 array tower agree on basis, edge and dense vectors. All 24 default settlement
 tests pass; the three external-fixture skips remain. This supersedes the dense
 tradeoff above without changing proof bytes or verifier authority.
+
+The [final profiled heavy root](heavy-d2-recursion-profile.json) completes in
+**1,742.353 s**, followed by **182.234 s** fresh committed-source reception.
+All 174 physical proof files match the accepted serial control; all 173 outer
+profiles match the tree's authority multiset. Peak producer RSS is **32.025 GiB**.
+The explicit 1 GiB freed-block cache reduces new mappings 355,826 → 276,224
+while increasing memory relative to the 64 MiB control. This is one profiled
+qualification with brief source checks during startup, **not a controlled
+cache speedup or a new default**. Native production is additional.
+
+| Complete heavy outer stage | Summed seconds | Average busy process cores |
+| --- | ---: | ---: |
+| INTER preparation + Merkle | 409.291 | 13.51 |
+| Composition | 333.679 | 10.20 |
+| Interaction generation | 256.068 | 15.46 |
+| MAIN preparation + Merkle | 189.925 | 11.26 |
+| FRI quotient | 174.483 | 12.59 |
+| Sampled values | 44.717 | 12.09 |
+
+These root-level serial intervals total 1,507.328 s across all stages; nested
+scopes are not added to that total. INTER contains 235.031 s Merkle hashing
+and 174.260 s preparation; BLAKE gate rows consume 185.100 s of interaction
+generation. Remaining wall includes 59.008 s initial setup, 28.521 s graph
+construction and uninstrumented per-wrap/fold overhead. CPU counters cover all
+process threads; different M5 core classes are not equal-throughput workers.
+
+The next heavy-block multiplier needs fewer recursive hash/lookup obligations
+or a qualified cheaper commitment/outer construction. More simultaneous CPU
+proofs and larger caches have not demonstrated that multiplier. Preserve
+full RAM/KIO/Wire closure, source authority, public statement/roster binding
+and the documented security construction in any replacement.
