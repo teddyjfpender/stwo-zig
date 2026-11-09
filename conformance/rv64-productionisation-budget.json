@@ -659,6 +659,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Rebind two internal Lean composition source identities to canonical current AIR exports, with source-file hashes verified first, then use the existing pinned Sail/Lean workflow and generator to produce a kernel-checked candidate. Default verification still requires committed artifacts, full publication and clean live receipt minting. Explicit regeneration retains baseline rejection, immutable source and candidate diff without promoting receipts or weakening proof/axiom/pin rules; no local compiler or new launcher."
+    },
+    {
+      "id": "delivery_fri_stage_differential",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
