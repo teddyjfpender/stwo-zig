@@ -125,6 +125,46 @@ class RiscvTeamBRefreshTests(unittest.TestCase):
 
     # -- abort-on-failure ---------------------------------------------------
 
+    def test_live_refresh_preserves_exact_inputs_in_both_modes(self) -> None:
+        for write in (False, True):
+            calls, execute = self._recording_executor()
+            with mock.patch.object(refresh, "_execute", execute), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(0, refresh.main([
+                    "--write" if write else "--dry-run",
+                    "--air-ir-dir", str(self.air_ir_dir),
+                    "--air-program-ir-dir", str(self.air_ir_dir),
+                    "--sail-riscv-dir", "pinned-model", "--sail-bin", "pinned-sail",
+                ]))
+            for command, _ in calls:
+                if _step_marker(command) not in ("generate", "check-generated"):
+                    continue
+                self.assertNotIn("--reuse-committed-sail-evidence", command)
+                for flag, value in (("--air-ir-dir", str(self.air_ir_dir)),
+                                    ("--air-program-ir-dir", str(self.air_ir_dir)),
+                                    ("--sail-riscv-dir", "pinned-model"),
+                                    ("--sail-bin", "pinned-sail")):
+                    self.assertEqual(value, command[command.index(flag) + 1])
+
+    def test_partial_live_toolchain_refuses_before_any_subprocess(self) -> None:
+        for options in ({"sail_bin": Path("sail")}, {"sail_riscv_dir": Path("model")}):
+            with mock.patch.object(refresh, "_execute") as execute:
+                with self.assertRaisesRegex(refresh.RefreshError, "together"):
+                    refresh.refresh(self.air_ir_dir, write=True, **options)
+            execute.assert_not_called()
+        with mock.patch.object(refresh, "_execute") as execute:
+            with self.assertRaisesRegex(refresh.RefreshError, "exact --air-program-ir-dir"):
+                refresh.refresh(self.air_ir_dir, write=True,
+                                sail_riscv_dir=Path("model"), sail_bin=Path("sail"))
+        execute.assert_not_called()
+
+    def test_missing_opcode_export_refuses_before_lean_or_writes(self) -> None:
+        calls, execute = self._recording_executor()
+        with mock.patch.object(refresh, "_execute", execute):
+            with self.assertRaisesRegex(refresh.RefreshError, "no exported AIR"):
+                refresh.refresh(self.air_ir_dir, write=True,
+                                air_program_ir_dir=self.air_ir_dir / "absent")
+        self.assertEqual(("staged-probe",), tuple(_step_marker(c) for c, _ in calls))
+
     def test_a_failing_lake_build_aborts_every_gate(self) -> None:
         calls, execute = self._recording_executor(fail={"lake"})
         with mock.patch.object(refresh, "_execute", execute):

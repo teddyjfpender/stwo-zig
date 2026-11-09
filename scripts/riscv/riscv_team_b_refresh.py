@@ -28,6 +28,11 @@ The AIR IR directory is an input, exported beforehand with::
 
     zig build riscv-refinement-ir -Driscv-refinement-ir-dir=zig-out/team-b-ir
 
+Hosted refreshes pass ``--air-program-ir-dir`` and the paired
+``--sail-riscv-dir``/``--sail-bin`` inputs. This selects live pinned Sail for
+both generation commands; omitting the pair retains the local carried-evidence
+mode. Live refresh refuses a missing exact opcode export.
+
 Examples::
 
     python3 scripts/riscv/riscv_team_b_refresh.py            # dry-run drift report
@@ -108,13 +113,21 @@ def _refinement_command(*arguments: str) -> tuple[str, ...]:
     return (sys.executable, "scripts/riscv/riscv_refinement.py", *arguments)
 
 
-def _generation_arguments(air_ir_dir: Path) -> tuple[str, ...]:
-    return (
-        "--reuse-committed-sail-evidence",
-        "--no-export-air",
-        "--air-ir-dir",
-        str(air_ir_dir),
+def _generation_arguments(
+    air_ir_dir: Path, air_program_ir_dir: Path | None,
+    sail_riscv_dir: Path | None, sail_bin: Path | None,
+) -> tuple[str, ...]:
+    if (sail_riscv_dir is None) != (sail_bin is None):
+        raise RefreshError("--sail-riscv-dir and --sail-bin must be supplied together")
+    if sail_bin is not None and air_program_ir_dir is None:
+        raise RefreshError("live Sail refresh requires the exact --air-program-ir-dir export")
+    owner = ("--reuse-committed-sail-evidence",) if sail_bin is None else (
+        "--sail-riscv-dir", str(sail_riscv_dir), "--sail-bin", str(sail_bin),
     )
+    program = () if air_program_ir_dir is None else (
+        "--air-program-ir-dir", str(air_program_ir_dir),
+    )
+    return (*owner, "--no-export-air", "--air-ir-dir", str(air_ir_dir), *program)
 
 
 def _refuse_staged_changes() -> None:
@@ -202,21 +215,29 @@ def _detail(output: str) -> list[str]:
     ]
 
 
-def refresh(air_ir_dir: Path, write: bool) -> list[str]:
+def refresh(
+    air_ir_dir: Path, write: bool, *, air_program_ir_dir: Path | None = None,
+    sail_riscv_dir: Path | None = None, sail_bin: Path | None = None,
+) -> list[str]:
     resolved = air_ir_dir if air_ir_dir.is_absolute() else ROOT / air_ir_dir
+    program = None if air_program_ir_dir is None else (
+        air_program_ir_dir if air_program_ir_dir.is_absolute() else ROOT / air_program_ir_dir
+    )
+    generation = _generation_arguments(resolved, program, sail_riscv_dir, sail_bin)
     _refuse_staged_changes()
     _require_air_export(resolved)
+    if program is not None:
+        _require_air_export(program)
     before_count = pinned_theorem_count()
     if write:
-        return _refresh_for_real(resolved, before_count)
-    return _report_drift(resolved, before_count)
+        return _refresh_for_real(resolved, before_count, generation)
+    return _report_drift(before_count, generation)
 
 
-def _refresh_for_real(air_ir_dir: Path, before_count: int) -> list[str]:
+def _refresh_for_real(air_ir_dir: Path, before_count: int, generation: tuple[str, ...]) -> list[str]:
     before = _artifact_digests()
     _run(("lake", "build"), FORMAL_DIR)
     _run(_refinement_command("audited-theorems", "--write"), ROOT)
-    generation = _generation_arguments(air_ir_dir)
     _run(_refinement_command("generate", *generation), ROOT)
     _run(_refinement_command("check-generated", *generation), ROOT)
     _run(
@@ -249,7 +270,7 @@ def _refresh_for_real(air_ir_dir: Path, before_count: int) -> list[str]:
     ]
 
 
-def _report_drift(air_ir_dir: Path, pinned_count: int) -> list[str]:
+def _report_drift(pinned_count: int, generation: tuple[str, ...]) -> list[str]:
     _run(("lake", "build"), FORMAL_DIR)
     lines = ["dry run: nothing was written; pass --write to refresh"]
     status, output = _execute(_refinement_command("audited-theorems"), ROOT)
@@ -266,7 +287,7 @@ def _report_drift(air_ir_dir: Path, pinned_count: int) -> list[str]:
         lines.extend(_detail(output))
     status, output = _execute(
         _refinement_command(
-            "check-generated", *_generation_arguments(air_ir_dir)
+            "check-generated", *generation
         ),
         ROOT,
     )
@@ -305,13 +326,18 @@ def _parser() -> argparse.ArgumentParser:
         default=DEFAULT_AIR_IR_DIR,
         help="already exported AIR IR directory (see the module docstring)",
     )
+    parser.add_argument("--air-program-ir-dir", type=Path, help="exact exported opcode AIR IR v2 directory")
+    parser.add_argument("--sail-riscv-dir", type=Path, help="live pinned Sail model; requires --sail-bin")
+    parser.add_argument("--sail-bin", type=Path, help="live pinned Sail compiler; requires --sail-riscv-dir")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        lines = refresh(args.air_ir_dir, write=args.write)
+        lines = refresh(args.air_ir_dir, write=args.write,
+                        air_program_ir_dir=args.air_program_ir_dir,
+                        sail_riscv_dir=args.sail_riscv_dir, sail_bin=args.sail_bin)
     except RefreshError as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

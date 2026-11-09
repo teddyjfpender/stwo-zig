@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import textwrap
 
 from scripts.riscv import riscv_refinement_publication as publication
 from scripts.tests.riscv_refinement_test_support import *
@@ -55,6 +56,31 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
         self.assertLess(source.index("- name: Export fresh candidate AIR"), source.index("- name: Setup Lean"))
         generation = source.split("- name: Regenerate source-bound candidate with the live pinned owner", 1)[1].split("      - name:", 1)[0]
         self.assertEqual(2, generation.count('--air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air"'))
+
+    def test_candidate_runs_team_b_live_and_limits_source_edits_to_the_pin(self):
+        source = (ROOT / ".github/workflows/riscv-sail-formal.yml").read_text()
+        step = source.split("- name: Refresh Team B with the exact live candidate inputs", 1)[1].split("      - name:", 1)[0]
+        for token in ("if: inputs.regenerate_bindings == true", "riscv_team_b_refresh.py --write",
+                      '--air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air"',
+                      "--sail-riscv-dir", "--sail-bin", "set -euo pipefail"):
+            self.assertIn(token, step)
+        self.assertNotIn("--reuse-committed-sail-evidence", step)
+        self.assertIn('assert normalized[0] == normalized[1]', source)
+        self.assertIn('"AUDITED_THEOREMS"', source)
+
+    def test_candidate_pin_guard_accepts_only_inventory_changes(self):
+        workflow = (ROOT / ".github/workflows/riscv-sail-formal.yml").read_text()
+        guard = textwrap.dedent(workflow.split("python3 - <<'PY'\n", 1)[1].split("          PY", 1)[0])
+        from scripts.riscv.riscv_refinement_lib import audited_inventory
+        before = (ROOT / "scripts/riscv/riscv_refinement_lib/audited_inventory.py").read_text()
+        changed = before.replace(audited_inventory.parse_source(before)[0], "RiscvRefinement.Repinned", 1)
+        for candidate, rejected in ((changed, False), (changed + "\nUNREVIEWED = True\n", True)):
+            with mock.patch("subprocess.check_output", return_value=before), mock.patch.object(Path, "read_text", return_value=candidate):
+                if rejected:
+                    with self.assertRaisesRegex(AssertionError, "outside the audited theorem pin"):
+                        exec(guard, {})
+                else:
+                    exec(guard, {})
 
     def test_generation_owns_full_live_preparation_and_preserves_explicit_inputs(self):
         paths = Paths(ROOT)

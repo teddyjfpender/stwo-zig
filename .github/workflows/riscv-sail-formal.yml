@@ -256,6 +256,17 @@ jobs:
             --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
             --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/check-generated.log"
 
+      - name: Refresh Team B with the exact live candidate inputs
+        if: inputs.regenerate_bindings == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          python3 scripts/riscv/riscv_team_b_refresh.py --write \
+            --air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air" \
+            --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
+            --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/team-b-refresh.log"
+
       - name: Run the Sail-present 46-opcode FV-1/FV-2 publication gate
         if: inputs.regenerate_bindings != true
         env:
@@ -289,8 +300,27 @@ jobs:
         run: |
           OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
           mkdir -p "$OUT"
-          git diff --exit-code -- src scripts conformance .github
-          git diff --binary -- formal/riscv-refinement > "$OUT/generated-bindings.patch"
+          git diff --exit-code -- src scripts conformance .github \
+            ':!scripts/riscv/riscv_refinement_lib/audited_inventory.py'
+          python3 - <<'PY'
+          import ast, subprocess
+          from pathlib import Path
+          from scripts.riscv.riscv_refinement_lib import audited_inventory
+          pin = Path("scripts/riscv/riscv_refinement_lib/audited_inventory.py")
+          before = subprocess.check_output(["git", "show", f"HEAD:{pin}"], text=True)
+          normalized = []
+          for text in (before, pin.read_text()):
+              audited_inventory.parse_source(text)
+              tree = ast.parse(text)
+              assignments = [node for node in tree.body if isinstance(node, ast.Assign)
+                             and any(isinstance(t, ast.Name) and t.id == "AUDITED_THEOREMS" for t in node.targets)]
+              assert len(assignments) == 1
+              assignments[0].value = ast.Constant(None)
+              normalized.append(ast.dump(tree))
+          assert normalized[0] == normalized[1], "candidate changed code outside the audited theorem pin"
+          PY
+          git diff --binary -- formal/riscv-refinement \
+            scripts/riscv/riscv_refinement_lib/audited_inventory.py > "$OUT/generated-bindings.patch"
           git status --porcelain=v1 > "$OUT/worktree-status.txt"
 
       - name: Save pinned formal toolchain workspace
