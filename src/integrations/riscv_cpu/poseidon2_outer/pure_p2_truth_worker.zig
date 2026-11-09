@@ -321,6 +321,7 @@ fn generate(a: std.mem.Allocator, truth: R.Truth, source: *const R.TruthSource, 
     return .{ .claims = claims, .commit = try Old.take(a, &locals, globals[0..global_count]) };
 }
 pub const Worker = struct {
+    native_recorder: ?*@import("stwo_prover_api").stage_profile.Recorder = null,
     allocator: std.mem.Allocator,
     parent_allocator: std.mem.Allocator,
     budget_owner: *Budget,
@@ -363,7 +364,7 @@ pub const Worker = struct {
         self.consumed = true;
         try self.key.append(self.allocator, &self.scheme, &self.channel);
         const main = try self.source.?.takeMain();
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, main.columns, main.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         self.sealed = true;
         self.consumed = false;
         return .{ .main = self.scheme.trees.items[1].root(), .local = null };
@@ -374,6 +375,8 @@ pub const Worker = struct {
         try pending.checkPhysicalRoots(index, self.key.root, self.scheme.trees.items[1].root());
         self.consumed = true;
         const local = drawLocal(self.truth, &self.channel, pending.digest);
+        var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Inherited truth interaction generation");
+        defer generation.end();
         const generated = try generate(self.allocator, self.truth, &self.source.?, local, pending.shared, self.budget);
         defer self.allocator.free(generated.claims);
         var owns_inter = true;
@@ -381,13 +384,14 @@ pub const Worker = struct {
         var components = try Components.init(self.truth, local, pending.shared, generated.claims);
         const handles = try components.provers(self.allocator);
         defer self.allocator.free(handles);
+        generation.end();
         Protocol.mixManifestAndClaims(&self.channel, pending.digest, generated.claims);
         owns_inter = false; // owned commit consumes every backing on all paths.
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, generated.commit.columns, generated.commit.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, generated.commit.columns, generated.commit.backings, 64, self.native_recorder, &self.channel);
         self.source.?.deinit();
         self.source = null;
         self.owns_scheme = false;
-        var proof = try W.Prover.prove(self.allocator, handles, &self.channel, self.scheme, .{});
+        var proof = try W.Prover.prove(self.allocator, handles, &self.channel, self.scheme, .{ .recorder = self.native_recorder });
         defer proof.deinit(self.allocator);
         const output = try W.Wire.encodeProofBytesBinary(self.parent_allocator, proof.proof);
         errdefer self.parent_allocator.free(output);

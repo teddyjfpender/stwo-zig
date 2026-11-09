@@ -209,6 +209,7 @@ fn checkClaims(claims: [4]O) !void {
     if (!claims[0].add(claims[2]).isZero()) return error.OpTowerSsaNotClosed;
 }
 pub const Worker = struct {
+    native_recorder: ?*@import("stwo_prover_api").stage_profile.Recorder = null,
     allocator: std.mem.Allocator,
     parent_allocator: std.mem.Allocator,
     budget: *Budget,
@@ -274,7 +275,7 @@ pub const Worker = struct {
         self.consumed = true;
         try self.key.append(self.allocator, &self.scheme, &self.channel);
         const main = try self.takeColumns(.main);
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, main.columns, main.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         self.sealed = true;
         self.consumed = false;
         return .{ .main = self.scheme.trees.items[1].root(), .local = null };
@@ -285,13 +286,16 @@ pub const Worker = struct {
         try pending.checkPhysicalRoots(index, self.key.root, self.scheme.trees.items[1].root());
         self.consumed = true;
         const ch = drawLocal(&self.channel, pending.digest, pending.shared);
+        var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Miller SSA, range and global Wire interaction generation");
+        defer generation.end();
         const fclaims = try self.frontier.generateInteraction(ch);
         const aclaims = try self.arithmetic.generateInteraction(ch);
         const claims = [4]O{ fclaims.ssa, fclaims.wire, aclaims.ssa, aclaims.wire };
         try checkClaims(claims);
+        generation.end();
         Protocol.mixManifestAndClaims(&self.channel, pending.digest, &claims);
         const interaction = try self.takeColumns(.interaction);
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, interaction.columns, interaction.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, interaction.columns, interaction.backings, 64, self.native_recorder, &self.channel);
         try self.frontier.releaseAdvice();
         try self.arithmetic.releaseAdvice();
         const set = components(self.key, self.span, ch, claims);
@@ -299,7 +303,7 @@ pub const Worker = struct {
         const scheme = self.scheme;
         self.scheme = undefined;
         self.owns_scheme = false;
-        var proof = try W.Prover.prove(self.allocator, &handles, &self.channel, scheme, .{});
+        var proof = try W.Prover.prove(self.allocator, &handles, &self.channel, scheme, .{ .recorder = self.native_recorder });
         defer proof.deinit(self.allocator);
         return .{ .bytes = try W.Wire.encodeProofBytesBinary(self.parent_allocator, proof.proof), .claims = claims };
     }

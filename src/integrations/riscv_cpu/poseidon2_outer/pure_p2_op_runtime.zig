@@ -200,14 +200,38 @@ fn requests(a: std.mem.Allocator, m: Metadata, cells: Cells.Owned) ![]P.Request 
     for (m.requests, out, 0..) |r, *v, i| v.* = r.expand(if (i == 0) cells.initial else &.{}, if (i + 1 == out.len) cells.terminal else &.{});
     return out;
 }
+/// Borrowed only during complete(): all native proofs and zero-sum relations
+/// plus independently pinned terminal output have passed before this callback.
+pub const CompleteVerified = struct {
+    image: *const Image.Owner,
+    metadata: Metadata,
+    requests: []const P.Request,
+    setups: []const *const R.CpuSetup,
+    truths: []const R.Truth,
+    miller: []const Inv.MillerDeclaration,
+    inventory: *const Inv.Inventory,
+    native: *const Bundle.Closed,
+    output: [43]u8,
+};
+pub const ReceptionHooks = struct {
+    fragments: Bundle.Hooks = .{},
+    context: ?*anyopaque = null,
+    complete: ?*const fn (?*anyopaque, std.mem.Allocator, CompleteVerified) anyerror!void = null,
+};
 /// Receiver: metadata selects cost only. Bounds are checked before constructing
 /// any wide source key; the independent config pins software/input/terminal.
 pub fn verifyDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
+    return verifyDirectoryWithHooks(a, config, path, profile, resources, .{});
+}
+pub fn verifyDirectoryWithHooks(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, hooks: ReceptionHooks) !void {
     try Request.validateBudgetForOp(config);
+    var timer = try std.time.Timer.start();
     var image = try Image.Owner.initForOp(a, config);
     defer image.deinit();
+    const image_ns = timer.read();
     var program = try Program.initWithAuthority(a, &image.authority);
     defer program.deinit();
+    const program_ns = timer.read() - image_ns;
     var dir = try std.fs.cwd().openDir(path, .{});
     defer dir.close();
     const json = try dir.readFileAlloc(a, "native-op.json", 4 << 20);
@@ -217,6 +241,9 @@ pub fn verifyDirectory(a: std.mem.Allocator, config: Request.Config, path: []con
     const m = parsed.value;
     try m.validate();
     if (m.profile != profile) return error.InvalidOpNativeProfile;
+    const compact = m.cpus[0].geometry.cpu_compact_decode;
+    for (m.cpus) |cpu| if (cpu.geometry.cpu_compact_decode != compact) return error.MixedOpProgramRepresentations;
+    if (compact) try program.makeCompact();
     const cells = try Cells.read(a, dir, m.memory_words);
     defer cells.deinit(a);
     const req = try requests(a, m, cells);
@@ -232,9 +259,12 @@ pub fn verifyDirectory(a: std.mem.Allocator, config: Request.Config, path: []con
     defer a.free(raw);
     var bundle = try Bundle.decode(a, raw, inventory.workers.len, .{ .bytes = resources.bundle_bytes, .proof_bytes = resources.proof_bytes });
     defer bundle.deinit(a);
-    try bundle.verify(a, &inventory, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller);
-    _ = try Terminal.require(&image, req[req.len - 1].base.cpu, cells.terminal);
-    std.debug.print("OP_NATIVE_RECEIVER accepted=true complete=true steps={} CPU={} truth={} miller={} profile={s}\n", .{ expected.total_steps, m.cpus.len, m.truths.len, m.miller.len, @tagName(profile) });
+    const verify_start = timer.read();
+    var closed = try bundle.verifyWithHooks(a, &inventory, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, hooks.fragments);
+    defer closed.deinit(a);
+    const output = try Terminal.require(&image, req[req.len - 1].base.cpu, cells.terminal);
+    if (hooks.complete) |complete| try complete(hooks.context, a, .{ .image = &image, .metadata = m, .requests = req, .setups = authority.setups, .truths = authority.native_truth.truths, .miller = authority.miller, .inventory = &inventory, .native = &closed, .output = output });
+    std.debug.print("OP_NATIVE_RECEIVER accepted=true complete=true steps={} CPU={} truth={} miller={} profile={s} image_ns={} program_ns={} setup_and_decode_ns={} verify_ns={} total_ns={}\n", .{ expected.total_steps, m.cpus.len, m.truths.len, m.miller.len, @tagName(profile), image_ns, program_ns, verify_start - image_ns - program_ns, timer.read() - verify_start, timer.read() });
 }
 
 pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
@@ -243,17 +273,20 @@ pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []co
 fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, capture_only: bool) !void {
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     try Request.validateBudgetForOp(config);
+    var timer = try std.time.Timer.start();
     var image = try Image.Owner.initForOp(a, config);
     defer image.deinit();
+    const image_ns = timer.read();
     var program = try Program.initWithAuthority(a, &image.authority);
     defer program.deinit();
-    // The initial real-block reference uses the already qualified ordinary OP
-    // geometry. Later geometry tuning is independent from native acceptance.
-    const layout = Plan.CpuLayout{ .reserve_arithmetic_row = true };
-    var timer = try std.time.Timer.start();
+    const layout = Plan.CpuLayout.forOpGkr();
+    try program.makeCompact();
+    const program_ns = timer.read() - image_ns;
+    const capture_start = timer.read();
     var captured = try Capture.Owner.init(a, config, &image, &program);
     defer captured.deinit();
-    const capture_ns = timer.read();
+    const captured_at = timer.read();
+    const capture_ns = captured_at - capture_start;
     const count = captured.native.len;
     const declarations = try a.alloc(Wire.CpuDeclaration, count);
     defer a.free(declarations);
@@ -297,7 +330,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         try std.fs.cwd().makePath(path);
         var out = try std.fs.cwd().openDir(path, .{});
         defer out.close();
-        try @import("../word16_execution/driver.zig").writeJson(a, out, "native-op-plan.json", .{ .proof_verified = false, .complete_execution = true, .steps = captured.steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers, .metadata = metadata, .cells = bounds.base.shape.native_trace_cells, .capture_ns = capture_ns });
+        try @import("../word16_execution/driver.zig").writeJson(a, out, "native-op-plan.json", .{ .proof_verified = false, .complete_execution = true, .steps = captured.steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers, .metadata = metadata, .cells = bounds.base.shape.native_trace_cells, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns });
         std.debug.print("OP_NATIVE_CAPTURE complete=true proof_verified=false steps={} CPU={} truth={} miller={} cells={any} capture_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bounds.base.shape.native_trace_cells, capture_ns });
         return;
     }
@@ -314,20 +347,30 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     try std.fs.cwd().makePath(parking);
     var store = try Store.init(a, parking, resources.disk_bytes, resources.mapped_bytes);
     defer store.deinit();
+    var observations = try @import("../word16_global_execution/ethereum/observations.zig").Owner.init(a, if (config.profile_stages) inventory.workers.len else 0);
+    defer observations.deinit();
+    var phases: Producer.Timing = .{};
     const ready_ns = timer.read();
     var bundle = try Producer.produce(a, &inventory, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, captured.native, &captured.advice, &store, .{
+        .recorders = observations.pointers,
+        .timing = &phases,
         .cpu = .{ .gkr_bytes = resources.gkr_bytes, .global_bytes = resources.global_bytes },
         .truth = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .advice_bytes = resources.truth_advice_bytes },
         .miller = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .advice_bytes = resources.truth_advice_bytes },
     });
     defer bundle.deinit(a);
     const prove_ns = timer.read() - ready_ns;
+    const publish_start = timer.read();
     const bytes = try Bundle.encode(a, &bundle, .{ .bytes = resources.bundle_bytes, .proof_bytes = resources.proof_bytes });
     defer a.free(bytes);
     try @import("../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, "native-op.bin", bytes);
     try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op.json", metadata);
     try Cells.write(dir, captured.advice.initial, captured.advice.terminal);
-    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - capture_ns, .prove_ns = prove_ns, .production_admitted = false });
+    if (config.profile_stages) {
+        const profiling = @import("../word16_global_execution/services/profiling.zig").Options{ .recorders = observations.pointers, .directory = dir };
+        for (observations.pointers, 0..) |_, i| try profiling.finish(a, i);
+    }
+    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - captured_at, .seal_and_park_ns = phases.stage_one_ns, .manifest_ns = phases.manifest_ns, .stage_two_prove_ns = phases.stage_two_ns, .prove_ns = prove_ns, .publish_payload_ns = timer.read() - publish_start, .total_before_receipt_ns = timer.read(), .production_admitted = false });
     try std.posix.fsync(dir.fd);
     std.debug.print("OP_NATIVE_PRODUCER complete=true steps={} CPU={} truth={} miller={} bytes={} capture_ns={} prove_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bytes.len, capture_ns, prove_ns });
 }

@@ -20,7 +20,18 @@ const Advice = @import("../word16_global_execution/services/collector.zig").Advi
 const Pipeline = @import("../word16_global_execution/services/pipeline.zig");
 const Native = @import("../word16_execution/prepared.zig").Prepared;
 const W = @import("pure_p2_worker_protocol.zig").W;
-pub const Limits = struct { cpu: CPU.Limits, truth: Truth.Limits, miller: Miller.Limits };
+const Stage = @import("stwo_prover_api").stage_profile;
+pub const Timing = struct { stage_one_ns: u64 = 0, manifest_ns: u64 = 0, stage_two_ns: u64 = 0 };
+pub const Limits = struct {
+    cpu: CPU.Limits,
+    truth: Truth.Limits,
+    miller: Miller.Limits,
+    recorders: []const ?*Stage.Recorder = &.{},
+    timing: ?*Timing = null,
+    fn recorder(self: Limits, i: usize) ?*Stage.Recorder {
+        return if (self.recorders.len == 0) null else self.recorders[i];
+    }
+};
 const Worker = union(enum) {
     cpu: CPU.Worker,
     truth: Truth.Worker,
@@ -64,9 +75,24 @@ const Worker = union(enum) {
         };
     }
 };
+fn sealAndPark(a: std.mem.Allocator, worker: *Worker, expected: Manifest.Expected, store: *Store, recorder: ?*Stage.Recorder) !Manifest.StageOne {
+    switch (worker.*) {
+        inline else => |*v| v.native_recorder = recorder,
+    }
+    var seal = try Stage.StageScope.begin(recorder, "stage_one_seal", "Native MAIN and local GKR sealing");
+    defer seal.end();
+    const out = try worker.seal(a);
+    seal.end();
+    var park = try Stage.StageScope.begin(recorder, "retained_main_park", "Write already committed coefficients and Merkle layers");
+    defer park.end();
+    _ = try store.parkBound(worker.allocator(), &worker.scheme().trees.items[1], .{ .setup = expected.fixed_identity, .statement = expected.statement });
+    return out;
+}
 pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inv.MillerDeclaration, native: []const *Native, advice: *const Advice, store: *Store, limits: Limits) !B.Bundle {
     if (!Budget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     if (setups.len != inventory.cpu_count or requests.len != setups.len or spans.len != setups.len or keys.len != setups.len or native.len != setups.len or advice.tower.len != setups.len or truths.len != inventory.truth_count or truth_keys.len != truths.len or setups.len + truths.len + miller.len != inventory.workers.len) return error.InvalidOpNativeInventory;
+    if (limits.recorders.len != 0 and limits.recorders.len != inventory.workers.len) return error.InvalidOpNativeTimings;
+    var timer = try std.time.Timer.start();
     const workers = try a.alloc(Worker, inventory.workers.len);
     defer a.free(workers);
     var done: usize = 0;
@@ -75,6 +101,8 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
     const stages = try a.alloc(Manifest.StageOne, workers.len);
     defer a.free(stages);
     for (setups, requests, spans, keys, native, 0..) |setup, request, span, key, n, i| {
+        var source_scope = try Stage.StageScope.begin(limits.recorder(i), "source_construction", "Construct CPU witness and narrow metadata once");
+        defer source_scope.end();
         var source = try Pipeline.buildCpuSourceForOp(a, setup, request, span, n, advice, i, inventory.first_ids[i], false, null);
         const worker = CPU.Worker.initForOp(a, setup, request, span, source, inventory.workers[i], inventory.first_ids[i], key, limits.cpu) catch |err| {
             source.deinit();
@@ -82,19 +110,23 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
         };
         workers[done] = .{ .cpu = worker };
         done += 1;
-        stages[i] = try workers[i].seal(a);
-        _ = try store.parkBound(workers[i].allocator(), &workers[i].scheme().trees.items[1], .{ .setup = inventory.workers[i].fixed_identity, .statement = inventory.workers[i].statement });
+        source_scope.end();
+        stages[i] = try sealAndPark(a, &workers[i], inventory.workers[i], store, limits.recorder(i));
     }
     for (truths, truth_keys, 0..) |truth, key, j| {
         const i = setups.len + j;
+        var source_scope = try Stage.StageScope.begin(limits.recorder(i), "source_construction", "Construct inherited truth witness once");
+        defer source_scope.end();
         workers[done] = .{ .truth = try Truth.Worker.init(a, key, truth, Truth.SourceBuilder.fromAdvice(advice), inventory.workers[i], limits.truth) };
         done += 1;
-        stages[i] = try workers[i].seal(a);
-        _ = try store.parkBound(workers[i].allocator(), &workers[i].scheme().trees.items[1], .{ .setup = inventory.workers[i].fixed_identity, .statement = inventory.workers[i].statement });
+        source_scope.end();
+        stages[i] = try sealAndPark(a, &workers[i], inventory.workers[i], store, limits.recorder(i));
     }
     const Input = @import("stwo_riscv_frontend").rv64_air.crypto.bn254_tower.narrow.trace.Input;
     for (miller, 0..) |item, j| {
         const i = setups.len + truths.len + j;
+        var source_scope = try Stage.StageScope.begin(limits.recorder(i), "source_construction", "Marshal inputs and construct Miller DAG witness once");
+        defer source_scope.end();
         const input = try a.alloc(Input, item.span.calls);
         defer a.free(input);
         var ordinal: u64 = 1;
@@ -110,23 +142,31 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
         if (filled != input.len) return error.InvalidOpTowerCoverage;
         workers[done] = .{ .miller = try Miller.Worker.init(a, item.key, item.span, inventory.workers[i], input, limits.miller) };
         done += 1;
-        stages[i] = try workers[i].seal(a);
-        _ = try store.parkBound(workers[i].allocator(), &workers[i].scheme().trees.items[1], .{ .setup = inventory.workers[i].fixed_identity, .statement = inventory.workers[i].statement });
+        source_scope.end();
+        stages[i] = try sealAndPark(a, &workers[i], inventory.workers[i], store, limits.recorder(i));
     }
+    const stage_one_ns = timer.read();
     const stage_one = try MW.encode(a, inventory.execution, inventory.workers, stages);
     errdefer a.free(stage_one);
     var pending = try Manifest.verifyAndSeal(a, inventory.execution, inventory.workers, stages);
     defer pending.deinit(a);
+    const stage_two_start = timer.read();
     const proofs = try a.alloc(B.Proof, workers.len);
     errdefer a.free(proofs);
     var completed: usize = 0;
     errdefer for (proofs[0..completed]) |*proof| proof.deinit(a);
     for (workers, 0..) |*worker, i| {
+        var restore = try Stage.StageScope.begin(limits.recorder(i), "retained_main_restore", "Map and integrity-check sealed source payload");
+        defer restore.end();
         _ = try store.restoreBound(&worker.scheme().trees.items[1], .{ .setup = inventory.workers[i].fixed_identity, .statement = inventory.workers[i].statement });
+        restore.end();
+        var stage_two = try Stage.StageScope.begin(limits.recorder(i), "stage_two_prove", "Manifest-bound native interaction and physical proof");
+        defer stage_two.end();
         proofs[i] = try worker.complete(a, &pending, i);
         completed += 1;
         worker.deinit();
         retired += 1;
     }
+    if (limits.timing) |timing| timing.* = .{ .stage_one_ns = stage_one_ns, .manifest_ns = stage_two_start - stage_one_ns, .stage_two_ns = timer.read() - stage_two_start };
     return .{ .stage_one = stage_one, .proofs = proofs };
 }

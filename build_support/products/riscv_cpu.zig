@@ -265,6 +265,12 @@ pub fn addProduct(context: Context) void {
         context.protocol.addImports(tool_root);
         _ = graph.addProofWireImport(context.b, context.protocol, product, context.target, context.optimize, tool_root);
         @import("../graph/integrations.zig").addRiscVCpuStack(context.b, context.protocol, product, context.target, context.optimize, tool_root);
+        if (std.mem.eql(u8, tool.name, "rv64-op-native")) {
+            // Separate lazy artifact: no install/getEmittedBin means semantic
+            // analysis only (-fno-emit-bin), keeping OP driver edits off LLVM.
+            const check = context.b.addExecutable(.{ .name = "rv64-op-native-check", .root_module = tool_root });
+            context.b.step("check-rv64-op-native", "Fast semantic check of explicit OP native runtime").dependOn(&check.step);
+        }
         const executable = context.b.addExecutable(.{ .name = tool.name, .root_module = tool_root });
         const install = context.b.addInstallArtifact(executable, .{});
         context.b.step(tool.name, "Build proof qualification and performance diagnostics").dependOn(&install.step);

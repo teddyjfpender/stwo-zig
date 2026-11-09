@@ -26,6 +26,7 @@ const Retention = @import("../word16_global_execution/services/gkr_local/retenti
 /// capture/source construction, commitment trees or PCS/FFT scratch.
 pub const Limits = struct { gkr_bytes: usize, global_bytes: usize };
 pub const Worker = struct {
+    native_recorder: ?*@import("stwo_prover_api").stage_profile.Recorder = null,
     allocator: std.mem.Allocator,
     setup: *const R.CpuSetup,
     request: P.Request,
@@ -87,8 +88,10 @@ pub const Worker = struct {
         self.consumed = true;
         try self.key.append(a, &self.scheme, &self.channel);
         const main = try self.source.takeMain(self.setup);
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         const root = self.mainRoot();
+        var local_gkr = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "local_gkr_prove", "Source projection and local GKR layers/sumchecks");
+        defer local_gkr.end();
         self.child = try Child.proveUnbound(self.localAllocator(a), .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("../word16_global_execution/services/gkr_local/native_provider.zig").Provider{ .source = &self.source });
         self.sealed = true;
         self.consumed = false;
@@ -99,6 +102,8 @@ pub const Worker = struct {
         try checkManifest(self.expected, pending, index);
         try pending.checkPhysicalRoots(index, self.key.scope(), self.mainRoot());
         const local = &(pending.entries[index].local orelse return error.PoseidonNativeLocalRequired);
+        var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Local binding and global classic interaction generation");
+        defer generation.end();
         var binding = try @import("../word16_global_execution/services/gkr_local/witness.zig").Witness.initFromProvider(self.localAllocator(a), self.localAllocator(a), self.instances, &self.child.?.challenges, @import("../word16_global_execution/services/gkr_local/native_provider.zig").Provider{ .source = &self.source }, &self.child.?.result.artifact, self.child.?.eta);
         defer binding.deinit();
         const witnesses = try a.alloc(?Classic.Witness, self.plan.slots.len);
@@ -134,13 +139,14 @@ pub const Worker = struct {
                 c.* = .{ .log_size = slot.log, .values = v.data[j * rows ..][0..rows] };
             };
         }
+        generation.end();
         Protocol.mixManifestAndClaims(&self.channel, pending.digest, claims);
-        try self.scheme.commitBorrowedStreaming(a, headers, 64, &self.channel);
+        try self.scheme.commitBorrowedStreamingWithRecorder(a, headers, 64, self.native_recorder, &self.channel);
         self.consumed = true;
         const scheme = self.scheme;
         self.scheme = undefined;
         self.owns_scheme = false;
-        var proof = try W.Prover.prove(a, handles, &self.channel, scheme, .{});
+        var proof = try W.Prover.prove(a, handles, &self.channel, scheme, .{ .recorder = self.native_recorder });
         defer proof.deinit(a);
         return .{ .bytes = try W.Wire.encodeProofBytesBinary(a, proof.proof), .claims = claims };
     }

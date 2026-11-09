@@ -23,6 +23,61 @@ pub const Proof = struct {
         self.* = undefined;
     }
 };
+pub const Capture = core.pcs.ForField(O).verifier.VerifiedProofCapture(@import("pure_p2_worker_protocol.zig").W.H);
+/// All callback views are borrowed until callback return. They authenticate one
+/// fragment only: durable leaf outputs are pending until whole closure/terminal.
+pub const CpuVerified = struct {
+    setup: *const R.CpuSetup,
+    request: P.Request,
+    span: T.OpTowerSpan,
+    first_ids: [T.FAMILIES]u32,
+    key: *const Key,
+    expected: Manifest.Expected,
+    manifest: *const Manifest.Pending,
+    ordinal: usize,
+    encoded: *const CPU.Encoded,
+    capture: *const Capture,
+    stage_one: Manifest.StageOne,
+};
+pub const TruthVerified = struct {
+    truth: R.Truth,
+    key: *const Truth.Key,
+    expected: Manifest.Expected,
+    manifest: *const Manifest.Pending,
+    ordinal: usize,
+    encoded: *const Truth.Encoded,
+    capture: *const Capture,
+    stage_one: Manifest.StageOne,
+};
+pub const MillerVerified = struct {
+    span: Miller.Span,
+    key: *const Miller.Key,
+    expected: Manifest.Expected,
+    manifest: *const Manifest.Pending,
+    ordinal: usize,
+    encoded: *const Miller.Encoded,
+    capture: *const Capture,
+    stage_one: Manifest.StageOne,
+};
+pub const Hooks = struct {
+    context: ?*anyopaque = null,
+    cpu: ?*const fn (?*anyopaque, std.mem.Allocator, CpuVerified) anyerror!void = null,
+    truth: ?*const fn (?*anyopaque, std.mem.Allocator, TruthVerified) anyerror!void = null,
+    miller: ?*const fn (?*anyopaque, std.mem.Allocator, MillerVerified) anyerror!void = null,
+};
+/// Complete native closure, still pending the application's independently
+/// expected terminal/output policy. Owns all stage-one/local proof custody.
+pub const Closed = struct {
+    stages: MW.Owned,
+    manifest: Manifest.Pending,
+    claims: []Manifest.Claims,
+    pub fn deinit(self: *Closed, a: std.mem.Allocator) void {
+        a.free(self.claims);
+        self.manifest.deinit(a);
+        self.stages.deinit();
+        self.* = undefined;
+    }
+};
 pub const Bundle = struct {
     stage_one: []u8,
     proofs: []Proof,
@@ -34,29 +89,49 @@ pub const Bundle = struct {
     }
     /// Freshly decode/check GKR and every physical proof before zero-sum closure.
     pub fn verify(self: *const Bundle, a: std.mem.Allocator, inventory: *const Inventory.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inventory.MillerDeclaration) !void {
+        var closed = try self.verifyWithHooks(a, inventory, setups, requests, spans, keys, truths, truth_keys, miller, .{});
+        defer closed.deinit(a);
+    }
+    pub fn verifyWithHooks(self: *const Bundle, a: std.mem.Allocator, inventory: *const Inventory.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inventory.MillerDeclaration, hooks: Hooks) !Closed {
         if (setups.len != inventory.cpu_count or requests.len != setups.len or keys.len != setups.len or spans.len != setups.len or truths.len != inventory.truth_count or truths.len != truth_keys.len or self.proofs.len != inventory.workers.len or setups.len + truths.len + miller.len != self.proofs.len) return error.InvalidOpNativeBundle;
         var stages = try MW.decode(a, inventory.execution, inventory.workers, self.stage_one);
-        defer stages.deinit();
+        errdefer stages.deinit();
         var pending = try stages.verifyAndSeal(a, inventory.execution, inventory.workers);
-        defer pending.deinit(a);
+        errdefer pending.deinit(a);
         const claims = try a.alloc(Manifest.Claims, self.proofs.len);
-        defer a.free(claims);
+        errdefer a.free(claims);
         for (setups, requests, spans, keys, 0..) |setup, request, span, key, i| {
             const proof = CPU.Encoded{ .bytes = self.proofs[i].bytes, .claims = self.proofs[i].claims };
-            claims[i] = try CPU.verifyForOp(a, setup, request, span, inventory.workers[i], inventory.first_ids[i], &pending, i, key, &proof, null);
+            if (hooks.cpu) |hook| {
+                var capture: Capture = undefined;
+                claims[i] = try CPU.verifyForOp(a, setup, request, span, inventory.workers[i], inventory.first_ids[i], &pending, i, key, &proof, &capture);
+                defer capture.deinit(a);
+                try hook(hooks.context, a, .{ .setup = setup, .request = request, .span = span, .first_ids = inventory.first_ids[i], .key = key, .expected = inventory.workers[i], .manifest = &pending, .ordinal = i, .encoded = &proof, .capture = &capture, .stage_one = stages.stages[i] });
+            } else claims[i] = try CPU.verifyForOp(a, setup, request, span, inventory.workers[i], inventory.first_ids[i], &pending, i, key, &proof, null);
         }
         for (truths, truth_keys, 0..) |truth, key, j| {
             const i = setups.len + j;
             const proof = Truth.Encoded{ .bytes = self.proofs[i].bytes, .claims = self.proofs[i].claims };
-            claims[i] = try Truth.verify(a, key, truth, inventory.workers[i], &pending, i, &proof);
+            if (hooks.truth) |hook| {
+                var capture: Capture = undefined;
+                claims[i] = try Truth.verifyWithCapture(a, key, truth, inventory.workers[i], &pending, i, &proof, &capture);
+                defer capture.deinit(a);
+                try hook(hooks.context, a, .{ .truth = truth, .key = key, .expected = inventory.workers[i], .manifest = &pending, .ordinal = i, .encoded = &proof, .capture = &capture, .stage_one = stages.stages[i] });
+            } else claims[i] = try Truth.verify(a, key, truth, inventory.workers[i], &pending, i, &proof);
         }
         for (miller, 0..) |item, j| {
             const i = setups.len + truths.len + j;
             if (self.proofs[i].claims.len != 4) return error.InvalidOpNativeBundle;
             const proof = Miller.Encoded{ .bytes = self.proofs[i].bytes, .claims = self.proofs[i].claims[0..4].* };
-            claims[i] = try Miller.verify(a, item.key, item.span, inventory.workers[i], &pending, i, &proof);
+            if (hooks.miller) |hook| {
+                var capture: Capture = undefined;
+                claims[i] = try Miller.verifyWithCapture(a, item.key, item.span, inventory.workers[i], &pending, i, &proof, &capture);
+                defer capture.deinit(a);
+                try hook(hooks.context, a, .{ .span = item.span, .key = item.key, .expected = inventory.workers[i], .manifest = &pending, .ordinal = i, .encoded = &proof, .capture = &capture, .stage_one = stages.stages[i] });
+            } else claims[i] = try Miller.verify(a, item.key, item.span, inventory.workers[i], &pending, i, &proof);
         }
         try pending.checkGlobalClosure(claims);
+        return .{ .stages = stages, .manifest = pending, .claims = claims };
     }
 };
 const MAGIC = "OPP2B001";

@@ -146,6 +146,7 @@ pub const steps = [_]Step{
     .{ .name = "rv64-word16-weighted-alu", .description = "Build closed weighted ALU native BEQ diagnostic", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-ethereum", .description = "Word16 mixed-service Ethereum block prover and independent terminal receiver", .scope = .riscv_cpu },
     .{ .name = "rv64-om-classic-control", .description = "Benchmark-only ordinary CPU0 OM classic local proof and independent receiver", .scope = .riscv_cpu },
+    .{ .name = "check-rv64-op-native", .description = "Semantic-only OP native runtime check without LLVM emission", .scope = .riscv_cpu },
     .{ .name = "rv64-op-native", .description = "Explicit experimental OP pure-P2 native block producer and fresh receiver", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-ethereum-native", .description = "CPU-only native service STARK production and independent durable receiver", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-ethereum-gkr", .description = "Experimental OM GKR services Ethereum control and independent durable receiver", .scope = .riscv_cpu },
