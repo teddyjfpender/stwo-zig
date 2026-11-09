@@ -17,10 +17,13 @@ fn next(counter: *u32) O {
     return O.fromBase(M.fromCanonical(counter.*));
 }
 pub fn digest(a: std.mem.Allocator) ![32]u8 {
+    return digestFor(a, false);
+}
+pub fn digestFor(a: std.mem.Allocator, comptime detached: bool) ![32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update(R.DOMAIN);
+    hash.update(R.domain(detached));
     hash.update("/equation-ir/v1");
-    inline for (R.roles) |role| {
+    inline for (comptime R.rolesFor(detached)) |role| {
         var record = E.symbolic.Recording(O).init(a);
         defer record.deinit();
         record.begin();
@@ -50,6 +53,8 @@ pub fn digest(a: std.mem.Allocator) ![32]u8 {
         var global: Eq.GlobalFor(O) = undefined;
         global.ram.offset = next(&counter);
         for (&global.ram.coefficients) |*v| v.* = next(&counter);
+        global.wire.offset = next(&counter);
+        for (&global.wire.coefficients) |*v| v.* = next(&counter);
         global.io.offset = next(&counter);
         for (&global.io.coefficients) |*v| v.* = next(&counter);
         const instance = R.Instance{ .role = role, .row_log = 16 };
@@ -58,7 +63,7 @@ pub fn digest(a: std.mem.Allocator) ![32]u8 {
         for (weights[0..lanes]) |*v| v.* = next(&counter);
         const binding = Eq.BindingFor(O){ .instance = instance, .weights = weights[0..lanes], .eta = next(&counter), .target = next(&counter) };
         const aux = B.AuxFor(Lane){ .first = Lane.fromConst(next(&counter)), .second = Lane.fromConst(next(&counter)), .carry = Lane.fromConst(next(&counter)), .eq0 = Lane.fromConst(next(&counter)), .eq1 = Lane.fromConst(next(&counter)) };
-        const claims = [_]O{ next(&counter), next(&counter) };
+        const claims = [_]O{ next(&counter), next(&counter), next(&counter) };
         var values: [Eq.Layout(role).CONSTRAINTS]Lane = undefined;
         var sink = E.SinkFor(Lane){ .values = &values };
         try Eq.emit(role, Lane, &View{}, .{ .calls = 10001, .permutations = 10002, .first_id = 10003 }, local, global, binding, aux, claims, &sink);
@@ -66,7 +71,7 @@ pub fn digest(a: std.mem.Allocator) ![32]u8 {
         var roots: [values.len]u32 = undefined;
         for (values, &roots) |v, *id| id.* = v.id;
         var domain = std.crypto.hash.sha2.Sha256.init(.{});
-        domain.update(R.DOMAIN);
+        domain.update(R.domain(detached));
         var spec: [20]u8 = undefined;
         std.mem.writeInt(u32, spec[0..4], @intFromEnum(role), .little);
         std.mem.writeInt(u32, spec[4..8], @intCast(R.fixedWidth(role)), .little);
@@ -88,4 +93,7 @@ test "serialized sponge semantic authority records full source equations" {
     const second = try digest(std.testing.allocator);
     try std.testing.expectEqualSlices(u8, &first, &second);
     try std.testing.expect(!std.mem.allEqual(u8, &first, 0));
+    var golden_storage: [32]u8 = undefined;
+    const golden = try std.fmt.hexToBytes(&golden_storage, "5131239bd8c4b653b064969142401777573bc471aa69a0cf034cff36f22b2503");
+    try std.testing.expectEqualSlices(u8, golden, &first);
 }

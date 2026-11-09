@@ -67,3 +67,62 @@ cardinality, not M31. The review must additionally include namespace collision,
 GKR batch/layer/round mixing, Eq/terminal late-binding and PCS/FRI union terms,
 plus all P2/hash/transcript calls under the full parent profile. Independent
 namespace draws and a large extension do not alone certify the whole protocol.
+
+## Detached flavor and tiny CPU frontier
+
+The new explicit `Geometry.detached=true` selects typed role
+`detached_descriptor` (MAIN74, local queries46, INTER64), a distinct source domain,
+wire magic `OPSDETG1`, fixed/key identity and request statement. Its public native
+APIs use `DetachedScope`, `proveDetachedUnboundWithOptions`,
+`verifyDetachedPending`, and `Key.statementDetached`. There is no Boundary,
+pointer-list or boundary digest in this flavor. The source suppresses the named
+CPU ECALL slot at compile time; it does not blindly skip an emitted tuple.
+Internal state/header/window/carry/range/AND debts close to zero. The old boundary
+flavor retains its exact semantic identity and409,328-byte proof SHA control.
+
+The detached descriptor instead consumes shared Wire35 kind0x53504746 with fields
+`[kind, CPUordinal, complete OWNER19, fourteen zeros]`. CPUordinal is derived as
+its authenticated call epoch minus one. The CPU-side source frontier has8 MAIN,
+3 FIXED and24 modeled INTER columns (one16-column local-GKR binding plus one
+8-column implicit-inverse Wire prefix),3 local queries and7 MAIN constraints.
+Its OWNER consumer has Boolean unit weight and the full original opcode, service
+tag,64-bit pointer, epoch and24-bit tick. Tick limbs are explicitly U16/U8;
+pointer limbs inherit canonicality from the existing CPU OWNER provider.
+Public/source policy and AIR both enforce epoch=CPUordinal+1, with ordinal<256.
+This is a new-flavor contract; an incompatible epoch convention must reject it.
+
+The Wire tuple is injective: no coordinate is reduced, hashed or omitted. A
+compile-time check rejects collision with the registered packet bridge kinds
+(secp, SHA, arith, curves and Miller). The detached ordinal derives from the same
+OWNER epoch, and every other Wire namespace has a different fixed first field.
+Frontier rows are independently sized by call count, not CPU retirements. The
+CPU source-width model is5,896−2,513+35=3,418 columns. This is a model, not a
+measured CPU or root speedup.
+
+The detached fragment now physically qualifies under the same2GiB cap:
+414,476-byte native proof +28,244-byte GKR, SHA
+`bc6ef41f1afea46d179b89917c40497983db127f301a38f3ac6f341eb4b32996`.
+Requested peak148,010,548 bytes; the0.998s producer phase is an uncontrolled
+one-call qualification. Its shared Wire claim equals the negative claim of an
+independently constructed, epoch/ordinal-bound frontier tuple. Wrong Wire claim,
+wrong mode/magic, same-fixed-root flavor substitution and firstID changes reject.
+Legacy mode refuses any nonzero Wire claim even though its old transcript stays
+byte-identical. All recorded detached equations also pass the degree3 IR gate.
+This is not yet a proof of an actual CPU/frontier/detached execution join.
+
+Production join gates still required:
+
+- A closed new CPU flavor replaces the two old sponge slots with the frontier,
+  includes its exact local OWNER/range facts and binds its public counts/epoch/
+  ordinal. Existing Frame origins and protected AIR authority stay unchanged.
+- Stage1 commits all CPU/frontier/detached MAIN and table multiplicities before
+  the common manifest draws RAM/KIO/Wire. Calls batch independently across CPU
+  shards; exact per-CPU call counts and global permutation-ID spans must match.
+- A fresh complete receiver derives the new flavor/key/geometry independently,
+  authenticates every local terminal and physical claim, and closes global
+  RAM/KIO/Wire. Missing/duplicate/cross-CPU calls, changed ordinal/epoch/tag,
+  message/state aliases and terminal-output mutations require physical joins.
+- New source-owned recursive statement/capture/leaf and R6 topology/receiver
+  admission must qualify. Native source width is not a recursive timing result.
+
+`sourceSuite.sponge0` and all production admission remain closed.

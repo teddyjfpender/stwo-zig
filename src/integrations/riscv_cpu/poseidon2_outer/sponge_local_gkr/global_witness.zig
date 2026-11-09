@@ -11,7 +11,7 @@ const M = core.fields.m31.M31;
 pub const Witness = struct {
     allocator: std.mem.Allocator,
     data: []M,
-    claims: [2]O,
+    claims: [3]O,
     pub fn deinit(self: *Witness) void {
         self.allocator.free(self.data);
         self.* = undefined;
@@ -51,7 +51,7 @@ pub fn generate(comptime role: R.Role, a: std.mem.Allocator, source: *const Src.
     const data = try a.alloc(M, bytes / @sizeOf(M));
     errdefer a.free(data);
     @memset(data, M.zero());
-    var claims: [2]O = @splat(O.zero());
+    var claims: [3]O = @splat(O.zero());
     var column: usize = 0;
     const public = Eq.PublicFor(O){ .calls = source.geometry.calls, .permutations = source.geometry.permutations, .first_id = source.geometry.first_id };
     inline for (.{ false, true }, 0..) |io, claim_index| {
@@ -96,6 +96,36 @@ pub fn generate(comptime role: R.Role, a: std.mem.Allocator, source: *const Src.
             }
             column += 8 * (count / 2 + 1);
         }
+    }
+    if (comptime role == .detached_descriptor) {
+        var total = O.zero();
+        var start: usize = 0;
+        while (start < rows) : (start += 256) {
+            const n = @min(256, rows - start);
+            var ds: [256]O = undefined;
+            var ns: [256]O = undefined;
+            var inv: [256]O = undefined;
+            for (0..n) |i| {
+                const m = source.row(role, start + i);
+                var lifted: [R.mainWidth(role)]O = undefined;
+                for (m, &lifted) |v, *out| out.* = O.fromBase(v);
+                const tuple = A.crypto.keccak_sponge.serialized.frontier.fromDescriptor(O, &lifted);
+                const raw = A.evaluation.denominatorFor(O, ch.wire.offset, &ch.wire.coefficients, &tuple, true);
+                const active = lifted[0];
+                ds[i] = O.one().add(active.mul(raw.sub(O.one())));
+                ns[i] = active.neg();
+            }
+            try core.fields.batchInverseInPlace(O, ds[0..n], inv[0..n]);
+            for (0..n) |i| {
+                total = total.add(ns[i].mul(inv[i]));
+                put(data, rows, column, A.witness.physical(start + i, instance.row_log), total);
+            }
+        }
+        claims[2] = total;
+        for (0..8) |i| {
+            for (data[(column + i) * rows ..][0..rows]) |*v| v.* = v.sub(total.toM31Array()[i]);
+        }
+        column += 8;
     }
     if (column != cols) return error.SpongeGlobalFractionShape;
     return .{ .allocator = a, .data = data, .claims = claims };

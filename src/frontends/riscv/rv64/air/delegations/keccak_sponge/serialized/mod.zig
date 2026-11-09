@@ -5,3 +5,4 @@ pub const state = @import("state_word.zig");
 pub const header = @import("permutation_header.zig");
 pub const word = @import("message_word.zig");
 pub const lane = @import("permutation_lane.zig");
+pub const frontier = @import("frontier.zig");

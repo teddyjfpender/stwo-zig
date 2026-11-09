@@ -17,34 +17,41 @@ const GP = engine.lookups.gkr_prover.ForField(O);
 const GV = engine.lookups.gkr_verifier.ForField(O);
 pub const Wire = @import("../../word16_global_execution/services/gkr_local/wire.zig");
 pub const WIRE_MAGIC = "OPSPGKR1";
+pub const DETACHED_MAGIC = "OPSDETG1";
+fn magic(g: Authority.Geometry) []const u8 {
+    return if (g.detached) DETACHED_MAGIC else WIRE_MAGIC;
+}
 pub fn encode(a: std.mem.Allocator, geometry: Authority.Geometry, proof: *const GV.GkrBatchProof) ![]u8 {
     _ = try geometry.instances();
     const frames = try geometry.instances();
-    return Wire.encodeFor(a, &frames, proof, WIRE_MAGIC);
+    return Wire.encodeFor(a, &frames, proof, magic(geometry));
 }
 pub fn decode(a: std.mem.Allocator, geometry: Authority.Geometry, bytes: []const u8) !Wire.Owned {
     _ = try geometry.instances();
     const frames = try geometry.instances();
-    return Wire.decodeFor(a, &frames, bytes, WIRE_MAGIC);
+    return Wire.decodeFor(a, &frames, bytes, magic(geometry));
 }
 pub const Channel = Base.Channel;
 pub const Challenges = Fractions.Challenges;
 pub const Scope = struct { statement: [32]u8, fixed: S.Digest, main: S.Digest, manifest: S.Digest, ordinal: u32, boundary: [32]u8 };
+pub const DetachedScope = struct { statement: [32]u8, fixed: S.Digest, main: S.Digest, manifest: S.Digest, ordinal: u32 };
 pub const DOMAIN = [_]u32{ 0x4f505347, 1, 8, 9 };
+pub const DETACHED_DOMAIN = [_]u32{ 0x4f505344, 1, 8, 9 };
 fn mixDigest32(channel: *Channel, digest: [32]u8) void {
     var words: [8]u32 = undefined;
     for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, digest[4 * i ..][0..4], .little);
     channel.mixU32s(&words);
 }
-pub fn begin(scope: Scope, geometry: Authority.Geometry) !Channel {
+pub fn begin(scope: anytype, geometry: Authority.Geometry) !Channel {
     _ = try geometry.instances();
+    if (geometry.detached == @hasField(@TypeOf(scope), "boundary")) return error.SpongeLocalScopeFlavor;
     _ = try S.decode(scope.fixed);
     _ = try S.decode(scope.main);
     _ = try S.decode(scope.manifest);
     var channel = Channel.init();
-    channel.mixU32s(&DOMAIN);
+    channel.mixU32s(if (geometry.detached) &DETACHED_DOMAIN else &DOMAIN);
     mixDigest32(&channel, scope.statement);
-    mixDigest32(&channel, scope.boundary);
+    if (comptime @hasField(@TypeOf(scope), "boundary")) mixDigest32(&channel, scope.boundary);
     channel.mixRoot(scope.fixed);
     channel.mixRoot(scope.main);
     channel.mixRoot(scope.manifest);
@@ -56,7 +63,7 @@ pub fn begin(scope: Scope, geometry: Authority.Geometry) !Channel {
 }
 /// The scope and each source policy are typed independently of the CPU receipt;
 /// only the canonical bounded proof payload is shared.
-pub fn receipt(scope: Scope, geometry: Authority.Geometry, proof: *const GV.GkrBatchProof, marginals: []const []const O) !S.Digest {
+pub fn receipt(scope: anytype, geometry: Authority.Geometry, proof: *const GV.GkrBatchProof, marginals: []const []const O) !S.Digest {
     var writer = Base.ReceiptWriter{};
     try emitReceipt(scope, geometry, proof, marginals, &writer);
     return writer.finish();
@@ -64,9 +71,10 @@ pub fn receipt(scope: Scope, geometry: Authority.Geometry, proof: *const GV.GkrB
 /// One typed receipt authority for native and in-circuit values.
 pub fn emitReceipt(scope: anytype, geometry: Authority.Geometry, proof: anytype, marginals: anytype, writer: anytype) !void {
     _ = try geometry.instances();
-    for (DOMAIN) |tag| writer.tag(tag);
+    if (geometry.detached == @hasField(@TypeOf(scope), "boundary")) return error.SpongeLocalScopeFlavor;
+    for (if (geometry.detached) DETACHED_DOMAIN else DOMAIN) |tag| writer.tag(tag);
     writer.rawDigest(scope.statement);
-    writer.rawDigest(scope.boundary);
+    if (comptime @hasField(@TypeOf(scope), "boundary")) writer.rawDigest(scope.boundary);
     writer.root(scope.fixed);
     writer.root(scope.main);
     writer.root(scope.manifest);
@@ -107,14 +115,25 @@ pub const Pending = struct {
     }
 };
 pub fn verifyPending(a: std.mem.Allocator, scope: Scope, geometry: Authority.Geometry, proof: *const GV.GkrBatchProof, expected_digest: S.Digest, boundary: Boundary) !Pending {
-    if (boundary.calls.len != geometry.calls or !std.mem.eql(u8, &(try boundary.digest()), &scope.boundary)) return error.SpongeLocalBoundary;
+    if (geometry.detached) return error.SpongeLocalScopeFlavor;
+    return verifyCore(a, scope, geometry, proof, expected_digest, boundary);
+}
+pub fn verifyDetachedPending(a: std.mem.Allocator, scope: DetachedScope, geometry: Authority.Geometry, proof: *const GV.GkrBatchProof, expected_digest: S.Digest) !Pending {
+    if (!geometry.detached) return error.SpongeLocalScopeFlavor;
+    return verifyCore(a, scope, geometry, proof, expected_digest, null);
+}
+fn verifyCore(a: std.mem.Allocator, scope: anytype, geometry: Authority.Geometry, proof: *const GV.GkrBatchProof, expected_digest: S.Digest, boundary: ?Boundary) !Pending {
+    if (comptime @hasField(@TypeOf(scope), "boundary")) {
+        const b = boundary orelse return error.SpongeLocalBoundary;
+        if (b.calls.len != geometry.calls or !std.mem.eql(u8, &(try b.digest()), &scope.boundary)) return error.SpongeLocalBoundary;
+    } else if (boundary != null) return error.SpongeLocalBoundary;
     var channel = try begin(scope, geometry);
     const challenges = draw(&channel);
     var artifact = try GV.partiallyVerifyBatch(a, &.{ .LogUp, .LogUp, .LogUp, .LogUp, .LogUp, .LogUp, .LogUp, .LogUp }, proof, &channel);
     errdefer artifact.deinit(a);
     if (artifact.n_variables_by_instance.len != 8) return error.LocalGkrPointGeometryMismatch;
     for (try geometry.instances(), artifact.n_variables_by_instance) |instance, n| _ = try splitPoint(instance, artifact.ood_point, n);
-    try close(a, proof.output_claims_by_instance, try boundary.ownerClaim(challenges));
+    try close(a, proof.output_claims_by_instance, if (boundary) |b| try b.ownerClaim(challenges) else O.zero());
     const digest = try receipt(scope, geometry, proof, artifact.claims_to_verify_by_instance);
     if (!std.mem.eql(u8, &digest, &expected_digest)) return error.LocalGkrReceiptMismatch;
     return .{ .artifact = artifact, .challenges = challenges, .eta = channel.drawSecureFelt(), .digest = digest };
@@ -139,14 +158,25 @@ pub fn proveUnbound(a: std.mem.Allocator, scope: Scope, geometry: Authority.Geom
 }
 pub const ProverOptions = GP.Options;
 pub fn proveUnboundWithOptions(a: std.mem.Allocator, scope: Scope, geometry: Authority.Geometry, provider: anytype, boundary: Boundary, options: ProverOptions) !Unbound {
-    if (boundary.calls.len != geometry.calls or !std.mem.eql(u8, &(try boundary.digest()), &scope.boundary)) return error.SpongeLocalBoundary;
+    if (geometry.detached) return error.SpongeLocalScopeFlavor;
+    return proveCore(a, scope, geometry, provider, boundary, options);
+}
+pub fn proveDetachedUnboundWithOptions(a: std.mem.Allocator, scope: DetachedScope, geometry: Authority.Geometry, provider: anytype, options: ProverOptions) !Unbound {
+    if (!geometry.detached) return error.SpongeLocalScopeFlavor;
+    return proveCore(a, scope, geometry, provider, null, options);
+}
+fn proveCore(a: std.mem.Allocator, scope: anytype, geometry: Authority.Geometry, provider: anytype, boundary: ?Boundary, options: ProverOptions) !Unbound {
+    if (comptime @hasField(@TypeOf(scope), "boundary")) {
+        const b = boundary orelse return error.SpongeLocalBoundary;
+        if (b.calls.len != geometry.calls or !std.mem.eql(u8, &(try b.digest()), &scope.boundary)) return error.SpongeLocalBoundary;
+    } else if (boundary != null) return error.SpongeLocalBoundary;
     var channel = try begin(scope, geometry);
     const challenges = draw(&channel);
     var inputs = try Input.Batch(@TypeOf(provider)).init(a, geometry, challenges, provider);
     defer inputs.deinit();
     var result = try GP.proveBatchSourceCheckpointedWithOptions(a, &channel, inputs.sources, options);
     errdefer result.deinit(a);
-    try close(a, result.proof.output_claims_by_instance, try boundary.ownerClaim(challenges));
+    try close(a, result.proof.output_claims_by_instance, if (boundary) |b| try b.ownerClaim(challenges) else O.zero());
     const digest = try receipt(scope, geometry, &result.proof, result.artifact.claims_to_verify_by_instance);
     return .{ .result = result, .challenges = challenges, .eta = channel.drawSecureFelt(), .digest = digest };
 }

@@ -4,13 +4,22 @@ const std = @import("std");
 const core = @import("stwo_core");
 const S = @import("stwo_riscv_frontend").rv64_air.crypto.keccak_sponge.serialized;
 pub const DOMAIN = "op-pure-p2-serialized-sponge-local-gkr/v1";
+pub const DETACHED_DOMAIN = "op-pure-p2-detached-sponge-local-gkr/v1";
 pub const production_admission_open = false;
 pub const security_qualified = false;
-pub const Role = enum(u32) { descriptor = 0x53500001, state = 0x53500002, header = 0x53500003, word = 0x53500004, lane = 0x53500005, u16 = 0x53500006, u8 = 0x53500007, and_ = 0x53500008 };
+pub const Role = enum(u32) { descriptor = 0x53500001, state = 0x53500002, header = 0x53500003, word = 0x53500004, lane = 0x53500005, u16 = 0x53500006, u8 = 0x53500007, and_ = 0x53500008, detached_descriptor = 0x53500009 };
 pub const roles = [_]Role{ .descriptor, .state, .header, .word, .lane, .u16, .u8, .and_ };
+pub const detached_roles = [_]Role{ .detached_descriptor, .state, .header, .word, .lane, .u16, .u8, .and_ };
+pub const all_roles = [_]Role{ .descriptor, .detached_descriptor, .state, .header, .word, .lane, .u16, .u8, .and_ };
+pub fn rolesFor(comptime detached: bool) [8]Role {
+    return if (detached) detached_roles else roles;
+}
+pub fn domain(detached: bool) []const u8 {
+    return if (detached) DETACHED_DOMAIN else DOMAIN;
+}
 pub fn mainWidth(role: Role) usize {
     return switch (role) {
-        .descriptor => S.descriptor.MAIN,
+        .descriptor, .detached_descriptor => S.descriptor.MAIN,
         .state => S.state.MAIN,
         .header => S.header.MAIN,
         .word => S.word.MAIN,
@@ -29,6 +38,7 @@ pub fn fixedWidth(role: Role) usize {
 pub fn localQueries(role: Role) u32 {
     return switch (role) {
         .descriptor => S.descriptor.LOCAL_QUERIES,
+        .detached_descriptor => S.descriptor.LOCAL_QUERIES - 1,
         .state => S.state.LOCAL_QUERIES,
         .header => S.header.LOCAL_QUERIES,
         .word => S.word.LOCAL_QUERIES,
@@ -39,6 +49,7 @@ pub fn localQueries(role: Role) u32 {
 pub fn interactionWidth(role: Role) usize {
     return switch (role) {
         .descriptor => S.descriptor.OM31_INTER,
+        .detached_descriptor => S.descriptor.OM31_INTER + 8,
         .state => S.state.OM31_INTER,
         .header => S.header.OM31_INTER,
         .word => S.word.OM31_INTER,
@@ -73,12 +84,13 @@ pub const Geometry = struct {
     calls: u32,
     permutations: u32,
     first_id: u32,
+    detached: bool = false,
     /// Logs are independently derived, never producer supplied.
     pub fn instances(self: Geometry) ![8]Instance {
         if (self.calls == 0 or self.permutations < self.calls or self.first_id == 0 or @as(u64, self.first_id) + self.permutations >= core.fields.m31.Modulus) return error.SpongeLocalGeometry;
         const counts = [_]u64{ self.calls, @as(u64, self.calls) * 25, self.permutations, @as(u64, self.permutations) * 18, @as(u64, self.permutations) * 25 };
         var out: [8]Instance = undefined;
-        for (roles, &out, 0..) |role, *instance, i| {
+        for (if (self.detached) detached_roles else roles, &out, 0..) |role, *instance, i| {
             const log: u32 = if (i < 5) @max(5, std.math.log2_int_ceil(u64, counts[i] + 1)) else if (role == .u8) 8 else 16;
             instance.* = .{ .role = role, .row_log = log };
             _ = try instance.variables();
@@ -92,7 +104,7 @@ pub const Geometry = struct {
     }
     pub fn activeRows(self: Geometry, role: Role) u64 {
         return switch (role) {
-            .descriptor => self.calls,
+            .descriptor, .detached_descriptor => self.calls,
             .state => @as(u64, self.calls) * 25,
             .header => self.permutations,
             .word => @as(u64, self.permutations) * 18,

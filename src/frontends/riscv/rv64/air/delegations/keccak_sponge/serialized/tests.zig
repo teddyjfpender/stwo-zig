@@ -8,7 +8,7 @@ const T = @import("../types.zig");
 const Old = @import("../equations.zig");
 const Source = @import("../source.zig");
 const L = @import("../layout.zig");
-const Term = struct { relation: usize, len: usize, tuple: [19]M, weight: M };
+const Term = struct { relation: usize, len: usize, tuple: [35]M, weight: M };
 const Capture = struct {
     terms: [2048]Term = undefined,
     n: usize = 0,
@@ -503,4 +503,100 @@ test "serialized sponge source query budgets match emitters" {
     const lane = try Lane.row(&old, 1, 0);
     Lane.emitRaw(M, &lane, &cap);
     try std.testing.expectEqual(Lane.LOCAL_QUERIES, localCount(&cap));
+}
+test "serialized sponge frontier is a unit whole OWNER19 to injective Wire35 adapter" {
+    const F = @import("frontier.zig");
+    const call = fixture(false, true);
+    const row = try F.row(call.pointer, call.epoch, call.tick, call.epoch);
+    const old = Source.callRow(call, 17, lastState());
+    const expected = Old.ecallTuple(M, &old);
+    try std.testing.expectEqualDeep(expected, F.owner(M, &row));
+    try std.testing.expectEqualDeep(F.wireTuple(M, M.fromCanonical(call.epoch - 1), expected), F.fromDescriptor(M, &old));
+    const wire = F.wireTuple(M, M.fromCanonical(call.epoch - 1), expected);
+    try std.testing.expectEqual(@as(u32, F.WIRE_KIND), wire[0].v);
+    try std.testing.expectEqual(@as(u32, call.epoch - 1), wire[1].v);
+    try std.testing.expectEqualDeep(expected, wire[2..21].*);
+    for (wire[21..]) |v| try std.testing.expect(v.isZero());
+    for (0..19) |i| {
+        var changed = expected;
+        changed[i] = changed[i].add(M.one());
+        try std.testing.expect(!std.meta.eql(wire, F.wireTuple(M, M.fromCanonical(call.epoch - 1), changed)));
+    }
+    try std.testing.expect(!std.meta.eql(wire, F.wireTuple(M, M.fromCanonical(call.epoch), expected)));
+    var raw: Capture = .{};
+    F.emitRaw(M, &row, M.fromCanonical(call.epoch - 1), &raw);
+    try std.testing.expectEqual(@as(usize, 4), raw.n);
+    try std.testing.expectEqual(Old.OWNER, raw.terms[0].relation);
+    try std.testing.expectEqual(M.one().neg().v, raw.terms[0].weight.v);
+    try std.testing.expectEqual(F.WIRE, raw.terms[3].relation);
+    try std.testing.expectEqual(M.one().v, raw.terms[3].weight.v);
+    var roots: Roots = .{};
+    F.emitMain(M, &.{ M.zero(), M.one(), M.zero() }, &row, M.zero(), M.one(), M.one(), M.fromCanonical(call.epoch), M.fromCanonical(call.epoch - 1), &roots);
+    try std.testing.expectEqual(F.MAIN_CONSTRAINTS, roots.n);
+    try std.testing.expect(allZero(roots.values[0..roots.n]));
+    var bad = row;
+    bad[F.c.epoch] = bad[F.c.epoch].add(M.one());
+    roots = .{};
+    F.emitMain(M, &.{ M.zero(), M.one(), M.zero() }, &bad, M.zero(), M.one(), M.one(), M.fromCanonical(call.epoch), M.fromCanonical(call.epoch - 1), &roots);
+    try std.testing.expect(!allZero(roots.values[0..roots.n]));
+    try std.testing.expectError(error.SpongeFrontierRecord, F.row(call.pointer, call.epoch, call.tick, call.epoch + 1));
+}
+
+test "serialized sponge frontier Wire prefixes bind both directions and reject balanced lies" {
+    const F = @import("frontier.zig");
+    const O = core.fields.om31.OM31;
+    const E = @import("../../../evaluation.zig");
+    var channel = core.channel.poseidon2_m31.Om31ChannelV2.init();
+    const Wire = @import("../../secp256k1/equations.zig").WireFor(O);
+    const ch = Wire.draw(&channel);
+    const native = try F.row(0x123456789abc0000, 3, 65936, 3);
+    var row: [F.MAIN]O = undefined;
+    for (native, &row) |v, *out| out.* = O.fromBase(v);
+    const ordinal = O.fromBase(M.fromCanonical(2));
+    const tuple = F.wireTuple(O, ordinal, F.owner(O, &row));
+    const denominator = E.denominatorFor(O, ch.offset, &ch.coefficients, &tuple, true);
+    const claim = try denominator.inv();
+    var values: [1]O = undefined;
+    var sink = E.SinkFor(O){ .values = &values };
+    F.emitWireFor(false, O, &row, ordinal, O.one(), O.zero(), O.zero(), claim, ch, &sink);
+    try std.testing.expect(values[0].isZero());
+    sink = .{ .values = &values };
+    F.emitWireFor(true, O, &row, ordinal, O.one(), O.zero(), O.zero(), claim.neg(), ch, &sink);
+    try std.testing.expect(values[0].isZero());
+    sink = .{ .values = &values };
+    F.emitWireFor(false, O, &row, ordinal, O.one(), O.zero(), O.zero(), claim.add(O.one()), ch, &sink);
+    try std.testing.expect(!values[0].isZero());
+    sink = .{ .values = &values };
+    F.emitWireFor(true, O, &row, ordinal, O.one(), O.zero(), O.zero(), claim.add(O.one()).neg(), ch, &sink);
+    try std.testing.expect(!values[0].isZero());
+    var alias = native;
+    alias[F.c.low] = alias[F.c.low].add(M.fromCanonical(65536));
+    alias[F.c.high] = alias[F.c.high].sub(M.one());
+    try std.testing.expectEqualDeep(F.owner(M, &native), F.owner(M, &alias));
+    var raw: Capture = .{};
+    F.emitRaw(M, &alias, M.fromCanonical(19), &raw);
+    try std.testing.expect(!rangesValid(&raw));
+    try F.validatePublic(31, 5, 256, 255);
+    try std.testing.expectError(error.SpongeFrontierGeometry, F.validatePublic(32, 5, 3, 0));
+    try std.testing.expectError(error.SpongeFrontierGeometry, F.validatePublic(1, 5, 3, 256));
+    try std.testing.expectError(error.SpongeFrontierGeometry, F.validatePublic(1, 5, 65536, 0));
+    try std.testing.expectError(error.SpongeFrontierGeometry, F.validatePublic(1, 5, 3, 19));
+}
+
+test "serialized sponge detached source removes only the fixed full CPU retirement slot" {
+    const call = fixture(false, true);
+    const m = try D.row(call, &.{}, 1);
+    var full: Capture = .{};
+    var internal: Capture = .{};
+    D.emitRaw(M, &m, &full);
+    D.emitInternalRaw(M, &m, &internal);
+    try std.testing.expectEqual(full.n - 1, internal.n);
+    try std.testing.expectEqual(Old.OWNER, full.terms[0].relation);
+    try std.testing.expectEqual(@as(usize, 19), full.terms[0].len);
+    try std.testing.expectEqual(M.one().neg().v, full.terms[0].weight.v);
+    const expected = Old.ecallTuple(M, &m);
+    try std.testing.expectEqualDeep(expected, full.terms[0].tuple[0..19].*);
+    try std.testing.expectEqual(@as(u32, @as(u16, @truncate(T.TAG))), expected[9].v);
+    try std.testing.expectEqual(@as(u32, @as(u16, @truncate(T.TAG >> 16))), expected[10].v);
+    try std.testing.expectEqualDeep(full.terms[1..full.n], internal.terms[0..internal.n]);
 }

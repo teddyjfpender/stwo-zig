@@ -87,6 +87,7 @@ pub const Source = struct {
         self.* = undefined;
     }
     pub fn index(role: R.Role) usize {
+        if (role == .detached_descriptor) return 0;
         for (R.roles, 0..) |r, i| if (r == role) return i;
         unreachable;
     }
@@ -112,7 +113,7 @@ pub const Source = struct {
             source: *Source,
             failure: ?anyerror = null,
             pub fn emit(s: *@This(), relation: usize, tuple: anytype, weight: M) void {
-                if (s.failure != null or relation == K.equations.OWNER or relation == K.equations.RAM or relation == K.equations.IO or weight.isZero()) return;
+                if (s.failure != null or relation == K.equations.OWNER or relation == K.equations.RAM or relation == K.equations.IO or relation == K.serialized.frontier.WIRE or weight.isZero()) return;
                 const role: R.Role = switch (relation) {
                     K.equations.RANGE16 => .u16,
                     K.equations.RANGE8 => .u8,
@@ -163,6 +164,10 @@ pub fn fixedRow(comptime role: R.Role, logical: usize, log: u32) [R.fixedWidth(r
 pub fn emitRaw(comptime role: R.Role, comptime F: type, f: *const [R.fixedWidth(role)]F, m: *const [R.mainWidth(role)]F, first_id: anytype, sink: anytype) void {
     switch (role) {
         .descriptor => S.descriptor.emitRaw(F, m, sink),
+        .detached_descriptor => {
+            S.descriptor.emitInternalRaw(F, m, sink);
+            sink.emit(S.frontier.WIRE, S.frontier.fromDescriptor(F, m), m[0].neg());
+        },
         .state => S.state.emitRaw(F, m, sink),
         .header => S.header.emitRaw(F, f[0], m, A.evaluation.scalarFor(F, first_id), sink),
         .word => S.word.emitRaw(F, f[0..3], m, sink),

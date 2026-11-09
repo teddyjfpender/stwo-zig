@@ -58,12 +58,24 @@ pub fn emitStateTokens(comptime F: type, m: *const [MAIN]F, sink: anytype) void 
     }
 }
 pub fn emitRaw(comptime F: type, m: *const [MAIN]F, sink: anytype) void {
+    emitRawWithCpu(true, F, m, sink);
+}
+/// A compile-time source decision removes the explicitly typed CPU retirement
+/// slot, not the first arbitrary emitted fact. Old.ecallTuple fixes ECALL/tag
+/// and all19 coordinates; detached global Wire uses that SAME authority.
+pub fn emitInternalRaw(comptime F: type, m: *const [MAIN]F, sink: anytype) void {
+    emitRawWithCpu(false, F, m, sink);
+}
+fn emitRawWithCpu(comptime include_cpu: bool, comptime F: type, m: *const [MAIN]F, sink: anytype) void {
     const C = L.call;
     const a = m[C.active];
     const one = F.one();
     const after = m[C.epoch..][0..3].*;
     const base = [4]F{ m[C.in_q0].mul(q(F, 8)), m[C.in_hi], m[C.in_hi + 1], m[C.in_hi + 2] };
-    sink.emit(Old.OWNER, Old.ecallTuple(F, m), a.neg());
+    if (comptime include_cpu) {
+        const cpu: [19]F = Old.ecallTuple(F, m);
+        sink.emit(Old.OWNER, cpu, a.neg());
+    }
     sink.emit(Old.OWNER, Old.tokenTuple(F, after, base, Old.callLen(F, m), m[C.words], m[C.fin], m[C.fresh], shift(F, m), m[C.id]), a);
     emitStateTokens(F, m, sink);
     for (0..4) |k| {

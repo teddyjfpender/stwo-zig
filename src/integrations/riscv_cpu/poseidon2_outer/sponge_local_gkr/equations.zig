@@ -13,11 +13,11 @@ const P = @import("projection.zig");
 const B = @import("../../word16_global_execution/services/gkr_local/binding.zig");
 pub const PublicFor = P.PublicFor;
 pub fn GlobalFor(comptime C: type) type {
-    return struct { ram: Fr.TupleFor(C, 14), io: Fr.TupleFor(C, 11) };
+    return struct { ram: Fr.TupleFor(C, 14), io: Fr.TupleFor(C, 11), wire: A.crypto.secp256k1.equations.WireFor(C) };
 }
 pub fn globalCount(comptime role: R.Role, comptime io: bool) usize {
     return if (io) (if (role == .state or role == .lane) 2 else 0) else switch (role) {
-        .descriptor => 8,
+        .descriptor, .detached_descriptor => 8,
         .state, .word => 2,
         else => 0,
     };
@@ -29,26 +29,26 @@ pub fn Layout(comptime role: R.Role) type {
         pub const FIXED = R.fixedWidth(role);
         pub const INTERACTION = R.interactionWidth(role);
         pub const MAIN_CONSTRAINTS = switch (role) {
-            .descriptor => 54,
+            .descriptor, .detached_descriptor => 54,
             .state => 20,
             .header => 87,
             .word => 22,
             .lane => 79,
             else => 0,
         };
-        pub const CONSTRAINTS = MAIN_CONSTRAINTS + B.CONSTRAINTS + (globalCount(role, false) / 2 + @intFromBool(globalCount(role, false) != 0)) + (globalCount(role, true) / 2 + @intFromBool(globalCount(role, true) != 0));
+        pub const CONSTRAINTS = MAIN_CONSTRAINTS + B.CONSTRAINTS + (globalCount(role, false) / 2 + @intFromBool(globalCount(role, false) != 0)) + (globalCount(role, true) / 2 + @intFromBool(globalCount(role, true) != 0)) + @intFromBool(role == .detached_descriptor);
         pub fn widths() [3]usize {
             return .{ FIXED, MAIN, INTERACTION };
         }
         pub fn shifts(tree: usize, c: usize) []const i32 {
-            if (tree == 1 and ((role == .descriptor or role == .state) and c == 0 or role == .header)) return &.{ 0, -1 };
+            if (tree == 1 and ((role == .descriptor or role == .detached_descriptor or role == .state) and c == 0 or role == .header)) return &.{ 0, -1 };
             if (tree != 2) return &.{0};
             if (c < 8) return &.{ 0, 2 };
             if (c < 16) return &.{ 0, -1 };
             const ram = globalCount(role, false);
             const rp = 16 + 8 * (ram / 2);
             if (ram != 0 and c >= rp and c < rp + 8) return &.{ 0, -1 };
-            if (globalCount(role, true) != 0 and c >= INTERACTION - 8) return &.{ 0, -1 };
+            if ((globalCount(role, true) != 0 or role == .detached_descriptor) and c >= INTERACTION - 8) return &.{ 0, -1 };
             return &.{0};
         }
     };
@@ -96,7 +96,7 @@ pub fn emitSourceMain(comptime role: R.Role, comptime F: type, view: anytype, pu
         p.* = view.previousMain(c);
     }
     switch (role) {
-        .descriptor => S.descriptor.emitMain(F, &f, &m, pm[0], E.scalarFor(F, public.calls), F.one(), sink),
+        .descriptor, .detached_descriptor => S.descriptor.emitMain(F, &f, &m, pm[0], E.scalarFor(F, public.calls), F.one(), sink),
         .state => S.state.emitMain(F, &f, &m, pm[0], E.scalarFor(F, public.calls).mul(E.qFor(F, 25)), F.one(), sink),
         .header => S.header.emitMain(F, &f, &m, &pm, E.scalarFor(F, public.permutations), F.one(), sink),
         .word => S.word.emitMain(F, f[0..3], &m, sink),
@@ -104,7 +104,7 @@ pub fn emitSourceMain(comptime role: R.Role, comptime F: type, view: anytype, pu
         else => {},
     }
 }
-pub fn emit(comptime role: R.Role, comptime F: type, view: anytype, public: PublicFor(E.ConstFor(F)), local: Fr.ChallengesFor(E.ConstFor(F)), global: GlobalFor(E.ConstFor(F)), binding: BindingFor(E.ConstFor(F)), aux: B.AuxFor(E.SecureFor(F)), claims: [2]E.ConstFor(F), sink: *E.SinkFor(F)) !void {
+pub fn emit(comptime role: R.Role, comptime F: type, view: anytype, public: PublicFor(E.ConstFor(F)), local: Fr.ChallengesFor(E.ConstFor(F)), global: GlobalFor(E.ConstFor(F)), binding: BindingFor(E.ConstFor(F)), aux: B.AuxFor(E.SecureFor(F)), claims: [3]E.ConstFor(F), sink: *E.SinkFor(F)) !void {
     if (binding.instance.role != role) return error.SpongeLocalProjectionShape;
     emitSourceMain(role, F, view, public, sink);
     const projection = try P.evaluate(role, F, view, public, local, binding.weights);
@@ -130,6 +130,17 @@ pub fn emit(comptime role: R.Role, comptime F: type, view: anytype, public: Publ
             sink.emit(delta.sub(sum));
             start = at + 8;
         }
+    }
+    if (comptime role == .detached_descriptor) {
+        const Ftr = S.frontier;
+        var m: [Ftr.MAIN]F = undefined;
+        m[Ftr.c.active] = view.main(0);
+        for (0..4) |i| m[Ftr.c.pointer + i] = view.main(A.crypto.keccak_sponge.layout.call.pointer + i);
+        m[Ftr.c.epoch] = view.main(A.crypto.keccak_sponge.layout.call.epoch);
+        m[Ftr.c.low] = view.main(A.crypto.keccak_sponge.layout.call.tick_low);
+        m[Ftr.c.high] = view.main(A.crypto.keccak_sponge.layout.call.tick_high);
+        Ftr.emitWireFor(true, F, &m, m[Ftr.c.epoch].sub(F.one()), view.fixed(1), secure(F, view, start, 0), secure(F, view, start, -1), claims[2], global.wire, sink);
+        start += 8;
     }
     if (start != Layout(role).INTERACTION) return error.SpongeGlobalFractionShape;
 }

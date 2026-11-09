@@ -37,7 +37,7 @@ pub fn List(comptime F: type, comptime role: R.Role) type {
         count: usize = 0,
         ch: ChallengesFor(E.ConstFor(F)),
         pub fn emit(self: *@This(), relation: usize, tuple: anytype, weight: F) void {
-            if (relation == K.equations.RAM or relation == K.equations.IO) return;
+            if (relation == K.equations.RAM or relation == K.equations.IO or relation == K.serialized.frontier.WIRE) return;
             const denominator = switch (tuple.len) {
                 19 => E.denominatorFor(F, self.ch.owner.offset, &self.ch.owner.coefficients, &tuple, true),
                 3 => E.denominatorFor(F, self.ch.and_.offset, &self.ch.and_.coefficients, &tuple, true),
@@ -62,7 +62,7 @@ pub const Provider = struct {
     }
     pub fn emitRange(self: @This(), instance: R.Instance, logical: usize, first: usize, n: []M, d: []O, ch: Challenges) !void {
         if (first > instance.queries() or n.len > instance.queries() - first or n.len != d.len) return error.SpongeLocalQuery;
-        inline for (R.roles) |role| if (instance.role == role) {
+        inline for (R.all_roles) |role| if (instance.role == role) {
             const row = self.source.row(role, logical);
             const fixed = Source.fixedRow(role, logical, instance.row_log);
             var lifted: [R.mainWidth(role)]O = undefined;

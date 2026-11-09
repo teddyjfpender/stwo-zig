@@ -65,17 +65,18 @@ pub fn Component(comptime role: S.Role) type {
         data: *const Data(role),
         challenges: Native.Challenges,
         global_challenges: Eq.GlobalFor(O),
-        global_claims: [2]O,
+        global_claims: [3]O,
         offsets: [3]usize = .{ 0, 0, 0 },
         kind: enum { serialized_sponge } = .serialized_sponge,
         pub fn domainBindingPoint(self: *const Self, index: usize) *const MP.MleEvalPointFor(O) {
             return &self.data.parts[index].point;
         }
         pub fn validate(self: *const Self) !void {
-            const g = S.Geometry{ .calls = self.public.calls, .permutations = self.public.permutations, .first_id = self.public.first_id };
+            const g = S.Geometry{ .calls = self.public.calls, .permutations = self.public.permutations, .first_id = self.public.first_id, .detached = role == .detached_descriptor };
             const instance = (try g.instances())[@import("source.zig").Source.index(role)];
             if (instance.row_log != self.log_size) return error.SpongeLocalProjectionShape;
             inline for (.{ false, true }, 0..) |io, i| if (Eq.globalCount(role, io) == 0 and !self.global_claims[i].isZero()) return error.SpongeNonexistentGlobalClaim;
+            if (role != .detached_descriptor and !self.global_claims[2].isZero()) return error.SpongeNonexistentGlobalClaim;
             for (self.data.parts) |part| {
                 if (part.binding.instance.role != role or part.binding.instance.row_log != self.log_size or part.point.n != self.log_size or part.binding.weights.len != @as(usize, 1) << @intCast(part.binding.instance.laneLog())) return error.SpongeLocalProjectionShape;
             }

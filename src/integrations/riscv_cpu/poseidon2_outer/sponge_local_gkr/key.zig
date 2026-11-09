@@ -13,6 +13,7 @@ pub const Key = struct {
     allocator: std.mem.Allocator,
     profile: Protocol.Profile,
     logs: [8]u32,
+    detached: bool,
     identity: [32]u8,
     root: [36]u8,
     tree: W.Scheme.CommittedTree,
@@ -51,11 +52,13 @@ pub const Key = struct {
         try tree.share(a);
         const root = tree.root();
         var h = std.crypto.hash.sha2.Sha256.init(.{});
-        h.update(R.DOMAIN);
+        h.update(R.domain(g.detached));
         h.update("/fixed-authority");
-        h.update(&profile.identity());
+        const profile_identity = profile.identity();
+        h.update(&profile_identity);
         h.update(&root);
-        h.update(&try @import("semantic.zig").digest(a));
+        const semantic_identity = if (g.detached) try @import("semantic.zig").digestFor(a, true) else try @import("semantic.zig").digestFor(a, false);
+        h.update(&semantic_identity);
         for (instances) |instance| {
             var words: [16]u8 = undefined;
             std.mem.writeInt(u32, words[0..4], @intFromEnum(instance.role), .little);
@@ -64,22 +67,31 @@ pub const Key = struct {
             std.mem.writeInt(u32, words[12..16], @intCast(R.interactionWidth(instance.role)), .little);
             h.update(&words);
         }
-        return .{ .allocator = a, .profile = profile, .logs = logs, .identity = h.finalResult(), .root = root, .tree = tree };
+        return .{ .allocator = a, .profile = profile, .logs = logs, .detached = g.detached, .identity = h.finalResult(), .root = root, .tree = tree };
     }
     pub fn deinit(self: *Key) void {
         self.tree.deinit(self.allocator);
         self.* = undefined;
     }
     pub fn require(self: *const Key, g: R.Geometry) !void {
+        if (g.detached != self.detached) return error.SpongeLocalFixedGeometry;
         for (try g.instances(), self.logs) |instance, log| if (instance.row_log != log) return error.SpongeLocalFixedGeometry;
     }
     pub fn statement(self: *const Key, g: R.Geometry, boundary: [32]u8) ![32]u8 {
+        if (g.detached) return error.SpongeLocalScopeFlavor;
+        return self.statementBody(g, boundary);
+    }
+    pub fn statementDetached(self: *const Key, g: R.Geometry) ![32]u8 {
+        if (!g.detached) return error.SpongeLocalScopeFlavor;
+        return self.statementBody(g, null);
+    }
+    fn statementBody(self: *const Key, g: R.Geometry, boundary: ?[32]u8) ![32]u8 {
         try self.require(g);
         var h = std.crypto.hash.sha2.Sha256.init(.{});
-        h.update(R.DOMAIN);
+        h.update(R.domain(g.detached));
         h.update("/request");
         h.update(&self.identity);
-        h.update(&boundary);
+        if (boundary) |b| h.update(&b);
         var counts: [12]u8 = undefined;
         std.mem.writeInt(u32, counts[0..4], g.calls, .little);
         std.mem.writeInt(u32, counts[4..8], g.permutations, .little);
