@@ -1,0 +1,154 @@
+{
+  "scope": "actualOP_CPU_with_OWNER_RAM80_Wire32_and_Miller_truth_native_join",
+  "raw": [
+    20042,
+    1725152,
+    1754,
+    32033,
+    65536
+  ],
+  "cells": {
+    "rows": [
+      32768,
+      2097152,
+      2048,
+      32768,
+      65536
+    ],
+    "main_cells": 40968192,
+    "fixed_cells": 19306496,
+    "interaction_cells": 40681472,
+    "total_trace_cells": 100956160,
+    "poseidon_hybrid": false,
+    "production_qualified": false
+  },
+  "phases": {
+    "proof_inputs": {
+      "eq": 0,
+      "arithmetic": 4,
+      "m31_to_u32": 0,
+      "poseidon": 0,
+      "variables": 160335,
+      "guessed_variables": 160330
+    },
+    "statement": {
+      "public_scope": {
+        "eq": 9,
+        "arithmetic": 23,
+        "m31_to_u32": 27,
+        "poseidon": 0,
+        "variables": 3065,
+        "guessed_variables": 3003
+      },
+      "local_gkr": {
+        "eq": 550,
+        "arithmetic": 125522,
+        "m31_to_u32": 0,
+        "poseidon": 3797,
+        "variables": 216790,
+        "guessed_variables": 56
+      },
+      "claims_shared": {
+        "eq": 0,
+        "arithmetic": 838,
+        "m31_to_u32": 49,
+        "poseidon": 74,
+        "variables": 2685,
+        "guessed_variables": 10
+      },
+      "source_publics": {
+        "eq": 486,
+        "arithmetic": 27922,
+        "m31_to_u32": 0,
+        "poseidon": 0,
+        "variables": 29044,
+        "guessed_variables": 1120
+      },
+      "cpu_oods": {
+        "eq": 1604,
+        "arithmetic": 176184,
+        "m31_to_u32": 0,
+        "poseidon": 0,
+        "variables": 177914,
+        "guessed_variables": 1604
+      },
+      "pcs_oods_and_transcript": {
+        "eq": 55,
+        "arithmetic": 591,
+        "m31_to_u32": 0,
+        "poseidon": 35,
+        "variables": 1493,
+        "guessed_variables": 27
+      },
+      "pcs_sampled_mix_and_queries": {
+        "eq": 586,
+        "arithmetic": 39394,
+        "m31_to_u32": 0,
+        "poseidon": 981,
+        "variables": 63535,
+        "guessed_variables": 562
+      },
+      "pcs_merkle": {
+        "eq": 7776,
+        "arithmetic": 305712,
+        "m31_to_u32": 0,
+        "poseidon": 17280,
+        "variables": 720432,
+        "guessed_variables": 0
+      },
+      "deep": {
+        "eq": 592,
+        "arithmetic": 570296,
+        "m31_to_u32": 0,
+        "poseidon": 0,
+        "variables": 570884,
+        "guessed_variables": 584
+      },
+      "fri": {
+        "eq": 6624,
+        "arithmetic": 306054,
+        "m31_to_u32": 0,
+        "poseidon": 9792,
+        "variables": 542070,
+        "guessed_variables": 1008
+      }
+    },
+    "frame": {
+      "eq": 1760,
+      "arithmetic": 3955,
+      "m31_to_u32": 0,
+      "poseidon": 74,
+      "variables": 6614,
+      "guessed_variables": 880
+    },
+    "finalization": {
+      "eq": 0,
+      "arithmetic": 168657,
+      "m31_to_u32": 1678,
+      "poseidon": 0,
+      "variables": 825,
+      "guessed_variables": 0
+    }
+  },
+  "native_assignment_exact": true,
+  "span_mutation_rejected": true,
+  "legacy_constructor_rejected": true,
+  "production_admission_open": false,
+  "recursive_root_accepted": false,
+  "physical": {
+    "bytes": 639160,
+    "build_ns": 113278625,
+    "prove_ns": 12883931583,
+    "fresh_receive_ns": 2673012083,
+    "sha256": "12beaa7c156b87f76b96b5e3ef6a379c1fa24345680ccb532037caf49e26800d"
+  },
+  "schema": "stwo.opstack.pure-p2-op-cpu-leaf.v1",
+  "security_qualified": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "qualification": "ReleaseSafe numerical/nativejoin/mutations and ReleaseFast physical/freshsource receiver/mutations; concurrent qualification, no controlled benchmark",
+  "remaining": [
+    "physical heterogeneous fold/root",
+    "all-service/native complete block integration",
+    "full-size actualgeometry cost+matched10x total"
+  ]
+}

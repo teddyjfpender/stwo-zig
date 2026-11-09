@@ -145,7 +145,29 @@ fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Author
     @memcpy(encoded[HEADER..], body);
     return encoded;
 }
+pub const NativeProof = Core.proof.ForField(O).StarkProof(H);
+pub const NativeCapture = Core.pcs.ForField(O).verifier.VerifiedProofCapture(H);
+pub const Captured = struct {
+    proof: NativeProof,
+    claims: W.Claims,
+    capture: NativeCapture,
+    pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
+        self.capture.deinit(a);
+        self.proof.deinit(a);
+        self.* = undefined;
+    }
+};
 pub fn verify(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, encoded: []const u8) !void {
+    return verifyImpl(a, key, outputs, encoded, null, null, null);
+}
+/// Captures only after the same full native receiver has admitted source
+/// authority, canonical claims, global Var/range closure and the complete PCS.
+pub fn verifyCaptured(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, encoded: []const u8) !Captured {
+    var out: Captured = undefined;
+    try verifyImpl(a, key, outputs, encoded, &out.capture, &out.proof, &out.claims);
+    return out;
+}
+fn verifyImpl(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, encoded: []const u8, capture: ?*NativeCapture, retained: ?*NativeProof, retained_claims: ?*W.Claims) !void {
     if (encoded.len < HEADER or !std.mem.eql(u8, encoded[0..8], MAGIC)) return error.InvalidPoseidonFiveWire;
     if (!std.mem.eql(u8, encoded[8..40], &key.identity)) return error.InvalidPoseidonFiveAuthority;
     var claims: W.Claims = undefined;
@@ -162,7 +184,7 @@ pub fn verify(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, e
     var owned = true;
     defer if (owned) proof.deinit(a);
     const pcs = &proof.commitment_scheme_proof;
-    if (pcs.commitments.items.len != 4 or !std.meta.eql(pcs.config, key.profile.config())) return error.InvalidPoseidonFiveShape;
+    if (pcs.commitments.items.len != 4 or pcs.revision_config != null or !std.meta.eql(pcs.config, key.profile.config())) return error.InvalidPoseidonFiveShape;
     if (!std.mem.eql(u8, &pcs.commitments.items[0], &key.fixed_root)) return error.UntrustedPoseidonFixedCommitment;
     var channel = try begin(a, key, outputs);
     var receiver = try Core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(H, MC).init(a, key.profile.config());
@@ -182,8 +204,15 @@ pub fn verify(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, e
     const ls = try legacy(a, key, elements, claims, fixed_logs);
     const p2 = P2{ .key = key, .elements = elements, .claim = claims[3] };
     const components = [_]Air.Component{ ls[0].asVerifierComponent(), ls[1].asVerifierComponent(), ls[2].asVerifierComponent(), P2.Adapter.asVerifierComponent(&p2), ls[3].asVerifierComponent() };
-    owned = false;
-    try Core.verifier.ForField(O).verify(H, MC, a, &components, &channel, &receiver, proof);
+    if (capture) |captured| {
+        try Core.verifier.ForField(O).verifyBorrowedWithProofCapture(H, MC, a, &components, &channel, &receiver, &proof, captured);
+        retained.?.* = proof;
+        retained_claims.?.* = claims;
+        owned = false;
+    } else {
+        owned = false;
+        try Core.verifier.ForField(O).verify(H, MC, a, &components, &channel, &receiver, proof);
+    }
 }
 pub fn fixture(a: std.mem.Allocator, trace_only: bool) !C.Context {
     var ctx = if (trace_only) try C.Context.initTraceOnly(a, 1) else try C.Context.init(a, 1);

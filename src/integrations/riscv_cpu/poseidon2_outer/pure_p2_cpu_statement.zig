@@ -23,6 +23,7 @@ const WorkerCircuit = @import("pure_p2_worker_circuit.zig");
 const W = @import("../word16_global_execution/services/gkr_local/worker_protocol.zig");
 const T = @import("../word16_global_execution/services/types.zig");
 const F = C.F;
+pub const Physical = struct { fixed: C.Hash, main: C.Hash, fixed_source: [36]u8 };
 const Phase = @import("phase_census.zig");
 fn flag(ctx: *C.Context, count: F, native: u32) !F {
     const nonzero = try F.guess(ctx, if (ctx.trace_only or native == 0) C.O.zero() else C.O.one());
@@ -78,17 +79,26 @@ pub const Statement = struct {
     /// by an equation is a guessed public word in `frame`; none becomes a
     /// circuit constant. Program/geometry/config and fixed authority are the
     /// independently admitted immutable topology.
-    pub fn init(frame: *Public.Frame, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, expected: M.Expected, manifest: [36]u8, native_claims: []const C.O, physical: struct { fixed: C.Hash, main: C.Hash, fixed_source: [36]u8 }, native_child: anytype, config: core.pcs.PcsConfig, binding: WorkerCircuit.Binding) !Statement {
+    pub fn init(frame: *Public.Frame, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, expected: M.Expected, manifest: [36]u8, native_claims: []const C.O, physical: Physical, native_child: anytype, config: core.pcs.PcsConfig, binding: WorkerCircuit.Binding) !Statement {
+        return initMode(frame, setup, request, first, expected, manifest, native_claims, physical, native_child, config, binding, null);
+    }
+    pub fn initForOp(frame: *Public.Frame, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, span: T.OpTowerSpan, expected: M.Expected, manifest: [36]u8, native_claims: []const C.O, physical: Physical, native_child: anytype, config: core.pcs.PcsConfig, binding: WorkerCircuit.Binding) !Statement {
+        return initMode(frame, setup, request, first, expected, manifest, native_claims, physical, native_child, config, binding, span);
+    }
+    fn initMode(frame: *Public.Frame, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, expected: M.Expected, manifest: [36]u8, native_claims: []const C.O, physical: Physical, native_child: anytype, config: core.pcs.PcsConfig, binding: WorkerCircuit.Binding, op_span: ?T.OpTowerSpan) !Statement {
         const ctx = frame.ctx;
         const phase_start = Phase.Counts.take(try C.sidecar(ctx));
         const a = ctx.scratch();
         if (expected.kind != .cpu) return error.WideCpuProofShape;
-        if (comptime @hasField(@TypeOf(setup.bridges), "tower")) {
-            if (setup.bridges.tower != null) return error.UnsupportedOpPurePoseidonStatement;
-        }
+        if (op_span) |span| {
+            if (!setup.op_only) return error.UnsupportedOpPurePoseidonStatement;
+            try span.validate(setup.bridges);
+            const B = @import("stwo_circuit_frontend").builder;
+            try frame.free_words.appendSlice(a, &.{ try B.wrappers.constU32(C.Q, ctx, 0x4f505350), try B.wrappers.constU32(C.Q, ctx, 1) });
+        } else if (setup.op_only or setup.bridges.tower != null) return error.UnsupportedOpPurePoseidonStatement;
         if (!std.meta.eql(config, binding.profile.config()) or expected.profile != binding.profile or !std.mem.eql(u8, &binding.identity, &expected.fixed_identity)) return error.UnsupportedWideServicesConfig;
         if (!std.mem.eql(u8, &binding.root, &expected.fixed) or !std.mem.eql(u8, &physical.fixed_source, &expected.fixed)) return error.WideCpuStatementMismatch;
-        const derived_instances = try @import("../word16_global_execution/services/gkr_local/roster.zig").fromSetup(a, setup);
+        const derived_instances = if (op_span != null) try @import("../word16_global_execution/services/gkr_local/roster.zig").fromOpSetup(a, setup) else try @import("../word16_global_execution/services/gkr_local/roster.zig").fromSetup(a, setup);
         const admitted_instances = expected.local_instances orelse return error.WideCpuLocalRequired;
         if (derived_instances.len != admitted_instances.len) return error.WideCpuRosterMismatch;
         for (derived_instances, admitted_instances) |derived, admitted| if (!std.meta.eql(derived, admitted)) return error.WideCpuRosterMismatch;
@@ -145,7 +155,7 @@ pub const Statement = struct {
             chain_inputs.register_clocks[r] = clock.word;
         }
         const inputs = A.word16_execution.types.InputsFor(F){ .steps = steps, .initial_pc = initial_pc, .final_pc = final_pc, .epoch = epoch, .wide_clock = A.word16_execution.layout.wideClock(setup.materials.geometry.cpu_log) };
-        const plan = try Components.Plan.init(a, setup);
+        const plan = if (op_span != null) try Components.Plan.initForOp(a, setup) else try Components.Plan.init(a, setup);
         if (claims.len != plan.claim_count) return error.InvalidWideCpuClaims;
         const instances = expected.local_instances.?;
         if (instances.len != plan.binding_count) return error.WideCpuRosterMismatch;
@@ -182,7 +192,13 @@ pub const Statement = struct {
                 .bulk => |kind| rows_native = request.bulk.rows(kind),
                 .sponge => |kind| rows_native = request.sponge.rows(kind),
                 else => {
-                    if (slot.origin == .dword) rows_native = dword_counts[slot.origin.dword] else return error.UnsupportedOpPurePoseidonStatement;
+                    if (slot.origin == .dword) {
+                        rows_native = dword_counts[slot.origin.dword];
+                    } else if (slot.origin == .tower) {
+                        const span = op_span orelse return error.UnsupportedOpPurePoseidonStatement;
+                        calls_native = span.calls;
+                        first_native = span.first_id;
+                    } else return error.UnsupportedOpPurePoseidonStatement;
                 },
             }
             const row_word = try frame.guessU32(rows_native);
@@ -256,11 +272,19 @@ pub const Statement = struct {
 /// boundary and global closure validation. No producer-declared scalar is an
 /// authority merely because this encoder can serialize it.
 pub fn expectedWords(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, expected: M.Expected, manifest: [36]u8, main_root: [36]u8, receipt: [36]u8, claims: []const C.O) ![]u32 {
-    if (comptime @hasField(@TypeOf(setup.bridges), "tower")) {
-        if (setup.bridges.tower != null) return error.UnsupportedOpPurePoseidonStatement;
-    }
+    return expectedWordsMode(a, setup, request, first, expected, manifest, main_root, receipt, claims, null);
+}
+pub fn expectedWordsForOp(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, span: T.OpTowerSpan, expected: M.Expected, manifest: [36]u8, main_root: [36]u8, receipt: [36]u8, claims: []const C.O) ![]u32 {
+    return expectedWordsMode(a, setup, request, first, expected, manifest, main_root, receipt, claims, span);
+}
+fn expectedWordsMode(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, expected: M.Expected, manifest: [36]u8, main_root: [36]u8, receipt: [36]u8, claims: []const C.O, op_span: ?T.OpTowerSpan) ![]u32 {
+    if (op_span) |span| {
+        if (!setup.op_only) return error.UnsupportedOpPurePoseidonStatement;
+        try span.validate(setup.bridges);
+    } else if (setup.op_only or setup.bridges.tower != null) return error.UnsupportedOpPurePoseidonStatement;
     var words: std.ArrayList(u32) = .empty;
     errdefer words.deinit(a);
+    if (op_span != null) try words.appendSlice(a, &.{ 0x4f505350, 1 });
     try words.append(a, expected.ordinal);
     for (0..8) |i| try words.append(a, std.mem.readInt(u32, expected.statement[4 * i ..][0..4], .little));
     for ([_][36]u8{ expected.fixed, main_root, manifest, receipt }) |root| {
@@ -282,7 +306,7 @@ pub fn expectedWords(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.
         try words.append(a, cpu.register_clocks[r]);
     }
     try words.append(a, request.sponge.first_id);
-    var plan = try Components.Plan.init(a, setup);
+    var plan = if (op_span != null) try Components.Plan.initForOp(a, setup) else try Components.Plan.init(a, setup);
     defer plan.deinit();
     if (claims.len != plan.claim_count) return error.InvalidWideCpuClaims;
     const ls = try setup.materials.geometry.lsCounts(request.base.memory.ls_count);
@@ -308,7 +332,13 @@ pub fn expectedWords(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.
             .bulk => |kind| rows = request.bulk.rows(kind),
             .sponge => |kind| rows = request.sponge.rows(kind),
             else => {
-                if (slot.origin == .dword) rows = dword[slot.origin.dword] else return error.UnsupportedOpPurePoseidonStatement;
+                if (slot.origin == .dword) {
+                    rows = dword[slot.origin.dword];
+                } else if (slot.origin == .tower) {
+                    const span = op_span orelse return error.UnsupportedOpPurePoseidonStatement;
+                    calls = span.calls;
+                    first_id = span.first_id;
+                } else return error.UnsupportedOpPurePoseidonStatement;
             },
         }
         try words.appendSlice(a, &.{ rows, calls, first_id });

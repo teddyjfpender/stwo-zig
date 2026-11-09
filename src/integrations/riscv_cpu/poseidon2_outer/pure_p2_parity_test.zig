@@ -170,6 +170,14 @@ test "OP pure P2 local verifier physical proof freshly verifies target profile a
     defer receiver.deinit();
     try std.testing.expectEqualSlices(u8, &identity, &receiver.identity);
     try Proof.verify(a, &receiver, &outputs, encoded);
+    {
+        var captured = try Proof.verifyCaptured(a, &receiver, &outputs, encoded);
+        defer captured.deinit(a);
+        var arena = std.heap.ArenaAllocator.init(a);
+        defer arena.deinit();
+        const source_shape = try @import("pure_p2_outer_capture.zig").geometry(arena.allocator(), &receiver);
+        _ = try @import("../rv64_recursion/om31_poseidon/mod.zig").proof.fromNative(arena.allocator(), &captured.proof, &captured.capture, &source_shape);
+    }
     const receive_ns = timer.lap();
     var wrong = outputs;
     wrong[8] = wrong[8].add(Q.one());

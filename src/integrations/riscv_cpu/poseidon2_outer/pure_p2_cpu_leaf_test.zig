@@ -10,8 +10,9 @@ const Protocol = @import("pure_p2_worker_protocol.zig");
 const Native = @import("pure_p2_native.zig");
 const Manifest = @import("pure_p2_manifest.zig");
 const Phase = @import("phase_census.zig");
-const CompleteCounts = struct { proof_inputs: Phase.Counts = .{}, statement: Phase.Parts = .{}, frame: Phase.Counts = .{}, finalization: Phase.Counts = .{} };
-const ShapeView = struct {
+pub const CompleteCounts = struct { proof_inputs: Phase.Counts = .{}, statement: Phase.Parts = .{}, frame: Phase.Counts = .{}, finalization: Phase.Counts = .{} };
+pub const ShapeView = struct {
+    op_span: ?@import("../word16_global_execution/services/types.zig").OpTowerSpan = null,
     setup: *const @import("../word16_global_execution/services/roster.zig").CpuSetup,
     request: @import("../word16_global_execution/services/protocol.zig").Request,
     first: [@import("../word16_global_execution/services/types.zig").FAMILIES]u32,
@@ -24,14 +25,14 @@ const ShapeView = struct {
     child: *const @import("stwo_prover_engine").lookups.gkr_verifier.ForField(C.O).GkrBatchProof,
     shape: *const V.Shape,
     values: *const V.Captured,
-    fn expectedOutput(self: @This(), a: std.mem.Allocator) ![9]C.Q {
-        const words = try Full.expectedWords(a, self.setup, self.request, self.first, self.expected, self.manifest, self.main, self.receipt, self.claims);
+    pub fn expectedOutput(self: @This(), a: std.mem.Allocator) ![9]C.Q {
+        const words = if (self.op_span) |span| try Full.expectedWordsForOp(a, self.setup, self.request, self.first, span, self.expected, self.manifest, self.main, self.receipt, self.claims) else try Full.expectedWords(a, self.setup, self.request, self.first, self.expected, self.manifest, self.main, self.receipt, self.claims);
         defer a.free(words);
         var outputs: [9]C.Q = undefined;
         for (&outputs, try core.crypto.poseidon2_m31_sponge.decode(Native.hashWords(words))) |*output, value| output.* = C.Q.fromBase(value);
         return outputs;
     }
-    fn build(self: @This(), a: std.mem.Allocator, trace_only: bool, census: ?*CompleteCounts) !C.PoseidonContext {
+    pub fn build(self: @This(), a: std.mem.Allocator, trace_only: bool, census: ?*CompleteCounts) !C.PoseidonContext {
         var structural = @import("../rv64_recursion/circuit_lane.zig").StructuralScope.init();
         defer structural.deinit();
         var owner = if (trace_only) try C.PoseidonContext.initTraceOnly(a, 9) else try C.PoseidonContext.init(a, 9);
@@ -44,7 +45,9 @@ const ShapeView = struct {
         const proof = try V.proof.guess(ctx, self.values, self.shape);
         const after_proof = Phase.Counts.take(&owner);
         var frame = Public.Frame.init(ctx);
-        var statement = try Full.Statement.init(&frame, self.setup, self.request, self.first, self.expected, self.manifest, self.claims, .{ .fixed = proof.commitments[0], .main = proof.commitments[1], .fixed_source = self.key.root }, self.child, self.key.profile.config(), .{ .identity = self.key.identity, .root = self.key.root, .profile = self.key.profile });
+        const physical = Full.Physical{ .fixed = proof.commitments[0], .main = proof.commitments[1], .fixed_source = self.key.root };
+        const binding = @import("pure_p2_worker_circuit.zig").Binding{ .identity = self.key.identity, .root = self.key.root, .profile = self.key.profile };
+        var statement = if (self.op_span) |span| try Full.Statement.initForOp(&frame, self.setup, self.request, self.first, span, self.expected, self.manifest, self.claims, physical, self.child, self.key.profile.config(), binding) else try Full.Statement.init(&frame, self.setup, self.request, self.first, self.expected, self.manifest, self.claims, physical, self.child, self.key.profile.config(), binding);
         defer statement.deinit(ctx);
         _ = try V.verify(ctx, self.shape, &proof, &statement);
         const before_frame = Phase.Counts.take(&owner);
@@ -79,6 +82,52 @@ fn physicalRequested() !bool {
     if (std.mem.eql(u8, value, "1")) return true;
     return error.InvalidOpP2PhysicalGateSelection;
 }
+/// Takes ownership of `produced` even on failure; releases producer context
+/// before independently reconstructing and checking receiver source authority.
+pub fn proveSourcePhysical(a: std.mem.Allocator, source: ShapeView, produced: C.PoseidonContext, build_ns: u64, prefix: []const u8) !void {
+    var owner = produced;
+    var owns_owner = true;
+    defer if (owns_owner) owner.deinit();
+    var timer = try std.time.Timer.start();
+    const Authority = @import("authority.zig").Authority;
+    const Proof = @import("proof.zig");
+    const outputs = try source.expectedOutput(a);
+    var identity: [32]u8 = undefined;
+    var recorder = @import("stwo_prover_engine").stage_profile.Recorder.initWithOptions(a, "cpu", "op_pure_p2_actual_cpu_leaf", .{ .capture_tasks = false, .capture_process_usage = true });
+    defer recorder.deinit();
+    const outer = blk: {
+        var key = try Authority.initForProfile(a, &owner, source.key.profile);
+        defer key.deinit();
+        identity = key.identity;
+        break :blk try Proof.proveProfiled(a, &owner, &key, &outputs, &recorder);
+    };
+    defer a.free(outer);
+    owner.deinit();
+    owns_owner = false;
+    const prove_ns = timer.lap();
+    var receiver_source = try source.build(a, true, null);
+    defer receiver_source.deinit();
+    var receiver = try Authority.initForProfile(a, &receiver_source, source.key.profile);
+    defer receiver.deinit();
+    try std.testing.expectEqualSlices(u8, &identity, &receiver.identity);
+    try Proof.verify(a, &receiver, &outputs, outer);
+    const receive_ns = timer.lap();
+    var wrong = outputs;
+    wrong[8] = wrong[8].add(C.Q.one());
+    try std.testing.expectError(error.PoseidonGlobalLookupSum, Proof.verify(a, &receiver, &wrong, outer));
+    const corrupted = try a.dupe(u8, outer);
+    defer a.free(corrupted);
+    corrupted[40] ^= 1;
+    try std.testing.expectError(error.PoseidonGlobalLookupSum, Proof.verify(a, &receiver, &outputs, corrupted));
+    var hash: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(outer, &hash, .{});
+    var profile = try recorder.snapshot(a);
+    defer profile.deinit(a);
+    const profile_json = try std.json.Stringify.valueAlloc(a, profile, .{});
+    defer a.free(profile_json);
+    std.debug.print("{s}_STAGES {s}\n", .{ prefix, profile_json });
+    std.debug.print("{s}_PHYSICAL bytes={} build_ns={} prove_ns={} fresh_receive_ns={} sha256={s} production_admission_open=false\n", .{ prefix, outer.len, build_ns, prove_ns, receive_ns, std.fmt.bytesToHex(hash, .lower) });
+}
 const Hook = struct {
     pub fn run(a: std.mem.Allocator, setups: anytype, requests: anytype, keys: anytype, inventory: anytype, pending: anytype, encoded: anytype, capture: anytype, stages: anytype) !void {
         var native = try Protocol.W.Wire.decodeProofBytesBinary(a, encoded[0].bytes);
@@ -99,44 +148,8 @@ const Hook = struct {
         defer a.free(json);
         std.debug.print("OP_PURE_P2_COMPLETE_CPU_CIRCUIT {s}\n", .{json});
         if (!physical) return;
-        const Authority = @import("authority.zig").Authority;
-        const Proof = @import("proof.zig");
-        const outputs = try source.expectedOutput(a);
-        var identity: [32]u8 = undefined;
-        var recorder = @import("stwo_prover_engine").stage_profile.Recorder.initWithOptions(a, "cpu", "op_pure_p2_actual_cpu_leaf", .{ .capture_tasks = false, .capture_process_usage = true });
-        defer recorder.deinit();
-        const outer = blk: {
-            var key = try Authority.initForProfile(a, &owner, keys[0].profile);
-            defer key.deinit();
-            identity = key.identity;
-            break :blk try Proof.proveProfiled(a, &owner, &key, &outputs, &recorder);
-        };
-        defer a.free(outer);
-        owner.deinit();
         owns_owner = false;
-        const prove_ns = timer.lap();
-        var receiver_source = try source.build(a, true, null);
-        defer receiver_source.deinit();
-        var receiver = try Authority.initForProfile(a, &receiver_source, keys[0].profile);
-        defer receiver.deinit();
-        try std.testing.expectEqualSlices(u8, &identity, &receiver.identity);
-        try Proof.verify(a, &receiver, &outputs, outer);
-        const receive_ns = timer.lap();
-        var wrong = outputs;
-        wrong[8] = wrong[8].add(C.Q.one());
-        try std.testing.expectError(error.PoseidonGlobalLookupSum, Proof.verify(a, &receiver, &wrong, outer));
-        const corrupted = try a.dupe(u8, outer);
-        defer a.free(corrupted);
-        corrupted[40] ^= 1;
-        try std.testing.expectError(error.PoseidonGlobalLookupSum, Proof.verify(a, &receiver, &outputs, corrupted));
-        var hash: [32]u8 = undefined;
-        std.crypto.hash.sha2.Sha256.hash(outer, &hash, .{});
-        var profile = try recorder.snapshot(a);
-        defer profile.deinit(a);
-        const profile_json = try std.json.Stringify.valueAlloc(a, profile, .{});
-        defer a.free(profile_json);
-        std.debug.print("OP_PURE_P2_COMPLETE_CPU_STAGES {s}\n", .{profile_json});
-        std.debug.print("OP_PURE_P2_COMPLETE_CPU_PHYSICAL bytes={} build_ns={} prove_ns={} fresh_receive_ns={} sha256={s} production_admission_open=false\n", .{ outer.len, build_ns, prove_ns, receive_ns, std.fmt.bytesToHex(hash, .lower) });
+        try proveSourcePhysical(a, source, owner, build_ns, "OP_PURE_P2_COMPLETE_CPU");
     }
 };
 test "OP pure P2 complete CPU circuit matches actual native proof and expected public frame" {

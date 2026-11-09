@@ -329,3 +329,27 @@ Reproduce the bounded physical gate with
 `STWO_OP_P2_TOWER_PHYSICAL=1 zig build test-riscv64-op-tower-recursion -Doptimize=ReleaseFast -j1`.
 The default ReleaseSafe target runs numerical and mutation qualification without
 producing the large outer proof. New execution admission remains closed.
+## Actual OP CPU packet leaf
+
+The separate OP constructor now selects the OP plan and GKR roster, validates
+its admitted calls/first-ID span, and consumes that same guessed span in the
+original tower-owner/range/Word16 equations. An explicit OP frame tag/version
+and tower slot publics enter the independently expected nine-limb frame. The
+standard constructor refuses OP-only setups; it cannot silently omit the tower.
+The original CPU, global RAM and Wire equations remain source-owned. Wrong
+first-ID with the same native proof fails the circuit; a fresh trace-only source
+graph derives the same topology.
+
+The actual one-ECALL native join (599,024-byte CPU +555,856-byte Miller truth)
+passes OWNER-GKR, all80 packet RAM words including readonly tail, shared Wire
+and independent native source checks. Its actual CPU wrapper is 100,956,160
+cells, 1,725,152 arithmetic rows and 32,033 P2 permutations. A physical outer
+proof passes fresh source-authority verification and mutations: 639,160 bytes,
+0.113s graph, 12.884s producer and 2.673s fresh receiver. This was concurrent
+qualification, not a quiet benchmark, full block or accepted recursive root.
+
+The general P2 receiver now optionally retains a complete verified PCS capture
+for recursive parents. Default receive remains uncaptured; unsupported revision
+configuration refuses. Captures and ordered geometry are checked against the
+same source authority and complete Var/range closure, then consumed by the
+native-PCS circuit. No producer geometry or unchecked terminal override is used.
