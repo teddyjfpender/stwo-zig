@@ -154,3 +154,37 @@ pub fn run_phase_census(path: &str, output: &str) -> Result<(), Box<dyn std::err
         .write_all(&serde_json::to_vec_pretty(&report)?)?;
     Ok(())
 }
+
+#[cfg(feature = "host-brotli-census")]
+pub fn run_brotli_census(path: &str, directory: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let (result, report) = kona_protocol::brotli_census::record(|| run(path, None));
+    result?;
+    if report.overflow {
+        return Err("bounded Brotli capture overflow".into());
+    }
+    let root = std::path::Path::new(directory);
+    std::fs::create_dir(root)?;
+    let mut rows = Vec::new();
+    use std::io::Write;
+    for (i, call) in report.calls.iter().enumerate() {
+        let mut input = Vec::new();
+        input.extend_from_slice(b"BRP1");
+        input.extend_from_slice(&u32::try_from(call.max_output)?.to_le_bytes());
+        input.extend_from_slice(&call.input);
+        std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(root.join(format!("channel-{i}.input")))?
+            .write_all(&input)?;
+        if let Some(bytes) = &call.output {
+            std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(root.join(format!("channel-{i}.output")))?
+                .write_all(bytes)?;
+        }
+        rows.push(serde_json::json!({"channel":i,"compressed_bytes":call.input.len(),"output_bytes":call.output.as_ref().map(|x|x.len()),"max_output":call.max_output,"setup_ns":call.setup_ns,"elapsed_ns":call.elapsed_ns,"upfront_zeroed_bytes":call.upfront_zeroed_bytes,"allocations":call.allocations.iter().map(|s|serde_json::json!({"live":s.live,"peak":s.peak,"limit":s.limit,"allocations":s.allocations,"initialized_cells":s.initialized_cells,"cell_bytes":s.cell_bytes})).collect::<Vec<_>>()}));
+    }
+    std::fs::OpenOptions::new().write(true).create_new(true).open(root.join("census.json"))?.write_all(&serde_json::to_vec_pretty(&serde_json::json!({"schema":"op-native-brotli-census-v1","native_only":true,"rows":rows}))?)?;
+    Ok(())
+}

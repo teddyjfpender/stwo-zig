@@ -12,6 +12,8 @@ resolver = "2"
 [features]
 default = []
 host = ["dep:kona-registry"]
+host-brotli-census = ["host", "transition-program", "kona-protocol/stwo-brotli-census"]
+lazy-brotli = ["derivation", "kona-protocol/stwo-lazy-brotli-alloc"]
 canonical-fr = ["blob-derivation", "ark-bls12-381/stwo-canonical-fr-service"]
 host-phase-census = ["host", "transition-program", "ark-ff/stwo-operation-census"]
 transition-program = ["blob-derivation", "dep:kona-registry", "dep:miniz_oxide"]
@@ -67,6 +69,7 @@ sha2 = { version = "=0.10.9", default-features = false }
 sha2-rv64 = { package = "sha2", path = "../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64", default-features = false, optional = true }
 
 [dev-dependencies]
+alloc-no-stdlib = "=2.0.4"
 num-bigint = "=0.4.8"
 keccak = "=0.2.2"
 sha3 = "=0.11.0"
@@ -92,4 +95,5 @@ k256 = { path = "../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendo
 ecdsa = { path = "../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa" }
 
 [patch."https://github.com/ethereum-optimism/optimism"]
+kona-protocol = { path = "vendor/kona-protocol" }
 op-revm = { path = "vendor/op-revm" }

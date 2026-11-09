@@ -35,3 +35,10 @@ compile_error!("Montgomery branch census requires the control field representati
 
 #[cfg(all(test, feature="canonical-fr"))]
 mod canonical_fr_tests;
+
+#[cfg(all(test,feature="lazy-brotli"))]
+#[path="../vendor/kona-protocol/src/brotli_alloc.rs"]
+mod brotli_allocator_qualification;
+
+#[cfg(all(test, feature="derivation"))]
+mod brotli_qualification;
