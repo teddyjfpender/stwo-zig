@@ -26,6 +26,14 @@ pub const View = struct {
         return out;
     }
     pub fn build(self: View, a: std.mem.Allocator, trace_only: bool) !C.PoseidonContext {
+        return self.buildMode(a, trace_only, true);
+    }
+    /// Same constrained graph and witness; adversarial mutation checks belong
+    /// to qualification, not every leaf in a block's production loop.
+    pub fn buildForProving(self: View, a: std.mem.Allocator) !C.PoseidonContext {
+        return self.buildMode(a, false, false);
+    }
+    fn buildMode(self: View, a: std.mem.Allocator, trace_only: bool, comptime qualify: bool) !C.PoseidonContext {
         var structural = @import("../rv64_recursion/circuit_lane.zig").StructuralScope.init();
         defer structural.deinit();
         var owner = if (trace_only) try C.PoseidonContext.initTraceOnly(a, 9) else try C.PoseidonContext.init(a, 9);
@@ -39,12 +47,14 @@ pub const View = struct {
         var statement = try Full.Statement.init(&frame, self.key, self.span, self.expected, self.manifest, self.claims, .{ .fixed = proof.commitments[0], .main = proof.commitments[1] });
         _ = try V.verify(ctx, self.shape, &proof, &statement);
         const output = try frame.finish();
-        if (!trace_only) for (output, try self.expectedOutput(a)) |wire, expected| try std.testing.expect(ctx.get(wire).eql(expected));
+        if (!trace_only) for (output, try self.expectedOutput(a)) |wire, expected| {
+            if (!ctx.get(wire).eql(expected)) return error.InvalidOpTowerLeafOutput;
+        };
         try C.finish();
         active = false;
         try owner.setOutputs(&output);
         try owner.finalize();
-        if (!trace_only) {
+        if (qualify and !trace_only) {
             try std.testing.expect(try owner.isCircuitValid());
             for ([_]C.Var{ proof.sampled_values[1][0][0].c0.v, statement.claims[0].c0.v, output[8] }) |port| {
                 const original = ctx.get(port);
@@ -82,6 +92,13 @@ const Hook = struct {
         const census = try std.json.Stringify.valueAlloc(a, .{ .scope = "actual_Miller_truth_PCS_FRI_OODS_localSSA_globalWire_publicframe", .raw = try owner.rawCounts(), .cells = try owner.census(false), .permutations = owner.calls.items.len, .production_admission_open = false }, .{});
         defer a.free(census);
         std.debug.print("OP_PURE_P2_TOWER_CIRCUIT {s}\n", .{census});
+        {
+            var production = try source.buildForProving(a);
+            defer production.deinit();
+            try std.testing.expectEqualDeep(try owner.rawCounts(), try production.rawCounts());
+            try std.testing.expectEqualDeep(try owner.census(false), try production.census(false));
+            try std.testing.expect(try production.isCircuitValid());
+        }
         if (!try physicalRequested()) return;
         const Authority = @import("authority.zig").Authority;
         const Proof = @import("proof.zig");
