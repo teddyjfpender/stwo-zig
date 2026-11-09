@@ -1,0 +1,44 @@
+{
+  "schema": "stwo.opstack.narrow-om31-reference.v1",
+  "security_qualified": false,
+  "production_admission": false,
+  "proof_profile": "correctness-only q12/P0",
+  "equation_authority": "narrow_equations.EquationsForField / narrow_source / micro",
+  "domain": "16 packed M31 lanes; secure relation and accumulation packed OM31",
+  "oods": "scalar OM31",
+  "component_geometry": {
+    "frontier_log": 8,
+    "arithmetic_log": 15,
+    "frontier_main": 33,
+    "frontier_interaction_om31": 16,
+    "arithmetic_main": 370,
+    "arithmetic_interaction_om31": 560,
+    "degree_max": 3,
+    "composition_split": 1
+  },
+  "physical_composite_bytes": {
+    "QM31": 101072,
+    "OM31": 142192
+  },
+  "qualification": {
+    "ReleaseSafe": [
+      "test-riscv64-op-tower",
+      "test-riscv64-op-tower-proof"
+    ],
+    "controls": [
+      "fresh fixed root reconstruction",
+      "local SSA closure",
+      "expected call identity and output",
+      "OODS mutation",
+      "claim mutation",
+      "QM31 reference retained",
+      "8-coordinate OM31 row accumulation and failed-lease drain"
+    ]
+  },
+  "remaining": [
+    "OP CPU OWNER local-GKR projection and global RAM/Wire join",
+    "whole-service fresh receiver and recursive leaf",
+    "production-profile and composed-security accounting",
+    "actual heavy-block proving and root benchmark"
+  ]
+}

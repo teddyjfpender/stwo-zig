@@ -176,3 +176,42 @@ test "cooperative column transforms on a composition queue equal the serial tran
     try std.testing.expectEqual(@as(usize, 1), queue.batches_published);
     for (serial_storage, queued_storage) |expected, actual| try std.testing.expectEqualSlices(M, &expected, &actual);
 }
+
+test "OM31 row scheduler preserves all eight coordinates and drains failed leases" {
+    const O = core.fields.om31.OM31;
+    const Wide = R.ForField(O);
+    const A = engine.air.accumulation.ForField(O);
+    const C = struct {
+        completed: std.atomic.Value(usize) = .init(0),
+        fail: bool = false,
+        fn run(pointer: *const anyopaque, start: usize, end: usize, output: *A.ColumnAccumulator) anyerror!void {
+            const self: *@This() = @ptrCast(@alignCast(@constCast(pointer)));
+            for (start..end) |row| {
+                var coordinates: [8]M = undefined;
+                for (&coordinates, 0..) |*value, k| value.* = M.fromCanonical(@intCast(row + k + 1));
+                output.accumulate(row, O.fromM31Array(coordinates));
+            }
+            _ = self.completed.fetchAdd(end - start, .seq_cst);
+            if (self.fail and start == 0) return error.KernelFailed;
+        }
+    };
+    var values: [8][N]M = @splat(@splat(M.zero()));
+    var columns: [8][]M = undefined;
+    for (&columns, &values) |*column, *data| column.* = data;
+    var col = engine.secure_column.SecureColumnByCoordsFor(O){ .columns = columns, .owns_columns = false };
+    var output = A.ColumnAccumulator{ .random_coeff_powers = &.{}, .col = &col, .next_fresh_index = 0 };
+    var context = C{};
+    var pool: engine.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .stack_size = Wide.MIN_STACK, .backing_allocator = std.testing.allocator });
+    defer pool.deinit();
+    const kernel = Wide.Kernel{ .context = &context, .run = C.run };
+    try Wide.evaluate(kernel, N, &output, null);
+    try Wide.evaluate(kernel, N, &output, &pool);
+    for (values, 0..) |data, k| for (data, 0..) |value, row| try std.testing.expectEqual(M.fromCanonical(@intCast(2 * (row + k + 1))), value);
+    try std.testing.expectEqual(2 * N, context.completed.load(.seq_cst));
+    const available = pool.availableWorkers();
+    context.fail = true;
+    try std.testing.expectError(error.KernelFailed, Wide.evaluate(kernel, N, &output, &pool));
+    try std.testing.expectEqual(3 * N, context.completed.load(.seq_cst));
+    try std.testing.expectEqual(available, pool.availableWorkers());
+}

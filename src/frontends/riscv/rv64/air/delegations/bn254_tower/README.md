@@ -69,3 +69,21 @@ replace classic BYTE/U15/SSA interaction traces using the same typed source
 expressions. It must bind both independently sized components on the lifted
 domain and preserve cross-instance SSA closure. The request whitelist remains
 closed until these gates pass.
+
+### Wide-field physical qualification
+
+`narrow.ForField(OM31).Component(role)` and
+`narrow.trace.SourceForField(role, OM31)` instantiate the same equation source
+as the QM31 reference. Interaction offsets, previous masks, claim framing and
+commitment geometry use the selected field's coordinate count. Domain arithmetic
+stays in sixteen packed M31 lanes, with packed OM31 only for secure relation
+expressions and weighted accumulation; OODS uses scalar OM31. The existing
+QM31 entrypoints remain compatibility aliases.
+
+The physical composite fixture now runs both fields, independently rebuilding
+fixed authority and checking SSA, expected Wire outputs and OODS mutations.
+QM31 remains 101,072 bytes; OM31 is 142,192 bytes on the toy q12/P0 profile.
+This is correctness evidence, not production 128-bit qualification. Both
+independently sized components remain in one PCS/proof. The row scheduler is
+shared with existing components and tests all eight OM31 coordinates plus
+failure draining without changing legacy scheduling.

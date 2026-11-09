@@ -8,7 +8,7 @@ const NE = @import("narrow_equations.zig");
 const D = @import("dag.zig");
 const Micro = @import("micro.zig");
 const M = core.fields.m31.M31;
-const Q = core.fields.qm31.QM31;
+const E = @import("../../evaluation.zig");
 pub const Input = [D.INPUTS]u256;
 pub fn fixed(a: std.mem.Allocator, role: S.Role, log: u32) ![]M {
     const n = @as(usize, 1) << @intCast(log);
@@ -21,10 +21,13 @@ pub fn fixed(a: std.mem.Allocator, role: S.Role, log: u32) ![]M {
     return out;
 }
 pub fn Source(comptime role: S.Role) type {
+    return SourceForField(role, core.fields.qm31.QM31);
+}
+pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
     return struct {
         const Self = @This();
-        pub const L = NE.Layout(role);
-        pub const Eq = NE.Equations(role);
+        pub const L = NE.LayoutForField(role, Q);
+        pub const Eq = NE.EquationsForField(role, Q);
         allocator: std.mem.Allocator,
         log_size: u32,
         first_id: u32,
@@ -96,7 +99,7 @@ pub fn Source(comptime role: S.Role) type {
                 return Q.fromBase(self.source.main[c * self.source.size() + self.physical]);
             }
         };
-        pub fn generateInteraction(self: *Self, ch: NE.Challenges) !NE.Claims {
+        pub fn generateInteraction(self: *Self, ch: NE.ChallengesFor(Q)) !NE.ClaimsFor(Q) {
             if (self.interaction.len != 0) return error.TowerInteractionAlreadyGenerated;
             const n = self.size();
             const out = try self.allocator.alloc(M, L.INTERACTION * n);
@@ -132,7 +135,7 @@ pub fn Source(comptime role: S.Role) type {
                                 } else if (carry == Micro.G.carries) range_total = range_total.sub(carries[index % Micro.CARRY_LIMIT].mul(Q.fromBase(self.main[L.CARRY_MULT * n + physical])));
                             }
                         }
-                        R.trace.store(out, n, physical, 4 * batch, range_total);
+                        store(out, n, physical, L.COORDINATES * batch, range_total);
                     }
                 }
                 for (0..L.SSA_BATCHES) |batch| {
@@ -140,17 +143,26 @@ pub fn Source(comptime role: S.Role) type {
                         const f = Eq.fraction(Q, &view, self.public(), ch, .ssa, 2 * batch + lane);
                         if (!f[0].isZero()) ssa_total = ssa_total.add(f[0].mul(try f[1].inv()));
                     }
-                    R.trace.store(out, n, physical, L.SSA_FIRST + 4 * batch, ssa_total);
+                    store(out, n, physical, L.SSA_FIRST + L.COORDINATES * batch, ssa_total);
                 }
                 const wire = Eq.fraction(Q, &view, self.public(), ch, .wire, 0);
                 if (!wire[0].isZero()) wire_total = wire_total.add(wire[0].mul(try wire[1].inv()));
-                R.trace.store(out, n, physical, L.WIRE_FIRST, wire_total);
+                store(out, n, physical, L.WIRE_FIRST, wire_total);
             }
             if (!range_total.isZero()) return error.TowerRangeClaimNotClosed;
-            for (0..L.SSA_BATCHES) |batch| R.trace.center(out, n, L.SSA_FIRST + 4 * batch, ssa_total);
-            R.trace.center(out, n, L.WIRE_FIRST, wire_total);
+            for (0..L.SSA_BATCHES) |batch| center(out, n, L.SSA_FIRST + L.COORDINATES * batch, ssa_total);
+            center(out, n, L.WIRE_FIRST, wire_total);
             self.interaction = out;
             return .{ .ssa = ssa_total, .wire = wire_total };
         }
     };
+}
+
+fn store(data: []M, n: usize, row: usize, start: usize, value: anytype) void {
+    for (value.toM31Array(), 0..) |v, c| data[(start + c) * n + row] = v;
+}
+fn center(data: []M, n: usize, start: usize, sum: anytype) void {
+    for (sum.toM31Array(), 0..) |v, c| {
+        for (0..n) |r| data[(start + c) * n + r] = data[(start + c) * n + r].sub(v);
+    }
 }

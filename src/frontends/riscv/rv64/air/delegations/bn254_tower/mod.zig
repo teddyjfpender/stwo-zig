@@ -16,4 +16,5 @@ pub const narrow = struct {
     pub const equations = @import("narrow_equations.zig");
     pub const trace = @import("narrow_trace.zig");
     pub const Component = @import("narrow_component.zig").Component;
+    pub const ForField = @import("narrow_component.zig").ForField;
 };

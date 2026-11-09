@@ -15,7 +15,11 @@ pub fn ClaimsFor(comptime C: type) type {
 }
 pub const Claims = ClaimsFor(E.Q);
 pub fn Layout(comptime role: S.Role) type {
+    return LayoutForField(role, E.Q);
+}
+pub fn LayoutForField(comptime role: S.Role, comptime C: type) type {
     return struct {
+        pub const COORDINATES = E.extensionDegree(C);
         pub const ROLE = role;
         pub const MAIN = S.mainWidth(role) + if (role == .arithmetic) @as(usize, 2) else 0;
         pub const BYTE_MULT = S.BYTE_MULT;
@@ -25,12 +29,12 @@ pub fn Layout(comptime role: S.Role) type {
         pub const SSA_FRACTIONS = if (role == .arithmetic) 8 else 1;
         pub const SSA_BATCHES = (SSA_FRACTIONS + 1) / 2;
         pub const RANGE_FIRST = 0;
-        pub const RANGE_LAST = if (RANGE_BATCHES != 0) 4 * (RANGE_BATCHES - 1) else 0;
-        pub const SSA_FIRST = 4 * RANGE_BATCHES;
-        pub const SSA_LAST = SSA_FIRST + 4 * (SSA_BATCHES - 1);
-        pub const WIRE_FIRST = SSA_FIRST + 4 * SSA_BATCHES;
+        pub const RANGE_LAST = if (RANGE_BATCHES != 0) COORDINATES * (RANGE_BATCHES - 1) else 0;
+        pub const SSA_FIRST = COORDINATES * RANGE_BATCHES;
+        pub const SSA_LAST = SSA_FIRST + COORDINATES * (SSA_BATCHES - 1);
+        pub const WIRE_FIRST = SSA_FIRST + COORDINATES * SSA_BATCHES;
         pub const WIRE_LAST = WIRE_FIRST;
-        pub const INTERACTION = WIRE_FIRST + 4;
+        pub const INTERACTION = WIRE_FIRST + COORDINATES;
         pub const MAIN_CONSTRAINTS = (if (role == .arithmetic) 1 + 7 * 32 + M.G.groups + 15 + 16 else 1) + 4;
         pub const CONSTRAINTS = MAIN_CONSTRAINTS + RANGE_BATCHES + SSA_BATCHES + 1;
         pub const LOG_EXTENSION = 1;
@@ -46,11 +50,14 @@ pub fn Layout(comptime role: S.Role) type {
     };
 }
 pub fn Equations(comptime role: S.Role) type {
+    return EquationsForField(role, E.Q);
+}
+pub fn EquationsForField(comptime role: S.Role, comptime C: type) type {
     return struct {
-        pub const L = Layout(role);
+        pub const L = LayoutForField(role, C);
         fn secure(comptime F: type, v: anytype, start: usize, previous: bool) E.SecureFor(F) {
             const degree = comptime E.extensionDegree(E.ConstFor(F));
-            const at = start / 4 * degree;
+            const at = start;
             var values: [degree]F = undefined;
             for (&values, 0..) |*value, index| value.* = if (previous) v.previousInteraction(at + index) else v.interaction(at + index);
             return E.secureFromCoordinatesForField(E.ConstFor(F), F, values);
@@ -125,9 +132,9 @@ pub fn Equations(comptime role: S.Role) type {
                     .wire => claims.wire,
                 };
                 for (0..count) |index| {
-                    const at = first + 4 * index;
+                    const at = first + L.COORDINATES * index;
                     const current = secure(F, v, at, false);
-                    const prior = if (index > 0) secure(F, v, at - 4, false) else secure(F, v, last, true).sub(E.mulBaseFor(F, E.splatFor(F, claim), v.fixed(S.FIRST)));
+                    const prior = if (index > 0) secure(F, v, at - L.COORDINATES, false) else secure(F, v, last, true).sub(E.mulBaseFor(F, E.splatFor(F, claim), v.fixed(S.FIRST)));
                     batch(F, current.sub(prior), fraction(F, v, public, ch, family, 2 * index), fraction(F, v, public, ch, family, 2 * index + 1), sink);
                 }
             }
