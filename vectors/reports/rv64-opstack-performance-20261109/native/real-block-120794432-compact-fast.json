@@ -1,0 +1,156 @@
+{
+  "schema": "op-pure-p2-real-block-native-compact/v1",
+  "block": 120794432,
+  "status": "complete-native-proof-and-fresh-process-receiver-pass",
+  "production_admitted": false,
+  "recursive_proof": false,
+  "build_mode": "ReleaseFast",
+  "execution_profile": "ethereum_services_op_v1",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "layout": "qualified forOpGkr: compact decode, fused tail, U8 pairs, LS-D64, reserved arithmetic row",
+  "instructions": 796406,
+  "cells": {
+    "fixed": 40973696,
+    "main": 84990432,
+    "interaction": 99202560
+  },
+  "counts": {
+    "cpu": 1,
+    "truth": 2,
+    "keccak_permutations": 338,
+    "sha256_calls": 34,
+    "miller_calls": 0,
+    "public_ram_words": 29884
+  },
+  "producer_wall_seconds": 17.05,
+  "fresh_receiver_wall_seconds": 3.76,
+  "receiver_phase_ns": {
+    "image": 366269500,
+    "program": 144625417,
+    "setup_and_decode": 3030413708,
+    "physical_and_terminal_verify": 201851667,
+    "total_before_teardown": 3743160292
+  },
+  "timing": {
+    "schema": "op-pure-p2-native-block/v1",
+    "complete": true,
+    "steps": 796406,
+    "cpu": 1,
+    "truth": 2,
+    "miller": 0,
+    "native_bytes": 7048980,
+    "image_ns": 358769459,
+    "program_ns": 264509833,
+    "capture_ns": 55678542,
+    "setup_and_admission_ns": 2909827166,
+    "seal_and_park_ns": 4936062583,
+    "manifest_ns": 8265834,
+    "stage_two_prove_ns": 7986665791,
+    "prove_ns": 12931017667,
+    "publish_payload_ns": 4305125,
+    "total_before_receipt_ns": 16524107834,
+    "production_admitted": false
+  },
+  "maxrss_bytes": {
+    "producer": 3568123904,
+    "receiver": 2298445824
+  },
+  "bundle_sha256": "ceb1bb7f64e1224b4db02007a4df4a11e902408fb540caa7ae31b2d6680581fd",
+  "bundle_bytes": 7048980,
+  "stage_one_bytes": 100756,
+  "physical_proofs": [
+    {
+      "bytes": 1968472,
+      "claims": 19,
+      "sha256": "8096322bfcc8d1d9fadc538686ebd0a91ad27994aa10bbd0be50579bb10d100e"
+    },
+    {
+      "bytes": 2785032,
+      "claims": 5,
+      "sha256": "382810ca68aa8fa63c135cb368c7bdffb28e974c18cca14099521ff43cb3b559"
+    },
+    {
+      "bytes": 2193880,
+      "claims": 1,
+      "sha256": "25288d27c812d0d24b83e1e69f308527a458966fee1080c2658489b312e2a381"
+    }
+  ],
+  "workers": [
+    {
+      "ordinal": 0,
+      "role": "cpu",
+      "seconds_by_stage": {
+        "source_construction": 0.125556,
+        "MAIN_streaming_commit_prepare": 0.20108400000000004,
+        "MAIN_merkle_commit": 2.740142,
+        "local_gkr_prove": 1.219194,
+        "retained_main_park": 0.139574,
+        "retained_main_restore": 0.112388,
+        "interaction_generation": 0.232595,
+        "INTER_streaming_commit_prepare": 0.153201,
+        "INTER_merkle_commit": 2.610928,
+        "composition_evaluation": 0.680397,
+        "composition_commit": 1.003529,
+        "sampled_value_evaluation": 0.068931,
+        "sampled_value_channel_mix": 0.003888,
+        "fri_quotient_build_and_commit": 0.797313,
+        "trace_decommit": 0.626566
+      },
+      "profile_sha256": "df272950094b199ec5b1283fbe6df4b7ba23ee9d32ead11420556558a2ad24ae",
+      "profile_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small-compact-fast/physical-0000.stages.json"
+    },
+    {
+      "ordinal": 1,
+      "role": "keccak",
+      "seconds_by_stage": {
+        "source_construction": 0.108941,
+        "MAIN_streaming_commit_prepare": 0.034078,
+        "MAIN_merkle_commit": 0.258432,
+        "retained_main_park": 0.030422,
+        "retained_main_restore": 0.024628,
+        "interaction_generation": 0.191274,
+        "INTER_streaming_commit_prepare": 0.09199100000000002,
+        "INTER_merkle_commit": 0.728197,
+        "composition_evaluation": 0.466362,
+        "composition_commit": 0.009895,
+        "sampled_value_evaluation": 0.032546,
+        "sampled_value_channel_mix": 0.009746,
+        "fri_quotient_build_and_commit": 0.032187,
+        "trace_decommit": 0.024866
+      },
+      "profile_sha256": "b429e89030099d938b47a56e230022cc533bed704017c779b259f0c2e0728a7c",
+      "profile_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small-compact-fast/physical-0001.stages.json"
+    },
+    {
+      "ordinal": 2,
+      "role": "sha256",
+      "seconds_by_stage": {
+        "source_construction": 0.001173,
+        "MAIN_streaming_commit_prepare": 0.005754000000000004,
+        "MAIN_merkle_commit": 0.052472,
+        "retained_main_park": 0.014946,
+        "retained_main_restore": 0.0009,
+        "interaction_generation": 0.000666,
+        "INTER_streaming_commit_prepare": 2.1e-05,
+        "INTER_merkle_commit": 0.000396,
+        "composition_evaluation": 0.00394,
+        "composition_commit": 0.000395,
+        "sampled_value_evaluation": 0.001004,
+        "sampled_value_channel_mix": 0.00522,
+        "fri_quotient_build_and_commit": 0.002221,
+        "trace_decommit": 0.002483
+      },
+      "profile_sha256": "4170c4a08b7e9c5eebc04b4e6d4cebbd184e1f39f7f8f674e5f571636053f5c5",
+      "profile_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small-compact-fast/physical-0002.stages.json"
+    }
+  ],
+  "caveats": [
+    "one real small block, no complete heavy block yet",
+    "no recursion included",
+    "earlier ordinary run used ReleaseSafe, so timings do not isolate representation speedup",
+    "worker merkle/preparation sums are observations; enclosing stages overlap children and must not be added twice",
+    "native source cell count excludes composition/FRI and lifted opening costs"
+  ],
+  "raw_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small-compact-fast"
+}

@@ -206,6 +206,10 @@ pub const CompleteVerified = struct {
     image: *const Image.Owner,
     metadata: Metadata,
     requests: []const P.Request,
+    expected: P.Expected,
+    cpu_keys: []const *const Key,
+    truth_keys: []const *const Truth.Key,
+    output_address: u64,
     setups: []const *const R.CpuSetup,
     truths: []const R.Truth,
     miller: []const Inv.MillerDeclaration,
@@ -263,7 +267,7 @@ pub fn verifyDirectoryWithHooks(a: std.mem.Allocator, config: Request.Config, pa
     var closed = try bundle.verifyWithHooks(a, &inventory, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, hooks.fragments);
     defer closed.deinit(a);
     const output = try Terminal.require(&image, req[req.len - 1].base.cpu, cells.terminal);
-    if (hooks.complete) |complete| try complete(hooks.context, a, .{ .image = &image, .metadata = m, .requests = req, .setups = authority.setups, .truths = authority.native_truth.truths, .miller = authority.miller, .inventory = &inventory, .native = &closed, .output = output });
+    if (hooks.complete) |complete| try complete(hooks.context, a, .{ .image = &image, .metadata = m, .requests = req, .expected = expected, .cpu_keys = authority.cpu_keys, .truth_keys = authority.truth_keys, .output_address = image.symbols.output_data, .setups = authority.setups, .truths = authority.native_truth.truths, .miller = authority.miller, .inventory = &inventory, .native = &closed, .output = output });
     std.debug.print("OP_NATIVE_RECEIVER accepted=true complete=true steps={} CPU={} truth={} miller={} profile={s} image_ns={} program_ns={} setup_and_decode_ns={} verify_ns={} total_ns={}\n", .{ expected.total_steps, m.cpus.len, m.truths.len, m.miller.len, @tagName(profile), image_ns, program_ns, verify_start - image_ns - program_ns, timer.read() - verify_start, timer.read() });
 }
 
