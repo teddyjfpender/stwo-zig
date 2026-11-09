@@ -1,7 +1,7 @@
 //! Direct compact truth segment statement for native-GKR only. Every public
 //! span and signed mass shares one native/circuit visitor, before FS draws.
 const std = @import("std");
-const Canon = @import("../../ethereum/canon_native.zig");
+const Canon = @import("../../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/canon_native.zig");
 const CPU = @import("cpu_statement.zig");
 const Mass = @import("../gkr_local/mass_authority.zig");
 const Wire = @import("../wire.zig");

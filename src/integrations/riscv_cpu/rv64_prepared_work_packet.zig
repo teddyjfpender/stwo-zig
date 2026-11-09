@@ -6,7 +6,7 @@ const builtin = @import("builtin");
 const frontend = @import("stwo_riscv_frontend");
 const rv = frontend.rv64;
 const R = frontend.rv64_air.memory;
-const Native = @import("rv64_ethereum_batch.zig");
+const Native = @import("../../products/ethereum/statement/cpu/rv64_ethereum_batch.zig");
 const H = @import("rv64_work_packet_header.zig");
 const IO = @import("rv64_work_packet_io.zig");
 const Body = @import("rv64_work_packet_body.zig");
@@ -58,7 +58,7 @@ pub fn validate(view: View) !void {
     _ = try header(view);
     const public = view.finished.public;
     const tape = view.tape;
-    if ((public.execution_profile != .ethereum_services_v1 and public.execution_profile != .ethereum_services_v2) or public.arithmetic_policy != .division_multiplication_services_v3 or !@import("rv64_ethereum_batch.zig").tapeAdmits(tape.execution_profile, public.execution_profile, view.finished.rom_profile orelse public.execution_profile) or tape.len == 0 or tape.len > tape.storage.len or tape.len != public.statement.steps or tape.initial_clock != view.metadata.first_step or tape.initial_pc != public.statement.initial_pc or tape.storage[tape.len - 1].next_pc != public.statement.final_pc or tape.service_calls.items.len != public.keccak_calls or tape.secp_calls.items.len != @as(u64, public.secp.add.calls) + public.secp.double.calls) return error.InvalidWorkPacketBoundary;
+    if ((public.execution_profile != .ethereum_services_v1 and public.execution_profile != .ethereum_services_v2) or public.arithmetic_policy != .division_multiplication_services_v3 or !@import("../../products/ethereum/statement/cpu/rv64_ethereum_batch.zig").tapeAdmits(tape.execution_profile, public.execution_profile, view.finished.rom_profile orelse public.execution_profile) or tape.len == 0 or tape.len > tape.storage.len or tape.len != public.statement.steps or tape.initial_clock != view.metadata.first_step or tape.initial_pc != public.statement.initial_pc or tape.storage[tape.len - 1].next_pc != public.statement.final_pc or tape.service_calls.items.len != public.keccak_calls or tape.secp_calls.items.len != @as(u64, public.secp.add.calls) + public.secp.double.calls) return error.InvalidWorkPacketBoundary;
     try Body.validate(view.finished);
     if ((view.native != null) != (view.finished.openings != null)) return error.InvalidWorkPacketGraph;
     if (view.native) |graph| {

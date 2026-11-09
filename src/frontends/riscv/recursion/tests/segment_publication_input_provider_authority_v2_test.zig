@@ -210,7 +210,7 @@ test "both authenticated inputs fail before caller-owned writes" {
 
 test "publication provider preserves all 88 retained segment claims and rejects source mutation" {
     const allocator = std.testing.allocator;
-    const support = @import("../ethereum_leaf_context_v1_test_support.zig");
+    const support = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_leaf_context_v1_test_support.zig");
     var fixture = try exact_support.Fixture.initWithCore(allocator, support.retainedSegmentZeroCore());
     defer fixture.deinit();
     const source = try witness.preflight(fixture.inputs());

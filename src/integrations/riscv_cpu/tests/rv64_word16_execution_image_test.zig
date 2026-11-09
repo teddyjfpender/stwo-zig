@@ -1,7 +1,7 @@
 const std = @import("std");
 const front = @import("stwo_riscv_frontend");
 const Image = @import("../word16_execution/expected_image.zig");
-const Request = @import("../rv64_ethereum_request.zig");
+const Request = @import("../../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
 const a = std.testing.allocator;
 const symbols = front.rv64.ethereum_contract.Symbols{ .input_start = 0x800000, .input_end = 0xc00000, .halt_flag = 0xc00000, .output_len = 0xc00004, .output_data = 0xc00008, .output_end = 0x1000000, .stack_bottom = 0x1000000, .stack_top = 0x2000000, .heap_start = 0x2100000, .heap_end = 0x2200000 };
 fn elfBytes() [128]u8 {
@@ -92,7 +92,7 @@ test "pristine image pin terminal and all allocation failures reject without nat
 test "new execution packet path reads tape without legacy graph and rejects corruption" {
     const Packet = @import("../word16_execution/packet.zig");
     const Wire = @import("../rv64_prepared_work_packet.zig");
-    const Batch = @import("../rv64_ethereum_batch.zig");
+    const Batch = @import("../../../products/ethereum/statement/cpu/rv64_ethereum_batch.zig");
     var fixture = try Fixture.init();
     defer fixture.deinit();
     var owner = try Image.Owner.init(a, fixture.config());

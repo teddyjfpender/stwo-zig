@@ -6,14 +6,14 @@ const memory_interaction = @import("../air/memory_commitment/interaction.zig");
 const program_interaction = @import("../air/program/interaction.zig");
 const statement = @import("../air/statement.zig");
 const table_component = @import("../air/lookups/tables/component.zig");
-const circuit = @import("../prover/ethereum_circuit_profile_v1.zig");
+const circuit = @import("../air/program/circuit_layout.zig");
 const narrow_poseidon = @import("../air/memory_commitment/poseidon2_narrow_component_v1.zig");
 
 pub fn constraintCount(kind: statement.InfraKind) usize {
-    return constraintCountWithCircuitProfile(kind, .legacy_v4);
+    return constraintCountWithLayout(kind, .ordinary_sparse);
 }
 
-pub fn constraintCountWithCircuitProfile(kind: statement.InfraKind, profile: circuit.CircuitProfileV1) usize {
+pub fn constraintCountWithLayout(kind: statement.InfraKind, profile: circuit.CircuitLayout) usize {
     return switch (kind) {
         .program => switch (profile.programPolicy()) {
             .sparse_merkle_v1 => program_interaction.N_CONSTRAINTS,

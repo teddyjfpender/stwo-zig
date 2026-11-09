@@ -4,13 +4,13 @@
 //! leaf statement digest; it proves nothing.
 const std = @import("std");
 const A = @import("rv64_authenticated_execution.zig");
-const Request = @import("rv64_ethereum_request.zig");
-const Receipt = @import("rv64_ethereum_batch_receipt.zig");
+const Request = @import("../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
+const Receipt = @import("../../products/ethereum/statement/cpu/rv64_ethereum_batch_receipt.zig");
 const Key = @import("rv64_execution_verifier_key.zig");
 const walk = @import("rv64_recursion/transcript_walk.zig");
 const fold_root = @import("rv64_recursion/fold_root.zig");
 const leaf_wrap = @import("rv64_recursion/leaf_wrap.zig");
-const Chain = @import("rv64_ethereum_chain.zig");
+const Chain = @import("../../products/ethereum/statement/cpu/rv64_ethereum_chain.zig");
 const wire = @import("stwo_proof_wire");
 
 pub fn main() !void {

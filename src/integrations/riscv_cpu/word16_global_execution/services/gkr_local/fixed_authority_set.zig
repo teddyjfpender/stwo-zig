@@ -124,7 +124,7 @@ pub fn emitGkrExecutionIdentity(base: anytype, config: W.PcsConfig, writer: anyt
     std.crypto.hash.blake2.Blake2s256.hash(F.PROFILE, &tag, .{});
     writer.constantDigest(tag);
     writer.constantDigest(W.Candidate.profileIdentity(profile));
-    const Canon = @import("../../ethereum/canon_native.zig");
+    const Canon = @import("../../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/canon_native.zig");
     writer.constantDigest(Canon.versionIdentityV2(Canon.RUNGS, .native_gkr));
 }
 /// Available to root reception before allocating any native setup/key list.

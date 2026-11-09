@@ -94,7 +94,7 @@ pub fn checkTape(tape: *const rv.compact_tape.Tape, metadata: H.Metadata, cells:
     return finish(&walked, facts, cells, public);
 }
 fn header(facts: Facts, h: H.Header, public: CPU.Public, authority: *const Full.ProgramAuthority) !void {
-    if (public.execution_profile != authority.profile or !@import("rv64_ethereum_batch.zig").tapeAdmitted(facts.profile, authority) or facts.initial_pc != public.statement.initial_pc or facts.first_step != h.metadata.first_step) return error.InvalidWorkPacketBoundary;
+    if (public.execution_profile != authority.profile or !@import("../../products/ethereum/statement/cpu/rv64_ethereum_batch.zig").tapeAdmitted(facts.profile, authority) or facts.initial_pc != public.statement.initial_pc or facts.first_step != h.metadata.first_step) return error.InvalidWorkPacketBoundary;
 }
 const Walked = struct {
     pc: u64,

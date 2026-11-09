@@ -1,7 +1,7 @@
 //! Explicit two-packet global prefix prototype. No services/full-block claim.
 const std = @import("std");
 const front = @import("stwo_riscv_frontend");
-const Request = @import("../rv64_ethereum_request.zig");
+const Request = @import("../../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
 const Image = @import("../word16_execution/expected_image.zig");
 const Packet = @import("../word16_execution/packet.zig");
 const Driver = @import("../word16_execution/driver.zig");

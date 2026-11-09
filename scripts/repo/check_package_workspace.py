@@ -29,6 +29,7 @@ LAYERS = {
     "integration",
     "interchange",
     "protocol",
+    "product",
     "service",
 }
 ALLOWED_DEPENDENCY_LAYERS = {
@@ -41,7 +42,8 @@ ALLOWED_DEPENDENCY_LAYERS = {
     "interchange": {"protocol"},
     "example": {"api", "backend", "engine", "interchange", "protocol"},
     "service": {"service"},
-    "integration": LAYERS,
+    "integration": LAYERS - {"product"},
+    "product": {"api", "backend", "contract", "engine", "frontend", "integration", "interchange", "protocol"},
 }
 IMPORT_RE = re.compile(
     r'@import\(\s*"([^"]+)"\s*,?\s*\)',
@@ -564,17 +566,7 @@ def _validate_layers(
     packages: dict[str, Contract],
     failures: list[str],
 ) -> None:
-    for contract in contracts:
-        allowed = ALLOWED_DEPENDENCY_LAYERS[contract.layer]
-        for dependency in contract.dependencies:
-            target = packages.get(dependency)
-            if target is None:
-                continue
-            if target.layer not in allowed:
-                failures.append(
-                    f"{contract.package}: {contract.layer} layer cannot depend on "
-                    f"{target.layer} package {dependency}"
-                )
+    ci_package_graph.check_dependency_layers(contracts, packages, ALLOWED_DEPENDENCY_LAYERS, failures)
 
 
 def _validate_ci_contracts(
@@ -802,6 +794,7 @@ def check_repository(repository: Path) -> list[str]:
     for cycle in dependency_cycles(graph):
         failures.append(f"package workspace: dependency cycle {' -> '.join(cycle)}")
     _validate_layers(contracts, packages, failures)
+    failures.extend(ci_package_graph.check_product_placement(repository, contracts))
     generated_embeds = ci_package_graph.generated_embedded_assets(repository)
     for contract in contracts:
         _validate_manifest(contract, failures)

@@ -1,5 +1,7 @@
 //! Recursion protocol namespace.
 
+pub const vm_composition_sample_geometry = @import("vm_composition_sample_geometry.zig");
+
 pub const air = @import("air/mod.zig");
 pub const detached_boundary_preparation_v1 = @import("detached_boundary_preparation_v1.zig");
 pub const detached_child_capture_v1 = @import("detached_child_capture_v1.zig");
@@ -63,7 +65,7 @@ pub const transcript_shape = @import("transcript_shape.zig");
 pub const vm_public_claim = @import("vm_public_claim.zig");
 pub const vm_public_semantics_circuit = @import("vm_public_semantics_circuit.zig");
 pub const vm_air_profile = @import("vm_air_profile.zig");
-pub const vm_air_profile_v2 = @import("vm_air_profile_v2.zig");
+pub const vm_air_profile_v2 = @import("../../../products/ethereum/statement/frontend/recursion/vm_air_profile_v2.zig");
 pub const vm_air_composition_circuit = @import("vm_air_composition_circuit.zig");
 pub const vm_air_composition_prepared_v2 =
     @import("vm_air_composition_prepared_v2.zig");

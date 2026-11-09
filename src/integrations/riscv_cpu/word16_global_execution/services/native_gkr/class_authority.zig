@@ -2,7 +2,7 @@
 //! T_nat classes and producer statements must call this same helper before
 //! constructing NativeVk; old strict/classic class hashes remain untouched.
 const std = @import("std");
-const Canon = @import("../../ethereum/canon_native.zig");
+const Canon = @import("../../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/canon_native.zig");
 const V2 = @import("v2.zig");
 const R = @import("roster.zig");
 pub const DOMAIN = "rv64/native-gkr/reduced-air-class/v2";

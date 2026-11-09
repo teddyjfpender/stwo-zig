@@ -162,7 +162,7 @@ test "authenticated Ethereum all27 one-arena proof bytes match owned sources in 
 const Stage = @import("stwo_prover_engine").stage_profile;
 const EthereumOptions = struct { state_policy: A.rv.state_policy.Policy = .cyclic_v2, recorder: ?*Stage.Recorder = null };
 fn ethereum(profile: rv.execution_profile.Profile, borrowed: bool, control: A.rv.control_policy.Policy, options: EthereumOptions) ![]u8 {
-    const Fixture = @import("rv64_ethereum_fixture.zig");
+    const Fixture = @import("../../../products/ethereum/statement/cpu/tests/rv64_ethereum_fixture.zig");
     const fixture = try Fixture.Fixture.create(a, profile);
     defer fixture.deinit();
     // Independently initialize the expected input image from fixture inputs;
@@ -233,7 +233,7 @@ fn ethereum(profile: rv.execution_profile.Profile, borrowed: bool, control: A.rv
     var downgraded = public;
     downgraded.cpu.control_policy = if (control == .bytes_v1) .limbs24_v2 else .bytes_v1;
     try std.testing.expectError(error.InvalidRv64ServiceSetup, receiver.validate(downgraded));
-    const receipt = @import("../rv64_ethereum_batch_receipt.zig").Receipt.create(0, 0, downgraded, bundle.claims, encoded);
+    const receipt = @import("../../../products/ethereum/statement/cpu/rv64_ethereum_batch_receipt.zig").Receipt.create(0, 0, downgraded, bundle.claims, encoded);
     try std.testing.expectError(error.InvalidEthereumBatchReceipt, receipt.bound(&receiver_authority));
 
     var wrong_state = public;
@@ -264,7 +264,7 @@ fn ethereum(profile: rv.execution_profile.Profile, borrowed: bool, control: A.rv
     return encoded;
 }
 
-fn fixtureTape(fixture: *const @import("rv64_ethereum_fixture.zig").Fixture, profile: rv.execution_profile.Profile) !rv.compact_tape.Tape {
+fn fixtureTape(fixture: *const @import("../../../products/ethereum/statement/cpu/tests/rv64_ethereum_fixture.zig").Fixture, profile: rv.execution_profile.Profile) !rv.compact_tape.Tape {
     var tape = try rv.compact_tape.Tape.init(a, fixture.records.len, fixture.public.statement.initial_pc, 1 << 40, profile);
     errdefer tape.deinit();
     var ki: usize = 0;

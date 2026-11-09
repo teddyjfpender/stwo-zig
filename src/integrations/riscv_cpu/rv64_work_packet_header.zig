@@ -1,7 +1,7 @@
 //! Versioned job identity and LE section geometry. These hashes are corruption
 //! and dispatch identities, never substitutes for a physical execution proof.
 const std = @import("std");
-const Request = @import("rv64_ethereum_request.zig");
+const Request = @import("../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
 const Full = @import("rv64_full.zig");
 const rv = @import("stwo_riscv_frontend").rv64_air;
 pub const Digest = [32]u8;

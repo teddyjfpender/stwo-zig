@@ -1,6 +1,6 @@
 const std = @import("std");
 const source = @import("../blake3_memory_snapshot.zig");
-const Session = @import("../../../runner/segment_session.zig").ExecutionSession(.rv32im_zkvm_v1);
+const Session = @import("../../../../../products/ethereum/statement/frontend/runner/segment_session.zig").ExecutionSession(.rv32im_zkvm_v1);
 
 test "BLAKE3 Span memory source follows real adjacent runner segments" {
     const a = std.testing.allocator;

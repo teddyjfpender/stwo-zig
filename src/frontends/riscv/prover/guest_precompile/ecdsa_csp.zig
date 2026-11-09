@@ -10,9 +10,9 @@ const statement_mod = @import("../../air/statement.zig");
 const program_commitment = @import("../../air/program/commitment.zig");
 const memory_boundary = @import("../../air/memory_commitment/boundary.zig");
 const recover = @import("../../runner/guest_precompile/secp256k1_recover_v1.zig");
-const artifact_mod = @import("ethereum_proof_artifact.zig");
-const orchestration = @import("ethereum_orchestration.zig");
-const verifier = @import("ethereum_verifier.zig");
+const artifact_mod = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_proof_artifact.zig");
+const orchestration = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_orchestration.zig");
+const verifier = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_verifier.zig");
 const admission = @import("../../prover.zig");
 
 pub fn recoveryId(input: []const u8) ?u32 {

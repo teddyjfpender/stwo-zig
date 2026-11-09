@@ -21,7 +21,7 @@ const sparse_merkle = @import("memory_commitment/sparse_merkle.zig");
 const statement_v1 = @import("statement.zig");
 const channel = @import("../recursion/poseidon2_channel.zig");
 const segment_v2 = @import("../recursion/segment_statement_v2.zig");
-const runner_result = @import("../runner/result.zig");
+const runner_result = @import("../../../products/ethereum/statement/frontend/runner/result.zig");
 pub const authority_preimage = @import("statement_v2_authority_preimage.zig");
 
 pub const FORMAT_VERSION: u16 = authority_preimage.FORMAT_VERSION;

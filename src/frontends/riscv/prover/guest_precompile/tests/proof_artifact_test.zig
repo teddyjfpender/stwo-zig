@@ -695,5 +695,5 @@ fn blake3AllocationCase(a: std.mem.Allocator, input: subject.Blake3.EncodeInput)
 }
 
 comptime {
-    _ = @import("../ethereum_segment_proof_artifact_wire.zig");
+    _ = @import("../../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_segment_proof_artifact_wire.zig");
 }

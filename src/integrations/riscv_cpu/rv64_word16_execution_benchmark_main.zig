@@ -1,7 +1,7 @@
 //! Read-only planning by default; explicit prove writes a genesis-prefix proof.
 //! No services or cross-batch acceptance is implied by this diagnostic.
 const std = @import("std");
-const Request = @import("rv64_ethereum_request.zig");
+const Request = @import("../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
 const Image = @import("word16_execution/expected_image.zig");
 const Packet = @import("word16_execution/packet.zig");
 const Program = @import("word16_execution/program.zig").Program;

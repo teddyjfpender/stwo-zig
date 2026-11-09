@@ -41,3 +41,13 @@ reachable signature tests, with framing/rejection invariants. This retains the
 node's existing inferred delegated error behavior; it adds no catch-all or
 claim of a new finite error set. The frontend major version is staged as1.0.0
 for the same approved C4 transaction. Product API transfers remain unfinished.
+
+The typed lifecycle provider and intact fixed-table ownership move are approved:
+https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6751270792.
+The existing returned session's source-visible allocator, memory/CPU/cache,
+ELF metadata, trace/host/input, options, clocks/maps/counters, authority/tag,
+continuation and status fields retain their exact definitions/defaults. They
+remain governed by init/start/resume/run/deinit ownership and publication rules;
+this adds no field, mutator, mutable accessor or alternative teardown path.
+The fixed-table Descriptor/Columns remain intact above with their existing
+36-word serialization and product compatibility testing path.

@@ -1,0 +1,566 @@
+//! Bounded software Ethereum execution census. Never establishes a proof.
+const std = @import("std");
+const rv = @import("../../../../../frontends/riscv/rv64/mod.zig");
+const contract = @import("ethereum_contract.zig");
+const services = @import("../../../../../frontends/riscv/rv64/service_session.zig");
+const ethereum = @import("../../../../../frontends/riscv/rv64/ethereum_services/session.zig");
+const access = @import("../../../../../frontends/riscv/rv64/access_census.zig");
+const frequent = @import("../../../../../frontends/riscv/rv64/frequent_operations.zig");
+const candidate = @import("../../../../../frontends/riscv/rv64/ethereum_services/candidate_services.zig");
+const cisa = @import("../../../../../frontends/riscv/rv64/candidate_isa.zig");
+/// `ethereum_services_v3_candidate` = admitted v2 services plus execution-only
+/// candidate services (candidate_services.zig). Never proof-relevant: it is
+/// rejected with compact capture, RAM-boundary capture and access census.
+/// `ethereum_services_v3_candidate_isa` = v3_candidate plus the execution-only
+/// Zbb/Zba subset (candidate_isa.zig), same restrictions.
+/// `ethereum_services_v3` is ADMITTED (v2 + SHA-256 compression 0x0003_0010
+/// + arith256_mod 0x0003_0021 + aligned memcpy/memset 0x0003_0001/2)
+/// and supports compact capture for the prover.
+/// `ethereum_services_v3_zbb` = v3 plus the ADMITTED-ISA Zbb BINARY subset
+/// (andn orn xnor rev8 sext.b sext.h zext.h; decode.Isa.rv64im_zbb_binary),
+/// counted in `zbb_binary_counts`; any other Zbb/Zba encoding traps.
+const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate, ethereum_services_v3_candidate_isa, ethereum_services_v3, ethereum_services_v3_zbb };
+const ZBB_BINARY_OPS = [_]rv.decode.Opcode{ .ANDN, .ORN, .XNOR, .REV8, .SEXT_B, .SEXT_H, .ZEXT_H };
+const ZbbBinaryCounts = struct { andn: u64 = 0, orn: u64 = 0, xnor: u64 = 0, rev8: u64 = 0, sext_b: u64 = 0, sext_h: u64 = 0, zext_h: u64 = 0 };
+fn bumpZbb(counts: *ZbbBinaryCounts, op: rv.decode.Opcode) void {
+    inline for (ZBB_BINARY_OPS, @typeInfo(ZbbBinaryCounts).@"struct".fields) |o, f| if (op == o) {
+        @field(counts, f.name) += 1;
+    };
+}
+const A = std.heap.smp_allocator;
+const OPCODE_NAMES = blk: {
+    // The RV64IM schema; Zbb BINARY retirements are reported in zbb_binary_counts.
+    const fields = @typeInfo(rv.decode.Opcode).@"enum".fields[0..rv.decode.BASE_OPCODE_COUNT];
+    if (fields.len != access.OPCODE_COUNT) @compileError("execution census opcode schema needs qualification");
+    var result: [fields.len][]const u8 = undefined;
+    for (fields, 0..) |field, i| result[i] = field.name;
+    break :blk result;
+};
+const Config = struct {
+    elf: []const u8,
+    input: []const u8,
+    elf_sha256: []const u8,
+    input_sha256: []const u8,
+    expected_output: []const u8,
+    symbols: contract.Symbols,
+    max_steps: u64 = 100000000,
+    cache_entries: usize = 1024,
+    pc_profile: ?PcRange = null,
+    execution_profile: Profile = .software,
+    census_batch_steps: ?u32 = null,
+    /// v3_zbb diagnostic: distinct Zbb BINARY chip facts (op, rs1, rs2 value)
+    /// per consecutive window of this many retirements (= one CPU shard), i.e.
+    /// the rows the shard's deduplicated Zbb component needs.
+    zbb_shard_steps: ?u32 = null,
+    compact_capture_batch_steps: ?u32 = null,
+    capture_ram_boundaries: bool = false,
+    frequent_operation_limit: ?usize = null,
+    /// Diagnostic only: per-opcode load/store byte-offset histogram. Observes
+    /// retired rows; never changes execution or any other report field.
+    ls_histogram: bool = false,
+    /// `fast`: retire ordinary instructions with fast_execution.Engine and
+    /// every other instruction (services, traps, halt-flag stores, the step
+    /// limit) with the reference session. Report fields are identical; only
+    /// timing differs. Not combinable with per-retirement diagnostics.
+    engine: Engine = .reference,
+};
+const Engine = enum { reference, fast };
+/// Load/store opcodes in decode order LB..SD.
+const LS_FIRST = @intFromEnum(rv.decode.Opcode.LB);
+const LS_COUNT = @intFromEnum(rv.decode.Opcode.SD) - LS_FIRST + 1;
+const LsHistogram = struct {
+    opcode_names: [LS_COUNT][]const u8 = blk: {
+        var names: [LS_COUNT][]const u8 = undefined;
+        for (&names, 0..) |*n, i| n.* = OPCODE_NAMES[LS_FIRST + i];
+        break :blk names;
+    },
+    /// [opcode][address & 7]: byte offset of the access inside its 8-byte word.
+    word_offset: [LS_COUNT][8]u64 = @splat(@splat(0)),
+    /// Accesses not naturally aligned (address % width != 0); the memory layer traps these, so expected 0.
+    misaligned: [LS_COUNT]u64 = @splat(0),
+    /// Accesses whose base register is sp (x2): stack spills/reloads.
+    sp_based: [LS_COUNT]u64 = @splat(0),
+    /// Loads whose rd is x0 (discarded) per opcode.
+    rd_zero: [LS_COUNT]u64 = @splat(0),
+};
+const PcRange = struct { start: u64, end: u64 };
+const PcProfile = struct { start: u64, end: u64, counts: []u64, outside: u64 = 0 };
+const Status = enum { completed, step_limit, trap };
+const CaptureStats = struct {
+    batches: u64 = 0,
+    instructions: u64 = 0,
+    ram_words: u64 = 0,
+    service_calls: u64 = 0,
+    secp_add_calls: u64 = 0,
+    secp_double_calls: u64 = 0,
+    sha256_calls: u64 = 0,
+    arith256_mod_calls: u64 = 0,
+    peak_retained_bytes: usize = 0,
+    step_bytes: usize = @sizeOf(rv.compact_tape.Step),
+    legacy_retirement_bytes: usize = @sizeOf(rv.machine.Retirement),
+    // Diagnostic capture releases each batch; it does not establish continuity.
+    authenticated_continuation: bool = false,
+    fn account(self: *CaptureStats, tape: *const rv.compact_tape.Tape) void {
+        if (tape.len == 0) return;
+        self.batches += 1;
+        self.instructions += tape.len;
+        self.ram_words += tape.memory_before.items.len;
+        self.service_calls += tape.serviceCount();
+        self.sha256_calls += tape.sha256_calls.items.len;
+        self.arith256_mod_calls += tape.arith256_mod_calls.items.len;
+        for (tape.secp_calls.items) |call| {
+            if (call.kind == .add) self.secp_add_calls += 1 else self.secp_double_calls += 1;
+        }
+        self.peak_retained_bytes = @max(self.peak_retained_bytes, tape.retainedBytes());
+    }
+};
+const BoundaryStats = struct {
+    batches: u64 = 0,
+    instructions: u64 = 0,
+    touched_cells: u64 = 0,
+    peak_cells: u32 = 0,
+    cell_bytes: usize = @sizeOf(rv.boundary_capture.Cell),
+    authenticated_continuation: bool = false,
+    fn account(self: *BoundaryStats, capture: *const rv.boundary_capture.Capture) void {
+        if (capture.steps == 0) return;
+        self.batches += 1;
+        self.instructions += capture.steps;
+        self.touched_cells += capture.cells.count();
+        self.peak_cells = @max(self.peak_cells, capture.cells.count());
+    }
+};
+const Report = struct {
+    schema: []const u8 = "rv64-ethereum-execution-v0",
+    proof_supported: bool = false,
+    trace_retained: bool = false,
+    execution_profile: Profile = .software,
+    keccak_calls: u64 = 0,
+    secp_add_calls: u64 = 0,
+    secp_double_calls: u64 = 0,
+    sha256_calls: u64 = 0,
+    arith256_mod_calls: u64 = 0,
+    keccak_sponge_calls: u64 = 0,
+    keccak_sponge_permutations: u64 = 0,
+    keccak_sponge_bytes: u64 = 0,
+    /// Admitted v3 curve/field calls per op (ethereum_services/curves.zig order).
+    curve_calls: [7]u64 = @splat(0),
+    bulk_memcpy_calls: u64 = 0,
+    bulk_memset_calls: u64 = 0,
+    bulk_memcpy_bytes: u64 = 0,
+    bulk_memset_bytes: u64 = 0,
+    /// memcpy with a source not 8-aligned (unaligned body rows).
+    bulk_memcpy_unaligned_calls: u64 = 0,
+    bulk_memcpy_unaligned_bytes: u64 = 0,
+    bulk_memcmp_calls: u64 = 0,
+    /// 8 x examined word pairs (the proof's compare rows).
+    bulk_memcmp_bytes: u64 = 0,
+    /// Admitted JUMPDEST analyses (0x30040) and their code bytes.
+    jumpdest_calls: u64 = 0,
+    jumpdest_bytes: u64 = 0,
+    service_ram_word_transitions: u64 = 0,
+    status: Status,
+    verified_output: bool = false,
+    stop_error: ?[]const u8 = null,
+    pc: u64,
+    final_registers: [32]u64 = @splat(0),
+    stopped_instruction: ?u32 = null,
+    instructions: u64,
+    opcode_counts: [rv.decode.BASE_OPCODE_COUNT]u64,
+    opcode_names: [OPCODE_NAMES.len][]const u8 = OPCODE_NAMES,
+    loads: u64,
+    stores: u64,
+    allocated_pages: usize,
+    setup_ns: u64,
+    execution_ns: u64,
+    elf_sha256: [64]u8,
+    input_sha256: [64]u8,
+    output: ?[contract.OUTPUT_BYTES * 2]u8 = null,
+    pc_profile: ?PcProfile = null,
+    access_census_batch_steps: ?u32 = null,
+    access_census_chunk_bytes: [access.CHUNK_BYTES.len]u32 = access.CHUNK_BYTES,
+    access_batches: []access.Stats = &.{},
+    compact_capture: ?CaptureStats = null,
+    ram_boundary_capture: ?BoundaryStats = null,
+    frequent_operations: ?frequent.Summary = null,
+    candidate_service_calls: ?candidate.Counts = null,
+    candidate_isa_counts: ?cisa.Counts = null,
+    zbb_binary_counts: ?ZbbBinaryCounts = null,
+    zbb_shard_distinct_facts: ?[]const u64 = null,
+    ls_histogram: ?LsHistogram = null,
+    engine: Engine = .reference,
+    /// Retirements executed by the fast engine (the rest by the reference).
+    fast_retired: u64 = 0,
+    /// Same fields in declaration order; `zbb_binary_counts` is emitted only
+    /// for the Zbb profile, so every other profile's report keeps its exact
+    /// pre-Zbb JSON shape (no new null key).
+    pub fn jsonStringify(self: @This(), jws: anytype) !void {
+        try jws.beginObject();
+        inline for (std.meta.fields(@This())) |field| {
+            const omit = comptime std.mem.eql(u8, field.name, "zbb_binary_counts") or std.mem.eql(u8, field.name, "zbb_shard_distinct_facts");
+            // Engine fields appear only for the fast engine (reference reports keep their shape).
+            const engine_field = comptime std.mem.eql(u8, field.name, "engine") or std.mem.eql(u8, field.name, "fast_retired");
+            const shown = if (engine_field) self.engine != .reference else (!omit or @field(self, field.name) != null);
+            if (shown) {
+                try jws.objectField(field.name);
+                try jws.write(@field(self, field.name));
+            }
+        }
+        try jws.endObject();
+    }
+};
+pub fn main() !void {
+    var arena = std.heap.ArenaAllocator.init(A);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const args = try std.process.argsAlloc(a);
+    if (args.len != 2) return error.ExpectedEthereumExecutionConfig;
+    const raw = try std.fs.cwd().readFileAlloc(a, args[1], 16384);
+    const parsed = try std.json.parseFromSlice(Config, a, raw, .{});
+    const c = parsed.value;
+    if (c.max_steps == 0 or c.max_steps > 10000000000) return error.InvalidExecutionBudget;
+    if (c.expected_output.len != contract.OUTPUT_BYTES * 2) return error.InvalidExpectedOutput;
+    var expected: [contract.OUTPUT_BYTES]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&expected, c.expected_output);
+    const bytes = try std.fs.cwd().readFileAlloc(a, c.elf, 32 * 1024 * 1024);
+    const input = try std.fs.cwd().readFileAlloc(a, c.input, contract.INPUT_CAPACITY_MAX - 4);
+    const elf_hash = try checkedHash(bytes, c.elf_sha256);
+    const input_hash = try checkedHash(input, c.input_sha256);
+    var report = try run(c, bytes, input, expected);
+    defer if (report.pc_profile) |profile| A.free(profile.counts);
+    defer A.free(report.access_batches);
+    defer if (report.frequent_operations) |value| A.free(value.top);
+    report.elf_sha256 = elf_hash;
+    report.input_sha256 = input_hash;
+    const encoded = try std.json.Stringify.valueAlloc(a, report, .{});
+    try std.fs.File.stdout().writeAll(encoded);
+    try std.fs.File.stdout().writeAll("\n");
+}
+fn checkedHash(bytes: []const u8, expected: []const u8) ![64]u8 {
+    var hash: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(bytes, &hash, .{});
+    const actual = std.fmt.bytesToHex(hash, .lower);
+    if (!std.mem.eql(u8, &actual, expected)) return error.ArtifactDigestMismatch;
+    return actual;
+}
+fn profileStep(session: *ethereum.Session, execution: Profile, event: *ethereum.Event) ethereum.Error!?rv.machine.Retirement {
+    return switch (execution) {
+        .software => try session.keccak.base.step(),
+        .keccak_service_v1 => blk: {
+            var call: services.Call = undefined;
+            const row = try session.keccak.step(&call);
+            if (row == null) event.* = .{ .keccak = call };
+            break :blk row;
+        },
+        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa, .ethereum_services_v3, .ethereum_services_v3_zbb => session.step(event),
+    };
+}
+fn candidateInstruction(cpu: *rv.machine.Cpu, memory: anytype, report: *Report) bool {
+    const word = memory.fetch(cpu.pc) catch return false;
+    _ = cisa.step(cpu, word, &report.candidate_isa_counts.?) orelse return false;
+    if (report.pc_profile) |*profile| {
+        const pc = cpu.pc -% 4;
+        if (pc >= profile.start and pc < profile.end) profile.counts[@intCast((pc - profile.start) / 4)] += 1 else profile.outside += 1;
+    }
+    return true;
+}
+fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTPUT_BYTES]u8) !Report {
+    if (c.pc_profile) |range| if (range.end <= range.start or range.start & 3 != 0 or range.end & 3 != 0 or range.end - range.start > 8 * 1024 * 1024) return error.InvalidPcProfileRange;
+    const is_isa = c.execution_profile == .ethereum_services_v3_candidate_isa;
+    const is_candidate = c.execution_profile == .ethereum_services_v3_candidate or is_isa;
+    if (is_candidate and (c.compact_capture_batch_steps != null or c.census_batch_steps != null or c.capture_ram_boundaries)) return error.CandidateProfileIsExecutionOnly;
+    if (c.engine == .fast and (is_candidate or c.compact_capture_batch_steps != null or c.census_batch_steps != null or c.capture_ram_boundaries or c.frequent_operation_limit != null or c.ls_histogram or c.zbb_shard_steps != null)) return error.FastEngineIsExecutionOnly;
+    var setup_timer = try std.time.Timer.start();
+    var loaded = try contract.load(A, c.symbols, bytes, input);
+    defer loaded.deinit();
+    const memory = &loaded.memory;
+    var service_session = try ethereum.Session.initWithProfile(A, rv.machine.Cpu.init(loaded.info.entry, c.symbols.stack_top), memory, .{ .max_retirements = c.max_steps, .cache_entries = c.cache_entries }, switch (c.execution_profile) {
+        .ethereum_services_v3 => .ethereum_services_v3,
+        .ethereum_services_v3_zbb => .ethereum_services_v3_zbb,
+        .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => .ethereum_services_v2,
+        else => .ethereum_services_v1,
+    });
+    const session = &service_session.keccak.base;
+    defer service_session.deinit();
+    var census: ?access.Census = if (c.census_batch_steps) |steps| try access.Census.init(A, steps) else null;
+    defer if (census) |*value| value.deinit();
+    var frequent_census: ?frequent.Census = if (c.frequent_operation_limit) |limit| try frequent.Census.init(A, limit) else null;
+    defer if (frequent_census) |*value| value.deinit();
+    const execution_profile: rv.execution_profile.Profile = switch (c.execution_profile) {
+        .software => .rv64im,
+        .keccak_service_v1 => .keccak_service_v1,
+        .ethereum_services_v1 => .ethereum_services_v1,
+        .ethereum_services_v2 => .ethereum_services_v2,
+        // Unreachable with a tape (rejected above); never reaches the prover.
+        .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => .ethereum_services_v2,
+        .ethereum_services_v3 => .ethereum_services_v3,
+        .ethereum_services_v3_zbb => .ethereum_services_v3_zbb,
+    };
+    var tape: ?rv.compact_tape.Tape = if (c.compact_capture_batch_steps) |steps| try rv.compact_tape.Tape.init(A, steps, session.cpu.pc, 0, execution_profile) else null;
+    defer if (tape) |*value| value.deinit();
+    if (c.capture_ram_boundaries and c.compact_capture_batch_steps == null) return error.ExpectedBoundaryBatchSteps;
+    var boundaries: ?rv.boundary_capture.Capture = if (c.capture_ram_boundaries) try rv.boundary_capture.Capture.init(A, 0, c.compact_capture_batch_steps.?, 1 << 24) else null;
+    defer if (boundaries) |*value| value.deinit();
+    var report = Report{ .status = .step_limit, .pc = loaded.info.entry, .instructions = 0, .opcode_counts = @splat(0), .loads = 0, .stores = 0, .allocated_pages = 0, .setup_ns = setup_timer.read(), .execution_ns = 0, .elf_sha256 = undefined, .input_sha256 = undefined };
+    report.execution_profile = c.execution_profile;
+    if (c.ls_histogram) report.ls_histogram = .{};
+    report.access_census_batch_steps = c.census_batch_steps;
+    if (is_candidate) report.candidate_service_calls = .{};
+    if (is_isa) report.candidate_isa_counts = .{};
+    if (c.execution_profile == .ethereum_services_v3_zbb) report.zbb_binary_counts = .{};
+    const ZbbKey = struct { op: rv.decode.Opcode, a: u64, b: u64 };
+    var zbb_window: std.AutoHashMapUnmanaged(ZbbKey, void) = .empty;
+    defer zbb_window.deinit(A);
+    var zbb_shards: std.ArrayList(u64) = .empty;
+    defer zbb_shards.deinit(A);
+    if (c.zbb_shard_steps != null and (c.execution_profile != .ethereum_services_v3_zbb or c.zbb_shard_steps.? == 0)) return error.InvalidZbbShardSteps;
+    if (tape != null) report.compact_capture = .{};
+    if (boundaries != null) report.ram_boundary_capture = .{};
+    if (c.pc_profile) |range| {
+        const counts = try A.alloc(u64, @intCast((range.end - range.start) / 4));
+        @memset(counts, 0);
+        report.pc_profile = .{ .start = range.start, .end = range.end, .counts = counts };
+    }
+    errdefer if (report.pc_profile) |profile| A.free(profile.counts);
+    report.engine = c.engine;
+    // Pre-decode is timed as execution.
+    var timer = try std.time.Timer.start();
+    var engine: ?rv.fast_execution.Engine = if (c.engine == .fast) try rv.fast_execution.Engine.init(A, memory, .{ .watch = &.{.{ c.symbols.halt_flag, 4 }}, .counting = true, .isa = session.decoder.isa }) else null;
+    defer if (engine) |*e| e.deinit();
+    while (true) {
+        // Fast retirements stop before any instruction the reference must retire.
+        if (engine) |*e| _ = e.run(&session.cpu, c.max_steps);
+        if (tape) |*value| if (value.len == value.storage.len) {
+            report.compact_capture.?.account(value);
+            value.clearRetainingCapacity();
+            if (boundaries) |*boundary| {
+                report.ram_boundary_capture.?.account(boundary);
+                try boundary.clearRetainingCapacity();
+            }
+        };
+        var event: ethereum.Event = undefined;
+        const optional_row = profileStep(&service_session, c.execution_profile, &event) catch |first| {
+            // Admitted decode rejected the word (no state change): try the candidate ISA.
+            if (is_isa and first == error.IllegalInstruction and candidateInstruction(&session.cpu, memory, &report)) continue;
+            const err = if (is_candidate and first == error.UnsupportedService) blk: {
+                // Admitted services declined the tag; the CPU/memory are unchanged.
+                if (candidate.step(A, &session.cpu, memory, &report.candidate_service_calls.?)) |_| {
+                    report.opcode_counts[@intFromEnum(rv.decode.Opcode.ECALL)] += 1;
+                    if (report.pc_profile) |*profile| {
+                        const pc = session.cpu.pc -% 4;
+                        if (pc >= profile.start and pc < profile.end) profile.counts[@intCast((pc - profile.start) / 4)] += 1 else profile.outside += 1;
+                    }
+                    continue;
+                } else |second| break :blk second;
+            } else first;
+            report.status = if (err == error.StepLimit) .step_limit else .trap;
+            report.stop_error = @errorName(err);
+            report.stopped_instruction = if (memory.load(session.cpu.pc, 4)) |word| @intCast(word) else |_| null;
+            break;
+        };
+        if (optional_row == null) {
+            if (tape) |*value| try value.appendEvent(event);
+            if (boundaries) |*value| try value.appendEvent(event, memory);
+            const retirement = event.retirement();
+            switch (event) {
+                .keccak => |call| {
+                    report.keccak_calls += 1;
+                    report.service_ram_word_transitions += 25;
+                    if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, true);
+                },
+                .secp => |call| {
+                    if (call.kind == .add) report.secp_add_calls += 1 else report.secp_double_calls += 1;
+                    report.service_ram_word_transitions += call.wordCount();
+                    if (census) |*value| for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < 12);
+                },
+                .arith256_mod => |call| {
+                    report.arith256_mod_calls += 1;
+                    report.service_ram_word_transitions += call.before.len;
+                    if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i >= @TypeOf(call).FIRST_WRITTEN);
+                },
+                .curve => |call| {
+                    report.curve_calls[ethereum.curves.index(call.op)] += 1;
+                    report.service_ram_word_transitions += call.wordCount();
+                    if (census) |*value| for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < call.writtenWords());
+                },
+                .sha256 => |call| {
+                    report.sha256_calls += 1;
+                    report.service_ram_word_transitions += call.before.len;
+                    if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < 4);
+                },
+                .sponge => |e| {
+                    const p = e.packet;
+                    report.keccak_sponge_calls += 1;
+                    report.keccak_sponge_permutations += p.permutations();
+                    report.keccak_sponge_bytes += p.len;
+                    report.service_ram_word_transitions += 29 + p.words();
+                    if (census) |*value| {
+                        for (0..4) |k| {
+                            const w = memory.backing.load(e.call.pointer + 8 * k, 8).value;
+                            try value.observe(e.call.pointer + 8 * k, w, w, false);
+                        }
+                        for (e.state_before, 0..) |before, l| try value.observe(p.state + 8 * l, before, memory.backing.load(p.state + 8 * l, 8).value, true);
+                        for (0..p.words()) |j| {
+                            const w = memory.backing.load(p.base() + 8 * j, 8).value;
+                            try value.observe(p.base() + 8 * j, w, w, false);
+                        }
+                    }
+                },
+                .bulk => |e| {
+                    const kind = ethereum.bulk_memory.kindOf(e.call.tag).?;
+                    const words = e.packet.len / 8;
+                    switch (kind) {
+                        .memcpy => if (e.packet.word1 & 7 == 0) {
+                            report.bulk_memcpy_calls += 1;
+                            report.bulk_memcpy_bytes += e.packet.len;
+                        } else {
+                            report.bulk_memcpy_unaligned_calls += 1;
+                            report.bulk_memcpy_unaligned_bytes += e.packet.len;
+                        },
+                        .memset => {
+                            report.bulk_memset_calls += 1;
+                            report.bulk_memset_bytes += e.packet.len;
+                        },
+                        .memcmp => {
+                            report.bulk_memcmp_calls += 1;
+                            // Proof rows are the examined word pairs, not len.
+                            report.bulk_memcmp_bytes += 8 * e.packet.examined;
+                        },
+                        .jumpdest => {
+                            report.jumpdest_calls += 1;
+                            report.jumpdest_bytes += e.packet.len;
+                        },
+                    }
+                    const source = ethereum.bulk_memory.sourceWords(e.packet.word1, e.packet.len);
+                    report.service_ram_word_transitions += switch (kind) {
+                        .memcpy => 3 + words + source.count,
+                        .memset => 3 + words,
+                        .memcmp => 4 + 2 * e.packet.examined,
+                        .jumpdest => 3 + words + ethereum.bulk_memory.bitmapWords(e.packet.len),
+                    };
+                    if (census) |*value| {
+                        for (0..3) |k| {
+                            const w = memory.backing.load(e.call.pointer + 8 * k, 8).value;
+                            try value.observe(e.call.pointer + 8 * k, w, w, false);
+                        }
+                        switch (kind) {
+                            .memcmp => {
+                                try value.observe(e.call.pointer + 24, e.dst_before[0], memory.backing.load(e.call.pointer + 24, 8).value, true);
+                                for (0..e.packet.examined) |j| for ([_]u64{ e.packet.dst, e.packet.word1 }) |base| {
+                                    const w = memory.backing.load(base + 8 * j, 8).value;
+                                    try value.observe(base + 8 * j, w, w, false);
+                                };
+                            },
+                            .memcpy, .memset => {
+                                if (kind == .memcpy) for (0..source.count) |j| {
+                                    const w = memory.backing.load(source.base + 8 * j, 8).value;
+                                    try value.observe(source.base + 8 * j, w, w, false);
+                                };
+                                for (e.dst_before, 0..) |before, j| try value.observe(e.packet.dst + 8 * j, before, memory.backing.load(e.packet.dst + 8 * j, 8).value, true);
+                            },
+                            .jumpdest => {
+                                for (0..words) |j| {
+                                    const w = memory.backing.load(e.packet.dst + 8 * j, 8).value;
+                                    try value.observe(e.packet.dst + 8 * j, w, w, false);
+                                }
+                                for (e.dst_before, 0..) |before, j| try value.observe(e.packet.word1 + 8 * j, before, memory.backing.load(e.packet.word1 + 8 * j, 8).value, true);
+                            },
+                        }
+                    }
+                },
+            }
+            report.opcode_counts[@intFromEnum(rv.decode.Opcode.ECALL)] += 1;
+            if (report.pc_profile) |*profile| {
+                const pc = retirement.pc.toInt();
+                if (pc >= profile.start and pc < profile.end) profile.counts[@intCast((pc - profile.start) / 4)] += 1 else profile.outside += 1;
+            }
+            if (census) |*value| switch (event) {
+                // Bulk memory is counted as a plain ECALL retirement.
+                .bulk, .sponge, .curve => try value.retireOpcode(@intFromEnum(rv.decode.Opcode.ECALL)),
+                .keccak => try value.retireService(.keccak),
+                .secp => |call| try value.retireService(if (call.kind == .add) .secp_add else .secp_double),
+                .sha256 => try value.retireService(.sha256),
+                .arith256_mod => try value.retireService(.arith256_mod),
+            };
+            continue;
+        }
+        const row = optional_row.?;
+        if (tape) |*value| try value.append(row);
+        if (boundaries) |*value| try value.append(row, memory);
+        if (rv.decode.isBase(row.opcode)) report.opcode_counts[@intFromEnum(row.opcode)] += 1 else bumpZbb(&report.zbb_binary_counts.?, row.opcode);
+        if (c.zbb_shard_steps) |window| {
+            // Window of this retirement (service ECALLs never reach here, so
+            // close every window passed since the last counted row).
+            const shard = (session.cpu.retired - 1) / window;
+            while (zbb_shards.items.len < shard) {
+                try zbb_shards.append(A, zbb_window.count());
+                zbb_window.clearRetainingCapacity();
+            }
+            // zext.h is the core BINARY AND, not a Zbb chip fact.
+            if (!rv.decode.isBase(row.opcode) and row.opcode != .ZEXT_H) try zbb_window.put(A, .{ .op = row.opcode, .a = row.lhs.toInt(), .b = row.rhs.toInt() }, {});
+        }
+        if (frequent_census) |*value| try value.retire(row);
+        if (report.pc_profile) |*profile| {
+            const pc = row.pc.toInt();
+            if (pc >= profile.start and pc < profile.end) profile.counts[@intCast((pc - profile.start) / 4)] += 1 else profile.outside += 1;
+        }
+        if (row.memory) |effect| {
+            if (effect.write) report.stores += 1 else report.loads += 1;
+            const address = effect.address.toInt();
+            if (report.ls_histogram) |*h| {
+                const op = @as(usize, @intFromEnum(row.opcode)) -% LS_FIRST;
+                if (op >= LS_COUNT) return error.LsHistogramNonMemoryOpcode;
+                h.word_offset[op][@intCast(address & 7)] += 1;
+                if (address % effect.width != 0) h.misaligned[op] += 1;
+                if (row.rs1 == 2) h.sp_based[op] += 1;
+                if (!effect.write and row.rd == 0) h.rd_zero[op] += 1;
+            }
+            if (census) |*value| {
+                try value.observe(address, effect.before_word.toInt(), effect.after_word.toInt(), effect.write);
+                try value.retireOpcode(@intFromEnum(row.opcode));
+            }
+            if (effect.write and address <= c.symbols.halt_flag + 3 and try rv.memory.endAddress(address, effect.width) >= c.symbols.halt_flag) {
+                const flag = try memory.load(c.symbols.halt_flag, 4);
+                if (flag == 0) continue;
+                if (flag != 1) return error.InvalidEthereumCompletion;
+                if (try memory.load(c.symbols.output_len, 4) != contract.OUTPUT_BYTES) return error.InvalidEthereumOutputLength;
+                var output: [contract.OUTPUT_BYTES]u8 = undefined;
+                for (&output, 0..) |*byte, i| byte.* = @intCast(try memory.load(c.symbols.output_data + i, 1));
+                if (!std.mem.eql(u8, &output, &expected)) return error.EthereumOutputMismatch;
+                report.output = std.fmt.bytesToHex(output, .lower);
+                report.verified_output = true;
+                report.status = .completed;
+                break;
+            }
+        } else if (census) |*value| try value.retireOpcode(@intFromEnum(row.opcode));
+    }
+    if (c.zbb_shard_steps != null) {
+        try zbb_shards.append(A, zbb_window.count());
+        report.zbb_shard_distinct_facts = try A.dupe(u64, zbb_shards.items);
+    }
+    report.execution_ns = timer.read();
+    if (engine) |*e| {
+        const pcs: ?rv.fast_execution.PcCounts = if (report.pc_profile) |*p| .{ .start = p.start, .end = p.end, .counts = p.counts, .outside = &p.outside } else null;
+        var all: [@typeInfo(rv.decode.Opcode).@"enum".fields.len]u64 = @splat(0);
+        e.census(&all, &report.loads, &report.stores, pcs);
+        for (all, 0..) |n, i| {
+            const op: rv.decode.Opcode = @enumFromInt(i);
+            if (rv.decode.isBase(op)) report.opcode_counts[i] += n else inline for (ZBB_BINARY_OPS, @typeInfo(ZbbBinaryCounts).@"struct".fields) |o, f| {
+                if (op == o) @field(report.zbb_binary_counts.?, f.name) += n;
+            }
+        }
+        report.fast_retired = e.fast_retired;
+    }
+    report.instructions = session.cpu.retired;
+    report.pc = session.cpu.pc;
+    report.final_registers = session.cpu.regs;
+    report.allocated_pages = memory.pageCount();
+    if (census) |*value| report.access_batches = try value.finish();
+    if (frequent_census) |*value| report.frequent_operations = try value.summary(A, 256);
+    if (tape) |*value| report.compact_capture.?.account(value);
+    if (boundaries) |*value| report.ram_boundary_capture.?.account(value);
+    return report;
+}
+test {
+    _ = candidate;
+    _ = @import("../../../../../frontends/riscv/rv64/candidate_isa_test.zig");
+}

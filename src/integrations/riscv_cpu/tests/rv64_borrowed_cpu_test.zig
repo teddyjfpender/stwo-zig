@@ -4,7 +4,7 @@ const rv = frontend.rv64;
 const air = frontend.rv64_air;
 const CPU = @import("../rv64_keccak_cpu.zig");
 const Full = @import("../rv64_full.zig");
-const Fixture = @import("rv64_ethereum_fixture.zig");
+const Fixture = @import("../../../products/ethereum/statement/cpu/tests/rv64_ethereum_fixture.zig");
 const a = std.testing.allocator;
 test "CPU borrowed main is exact and metadata survives release of its outer arena" {
     const fixture = try Fixture.Fixture.create(a, .ethereum_services_v2);

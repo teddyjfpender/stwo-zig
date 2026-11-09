@@ -18,7 +18,7 @@ const lookup = @import("../air/lang/lookup_physical_manifest_v2.zig");
 const statement_v1 = @import("../air/statement.zig");
 const statement_v2 = @import("../air/statement_v2.zig");
 const trace_mod = @import("../runner/trace.zig");
-const vm_air_profile = @import("vm_air_profile_v2.zig");
+const vm_air_profile = @import("../../../products/ethereum/statement/frontend/recursion/vm_air_profile_v2.zig");
 const vm_leaf_context = @import("vm_leaf_context_v2.zig");
 
 pub const component_descs = [_]statement_v1.FamilyComponentDesc{
@@ -220,7 +220,7 @@ fn verifiedContextWithCore(
     const relations = native_relations.Relations.dummy();
     const sums = try statement_v2.NativePublicSums.init(data, &relations);
     const receipt = try native.verifiedReceipt();
-    const sampled_count = try @import("vm_composition_base_geometry_v2.zig").expectedSampledValueCount(&native.core, &manifest);
+    const sampled_count = try @import("../../../products/ethereum/statement/frontend/recursion/vm_composition_base_geometry_v2.zig").expectedSampledValueCount(&native.core, &manifest);
     return vm_leaf_context.testing.initFromFacts(
         allocator,
         &native,

@@ -7,7 +7,7 @@ const Counter = @import("typed_root.zig").Counter;
 const Integer = @import("typed_integer.zig");
 const Table = @import("../vk_table.zig");
 const T = @import("../../word16_global_execution/services/types.zig");
-const Canon = @import("../../word16_global_execution/ethereum/canon_native.zig");
+const Canon = @import("../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/canon_native.zig");
 const Declaration = @import("../../word16_global_execution/services/wire.zig").TruthDeclaration;
 pub fn constrain(ctx: *C.Context, node: Summary.Wires, metadata: @import("canon_hash.zig").CompactTruthMetadata, declaration: Declaration) ![3]Public.Word {
     try constrainTransitions(ctx, node, metadata, declaration);

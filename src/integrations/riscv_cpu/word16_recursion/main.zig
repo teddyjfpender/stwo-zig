@@ -2,7 +2,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const wire = @import("stwo_proof_wire");
-const Request = @import("../rv64_ethereum_request.zig");
+const Request = @import("../../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
 const Image = @import("../word16_execution/expected_image.zig");
 const Program = @import("../word16_execution/program.zig").Program;
 const Suite = @import("../word16_execution/pcs_suite.zig").Suite;
@@ -12,8 +12,8 @@ const P = @import("../word16_global_execution/services/protocol.zig");
 const W = @import("../word16_global_execution/services/wire.zig");
 const Adapters = @import("../word16_global_execution/services/air_components.zig");
 const Components = @import("../word16_execution/components.zig").Components;
-const Keys = @import("../word16_global_execution/ethereum/keys.zig").Owner;
-const Receiver = @import("../word16_global_execution/ethereum/receiver.zig");
+const Keys = @import("../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/keys.zig").Owner;
+const Receiver = @import("../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/receiver.zig");
 const Describe = @import("shape.zig");
 const Row = struct { ordinal: usize, kind: []const u8, shape: Describe.Report, serialized: Metrics.Report };
 pub fn main() !void {

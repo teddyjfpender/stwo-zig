@@ -16,7 +16,7 @@ pub const proof_transcript = @import("proof_transcript.zig");
 pub const proof_admission = @import("proof_admission.zig");
 pub const program_commitment = @import("program_commitment.zig");
 pub const artifact_identity = @import("artifact_identity.zig");
-pub const ethereum_statement = @import("ethereum_statement.zig");
+pub const ethereum_statement = @import("../../../../products/ethereum/statement/frontend/air/guest_precompile/ethereum_statement.zig");
 
 /// Candidate Keccak-f profile authority. These modules are proof-complete but
 /// remain outside the production profile switch until the caller relation and

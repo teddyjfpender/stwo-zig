@@ -1,7 +1,7 @@
 //! Private native boundary/opening records. Each touched word is32 wire bytes;
 //! opening descriptors are reconstructed as views into one owned flat payload.
 const std = @import("std");
-const F = @import("rv64_ethereum_batch.zig");
+const F = @import("../../products/ethereum/statement/cpu/rv64_ethereum_batch.zig");
 const CPU = @import("rv64_keccak_cpu.zig");
 const rv = @import("stwo_riscv_frontend").rv64;
 const R = @import("stwo_riscv_frontend").rv64_air.memory;

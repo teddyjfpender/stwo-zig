@@ -120,11 +120,11 @@ pub fn captureSupported(comptime Layout: type) bool {
 
 fn capture(a: std.mem.Allocator, request_path: []const u8, jobs_path: []const u8, out_path: []const u8) !void {
     const engine = @import("stwo_prover_engine");
-    const Request = @import("../rv64_ethereum_request.zig");
+    const Request = @import("../../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
     const Image = @import("../word16_execution/expected_image.zig");
     const Program = @import("../word16_execution/program.zig").Program;
-    const Capture = @import("../word16_global_execution/ethereum/capture.zig").Owner;
-    const Plan = @import("../word16_global_execution/ethereum/plan.zig");
+    const Capture = @import("../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/capture.zig").Owner;
+    const Plan = @import("../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/plan.zig");
     const ProgramMetadata = @import("../word16_execution/program_metadata.zig");
     const X = @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2;
     const Geometry = @import("../word16_execution/geometry.zig").Geometry;

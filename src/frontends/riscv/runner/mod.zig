@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const execution_profile = @import("../isa/execution_profile.zig");
-pub const ethereum = @import("ethereum.zig");
+pub const ethereum = @import("../../../products/ethereum/statement/frontend/runner/ethereum.zig");
 pub const cpu = @import("cpu.zig");
 pub const decode = @import("decode.zig");
 pub const memory = @import("memory.zig");
@@ -22,8 +22,9 @@ pub const sail_oracle = @import("sail_oracle.zig");
 pub const state_chain = @import("state_chain.zig");
 pub const memory_state = @import("memory_state.zig");
 pub const minimal_trace = @import("minimal_trace/mod.zig");
-pub const result_mod = @import("result.zig");
-pub const segment_session = @import("segment_session.zig");
+pub const result_mod = @import("../../../products/ethereum/statement/frontend/runner/result.zig");
+pub const segment_session = @import("../../../products/ethereum/statement/frontend/runner/segment_session.zig");
+pub const session_owner = @import("session_owner.zig");
 pub const host_mod = @import("../host/mod.zig");
 
 pub const Cpu = cpu.Cpu;

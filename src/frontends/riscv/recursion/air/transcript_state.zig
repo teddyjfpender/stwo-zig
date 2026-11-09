@@ -513,7 +513,7 @@ fn buildDefinition(allocator: std.mem.Allocator, comptime publication_routing: b
         span,
     );
     if (publication_mask) |mask| {
-        const publication = @import("../ethereum_publication_routing_v1.zig");
+        const publication = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_publication_routing_v1.zig");
         const scope = try arena.constantField(publication.STATEMENT_SCOPE, span);
         const weight = try arena.mul(active, mask, span);
         for (main.inputs, 0..) |input, limb| {

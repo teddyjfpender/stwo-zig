@@ -2,15 +2,15 @@ const std = @import("std");
 
 const lookup_physical_v2 =
     @import("../../air/lang/lookup_physical_manifest_v2.zig");
-const support = @import("../ethereum_leaf_context_v1_test_support.zig");
-const subject = @import("../vm_air_profile_v2.zig");
+const support = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_leaf_context_v1_test_support.zig");
+const subject = @import("../../../../products/ethereum/statement/frontend/recursion/vm_air_profile_v2.zig");
 
 const SAMPLED_VALUE_COUNT: u32 = 317;
 const MUL_LOOKUP_INDEX: usize = 19;
 
 test "authenticated VM AIR ProfileV2 binds fixed program and narrow Poseidon as an explicit circuit" {
     const allocator = std.testing.allocator;
-    const geometry = @import("../vm_composition_base_geometry_v2.zig");
+    const geometry = @import("../../../../products/ethereum/statement/frontend/recursion/vm_composition_base_geometry_v2.zig");
     const narrow = @import("../../air/memory_commitment/poseidon2_narrow_component_v1.zig");
     const program = @import("../../air/program/interaction.zig");
     var statement = support.retainedSegmentZeroCore();

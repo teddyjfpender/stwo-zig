@@ -2,7 +2,7 @@
 pub const binary_global_closure_outer_source = @import("binary_global_closure_outer_source.zig");
 pub const captured_fri = @import("captured_fri.zig");
 pub const engine = @import("engine.zig");
-pub const ethereum_statement_arithmetic_v4 = @import("ethereum_statement_arithmetic_v4.zig");
+pub const ethereum_statement_arithmetic_v4 = @import("../../../products/ethereum/statement/frontend/recursion/ethereum_statement_arithmetic_v4.zig");
 pub const fixed_profile = @import("fixed_profile.zig");
 pub const fixed_wire = @import("fixed_wire.zig");
 pub const outer_parent_child_admission = @import("outer_parent_child_admission.zig");

@@ -319,7 +319,7 @@ test "public data V2 cold lease rejects changed sparse values and clocks before 
 
 test "public data V2 cold statement codec retains immutable admission and rejects altered authority" {
     const allocator = std.testing.allocator;
-    const wire = @import("../../prover/guest_precompile/ethereum_segment_artifact_statement_wire.zig");
+    const wire = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_segment_artifact_statement_wire.zig");
     const native_v1 = @import("../statement.zig");
     const native_v2 = @import("../statement_v2.zig");
     var fixture = try support.Fixture.init();

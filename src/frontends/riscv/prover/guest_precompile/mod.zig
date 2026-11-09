@@ -5,33 +5,33 @@ pub const trace_geometry = @import("trace_geometry.zig");
 pub const component_assembly = @import("component_assembly.zig");
 pub const cancellation = @import("cancellation.zig");
 pub const proof_artifact = @import("proof_artifact.zig");
-pub const ethereum_proof_artifact = @import("ethereum_proof_artifact.zig");
+pub const ethereum_proof_artifact = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_proof_artifact.zig");
 pub const ethereum_segment_proof_artifact =
-    @import("ethereum_segment_proof_artifact.zig");
+    @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_segment_proof_artifact.zig");
 pub const ethereum_segment_source_wire =
-    @import("ethereum_segment_source_wire.zig");
+    @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_segment_source_wire.zig");
 pub const proof_finalize = @import("proof_finalize.zig");
-pub const ethereum_witness = @import("ethereum_witness.zig");
-pub const ethereum_types = @import("ethereum_types.zig");
-pub const ethereum_transcript = @import("ethereum_transcript.zig");
-pub const ethereum_preprocessed = @import("ethereum_preprocessed.zig");
-pub const ethereum_main = @import("ethereum_main.zig");
-pub const ethereum_interaction = @import("ethereum_interaction.zig");
-pub const ethereum_assembly = @import("ethereum_assembly.zig");
-pub const ethereum_cancellation = @import("ethereum_cancellation.zig");
-pub const ethereum_orchestration = @import("ethereum_orchestration.zig");
-pub const ethereum_verifier = @import("ethereum_verifier.zig");
+pub const ethereum_witness = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_witness.zig");
+pub const ethereum_types = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_types.zig");
+pub const ethereum_transcript = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_transcript.zig");
+pub const ethereum_preprocessed = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_preprocessed.zig");
+pub const ethereum_main = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_main.zig");
+pub const ethereum_interaction = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_interaction.zig");
+pub const ethereum_assembly = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_assembly.zig");
+pub const ethereum_cancellation = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_cancellation.zig");
+pub const ethereum_orchestration = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_orchestration.zig");
+pub const ethereum_verifier = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_verifier.zig");
 pub const ethereum_segment_orchestration =
-    @import("ethereum_segment_orchestration.zig");
+    @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_segment_orchestration.zig");
 pub const ethereum_segment_transcript_extension =
-    @import("ethereum_segment_transcript_extension.zig");
+    @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_segment_transcript_extension.zig");
 pub const ethereum_native_provider_omit_protocol_v1 =
-    @import("../memory_provider_shards/ethereum_omit_protocol_v1.zig");
+    @import("../../../../products/ethereum/statement/frontend/prover/memory_provider_shards/ethereum_omit_protocol_v1.zig");
 pub const ethereum_native_provider_omit_proof_v1 =
-    @import("../memory_provider_shards/ethereum_omit_provider_proof_v1.zig");
-pub const ethereum_segment_verifier = @import("ethereum_segment_verifier.zig");
+    @import("../../../../products/ethereum/statement/frontend/prover/memory_provider_shards/ethereum_omit_provider_proof_v1.zig");
+pub const ethereum_segment_verifier = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_segment_verifier.zig");
 pub const ethereum_leaf_matched_ab_execution_profile_v1 =
-    @import("ethereum_leaf_matched_ab_execution_profile_v1.zig");
+    @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_leaf_matched_ab_execution_profile_v1.zig");
 pub const orchestration = @import("orchestration.zig");
 pub const verifier = @import("verifier.zig");
 /// Research-only split PCS prepare/manifest boundary. This retains real

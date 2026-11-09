@@ -4,7 +4,7 @@ const std = @import("std");
 const front = @import("stwo_riscv_frontend");
 const rv = front.rv64;
 const X = front.rv64_air.word16_execution;
-const Request = @import("../rv64_ethereum_request.zig");
+const Request = @import("../../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
 const Image = @import("../word16_execution/expected_image.zig");
 pub const symbols = rv.ethereum_contract.Symbols{ .input_start = 0x800000, .input_end = 0xc00000, .halt_flag = 0xc00000, .output_len = 0xc00004, .output_data = 0xc00008, .output_end = 0x1000000, .stack_bottom = 0x1000000, .stack_top = 0x2000000, .heap_start = 0x2100000, .heap_end = 0x2200000 };
 fn r(f7: u7, rs2: u5, rs1: u5, f3: u3, rd: u5, opcode: u7) u32 {

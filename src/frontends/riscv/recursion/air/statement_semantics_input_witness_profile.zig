@@ -463,7 +463,7 @@ pub fn Profile(comptime blake3: bool) type {
             }
             switch (row.source) {
                 .statement => {
-                    const clocks = @import("../ethereum_clock_routing_v1.zig");
+                    const clocks = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_clock_routing_v1.zig");
                     if (ethereum_clocks and row.statement_scope == clocks.STATEMENT_SCOPE) {
                         if (!std.meta.eql(row.active_kinds, ProofKindSet.SEGMENT) or
                             !row.integer or row.word_index >= clocks.WORD_COUNT)

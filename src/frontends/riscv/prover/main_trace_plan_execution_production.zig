@@ -130,7 +130,7 @@ pub const Prepared = struct {
         // extension-aware cardinality binding above.
         if (inputs.poseidon2_caller_lookup != null)
             return error.InvalidProductionInput;
-        try plan_mod.validateWithCircuitProfileV1(plan, statement, inputs.witness.circuit_profile);
+        try plan_mod.validateWithCircuitLayout(plan, statement, inputs.witness.circuit_layout);
         return prepareWithDestinationPolicyValidated(
             allocator,
             plan,

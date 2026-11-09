@@ -65,7 +65,8 @@
   "api_contract": {
     "signature_tests": [
       "mod.zig::api signature: RISC-V facade preserves runner and prover entry points",
-      "mod.zig::api signature: fixed primitive providers expose the approved canonical surface"
+      "mod.zig::api signature: fixed primitive providers expose the approved canonical surface",
+      "mod.zig::api signature: typed session provider preserves the canonical lifecycle"
     ],
     "invariant_tests": [
       "mod.zig::api invariant: fixed primitive providers preserve framing and rejection",

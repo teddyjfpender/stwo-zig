@@ -140,3 +140,19 @@ test "api invariant: fixed primitive providers preserve framing and rejection" {
     const zero: node.Digest = .{0} ** node.DIGEST_WORDS;
     try std.testing.expectError(error.NonCanonicalDigest, node.build(.memory, 0, invalid, zero));
 }
+
+test "api signature: typed session provider preserves the canonical lifecycle" {
+    const provider = runner.session_owner;
+    const expected = .{
+        "ExecutionProfile",     "HostInterface",           "SegmentClockFrame",               "TraceRetention",
+        "RetirementObserverV1", "PreRetirementBoundaryV1", "PreRetirementBoundaryObserverV1", "SessionOptions",
+        "ForOwner",
+    };
+    comptime {
+        for (expected) |name| if (!@hasDecl(provider, name)) @compileError("typed lifecycle provider removed an approved member");
+        if (@typeInfo(provider).@"struct".decls.len != expected.len) @compileError("typed lifecycle provider surface requires an RFC decision");
+        if (provider != @import("runner/session_owner.zig")) @compileError("typed lifecycle provider duplicated its implementation");
+        const Default = @import("runner/default_profile_owner.zig").For(.rv32im_zkvm_v1);
+        if (runner.BaseExecutionSession != provider.ForOwner(Default)) @compileError("typed lifecycle provider changed native session identity");
+    }
+}

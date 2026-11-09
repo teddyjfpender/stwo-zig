@@ -10,7 +10,7 @@ const C = @import("../rv64_keccak_cpu.zig");
 const Full = @import("../rv64_full.zig");
 const A = @import("../rv64_authenticated_execution.zig");
 const Arena = @import("../rv64_authenticated_main_arena.zig").MainArena;
-const F = @import("rv64_ethereum_fixture.zig");
+const F = @import("../../../products/ethereum/statement/cpu/tests/rv64_ethereum_fixture.zig");
 const wire = @import("stwo_proof_wire");
 const a = std.testing.allocator;
 const div_requests = [_]D.trace.Request{ .{ .opcode = .DIV, .a = @bitCast(@as(i64, -7)), .b = 3, .result = @bitCast(@as(i64, -2)) }, .{ .opcode = .REMW, .a = 0x80000000, .b = std.math.maxInt(u64), .result = 0 }, .{ .opcode = .DIVU, .a = std.math.maxInt(u64), .b = 0, .result = std.math.maxInt(u64) } };

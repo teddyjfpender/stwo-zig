@@ -8,7 +8,7 @@ const Hash = @import("canon_hash.zig");
 const Summary = @import("node_summary_v3.zig");
 const Table = @import("../vk_table.zig");
 const Worker = @import("../../word16_global_execution/services/gkr_local/worker_protocol.zig");
-const Canon = @import("../../word16_global_execution/ethereum/canon_native.zig");
+const Canon = @import("../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/canon_native.zig");
 
 /// Source-owned class authority. A receiver constructs it from the same native
 /// key/roster as the numerical verifier. Never deserialize it from a receipt.

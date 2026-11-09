@@ -396,7 +396,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    const hybrid_root = b.createModule(.{ .root_source_file = b.path("rv64_hybrid_ethereum_main.zig"), .target = target, .optimize = optimize });
+    const hybrid_root = b.createModule(.{ .root_source_file = b.path("../../products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"), .target = target, .optimize = optimize });
     hybrid_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     hybrid_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     hybrid_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
@@ -472,7 +472,7 @@ pub fn build(b: *std.Build) void {
     receiver_check.linkLibC();
     b.step("check-rv64-ethereum-recursion-receiver", "Type-check independent CPU-only recursion receiver without emitting a binary").dependOn(&receiver_check.step);
 
-    const combined_root = b.createModule(.{ .root_source_file = b.path("rv64_combined_ethereum_main.zig"), .target = target, .optimize = optimize });
+    const combined_root = b.createModule(.{ .root_source_file = b.path("../../products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig"), .target = target, .optimize = optimize });
     combined_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     combined_root.addImport("stwo_prover_api", cpu_integration.import_table.get("stwo_prover_api").?);
     combined_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));

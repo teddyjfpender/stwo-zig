@@ -2,7 +2,7 @@
 //! and recursive verifier share this ordered visitor; no request digest is a
 //! freely guessed substitute for the actual AIR public values.
 const std = @import("std");
-const Canon = @import("../../ethereum/canon_native.zig");
+const Canon = @import("../../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/canon_native.zig");
 const Worker = @import("../gkr_local/worker_protocol.zig");
 const Mass = @import("../gkr_local/mass_authority.zig");
 const Plan = @import("../gkr_local/cpu_components.zig").Plan;

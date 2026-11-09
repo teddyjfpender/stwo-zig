@@ -65,7 +65,7 @@ const appendTreeCalls = tree_owner.appendTreeCalls;
 const appendTreeRows = tree_owner.appendTreeRows;
 
 pub const CommitmentWitness = struct {
-    circuit_profile: @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1 = .legacy_v4,
+    circuit_layout: @import("../air/program/circuit_layout.zig").CircuitLayout = .ordinary_sparse,
     boundary: ?memory_boundary.Claims,
     program: ProgramWitnessV1,
     poseidon_calls: std.ArrayList(poseidon2_air.Call),
@@ -322,7 +322,7 @@ pub const CommitmentWitness = struct {
         incremental_poseidon_calls: []const poseidon2_air.Call,
         roots: IncrementalRootsV3,
     ) !CommitmentWitness {
-        return buildExternalProfileWithProgramPolicy(.legacy_v4, allocator, selected_profile, execution_sources, opt_memory, completion, prepared_program, boundary_rows, incremental_merkle_rows, incremental_poseidon_calls, roots);
+        return buildExternalProfileWithProgramPolicy(.ordinary_sparse, allocator, selected_profile, execution_sources, opt_memory, completion, prepared_program, boundary_rows, incremental_merkle_rows, incremental_poseidon_calls, roots);
     }
 
     pub fn buildExternalProfileWithFixedProgramAndIncrementalBoundaryV1(
@@ -337,11 +337,11 @@ pub const CommitmentWitness = struct {
         incremental_poseidon_calls: []const poseidon2_air.Call,
         roots: IncrementalRootsV3,
     ) !CommitmentWitness {
-        return buildExternalProfileWithProgramPolicy(.fixed_program_narrow_v1, allocator, selected_profile, execution_sources, opt_memory, completion, prepared_program, boundary_rows, incremental_merkle_rows, incremental_poseidon_calls, roots);
+        return buildExternalProfileWithProgramPolicy(.fixed_decoded_narrow, allocator, selected_profile, execution_sources, opt_memory, completion, prepared_program, boundary_rows, incremental_merkle_rows, incremental_poseidon_calls, roots);
     }
 
     fn buildExternalProfileWithProgramPolicy(
-        comptime circuit_profile: @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+        comptime circuit_layout: @import("../air/program/circuit_layout.zig").CircuitLayout,
         allocator: std.mem.Allocator,
         selected_profile: @import("../isa/execution_profile.zig").ExecutionProfile,
         execution_sources: anytype,
@@ -387,13 +387,13 @@ pub const CommitmentWitness = struct {
 
         var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
         errdefer poseidon_calls.deinit(allocator);
-        if (circuit_profile.programPolicy() == .sparse_merkle_v1) try poseidon_calls.appendSlice(allocator, prepared_program.ordered_poseidon_calls);
+        if (circuit_layout.programPolicy() == .sparse_merkle_v1) try poseidon_calls.appendSlice(allocator, prepared_program.ordered_poseidon_calls);
         try poseidon_calls.appendSlice(allocator, incremental_poseidon_calls);
 
         var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
         errdefer merkle_rows.deinit(allocator);
         try merkle_rows.appendSlice(allocator, incremental_merkle_rows);
-        if (circuit_profile.programPolicy() == .sparse_merkle_v1) try appendTreeRows(allocator, &merkle_rows, prepared_program.commitment.tree);
+        if (circuit_layout.programPolicy() == .sparse_merkle_v1) try appendTreeRows(allocator, &merkle_rows, prepared_program.commitment.tree);
 
         const owned_rows = try leaf_program.takeRows();
         leaf_program_owned = false;
@@ -405,7 +405,7 @@ pub const CommitmentWitness = struct {
             prepared_program.commitment.tree.nodes.len,
         );
         return .{
-            .circuit_profile = circuit_profile,
+            .circuit_layout = circuit_layout,
             .boundary = null,
             .program = program,
             .poseidon_calls = poseidon_calls,

@@ -11,7 +11,7 @@ const Budget = @import("../rv64_work_packet_budget.zig");
 const Admission = @import("../rv64_work_packet_admission.zig");
 const Image = @import("expected_image.zig");
 const Full = @import("../rv64_full.zig");
-const Request = @import("../rv64_ethereum_request.zig");
+const Request = @import("../../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
 pub const Packet = struct {
     metadata: H.Metadata,
     public: CPU.Public,
@@ -60,7 +60,7 @@ pub fn readWithLimits(a: std.mem.Allocator, file: std.fs.File, image: *const Ima
 /// Statement/tape agreement and service-ID checks shared by the file reader
 /// and the in-process handoff (both run after their own tape decoding).
 fn decoded(public: CPU.Public, tape: *const rv.compact_tape.Tape, metadata: H.Metadata, config: Request.Config, authority: *const Full.ProgramAuthority) !void {
-    if (tape.execution_profile != Request.tapeProfile(config) or public.execution_profile != authority.profile or !@import("../rv64_ethereum_batch.zig").tapeAdmitted(tape.execution_profile, authority) or tape.len == 0 or tape.len != public.statement.steps or tape.initial_clock != metadata.first_step or tape.initial_pc != public.statement.initial_pc or tape.storage[tape.len - 1].next_pc != public.statement.final_pc or tape.service_calls.items.len != public.keccak_calls or tape.secp_calls.items.len != @as(u64, public.secp.add.calls) + public.secp.double.calls) return error.InvalidWorkPacketBoundary;
+    if (tape.execution_profile != Request.tapeProfile(config) or public.execution_profile != authority.profile or !@import("../../../products/ethereum/statement/cpu/rv64_ethereum_batch.zig").tapeAdmitted(tape.execution_profile, authority) or tape.len == 0 or tape.len != public.statement.steps or tape.initial_clock != metadata.first_step or tape.initial_pc != public.statement.initial_pc or tape.storage[tape.len - 1].next_pc != public.statement.final_pc or tape.service_calls.items.len != public.keccak_calls or tape.secp_calls.items.len != @as(u64, public.secp.add.calls) + public.secp.double.calls) return error.InvalidWorkPacketBoundary;
     for (tape.service_calls.items, 0..) |call, i| if (call.call_id != @as(u64, public.first_call_id) + i) return error.InvalidWorkPacketService;
     var secp_counts: [2]u32 = @splat(0);
     for (tape.secp_calls.items) |call| {

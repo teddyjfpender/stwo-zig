@@ -20,8 +20,8 @@ const statement = @import("../air/statement.zig");
 const statement_v2 = @import("../air/statement_v2.zig");
 const transcript_claims = @import("../air/transcript/claims.zig");
 const proof_capture_sha256 = @import("../prover/proof_capture_sha256.zig");
-const profile_v2 = @import("vm_air_profile_v2.zig");
-const base_geometry_v2 = @import("vm_composition_base_geometry_v2.zig");
+const profile_v2 = @import("../../../products/ethereum/statement/frontend/recursion/vm_air_profile_v2.zig");
+const base_geometry_v2 = @import("../../../products/ethereum/statement/frontend/recursion/vm_composition_base_geometry_v2.zig");
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 
@@ -405,7 +405,7 @@ fn writeSelectedDetailedClaims(
     claim: *const statement.RiscVInteractionClaim,
     destination: []QM31,
 ) !void {
-    const selected = try @import("../prover/guest_precompile/ethereum_transcript.zig")
+    const selected = try @import("../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_transcript.zig")
         .SelectedBaseClaimsV3.init(core, manifest, authenticated, claim);
     try selected.write(destination);
 }

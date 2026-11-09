@@ -8,15 +8,15 @@ const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const graph = @import("air/composition_circuit.zig");
 const circuit = @import("vm_air_composition_circuit.zig");
-const geometry_mod = @import("vm_composition_base_geometry_v2.zig");
+const geometry_mod = @import("../../../products/ethereum/statement/frontend/recursion/vm_composition_base_geometry_v2.zig");
 const lookup = @import("../air/lang/lookup_physical_manifest_v2.zig");
 const selected_lookup = @import("vm_selected_lookup_compiler_v2.zig");
 const relations_mod = @import("../air/relation_challenges.zig");
 const transcript = @import("../air/transcript/claims.zig");
 const logup = @import("../air/logup.zig");
-const base_graph = @import("ethereum_vm_composition_graph_base_v2.zig");
-const support = @import("ethereum_vm_composition_graph_support_v2.zig");
-const program = @import("ethereum_vm_composition_program_v2.zig");
+const base_graph = @import("../../../products/ethereum/statement/frontend/recursion/ethereum_vm_composition_graph_base_v2.zig");
+const support = @import("../../../products/ethereum/statement/frontend/recursion/ethereum_vm_composition_graph_support_v2.zig");
+const program = @import("../../../products/ethereum/statement/frontend/recursion/ethereum_vm_composition_program_v2.zig");
 const Scalar = support.Scalar;
 
 pub fn prepare(

@@ -61,7 +61,7 @@ test "new classic defaults cannot silently enter authenticated GKR query shapes"
     const G = @import("../../../word16_execution/geometry.zig").Geometry;
     const base = G{ .cpu_log = 5, .cpu_fused_tail = true, .cpu_u8_pairs = true };
     try geometry(base);
-    const layout = @import("../../ethereum/plan.zig").CpuLayout.forGkrProfile(.ethereum_services_v3);
+    const layout = @import("../../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/plan.zig").CpuLayout.forGkrProfile(.ethereum_services_v3);
     try std.testing.expect(layout.compact_decode and layout.u8_pairs and !layout.mul_u8_pairs and !layout.ls_fused_pairs and !layout.alu_fused_tail and !layout.ls_dword_fused_pairs);
     var compact = base;
     compact.cpu_compact_decode = true;

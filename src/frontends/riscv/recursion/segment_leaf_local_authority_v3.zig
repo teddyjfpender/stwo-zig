@@ -15,7 +15,7 @@ const stwo_core = @import("stwo_core");
 
 const access_clock = @import("../access_clock.zig");
 const memory_state = @import("../runner/memory_state.zig");
-const runner_result = @import("../runner/result.zig");
+const runner_result = @import("../../../products/ethereum/statement/frontend/runner/result.zig");
 const channel = @import("poseidon2_channel.zig");
 const span = @import("span_statement.zig");
 const segment_v2 = @import("segment_statement_v2.zig");

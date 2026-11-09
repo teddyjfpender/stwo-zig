@@ -2,7 +2,7 @@ const std = @import("std");
 const F = @import("coordinator_fixture.zig");
 const Original = @import("../fixture.zig");
 const C = @import("coordinator.zig");
-const Owned = @import("../../ethereum/capture_ownership.zig");
+const Owned = @import("../../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/capture_ownership.zig");
 const a = std.testing.allocator;
 test "ordinary memory advice retires after seal with exact five proofs and fresh global closure" {
     const options = C.Options{ .gkr_budget = 2 << 30, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 } };

@@ -1,7 +1,7 @@
 //! Shared owned public I/O for complete runs and leaf-local segments.
 const std = @import("std");
 const public = @import("../air/public_data.zig");
-const Segment = @import("../runner/result.zig").SegmentResult;
+const Segment = @import("../../../products/ethereum/statement/frontend/runner/result.zig").SegmentResult;
 pub const Owned = struct {
     allocator: std.mem.Allocator,
     input: []u32,
@@ -11,7 +11,7 @@ pub const Owned = struct {
         try validateSegment(segment);
         return initMode(true, a, segment);
     }
-    pub fn initRun(a: std.mem.Allocator, run: *const @import("../runner/result.zig").RunResult) !Owned {
+    pub fn initRun(a: std.mem.Allocator, run: *const @import("../../../products/ethereum/statement/frontend/runner/result.zig").RunResult) !Owned {
         return initMode(false, a, run);
     }
     fn initMode(comptime segmented: bool, a: std.mem.Allocator, source: anytype) !Owned {

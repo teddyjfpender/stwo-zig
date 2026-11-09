@@ -42,7 +42,7 @@ test {
     _ = @import("rv64/tests/access_census_test.zig");
     _ = @import("rv64/tests/compact_tape_test.zig");
     _ = @import("rv64/tests/tape_wire_test.zig");
-    _ = @import("rv64/tests/ethereum_contract_test.zig");
+    _ = @import("../../products/ethereum/statement/frontend/rv64/tests/ethereum_contract_test.zig");
     _ = @import("rv64/tests/execution_test.zig");
     _ = @import("rv64/tests/foundations_test.zig");
     _ = @import("rv64/tests/memory_commitment_test.zig");
@@ -62,7 +62,7 @@ test {
     _ = @import("rv64/air/memory/provider_interaction_test.zig");
     _ = @import("rv64/air/providers/tests/degree_metadata_test.zig");
     _ = @import("rv64/tests/boundary_capture_test.zig");
-    _ = @import("rv64/tests/ethereum_services_test.zig");
+    _ = @import("../../products/ethereum/statement/frontend/rv64/tests/ethereum_services_test.zig");
     _ = @import("rv64/air/memory/graph_air_test.zig");
     _ = @import("rv64/air/memory/ownership_test.zig");
     _ = @import("rv64/air/memory/terminal_air_test.zig");
@@ -135,8 +135,8 @@ test {
     _ = @import("rv64/air/word16_v1/shift_word_test.zig");
     _ = @import("rv64/air/word16_v1/u16_source_test.zig");
     _ = @import("rv64/candidate_isa_test.zig");
-    _ = @import("rv64/ethereum_contract.zig");
-    _ = @import("rv64/ethereum_execution.zig");
+    _ = @import("../../products/ethereum/statement/frontend/rv64/ethereum_contract.zig");
+    _ = @import("../../products/ethereum/statement/frontend/rv64/ethereum_execution.zig");
     _ = @import("rv64/ethereum_services/arith256.zig");
     _ = @import("rv64/ethereum_services/bulk_memory.zig");
     _ = @import("rv64/ethereum_services/candidate_curves.zig");

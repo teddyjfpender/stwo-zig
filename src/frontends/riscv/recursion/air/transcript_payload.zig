@@ -13,7 +13,7 @@ const source = @import("../../air/lang/source.zig");
 const types = @import("../../air/lang/types.zig");
 const validate_mod = @import("../../air/lang/validate.zig");
 const relation_effect = @import("relation_effect.zig");
-const ethereum_routing = @import("../ethereum_publication_routing_v1.zig");
+const ethereum_routing = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_publication_routing_v1.zig");
 
 pub const STABLE_NAME = "recursion.transcript_payload.v1";
 pub const DIGEST_WORD_COUNT: usize = 8;

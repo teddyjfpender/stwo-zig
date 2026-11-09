@@ -2,7 +2,7 @@ const std = @import("std");
 const layout_mod = @import("../segment_statement_v2_transcript_layout.zig");
 const v2 = @import("../segment_statement_v2.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
-const clocks = @import("../ethereum_clock_routing_v1.zig");
+const clocks = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_clock_routing_v1.zig");
 
 test "V2 transcript layout exhaustively classifies every fixed and retained word" {
     for ([_][4]u32{ .{ 0, 0, 0, 0 }, .{ 1, 1, 1, 1 }, .{ 2, 0, 3, 1 } }) |counts| {

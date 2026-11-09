@@ -5,13 +5,13 @@ const std = @import("std");
 const Core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
 const Summary = @import("node_summary_v3.zig");
-const Canon = @import("../../word16_global_execution/ethereum/canon_native.zig");
+const Canon = @import("../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/canon_native.zig");
 const Protocol = @import("../../word16_global_execution/protocol.zig");
 const Execution = @import("../../word16_global_execution/services/gkr_local/execution.zig");
 const Fixed = @import("../../word16_global_execution/services/gkr_local/fixed_authority_set.zig");
 const Manifest = @import("../../word16_global_execution/services/gkr_local/manifest.zig");
 const Boundary = @import("../../word16_global_execution/services/gkr_local/expected_boundary.zig");
-const Terminal = @import("../../word16_global_execution/ethereum/terminal.zig");
+const Terminal = @import("../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/terminal.zig");
 const Image = @import("../../word16_execution/expected_image.zig");
 const Memory = @import("../../word16_execution/memory/statement.zig");
 const Worker = @import("../../word16_global_execution/services/gkr_local/worker_protocol.zig");
@@ -114,7 +114,7 @@ pub fn checkAuthenticated(authority: Authority, public: Public, summary: Summary
 
 test "typed root semantic gate recomputes public RAM target image scope and terminal" {
     const a = std.testing.allocator;
-    const Fixture = @import("../../word16_global_execution/ethereum/terminal_fixture.zig").Fixture;
+    const Fixture = @import("../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/terminal_fixture.zig").Fixture;
     const Program = @import("../../word16_execution/program.zig").Program;
     const Cpu = @import("../../word16_execution/cpu_source.zig").Source;
     const Collector = @import("../../word16_execution/memory/collector.zig");

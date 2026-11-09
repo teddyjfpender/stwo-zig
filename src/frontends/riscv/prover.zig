@@ -7,7 +7,7 @@ const opcode_memory = @import("air/opcode_memory.zig");
 const trace_mod = @import("runner/trace.zig");
 const state_chain = @import("runner/state_chain.zig");
 const memory_state = @import("runner/memory_state.zig");
-const run_result_mod = @import("runner/result.zig");
+const run_result_mod = @import("../../products/ethereum/statement/frontend/runner/result.zig");
 const orchestration = @import("prover/orchestration.zig");
 const types = @import("prover/types.zig");
 
@@ -17,9 +17,9 @@ pub const main_trace_plan_execution_production =
     @import("prover/main_trace_plan_execution_production.zig");
 /// Fixed joined Ethereum Tree0 derivation; accepts no candidate proof root.
 pub const deriveIncrementalEthereumPreprocessedRootWithFixedProgramV1 =
-    @import("prover/incremental_ethereum_verifier_v3.zig").deriveExpectedPreprocessedRootWithFixedProgramV1;
+    @import("../../products/ethereum/statement/frontend/prover/incremental_ethereum_verifier_v3.zig").deriveExpectedPreprocessedRootWithFixedProgramV1;
 pub const deriveIncrementalEthereumPreprocessedRootV4 =
-    @import("prover/incremental_ethereum_verifier_v3.zig").deriveExpectedPreprocessedRoot;
+    @import("../../products/ethereum/statement/frontend/prover/incremental_ethereum_verifier_v3.zig").deriveExpectedPreprocessedRoot;
 pub const ethereum_native_provider_omit_protocol_v1 =
     guest_precompile.ethereum_native_provider_omit_protocol_v1;
 pub const ethereum_native_provider_omit_proof_v1 =
@@ -557,9 +557,9 @@ pub const blake3_execution_artifact = @import("prover/blake3_execution_artifact.
 
 pub const blake3_verified_public = @import("prover/blake3_profile_artifact.zig").VerifiedPublic;
 pub const blake3_ethereum_artifact = @import("prover/blake3_profile_artifact.zig").ForProfile(true);
-pub const blake3_ethereum_proof = @import("prover/blake3_ethereum_proof.zig");
+pub const blake3_ethereum_proof = @import("../../products/ethereum/statement/frontend/prover/blake3_ethereum_proof.zig");
 pub const blake3_commitment_sharing = @import("prover/blake3_commitment_sharing.zig");
-pub const blake3_ethereum_witness = @import("prover/blake3_ethereum_witness.zig");
+pub const blake3_ethereum_witness = @import("../../products/ethereum/statement/frontend/prover/blake3_ethereum_witness.zig");
 pub const blake3_segment_execution = @import("prover/blake3_segment_execution.zig");
 
 pub const blake3_profile_artifact = @import("prover/blake3_profile_artifact.zig");

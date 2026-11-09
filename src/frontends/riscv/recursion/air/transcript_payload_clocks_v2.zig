@@ -7,8 +7,8 @@ const witness = @import("transcript_payload_witness.zig");
 const ir = @import("../../air/lang/ir.zig");
 const digest = @import("../../air/lang/digest.zig");
 const types = @import("../../air/lang/types.zig");
-pub const clocks = @import("../ethereum_clock_routing_v1.zig");
-const publication = @import("../ethereum_publication_routing_v1.zig");
+pub const clocks = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_clock_routing_v1.zig");
+const publication = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_publication_routing_v1.zig");
 
 pub const STABLE_NAME = "recursion.transcript_payload.clocks.v2";
 pub const PHYSICAL_MAIN_COLUMN_COUNT = legacy.PHYSICAL_MAIN_COLUMN_COUNT;

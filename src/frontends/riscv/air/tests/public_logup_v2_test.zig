@@ -4,7 +4,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const public_data_v2 = @import("../public_data_v2.zig");
 const public_logup_v2 = @import("../public_logup_v2.zig");
 const relation_challenges = @import("../relation_challenges.zig");
-const runner_result = @import("../../runner/result.zig");
+const runner_result = @import("../../../../products/ethereum/statement/frontend/runner/result.zig");
 const support = @import("../public_data_v2_test_support.zig");
 
 test "public LogUp V2 compensation is the inverse of exact boundary transitions" {

@@ -15,7 +15,7 @@
 
 const std = @import("std");
 
-const runner_result = @import("../runner/result.zig");
+const runner_result = @import("../../../products/ethereum/statement/frontend/runner/result.zig");
 const span = @import("span_statement.zig");
 const segment_v2 = @import("segment_statement_v2.zig");
 const global_v3 = @import("segment_leaf_local_authority_v3.zig");

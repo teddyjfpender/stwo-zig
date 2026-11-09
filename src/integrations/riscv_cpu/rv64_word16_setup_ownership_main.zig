@@ -1,9 +1,9 @@
 //! Retained immutable setup payload audit. Constructs no execution witness.
 const std = @import("std");
-const R = @import("rv64_ethereum_request.zig");
+const R = @import("../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
 const Image = @import("word16_execution/expected_image.zig");
 const Program = @import("word16_execution/program.zig");
-const Keys = @import("word16_global_execution/ethereum/keys.zig").Owner;
+const Keys = @import("../../products/ethereum/statement/cpu/word16_global_execution/ethereum/keys.zig").Owner;
 const W = @import("word16_global_execution/services/wire.zig");
 const Audit = @import("word16_setup_audit/ownership.zig");
 const NativeCache = @import("word16_execution/fixed_native_cache.zig");

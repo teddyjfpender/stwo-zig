@@ -6,12 +6,12 @@
 
 pub const types = @import("types.zig");
 pub const capture = @import("capture.zig");
-pub const ethereum_capture = @import("ethereum_capture.zig");
-pub const ethereum_parallel_replay = @import("ethereum_parallel_replay.zig");
-pub const ethereum_replay = @import("ethereum_replay.zig");
-pub const ethereum_semantic_capture = @import("ethereum_semantic_capture.zig");
-pub const ethereum_types = @import("ethereum_types.zig");
-pub const ethereum_wire = @import("ethereum_wire.zig");
+pub const ethereum_capture = @import("../../../../products/ethereum/statement/frontend/runner/minimal_trace/ethereum_capture.zig");
+pub const ethereum_parallel_replay = @import("../../../../products/ethereum/statement/frontend/runner/minimal_trace/ethereum_parallel_replay.zig");
+pub const ethereum_replay = @import("../../../../products/ethereum/statement/frontend/runner/minimal_trace/ethereum_replay.zig");
+pub const ethereum_semantic_capture = @import("../../../../products/ethereum/statement/frontend/runner/minimal_trace/ethereum_semantic_capture.zig");
+pub const ethereum_types = @import("../../../../products/ethereum/statement/frontend/runner/minimal_trace/ethereum_types.zig");
+pub const ethereum_wire = @import("../../../../products/ethereum/statement/frontend/runner/minimal_trace/ethereum_wire.zig");
 pub const parallel_replay = @import("parallel_replay.zig");
 pub const replay = @import("replay.zig");
 

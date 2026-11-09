@@ -6,7 +6,7 @@ const pcs_core = @import("stwo_core").pcs;
 const component_order = @import("../air/component_order.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
-const CircuitProfile = @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1;
+const CircuitLayout = @import("../air/program/circuit_layout.zig").CircuitLayout;
 const poseidon2_narrow = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
 const memory_trace = @import("../air/memory_commitment/trace.zig");
@@ -89,7 +89,7 @@ pub fn validate(
 ) types.ProverError!void {
     try validateV1Boundary(statement);
     return validateGeometry(
-        .legacy_v4,
+        .ordinary_sparse,
         statement,
         policy,
         null,
@@ -109,7 +109,7 @@ pub fn validateV2(
     const terms = statement_v2.nativePublicTermCounts(&statement.public_data) catch
         return types.ProverError.InvalidStatement;
     return validateGeometry(
-        .legacy_v4,
+        .ordinary_sparse,
         statement.core,
         policy,
         null,
@@ -131,7 +131,7 @@ pub fn validateWithRetirementSupplement(
         return types.ProverError.InvalidStatement;
     try validateV1Boundary(statement);
     return validateGeometry(
-        .legacy_v4,
+        .ordinary_sparse,
         statement,
         policy,
         supplement,
@@ -151,7 +151,7 @@ pub fn validateWithRetirementSupplementV2(
         return types.ProverError.InvalidStatement;
     try validateV1Boundary(statement);
     return validateGeometryV2(
-        .legacy_v4,
+        .ordinary_sparse,
         statement,
         policy,
         supplement,
@@ -176,7 +176,7 @@ pub fn validateV2WithRetirementSupplementV2(
         &statement.public_data,
     ) catch return types.ProverError.InvalidStatement;
     return validateGeometryV2(
-        .legacy_v4,
+        .ordinary_sparse,
         statement.core,
         policy,
         supplement,
@@ -187,11 +187,11 @@ pub fn validateV2WithRetirementSupplementV2(
 
 /// Explicit Ethereum circuit selection. The caller must independently admit the
 /// fixed program table in Tree0; this validates geometry, not ELF authority.
-pub fn validateV2WithRetirementSupplementAndCircuitProfileV1(
+pub fn validateV2WithRetirementSupplementAndCircuitLayout(
     statement: *const statement_v2.RiscVStatementV2,
     policy: AdmissionPolicy,
     supplement: RetirementSupplementV2,
-    circuit_profile: CircuitProfile,
+    circuit_layout: CircuitLayout,
 ) types.ProverError!void {
     statement.validate() catch return types.ProverError.InvalidStatement;
     const terms = statement_v2.nativePublicTermCounts(&statement.public_data) catch
@@ -199,14 +199,14 @@ pub fn validateV2WithRetirementSupplementAndCircuitProfileV1(
     if (supplement.rows == 0) {
         if (supplement.extra_memory_terms != 0 or supplement.expected_memory_relation_terms != 0)
             return types.ProverError.InvalidStatement;
-        return validateGeometry(circuit_profile, statement.core, policy, null, terms.memory, terms.merkle);
+        return validateGeometry(circuit_layout, statement.core, policy, null, terms.memory, terms.merkle);
     }
     if (supplement.extra_memory_terms == 0) return types.ProverError.InvalidStatement;
-    return validateGeometryV2(circuit_profile, statement.core, policy, supplement, terms.memory, terms.merkle);
+    return validateGeometryV2(circuit_layout, statement.core, policy, supplement, terms.memory, terms.merkle);
 }
 
 fn validateGeometryV2(
-    circuit_profile: CircuitProfile,
+    circuit_layout: CircuitLayout,
     statement: types.RiscVStatement,
     policy: AdmissionPolicy,
     supplement: RetirementSupplementV2,
@@ -224,7 +224,7 @@ fn validateGeometryV2(
         public_memory_terms,
     ) catch return types.ProverError.InvalidStatement;
     try validateGeometry(
-        circuit_profile,
+        circuit_layout,
         statement,
         policy,
         .{
@@ -258,7 +258,7 @@ fn validateV1Boundary(statement: types.RiscVStatement) types.ProverError!void {
 }
 
 fn validateGeometry(
-    circuit_profile: CircuitProfile,
+    circuit_layout: CircuitLayout,
     statement: types.RiscVStatement,
     policy: AdmissionPolicy,
     supplement: ?RetirementSupplement,
@@ -318,7 +318,7 @@ fn validateGeometry(
         merkle_desc.log_size != @max(@as(u32, 4), computeLogSize(merkle_desc.n_rows)))
         return types.ProverError.InvalidStatement;
     if (poseidon_desc.kind != .poseidon2 or
-        poseidon_desc.n_columns != (switch (circuit_profile.poseidonLayout()) {
+        poseidon_desc.n_columns != (switch (circuit_layout.poseidonLayout()) {
             .legacy_v1 => poseidon2_air.N_MAIN_COLUMNS,
             .narrow_degree3_v1 => poseidon2_narrow.N_MAIN_COLUMNS,
         }) or
@@ -330,7 +330,7 @@ fn validateGeometry(
         return types.ProverError.InvalidStatement;
     if (poseidon_desc.n_rows != merkle_desc.n_rows) return types.ProverError.InvalidStatement;
     try validateMerkleCoefficientLift(
-        if (circuit_profile.programPolicy() == .sparse_merkle_v1) program.n_rows else 0,
+        if (circuit_layout.programPolicy() == .sparse_merkle_v1) program.n_rows else 0,
         memory_shards,
         merkle_desc.n_rows,
         public_merkle_terms,

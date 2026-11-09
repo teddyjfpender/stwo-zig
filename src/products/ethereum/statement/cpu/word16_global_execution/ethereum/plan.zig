@@ -1,0 +1,1196 @@
+//! Explicit bounded chip planning. Counts choose instance geometry; proofs still
+//! authenticate every bus claim and every cross-instance service span.
+const std = @import("std");
+const A = @import("stwo_riscv_frontend").rv64_air;
+const Coverage = @import("../../../../../../integrations/riscv_cpu/word16_execution/coverage.zig");
+const W = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/wire.zig");
+const Capture = @import("capture.zig").Owner;
+pub const Ladder = struct { head: u32, tail: ?u32 = null };
+pub fn ladder(count: usize, reserve: u32) !Ladder {
+    const full: u32 = @intCast(std.math.log2_int_ceil(usize, @max(32, try std.math.add(usize, count, reserve))));
+    if (full > 22) return error.EthereumInstanceCapacityExceeded;
+    if (full <= 5) return .{ .head = full };
+    const head = full - 1;
+    const capacity = (@as(usize, 1) << @intCast(head)) - reserve;
+    if (count <= capacity) return error.InvalidEthereumLadder;
+    const tail: u32 = @intCast(std.math.log2_int_ceil(usize, @max(32, try std.math.add(usize, count - capacity, reserve))));
+    if ((@as(u64, 1) << @intCast(head)) + (@as(u64, 1) << @intCast(tail)) >= (@as(u64, 1) << @intCast(full))) return .{ .head = full };
+    return .{ .head = head, .tail = tail };
+}
+/// CPU AIR layout options chosen by the producer route. Every option is part of
+/// the declaration (`Geometry` or the LS-D64 bridge logs), so it is mixed into
+/// each CPU transcript and published; the receiver rebuilds keys from it.
+pub const CpuLayout = struct {
+    /// Fused-tail CPU interaction (40 -> 36 columns, same LogUp statement).
+    fused_tail: bool = false,
+    /// Byte-pair CPU lookups on top of the fused tail (36 -> 32 columns).
+    u8_pairs: bool = false,
+    /// Route every aligned LD/SD of a shard to the LS-D64 component; LS32
+    /// instances are sized on the remainder.
+    ls_dword: bool = false,
+    /// Compact decode CPU MAIN on top of the byte pairs (47 -> 37 columns).
+    /// Changes the AUIPC/JAL FUNCTION facts, so the capture program must be
+    /// made compact (Program.makeCompact) before capture.
+    compact_decode: bool = false,
+    /// MUL byte pairs served by the AND pair column (requires u8_pairs).
+    mul_u8_pairs: bool = false,
+    /// LS32 fused tail + byte pairs, INIT/TEARDOWN fused single (requires u8_pairs).
+    ls_fused_pairs: bool = false,
+    /// ALU fused tail (head and tail instances).
+    alu_fused_tail: bool = false,
+    /// LS-D64 fused tail + byte pair (requires u8_pairs and ls_dword).
+    ls_dword_fused_pairs: bool = false,
+    /// Default layout for a profile route. Only the admitted v3 routes
+    /// (`ethereum_services_v3` and its Zbb variant `ethereum_services_v3_zbb`)
+    /// default to the fused tail, byte pairs,
+    /// LS-D64 and the fused2 component layouts (MUL pairs, LS32/INIT/TEARDOWN
+    /// fused pairs, ALU fused tail, LS-D64 fused pairs) and compact decode (all proved and freshly
+    /// verified on a real 4-packet prefix of block 24,628,607); every older
+    /// route keeps its historical layout and bundle bytes.
+    /// GKR replaces classic interaction encodings. Keep its qualified query
+    /// representation explicit instead of inheriting new classic defaults.
+    pub fn forGkrProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
+        const v3 = profile == .ethereum_services_v3;
+        // Compact decode has GKR-local CPU/ROM projections (gkr_local/fractions.zig
+        // cpuCompactFor, main_only `.cpu_compact`): 37 instead of 47 CPU MAIN columns.
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .compact_decode = v3 };
+    }
+    pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
+        const v3 = @import("stwo_riscv_frontend").rv64.execution_profile.isV3(profile);
+        // Compact decode is proven with the RV64IM opcode set only; the Zbb
+        // profile keeps the classic decode MAIN until compact decode admits Zbb.
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .mul_u8_pairs = v3, .ls_fused_pairs = v3, .alu_fused_tail = v3, .ls_dword_fused_pairs = v3, .compact_decode = profile == .ethereum_services_v3 };
+    }
+};
+/// One source-derived class declaration. Whole-inventory planning and early
+/// local class admission share this exact geometry/census authority. The RAM
+/// INITIAL count must be the complete first-pass/collector set, never a guess.
+pub fn cpuForSegment(n: *const @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared, advice: *const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig").Advice, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
+    return cpuForSegmentAt(n, advice, ordinal, ordinal, total_segments, initial_count, layout);
+}
+/// The same source class from one already ordered ledger shard, before the
+/// complete Advice inventory exists. Only the global boundary ordinal differs.
+pub fn cpuForShard(n: *const @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared, shard: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig").Shard, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
+    const Collector = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig");
+    var view = Collector.OneShardView.init(shard);
+    var advice = view.advice(n.allocator, &.{}, &.{});
+    return cpuForSegmentAt(n, &advice, 0, ordinal, total_segments, initial_count, layout);
+}
+fn cpuForSegmentAt(n: *const @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared, advice: *const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig").Advice, advice_index: usize, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
+    if (total_segments == 0 or ordinal >= total_segments or advice_index >= advice.events.len) return error.CanonRosterMismatch;
+    const boundary = try Coverage.minimalBoundaryLog(@intCast(initial_count));
+    var result: W.CpuDeclaration = undefined;
+    const d = &result;
+    var g = n.geometryOmittingEmptyDivision() catch |err| {
+        std.debug.print("RV64_PLAN_CAPACITY cpu_ordinal={d} memory={d} unique_words={d} alu={d} binary={d} shift={d} mul={d} div={d}\n", .{ ordinal, n.raw_counts.memory, n.unique_memory_words, n.alu.facts.len, n.binary.facts.len, n.shift.len, n.multiplication.len, n.division.len });
+        return err;
+    };
+    const events = advice.events[advice_index];
+    const dword: usize = if (layout.ls_dword) @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/pipeline.zig").dwordCount(events) else 0;
+    const ls = try ladder(events.len - dword, 1);
+    g.ls_log = ls.head;
+    g.ls_tail_log = ls.tail;
+    const alu = try ladder(n.alu.facts.len, 0);
+    g.alu_log = alu.head;
+    g.alu_tail_log = alu.tail;
+    const binary = try ladder(n.binary.facts.len, 0);
+    g.binary_log = binary.head;
+    g.binary_tail_log = binary.tail;
+    const shift = try ladder(n.shift.len, 0);
+    g.shift_log = shift.head;
+    g.shift_tail_log = shift.tail;
+    g.boundary_log = 5;
+    g.initial_log = if (ordinal == 0) boundary else 5;
+    g.terminal_log = if (ordinal + 1 == total_segments) boundary else 5;
+    g.cpu_fused_tail = layout.fused_tail;
+    g.cpu_u8_pairs = layout.u8_pairs;
+    g.cpu_compact_decode = layout.compact_decode;
+    g.mul_u8_pairs = layout.mul_u8_pairs;
+    g.ls_fused_pairs = layout.ls_fused_pairs;
+    g.alu_fused_tail = layout.alu_fused_tail;
+    g.ls_dword_fused_pairs = layout.ls_dword_fused_pairs;
+    // A log-23 CPU segment (batch_steps >= 2^22) has only the wide-clock
+    // encoding, which is defined on the fused tail without byte pairs; the
+    // component pair layouts need the CPU pair column, so they go too.
+    if (g.wideClock()) {
+        g.cpu_fused_tail = true;
+        g.cpu_u8_pairs = false;
+        g.cpu_compact_decode = false;
+        g.mul_u8_pairs = false;
+        g.ls_fused_pairs = false;
+        g.ls_dword_fused_pairs = false;
+    }
+    d.* = .{ .geometry = g, .bridges = .{} };
+    // The same two-instance ladder as LS32 (one inactive row per instance).
+    if (dword != 0) {
+        const dl = try ladder(dword, 1);
+        d.bridges.ls_dword = dl.head;
+        d.bridges.ls_dword_tail = dl.tail;
+    }
+    const k = advice.keccak[advice_index].len;
+    const add = advice.secp[advice_index][0].len;
+    const double = advice.secp[advice_index][1].len;
+    if (k != 0) d.bridges.keccak = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, 25, k)));
+    if (add != 0) d.bridges.add = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.add), add)));
+    if (double != 0) d.bridges.double = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.double), double)));
+    const sha256 = advice.sha256[advice_index].len;
+    if (sha256 != 0) d.bridges.sha256 = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256), sha256)));
+    const arith = advice.arith256_mod[advice_index].len;
+    if (arith != 0) d.bridges.arith256_mod = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod), arith)));
+    // v3 curve/field families: coordinates rows per call each.
+    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    for (advice.curves[advice_index], ST.FIRST_CURVE..) |calls, f| if (calls.len != 0) {
+        const family: ST.Family = @enumFromInt(f);
+        d.bridges.set(family, try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(ST.bridgeKind(family)), calls.len))));
+    };
+    // v3 bulk memory: one descriptor row per call, one body row per word.
+    const bulk = advice.bulk[advice_index].counts();
+    if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
+    if (bulk.copy_words != 0) d.bridges.bulk.copy = try Coverage.minimalPrefixLog(bulk.copy_words);
+    if (bulk.set_words != 0) d.bridges.bulk.set = try Coverage.minimalPrefixLog(bulk.set_words);
+    if (bulk.jump_calls != 0) {
+        d.bridges.bulk.jdesc = try Coverage.minimalPrefixLog(bulk.jump_calls);
+        d.bridges.bulk.jscan = try Coverage.minimalPrefixLog(bulk.jump_rows);
+        d.bridges.bulk.jtab = @import("stwo_riscv_frontend").rv64_air.crypto.bulk_memory.types.TABLE_LOG;
+    }
+    // Extension: unaligned copy rows, memcmp descriptors and compared words.
+    if (bulk.ucopy_rows != 0) d.bridges.bulk.ucopy = try Coverage.minimalPrefixLog(bulk.ucopy_rows);
+    if (bulk.cmp_calls != 0) d.bridges.bulk.cdesc = try Coverage.minimalPrefixLog(bulk.cmp_calls);
+    if (bulk.cmp_words != 0) d.bridges.bulk.cmp = try Coverage.minimalPrefixLog(bulk.cmp_words);
+    // v3 Keccak sponge: one call row per ECALL, one row per permutation.
+    const sponge = advice.sponge[advice_index].counts();
+    if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
+    if (sponge.perms != 0) d.bridges.sponge.perm = @max(5, try Coverage.minimalPrefixLog(sponge.perms));
+    // v3_zbb: one Zbb BINARY row per distinct Zbb FUNCTION fact (pure
+    // truth provider, every row may be active), only when the shard has one.
+    if (n.zbb.facts.len != 0) d.bridges.zbb = try Coverage.minimalLog(@intCast(n.zbb.facts.len));
+    try g.validate();
+    return result;
+}
+pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {
+    const out = try a.alloc(W.CpuDeclaration, captured.native.items.len);
+    errdefer a.free(out);
+    for (captured.native.items, out, 0..) |n, *d, i| d.* = try cpuForSegment(n, &captured.advice, i, out.len, captured.advice.initial.len, layout);
+    return out;
+}
+pub const KeccakPolicy = A.crypto.keccak.equations.BatchPolicy;
+/// Exact committed MAIN+INTERACTION cells of one Keccak truth proof
+/// (permutation at `log` plus both tables), the quantity the cost proxy counts.
+pub fn keccakTruthCells(policy: KeccakPolicy, log: u32) u64 {
+    const L = A.crypto.keccak.layout;
+    const permutation = (@as(u64, L.MAIN) + policy.interactionCount()) << @intCast(log);
+    return permutation + (@as(u64, 5) << @intCast(policy.tableLog(.chi))) + (@as(u64, 5) << @intCast(policy.tableLog(.xor5)));
+}
+/// v3 profile: each truth takes the throughput tables exactly when that is
+/// fewer committed cells (log >= 13), batched four per degree-five batch by
+/// default (`KeccakTruthOptions.quartet`). v2 never selects them (receiver
+/// policy rejects them there).
+pub fn keccakTruthPolicy(v3: bool, log: u32) KeccakPolicy {
+    return keccakTruthPolicyFor(.{ .v3 = v3 }, log);
+}
+/// Producer-only Keccak truth selection. The chosen profile is published in
+/// the declaration (`W.keccakProfileWord`) and mixed into the truth
+/// transcript; the receiver admits any v3 profile it can rebuild.
+pub const KeccakTruthOptions = struct {
+    v3: bool = false,
+    /// Producer geometry preference, not a new AIR or security construction.
+    /// Reuse the qualified throughput family for every span on resident GPUs.
+    /// The default preserves the cost-minimized mixed-policy native roster.
+    uniform_throughput: bool = false,
+    /// One physical truth per active family, bounded by existing source caps.
+    /// May require a new canonical truth rung and more backend memory.
+    one_per_family: bool = false,
+    /// Coalesce non-Keccak families while keeping the bounded Keccak partition.
+    coalesce_families: bool = false,
+    /// M8 p-truth-split (`STWO_RV64_M8_TRUTH_SPLIT=1`, default off; coalesced
+    /// plans only): a family whose single coalesced truth the profile refuses
+    /// (source MAX_LOG, V3 shape, or no admissible canonical rung) is split
+    /// into consecutive bounded spans instead. Families that fit keep their
+    /// single truth, so every plan the profile admits today is unchanged.
+    split_families: bool = false,
+    /// Bound split spans by the top canonical rung of their family (set when
+    /// the producer pads to rungs: strict roster or STWO_RV64_CANON_RUNGS=1).
+    rung_bound: bool = false,
+    /// Throughput tables cleared four per degree-five batch
+    /// (`throughput_quartet_v1`, 456 instead of 608 interaction columns).
+    /// v3 default since it proved and fresh-verified a real 4-packet prefix
+    /// of block 24,628,607; `false` keeps `throughput_v1`.
+    quartet: bool = true,
+    /// Quartet batching on the 27-row slot (`throughput_r27_v1`, 480
+    /// interaction columns, 27 rows per pair). Requires `quartet`. v3
+    /// default since it proved and fresh-verified the real 4-packet prefix
+    /// of block 24,628,607 (Keccak-f truth cells 801,177,600 -> 760,799,232).
+    r27: bool = true,
+    /// Shared producer resource mapping: keep every partition preference on
+    /// the actual capture-to-truth path, rather than only in reporting.
+    pub fn fromResources(v3: bool, uniform: bool, resources: anytype) KeccakTruthOptions {
+        return .{ .v3 = v3, .uniform_throughput = uniform, .one_per_family = if (resources) |r| r.one_truth_per_family else false, .coalesce_families = if (resources) |r| r.coalesce_truth_families else false, .split_families = truthSplitEnabled(), .rung_bound = canonRungsEnabled() };
+    }
+    pub fn throughput(self: KeccakTruthOptions) KeccakPolicy {
+        if (self.quartet and self.r27) return .throughput_r27_v1;
+        return if (self.quartet) .throughput_quartet_v1 else .throughput_v1;
+    }
+};
+fn envFlag(name: []const u8) bool {
+    const flag = std.posix.getenv(name) orelse return false;
+    return std.mem.eql(u8, flag, "1");
+}
+/// `STWO_RV64_M8_TRUTH_SPLIT=1` (default off): see `KeccakTruthOptions.split_families`.
+pub fn truthSplitEnabled() bool {
+    return envFlag("STWO_RV64_M8_TRUTH_SPLIT");
+}
+/// Same predicate gkr_main uses to pad declarations to canonical rungs.
+fn canonRungsEnabled() bool {
+    return @import("../../../../../../integrations/riscv_cpu/word16_execution/native_policy.zig").strictRoster() or envFlag("STWO_RV64_CANON_RUNGS");
+}
+pub fn keccakTruthPolicyFor(options: KeccakTruthOptions, log: u32) KeccakPolicy {
+    if (!options.v3) return .triple_v2;
+    const throughput = options.throughput();
+    return if (options.uniform_throughput or keccakTruthCells(throughput, log) < keccakTruthCells(.triple_v2, log)) throughput else .triple_v2;
+}
+/// Smallest log holding `calls` permutations in `geometry` (>= 5).
+fn keccakLogFor(geometry: A.crypto.keccak.layout.Geometry, calls: u32) u32 {
+    return @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * @as(u32, @intCast(geometry.rowsPerPair())))));
+}
+pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclaration {
+    return truthsForProfile(a, captured, false);
+}
+pub fn truthsForProfile(a: std.mem.Allocator, captured: *const Capture, v3: bool) ![]W.TruthDeclaration {
+    return truthsWithOptions(a, captured, .{ .v3 = v3 }, 18);
+}
+pub fn truthsForKeccakOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions) ![]W.TruthDeclaration {
+    return truthsWithOptions(a, captured, options, 18);
+}
+/// Producer geometry experiment only; the receiver admits original call spans.
+/// The default entry point remains log18. Smaller shards multiply proof leaves.
+/// v2 profile (compact Keccak truth): the OM GKR route is v2-only.
+pub fn truthsWithKeccakMaxLog(a: std.mem.Allocator, captured: *const Capture, max_log: u32) ![]W.TruthDeclaration {
+    return truthsWithOptions(a, captured, .{}, max_log);
+}
+fn truthsForCounts(a: std.mem.Allocator, total: [3]u32, max_log: u32) ![]W.TruthDeclaration {
+    var out: std.ArrayList(W.TruthDeclaration) = .{};
+    errdefer out.deinit(a);
+    try appendKeccakSecp(a, &out, total, max_log, .{});
+    return out.toOwnedSlice(a);
+}
+/// One planned Keccak truth span: `calls` IDs in one proof of `log` rows.
+const KeccakPiece = struct { calls: u32, log: u32, policy: KeccakPolicy };
+const KeccakSplit = struct { pieces: [3]KeccakPiece = undefined, len: usize = 0, cells: u64 = std.math.maxInt(u64) };
+/// Calls of a full `log` truth in `geometry` (whole pairs).
+fn keccakCapacity(geometry: A.crypto.keccak.layout.Geometry, log: u32) u32 {
+    return @intCast(((@as(usize, 1) << @intCast(log)) / geometry.rowsPerPair()) * 2);
+}
+/// v3: the cheapest single truth for `calls` (throughput profile in its slot
+/// geometry, or the compact truth in 29-row slots), bounded by `max_log`.
+fn keccakSingle(options: KeccakTruthOptions, calls: u32, max_log: u32) ?KeccakPiece {
+    const throughput = options.throughput();
+    const tlog = keccakLogFor(throughput.geometry(), calls);
+    const clog = keccakLogFor(.pair29, calls);
+    var best: ?KeccakPiece = null;
+    if (tlog <= max_log) best = .{ .calls = calls, .log = tlog, .policy = throughput };
+    if (!options.uniform_throughput and clog <= max_log and (best == null or keccakTruthCells(.triple_v2, clog) <= keccakTruthCells(throughput, tlog))) best = .{ .calls = calls, .log = clog, .policy = .triple_v2 };
+    return best;
+}
+/// v3 truth sizing of a remainder of at most one full shard: the cheapest
+/// split into at most `depth` spans (each but the last a full throughput
+/// truth of some log >= 13), counting every proof's tables. Committed cells
+/// only; receivers admit any contiguous span roster.
+fn keccakBestSplit(options: KeccakTruthOptions, calls: u32, max_log: u32, depth: usize) KeccakSplit {
+    var best = KeccakSplit{};
+    if (keccakSingle(options, calls, max_log)) |piece| {
+        best.pieces[0] = piece;
+        best.len = 1;
+        best.cells = keccakTruthCells(piece.policy, piece.log);
+    }
+    if (depth <= 1) return best;
+    const throughput = options.throughput();
+    var log: u32 = 13;
+    while (log <= max_log) : (log += 1) {
+        const capacity = keccakCapacity(throughput.geometry(), log);
+        if (capacity == 0 or capacity >= calls) break;
+        const rest = keccakBestSplit(options, calls - capacity, max_log, depth - 1);
+        if (rest.len == 0) continue;
+        const cells = keccakTruthCells(throughput, log) + rest.cells;
+        if (cells < best.cells) {
+            best.cells = cells;
+            best.pieces[0] = .{ .calls = capacity, .log = log, .policy = throughput };
+            @memcpy(best.pieces[1..][0..rest.len], rest.pieces[0..rest.len]);
+            best.len = 1 + rest.len;
+        }
+    }
+    return best;
+}
+fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, max_log: u32, options: KeccakTruthOptions) !void {
+    if (max_log < 16 or max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
+    if (options.v3) return appendKeccakV3(a, out, total, max_log, options);
+    // Keep full shard lengths even so partitioning preserves paired slots.
+    const max_keccak: u32 = ((@as(u32, 1) << @intCast(max_log)) / A.crypto.keccak.layout.ROWS_PER_PAIR) * 2;
+    var next: u32 = 1;
+    while (next <= total[0]) {
+        // Explicit u32: @min with a comptime bound narrows to u15, and the row
+        // product below then wraps (latent: logs below 18 were under-sized).
+        const calls: u32 = @min(max_keccak, total[0] - next + 1);
+        const log: u32 = if (calls > max_keccak / 2) max_log else @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * 29)));
+        try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, W.keccakProfileWord(keccakTruthPolicyFor(options, log)) } });
+        next = try std.math.add(u32, next, calls);
+    }
+    try appendSecp(a, out, total, options.v3);
+}
+/// v3 Keccak truths: full shards of the throughput profile's slot geometry,
+/// then the cheapest split of the remainder (`keccakBestSplit`).
+fn appendKeccakV3(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, max_log: u32, options: KeccakTruthOptions) !void {
+    // Keep full shard lengths even so partitioning preserves paired slots.
+    const throughput = options.throughput();
+    const max_keccak = keccakCapacity(throughput.geometry(), max_log);
+    var next: u32 = 1;
+    while (next <= total[0]) {
+        const remaining = total[0] - next + 1;
+        if (remaining > max_keccak) {
+            try out.append(a, .{ .family = .keccak, .first_id = next, .calls = max_keccak, .logs = .{ max_log, W.keccakProfileWord(keccakTruthPolicyFor(options, max_log)) } });
+            next = try std.math.add(u32, next, max_keccak);
+            continue;
+        }
+        const split = keccakBestSplit(options, remaining, max_log, 3);
+        if (split.len == 0) return error.EthereumTruthCapacityExceeded;
+        for (split.pieces[0..split.len]) |piece| {
+            try A.crypto.keccak.layout.validateGeometryFor(piece.policy.geometry(), piece.calls, next, piece.log);
+            try out.append(a, .{ .family = .keccak, .first_id = next, .calls = piece.calls, .logs = .{ piece.log, W.keccakProfileWord(piece.policy) } });
+            next = try std.math.add(u32, next, piece.calls);
+        }
+    }
+    try appendSecp(a, out, total, options.v3);
+}
+fn appendSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, v3: bool) !void {
+    for (1..3) |family| {
+        const kind: A.crypto.secp256k1.program.Kind = if (family == 1) .add else .double;
+        const program = A.crypto.secp256k1.program.get(kind);
+        var next: u32 = 1;
+        // v3: the row profile wherever it commits fewer cells than the RCB
+        // providers for the same span (always, beyond tiny call counts).
+        if (v3 and total[family] != 0) {
+            const row_capacity: u32 = (@as(u32, 1) << @intCast(SecpRow.MAX_LOG)) - 1;
+            var rows: std.ArrayList(W.TruthDeclaration) = .{};
+            defer rows.deinit(a);
+            var row_cells: u64 = 0;
+            var rcb_cells: u64 = 0;
+            var at: u32 = 1;
+            while (at <= total[family]) {
+                const calls = try secpRowSpan(kind, @min(row_capacity, total[family] - at + 1));
+                const log = try SecpRow.logSize(kind, calls);
+                try rows.append(a, .{ .family = @enumFromInt(family), .first_id = at, .calls = calls, .logs = .{ log, SecpRow.PROFILE_WORD } });
+                row_cells += SecpRow.cells(kind, log);
+                at = try std.math.add(u32, at, calls);
+            }
+            rcb_cells = try secpRcbCells(kind, total[family]);
+            if (row_cells < rcb_cells) {
+                try out.appendSlice(a, rows.items);
+                continue;
+            }
+        }
+        while (next <= total[family]) {
+            // Bound product and linear workers separately; real call counts
+            // select shape without constraining CPU geometry to provider size.
+            const capacity = @min(((1 << 18) - 1) / program.rows(true), ((1 << 18) - 1) / program.rows(false));
+            const calls: u32 = @intCast(@min(capacity, total[family] - next + 1));
+            if (calls == 0) return error.EthereumTruthCapacityExceeded;
+            const logs = [2]u32{ try A.crypto.secp256k1.layout.logSize(.product, program, calls), try A.crypto.secp256k1.layout.logSize(.linear, program, calls) };
+            try out.append(a, .{ .family = @enumFromInt(family), .first_id = next, .calls = calls, .logs = logs });
+            next = try std.math.add(u32, next, calls);
+        }
+    }
+}
+const SecpRow = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/secp/row_roster.zig");
+/// Calls of the next row span out of `remaining` (<= capacity): one padded
+/// power of two, unless splitting at the next smaller one (head of
+/// 2^(log-1) - 1 calls, its own padding row included) and covering the rest
+/// separately commits at least 1/8 fewer cells. Padding only: every call is
+/// still covered exactly once, in order.
+pub fn secpRowSpan(kind: A.crypto.secp256k1.program.Kind, remaining: u32) !u32 {
+    const log = try SecpRow.logSize(kind, remaining);
+    if (log <= A.crypto.curves.layout.MIN_LOG) return remaining;
+    const head: u32 = (@as(u32, 1) << @intCast(log - 1)) - 1;
+    if (head >= remaining) return remaining;
+    const split = SecpRow.cells(kind, log - 1) + SecpRow.cells(kind, try SecpRow.logSize(kind, remaining - head));
+    return if (8 * split <= 7 * SecpRow.cells(kind, log)) head else remaining;
+}
+/// Committed MAIN+INTERACTION cells of the RCB product/linear/BYTE truths
+/// covering `calls` (the spans the v2 planner emits).
+pub fn secpRcbCells(kind: A.crypto.secp256k1.program.Kind, calls_total: u32) !u64 {
+    const S = A.crypto.secp256k1;
+    const program = S.program.get(kind);
+    const policy = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/secp/roster.zig").TruthSetup.byte_policy;
+    const capacity = @min(((1 << 18) - 1) / program.rows(true), ((1 << 18) - 1) / program.rows(false));
+    var cells: u64 = 0;
+    var at: u64 = 0;
+    while (at < calls_total) {
+        const calls: usize = @intCast(@min(capacity, calls_total - at));
+        const lp = try S.layout.logSize(.product, program, calls);
+        const ll = try S.layout.logSize(.linear, program, calls);
+        cells += (@as(u64, S.layout.main(.product) + S.layout.interactionFor(.product, policy)) << @intCast(lp)) + (@as(u64, S.layout.main(.linear) + S.layout.interactionFor(.linear, policy)) << @intCast(ll)) + 9 * 256;
+        at += calls;
+    }
+    return cells;
+}
+pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
+    if (options.one_per_family and options.coalesce_families) return error.ConflictingTruthFamilyPlans;
+    if (options.one_per_family or options.coalesce_families) {
+        const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        for (captured.advice.keccak, captured.advice.secp, captured.advice.sha256, captured.advice.arith256_mod, captured.advice.curves, captured.advice.sponge) |keccak, secp, sha256, arith, curves, sponge| {
+            total[0] = try std.math.add(u32, total[0], try std.math.add(u32, @intCast(keccak.len), @intCast(sponge.inputs.len)));
+            total[1] = try std.math.add(u32, total[1], @intCast(secp[0].len));
+            total[2] = try std.math.add(u32, total[2], @intCast(secp[1].len));
+            total[3] = try std.math.add(u32, total[3], @intCast(sha256.len));
+            total[4] = try std.math.add(u32, total[4], @intCast(arith.len));
+            for (curves, 0..) |calls, index| total[ST.FIRST_CURVE + index] = try std.math.add(u32, total[ST.FIRST_CURVE + index], @intCast(calls.len));
+        }
+        return if (options.one_per_family) oneTruthPerFamily(a, total, options) else coalesceTruthFamilies(a, total, options, max_log);
+    }
+
+    var total: [3]u32 = @splat(0);
+    for (captured.advice.keccak, captured.advice.secp) |k, s| {
+        total[0] = try std.math.add(u32, total[0], @intCast(k.len));
+        total[1] = try std.math.add(u32, total[1], @intCast(s[0].len));
+        total[2] = try std.math.add(u32, total[2], @intCast(s[1].len));
+    }
+    // Keccak-sponge permutations follow the Keccak-f calls in the IO11 ID space.
+    for (captured.advice.sponge) |z| total[0] = try std.math.add(u32, total[0], @intCast(z.inputs.len));
+    var out: std.ArrayList(W.TruthDeclaration) = .{};
+    errdefer out.deinit(a);
+    try appendKeccakSecp(a, &out, total, max_log, options);
+    var next: u32 = 1;
+    // SHA-256: one compression per row plus a padding row; bounded log13 spans.
+    var sha256: u32 = 0;
+    for (captured.advice.sha256) |calls| sha256 = try std.math.add(u32, sha256, @intCast(calls.len));
+    const capacity: u32 = (@as(u32, 1) << @intCast(@import("../../../../../../integrations/riscv_cpu/word16_global_execution/sha256/roster.zig").MAX_LOG)) - 1;
+    next = 1;
+    while (next <= sha256) {
+        const calls: u32 = @min(capacity, sha256 - next + 1);
+        try out.append(a, .{ .family = .sha256, .first_id = next, .calls = calls, .logs = .{ try A.crypto.sha256.layout.logSize(calls), 0 } });
+        next = try std.math.add(u32, next, calls);
+    }
+    // arith256_mod: one call per row plus a padding row (>= 256 rows for the
+    // local BYTE table); bounded log16 spans.
+    var arith: u32 = 0;
+    for (captured.advice.arith256_mod) |calls| arith = try std.math.add(u32, arith, @intCast(calls.len));
+    const arith_capacity: u32 = (@as(u32, 1) << @intCast(@import("../../../../../../integrations/riscv_cpu/word16_global_execution/arith256/roster.zig").MAX_LOG)) - 1;
+    next = 1;
+    while (next <= arith) {
+        const calls: u32 = @min(arith_capacity, arith - next + 1);
+        try out.append(a, .{ .family = .arith256_mod, .first_id = next, .calls = calls, .logs = .{ try A.crypto.arith256.layout.logSize(calls), 0 } });
+        next = try std.math.add(u32, next, calls);
+    }
+    // Curve/field families 5..11: one call per row plus a padding row
+    // (>= 256 rows for the local BYTE table); bounded log16 spans.
+    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    const CR = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/curves/roster.zig");
+    const curve_capacity: u32 = (@as(u32, 1) << @intCast(CR.MAX_LOG)) - 1;
+    for (0..ST.CURVES) |c| {
+        var curve_total: u32 = 0;
+        for (captured.advice.curves) |shard| curve_total = try std.math.add(u32, curve_total, @intCast(shard[c].len));
+        const family: ST.Family = @enumFromInt(ST.FIRST_CURVE + c);
+        next = 1;
+        while (next <= curve_total) {
+            const calls: u32 = @min(curve_capacity, curve_total - next + 1);
+            try out.append(a, .{ .family = family, .first_id = next, .calls = calls, .logs = .{ try CR.logSize(ST.curveOp(family).?, calls), 0 } });
+            next = try std.math.add(u32, next, calls);
+        }
+    }
+    return out.toOwnedSlice(a);
+}
+/// Producer geometry only: complete family spans start at1. Existing source
+/// receiver admission is applied before returning; capacity failure never
+/// silently restores a split roster. CPU geometry/authority is unchanged.
+pub fn oneTruthPerFamily(a: std.mem.Allocator, total: [@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").FAMILIES]u32, options: KeccakTruthOptions) ![]W.TruthDeclaration {
+    if (!options.v3) return error.OneTruthPerFamilyRequiresV3;
+    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    var out: std.ArrayList(W.TruthDeclaration) = .empty;
+    errdefer out.deinit(a);
+    for (std.enums.values(ST.Family), total) |family, calls| {
+        if (calls == 0) continue;
+        const logs: [2]u32 = switch (family) {
+            .keccak => block: {
+                if (calls > keccakCapacity(options.throughput().geometry(), 22)) return error.OneTruthPerFamilySourceCapacity;
+                const piece = keccakSingle(options, calls, 22) orelse return error.OneTruthPerFamilySourceCapacity;
+                break :block .{ piece.log, W.keccakProfileWord(piece.policy) };
+            },
+            else => try nonKeccakLogs(family, calls),
+        };
+        const declaration = W.TruthDeclaration{ .family = family, .first_id = 1, .calls = calls, .logs = logs };
+        try @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/service_scope.zig").truthDeclaration(declaration);
+        try out.append(a, declaration);
+    }
+    return out.toOwnedSlice(a);
+}
+/// Wire logs of one non-Keccak V3 truth over `calls` (the single-truth sizing
+/// of `oneTruthPerFamily`; source caps return OneTruthPerFamilySourceCapacity).
+fn nonKeccakLogs(family: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").Family, calls: u32) ![2]u32 {
+    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    return switch (family) {
+        .keccak => error.NotV3Truth,
+        .add, .double => .{ try SecpRow.logSize(if (family == .add) .add else .double, calls), SecpRow.PROFILE_WORD },
+        .sha256 => block: {
+            const log = try A.crypto.sha256.layout.logSize(calls);
+            if (log > @import("../../../../../../integrations/riscv_cpu/word16_global_execution/sha256/roster.zig").MAX_LOG) return error.OneTruthPerFamilySourceCapacity;
+            break :block .{ log, 0 };
+        },
+        .arith256_mod => block: {
+            const log = try A.crypto.arith256.layout.logSize(calls);
+            if (log > @import("../../../../../../integrations/riscv_cpu/word16_global_execution/arith256/roster.zig").MAX_LOG) return error.OneTruthPerFamilySourceCapacity;
+            break :block .{ log, 0 };
+        },
+        else => .{ try @import("../../../../../../integrations/riscv_cpu/word16_global_execution/curves/roster.zig").logSize(ST.curveOp(family).?, calls), 0 },
+    };
+}
+/// Source cap (roster MAX_LOG) of one V3 truth of `family`.
+fn sourceMaxLog(family: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").Family) u32 {
+    return switch (family) {
+        .keccak => 22,
+        .sha256 => @import("../../../../../../integrations/riscv_cpu/word16_global_execution/sha256/roster.zig").MAX_LOG,
+        .arith256_mod => @import("../../../../../../integrations/riscv_cpu/word16_global_execution/arith256/roster.zig").MAX_LOG,
+        .add, .double => SecpRow.MAX_LOG,
+        else => @import("../../../../../../integrations/riscv_cpu/word16_global_execution/curves/roster.zig").MAX_LOG,
+    };
+}
+/// Top canonical rung log of `family` with wire aux `aux` (null: no entry).
+pub fn topRungLog(table: anytype, family: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").Family, aux: u32) ?u32 {
+    const canon = Canon.Family.truth(family);
+    for (table.TRUTH) |e| {
+        if (e.family == canon and e.aux == aux) return e.logs[e.logs.len - 1];
+    }
+    return null;
+}
+/// The single coalesced truth of `family`, or null where the D2 profile
+/// refuses it: source capacity, V3 shape/geometry, or (rung_bound) no
+/// admissible canonical rung. The returned declaration is exactly the one
+/// `oneTruthPerFamily` emits.
+fn admittedSingle(family: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").Family, calls: u32, rung_bound: bool) ?W.TruthDeclaration {
+    const logs = nonKeccakLogs(family, calls) catch return null;
+    const declaration = W.TruthDeclaration{ .family = family, .first_id = 1, .calls = calls, .logs = logs };
+    @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/service_scope.zig").truthDeclaration(declaration) catch return null;
+    if (rung_bound) {
+        const top = topRungLog(@import("canon_native_rungs.zig"), family, logs[1]) orelse return null;
+        if (logs[0] > top) return null;
+    }
+    return declaration;
+}
+/// Consecutive spans of `family` covering IDs 1..calls in order: full spans of
+/// 2^cap - 1 calls (one padding row each; cap = source MAX_LOG, also bounded
+/// by the family's top canonical rung when `rung_bound`), then the remainder
+/// at its own smallest log. Each span is an ordinary admitted V3 geometry
+/// (validated by the same `truthDeclaration` the single truth passes).
+pub fn appendSplitFamily(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), family: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").Family, calls: u32, rung_bound: bool) !void {
+    var cap = sourceMaxLog(family);
+    if (rung_bound) {
+        // Every non-Keccak V3 truth has wire aux 0.
+        const top = topRungLog(@import("canon_native_rungs.zig"), family, 0) orelse return error.CanonFamilyMissing;
+        cap = @min(cap, top);
+    }
+    const capacity: u32 = (@as(u32, 1) << @intCast(cap)) - 1;
+    var next: u32 = 1;
+    var left = calls;
+    while (left > 0) {
+        const span = @min(capacity, left);
+        const logs = try nonKeccakLogs(family, span);
+        const declaration = W.TruthDeclaration{ .family = family, .first_id = next, .calls = span, .logs = logs };
+        try @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/service_scope.zig").truthDeclaration(declaration);
+        try out.append(a, declaration);
+        next = try std.math.add(u32, next, span);
+        left -= span;
+    }
+}
+/// Preserve Keccak's admitted bounded shards; combine each other family into
+/// one physical proof. This explicit partial plan does not claim one Keccak proof.
+pub fn coalesceTruthFamilies(a: std.mem.Allocator, total: [@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").FAMILIES]u32, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
+    if (!options.v3) return error.OneTruthPerFamilyRequiresV3;
+    var out: std.ArrayList(W.TruthDeclaration) = .empty;
+    errdefer out.deinit(a);
+    try appendKeccakSecp(a, &out, .{ total[0], 0, 0 }, max_log, options);
+    if (options.split_families) {
+        // Per family, in family order (the receiver's span order): the single
+        // admitted truth where the profile plans it today, bounded spans only
+        // where it refuses.
+        const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+        for (std.enums.values(ST.Family)[1..], total[1..]) |family, calls| {
+            if (calls == 0) continue;
+            if (admittedSingle(family, calls, options.rung_bound)) |declaration| {
+                try out.append(a, declaration);
+            } else try appendSplitFamily(a, &out, family, calls, options.rung_bound);
+        }
+        return out.toOwnedSlice(a);
+    }
+    var remainder = total;
+    remainder[0] = 0;
+    const rest = try oneTruthPerFamily(a, remainder, options);
+    defer a.free(rest);
+    try out.appendSlice(a, rest);
+    return out.toOwnedSlice(a);
+}
+test "one truth per family producer resource mapping preserves the selected partial policy" {
+    const R = struct { one_truth_per_family: bool = false, coalesce_truth_families: bool = false };
+    var parsed = try std.json.parseFromSlice(R, std.testing.allocator, "{\"coalesce_truth_families\":true}", .{});
+    defer parsed.deinit();
+    const selected = KeccakTruthOptions.fromResources(true, true, @as(?R, parsed.value));
+    try std.testing.expect(selected.v3 and selected.uniform_throughput and selected.coalesce_families and !selected.one_per_family);
+    const defaults = KeccakTruthOptions.fromResources(true, true, @as(?R, null));
+    try std.testing.expect(!defaults.coalesce_families and !defaults.one_per_family);
+    var total: [@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").FAMILIES]u32 = @splat(0);
+    @memcpy(total[0..5], &[_]u32{ 29998, 10358, 9751, 2901, 319 });
+    const declarations = try coalesceTruthFamilies(std.testing.allocator, total, selected, 18);
+    defer std.testing.allocator.free(declarations);
+    try std.testing.expectEqual(@as(usize, 7), declarations.len);
+}
+test "one truth per family partial coalescing preserves bounded Keccak and admitted secp spans" {
+    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    for ([_][5]u32{ .{ 20994, 14855, 14001, 3157, 25 }, .{ 29998, 10358, 9751, 2901, 319 } }) |counts| {
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        @memcpy(total[0..5], &counts);
+        const truth = try coalesceTruthFamilies(std.testing.allocator, total, .{ .v3 = true, .uniform_throughput = true, .coalesce_families = true }, 18);
+        defer std.testing.allocator.free(truth);
+        try std.testing.expectEqual(@as(usize, 7), truth.len);
+        var got: [ST.FAMILIES]u32 = @splat(0);
+        for (truth) |declaration| {
+            const index = @intFromEnum(declaration.family);
+            try std.testing.expectEqual(got[index] + 1, declaration.first_id);
+            got[index] += declaration.calls;
+            if (declaration.family == .keccak) try std.testing.expect(declaration.logs[0] <= 18);
+        }
+        try std.testing.expectEqualSlices(u32, &total, &got);
+        // The coalesced secp spans fit the existing source-owned M6 rung table.
+        var classes: [4]CanonClass = undefined;
+        try canonicalTruths(truth[3..], @import("canon_native_rungs.zig"), &classes);
+        try std.testing.expectEqual(@as(u32, 14), truth[3].logs[0]);
+        try std.testing.expectEqual(@as(u32, 14), truth[4].logs[0]);
+    }
+}
+test "truth split leaves every plan the coalesced profile admits unchanged" {
+    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    for ([_][5]u32{ .{ 20994, 14855, 14001, 3157, 25 }, .{ 29998, 10358, 9751, 2901, 319 }, .{ 1, 1, 1, 1, 1 }, .{ 40000, 0, 0, 8191, 32767 } }) |counts| {
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        @memcpy(total[0..5], &counts);
+        total[ST.FIRST_CURVE] = 300;
+        total[ST.FIRST_CURVE + 2] = 9000;
+        const base = KeccakTruthOptions{ .v3 = true, .uniform_throughput = true, .coalesce_families = true };
+        const off = try coalesceTruthFamilies(std.testing.allocator, total, base, 18);
+        defer std.testing.allocator.free(off);
+        inline for (.{ false, true }) |rung_bound| {
+            var split = base;
+            split.split_families = true;
+            split.rung_bound = rung_bound;
+            const on = try coalesceTruthFamilies(std.testing.allocator, total, split, 18);
+            defer std.testing.allocator.free(on);
+            try std.testing.expectEqualSlices(W.TruthDeclaration, off, on);
+        }
+    }
+}
+/// Receiver span rule (services/protocol.zig): family order, contiguous IDs
+/// from 1, exact coverage, non-empty spans.
+fn expectReceiverSpans(truth: []const W.TruthDeclaration, total: [@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").FAMILIES]u32) !void {
+    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    var next: [ST.FAMILIES]u32 = @splat(1);
+    var previous: u8 = 0;
+    for (truth) |d| {
+        const family = @intFromEnum(d.family);
+        try std.testing.expect(family >= previous and d.calls != 0 and d.first_id == next[family]);
+        previous = family;
+        next[family] += d.calls;
+    }
+    for (next, total) |n, t| try std.testing.expectEqual(t + 1, n);
+}
+test "truth split plans refused coalesced families as bounded admitted spans" {
+    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    var total: [ST.FAMILIES]u32 = @splat(0);
+    // sha256 > 2^13-1 (OneTruthPerFamilySourceCapacity), secp rows > 2^16-1
+    // (V3TruthShapeExceeded), arith256 log16 (source ok, no log16 rung).
+    @memcpy(total[0..5], &[_]u32{ 120000, 150001, 131070, 20000, 40000 });
+    total[ST.FIRST_CURVE] = 9000; // bn254 g1 add: top rung 13
+    total[ST.FIRST_CURVE + 2] = 70000; // bn254 fp2 mul: source cap 16
+    const base = KeccakTruthOptions{ .v3 = true, .uniform_throughput = true, .coalesce_families = true };
+    // Refused today: secp add (family 1) fails first, as on the 4 largest blocks.
+    try std.testing.expectError(error.V3TruthShapeExceeded, coalesceTruthFamilies(std.testing.allocator, total, base, 18));
+    var split = base;
+    split.split_families = true;
+    split.rung_bound = true;
+    const truth = try coalesceTruthFamilies(std.testing.allocator, total, split, 18);
+    defer std.testing.allocator.free(truth);
+    try expectReceiverSpans(truth, total);
+    // Every span is source-admitted and lands on an existing canonical rung.
+    const Rungs = @import("canon_native_rungs.zig");
+    const padded = try std.testing.allocator.dupe(W.TruthDeclaration, truth);
+    defer std.testing.allocator.free(padded);
+    var first_non_keccak: usize = 0;
+    while (padded[first_non_keccak].family == .keccak) first_non_keccak += 1;
+    const classes = try std.testing.allocator.alloc(CanonClass, padded.len - first_non_keccak);
+    defer std.testing.allocator.free(classes);
+    try canonicalTruths(padded[first_non_keccak..], Rungs, classes);
+    for (padded[first_non_keccak..]) |d| try @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/service_scope.zig").truthDeclaration(d);
+    // Spans per family: add 3 (65535, 65535, 18931), double 2 (65535 x 2),
+    // sha256 3 (8191, 8191, 3618), arith 2 (32767, 7233), bn254 add 2, fp2 2.
+    var spans: [ST.FAMILIES]usize = @splat(0);
+    for (truth) |d| spans[@intFromEnum(d.family)] += 1;
+    try std.testing.expectEqualSlices(usize, &.{ 3, 2, 3, 2, 2, 0, 2 }, spans[1..8]);
+    for (truth) |d| if (d.family == .add) try std.testing.expect(d.logs[0] <= 16);
+    // Without the rung bound only the source caps apply: arith 40000 fits log16.
+    split.rung_bound = false;
+    const loose = try coalesceTruthFamilies(std.testing.allocator, total, split, 18);
+    defer std.testing.allocator.free(loose);
+    try expectReceiverSpans(loose, total);
+    var arith: usize = 0;
+    for (loose) |d| if (d.family == .arith256_mod) {
+        arith += 1;
+        try std.testing.expectEqual(@as(u32, 16), d.logs[0]);
+    };
+    try std.testing.expectEqual(@as(usize, 1), arith);
+}
+test "truth split plans the M3 basket family totals the coalesced profile refuses" {
+    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    // Per-family call totals of the M3 basket bundles (runs/integrate/<block>-2gpu-*/
+    // bundle.json): families 0..4 then the curve families 5..9; refused = the
+    // bench15-1 D2 coalesced refusal (24697070 is the admitted control).
+    const Case = struct { block: u32, calls: [10]u32, refused: bool };
+    const cases = [_]Case{
+        .{ .block = 24626900, .calls = .{ 56377, 32313, 30376, 8435, 156, 0, 0, 0, 0, 0 }, .refused = true },
+        .{ .block = 24697073, .calls = .{ 61612, 51545, 48626, 12328, 399, 0, 0, 0, 6767, 7303 }, .refused = true },
+        .{ .block = 26235168, .calls = .{ 85653, 42223, 39751, 12042, 24705, 1140, 3732, 58848, 6767, 7303 }, .refused = true },
+        .{ .block = 25229955, .calls = .{ 94286, 46095, 43501, 15797, 8366, 3042, 10542, 24976, 0, 0 }, .refused = true },
+        .{ .block = 25229951, .calls = .{ 123870, 62451, 58751, 19431, 2900, 1514, 5277, 12488, 0, 0 }, .refused = true },
+        .{ .block = 24628590, .calls = .{ 146822, 80632, 75751, 23823, 595, 0, 0, 0, 0, 0 }, .refused = true },
+        .{ .block = 24628595, .calls = .{ 166402, 98980, 93122, 23237, 1823, 158, 506, 12488, 0, 0 }, .refused = true },
+        .{ .block = 24628611, .calls = .{ 176023, 95860, 90251, 29434, 1264, 0, 0, 0, 6767, 7303 }, .refused = true },
+        .{ .block = 26235159, .calls = .{ 151832, 86324, 81251, 27732, 10915, 4530, 15695, 12488, 13534, 14606 }, .refused = true },
+        .{ .block = 24697070, .calls = .{ 58880, 37465, 35251, 7807, 2273, 368, 1253, 12488, 0, 0 }, .refused = false },
+    };
+    const base = KeccakTruthOptions{ .v3 = true, .uniform_throughput = true, .coalesce_families = true };
+    for (cases) |case| {
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        @memcpy(total[0..10], &case.calls);
+        const off = coalesceTruthFamilies(std.testing.allocator, total, base, 18);
+        if (case.refused) {
+            try std.testing.expect(std.meta.isError(off));
+        } else {
+            std.testing.allocator.free(try off);
+        }
+        inline for (.{ false, true }) |rung_bound| {
+            var split = base;
+            split.split_families = true;
+            split.rung_bound = rung_bound;
+            const truth = try coalesceTruthFamilies(std.testing.allocator, total, split, 18);
+            defer std.testing.allocator.free(truth);
+            try expectReceiverSpans(truth, total);
+            for (truth) |d| if (d.family != .keccak) try @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/service_scope.zig").truthDeclaration(d);
+            if (!case.refused) {
+                const control = try coalesceTruthFamilies(std.testing.allocator, total, base, 18);
+                defer std.testing.allocator.free(control);
+                try std.testing.expectEqualSlices(W.TruthDeclaration, control, truth);
+            }
+        }
+    }
+}
+test "one truth per family preserves exact dev call spans within existing source authority" {
+    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    for ([_][5]u32{ .{ 20994, 14855, 14001, 3157, 25 }, .{ 29998, 10358, 9751, 2901, 319 } }) |counts| {
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        @memcpy(total[0..5], &counts);
+        const truth = try oneTruthPerFamily(std.testing.allocator, total, .{ .v3 = true, .uniform_throughput = true, .one_per_family = true });
+        defer std.testing.allocator.free(truth);
+        try std.testing.expectEqual(@as(usize, 5), truth.len);
+        for (truth, counts) |declaration, calls| {
+            try std.testing.expectEqual(calls, declaration.calls);
+            try std.testing.expectEqual(@as(u32, 1), declaration.first_id);
+        }
+        try std.testing.expectEqual(@as(u32, 19), truth[0].logs[0]);
+        try std.testing.expectEqual(@as(u32, 14), truth[1].logs[0]);
+        try std.testing.expectEqual(@as(u32, 14), truth[2].logs[0]);
+        // Existing strict M6 authority deliberately has no Keccak log19 rung.
+        // Source-valid geometry must not silently widen that receiver authority.
+        var classes: [5]CanonClass = undefined;
+        try std.testing.expectError(error.CanonNoAdmissibleRung, canonicalTruths(truth, @import("canon_native_rungs.zig"), &classes));
+    }
+    var total: [ST.FAMILIES]u32 = @splat(0);
+    total[3] = 8192;
+    try std.testing.expectError(error.OneTruthPerFamilySourceCapacity, oneTruthPerFamily(std.testing.allocator, total, .{ .v3 = true }));
+    total = @splat(0);
+    total[0] = std.math.maxInt(u32);
+    try std.testing.expectError(error.OneTruthPerFamilySourceCapacity, oneTruthPerFamily(std.testing.allocator, total, .{ .v3 = true }));
+    try std.testing.expectError(error.OneTruthPerFamilyRequiresV3, oneTruthPerFamily(std.testing.allocator, @splat(0), .{}));
+}
+test "keccak truth plan sizes prefixes below the log18 bound without u15 wrap" {
+    const calls: u32 = 3934;
+    const narrowed = @min(@as(u32, ((1 << 18) / 29) * 2), calls);
+    _ = narrowed;
+    try std.testing.expectEqual(@as(u32, 16), try A.crypto.keccak.layout.logSize(calls));
+}
+test "v3 keccak truth takes the throughput tables exactly where they commit fewer cells" {
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(false, 18));
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(true, 12));
+    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = false }, 13));
+    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = false }, 18));
+    // v3 default: the quartet batching of the same tables on the 27-row slot.
+    try std.testing.expectEqual(KeccakPolicy.throughput_r27_v1, keccakTruthPolicy(true, 13));
+    try std.testing.expectEqual(KeccakPolicy.throughput_r27_v1, keccakTruthPolicy(true, 18));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .r27 = false }, 18));
+    // log18: 2^18 x (1923 + 2596) + 5 x (2^13 + 2^10) vs 2^18 x 2531 + 5 x (2^21 + 2^16).
+    try std.testing.expectEqual(@as(u64, 1_184_674_816), keccakTruthCells(.triple_v2, 18));
+    try std.testing.expectEqual(@as(u64, 674_299_904), keccakTruthCells(.throughput_v1, 18));
+}
+test "r27 keccak truth plan cuts shards in 27-row slots and keeps the compact truth for small spans" {
+    const r27 = KeccakTruthOptions{ .v3 = true, .r27 = true };
+    try std.testing.expectEqual(KeccakPolicy.throughput_r27_v1, keccakTruthPolicyFor(r27, 18));
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(r27, 12));
+    // r27 requires the quartet batching.
+    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = false, .r27 = true }, 18));
+    // log18: 2^18 x (1923 + 480) + 5 x (2^21 + 2^16).
+    try std.testing.expectEqual(@as(u64, 640_745_472), keccakTruthCells(.throughput_r27_v1, 18));
+    // The prefix of block 24,628,607: 22,385 IDs -> 19,418 (log18), then the
+    // 2,967-call remainder split as 606 (full log13) + 2,361 (log15):
+    // 760,799,232 cells instead of 809,041,920 for one log16 remainder.
+    var out: std.ArrayList(W.TruthDeclaration) = .{};
+    defer out.deinit(std.testing.allocator);
+    try appendKeccakSecp(std.testing.allocator, &out, .{ 22_385, 0, 0 }, 18, r27);
+    try std.testing.expectEqual(@as(usize, 3), out.items.len);
+    try std.testing.expectEqual(@as(u32, 19_418), out.items[0].calls);
+    try std.testing.expectEqualDeep([2]u32{ 18, W.KECCAK_THROUGHPUT_R27_WORD }, out.items[0].logs);
+    try std.testing.expectEqual(@as(u32, 19_419), out.items[1].first_id);
+    try std.testing.expectEqual(@as(u32, 606), out.items[1].calls);
+    try std.testing.expectEqualDeep([2]u32{ 13, W.KECCAK_THROUGHPUT_R27_WORD }, out.items[1].logs);
+    try std.testing.expectEqual(@as(u32, 20_025), out.items[2].first_id);
+    try std.testing.expectEqual(@as(u32, 2_361), out.items[2].calls);
+    try std.testing.expectEqualDeep([2]u32{ 15, W.KECCAK_THROUGHPUT_R27_WORD }, out.items[2].logs);
+    var total_cells: u64 = 0;
+    for (out.items) |d| {
+        try A.crypto.keccak.layout.validateGeometryFor(.pair27, d.calls, d.first_id, d.logs[0]);
+        total_cells += keccakTruthCells(.throughput_r27_v1, d.logs[0]);
+    }
+    try std.testing.expectEqual(@as(u64, 760_799_232), total_cells);
+    try std.testing.expect(total_cells < keccakTruthCells(.throughput_r27_v1, 18) + keccakTruthCells(.throughput_r27_v1, 16));
+    // A small span takes the compact truth sized in its own (29-row) slots.
+    out.clearRetainingCapacity();
+    try appendKeccakSecp(std.testing.allocator, &out, .{ 140, 0, 0 }, 18, r27);
+    try std.testing.expectEqualDeep([2]u32{ 11, 0 }, out.items[0].logs);
+    try A.crypto.keccak.layout.validateGeometry(140, 1, 11);
+    // 292 calls: 146 x 27 = 3,942 rows fit log12, 146 x 29 = 4,234 do not;
+    // r27 at log12 (20.6 M cells) beats compact at log13 (37.1 M).
+    out.clearRetainingCapacity();
+    try appendKeccakSecp(std.testing.allocator, &out, .{ 292, 0, 0 }, 18, r27);
+    try std.testing.expectEqualDeep([2]u32{ 12, W.KECCAK_THROUGHPUT_R27_WORD }, out.items[0].logs);
+    try std.testing.expectError(error.InvalidKeccakComponentGeometry, A.crypto.keccak.layout.validateGeometry(292, 1, 12));
+    try A.crypto.keccak.layout.validateGeometryFor(.pair27, 292, 1, 12);
+    // The pair29 quartet plan of this prefix is unchanged by the split search
+    // (one log16 remainder is cheapest there: 801,177,600 cells).
+    out.clearRetainingCapacity();
+    try appendKeccakSecp(std.testing.allocator, &out, .{ 22_385, 0, 0 }, 18, .{ .v3 = true, .r27 = false });
+    try std.testing.expectEqual(@as(usize, 2), out.items.len);
+    try std.testing.expectEqual(@as(u32, 18_078), out.items[0].calls);
+    try std.testing.expectEqualDeep([2]u32{ 18, W.KECCAK_THROUGHPUT_QUARTET_WORD }, out.items[0].logs);
+    try std.testing.expectEqualDeep([2]u32{ 16, W.KECCAK_THROUGHPUT_QUARTET_WORD }, out.items[1].logs);
+    // v2 keeps the historical compact plan (byte identity of v2 bundles).
+    out.clearRetainingCapacity();
+    try appendKeccakSecp(std.testing.allocator, &out, .{ 22_385, 0, 0 }, 18, .{});
+    try std.testing.expectEqual(@as(usize, 2), out.items.len);
+    try std.testing.expectEqualDeep([2]u32{ 18, 0 }, out.items[0].logs);
+    try std.testing.expectEqualDeep([2]u32{ 16, 0 }, out.items[1].logs);
+    // Exhaustive small rosters: spans are contiguous, admitted and cover all IDs.
+    for ([_]KeccakTruthOptions{ .{ .v3 = true, .r27 = false }, r27, .{ .v3 = true, .quartet = false } }) |options| {
+        var calls: u32 = 1;
+        while (calls < 60_000) : (calls += 997) {
+            out.clearRetainingCapacity();
+            try appendKeccakSecp(std.testing.allocator, &out, .{ calls, 0, 0 }, 18, options);
+            var next: u32 = 1;
+            for (out.items) |d| {
+                try std.testing.expectEqual(next, d.first_id);
+                const policy = try W.keccakPolicy(d.logs[1]);
+                try A.crypto.keccak.layout.validateGeometryFor(policy.geometry(), d.calls, d.first_id, d.logs[0]);
+                try std.testing.expect(d.logs[0] <= 18);
+                next += d.calls;
+            }
+            try std.testing.expectEqual(calls + 1, next);
+        }
+    }
+}
+test "quartet keccak truth option keeps the throughput tables and cuts 152 interaction columns per row" {
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(.{ .quartet = true }, 18));
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(false, 18));
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true, .r27 = false }, 12));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true, .r27 = false }, 13));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true, .r27 = false }, 18));
+    // log18: 2^18 x (1923 + 456) + 5 x (2^21 + 2^16).
+    try std.testing.expectEqual(@as(u64, 634_454_016), keccakTruthCells(.throughput_quartet_v1, 18));
+    try std.testing.expectEqual(@as(u64, 152) << 18, keccakTruthCells(.throughput_v1, 18) - keccakTruthCells(.throughput_quartet_v1, 18));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, try W.keccakPolicy(W.keccakProfileWord(.throughput_quartet_v1)));
+    try std.testing.expectError(error.InvalidServicesTruthGeometry, W.keccakPolicy(22));
+    try std.testing.expectError(error.InvalidServicesTruthGeometry, W.keccakPolicy(4 << 8));
+}
+test "v3 secp row spans split only where padding wastes at least 1/8 of the cells" {
+    // 4-packet prefix of block 24,628,607: 1,080 ADD -> 1,023 (log 10) + 57 (log 8).
+    try std.testing.expectEqual(@as(u32, 1023), try secpRowSpan(.add, 1080));
+    try std.testing.expectEqual(@as(u32, 57), try secpRowSpan(.add, 57));
+    // 1,001 DOUBLE fits log 10 unsplit.
+    try std.testing.expectEqual(@as(u32, 1001), try secpRowSpan(.double, 1001));
+    // Complete block scale: 11,496 -> 8,191 (log 13) + 3,305 (log 12, unsplit).
+    try std.testing.expectEqual(@as(u32, 8191), try secpRowSpan(.add, 11496));
+    try std.testing.expectEqual(@as(u32, 3305), try secpRowSpan(.add, 3305));
+}
+test "v3 secp truths take the row profile wherever it commits fewer cells" {
+    // Real-prefix scale: fewer cells even with worst-case padding (1,200
+    // calls in 2^11 rows), under half at a full power of two (1,023 calls).
+    for ([_]A.crypto.secp256k1.program.Kind{ .add, .double }) |kind| {
+        try std.testing.expect(SecpRow.cells(kind, try SecpRow.logSize(kind, 1200)) < try secpRcbCells(kind, 1200));
+        try std.testing.expect(2 * SecpRow.cells(kind, try SecpRow.logSize(kind, 1023)) < try secpRcbCells(kind, 1023));
+    }
+}
+test "two-instance planner reduces physical rows only and respects reserved LS rows" {
+    try std.testing.expectEqualDeep(Ladder{ .head = 20, .tail = 18 }, try ladder(1200000, 1));
+    try std.testing.expectEqualDeep(Ladder{ .head = 19, .tail = 16 }, try ladder(574440, 0));
+    try std.testing.expectEqualDeep(Ladder{ .head = 5 }, try ladder(0, 1));
+    try std.testing.expectEqualDeep(Ladder{ .head = 6 }, try ladder(32, 1));
+    try std.testing.expectError(error.EthereumInstanceCapacityExceeded, ladder(1 << 22, 1));
+}
+
+test "bounded Keccak shard experiment preserves full-block call spans and reports physical costs" {
+    const a = std.testing.allocator;
+    try std.testing.expectError(error.UnsupportedEthereumKeccakShardLog, truthsForCounts(a, .{ 0, 0, 0 }, 15));
+    try std.testing.expectError(error.UnsupportedEthereumKeccakShardLog, truthsForCounts(a, .{ 0, 0, 0 }, 19));
+    const Shape = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_components.zig");
+    for ([_]u32{ 18, 16 }) |max_log| {
+        const declarations = try truthsForCounts(a, .{ 32835, 0, 0 }, max_log);
+        defer a.free(declarations);
+        var next: u32 = 1;
+        var cells: [3]u64 = @splat(0);
+        var permutation_rows: u64 = 0;
+        var active_rows: u64 = 0;
+        var opening_samples: u64 = 0;
+        var max_main_bytes: u64 = 0;
+        var max_interaction_bytes: u64 = 0;
+        var narrow_metadata_bytes: u64 = 0;
+        for (declarations) |d| {
+            try std.testing.expectEqual(next, d.first_id);
+            try std.testing.expect(d.calls > 0 and d.logs[0] <= max_log);
+            next += d.calls;
+            permutation_rows += @as(u64, 1) << @intCast(d.logs[0]);
+            active_rows += ((@as(u64, d.calls) + 1) / 2) * A.crypto.keccak.layout.ROWS_PER_PAIR;
+            var worker_cells: [3]u64 = @splat(0);
+            narrow_metadata_bytes += (((@as(u64, d.calls) + 1) / 2) * A.crypto.keccak.layout.ROWS_PER_PAIR) * @sizeOf(A.crypto.keccak.trace.PackedRow);
+            narrow_metadata_bytes += (@as(u64, A.crypto.keccak.layout.FIXED) * 4) << @intCast(d.logs[0]);
+            narrow_metadata_bytes += (8192 + 1024) * (7 * 4 + 4);
+            for (try Shape.shapesForDeclaration(d)) |role| {
+                for (role.widths(), 0..) |width, tree| {
+                    const count = @as(u64, width) << @intCast(role.log_size);
+                    cells[tree] += count;
+                    worker_cells[tree] += count;
+                    for (0..width) |column| opening_samples += role.shifts(tree, column).len;
+                }
+            }
+            max_main_bytes = @max(max_main_bytes, worker_cells[1] * 4);
+            max_interaction_bytes = @max(max_interaction_bytes, worker_cells[2] * 4);
+        }
+        try std.testing.expectEqual(@as(u32, 32836), next);
+        try std.testing.expectEqual(@as(u64, 476122), active_rows);
+        try std.testing.expectEqual(if (max_log == 18) @as(usize, 2) else 8, declarations.len);
+        try std.testing.expectEqual(if (max_log == 18) @as(u64, 524288) else 491520, permutation_rows);
+        std.debug.print("KECCAK_SHARD_COST max_log={d} proofs={d} permutation_rows={d} active_rows={d} fixed_cells={d} main_cells={d} interaction_cells={d} opening_samples={d} max_main_bytes={d} max_interaction_bytes={d} narrow_metadata_bytes={d} packed_row_bytes={d}\n", .{ max_log, declarations.len, permutation_rows, active_rows, cells[0], cells[1], cells[2], opening_samples, max_main_bytes, max_interaction_bytes, narrow_metadata_bytes, @sizeOf(A.crypto.keccak.trace.PackedRow) });
+    }
+}
+
+test "uniform resident Keccak keeps the small tail on admitted r27 geometry" {
+    const options = KeccakTruthOptions{ .v3 = true, .uniform_throughput = true };
+    const tail = keccakSingle(options, 266, 18) orelse return error.ExpectedKeccakTail;
+    try std.testing.expectEqual(KeccakPolicy.throughput_r27_v1, tail.policy);
+    try std.testing.expectEqual(@as(u32, 12), tail.log);
+    try std.testing.expectEqual(@as(u32, 266), tail.calls);
+    try A.crypto.keccak.layout.validateGeometryFor(.pair27, tail.calls, 29_733, tail.log);
+    const original = keccakSingle(.{ .v3 = true }, 266, 18) orelse return error.ExpectedKeccakTail;
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, original.policy);
+    try std.testing.expectEqual(@as(u32, 12), original.log);
+}
+
+test "uniform resident Keccak covers the real block without changing the default mixed roster" {
+    const a = std.testing.allocator;
+    var original: std.ArrayList(W.TruthDeclaration) = .empty;
+    defer original.deinit(a);
+    try appendKeccakSecp(a, &original, .{ 29_998, 0, 0 }, 18, .{ .v3 = true });
+    try std.testing.expectEqual(@as(usize, 4), original.items.len);
+    const original_calls = [_]u32{ 19_418, 606, 9_708, 266 };
+    const original_logs = [_]u32{ 18, 13, 17, 12 };
+    for (original.items, original_calls, original_logs, 0..) |piece, calls, log, i| {
+        try std.testing.expectEqual(calls, piece.calls);
+        try std.testing.expectEqual(log, piece.logs[0]);
+        try std.testing.expectEqual(if (i == 3) KeccakPolicy.triple_v2 else KeccakPolicy.throughput_r27_v1, try W.keccakPolicy(piece.logs[1]));
+    }
+    var resident: std.ArrayList(W.TruthDeclaration) = .empty;
+    defer resident.deinit(a);
+    try appendKeccakSecp(a, &resident, .{ 29_998, 0, 0 }, 18, .{ .v3 = true, .uniform_throughput = true });
+    try std.testing.expectEqual(@as(usize, 3), resident.items.len);
+    const uniform_calls = [_]u32{ 19_418, 1_212, 9_368 };
+    const uniform_logs = [_]u32{ 18, 14, 17 };
+    for (resident.items, uniform_calls, uniform_logs) |piece, calls, log| {
+        try std.testing.expectEqual(calls, piece.calls);
+        try std.testing.expectEqual(log, piece.logs[0]);
+    }
+    var next: u32 = 1;
+    for (resident.items) |piece| {
+        try std.testing.expectEqual(next, piece.first_id);
+        try std.testing.expect(piece.calls != 0 and piece.logs[0] <= 18);
+        try std.testing.expectEqual(KeccakPolicy.throughput_r27_v1, try W.keccakPolicy(piece.logs[1]));
+        try A.crypto.keccak.layout.validateGeometryFor(.pair27, piece.calls, piece.first_id, piece.logs[0]);
+        next += piece.calls;
+    }
+    try std.testing.expectEqual(@as(u32, 29_999), next);
+}
+
+// ---------------------------------------------------------------- M5 canonical rungs (stream canon-native)
+const Canon = @import("canon_native.zig");
+/// Head/tail ladder fitted to a canonical rung: the head takes the rung head;
+/// a tail is present only when the count overflows the head (today's
+/// admission: a present tail has rows). Null when the rung cannot hold `count`.
+fn canonLadder(count: usize, reserve: u32, head: u32, tail: u32) ?Ladder {
+    if (head == 0) return null;
+    const cap = (@as(usize, 1) << @intCast(head)) - reserve;
+    if (count <= cap) return .{ .head = head };
+    if (tail == 0) return null;
+    const rest = count - cap;
+    if (rest + reserve > (@as(usize, 1) << @intCast(tail))) return null;
+    return .{ .head = head, .tail = tail };
+}
+pub const CanonClass = struct { family: Canon.Family, rung: u32 };
+pub const UNCLASSED: u32 = 0xFFFFFFFF;
+/// Pads every CPU declaration to the smallest admissible class rung of its
+/// family (presence-preserving v1 mode). Layout flags, bridges' presence and
+/// every request count are unchanged; the declaration stays an ordinary
+/// admitted geometry (validated here), so statement authority is untouched.
+pub fn canonicalCpus(captured: *const Capture, layout: CpuLayout, decls: []W.CpuDeclaration, table: anytype, classes: []CanonClass) !void {
+    return canonicalCpusMode(captured, layout, decls, table, classes, false);
+}
+/// `strict` (rv64-m6-native/v2): the padded declaration EQUALS the rung vector
+/// (absent rung components become all-padding instances, division is never
+/// omitted); a segment no rung holds is an error, never unclassed.
+pub fn canonicalCpusMode(captured: *const Capture, layout: CpuLayout, decls: []W.CpuDeclaration, table: anytype, classes: []CanonClass, strict: bool) !void {
+    if (decls.len != captured.native.items.len or classes.len != decls.len) return error.CanonRosterMismatch;
+    for (captured.native.items, decls, classes, 0..) |n, *d, *class, i| class.* = try canonicalCpuForSegment(n, captured.advice.events[i], layout, d, i, decls.len, table, strict);
+}
+/// Same receiver-owned rung/role policy for a single known segment. No
+/// producer-selected layout or hypothetical INITIAL capacity is accepted.
+pub fn canonicalCpuForSegment(n: *@import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared, events: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, layout: CpuLayout, d: *W.CpuDeclaration, ordinal: usize, total_segments: usize, table: anytype, strict: bool) !CanonClass {
+    if (total_segments == 0 or ordinal >= total_segments) return error.CanonRosterMismatch;
+    var result: CanonClass = undefined;
+    const class = &result;
+    const family = Canon.Family.cpu(ordinal, total_segments);
+    const rungs = for (table.CPU) |e| {
+        if (e.family == family) break e.rungs;
+    } else return error.CanonFamilyMissing;
+    const dword: usize = if (layout.ls_dword) @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/pipeline.zig").dwordCount(events) else 0;
+    const actual = Canon.cpuVector(d.*);
+    var chosen: ?W.CpuDeclaration = null;
+    for (rungs, 0..) |rung, r| {
+        const counts = [5]usize{ n.alu.facts.len, n.binary.facts.len, n.shift.len, events.len - dword, dword };
+        if (if (strict) canonFitStrict(d.*, actual, rung, counts, layout.ls_dword) else canonFit(d.*, actual, rung, counts)) |padded| {
+            chosen = padded;
+            class.* = .{ .family = family, .rung = @intCast(r) };
+            break;
+        }
+    }
+    // No admissible rung (e.g. a short last segment whose cpu_log no rung
+    // carries): keep the planned declaration, reported as unclassed.
+    d.* = chosen orelse {
+        if (strict) {
+            std.debug.print("RV64_CANON_STRICT_NOFIT ordinal={d} family={s} vector={any}\n", .{ ordinal, @tagName(family), actual });
+            return error.NativeChainNotStrict;
+        }
+        class.* = .{ .family = family, .rung = UNCLASSED };
+        return result;
+    };
+    try d.geometry.validate();
+    // The JALR source is the only capture-time sized component (facts only,
+    // MAIN not yet materialized): rebind its log to the padded class.
+    if (n.jalr) |*j| {
+        if (j.main.len != 0 or j.fixed.len != 0 or j.facts.len > (@as(usize, 1) << @intCast(d.geometry.jalr_log))) return error.CanonJalrRebind;
+        j.log_size = d.geometry.jalr_log;
+    } else return error.CanonJalrRebind;
+    return result;
+}
+const PAIRS = [_]struct { head: usize, tail: usize, reserve: u32 }{
+    .{ .head = 1, .tail = 2, .reserve = 0 }, // alu
+    .{ .head = 3, .tail = 4, .reserve = 0 }, // binary
+    .{ .head = 5, .tail = 6, .reserve = 0 }, // shift
+    .{ .head = 10, .tail = 11, .reserve = 1 }, // ls (core LS32 events)
+    .{ .head = 38, .tail = 39, .reserve = 1 }, // ls_dword
+};
+fn canonFit(d: W.CpuDeclaration, actual: Canon.CpuVector, rung: Canon.CpuVector, counts: [5]usize) ?W.CpuDeclaration {
+    var v = actual;
+    for (actual, rung, 0..) |a, r, c| {
+        if (a == 0) continue;
+        var paired = false;
+        for (PAIRS) |p| if (c == p.head or c == p.tail) {
+            paired = true;
+        };
+        if (paired) continue;
+        // Constants of the roster: omitted division, boundary, JUMPDEST table.
+        if (c == 8 and d.geometry.omit_empty_division) continue;
+        // cpu_log is fixed by the capture-time CPU source (takeCpu checks it).
+        if (c == 0 or c == 12 or c == 35) {
+            if (r != a) return null;
+            continue;
+        }
+        if (r == 0 or r < a) return null;
+        v[c] = r;
+    }
+    for (PAIRS, counts) |p, count| {
+        if (actual[p.head] == 0) continue; // absent pair (ls_dword off) stays absent
+        const l = canonLadder(count, p.reserve, rung[p.head], rung[p.tail]) orelse return null;
+        v[p.head] = l.head;
+        v[p.tail] = l.tail orelse 0;
+    }
+    return Canon.applyCpuVector(d, v);
+}
+/// Strict-roster fit (v2): v = rung exactly. Capture-bound constants (cpu_log,
+/// boundary) must already equal the rung; the JUMPDEST table (35) may be added
+/// (FIXED-only table); every head/tail pair takes the rung's head and tail and
+/// must hold its count (a tail may be empty). LS-D64 presence routes every
+/// LD/SD, so a rung with LS-D64 needs the ls_dword layout.
+fn canonFitStrict(d: W.CpuDeclaration, actual: Canon.CpuVector, rung: Canon.CpuVector, counts: [5]usize, dword_layout: bool) ?W.CpuDeclaration {
+    for (actual, rung, 0..) |a, r, c| {
+        var paired = false;
+        for (PAIRS) |p| if (c == p.head or c == p.tail) {
+            paired = true;
+        };
+        if (paired) continue;
+        if (c == 0 or c == 12) {
+            if (r != a) return null;
+            continue;
+        }
+        if (c == 8 and d.geometry.omit_empty_division) {
+            if (r == 0) return null;
+            continue; // division committed (all padding) at the rung log
+        }
+        if (a != 0 and (r == 0 or r < a)) return null;
+    }
+    for (PAIRS, counts) |p, count| {
+        if (rung[p.head] == 0) {
+            if (actual[p.head] != 0 or count != 0) return null;
+            continue;
+        }
+        if (p.head == 38 and !dword_layout) return null;
+        const cap_head = (@as(usize, 1) << @intCast(rung[p.head])) - p.reserve;
+        const rest = count -| cap_head;
+        if (rest != 0 and rung[p.tail] == 0) return null;
+        if (rung[p.tail] != 0 and rest + p.reserve > (@as(usize, 1) << @intCast(rung[p.tail]))) return null;
+    }
+    var out = Canon.applyCpuVector(d, rung);
+    out.geometry.omit_empty_division = false;
+    return out;
+}
+/// Raises each truth log to the smallest rung of its (family, profile word)
+/// that holds it. Call spans, first ids and the profile word are unchanged.
+pub fn canonicalTruths(truths_: []W.TruthDeclaration, table: anytype, classes: []CanonClass) !void {
+    if (classes.len != truths_.len) return error.CanonRosterMismatch;
+    for (truths_, classes) |*t, *class| {
+        const family = Canon.Family.truth(t.family);
+        const e = for (table.TRUTH) |e| {
+            if (e.family == family and e.aux == t.logs[1]) break e;
+        } else return error.CanonFamilyMissing;
+        const r = for (e.logs, 0..) |l, r| {
+            if (l >= t.logs[0]) break r;
+        } else return error.CanonNoAdmissibleRung;
+        t.logs[0] = e.logs[r];
+        class.* = .{ .family = family, .rung = @intCast(r) };
+    }
+}

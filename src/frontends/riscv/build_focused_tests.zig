@@ -142,13 +142,13 @@ pub const specs = [_]Spec{
     .{
         .step = "test-ethereum-runner",
         .description = "Run the combined Ethereum profile and signer-recovery runner tests",
-        .root = "ethereum_runner_test_root.zig",
+        .root = "../../products/ethereum/statement/frontend/ethereum_runner_test_root.zig",
         .minimum = 11,
     },
     .{
         .step = "test-ethereum-minimal-trace",
         .description = "Run compact Ethereum minimal-trace capture and replay tests",
-        .root = "ethereum_minimal_trace_test_root.zig",
+        .root = "../../products/ethereum/statement/frontend/ethereum_minimal_trace_test_root.zig",
         .filters = &.{"Ethereum minimal trace compacts and independently replays both native calls"},
         .minimum = 1,
     },

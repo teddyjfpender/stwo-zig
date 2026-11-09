@@ -15,7 +15,7 @@ const lookup_lowering = @import("../air/lang/lookup_polynomial_program_v2.zig");
 const lookup_manifest = @import("../air/lang/lookup_physical_manifest_v2.zig");
 const statement_mod = @import("../air/statement.zig");
 const trace = @import("../runner/trace.zig");
-const profile_mod = @import("vm_air_profile_v2.zig");
+const profile_mod = @import("../../../products/ethereum/statement/frontend/recursion/vm_air_profile_v2.zig");
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 

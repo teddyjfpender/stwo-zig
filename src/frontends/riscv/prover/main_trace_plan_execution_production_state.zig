@@ -500,7 +500,7 @@ pub fn makeState(comptime Owner: type) type {
             {
                 return error.InvalidProductionTask;
             }
-            if (self.inputs.witness.circuit_profile.poseidonLayout() == .narrow_degree3_v1) {
+            if (self.inputs.witness.circuit_layout.poseidonLayout() == .narrow_degree3_v1) {
                 const narrow = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
                 var destinations = try self.columns(narrow.N_MAIN_COLUMNS, range);
                 if (self.poseidon_work) |work| {

@@ -14,21 +14,21 @@ const keccak_witness = @import("../../air/guest_precompile/keccakf_witness.zig")
 const secp_config =
     @import("../../air/guest_precompile/secp256k1_component_config.zig");
 const ethereum_statement =
-    @import("../../air/guest_precompile/ethereum_statement.zig");
+    @import("../../../../products/ethereum/statement/frontend/air/guest_precompile/ethereum_statement.zig");
 const lookup_batch = @import("../../air/lang/lookup_batch_execution.zig");
 const lookup_manifest_mod =
     @import("../../air/lang/lookup_physical_manifest_v2.zig");
 const relations_mod = @import("../../air/relation_challenges.zig");
 const trace = @import("../../runner/trace.zig");
-const support = @import("../ethereum_leaf_context_v1_test_support.zig");
-const geometry_mod = @import("../vm_composition_base_geometry_v2.zig");
+const support = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_leaf_context_v1_test_support.zig");
+const geometry_mod = @import("../../../../products/ethereum/statement/frontend/recursion/vm_composition_base_geometry_v2.zig");
 const lookup_compiler_mod = @import("../vm_selected_lookup_compiler_v2.zig");
-const profile_mod = @import("../vm_air_profile_v2.zig");
+const profile_mod = @import("../../../../products/ethereum/statement/frontend/recursion/vm_air_profile_v2.zig");
 const circuit = @import("../vm_air_composition_circuit.zig");
-const ethereum_relations = @import("../ethereum_composition_relations_v2.zig");
+const ethereum_relations = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_composition_relations_v2.zig");
 const extension_geometry =
-    @import("../ethereum_composition_extension_geometry_v2.zig");
-const program_v2 = @import("../ethereum_vm_composition_program_v2.zig");
+    @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_composition_extension_geometry_v2.zig");
+const program_v2 = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_vm_composition_program_v2.zig");
 
 test "authenticated VM AIR ProfileV2 composition geometry is cold-derived" {
     const allocator = std.testing.allocator;
@@ -486,7 +486,7 @@ test "authenticated VM AIR ProfileV2 schema5 compiles fixed program and narrow P
         .main = @intCast(profile.main_column_count + geometry.columns[1].len),
         .interaction = @intCast(profile.interaction_column_count + geometry.columns[2].len),
     };
-    const incremental = @import("../incremental_ethereum_vm_composition_program_v4.zig");
+    const incremental = @import("../../../../products/ethereum/statement/frontend/recursion/incremental_ethereum_vm_composition_program_v4.zig");
     const input: incremental.StatementRootCompilerInput = .{ .core_statement = &native, .extension_statement = &extension, .lookup_manifest = &manifest, .authenticated_lookup = &authenticated, .base_profile = &profile, .bridge_geometry = try bridge_mod.GeometryV3.canonicalAfterPrefix(1, prefix) };
     var compiled = try @import("../vm_composition_preparation.zig").Compiled.initEthereumWithClaimAliases(allocator, input);
     defer compiled.deinit();

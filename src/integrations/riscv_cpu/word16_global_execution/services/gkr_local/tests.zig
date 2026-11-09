@@ -401,7 +401,7 @@ test {
 }
 
 test {
-    _ = @import("../../ethereum/receiver_budget.zig");
+    _ = @import("../../../../../products/ethereum/statement/cpu/word16_global_execution/ethereum/receiver_budget.zig");
 }
 
 test {

@@ -87,19 +87,19 @@ pub const guest_precompile_main_trace_support =
 pub const bulk_memcpy_word_candidate_v1 =
     @import("air/guest_precompile/bulk_memcpy_word_candidate_v1.zig");
 pub const EthereumStackSwapCandidateExecutionSessionV1 =
-    @import("runner/segment_session.zig").EthereumStackSwapCandidateExecutionSessionV1;
+    @import("../../products/ethereum/statement/frontend/runner/segment_session.zig").EthereumStackSwapCandidateExecutionSessionV1;
 pub const EthereumBulkMemcpyCandidateExecutionSessionV1 =
-    @import("runner/segment_session.zig").EthereumBulkMemcpyCandidateExecutionSessionV1;
+    @import("../../products/ethereum/statement/frontend/runner/segment_session.zig").EthereumBulkMemcpyCandidateExecutionSessionV1;
 pub const EthereumCombinedCandidateExecutionSessionV1 =
-    @import("runner/segment_session.zig").EthereumCombinedCandidateExecutionSessionV1;
+    @import("../../products/ethereum/statement/frontend/runner/segment_session.zig").EthereumCombinedCandidateExecutionSessionV1;
 pub const ethereum_candidate_execution_capability_v1 = @import(
-    "runner/guest_precompile/ethereum_candidate_execution_capability_v1.zig",
+    "../../products/ethereum/statement/frontend/runner/guest_precompile/ethereum_candidate_execution_capability_v1.zig",
 );
 pub const ethereum_candidate_execution_journal_v1 = @import(
-    "runner/guest_precompile/ethereum_candidate_execution_journal_v1.zig",
+    "../../products/ethereum/statement/frontend/runner/guest_precompile/ethereum_candidate_execution_journal_v1.zig",
 );
 pub const ethereum_candidate_observed_journal_v1 = @import(
-    "runner/guest_precompile/ethereum_candidate_observed_journal_v1.zig",
+    "../../products/ethereum/statement/frontend/runner/guest_precompile/ethereum_candidate_observed_journal_v1.zig",
 );
 pub const split_leaf_prepare =
     @import("prover/guest_precompile/split_leaf_prepare.zig");
@@ -132,7 +132,7 @@ pub const component_proof = struct {
     pub const narrow_backend = @import("air/memory_commitment/poseidon2_narrow_backend_v1.zig");
     pub const program_commitment = @import("air/program/commitment.zig");
     pub const program_interaction = @import("air/program/interaction.zig");
-    pub const fixed_program_table = @import("air/program/fixed_table_v1.zig");
+    pub const fixed_program_table = @import("../../products/ethereum/statement/frontend/air/program/fixed_table_v1.zig");
     pub const trace_component = @import("air/component.zig");
     pub const relations = @import("air/relation_challenges.zig");
     pub const support = @import("prover/memory_provider_shards/proof_harness.zig");

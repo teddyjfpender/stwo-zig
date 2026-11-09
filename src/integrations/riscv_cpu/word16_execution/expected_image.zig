@@ -5,7 +5,7 @@ const front = @import("stwo_riscv_frontend");
 const rv = front.rv64;
 const R = front.rv64_air.memory;
 const Full = @import("../rv64_full.zig");
-const Request = @import("../rv64_ethereum_request.zig");
+const Request = @import("../../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
 pub const MAX_INPUT_BYTES = rv.ethereum_contract.INPUT_CAPACITY_MAX - 4;
 /// M5 platform: service-lifetime cache of the receiver-derived ProgramAuthority.
 /// The authority is a function of the guest's executable regions (words and

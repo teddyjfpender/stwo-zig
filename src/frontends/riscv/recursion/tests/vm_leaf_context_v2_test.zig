@@ -8,13 +8,13 @@ const public_support = @import("../../air/public_data_v2_test_support.zig");
 const relations_mod = @import("../../air/relation_challenges.zig");
 const statement = @import("../../air/statement.zig");
 const statement_v2 = @import("../../air/statement_v2.zig");
-const profile_v2 = @import("../vm_air_profile_v2.zig");
-const support = @import("../ethereum_leaf_context_v1_test_support.zig");
+const profile_v2 = @import("../../../../products/ethereum/statement/frontend/recursion/vm_air_profile_v2.zig");
+const support = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_leaf_context_v1_test_support.zig");
 const subject = @import("../vm_leaf_context_v2.zig");
 
 test "Ethereum selected base claim admission shares context order and binds mutations" {
     const allocator = std.testing.allocator;
-    const transcript = @import("../../prover/guest_precompile/ethereum_transcript.zig");
+    const transcript = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_transcript.zig");
     const Channel = @import("../poseidon2_channel.zig").Channel;
     var fixture = try Fixture.init(allocator);
     defer fixture.deinit();
@@ -275,7 +275,7 @@ const Fixture = struct {
 
     fn captureAuthority(self: *const Fixture) !subject.CaptureAuthority {
         const base_sampled_value_count = try @import(
-            "../vm_composition_base_geometry_v2.zig",
+            "../../../../products/ethereum/statement/frontend/recursion/vm_composition_base_geometry_v2.zig",
         ).expectedSampledValueCount(&self.native.core, &self.manifest);
         return .{
             .full_sampled_value_count = try std.math.add(

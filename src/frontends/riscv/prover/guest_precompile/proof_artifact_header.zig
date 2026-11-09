@@ -277,7 +277,7 @@ test "guest artifact header BLAKE3 version cannot select a legacy hasher" {
 }
 
 test "guest artifact header Ethereum BLAKE3 identity binds its own version" {
-    const wire_identity = @import("ethereum_proof_artifact_wire.zig");
+    const wire_identity = @import("../../../../products/ethereum/statement/frontend/prover/guest_precompile/ethereum_proof_artifact_wire.zig");
     const Legacy = wire_identity.Identity;
     const Blake3 = wire_identity.IdentityForVersion(6);
     const old = Legacy.canonical("statement", "extension");

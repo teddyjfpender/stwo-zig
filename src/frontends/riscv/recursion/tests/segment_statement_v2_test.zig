@@ -5,7 +5,7 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 const memory_state = @import("../../runner/memory_state.zig");
-const runner_result = @import("../../runner/result.zig");
+const runner_result = @import("../../../../products/ethereum/statement/frontend/runner/result.zig");
 const sparse_merkle = @import("../../air/memory_commitment/sparse_merkle.zig");
 const Cpu = @import("../../runner/cpu.zig").Cpu;
 const channel = @import("../poseidon2_channel.zig");

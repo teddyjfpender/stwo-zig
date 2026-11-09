@@ -5,7 +5,7 @@ const front = @import("stwo_riscv_frontend");
 const rv = front.rv64;
 const E = @import("../word16_execution/execution.zig");
 const Memory = @import("../word16_execution/memory/statement.zig");
-const Request = @import("../rv64_ethereum_request.zig");
+const Request = @import("../../../products/ethereum/statement/cpu/rv64_ethereum_request.zig");
 pub const Config = struct {
     guest: rv.csp_contract.Config,
     elf_sha256: []const u8,

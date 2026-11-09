@@ -19,7 +19,7 @@ const Writer = dependency_0.Writer;
 const clockWithinBoundary = dependency_0.clockWithinBoundary;
 const memory_poseidon2 = dependency_0.memory_poseidon2;
 const memory_state = @import("../runner/memory_state.zig");
-const runner_result = @import("../runner/result.zig");
+const runner_result = @import("../../../products/ethereum/statement/frontend/runner/result.zig");
 const std = dependency_0.std;
 const validateRegisterClocks = dependency_0.validateRegisterClocks;
 

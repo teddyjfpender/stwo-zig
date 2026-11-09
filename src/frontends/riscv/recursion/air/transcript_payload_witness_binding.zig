@@ -545,10 +545,10 @@ pub fn validateEthereumFieldRow(row: Row) direct.Error!void {
 
 fn validateRowForLayout(row: Row, comptime layout: enum { legacy_scheduled, recorded_poseidon, ethereum_recorded_poseidon, ethereum_field_poseidon }) direct.Error!void {
     const ethereum = layout == .ethereum_recorded_poseidon or layout == .ethereum_field_poseidon;
-    const clocks = @import("../ethereum_clock_routing_v1.zig");
+    const clocks = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_clock_routing_v1.zig");
     const ethereum_clock = ethereum and
         row.source_kind == .statement and row.item_index == clocks.STATEMENT_SCOPE;
-    const publication = @import("../ethereum_publication_routing_v1.zig");
+    const publication = @import("../../../../products/ethereum/statement/frontend/recursion/ethereum_publication_routing_v1.zig");
     const ethereum_publication = ethereum and
         row.source_kind == .statement and row.item_index == publication.STATEMENT_SCOPE;
     const payload_offset = switch (layout) {
@@ -567,7 +567,7 @@ fn validateRowForLayout(row: Row, comptime layout: enum { legacy_scheduled, reco
         row.source_word_index >= m31.Modulus or
         row.input_use_count != (if (ethereum_clock or ethereum_publication) @as(u32, 0) else if (ethereum and
             row.source_kind == .vm_air_claimed_sum) @as(u32, 1) else if (ethereum and
-            row.source_kind == .claimed_sum) @import("../incremental_ethereum_composition_profile_v4.zig").ClaimRoutingPlan.CANONICAL_TRANSCRIPT_USE_COUNT else inputUseCount(row.source_kind)))
+            row.source_kind == .claimed_sum) @import("../../../../products/ethereum/statement/frontend/recursion/incremental_ethereum_composition_profile_v4.zig").ClaimRoutingPlan.CANONICAL_TRANSCRIPT_USE_COUNT else inputUseCount(row.source_kind)))
     {
         return error.InvalidTraceRow;
     }

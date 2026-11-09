@@ -13,10 +13,10 @@ pub fn ForExecutionProfile(comptime profile: @import("../isa/execution_profile.z
     const extended = profile != .rv32im_zkvm_v1;
     if (extended and !ethereum and !sha and profile != .rv32im_zkvm_poseidon2_v1) @compileError("unsupported full-width artifact profile");
     return struct {
-        const manifest = if (sha) @import("blake3_extension_manifest.zig").ForProfile(@import("blake3_ethereum_sha_profile.zig")) else if (ethereum) @import("blake3_ethereum_manifest.zig") else if (extended) @import("blake3_poseidon_manifest.zig") else @import("blake3_execution_manifest.zig");
+        const manifest = if (sha) @import("blake3_extension_manifest.zig").ForProfile(@import("../../../products/ethereum/statement/frontend/prover/blake3_ethereum_sha_profile.zig")) else if (ethereum) @import("../../../products/ethereum/statement/frontend/prover/blake3_ethereum_manifest.zig") else if (extended) @import("blake3_poseidon_manifest.zig") else @import("blake3_execution_manifest.zig");
         const source_api = @import("blake3_execution_source.zig");
-        const codec = if (sha) @import("blake3_ethereum_sha_proof.zig").codec else if (ethereum) @import("blake3_ethereum_codec.zig") else if (extended) @import("blake3_poseidon_proof.zig").codec else @import("blake3_execution_codec.zig");
-        const proof_api = if (sha) @import("blake3_ethereum_sha_proof.zig") else if (ethereum) @import("blake3_ethereum_proof.zig") else if (extended) @import("blake3_poseidon_proof.zig") else @import("blake3_execution_proof.zig");
+        const codec = if (sha) @import("../../../products/ethereum/statement/frontend/prover/blake3_ethereum_sha_proof.zig").codec else if (ethereum) @import("../../../products/ethereum/statement/frontend/prover/blake3_ethereum_codec.zig") else if (extended) @import("blake3_poseidon_proof.zig").codec else @import("blake3_execution_codec.zig");
+        const proof_api = if (sha) @import("../../../products/ethereum/statement/frontend/prover/blake3_ethereum_sha_proof.zig") else if (ethereum) @import("../../../products/ethereum/statement/frontend/prover/blake3_ethereum_proof.zig") else if (extended) @import("blake3_poseidon_proof.zig") else @import("blake3_execution_proof.zig");
         pub const MAGIC = if (sha) "B3SVART1" else if (ethereum) "B3EVART1" else if (extended) "B3PVART1" else "B3RVART1";
         pub const HEADER_BYTES: usize = 28;
         pub const Limits = struct {

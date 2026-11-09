@@ -294,3 +294,42 @@ def check_owner_roles(repository: Path, expected: Mapping[str, set[str]]) -> lis
         if len(set(actual.values())) != 1:
             failures.append(f"package workspace: CODEOWNERS accounts differ or are absent for {role!r}")
     return failures
+
+
+def check_dependency_layers(contracts, packages, allowed_dependency_layers, failures) -> None:
+    for contract in contracts:
+        allowed = allowed_dependency_layers[contract.layer]
+        for dependency in contract.dependencies:
+            target = packages.get(dependency)
+            if target is None:
+                continue
+            if target.layer not in allowed:
+                failures.append(
+                    f"{contract.package}: {contract.layer} layer cannot depend on "
+                    f"{target.layer} package {dependency}"
+                )
+
+
+
+_PRODUCT_NAMES = ("ethereum", "opstack", "starknet", "tensor")
+
+
+def check_product_placement(repository: Path, contracts) -> list[str]:
+    """Keep product paths and public identifiers above frontend/integration owners."""
+    failures = []
+    for layer in ("frontends", "integrations"):
+        directory = repository / "src" / layer
+        if not directory.is_dir():
+            continue
+        for source in sorted(directory.rglob("*")):
+            if source.is_file() and any(name in source.relative_to(directory).as_posix().lower()
+                                        for name in _PRODUCT_NAMES):
+                failures.append("package workspace: product-owned path below " + layer + ": " +
+                                source.relative_to(repository).as_posix())
+    for contract in contracts:
+        if contract.layer not in {"frontend", "integration"}:
+            continue
+        for name in sorted(contract.api_surface):
+            if any(product in name.lower() for product in _PRODUCT_NAMES):
+                failures.append(f"{contract.package}: product-owned public identifier {name!r}")
+    return failures

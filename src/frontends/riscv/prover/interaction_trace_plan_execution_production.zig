@@ -511,11 +511,11 @@ pub const OpcodeRows = struct {
 pub const ProgramRows = struct {
     rows: []const program_commitment.Row,
     relations: *const relation_challenges.Relations,
-    circuit_profile: @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1 = .legacy_v4,
+    circuit_layout: @import("../air/program/circuit_layout.zig").CircuitLayout = .ordinary_sparse,
 
     pub fn rowPairsAt(self: @This(), logical_row: usize, _: usize) ![program_interaction.N_SUMS]logup.RowPair {
         return if (logical_row < self.rows.len)
-            switch (self.circuit_profile.programPolicy()) {
+            switch (self.circuit_layout.programPolicy()) {
                 .sparse_merkle_v1 => program_interaction.rowPairsFromRow(self.rows[logical_row], self.relations),
                 .fixed_decoded_table_v1 => program_interaction.rowPairsFromRowWithPolicy(.fixed_decoded_table_v1, self.rows[logical_row], self.relations),
             }

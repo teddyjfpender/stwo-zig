@@ -28,7 +28,7 @@ const statement_mod = @import("../air/statement.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const types = @import("types.zig");
 
-const circuit_mod = @import("ethereum_circuit_profile_v1.zig");
+const circuit_mod = @import("../air/program/circuit_layout.zig");
 const narrow_poseidon = @import("../air/memory_commitment/poseidon2_narrow_component_v1.zig");
 
 pub const Direction = enum { prover, verifier };
@@ -145,7 +145,7 @@ pub fn infrastructureDescriptor(
 }
 
 /// Explicit profile-selected geometry. Legacy entrypoints retain their fixed widths.
-pub fn infrastructureDescriptorForCircuit(kind: statement_mod.InfraKind, profile: circuit_mod.CircuitProfileV1) InfrastructureDescriptor {
+pub fn infrastructureDescriptorForLayout(kind: statement_mod.InfraKind, profile: circuit_mod.CircuitLayout) InfrastructureDescriptor {
     var descriptor = infrastructureDescriptor(kind);
     if (kind == .poseidon2 and profile.poseidonLayout() == .narrow_degree3_v1)
         descriptor.main_columns = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig").N_MAIN_COLUMNS;
@@ -203,11 +203,11 @@ pub const InfrastructureCursor = struct {
         kind: statement_mod.InfraKind,
         declared_main_columns: usize,
     ) Error!Placement {
-        return self.appendWithCircuit(kind, declared_main_columns, .legacy_v4);
+        return self.appendWithLayout(kind, declared_main_columns, .ordinary_sparse);
     }
 
-    pub fn appendWithCircuit(self: *InfrastructureCursor, kind: statement_mod.InfraKind, declared_main_columns: usize, profile: circuit_mod.CircuitProfileV1) Error!Placement {
-        const item = infrastructureDescriptorForCircuit(kind, profile);
+    pub fn appendWithLayout(self: *InfrastructureCursor, kind: statement_mod.InfraKind, declared_main_columns: usize, profile: circuit_mod.CircuitLayout) Error!Placement {
+        const item = infrastructureDescriptorForLayout(kind, profile);
         if (declared_main_columns != item.main_columns)
             return error.MainColumnCountMismatch;
         if (self.last_order_rank) |last| {
@@ -311,7 +311,7 @@ pub fn assembleInto(
         n_interaction,
         null,
         .legacy_role_filtered_v1,
-        .legacy_v4,
+        .ordinary_sparse,
     );
 }
 
@@ -329,7 +329,7 @@ pub fn assembleBlake3ExecutionInto(
 /// that proves these external retirements.
 pub fn assembleBlake3ExecutionWithExternalInto(comptime direction: Direction, workspace: anytype, statement: *const statement_mod.Blake3ExecutionStatement, claim: *const statement_mod.RiscVInteractionClaim, relations: *const relation_challenges.Relations, external_retirements: u32) !void {
     try statement.validateBlake3ExecutionWithExternal(external_retirements);
-    return assembleIntoInternal(direction, workspace, statement, claim, relations, statement.nMainColumns(), statement.nInteractionColumns(), null, .legacy_role_filtered_v1, .legacy_v4);
+    return assembleIntoInternal(direction, workspace, statement, claim, relations, statement.nMainColumns(), statement.nInteractionColumns(), null, .legacy_role_filtered_v1, .ordinary_sparse);
 }
 
 /// Append-only construction boundary for the authenticated variable-partition
@@ -360,7 +360,7 @@ pub fn assembleIntoAuthenticatedLookupV2(
             .statement = authenticated_statement,
         },
         .legacy_role_filtered_v1,
-        .legacy_v4,
+        .ordinary_sparse,
     );
 }
 
@@ -392,13 +392,13 @@ pub fn assembleIntoAuthenticatedLookupV2WithIncrementalBoundaryV3(
             .statement = authenticated_statement,
         },
         .full_state_split_multiplicity_v3,
-        .legacy_v4,
+        .ordinary_sparse,
     );
 }
 
 /// Explicit Ethereum circuit admission; native proving and verification share
 /// this exact construction, while old entrypoints retain legacy constraints.
-pub fn assembleIntoAuthenticatedLookupV2WithCircuitProfile(
+pub fn assembleIntoAuthenticatedLookupV2WithCircuitLayout(
     comptime direction: Direction,
     workspace: anytype,
     statement: *const statement_mod.RiscVStatement,
@@ -408,7 +408,7 @@ pub fn assembleIntoAuthenticatedLookupV2WithCircuitProfile(
     n_interaction: usize,
     manifest: *const lookup_physical_v2.Manifest,
     authenticated_statement: *const lookup_physical_v2.AuthenticatedStatement,
-    profile: circuit_mod.CircuitProfileV1,
+    profile: circuit_mod.CircuitLayout,
 ) !void {
     try authenticated_statement.validateAgainst(statement, manifest);
     return assembleIntoInternal(direction, workspace, statement, claim, relations, n_main, n_interaction, .{ .manifest = manifest, .statement = authenticated_statement }, .full_state_split_multiplicity_v3, profile);
@@ -429,7 +429,7 @@ fn assembleIntoInternal(
     n_interaction: usize,
     lookup_v2: ?LookupV2Admission,
     memory_boundary_policy: riscv_component.MemoryBoundaryPolicy,
-    circuit_profile: circuit_mod.CircuitProfileV1,
+    circuit_layout: circuit_mod.CircuitLayout,
 ) !void {
     const components = &workspace.components;
     const component_count: usize = @intCast(statement.n_components);
@@ -546,10 +546,10 @@ fn assembleIntoInternal(
     var infrastructure_cursor = InfrastructureCursor.init(opcode_cursor);
     for (0..statement.n_infra) |index| {
         const desc = statement.infra_descs[index];
-        const placement = infrastructure_cursor.appendWithCircuit(
+        const placement = infrastructure_cursor.appendWithLayout(
             desc.kind,
             @intCast(desc.n_columns),
-            circuit_profile,
+            circuit_layout,
         ) catch return types.ProverError.InvalidStatement;
         if (placement.infrastructure_index != index or
             components.active().len != placement.adapter_index)
@@ -561,7 +561,7 @@ fn assembleIntoInternal(
             .hash => {
                 const expected_hash_index = placement.hash_index orelse
                     return types.ProverError.InvalidStatement;
-                if (desc.kind == .poseidon2 and circuit_profile.poseidonLayout() == .narrow_degree3_v1) {
+                if (desc.kind == .poseidon2 and circuit_layout.poseidonLayout() == .narrow_degree3_v1) {
                     if (components.n_hash != expected_hash_index) return types.ProverError.InvalidStatement;
                     components.n_hash += 1;
                     const hash = &components.narrow_poseidon;

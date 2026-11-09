@@ -1,8 +1,8 @@
 //! Segmented runner parity and continuation-integrity tests.
 
 const std = @import("std");
-const result_mod = @import("../result.zig");
-const segment_session = @import("../segment_session.zig");
+const result_mod = @import("../../../../products/ethereum/statement/frontend/runner/result.zig");
+const segment_session = @import("../../../../products/ethereum/statement/frontend/runner/segment_session.zig");
 
 const CompletionReason = result_mod.CompletionReason;
 const ContinuationToken = result_mod.ContinuationToken;
@@ -71,10 +71,10 @@ test "runner: profile owners share canonical execution records" {
     const boundary = @import("../execution_boundary.zig");
     const base = @import("../base_result.zig");
     const generic_state = @import("../guest_precompile/generic_session_state.zig");
-    const selected_state = @import("../guest_precompile/session_state.zig");
+    const selected_state = @import("../../../../products/ethereum/statement/frontend/runner/guest_precompile/session_state.zig");
     const lifecycle = @import("../session_owner.zig");
     const native_owner = @import("../default_profile_owner.zig");
-    const profiles = @import("../session_profile_owners.zig");
+    const profiles = @import("../../../../products/ethereum/statement/frontend/runner/session_profile_owners.zig");
     try std.testing.expect(result_mod.CompletionReason == boundary.CompletionReason);
     try std.testing.expect(result_mod.ContinuationToken == boundary.ContinuationToken);
     try std.testing.expect(result_mod.SegmentResult == base.SegmentResult);
