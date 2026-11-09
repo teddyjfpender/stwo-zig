@@ -4414,6 +4414,58 @@
       "explicit_x86_64_v3_cases": 3,
       "raw_comparison_sha256": "b205dc5ebbebf13129178f78dc51fb9d8cd097293adbecbc1a5ff31edc8d7683",
       "artifact_url": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42599041368"
+    },
+    "same_host_target_confirmation": {
+      "run": 42600848507,
+      "source": "2a8d6af4f77fa409211786adb6642365c6fafc0c",
+      "cpu": "AMD EPYC 9V45 96-Core Processor; AVX512 exposed",
+      "original_core_lane": "PASS",
+      "diagnostic_comparison": "FAIL_PRESERVED_EXPECTED_MAIN_REGRESSION",
+      "main_explicit_x86_64_v3": "PASS Debug/ReleaseSafe/ReleaseFast",
+      "main_explicit_x86_64_v4": "PASS Debug/ReleaseSafe; FAIL ReleaseFast",
+      "main_explicit_znver4": "PASS Debug/ReleaseSafe; FAIL ReleaseFast",
+      "current_noinline": "PASS all three modes",
+      "current_inline_checked": "PASS all three modes; instrumentation masks failure",
+      "fold_only_releasefast": "FAIL main/restored-inline/rejected-schoolbook; reduction retains original owner failure",
+      "raw_comparison_sha256": "57727db5da5c216d540d6458406bb5f9d6f31419fe9f6a1a6f0f0688ce967bb6"
+    },
+    "isolated_minimal_repro": {
+      "scope": "isolated two-row optimized-IR repro",
+      "source_sha256": "615f72e52f9d93a1c803a95165a258203ace7cefd984003654aa84be4377dde2",
+      "expected_first": [
+        1502722116,
+        2034726799,
+        546122179,
+        519690040
+      ],
+      "observed_first": [
+        1502722116,
+        2034726799,
+        546122187,
+        519690016
+      ],
+      "lines": 147,
+      "artifact_path": "stwo-cm31-minimal/minimal.zig",
+      "native_mac": "PASS Debug/ReleaseFast",
+      "native_linux_avx512_minimal_test": "UNRUN; optimized IR execution confirms corruption",
+      "qualification": "isolated two-row repro; full-owner same-host failures retained separately",
+      "co_retained_extra_entry": "An additional exported entry outlines shared arithmetic and masks the reduced failure. Preserve that passing control externally; do not add it to the source fixture as a claimed failing repro.",
+      "remote_evidence": {
+        "ref": "refs/heads/backup/delivery-evidence-cm31-minimal-20261109",
+        "commit": "3da377b3a86d0dc5f168d9d80ece4c71b87482b3",
+        "source_commit": "2d8a0c9b563649c7bbd1213ded19add8d78b02c5",
+        "remote_ref_verified": true,
+        "all_LFS_objects_download_hash_verified": true,
+        "parts": [
+          {
+            "name": "delivery-evidence.tar.gz.part000",
+            "bytes": 11344996,
+            "sha256": "39a6fa782eef1f842a5823b9f0bae35aae539f08add8090f79ab6f3169597bc7"
+          }
+        ],
+        "prepush_pod_gate_exit": 2,
+        "created_utc": "2026-11-09T10:39:31.104462+00:00"
+      }
     }
   }
 }
