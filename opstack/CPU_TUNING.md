@@ -1,10 +1,11 @@
 # Bounded CPU recursion experiments
 
-The fastest measured small-block route remains the explicit bounded M7 group
-(three cold trials at 21.981 s median; one later 18.840 s qualification). It
-refuses complete rosters larger than four native members. The ordinary recursive
-DAG handles larger executions and remains the subject of heavy-block tuning.
-Native proof production is additional to every recursion time in this note.
+The historical bounded M7 group has three cold trials at 21.981 s median and
+a later 18.840 s qualification. New source-only grouped constructions have
+separate qualification results below; these are different protocols and timing
+scopes, so this note does not rank them using unmatched runs. Native production
+is additional to every recursion time in this note. The heavy target is still
+open; no new heavy proof has been rerun.
 
 The [matched small-block receipt](../vectors/reports/rv64-opstack-cpu-20261108/cpu-recursion-admission.json)
 compares the existing M6 three-child tree on the same already produced D2 bundle:
@@ -175,3 +176,32 @@ collector overhead. This qualification was not a quiet performance A/B. It
 motivates improving P2 hashing and lowering committed volume before pursuing
 another composition-only optimization; proof identities must remain unchanged
 for an operational hash-kernel improvement.
+
+## Current grouped-source qualification
+
+The detached route explicitly selects its own source suite and never inherits
+producer-provided keys. The group root accepts independently pinned request
+configuration, reconstructs native geometry and full statements, authenticates
+all members directly and closes RAM/KIO/Wire plus the terminal 43-byte output.
+Canonical groups of 1, 2 or 4 preserve the original ordered fold-tree digest.
+
+The same selected 796,406-instruction execution has complete R6/B2 and R7/B2
+one-group roots in 46.589 /37.757 s of node work, respectively; full cold root
+producer times are 62.630 /51.743 s. Two groups plus one fold lower requested
+peak to 10.071 /7.413 GB but increase totals to 100.110 /106.125 s. These are
+engineering qualification runs, not quiet A/B measurements. In particular, R7
+pads the CPU+sponge subgroup worse than R6: select from actual per-group cost
+rather than assuming every arithmetic rewrite or smaller group is faster.
+
+The separate terminal-Blake test closes that same source in 19.078 s of proof
+work and 37.097 s producer total. Both real Poseidon2 source setup and separate
+Blake FIXED construction are included. Fresh source-only verification takes
+15.377 s setup plus 9.489 ms root read/verify. The suite has its own key identity,
+transcript domain and wire format; valid roots do not substitute across suites.
+It remains test-only, without runtime/settlement admission, pending bounded
+hash/Fiat-Shamir accounting. It cannot be fed into the existing Poseidon2 parent
+verifier as though the formats were interchangeable.
+
+See [current delivery evidence](COMPLETION.md#complete-grouped-small-execution)
+for exact receipts, proof sizes, controls and security qualifications. None of
+these measurements establishes the complete heavy-block tenfold target.
