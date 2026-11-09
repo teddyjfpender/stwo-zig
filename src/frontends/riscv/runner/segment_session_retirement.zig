@@ -1,28 +1,21 @@
-//! Instruction retirement for the canonical session; lifecycle and publication
-//! remain with ExecutionSession. Observers retain their pre/post commit order.
+//! Generic instruction retirement; the typed profile owner owns CUSTOM-0 effects.
 const custom0 = @import("../isa/custom0.zig");
 const isa_profile = @import("../isa/profile.zig");
 const access_clock = @import("../access_clock.zig");
-const ExecutionProfile = @import("../isa/execution_profile.zig").ExecutionProfile;
 const generated_retirement = @import("generated_retirement.zig");
-const guest_precompile = @import("guest_precompile/mod.zig");
 const trace = @import("trace.zig");
 const state_chain = @import("state_chain.zig");
-const result_mod = @import("result.zig");
+const result_mod = @import("base_result.zig");
 const access_witness = @import("access_witness.zig");
-
 pub const StepOutcome = struct {
     retired: bool,
     completion_reason: ?result_mod.CompletionReason = null,
     exit_code: ?u32 = null,
 };
 
-pub fn For(
-    comptime profile: ExecutionProfile,
-    comptime ethereum_stack_swap_candidate: bool,
-    comptime ethereum_bulk_memcpy_candidate: bool,
-    comptime ExtensionState: type,
-) type {
+pub fn ForOwner(comptime Owner: type) type {
+    const profile = Owner.profile;
+    const ExtensionState = Owner.State;
     return struct {
         pub fn retireOne(
             self: anytype,
@@ -42,61 +35,8 @@ pub fn For(
             }
             if (comptime profile != .rv32im_zkvm_v1) {
                 if (@as(u7, @truncate(inst_word)) == custom0.major_opcode) {
-                    if (comptime ethereum_stack_swap_candidate or
-                        ethereum_bulk_memcpy_candidate)
-                    {
-                        try extension.executeWithRecordedClock(
-                            inst_word,
-                            execution_clock,
-                            &self.cpu,
-                            &self.memory,
-                            self.elf_info.memory_layout,
-                            chain_tracker,
-                            exec_trace,
-                        );
-                    } else if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
-                        try guest_precompile.poseidon2_v1.executeWithRecordedClock(
-                            profile,
-                            inst_word,
-                            execution_clock,
-                            extension.external_step_origin,
-                            &self.cpu,
-                            &self.memory,
-                            self.elf_info.memory_layout,
-                            chain_tracker,
-                            exec_trace,
-                            &extension.calls,
-                            &extension.rows,
-                        );
-                    } else if (comptime profile == .rv32im_zkvm_keccakf_v1) {
-                        try guest_precompile.keccakf_v1.executeWithRecordedClock(
-                            profile,
-                            inst_word,
-                            execution_clock,
-                            extension.external_step_origin,
-                            &self.cpu,
-                            &self.memory,
-                            self.elf_info.memory_layout,
-                            chain_tracker,
-                            exec_trace,
-                            &extension.calls,
-                            &extension.rows,
-                        );
-                    } else if (comptime profile == .rv32im_zkvm_ethereum_sha_v1) {
-                        try @import("guest_precompile/ethereum_sha.zig").executeWithRecordedClock(inst_word, execution_clock, &self.cpu, &self.memory, self.elf_info.memory_layout, chain_tracker, exec_trace, extension);
-                    } else {
-                        try guest_precompile.ethereum_v1.executeWithRecordedClock(
-                            profile,
-                            inst_word,
-                            execution_clock,
-                            &self.cpu,
-                            &self.memory,
-                            self.elf_info.memory_layout,
-                            chain_tracker,
-                            exec_trace,
-                            extension,
-                        );
-                    }
+                    try Owner.retireCustom0(self, inst_word, execution_clock, exec_trace, chain_tracker, extension);
+
                     return .{ .retired = true };
                 }
             }

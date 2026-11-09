@@ -6,7 +6,7 @@ const Cpu = @import("cpu.zig").Cpu;
 const Memory = @import("memory.zig").Memory;
 const elf_loader = @import("elf_loader.zig");
 const state_chain = @import("state_chain.zig");
-const result_mod = @import("result.zig");
+const result_mod = @import("base_result.zig");
 
 pub fn segmentToRunResult(segment: *result_mod.SegmentResult) result_mod.RunResult {
     std.debug.assert(segment.segment_role.is_first and segment.segment_role.is_last);

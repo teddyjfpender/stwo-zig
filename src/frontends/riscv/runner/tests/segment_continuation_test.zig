@@ -67,6 +67,28 @@ pub fn makeTestElf(instructions: []const u32) [84 + 64]u8 {
     return buf;
 }
 
+test "runner: profile owners share canonical execution records" {
+    const boundary = @import("../execution_boundary.zig");
+    const base = @import("../base_result.zig");
+    const generic_state = @import("../guest_precompile/generic_session_state.zig");
+    const selected_state = @import("../guest_precompile/session_state.zig");
+    const lifecycle = @import("../session_owner.zig");
+    const native_owner = @import("../default_profile_owner.zig");
+    const profiles = @import("../session_profile_owners.zig");
+    try std.testing.expect(result_mod.CompletionReason == boundary.CompletionReason);
+    try std.testing.expect(result_mod.ContinuationToken == boundary.ContinuationToken);
+    try std.testing.expect(result_mod.SegmentResult == base.SegmentResult);
+    try std.testing.expect(result_mod.RunResult == base.RunResult);
+    try std.testing.expect(selected_state.ExternalCounts == boundary.ExternalCounts);
+    try std.testing.expect(generic_state.ExternalCounts == boundary.ExternalCounts);
+    inline for (.{ .rv32im_zkvm_v1, .rv32im_zkvm_poseidon2_v1, .rv32im_zkvm_keccakf_v1 }) |profile| {
+        try std.testing.expect(profiles.For(profile, false, false) == native_owner.For(profile));
+        try std.testing.expect(segment_session.ExecutionSession(profile) == lifecycle.ForOwner(native_owner.For(profile)));
+    }
+    try std.testing.expect(segment_session.ConfiguredSegmentResult(.rv32im_zkvm_ethereum_v1) == result_mod.EthereumSegmentResult);
+    try std.testing.expect(segment_session.ConfiguredSegmentResult(.rv32im_zkvm_ethereum_sha_v1) == result_mod.EthereumShaSegmentResult);
+}
+
 test "runner: one-shot and two adjacent segments have exact execution parity" {
     const instructions = [_]u32{
         0x0010_0137, // LUI  x2, 0x100: x2 = default halt-flag address.

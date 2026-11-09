@@ -5,7 +5,7 @@ const trace = @import("trace.zig");
 const memory_state = @import("memory_state.zig");
 const state_chain = @import("state_chain.zig");
 const HostInterface = @import("../host/interface.zig").HostInterface;
-const SegmentClockFrame = @import("result.zig").SegmentClockFrame;
+const SegmentClockFrame = @import("execution_boundary.zig").SegmentClockFrame;
 
 /// Controls whether a resumable session retains the whole execution trace or
 /// transfers each completed range directly to its `SegmentResult`.
