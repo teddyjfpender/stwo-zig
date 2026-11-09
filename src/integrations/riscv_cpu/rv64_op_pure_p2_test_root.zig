@@ -6,4 +6,5 @@ test {
     _ = @import("poseidon2_outer/pure_p2_cpu_leaf_test.zig");
     _ = @import("poseidon2_outer/pure_p2_op_cpu_leaf_test.zig");
     _ = @import("poseidon2_outer/pure_p2_fold_test.zig");
+    _ = @import("poseidon2_outer/pure_p2_heterogeneous_fold_test.zig");
 }

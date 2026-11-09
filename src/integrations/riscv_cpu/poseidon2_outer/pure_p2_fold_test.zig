@@ -54,45 +54,35 @@ test "OP pure P2 physical children verify in source-exact fold circuit with orde
         child.* = try Proof.verifyCaptured(a, &key, &expected, encoded);
         made += 1;
     }
-    var arena = std.heap.ArenaAllocator.init(a);
-    defer arena.deinit();
-    const shape = try @import("pure_p2_outer_capture.zig").geometry(arena.allocator(), &key);
-    var structural = @import("../rv64_recursion/circuit_lane.zig").StructuralScope.init();
-    defer structural.deinit();
-    var parent = try Context.init(a, 9);
+    const Fold = @import("pure_p2_fold.zig");
+    const source_fold = Fold.Source{ .children = .{
+        .{ .key = &key, .verified = &children[0], .output = outputs[0] },
+        .{ .key = &key, .verified = &children[1], .output = outputs[1] },
+    } };
+    var parent = try source_fold.build(a, false);
     defer parent.deinit();
-    @import("../rv64_recursion/om31_poseidon/common.zig").begin(&parent);
-    var active = true;
-    defer if (active) @import("../rv64_recursion/om31_poseidon/common.zig").finish() catch {};
-    const ctx = parent.algebra();
-    var roots: [2][9]C.Var = undefined;
-    for (&children, outputs, &roots) |*child, expected, *root| {
-        const values = try V.proof.fromNative(arena.allocator(), &child.proof, &child.capture, &shape);
-        const wire = try V.proof.guess(ctx, &values, &shape);
-        for (root, expected) |*port, value| port.* = try ctx.guess(value);
-        var claims: [5]C.F = undefined;
-        for (&claims, child.claims) |*claim, value| claim.* = try C.F.guess(ctx, value);
-        var statement = Statement{ .key = &key, .fixed = wire.commitments[0], .outputs = root, .claims = claims };
-        _ = try V.verify(ctx, &shape, &wire, &statement);
-    }
-    var sponge = try Sponge.init(&parent, .words);
-    for ([_]u32{ 0x4f504632, 1, 2 }) |word| try sponge.absorbConstU32(word);
-    for (roots) |root| try sponge.absorbMany(&root);
-    const output = try sponge.finish();
-    const expected = foldDigest(outputs[0], outputs[1]);
-    for (output, expected) |port, value| try std.testing.expect(ctx.get(port).eql(value));
-    try @import("../rv64_recursion/om31_poseidon/common.zig").finish();
-    active = false;
-    try parent.setOutputs(&output);
-    try parent.finalize();
-    try std.testing.expect(try parent.isCircuitValid());
-    const saved = ctx.get(roots[0][8]);
-    ctx.value_table.items[roots[0][8].idx] = saved.add(C.Q.one());
-    try std.testing.expect(!try parent.isCircuitValid());
-    ctx.value_table.items[roots[0][8].idx] = saved;
-    const swapped = foldDigest(outputs[1], outputs[0]);
+    const expected = try source_fold.expectedOutput();
+    const swapped = try Fold.digest(outputs[1], outputs[0]);
     try std.testing.expect(!std.mem.eql(u8, std.mem.asBytes(&expected), std.mem.asBytes(&swapped)));
+    var nonbase = outputs[0];
+    nonbase[8] = C.Q.fromM31Array(.{ Core.fields.m31.M31.zero(), Core.fields.m31.M31.one(), Core.fields.m31.M31.zero(), Core.fields.m31.M31.zero() });
+    try std.testing.expectError(error.NonBaseFoldDigest, Fold.digest(nonbase, outputs[1]));
     const json = try std.json.Stringify.valueAlloc(a, .{ .scope = "two_physical_source_owned_algebraic_children_not_execution", .raw = try parent.rawCounts(), .cells = try parent.census(false), .native_in_circuit_exact = true, .ordered_digest = true, .production_admission_open = false }, .{});
     defer a.free(json);
     std.debug.print("OP_PURE_P2_FOLD_CIRCUIT {s}\n", .{json});
+}
+
+test "OP pure P2 ordered tree carries odd leaves and rejects malformed digest" {
+    const Fold = @import("pure_p2_fold.zig");
+    const roots = [_]Fold.Digest{ tinyOutput(1), tinyOutput(2), tinyOutput(3) };
+    try std.testing.expectError(error.EmptyFoldInventory, Fold.treeDigest(a, &.{}));
+    try std.testing.expectEqualDeep(roots[0], try Fold.treeDigest(a, roots[0..1]));
+    try std.testing.expectEqualDeep(try Fold.digest(try Fold.digest(roots[0], roots[1]), roots[2]), try Fold.treeDigest(a, &roots));
+    const duplicated = [_]Fold.Digest{ roots[0], roots[1], roots[2], roots[2] };
+    const carried = try Fold.treeDigest(a, &roots);
+    const duplicate = try Fold.treeDigest(a, &duplicated);
+    try std.testing.expect(!std.meta.eql(carried, duplicate));
+    var malformed = roots;
+    malformed[2][8] = C.Q.fromM31Array(.{ Core.fields.m31.M31.zero(), Core.fields.m31.M31.one(), Core.fields.m31.M31.zero(), Core.fields.m31.M31.zero() });
+    try std.testing.expectError(error.NonBaseFoldDigest, Fold.treeDigest(a, &malformed));
 }

@@ -374,3 +374,58 @@ and the final root receiver are still required. No root execution admission has
 opened. The field-lifted interpreter is shared with the native component; the
 P2 equations use the same row authority and are cross-checked against actual
 native point/composition verification in this gate.
+## Complete Miller truth leaf
+
+The source-owned Miller worker now has a complete recursive statement using
+its original frontier/arithmetic MAIN, range, SSA and global Wire equations.
+Its source-derived masks preserve global-domain offsets for the smaller
+frontier. Native worker framing, local challenge domains and all four physical
+claims enter the circuit transcript. The root-facing frame contains 70 raw u32
+words (scope roots, statement, manifest, claims and call span), hashed to nine
+canonical M31 outputs. This authenticates a truth fragment; execution acceptance
+still requires every CPU/service leaf and global closure.
+
+The actual native target-profile fragment and its captured PCS/FRI proof pass
+numeric circuit checks and an independently reconstructed trace-only outer
+receiver. The [receipt](../../vectors/reports/rv64-opstack-performance-20261109/precompiles/pure-p2-miller-leaf.json)
+records 100.67M padded cells, a 642,244-byte outer proof, and rejected source,
+claim, output and physical-proof mutations. Its 22.52 s production and 1.98 s
+fresh reception were measured during concurrent engineering and are qualification
+samples, not a heavy-block benchmark or a claimed speedup.
+
+Reproduce the bounded physical gate with
+`STWO_OP_P2_TOWER_PHYSICAL=1 zig build test-riscv64-op-tower-recursion -Doptimize=ReleaseFast -j1`.
+The default ReleaseSafe target runs numerical and mutation qualification without
+producing the large outer proof. New execution admission remains closed.
+
+### Heterogeneous source fold and receiver boundary
+
+`pure_p2_fold.zig` is the concrete binary fold authority. Each child carries its
+independently derived five-roster `Authority`, captured complete native proof,
+and nine-base-field public frame digest. Child geometry is reconstructed from
+that authority; it is never taken from the proof. The fold runs the original
+source-exact native PCS, FRI, transcript and component constraints for each child,
+then hashes the ordered pair under the explicit OP binary-fold domain/version.
+All nine limbs enter the digest. The native digest API rejects non-base QM31
+coordinates instead of silently projecting them.
+
+`treeDigest` defines the receiver's canonical ordered adjacent-pair tree: carry
+an odd last member unchanged at each level, reject an empty inventory, never
+invent or duplicate a leaf. The independently admitted inventory fixes leaf
+count and order. An algebraically accepted fold alone is not execution
+admission: the root receiver must recompute all expected CPU/provider frame
+outputs, the full manifest and RAM/KIO/Wire closure from its source-authorized
+inventory, then authenticate that exact ordered tree under its independently
+reconstructed root topology. The heterogeneous physical fixture deliberately
+reports `execution_admission=false` until that independent receiver is composed.
+
+The actual CPU+Miller shared-manifest physical gate passes. Its distinct source
+keys authenticate both native proofs, followed by a fresh trace-only parent
+receiver. Parent: 674,648 bytes, 249,708,032 cells, 2,650,348 arithmetic gates and
+68,271 P2 permutations. Concurrent ReleaseSafe qualification took 40.971 s for
+parent source/setup/proving and 8.665 s for fresh source/receiver. CPU and Miller
+leaf proofs were 636,448 and 633,688 bytes. These are correctness measurements,
+not a controlled speed comparison or a heavy-block projection. Swapped children,
+a changed ninth output limb and a corrupted parent proof reject. Exact receipt:
+`pure-p2-heterogeneous-fold-v1.json`. Independent execution root admission and a
+real complete-block root remain separate gates.
