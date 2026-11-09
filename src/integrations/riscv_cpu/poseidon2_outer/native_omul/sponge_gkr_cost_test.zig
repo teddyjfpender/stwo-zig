@@ -51,9 +51,18 @@ test "OP serialized sponge local GKR recursive dimension cost" {
     state.row_log = 11;
     state.terms = 37;
     state.main_offset = 74;
-    const baseline = try cost(a, &.{ sentinel, old });
-    const candidate = try cost(a, &.{ sentinel, descriptor, state });
-    const json = try std.json.Stringify.valueAlloc(a, .{ .scope = "GKR-kernel-only-synthetic-dimensions-no-binding-or-PCS", .common_layers = 26, .old = baseline, .candidate = candidate, .source_binding_tuple_coordinates = .{ .old_call = 105, .descriptor = 533, .state = 55 }, .admission_closed = true }, .{});
+    const permutation = Frame.Instance{ .origin = .{ .sponge = .perm }, .row_log = 8, .terms = 245, .fixed_offset = 0, .main_offset = 0 };
+    var header = permutation;
+    header.terms = 28;
+    var word = permutation;
+    word.terms = 28;
+    word.row_log = 12;
+    var lane = permutation;
+    lane.terms = 25;
+    lane.row_log = 13;
+    const baseline = try cost(a, &.{ sentinel, old, permutation });
+    const candidate = try cost(a, &.{ sentinel, descriptor, state, header, word, lane });
+    const json = try std.json.Stringify.valueAlloc(a, .{ .scope = "GKR-kernel-only-synthetic-dimensions-no-binding-or-PCS", .common_layers = 26, .old = baseline, .candidate = candidate, .source_binding_tuple_coordinates = .{ .old_call = 105, .descriptor = 533, .state = 55, .old_permutation = 535, .header = 406, .word = 100, .lane = 113 }, .admission_closed = true }, .{});
     defer a.free(json);
     std.debug.print("OP_SPONGE_GKR_RECURSIVE_COST {s}\n", .{json});
 }

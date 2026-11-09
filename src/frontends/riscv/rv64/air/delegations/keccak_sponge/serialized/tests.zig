@@ -12,7 +12,9 @@ const Term = struct { relation: usize, len: usize, tuple: [19]M, weight: M };
 const Capture = struct {
     terms: [2048]Term = undefined,
     n: usize = 0,
+    globals_only: bool = false,
     pub fn emit(self: *@This(), relation: usize, tuple: anytype, weight: M) void {
+        if (self.globals_only and relation != Old.RAM and relation != Old.IO) return;
         var t = Term{ .relation = relation, .len = tuple.len, .tuple = @splat(M.zero()), .weight = weight };
         @memcpy(t.tuple[0..tuple.len], &tuple);
         self.terms[self.n] = t;
@@ -185,4 +187,320 @@ test "serialized sponge explicit ranges reject byte aliases and clock overflow" 
     changed = .{};
     S.emitRaw(M, &alias, &changed);
     try std.testing.expect(!rangesValid(&changed));
+}
+
+test "serialized permutation lanes preserve all IO and exact padding across byte alignments" {
+    const Lane = @import("permutation_lane.zig");
+    const Header = @import("permutation_header.zig");
+    const a = std.testing.allocator;
+    for ([2]bool{ false, true }) |fresh| for ([_]u64{ 0, 1, 7, 8, 135, 136, 137, 272 }) |len| for (0..8) |alignment| {
+        var call = fixture(fresh, true);
+        call.packet[1].value = 0x9000 + alignment;
+        call.packet[2].value = len;
+        const words = try a.alloc(T.State, call.words());
+        defer a.free(words);
+        for (words, 0..) |*word, i| word.* = .{ .value = 0xfedcba9876543210 ^ @as(u64, @intCast(i)), .epoch = 3, .tick = 10, .rights = 3 };
+        try T.validateCall(call, words);
+        const perms = try T.permutations(a, call, words);
+        defer a.free(perms);
+        var previous_header: [Header.MAIN]M = @splat(M.zero());
+        var carries: Capture = .{};
+        for (perms, 0..) |_, k| {
+            const old = Source.permRow(call, words, @intCast(k), perms);
+            const header = Header.row(&old);
+            var header_roots: Roots = .{};
+            Header.emitMain(M, &.{ M.fromCanonical(@intCast(k)), if (k == 0) M.one() else M.zero(), M.zero() }, &header, &previous_header, M.fromCanonical(@intCast(perms.len)), M.one(), &header_roots);
+            try std.testing.expect(allZero(header_roots.values[0..header_roots.n]));
+            previous_header = header;
+
+            var reference: Capture = .{};
+            Old.emitRawFor(M, .perm, &.{ M.fromCanonical(@intCast(k)), M.zero(), M.zero() }, &old, 17, &reference);
+            var projected: Capture = .{};
+            var previous: [19]M = undefined;
+            for (0..25) |lane| {
+                const row = try Lane.row(&old, 17 + @as(u32, @intCast(k)), @intCast(lane));
+                var roots: Roots = .{};
+                Lane.emitMain(M, &.{ M.fromCanonical(@intCast(lane)), M.fromCanonical(@intFromBool(lane < 17)), M.fromCanonical(@intFromBool(lane == 16)) }, &row, &roots);
+                try std.testing.expect(allZero(roots.values[0..roots.n]));
+                if (lane != 0) try std.testing.expectEqualDeep(previous, Lane.chain(M, &row, false));
+                previous = Lane.chain(M, &row, true);
+                Lane.emitRaw(M, &row, &projected);
+            }
+            try std.testing.expectEqual(@as(u32, 25), previous[6].v);
+            try std.testing.expectEqual(@as(u32, 0), previous[7].v);
+            try std.testing.expectEqual(@as(u32, 1) - old[L.perm.lastfin].v, previous[8].v);
+            const Word = @import("message_word.zig");
+            var word_facts: Capture = .{};
+            for (0..18) |slot| {
+                const word = try Word.row(&old, 17 + @as(u32, @intCast(k)), @intCast(slot));
+                var roots: Roots = .{};
+                Word.emitMain(M, &wordFixed(slot), &word, &roots);
+                try std.testing.expect(allZero(roots.values[0..roots.n]));
+                Word.emitRaw(M, &wordFixed(slot), &word, &word_facts);
+            }
+            for (word_facts.terms[0..word_facts.n]) |fact| if (fact.relation == Old.OWNER and fact.tuple[0].v == Word.TOKEN_CARRY) {
+                carries.terms[carries.n] = fact;
+                carries.n += 1;
+            };
+            const ram_expected = try selected(a, &reference, Old.RAM);
+            defer a.free(ram_expected);
+            const ram_actual = try selected(a, &word_facts, Old.RAM);
+            defer a.free(ram_actual);
+            try std.testing.expectEqualDeep(ram_expected, ram_actual);
+            var joined: Capture = projected;
+            for (word_facts.terms[0..word_facts.n]) |fact| {
+                joined.terms[joined.n] = fact;
+                joined.n += 1;
+            }
+            Header.emitRaw(M, M.fromCanonical(@intCast(k)), &header, M.fromCanonical(17), &joined);
+            const residual = try ownerResidual(a, &joined);
+            defer a.free(residual);
+            var old_owner: Capture = .{};
+            for (reference.terms[0..reference.n]) |fact| if (fact.relation == Old.OWNER) {
+                old_owner.terms[old_owner.n] = fact;
+                old_owner.n += 1;
+            };
+            const expected_owner = try ownerResidual(a, &old_owner);
+            defer a.free(expected_owner);
+            try std.testing.expectEqualDeep(expected_owner, residual);
+            const window_provider = try units(a, &word_facts, Lane.TOKEN_WINDOW, false);
+            defer a.free(window_provider);
+            const window_consumer = try units(a, &projected, Lane.TOKEN_WINDOW, true);
+            defer a.free(window_consumer);
+            try std.testing.expectEqualDeep(window_provider, window_consumer);
+            const expected = try selected(a, &reference, Old.IO);
+            defer a.free(expected);
+            const actual = try selected(a, &projected, Old.IO);
+            defer a.free(actual);
+            try std.testing.expectEqualDeep(expected, actual);
+        }
+        const carry_residual = try ownerResidualAll(a, &carries, false);
+        defer a.free(carry_residual);
+        try std.testing.expectEqual(@as(usize, 0), carry_residual.len);
+        if (perms.len > 1) {
+            var forged = carries;
+            // Each independent forged tuple must leave physical local debt.
+            var changed = false;
+            for (forged.terms[0..forged.n]) |*term| if (!term.weight.isZero()) {
+                term.tuple[9] = term.tuple[9].add(M.one());
+                changed = true;
+                break;
+            };
+            try std.testing.expect(changed);
+            const debt = try ownerResidualAll(a, &forged, false);
+            defer a.free(debt);
+            try std.testing.expect(debt.len != 0);
+        }
+    };
+}
+
+fn units(a: std.mem.Allocator, cap: *const Capture, tag: u32, negative: bool) ![]Term {
+    var list: std.ArrayList(Term) = .empty;
+    errdefer list.deinit(a);
+    for (cap.terms[0..cap.n]) |t| if (t.relation == Old.OWNER and t.tuple[0].v == tag) {
+        const n = if (negative) t.weight.neg().v else t.weight.v;
+        if (n > 2) return error.InvalidUnitFactWeight;
+        var unit = t;
+        unit.weight = M.one();
+        for (0..n) |_| try list.append(a, unit);
+    };
+    std.mem.sort(Term, list.items, {}, less);
+    return list.toOwnedSlice(a);
+}
+
+fn ownerResidual(a: std.mem.Allocator, cap: *const Capture) ![]Term {
+    return ownerResidualAll(a, cap, true);
+}
+fn ownerResidualAll(a: std.mem.Allocator, cap: *const Capture, skip_carry: bool) ![]Term {
+    const Word = @import("message_word.zig");
+    var list: std.ArrayList(Term) = .empty;
+    errdefer list.deinit(a);
+    for (cap.terms[0..cap.n]) |t| if (t.relation == Old.OWNER and (!skip_carry or t.tuple[0].v != Word.TOKEN_CARRY) and !t.weight.isZero()) try list.append(a, t);
+    std.mem.sort(Term, list.items, {}, less);
+    var out: std.ArrayList(Term) = .empty;
+    errdefer out.deinit(a);
+    var i: usize = 0;
+    while (i < list.items.len) {
+        var t = list.items[i];
+        var j = i + 1;
+        while (j < list.items.len and std.meta.eql(t.tuple, list.items[j].tuple)) : (j += 1) t.weight = t.weight.add(list.items[j].weight);
+        if (!t.weight.isZero()) try out.append(a, t);
+        i = j;
+    }
+    list.deinit(a);
+    return out.toOwnedSlice(a);
+}
+
+fn projectCall(call: T.Call, words: []const T.State, perms: []const [2][25]u64, first_id: u32, reference: *Capture, projected: *Capture) !void {
+    const Lane = @import("permutation_lane.zig");
+    const Word = @import("message_word.zig");
+    const old = Source.callRow(call, first_id, perms[perms.len - 1][1]);
+    Old.emitRawFor(M, .call, &.{ M.zero(), M.one(), M.zero() }, &old, first_id, reference);
+    const desc = try D.row(call, words, first_id);
+    D.emitRaw(M, &desc, projected);
+    for (0..25) |lane| {
+        const state = try S.row(call, first_id, perms[perms.len - 1][1], @intCast(lane));
+        S.emitRaw(M, &state, projected);
+    }
+    for (perms, 0..) |_, k| {
+        const perm = Source.permRow(call, words, @intCast(k), perms);
+        Old.emitRawFor(M, .perm, &.{ M.fromCanonical(@intCast(k)), M.zero(), M.zero() }, &perm, first_id, reference);
+        for (0..25) |lane| {
+            const state = try Lane.row(&perm, first_id + @as(u32, @intCast(k)), @intCast(lane));
+            Lane.emitRaw(M, &state, projected);
+        }
+        for (0..18) |slot| {
+            const word = try Word.row(&perm, first_id + @as(u32, @intCast(k)), @intCast(slot));
+            Word.emitRaw(M, &wordFixed(slot), &word, projected);
+        }
+    }
+}
+test "serialized sponge overlap rejection and adjacent reused-address global tuples match legacy" {
+    const a = std.testing.allocator;
+    for ([2]bool{ false, true }) |fresh| {
+        const original = fixture(fresh, true);
+        var overlap = original;
+        overlap.packet[0].value = overlap.pointer;
+        try std.testing.expectError(error.InvalidKeccakSpongePacket, T.validateCall(overlap, &.{}));
+        try std.testing.expectError(error.InvalidKeccakSpongePacket, D.row(overlap, &.{}, 1));
+        overlap = original;
+        overlap.packet[1].value = overlap.packet[0].value;
+        overlap.packet[2].value = 1;
+        const word = [_]T.State{.{ .value = 7, .epoch = 3, .tick = 10, .rights = 3 }};
+        try std.testing.expectError(error.InvalidKeccakSpongePacket, T.validateCall(overlap, &word));
+        overlap = original;
+        overlap.packet[1].value = overlap.pointer;
+        overlap.packet[2].value = 1;
+        try std.testing.expectError(error.InvalidKeccakSpongePacket, T.validateCall(overlap, &word));
+        for ([2]bool{ false, true }) |same_clock| {
+            var reference: Capture = .{ .globals_only = true };
+            var projected: Capture = .{ .globals_only = true };
+            var call = original;
+            call.packet[2].value = 1;
+            const perms = try T.permutations(a, call, &word);
+            defer a.free(perms);
+            try projectCall(call, &word, perms, 17, &reference, &projected);
+            if (!same_clock) call.tick += 4;
+            // Deliberate identical-before address reuse remains the SAME global
+            // consistency debt as legacy, not a locally accepted RAM execution.
+            try projectCall(call, &word, perms, 18, &reference, &projected);
+            for ([_]usize{ Old.RAM, Old.IO }) |relation| {
+                const expected = try selected(a, &reference, relation);
+                defer a.free(expected);
+                const actual = try selected(a, &projected, relation);
+                defer a.free(actual);
+                try std.testing.expectEqualDeep(expected, actual);
+            }
+        }
+    }
+}
+
+test "serialized permutation word and header constraints stay degree3" {
+    const Lane = @import("permutation_lane.zig");
+    const Word = @import("message_word.zig");
+    const Header = @import("permutation_header.zig");
+    for (0..3) |kind| {
+        var values: [5][128]M = undefined;
+        var count: usize = 0;
+        for (0..5) |t| {
+            const x = M.fromCanonical(@intCast(t));
+            var m: [128]M = undefined;
+            var pm: [128]M = undefined;
+            var fixed: [3]M = undefined;
+            for (&m, &pm, 0..) |*v, *p, i| {
+                v.* = M.fromCanonical(@intCast(31 * i + 7)).add(x.mul(M.fromCanonical(@intCast(11 * i + 3))));
+                p.* = M.fromCanonical(@intCast(17 * i + 5)).add(x.mul(M.fromCanonical(@intCast(19 * i + 1))));
+            }
+            for (&fixed, 0..) |*v, i| v.* = M.fromCanonical(@intCast(13 * i + 11)).add(x.mul(M.fromCanonical(@intCast(17 * i + 2))));
+            var roots: Roots = .{};
+            switch (kind) {
+                0 => Lane.emitMain(M, &fixed, m[0..Lane.MAIN], &roots),
+                1 => Word.emitMain(M, &fixed, m[0..Word.MAIN], &roots),
+                else => Header.emitMain(M, &fixed, m[0..Header.MAIN], pm[0..Header.MAIN], M.fromCanonical(17).add(x), M.one().add(x), &roots),
+            }
+            if (t == 0) count = roots.n else try std.testing.expectEqual(count, roots.n);
+            @memcpy(values[t][0..count], roots.values[0..count]);
+        }
+        var n: usize = 5;
+        for (0..4) |_| {
+            for (0..n - 1) |i| for (0..count) |j| {
+                values[i][j] = values[i + 1][j].sub(values[i][j]);
+            };
+            n -= 1;
+        }
+        try std.testing.expect(allZero(values[0][0..count]));
+    }
+}
+test "serialized message and lane mutations break ranges padding or authenticated chains" {
+    const Lane = @import("permutation_lane.zig");
+    const Word = @import("message_word.zig");
+    const a = std.testing.allocator;
+    var call = fixture(false, true);
+    call.packet[2].value = 137;
+    const words = try a.alloc(T.State, call.words());
+    defer a.free(words);
+    for (words) |*w| w.* = .{ .value = 0x123456789abcdef0, .epoch = 3, .tick = 10, .rights = 3 };
+    const perms = try T.permutations(a, call, words);
+    defer a.free(perms);
+    const old = Source.permRow(call, words, 0, perms);
+    const word = try Word.row(&old, 17, 0);
+    for ([_]usize{ Word.c.address + 3, Word.c.clock, Word.c.clock + 4, Word.c.read, Word.c.carry }) |col| {
+        var forged = word;
+        forged[col] = forged[col].add(M.one());
+        var roots: Roots = .{};
+        Word.emitMain(M, &wordFixed(0), &forged, &roots);
+        try std.testing.expect(!allZero(roots.values[0..roots.n]));
+    }
+    var alias = word;
+    alias[Word.c.value] = alias[Word.c.value].add(M.fromCanonical(256));
+    alias[Word.c.value + 1] = alias[Word.c.value + 1].sub(M.one());
+    var raw: Capture = .{};
+    Word.emitRaw(M, &wordFixed(0), &alias, &raw);
+    try std.testing.expect(!rangesValid(&raw));
+    const lane = try Lane.row(&old, 17, 0);
+    for ([_]usize{ Lane.c.msg, Lane.c.mask, Lane.c.lane, Lane.c.shift_value }) |col| {
+        var forged = lane;
+        forged[col] = forged[col].add(M.one());
+        var roots: Roots = .{};
+        Lane.emitMain(M, &.{ M.zero(), M.one(), M.zero() }, &forged, &roots);
+        try std.testing.expect(!allZero(roots.values[0..roots.n]));
+    }
+    var shifted = lane;
+    shifted[Lane.c.remaining] = shifted[Lane.c.remaining].add(M.one());
+    shifted[Lane.c.next_remaining] = shifted[Lane.c.next_remaining].add(M.one());
+    try std.testing.expect(!std.meta.eql(Lane.chain(M, &lane, false), Lane.chain(M, &shifted, false)));
+}
+
+fn wordFixed(slot: usize) [3]M {
+    return .{ M.fromCanonical(@intCast(slot)), M.fromCanonical(@intFromBool(slot == 0)), M.fromCanonical(@intFromBool(slot == 17)) };
+}
+
+fn localCount(cap: *const Capture) usize {
+    var n: usize = 0;
+    for (cap.terms[0..cap.n]) |t| if (t.relation != Old.RAM and t.relation != Old.IO) {
+        n += 1;
+    };
+    return n;
+}
+test "serialized sponge source query budgets match emitters" {
+    const Lane = @import("permutation_lane.zig");
+    const Word = @import("message_word.zig");
+    const Header = @import("permutation_header.zig");
+    const a = std.testing.allocator;
+    const call = fixture(true, true);
+    const perms = try T.permutations(a, call, &.{});
+    defer a.free(perms);
+    const old = Source.permRow(call, &.{}, 0, perms);
+    var cap: Capture = .{};
+    const header = Header.row(&old);
+    Header.emitRaw(M, M.zero(), &header, M.one(), &cap);
+    try std.testing.expectEqual(Header.LOCAL_QUERIES, localCount(&cap));
+    cap = .{};
+    const word = try Word.row(&old, 1, 0);
+    Word.emitRaw(M, &wordFixed(0), &word, &cap);
+    try std.testing.expectEqual(Word.LOCAL_QUERIES, localCount(&cap));
+    cap = .{};
+    const lane = try Lane.row(&old, 1, 0);
+    Lane.emitRaw(M, &lane, &cap);
+    try std.testing.expectEqual(Lane.LOCAL_QUERIES, localCount(&cap));
 }

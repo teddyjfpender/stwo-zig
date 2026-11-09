@@ -65,3 +65,54 @@ blocks, shifted addresses, missing/duplicated lane/read facts and cross-call
 substitutions require adversarial tests. Concrete component/worker/physical
 proofs and independently derived receiver authority remain mandatory. No
 execution acceptance or production performance claim is made by this prototype.
+
+## Complete serialized permutation source follow-up
+
+The permutation source is now split into a 44-MAIN header, 35-MAIN covering-word
+row and 67-MAIN absorption-lane row. Each has three source-owned fixed columns;
+modeled interactions are respectively16,32,32. The complete five-role bridge
+therefore exposes465 columns instead of2,513 (5.40x narrower). The widest retained
+CPU opening vector becomes3,848 instead of5,896, before concrete PCS qualification.
+
+The header retains the complete old26-coordinate control prefix and18 read flags.
+It supplies18 distinct full message-slot metadata tokens and two absorption-chain
+endpoints. Each message row emits exactly its original full RAM14 pair, with the
+same read weight. It provides full eight-byte WINDOW tuples with unit multiplicity
+at slots0/17 and multiplicity2 at slots1..16. Continuation slot0 consumes the
+previous permutation's slot17 carry token; it does not issue a second RAM read.
+Each absorption row consumes the complete metadata/count/mask predecessor token,
+emits its successor, and keeps the exact original two IO11 tuples. The count drops
+by the sum of eight Boolean thermometer bits. Capacity lanes keep the count and
+mask unchanged; fresh state is zero. Fixed lane16 alone supplies final0x80 padding.
+The header authenticates the start count (136 or final remaining bytes), terminal
+zero count and exact final mask. Source-owned fixed selectors are field values in
+all emitters, including OODS; no evaluator extracts an integer lane from OODS.
+
+Retained ordinal3 has74 calls and210 permutations. Including padding, old sponge
+native cells494,720 become1,354,112 (2.74x more), and local padded facts81,920 become
+540,672 (6.60x more). The added native work is859,392 cells in a CPU proof whose
+whole-system cost is hundreds of millions of cells. These figures include all
+five roles; they are not a prediction of wall time. All interaction counts remain
+modeled until a concrete native component is qualified.
+
+The complete dimension-only recursive GKR probe (sentinel26 layers, native
+four-coefficient representation) measures old87,861 versus new102,282 QM31 rows,
+3,456 versus4,010 P2 calls and3,044 versus4,598 native OM products. The increases
+are14,421,554 and1,554 respectively. Raw source denominator coordinates are640
+old versus1,207 new. PCS/FRI/opening savings and exact source-binding rows remain
+unmeasured, so there is no end-to-end speed claim yet.
+
+The source suite covers fresh and continuation, all eight byte alignments,
+lengths0/1/7/8/135/136/137/272, exact legacy RAM14/IO11 multisets, complete internal
+OWNER/WINDOW/carry closure, byte/clock/address/mask/shift mutations and degree3
+finite differences for all role constraints. Packet-state, input-state and
+input-packet overlap constructors reject exactly as the old ABI. Adjacent calls
+reusing packet/input addresses at identical or different clocks preserve exactly
+the old global tuple debt: this is not a local acceptance of inconsistent RAM.
+Global RAM closure remains mandatory. Query-count tests bind the model constants
+to actual emitter counts.
+
+Next is an independently versioned, closed physical component/GKR authority with
+all five source roles, source-owned OODS masks and exact cross-role closure. It
+must pass physical proofs and fresh receiver mutations before any runtime/schema
+switch. Existing schema2 and its retained artifacts remain the controls.
