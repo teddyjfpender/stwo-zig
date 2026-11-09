@@ -1,0 +1,262 @@
+{
+  "schema": "op-detached-four-member-pending-root-qualification-v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "complete_execution": false,
+  "fixture": {
+    "instructions": 11,
+    "CPU_frontier_proofs": 2,
+    "detached_calls": 3,
+    "detached_permutations": 5,
+    "direct_Keccak_calls": 1,
+    "Keccak_truth_calls": 6,
+    "members": 4,
+    "reductions": 3,
+    "source_manifest": "typed source-authority recipe with source-derived signed event bounds"
+  },
+  "nodes": [
+    {
+      "ordinal": 2,
+      "bytes": 664936,
+      "prove_receive_ns": 13392786125,
+      "sha256": "119a6bc6ce1d17bd5e453beb28181e4112afb8bde0411c88ca767ec6ef2c37f1"
+    },
+    {
+      "ordinal": 0,
+      "bytes": 659068,
+      "prove_receive_ns": 13834290833,
+      "sha256": "819b7b91dcff89d4509daa06a5f2e4bc085bc04a673e2206a7b4ffd008e01d36"
+    },
+    {
+      "ordinal": 1,
+      "bytes": 660004,
+      "prove_receive_ns": 13889397458,
+      "sha256": "48898f1991b1270696e382240e1f1281954dcf7f78e98b19357158704b58f3b7"
+    },
+    {
+      "ordinal": 3,
+      "bytes": 684008,
+      "prove_receive_ns": 27655035416,
+      "sha256": "4b0a9f2a8eddad2bc7446e8d33c527694e7cdc06fdd14eea1c6f48af5925c911"
+    },
+    {
+      "ordinal": 4,
+      "bytes": 685196,
+      "prove_receive_ns": 28600704833,
+      "sha256": "38750a852970ab34bc3a584f40dda66b4d245e58e416bbac0752a1523fba7c7b"
+    },
+    {
+      "ordinal": 5,
+      "bytes": 690860,
+      "prove_receive_ns": 28955166042,
+      "sha256": "41728f08396ec05395a7b89c4fb26d3e770883a70676bda1844f0c950a4f35fa"
+    },
+    {
+      "ordinal": 6,
+      "bytes": 688100,
+      "prove_receive_ns": 29933873167,
+      "sha256": "2077fdc1cdc20b81c80a860bc76b9a3d46a422335abd8b8f2e0c5036aa04a37f"
+    }
+  ],
+  "source_classes": [
+    {
+      "kind": "detached_sponge",
+      "ordinal": 2,
+      "raw": [
+        18168,
+        1081888,
+        820,
+        26490,
+        65536
+      ],
+      "legacy_component_cells": {
+        "rows": [
+          32768,
+          2097152,
+          1024,
+          32768,
+          65536
+        ],
+        "main_cells": 40964096,
+        "fixed_cells": 19303424,
+        "interaction_cells": 40656896,
+        "total_trace_cells": 100924416,
+        "poseidon_hybrid": false,
+        "production_qualified": false
+      },
+      "native_mul_rows": 32768,
+      "logs": [
+        15,
+        21,
+        10,
+        15,
+        16
+      ],
+      "immutable_setup_ns": 3964728417,
+      "source_identity": "becaa4299e8a153476c751b688b08aed326dc34c92d784658d2370b856afc083"
+    },
+    {
+      "kind": "sponge_cpu",
+      "ordinal": 0,
+      "raw": [
+        20073,
+        1463044,
+        1788,
+        31728,
+        65536
+      ],
+      "legacy_component_cells": {
+        "rows": [
+          32768,
+          2097152,
+          2048,
+          32768,
+          65536
+        ],
+        "main_cells": 40968192,
+        "fixed_cells": 19306496,
+        "interaction_cells": 40681472,
+        "total_trace_cells": 100956160,
+        "poseidon_hybrid": false,
+        "production_qualified": false
+      },
+      "native_mul_rows": 65536,
+      "logs": [
+        15,
+        21,
+        11,
+        15,
+        16
+      ],
+      "immutable_setup_ns": 4100398958,
+      "source_identity": "3a175536279af336d75aa77123344d91fb9c855611164e60411314347bb60558"
+    },
+    {
+      "kind": "sponge_cpu",
+      "ordinal": 1,
+      "raw": [
+        19934,
+        1375507,
+        1728,
+        30766,
+        65536
+      ],
+      "legacy_component_cells": {
+        "rows": [
+          32768,
+          2097152,
+          2048,
+          32768,
+          65536
+        ],
+        "main_cells": 40968192,
+        "fixed_cells": 19306496,
+        "interaction_cells": 40681472,
+        "total_trace_cells": 100956160,
+        "poseidon_hybrid": false,
+        "production_qualified": false
+      },
+      "native_mul_rows": 65536,
+      "logs": [
+        15,
+        21,
+        11,
+        15,
+        16
+      ],
+      "immutable_setup_ns": 4111127917,
+      "source_identity": "0aef223843723f896f634a752a1a86058707dee9b83fabf374391e09e72dbd9c"
+    },
+    {
+      "kind": "catalog",
+      "ordinal": 3,
+      "raw": [
+        15090,
+        3758136,
+        276,
+        37556,
+        65536
+      ],
+      "legacy_component_cells": {
+        "rows": [
+          16384,
+          4194304,
+          512,
+          65536,
+          65536
+        ],
+        "main_cells": 81659904,
+        "fixed_cells": 38438400,
+        "interaction_cells": 80359424,
+        "total_trace_cells": 200457728,
+        "poseidon_hybrid": false,
+        "production_qualified": false
+      },
+      "native_mul_rows": 131072,
+      "logs": [
+        14,
+        22,
+        9,
+        16,
+        16
+      ],
+      "immutable_setup_ns": 8222449583,
+      "source_identity": "aa5e3110695b80e4d39e7d0d74a35b5d4e09bd90342b01d38d47fe979e4e1a69"
+    }
+  ],
+  "root": {
+    "bytes": 688100,
+    "sha256": "2077fdc1cdc20b81c80a860bc76b9a3d46a422335abd8b8f2e0c5036aa04a37f",
+    "source_fingerprint": "fe6c8f4e81942bec75af0d1dcace3d2d6c279ab675f84315d49f5e586cb828c3"
+  },
+  "budget": {
+    "hard_combined_bytes": 34359738368,
+    "peak_requested_bytes": 5791236824,
+    "native_fixture_cap_bytes": 4294967296,
+    "workers_shared_native_and_outer": 8,
+    "final_live_bytes": 0,
+    "not_RSS": true
+  },
+  "qualification": {
+    "all_MAIN_precommit_then_CPU_child_verify_before_shared_challenges": true,
+    "typed_manifest_receipt_presence_mismatch_rejected": true,
+    "source_derived_RAM_KIO_Wire_mass_bounds": true,
+    "complete_native_RAM_KIO_Wire_closure": true,
+    "all_four_source_owned_complete_recursive_leaves_and_three_folds_physically_verified": true,
+    "fresh_independent_source_topology_root": true,
+    "same_profile_unrelated_valid_proof_key_substitution_rejected": true,
+    "balanced_opposed_CPU_detached_Wire_frames_rejected": true,
+    "reordered_duplicated_omitted_leaves_and_corrupt_root_rejected": true,
+    "all_seven_node_proofs_and_stage_profiles_persisted": true
+  },
+  "authority_contract": {
+    "authenticated": [
+      "per-CPU exact call counts and complete OWNER19 tuples including epoch and clock",
+      "aggregate detached permutation count and complete global KIO coverage",
+      "RAM transitions and global Wire closure through complete physical source equations"
+    ],
+    "scheduler_only": [
+      "per-CPU permutation-count partition and first-permutation IDs are deterministic advice/builder conventions, not additional physical execution theorems"
+    ],
+    "reason": "Permutation IDs are opaque internal labels. No extra AIR is introduced solely to canonicalize their per-CPU allocation. Source mass accounting uses actual aggregate P, not the advisory split."
+  },
+  "timing_scope": {
+    "summed_node_prove_persist_receive_ns": 156261253874,
+    "includes_native_receipt": false,
+    "excludes_source_setup_topology_and_native_fixture": true,
+    "quiet_benchmark": false,
+    "full_wall_time_not_recorded": true
+  },
+  "artifacts": {
+    "directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/serialized-sponge-four-member-root-v1",
+    "files": "node-0..6.bin, seven node stage profiles, root.bin, root.json",
+    "fresh_source_topology_check": "same-process independently rebuilt topology; not a production standalone root-only receiver"
+  },
+  "remaining": [
+    "Production independent source inventory and explicit detached-suite admission",
+    "Actual retained-small OP block complete new-suite producer/root/fresh receiver",
+    "Bounded full-height source model and representative probes; no complete heavy rerun authorized",
+    "Heavy >=10x matched end-to-end goal still unmet"
+  ]
+}

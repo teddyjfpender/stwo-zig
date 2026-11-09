@@ -126,8 +126,8 @@ The old CPU public/OODS body was extracted without changing its operation order,
 native transcript or immutable source identity. The native CPU golden remains
 exact, and the retained actual three-leaf root still passes the fresh source-only
 receiver with its original source identities and all adversarial controls.
-Detached sponge recursion and full new-suite root/runtime admission remain
-closed. See the recursive-leaf receipt for exact identities and limitations:
+Complete new-suite production root/runtime admission remains closed; the
+subsequent pending four-member fixture is qualified below. See the recursive-leaf receipt for exact identities and limitations:
 `vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-cpu-recursive-leaf-v1.json`.
 
 
@@ -186,3 +186,21 @@ output, it needs an additional binding relation. Current execution semantics do
 not require extra columns merely to canonicalize those opaque IDs. Local-GKR
 security/resource accounting, runtime/wire admission and complete recursive
 receiver integration remain gates before production promotion.
+The complete four-member pending root fixture is physically qualified: two CPU
+frontier leaves, detached sponge and local-GKR Keccak, followed by three folds.
+The receiver rebuilds the ordered source topology independently and rejects a
+valid same-profile proof under an unrelated key, balanced opposed Wire-frame
+changes, order/coverage changes and physical corruption. All seven proofs and
+stage profiles are retained. The root is688100 bytes; peak requested memory
+5.791GB under32GiB, with the native fixture still capped at4GiB. This is an
+11-step correctness fixture, not a production block benchmark or the10x goal.
+
+The authenticated contract is per-CPU call counts/full OWNER tuples, aggregate
+permutation count, and complete global RAM/KIO/Wire closure. Per-CPU permutation
+partitions and first-ID spans remain deterministic builder/scheduler advice.
+They are not an additional authenticated execution theorem: permutation IDs
+are opaque labels. No extra AIR is added solely to canonicalize those labels.
+
+Production inventory, actual OP-block reception and explicit source-suite
+admission remain separate gates. Exact scope and proof hashes are in
+`vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-four-member-root-v1.json`.

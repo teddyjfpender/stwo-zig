@@ -145,3 +145,22 @@ correctness-only tiny-fixture measurements. The native fragment retains its
 original SHA; sourceSuite/runtime admission remains closed. Exact identities,
 controls and remaining gates are recorded in
 `vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-complete-recursive-leaf-v1.json`.
+
+The complete four-member pending root fixture is physically qualified: two CPU
+frontier leaves, detached sponge and local-GKR Keccak, followed by three folds.
+The receiver rebuilds the ordered source topology independently and rejects a
+valid same-profile proof under an unrelated key, balanced opposed Wire-frame
+changes, order/coverage changes and physical corruption. All seven proofs and
+stage profiles are retained. The root is688100 bytes; peak requested memory
+5.791GB under32GiB, with the native fixture still capped at4GiB. This is an
+11-step correctness fixture, not a production block benchmark or the10x goal.
+
+The authenticated contract is per-CPU call counts/full OWNER tuples, aggregate
+permutation count, and complete global RAM/KIO/Wire closure. Per-CPU permutation
+partitions and first-ID spans remain deterministic builder/scheduler advice.
+They are not an additional authenticated execution theorem: permutation IDs
+are opaque labels. No extra AIR is added solely to canonicalize those labels.
+
+Production inventory, actual OP-block reception and explicit source-suite
+admission remain separate gates. Exact scope and proof hashes are in
+`vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-four-member-root-v1.json`.

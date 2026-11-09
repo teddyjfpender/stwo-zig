@@ -73,6 +73,7 @@ test "detached sponge coherent phantom claim raw STARK passes and full receiver 
 test "detached sponge joins frontier CPUs with sealed local-GKR Keccak truth" {
     const Local = struct {
         pub const local_truth = true;
+        pub const typed_manifest = true;
     };
     try @import("../sponge_cpu/join_test.zig").exerciseWithHook(false, Local);
 }

@@ -55,9 +55,10 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     const a = parent.allocator();
     const local_truth = if (comptime Hook != void and @hasDecl(Hook, "local_truth")) Hook.local_truth else false;
     const TruthAPI = if (local_truth) @import("../truth_local_gkr/worker.zig") else Truth;
+    const typed_manifest = if (comptime Hook != void and @hasDecl(Hook, "typed_manifest")) Hook.typed_manifest else false;
     var full_timer = try std.time.Timer.start();
     var pool: engine.work_pool.WorkPool = .{};
-    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    try pool.initInPlaceWithOptions(.{ .worker_count = if (comptime Hook != void and @hasDecl(Hook, "workers")) Hook.workers else 4 });
     defer pool.deinit();
     var pool_binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer pool_binding.deinit();
@@ -197,6 +198,10 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     for (workers, stages, entries[0..2], 0..) |worker, stage, *entry, ordinal| entry.* = .{ .authority = .{ .kind = .sponge_cpu, .global_relations = .{ .ram = true, .kio = requests[ordinal].calls[0] != 0, .wire = true }, .mass = .{ .ram = 65536, .kio = 65536, .wire = requests[ordinal].sponge.calls }, .profile = profile, .fixed_identity = worker.key.identity }, .scope = .{ .statement = worker.expected.statement, .fixed = worker.key.root, .main = stage.main, .ordinal = @intCast(ordinal) }, .local = .{ .digest = stage.receipt } };
     entries[2] = .{ .authority = .{ .kind = .detached, .global_relations = .{ .ram = true, .kio = true, .wire = true }, .mass = .{ .ram = 65536, .kio = 65536, .wire = geometry.calls }, .profile = profile, .fixed_identity = detached_key.identity }, .scope = .{ .statement = detached.expected.statement, .fixed = detached_key.root, .main = detached_main, .ordinal = 2 }, .local = null };
     entries[3] = .{ .authority = .{ .kind = .keccak, .global_relations = truth_expected.global_relations, .mass = truth_expected.mass, .profile = profile, .fixed_identity = truth_key.identity }, .scope = .{ .statement = truth_expected.statement, .fixed = if (local_truth) truth_key.base.root else truth_key.root, .main = truth_stage.main, .ordinal = 3 }, .local = null };
+    if (typed_manifest) {
+        for (entries[0..2], &setups, requests) |*entry, *setup, request| entry.authority.mass = try @import("mass.zig").cpu(setup, request, .{});
+        entries[2].authority.mass = try @import("mass.zig").detached(geometry);
+    }
     var execution_hash = std.crypto.hash.sha2.Sha256.init(.{});
     execution_hash.update("op-detached-sponge-two-cpu-closed-join/v1");
     execution_hash.update(&captured.program.identity);
@@ -206,8 +211,33 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     execution_hash.update(&kio_policy);
     for (entries) |entry| execution_hash.update(&entry.scope.statement);
     var writer = Base.ReceiptWriter{};
-    try Manifest.emit(execution_hash.finalResult(), &entries, &writer);
-    const manifest = try writer.finish();
+    const execution_id = execution_hash.finalResult();
+    try Manifest.emit(execution_id, &entries, &writer);
+    const direct_digest = try writer.finish();
+    const Typed = @import("manifest.zig");
+    var typed: ?Typed.Pending = null;
+    defer if (typed) |*pending| pending.deinit(a);
+    if (typed_manifest) {
+        var admitted: [4]Typed.Expected = undefined;
+        var stage_list: [4]Typed.StageOne = undefined;
+        for (entries, &admitted, &stage_list, 0..) |entry, *authority, *stage, i| {
+            authority.* = .{ .authority = .{ .kind = switch (entry.authority.kind) {
+                .sponge_cpu => .sponge_cpu,
+                .detached => .detached,
+                .keccak => .keccak,
+            }, .ordinal = @intCast(i), .profile = profile, .fixed_identity = entry.authority.fixed_identity, .fixed = entry.scope.fixed, .statement = entry.scope.statement, .global_relations = entry.authority.global_relations, .mass = entry.authority.mass }, .cpu = if (i < 2) .{ .epoch = @intCast(requests[i].base.epoch), .calls = requests[i].sponge.calls, .instances = workers[i].roster.instances } else null };
+            stage.* = .{ .main = entry.scope.main, .local = if (i < 2) .{ .proof = &workers[i].child.?.result.proof, .receipt = stages[i].receipt } else null };
+        }
+        typed = try Typed.verifyAndSeal(a, execution_id, &admitted, &stage_list);
+        try std.testing.expectEqualSlices(u8, &direct_digest, &typed.?.digest);
+        var changed = stage_list;
+        changed[0].local.?.receipt[35] ^= 1;
+        try std.testing.expectError(error.LocalGkrReceiptMismatch, Typed.verifyAndSeal(a, execution_id, &admitted, &changed));
+        changed = stage_list;
+        changed[2].local = stage_list[0].local;
+        try std.testing.expectError(error.GlobalGkrManifestRoster, Typed.verifyAndSeal(a, execution_id, &admitted, &changed));
+    }
+    const manifest = if (typed) |pending| pending.digest else direct_digest;
     // Every MAIN is committed before any shared RAM/KIO/Wire challenge.
     var encoded: [2]CPU.Encoded = undefined;
     var encoded_made: usize = 0;
@@ -222,7 +252,7 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     var fragment = try detached.complete(manifest);
     const detached_ns = phase_timer.lap();
     defer fragment.deinit(a);
-    if (!hole and !local_truth) try std.testing.expectEqualStrings("8be51254f5dc66c7ab29f442b029c005726e96fd9052068c0e9728eb7eaa2023", &hash(fragment.bytes));
+    if (!hole and !local_truth and !typed_manifest) try std.testing.expectEqualStrings("8be51254f5dc66c7ab29f442b029c005726e96fd9052068c0e9728eb7eaa2023", &hash(fragment.bytes));
     if (comptime Hook != void and @hasDecl(Hook, "detached")) try Hook.detached(a, &detached, &fragment, manifest, detached_main);
     try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, truth_worker.completeSealed(.{ .manifest = manifest, .main = Base.hashWords(&.{ 991, 3 }) }));
     var truth_proof = try truth_worker.completeSealed(.{ .manifest = manifest, .main = truth_stage.main });
@@ -336,7 +366,8 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
         try Hook.truth(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), manifest, truth_stage.main, &truth_proof, &capture);
     } else claims[3] = try TruthAPI.verifySealed(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), .{ .manifest = manifest, .main = truth_stage.main }, &truth_proof);
     try close(&claims);
-    if (comptime Hook != void and @hasDecl(Hook, "complete")) try Hook.complete(a, manifest, &claims);
+    if (typed) |pending| try pending.checkGlobalClosure(&claims);
+    if (comptime Hook != void and @hasDecl(Hook, "complete")) try Hook.complete(a, execution_id, manifest, &claims);
     var changed_scope = Truth.SealedScope{ .manifest = manifest, .main = Base.hashWords(&.{ 991, 3 }) };
     try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, TruthAPI.verifySealed(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), changed_scope, &truth_proof));
     changed_scope = .{ .manifest = Base.hashWords(&.{ 992, 4 }), .main = truth_stage.main };
