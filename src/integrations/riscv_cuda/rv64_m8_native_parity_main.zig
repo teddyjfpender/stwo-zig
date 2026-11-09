@@ -457,7 +457,7 @@ const Decorator = struct {
         defer self.mutex.unlock();
         const row = self.compare(request, &legacy, legacy_ns) catch |err| Row{ .ordinal = request.scope.ordinal, .instances = request.instances.len, .columns = 0, .host_columns = 0, .cells = 0, .facts = 0, .channel_equal = false, .proof_equal = false, .legacy_ns = legacy_ns, .job_stage_ns = 0, .job_enqueue_ns = 0, .job_wait_ns = 0, .host_waits = 0, .d2h_bytes = 0, .arena_peak_words = 0, .declared_device_words = 0, .launches = 0, .error_name = @errorName(err) };
         var full = row;
-        const stage1_flag = std.posix.getenv("STWO_RV64_M8_PARITY_STAGE1") orelse "1";
+        const stage1_flag = "1";
         if (!std.mem.eql(u8, stage1_flag, "0")) self.stage1(request, &legacy, &full) catch |err| {
             full.stage1_error = @errorName(err);
         };

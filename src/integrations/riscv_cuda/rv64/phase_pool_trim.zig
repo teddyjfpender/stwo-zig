@@ -1,6 +1,5 @@
 //! Optional owner-thread phase trim; no field/transcript or allocation changes.
 const std = @import("std");
-pub const ENV = "STWO_RV64_COMPOSITION_POOL_TRIM";
 // Observed normal arena12.464GB stays below this; worst16.844GB opts in.
 pub const MIN_ARENA_BYTES: u64 = 12 << 30;
 pub const Trim = *const fn (*anyopaque) callconv(.c) c_int;
@@ -10,13 +9,8 @@ pub fn parse(value: ?[]const u8) !bool {
     if (std.mem.eql(u8, text, "1")) return true;
     return error.InvalidCompositionPoolTrim;
 }
-pub fn fromEnv(a: std.mem.Allocator) !bool {
-    const value = std.process.getEnvVarOwned(a, ENV) catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return false,
-        else => return err,
-    };
-    defer a.free(value);
-    return parse(value);
+pub fn fromEnv(_: std.mem.Allocator) !bool {
+    return false;
 }
 pub const Policy = struct {
     enabled: bool = false,

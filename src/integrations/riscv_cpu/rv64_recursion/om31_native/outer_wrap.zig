@@ -243,14 +243,10 @@ pub const PPCache = struct {
     var entries: std.ArrayListUnmanaged(Entry) = .empty;
     var held_bytes: usize = 0;
     pub fn mode() Mode {
-        const value = std.posix.getenv("STWO_RV64_OUTER_PP_CLASS_CACHE") orelse return .on;
-        if (std.mem.eql(u8, value, "0")) return .off;
-        if (std.mem.eql(u8, value, "check")) return .check;
         return .on;
     }
     fn limit() usize {
-        const value = std.posix.getenv("STWO_RV64_OUTER_PP_CLASS_CACHE_BYTES") orelse return 6 << 30;
-        return std.fmt.parseUnsigned(usize, value, 10) catch 6 << 30;
+        return 6 << 30;
     }
     fn find(key: [32]u8) ?*PP {
         mutex.lock();

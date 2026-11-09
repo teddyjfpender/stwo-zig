@@ -161,11 +161,7 @@ inline int g_fft_small_override = -1;
 inline bool fft_small_enabled(uint32_t log_n) {
     if (log_n > kFftSmallMaxLogN || log_n < kMinLogN) return false;
     if (g_fft_small_override >= 0) return g_fft_small_override != 0;
-    static const bool enabled = [] {
-        const char *value = std::getenv("STWO_RV64_M8_FFT_SMALL");
-        return !(value && value[0] == '0');
-    }();
-    return enabled;
+    return true;
 }
 
 template <bool B2n, bool Duplicate>

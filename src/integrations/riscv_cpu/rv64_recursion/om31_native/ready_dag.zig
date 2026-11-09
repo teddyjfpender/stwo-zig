@@ -149,8 +149,7 @@ pub const Status = enum { pending, running, done, retired, failed };
 /// Operational scramble test: only ready device work is reordered. The carry
 /// plan, ordered children, transcript and bounded host admission stay intact.
 pub fn scrambleSeedFromEnv() !?u64 {
-    const text = std.posix.getenv("STWO_RV64_RECURSION_SCRAMBLE_SEED") orelse return null;
-    return std.fmt.parseUnsigned(u64, text, 10) catch error.InvalidRecursionScrambleSeed;
+    return null;
 }
 pub fn scrambleRank(seed: u64, dispatch: u64, node: usize) u64 {
     var x = seed ^ (dispatch *% 0x9e3779b97f4a7c15) ^ @as(u64, @intCast(node));
@@ -177,10 +176,7 @@ pub const Policy = enum {
     pub fn fromEnv() !Policy {
         // Default m5: the critical device order measured slower on 24628607
         // (deferred folds hold authority slots and starve leaf admission).
-        const value = std.posix.getenv("STWO_RV64_RECURSION_SCHED") orelse return .m5;
-        if (std.mem.eql(u8, value, "m5")) return .m5;
-        if (std.mem.eql(u8, value, "critical") or std.mem.eql(u8, value, "m6")) return .critical;
-        return error.InvalidRecursionSchedulePolicy;
+        return .m5;
     }
 };
 pub const LeafSet = std.StaticBitSet(max_leaves);

@@ -76,7 +76,7 @@ pub const Context = struct {
     staged_graph: ?*const anyopaque = null,
     mutex: std.Thread.Mutex = .{},
     pub fn init(a: std.mem.Allocator, service: *Service.Context, trace_commit: *TC.Context, composition: *RC.Context) !Context {
-        const fused = if (std.posix.getenv("STWO_RV64_RC_INTER_CONTRIBUTIONS")) |v| std.mem.eql(u8, v, "1") else false;
+        const fused = false;
         if (fused and @import("stwo_riscv_cpu_integration").rv64_om31_outer_wrap.hybridProfileActive()) return error.UnqualifiedHybridInterContributions;
         const kernels: ?ContributionKernels = if (fused) .{
             .generate = try sym(@FieldType(ContributionKernels, "generate"), &service.library, "stwo_circuit_om31_contributions_v1_on"),

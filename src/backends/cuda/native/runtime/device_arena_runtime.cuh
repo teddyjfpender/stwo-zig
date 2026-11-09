@@ -125,8 +125,6 @@ inline Config parse_config() {
   }
   if (const char *v = getenv("STWO_RV64_PINNED_STAGING_SLOT"))
     if (!parse_bytes(v, &c.slot_bytes) || c.slot_bytes < 4096) c.valid = false;
-  if (const char *v = getenv("STWO_RV64_PINNED_STAGING_THREADS"))
-    if (!parse_bytes(v, &c.staging_threads) || c.staging_threads > 64) c.valid = false;
   if (!c.valid)
     fprintf(stderr, "GPU_ARENA_CONFIG_INVALID (STWO_RV64_DEVICE_ARENA*/STWO_RV64_PINNED_STAGING*)\n");
   return c;

@@ -838,14 +838,12 @@ const Pipe = struct {
             defer a.free(text);
             return std.fmt.parseUnsigned(usize, text, 10) catch error.InvalidRecursionPipelineOption;
         }
-        /// STWO_RV64_RECURSION_PIPELINE=0 selects the original lane path.
-        pub fn fromEnv(a: std.mem.Allocator, options: ParallelOptions) !?Options {
-            if (try envUsize(a, "STWO_RV64_RECURSION_PIPELINE", 1) == 0) return null;
+        pub fn fromEnv(_: std.mem.Allocator, options: ParallelOptions) !?Options {
             const lanes = options.lanes.len;
             const result = Options{
-                .host_workers = try envUsize(a, "STWO_RV64_RECURSION_HOST_WORKERS", 8),
-                .prep_pool_workers = try envUsize(a, "STWO_RV64_RECURSION_PREP_POOL_WORKERS", 24),
-                .prep_ahead = try envUsize(a, "STWO_RV64_RECURSION_PREP_AHEAD", 3 * lanes),
+                .host_workers = 8,
+                .prep_pool_workers = 24,
+                .prep_ahead = 3 * lanes,
             };
             if (result.host_workers == 0 or result.host_workers > 32 or result.prep_pool_workers == 0 or result.prep_pool_workers > Pools.MAX_WORKERS or result.prep_ahead == 0) return error.InvalidRecursionPipelineOption;
             return result;
@@ -1568,12 +1566,6 @@ pub const Streaming = struct {
         // Streaming exists only on the pipelined executor. With
         // STWO_RV64_RECURSION_PIPELINE=0 (the M5 lane path) keep the M5
         // handoff instead of failing the request after native production
-        // (runInner would return StreamingRequiresPipelinedRecursion). A
-        // malformed value keeps streaming on, so runInner rejects it exactly
-        // as Pipe.Options.fromEnv does on the M5 path.
-        if (std.posix.getenv("STWO_RV64_RECURSION_PIPELINE")) |text| {
-            if ((std.fmt.parseUnsigned(usize, text, 10) catch 1) == 0) return false;
-        }
         const value = std.posix.getenv("STWO_RV64_RECURSION_STREAM") orelse return true;
         return !std.mem.eql(u8, value, "0");
     }
@@ -1581,7 +1573,7 @@ pub const Streaming = struct {
         const n = setups.len + truths.len;
         if (n == 0 or n > Dag.max_leaves) return error.ServicesRootRoster;
         try validateLanes(options);
-        const prep_text = std.posix.getenv("STWO_RV64_RECURSION_STREAM_PREP") orelse "4";
+        const prep_text = "4";
         const prep = std.fmt.parseUnsigned(usize, prep_text, 10) catch return error.InvalidRecursionPipelineOption;
         if (prep == 0) return error.InvalidRecursionPipelineOption;
         const self = try a.create(Streaming);

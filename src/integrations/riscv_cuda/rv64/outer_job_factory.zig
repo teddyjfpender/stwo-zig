@@ -1636,14 +1636,14 @@ pub const Hybrid = struct {
         graphs: Graphs.Policy = .{},
         pub fn fromEnv() !Knobs {
             var k = Knobs{};
-            k.fixed_job = try Env.flag("STWO_RV64_M8_OUTER_FIXED_JOB", k.fixed_job);
-            k.fixed_handoff = try Env.flag("STWO_RV64_M8_OUTER_FIXED_HANDOFF", k.fixed_handoff) and k.fixed_job;
-            k.persistent_classes = try Env.flag("STWO_RV64_M8_OUTER_PERSISTENT_CLASSES", k.persistent_classes);
+
+            k.fixed_handoff = k.fixed_handoff and k.fixed_job;
+
             // Two-key fault injection (outer_checks.zig): a leftover ordinal
             // alone refuses service start instead of failing production nodes.
             k.fault_ordinal = try Env.optionalUnsigned(u32, "STWO_RV64_M8_OUTER_FAULT_ORDINAL");
             if (k.fault_ordinal != null and !try Env.flag("STWO_RV64_M8_FAULT_INJECTION", false)) return error.M8FaultInjectionNotArmed;
-            k.reserve_bytes = try Env.unsigned(u64, "STWO_RV64_M8_OUTER_RESERVE_BYTES", k.reserve_bytes);
+
             k.graphs = try Graphs.Policy.fromEnv();
             // Node-job knobs are parsed per job; check them here so a bad
             // value fails the service at create, not at the first node.
@@ -1668,7 +1668,7 @@ pub const Hybrid = struct {
         const fs_path = std.posix.getenv("STWO_RV64_M8_OUTER_FS_LIBRARY") orelse return error.MissingM8OuterFsLibrary;
         _ = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingM8JobsLibrary;
         const knobs = try Knobs.fromEnv();
-        const persist = try Env.flag("STWO_RV64_M8_OUTER_PERSIST_WINDOW", true);
+        const persist = true;
         const self = try a.create(Hybrid);
         errdefer a.destroy(self);
         self.* = .{ .allocator = a, .base = try std.DynLib.open(library), .library = library, .fs_path = fs_path, .persist = persist, .knobs = knobs };

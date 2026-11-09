@@ -14,7 +14,7 @@ namespace stwo::cuda::rv64 {
 // Any other value rejects. Records, state and status words are bit-identical.
 inline int batch_par_mode() {
   static const int mode = [] {
-    const char *v = std::getenv("STWO_RV64_M8_GKR_BATCH_PAR");
+    const char *v = nullptr;
     // STWO_RV64_M8_GKR_BATCH_PAR: unset or 1 = batch_round_par, 0 = the serial
     // Default ON since M8 opt-combined (vectors/reports/rv64-m8-20261106/opt-combined/): kernel-parity bit-exact, rv64_gate PASS on 26235156+24628607 flags on, and in the qualified 3+3 (24628607 warm, nsys CUPTI, both GPUs) batch_round 0.154 -> batch_round_par 0.051 GPU-s [M].
     if (!v || !std::strcmp(v, "1")) return 1;

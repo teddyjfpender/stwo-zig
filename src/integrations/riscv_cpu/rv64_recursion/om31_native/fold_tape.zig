@@ -32,9 +32,6 @@ const Bridge = @import("../om31_outer.zig");
 
 pub const Mode = enum { off, on, check };
 pub fn mode() Mode {
-    const value = std.posix.getenv("STWO_RV64_FOLD_SEED_TAPE") orelse return .on;
-    if (std.mem.eql(u8, value, "0")) return .off;
-    if (std.mem.eql(u8, value, "check")) return .check;
     return .on;
 }
 
@@ -185,5 +182,5 @@ pub fn stub(a: std.mem.Allocator, digest: [32]u8) !Bridge.Graph {
 test "fold seed tape mode parsing defaults on" {
     // Only the env-free default is asserted here; the end-to-end gate is the
     // byte-identical dev-block receipts (vectors/reports/rv64-m6-20261105/hint-tape/).
-    if (std.posix.getenv("STWO_RV64_FOLD_SEED_TAPE") == null) try std.testing.expectEqual(Mode.on, mode());
+    try std.testing.expectEqual(Mode.on, mode());
 }

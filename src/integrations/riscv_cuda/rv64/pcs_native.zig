@@ -20,9 +20,7 @@ const LiveLeases = *const fn (*anyopaque, *[5]u64, *u64) callconv(.c) c_int;
 /// geometry only; STWO_RV64_PCS_HOST_GEOMETRY_BYTES overrides (0 = M5 cap).
 pub const resident_host_geometry_bytes: usize = 512 << 20;
 fn hostGeometryBytes() usize {
-    const text = std.posix.getenv("STWO_RV64_PCS_HOST_GEOMETRY_BYTES") orelse return resident_host_geometry_bytes;
-    const bytes = std.fmt.parseInt(usize, text, 10) catch return resident_host_geometry_bytes;
-    return if (bytes == 0) Export.GeometryCache.default_bytes else bytes;
+    return resident_host_geometry_bytes;
 }
 pub fn allocationOptions() !AllocationCost.Options {
     var result: AllocationCost.Options = .{};

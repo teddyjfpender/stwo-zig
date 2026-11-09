@@ -103,7 +103,7 @@ pub fn main() !void {
         else => return err,
     };
     defer if (composition_helper) |value| a.free(value);
-    var composition = Composition.Context{ .helper = composition_helper orelse "", .directory = directory, .keep_jobs = std.process.hasEnvVarConstant("STWO_RV64_GPU_KEEP_JOBS") };
+    var composition = Composition.Context{ .helper = composition_helper orelse "", .directory = directory, .keep_jobs = false };
     const composition_stage = composition.stage();
     try CPU.rv64_ethereum_gkr_main.mainWithStages(&stage, if (composition_helper != null) &composition_stage else null);
 }

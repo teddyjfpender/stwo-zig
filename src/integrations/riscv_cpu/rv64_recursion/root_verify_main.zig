@@ -481,9 +481,7 @@ const NATIVE_BUILD_THREADS: usize = 16;
 /// Parallel derive lanes (leaf/fold authorities in flight). Each CPU leaf
 /// lane holds one trace-only leaf graph; 8 lanes fit the default budget.
 fn deriveLanes() usize {
-    const text = std.posix.getenv("STWO_RV64_DERIVE_LANES") orelse return 8;
-    const value = std.fmt.parseUnsigned(usize, text, 10) catch return 8;
-    return std.math.clamp(value, 1, 32);
+    return 8;
 }
 /// `FixedSet.init` with the distinct source keys' candidate FIXED keys
 /// acquired concurrently (`Fixed.Cache` serializes its entry table; the

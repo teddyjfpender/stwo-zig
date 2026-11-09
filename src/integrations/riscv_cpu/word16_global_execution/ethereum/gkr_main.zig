@@ -529,12 +529,12 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     // image/program init below; admission still happens batch by batch in
     // `capture` against that independently loaded image.
     var direct_stats: DirectCapture.Stats = .{};
-    const shared_walk_authority = if (std.posix.getenv("STWO_RV64_CAPTURE_SHARED_AUTHORITY")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const shared_walk_authority = false;
     const early_cpu = if (std.posix.getenv("STWO_RV64_CPU0_PRESTAGE")) |flag| std.mem.eql(u8, flag, "1") else false;
     const early_main = if (std.posix.getenv(EarlyCPU.FLAG)) |flag| std.mem.eql(u8, flag, "1") else false;
     const early_segments = if (std.posix.getenv(EarlySegments.FLAG)) |flag| std.mem.eql(u8, flag, "1") else false;
     // Refuse mixed speculative owners before starting boot/capture/callbacks.
-    const old_first = if (std.posix.getenv("STWO_RV64_CPU0_FIRST_PASS_PRESTAGE")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const old_first = false;
     if (early_main and (early_cpu or old_first)) return error.ConflictingEarlyCpuModes;
     if (early_segments and (early_cpu or old_first or early_main)) return error.ConflictingEarlyCpuModes;
     if (early_main and (!combined or !candidate or !direct_capture or count != 0 or session == null or stages.early_memory == null or capture_options.execution_workers == 0 or !@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled())) return error.EarlyMainRequiresAdmittedResidentFirstPass;
@@ -542,7 +542,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const early_host_budget = if (early_main or early_segments) try @import("../../rv64_recursion_budget.zig").require(engine.host_budget_allocator.SharedHostBudget, base) else null;
 
     if (early_cpu and (!direct_capture or !combined or stages.cpu_projection == null)) return error.CpuPrestageRequiresDirectResidentCombined;
-    const early_first = if (std.posix.getenv("STWO_RV64_CPU0_FIRST_PASS_PRESTAGE")) |v| std.mem.eql(u8, v, "1") else false;
+    const early_first = false;
     if (early_first and (!early_cpu or !@import("../../rv64_ethereum_segments.zig").minimalFirstPassEnabled())) return error.FirstPassCpuPrestageRequiresRecords;
     var prestage: ?CpuPrestage = if (early_cpu) .{ .stage = stages.cpu_projection.?, .first_pass = early_first } else null;
     if (early_first and prestage.?.stage.prestage_first_pass == null) return error.FirstPassCpuPrestageUnavailable;

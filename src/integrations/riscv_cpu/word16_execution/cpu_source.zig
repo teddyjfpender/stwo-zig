@@ -112,8 +112,7 @@ pub const ProjectionStage = struct {
 /// the pod's 93 GB cgroup; compact_stall 359k), vs 7.09 s without it.
 /// Same Source, same errors; producer scheduling only.
 pub fn recorderEnabled() bool {
-    const text = std.posix.getenv("STWO_RV64_M8_CAPTURE_RECORDER") orelse return false;
-    return std.mem.eql(u8, text, "1");
+    return false;
 }
 /// Upper bound on parallel capture ranges per tape.
 pub const MAX_CAPTURE_CHUNKS = 16;
@@ -123,7 +122,7 @@ pub const MIN_CAPTURE_CHUNK_STEPS: usize = 1 << 18;
 /// (1 = serial scan) or 8, bounded so every range has at least
 /// `MIN_CAPTURE_CHUNK_STEPS` steps. Producer scheduling only.
 pub fn captureChunks(steps: usize) usize {
-    const wanted: usize = if (std.posix.getenv("STWO_RV64_CPU_CAPTURE_CHUNKS")) |text| std.fmt.parseInt(usize, text, 10) catch 8 else 8;
+    const wanted: usize = 8;
     return @max(1, @min(@min(wanted, MAX_CAPTURE_CHUNKS), steps / MIN_CAPTURE_CHUNK_STEPS));
 }
 /// Process-wide budget of extra capture threads (`STWO_RV64_CPU_CAPTURE_THREADS`,
@@ -133,8 +132,7 @@ pub fn captureChunks(steps: usize) usize {
 /// Any grant yields the same Source; it only changes how many ranges run.
 var helper_threads_in_use = std.atomic.Value(usize).init(0);
 fn helperBudget() usize {
-    const text = std.posix.getenv("STWO_RV64_CPU_CAPTURE_THREADS") orelse return 8;
-    return std.fmt.parseInt(usize, text, 10) catch 8;
+    return 8;
 }
 /// M6: a capture on a thread marked critical (the batch the ordered ledger
 /// waits on first, see `direct.Job`) is granted `wanted` helpers even past

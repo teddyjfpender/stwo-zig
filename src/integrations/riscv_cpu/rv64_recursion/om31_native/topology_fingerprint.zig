@@ -65,8 +65,7 @@ pub fn compute(ctx: *const C.Context) Fingerprint {
 }
 
 pub fn enabled() bool {
-    const value = std.posix.getenv("STWO_RV64_TOPOLOGY_CENSUS") orelse return false;
-    return std.mem.eql(u8, value, "1");
+    return false;
 }
 
 /// Logs one line per node; `label` is e.g. "leaf-cpu-0003" or "fold-[0,4)".

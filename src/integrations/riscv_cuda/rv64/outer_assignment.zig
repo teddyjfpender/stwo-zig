@@ -131,14 +131,10 @@ pub const ClassCache = struct {
     pub var tape_hits: usize = 0;
     pub var tape_refusals: usize = 0;
     pub fn mode() Mode {
-        const value = std.posix.getenv("STWO_RV64_OUTER_PLAN_CLASS_CACHE") orelse return .on;
-        if (std.mem.eql(u8, value, "0")) return .off;
-        if (std.mem.eql(u8, value, "check")) return .check;
         return .on;
     }
     fn limit() usize {
-        const value = std.posix.getenv("STWO_RV64_OUTER_PLAN_CLASS_CACHE_BYTES") orelse return 6 << 30;
-        return std.fmt.parseUnsigned(usize, value, 10) catch 6 << 30;
+        return 6 << 30;
     }
     fn find(key: [32]u8) ?*Template {
         {
@@ -737,7 +733,7 @@ pub const Prepared = struct {
             for (tasks) |task| if (capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
         }
         const task_pack_ns = timer.lap();
-        if (std.posix.getenv("STWO_RV64_OUTER_ASSIGNMENT_CENSUS") != null) levelKindCensus(tasks, plan.level_ends);
+
         const seeds = try a.alloc(Seed, plan.seeds.len);
         errdefer a.free(seeds);
         for (plan.seeds, seeds) |input, *out| out.* = .{ .out = input.variable, .value = Circuit.builder.ivalue.limbs(input.value) };

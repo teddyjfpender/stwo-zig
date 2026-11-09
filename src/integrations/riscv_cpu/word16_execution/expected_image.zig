@@ -106,7 +106,7 @@ pub const AuthorityCache = struct {
         return self.getPinnedLocked(loaded, config);
     }
     fn getPinnedLocked(self: *AuthorityCache, loaded: *rv.elf.LoadedImage, config: Request.Config) !*const Full.ProgramAuthority {
-        const enabled = if (std.posix.getenv("STWO_RV64_IMAGE_PROGRAM_CACHE")) |v| !std.mem.eql(u8, v, "0") else true;
+        const enabled = true;
         const id = imageKey(config);
         if (self.provider_key) |active| if (!std.mem.eql(u8, &active, &id)) return error.ResidentAuthorityProviderKeyChanged;
         if (enabled) for (self.entries.items) |entry| if (entry.pinned_image) |pin| {

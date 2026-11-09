@@ -223,8 +223,7 @@ const Job = struct {
     }
 };
 fn criticalFirst() bool {
-    const text = std.posix.getenv("STWO_RV64_CAPTURE_CRITICAL") orelse return true;
-    return !std.mem.eql(u8, text, "0");
+    return true;
 }
 /// `STWO_RV64_CAPTURE_JOB_NICE=N` (1..19): run batch admission/capture (and
 /// the range threads it spawns, which inherit it) at nice N, so the serial
@@ -413,7 +412,7 @@ pub const Started = struct {
         const self = try a.create(Started);
         errdefer a.destroy(self);
         self.* = .{ .allocator = a, .config = config, .walk_config = walk_config, .prefix_packets = prefix_packets, .segment_workers = workersOverride(segment_workers), .ready = null, .authority_provider = provider };
-        const async_start = if (std.posix.getenv("STWO_RV64_CAPTURE_ASYNC_START")) |v| !std.mem.eql(u8, v, "0") else true;
+        const async_start = true;
         if (async_start) {
             if (std.Thread.spawn(.{}, bootThread, .{self})) |t| {
                 self.boot_thread = t;

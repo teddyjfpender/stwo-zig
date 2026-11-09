@@ -493,7 +493,7 @@ inline auto flow_kernel() { return chain_flow<kFlowWideWidth>; }
 // 0: chain_run (default), 1: chain_flow. Read once per process.
 inline int flow_mode() {
     static const int mode = [] {
-        const char* v = std::getenv("STWO_RV64_M8_ASSIGNMENT_FLOW");
+        const char* v = nullptr;
         if (!v || !std::strcmp(v, "0")) return 0;
         if (!std::strcmp(v, "1")) return 1;
         return -1;

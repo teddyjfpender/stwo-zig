@@ -23,16 +23,14 @@ pub const MAX_WORKERS = 32;
 pub var traced_engine_override: ?bool = null;
 pub fn tracedEngineEnabled() bool {
     if (traced_engine_override) |value| return value;
-    const text = std.posix.getenv("STWO_RV64_TRACED_ENGINE") orelse return true;
-    return !std.mem.eql(u8, text, "0");
+    return true;
 }
 
 /// Bounded CPU0 producer prototype. Existing traced capture remains the
 /// acceptance/ordered-ledger source and compares every minimal record.
 /// No GPU projection or proof consumer trusts this transport yet.
 pub fn minimalFirstPassEnabled() bool {
-    const text = std.posix.getenv("STWO_RV64_FIRST_PASS_CPU0_RECORDS") orelse return false;
-    return std.mem.eql(u8, text, "1");
+    return false;
 }
 
 pub fn ramFirstPassEnabled() bool {

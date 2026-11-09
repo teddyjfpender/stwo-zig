@@ -54,7 +54,7 @@ pub const Config = struct {
         var c = Config{
             .arena_words = std.mem.alignBackward(usize, try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 8 << 30) / 4, worker.Arena.granule),
             .pinned_slot_words = try envBytes("STWO_RV64_M8_JOBS_PINNED_BYTES", 256 << 20) / 4,
-            .pinned_lazy = try envFlag("STWO_RV64_M8_JOBS_PINNED_LAZY", false),
+            .pinned_lazy = false,
         };
         var it = std.mem.tokenizeScalar(u8, std.posix.getenv("STWO_RV64_GPU_DEVICES") orelse "0", ',');
         while (it.next()) |d| {
@@ -136,7 +136,7 @@ pub const WorkerSet = struct {
     /// lazy (grow-only to what jobs stage) unless STWO_RV64_M8_JOBS_PINNED_LAZY=0.
     pub fn startParked(a: std.mem.Allocator, library: []const u8, config_in: Config) !*WorkerSet {
         var config = config_in;
-        config.pinned_lazy = try envFlag("STWO_RV64_M8_JOBS_PINNED_LAZY", true);
+        config.pinned_lazy = true;
         const self = try startWith(a, library, config);
         errdefer self.stop(a);
         _ = try self.park(.{});
