@@ -19,7 +19,10 @@ pub const frontends = struct {
 };
 
 pub const integrations = struct {
-    pub const riscv_cpu = @import("stwo_riscv_cpu_integration");
+    // The CLI needs the generic CPU engine, not the RV64 recursion services.
+    pub const riscv_cpu = struct {
+        pub const CpuProverEngine = frontends.riscv.prover_mod.ProverEngineForBackend(backends.cpu.CpuBackend);
+    };
 };
 
 pub const interop = struct {

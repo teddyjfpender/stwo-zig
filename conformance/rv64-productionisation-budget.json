@@ -638,6 +638,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Give independent manual CPU lane requests distinct CI concurrency identities. The first dispatch batch proved that branch-only grouping cancels a pending different lane even with active-run cancellation disabled. Preserve frozen source and existing automatic cancellation policy; no additional lane, launcher or runtime switch."
+    },
+    {
+      "id": "delivery_exact_support_module_identity",
+      "net_code_budget": 50,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair the FRI regression\u2019s duplicate relative module import by using the existing named circuit frontend export. Bind the aggregate lexical closure to the exact support modules already injected by its real compiler graph, retaining leaf ownership and all rejection checks. Make the exhaustive Merkle allocation-fault sequence deterministic by refusing backing resizes, retaining all failure/leak checks. Compose the aggregate legacy CPU engine through its existing generic frontend constructor instead of importing unrelated RV64 recursion services. No dependency/API ledger, directory prefix, proof bytes or compiler assertion is widened."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

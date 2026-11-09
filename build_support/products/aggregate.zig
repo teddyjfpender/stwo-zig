@@ -8,6 +8,11 @@ const cpu_facade = "src/products/cairo/aggregate/cpu.zig";
 const metal_facade = "src/products/cairo/aggregate/metal.zig";
 
 const common_allowed_files = [_][]const u8{
+    "src/products/native/artifact/tests/xor_codec_roundtrip.zig",
+    "src/waist/proof_wire/bounded_count_test.zig",
+    "src/waist/proof_wire/hash_family_test.zig",
+    "src/waist/proof_wire/wide_test.zig",
+
     cpu_facade,
     "src/products/native/cpu/capabilities.zig",
     "src/products/riscv/cpu/capabilities.zig",
@@ -87,6 +92,9 @@ const metal_allowed_prefixes = common_allowed_prefixes ++ .{
 };
 
 const shared_named_imports = [_]policy.NamedImport{
+    .{ .name = "atomic_file", .source = "src/support/io/atomic_file.zig" },
+    .{ .name = "stwo_native_artifact", .source = "src/products/native/artifact/mod.zig" },
+    .{ .name = "interop_riscv_artifact", .source = "src/products/riscv/artifact/mod.zig" },
     .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
     .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },
     .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
@@ -96,7 +104,6 @@ const shared_named_imports = [_]policy.NamedImport{
     .{ .name = "stwo_prover_api", .source = "src/waist/prover_api/mod.zig" },
     .{ .name = "stwo_prover_engine", .source = "src/engine/prover/mod.zig" },
     .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
-    .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
     .{ .name = "native_proof_runner", .source = "src/engine/prover/native/runner.zig" },
     .{ .name = "native_resource_admission", .source = "src/engine/prover/native/resource_admission.zig" },
     .{ .name = "native_transaction", .source = "src/integrations/native/transaction.zig" },

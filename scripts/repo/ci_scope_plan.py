@@ -358,7 +358,7 @@ MANUAL_CPU_LANES = frozenset({
     "core", "prover", "cpu_backend", "proof_wire", "prover_api",
     "riscv_frontend", "riscv_cpu_integration", "riscv_cpu",
     "circuit_frontend", "circuit_cpu_integration", "circuit_recursion_wire",
-    "native_cpu", "native_oracle", "script_contracts", "package", "static",
+    "native_cpu", "native_oracle", "aggregate_cpu", "script_contracts", "package", "static",
 })
 
 

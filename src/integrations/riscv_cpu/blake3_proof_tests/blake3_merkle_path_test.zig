@@ -70,7 +70,10 @@ test "BLAKE3 path witnesses match every native direction and keep siblings priva
     malformed.index = 1;
     try std.testing.expectError(error.InvalidBlake3MerklePath, path.trusted(a, malformed));
     try std.testing.expectError(error.InvalidBlake3MerklePath, path.prepare(a, leaf_statement, &tree.siblings(0)));
-    try std.testing.checkAllAllocationFailures(a, allocationProbe, .{});
+    // Keep the exhaustive fault sequence independent of backing resize success.
+    var no_resize = std.testing.FailingAllocator.init(a, .{ .resize_fail_index = 0 });
+    try std.testing.checkAllAllocationFailures(no_resize.allocator(), allocationProbe, .{});
+    try std.testing.expectEqual(no_resize.allocated_bytes, no_resize.freed_bytes);
 }
 fn allocationProbe(a: std.mem.Allocator) !void {
     const tree = Tree.init();

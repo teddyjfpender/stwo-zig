@@ -22,6 +22,22 @@ from scripts.tests.product_closure_recursion_cases import RecursionOwnershipTest
 
 
 class NativeCpuProductCheckTest(unittest.TestCase):
+    def test_aggregate_facade_binds_only_existing_support_and_generic_cpu_engine(self):
+        import re
+        root = Path(__file__).resolve().parents[2]
+        descriptor = (root / "build_support/products/aggregate.zig").read_text()
+        section = descriptor.split("const shared_named_imports", 1)[1].split("\n};", 1)[0]
+        modules = dict(re.findall(r'\.name = "([^"\n]+)", \.source = "([^"\n]+)"', section))
+        for name, source in (("atomic_file", "src/support/io/atomic_file.zig"),
+                             ("stwo_native_artifact", "src/products/native/artifact/mod.zig"),
+                             ("interop_riscv_artifact", "src/products/riscv/artifact/mod.zig")):
+            self.assertEqual(source, modules[name])
+            self.assertTrue((root / source).is_file())
+        facade = (root / "src/products/cairo/aggregate/cpu.zig").read_text()
+        self.assertIn("frontends.riscv.prover_mod.ProverEngineForBackend(backends.cpu.CpuBackend)", facade)
+        self.assertNotIn('"stwo_riscv_cpu_integration"', facade)
+        self.assertNotIn("addRiscVCpuImport", (root / "build_support/products/aggregate_cli.zig").read_text())
+
     def check(self, payload: bytes, *, rewind: bool = False, exit_code: int = 0) -> list[str]:
         with tempfile.TemporaryDirectory() as directory:
             binary = Path(directory) / "applications"

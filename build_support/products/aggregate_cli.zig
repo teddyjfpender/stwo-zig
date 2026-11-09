@@ -5,7 +5,6 @@ const metal = @import("../backends/metal.zig");
 const graph_identity = @import("../graph/identity.zig");
 const identity_receipt = @import("../graph/identity/receipt.zig");
 const graph = @import("../graph/modules.zig");
-const integration_graph = @import("../graph/integrations.zig");
 const closure_gate = @import("../gates/product_closure.zig");
 const prove_cli = @import("../prove_cli.zig");
 const aggregate = @import("aggregate.zig");
@@ -76,22 +75,12 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         )
     else
         null;
-    const riscv_frontend = graph.addRiscVFrontendImport(
+    _ = graph.addRiscVFrontendImport(
         b,
         protocol,
         aggregate.product(metal_enabled),
         target,
         optimize,
-        stwo,
-    );
-    _ = integration_graph.addRiscVCpuImport(
-        b,
-        protocol,
-        aggregate.product(metal_enabled),
-        target,
-        optimize,
-        cpu_backend,
-        riscv_frontend,
         stwo,
     );
     graph.addFacadeSupportImports(
@@ -142,7 +131,7 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         test_proof_wire,
         aggregate_tests,
     );
-    const test_riscv_frontend = graph.addRiscVFrontendImport(
+    _ = graph.addRiscVFrontendImport(
         b,
         protocol,
         aggregate.product(metal_enabled),
@@ -151,16 +140,6 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         aggregate_tests,
     );
     aggregate_tests.addImport("stwo_cpu_backend", cpu_backend);
-    _ = integration_graph.addRiscVCpuImport(
-        b,
-        protocol,
-        aggregate.product(metal_enabled),
-        target,
-        optimize,
-        cpu_backend,
-        test_riscv_frontend,
-        aggregate_tests,
-    );
     graph.addFacadeSupportImports(
         b,
         protocol,

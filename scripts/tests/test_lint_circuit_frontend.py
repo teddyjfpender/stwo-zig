@@ -14,6 +14,11 @@ def rules(source: str) -> list[str]:
 
 
 class LintCircuitFrontendTest(unittest.TestCase):
+    def test_fri_fixture_projects_through_the_named_frontend_module(self):
+        source = (lint.ROOT / "src/frontends/circuit/builder/tests/r0_fri_test.zig").read_text()
+        self.assertIn('@import("stwo_circuit_frontend").builder.ivalue.limbs', source)
+        self.assertNotIn('@import("../ivalue.zig")', source)
+
     def test_repository_package_is_clean(self) -> None:
         self.assertEqual([], [str(v) for v in lint.lint_tree(lint.ROOT)])
 

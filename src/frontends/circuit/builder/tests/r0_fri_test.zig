@@ -139,7 +139,7 @@ fn expectScalarCircleFold(input: []const QM31, actual: []const QM31, domain: stw
             std.debug.print("FRI scalar differential index={d} y={d} inverse={d}\n", .{ i, point.y.v, inverse_y.v });
         try std.testing.expectEqualSlices(u32, &expected, &stored);
         // Also guard the by-value canonical projection used by digest consumers.
-        try std.testing.expectEqualSlices(u32, &stored, &@import("../ivalue.zig").limbs(value.*));
+        try std.testing.expectEqualSlices(u32, &stored, &@import("stwo_circuit_frontend").builder.ivalue.limbs(value.*));
     }
     try expectValuesDigest("012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec", reference);
 }
