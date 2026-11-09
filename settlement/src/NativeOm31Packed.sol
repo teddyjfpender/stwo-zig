@@ -67,6 +67,10 @@ library NativeOm31Packed {
     }
 
     function mul(bytes32 x, bytes32 y) internal pure returns (bytes32 result) {
+        // AIR literals and base-field multipliers need no extension tower.
+        // Canonicality is established at the wire/program admission boundary.
+        if (uint256(x) >> 32 == 0) return scaleBase(y, uint256(x));
+        if (uint256(y) >> 32 == 0) return scaleBase(x, uint256(y));
         // Reuse the existing 27-product tower authority. All three expanded
         // operands are temporary; none escapes. Restore the free pointer so
         // a long IR program does not allocate 768+ bytes per multiplication.
@@ -87,4 +91,16 @@ library NativeOm31Packed {
         result = bytes32(packed);
         assembly ("memory-safe") { mstore(0x40, restore) }
     }
+
+    function scaleBase(bytes32 value, uint256 scalar) private pure returns (bytes32 result) {
+        if (scalar == 0) return bytes32(0);
+        if (scalar == 1) return value;
+        // Eight independent products; no allocation and no cross-limb carries.
+        assembly ("memory-safe") {
+            for { let shift := 0 } lt(shift, 256) { shift := add(shift, 32) } {
+                result := or(result, shl(shift, mulmod(and(shr(shift, value), 0xffffffff), scalar, 0x7fffffff)))
+            }
+        }
+    }
+
 }

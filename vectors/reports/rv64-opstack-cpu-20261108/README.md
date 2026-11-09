@@ -389,3 +389,12 @@ checkpoint and practical complete STARK settlement. The 3.07-billion-instruction
 anchored transition still exceeds the admitted 256-proof roster. Its retained
 witness archive has not been located locally; execution-only fixtures are not a
 substitute for that transition.
+
+The [packed base-scalar verifier path](solidity-base-scalar.json) avoids the
+extension tower for canonical M31 literals in the internal OM31 representation.
+Sixty-four repeated multiplications fall from about 501k gas to 53k–109k for
+zero, one and other base scalars, with no heap growth. Dense multiplication
+increases 0.71%; the 2,048-node mixed program increases 0.27%, while the real
+177-node receiver-pinned AIR costs 1,064,808 gas. All 24 default settlement
+tests pass; three external large-fixture tests remain explicitly skipped.
+This is a component improvement, not a practical complete settlement claim.

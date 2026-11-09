@@ -65,6 +65,14 @@ export function registerPackedOm31Tests(deploy) {
       a.push(draw("a"));
       b.push(draw("b"));
     }
+    // Base scalars exercise both operand orders and the zero/identity shortcuts.
+    const dense = Array.from({ length: 8 }, (_, i) => P - 1n - BigInt(i));
+    for (const scalar of [0n, 1n, 2n, P / 2n, P - 2n, P - 1n]) {
+      const base = zero();
+      base[0] = scalar;
+      a.push(base, dense);
+      b.push(dense, base);
+    }
     const values = await c.vectors(a, b);
     a.forEach((x, i) => {
       const y = b[i];
@@ -85,7 +93,7 @@ export function registerPackedOm31Tests(deploy) {
     ])
       assert.deepEqual(Array.from(await c.wire(encode(x))), x);
     const initial = a.at(-1),
-      multiplier = b.at(-1);
+      multiplier = b[100];
     for (const count of [0, 1, 2, 64, 256]) {
       let value = initial;
       for (let i = 0; i < count; ++i) value = product(value, multiplier);
@@ -93,5 +101,18 @@ export function registerPackedOm31Tests(deploy) {
       assert.equal(growth, 0n, `temporary scratch grows at count ${count}`);
       assert.deepEqual(Array.from(result), value);
     }
+    for (const scalar of [0n, 1n, 2n, P - 1n]) {
+      const base = zero();
+      base[0] = scalar;
+      let expected = initial;
+      for (let i = 0; i < 64; ++i) expected = product(expected, base);
+      const [growth, result] = await c.repeated(initial, base, 64);
+      assert.equal(growth, 0n);
+      assert.deepEqual(Array.from(result), expected);
+      const receipt = await (await c.repeated.send(initial, base, 64)).wait();
+      console.log(JSON.stringify({ packedBaseScalar: String(scalar), multiplications: 64, gas: Number(receipt.gasUsed) }));
+    }
+    const receipt = await (await c.repeated.send(initial, multiplier, 64)).wait();
+    console.log(JSON.stringify({ packedDenseMultiplications: 64, gas: Number(receipt.gasUsed) }));
   });
 }
