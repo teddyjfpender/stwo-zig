@@ -158,6 +158,18 @@
       "independent_trace_only_authority": true,
       "ninth_output_mutation_rejected": true,
       "proof_byte_mutation_rejected": true
+    },
+    {
+      "family": "keccak",
+      "proof_bytes": 701272,
+      "build_ns": 446064750,
+      "prove_ns": 73492308208,
+      "fresh_receive_ns": 16208668583,
+      "worker_count": 8,
+      "controlled_performance_measurement": false,
+      "independent_trace_only_authority": true,
+      "ninth_output_mutation_rejected": true,
+      "proof_byte_mutation_rejected": true
     }
   ]
 }
