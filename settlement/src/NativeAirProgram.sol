@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.26;
 
+import {NativeOm31Packed} from "./NativeOm31Packed.sol";
 import {NativeFriFold} from "./NativeFriFold.sol";
 import {NativeOods} from "./NativeOods.sol";
 import {NativePcsTranscript} from "./NativePcsTranscript.sol";
@@ -50,7 +51,9 @@ library NativeAirProgram {
     ) private pure returns (uint32[8] memory result) {
         if (keccak256(code) != programHash) revert ProgramIdentityMismatch();
         Layout memory layout = decodeLayout(code, inputs, parameters);
-        uint32[8][] memory values = new uint32[8][](layout.nodes);
+        bytes32[] memory values = new bytes32[](layout.nodes);
+        bytes32 packedAlpha = NativeOm31Packed.fromLimbs(alpha);
+        bytes32 accumulator;
         for (uint256 i; i < layout.nodes; ++i) {
             uint256 offset = HEADER + i * NODE;
             uint8 op = uint8(code[offset]);
@@ -66,8 +69,9 @@ library NativeAirProgram {
         for (uint256 i; i < layout.roots; ++i) {
             uint256 index = readWord(code, layout.rootOffset + i * 4);
             if (index >= layout.nodes) revert InvalidProgram();
-            result = NativeOods.add(NativeFriFold.multiply(result, alpha), values[index]);
+            accumulator = NativeOm31Packed.add(NativeOm31Packed.mul(accumulator, packedAlpha), values[index]);
         }
+        return NativeOm31Packed.toLimbs(accumulator);
     }
 
     function decodeLayout(bytes calldata code, bytes calldata inputs, bytes calldata parameters)
@@ -91,26 +95,25 @@ library NativeAirProgram {
 
     function leaf(
         uint8 op, uint256 index, Layout memory layout, bytes calldata code, bytes calldata inputs, bytes calldata params
-    ) private pure returns (uint32[8] memory) {
+    ) private pure returns (bytes32) {
         if (op == 0) {
             if (index >= layout.constants) revert InvalidProgram();
-            return NativeOods.readField(bytes32(code[layout.constantOffset + index * FIELD:]));
+            return NativeOm31Packed.fromCanonicalWire(bytes32(code[layout.constantOffset + index * FIELD:]));
         }
         bytes calldata fields = op == 1 ? inputs : params;
         if (index >= fields.length / FIELD) revert InvalidProgram();
-        return NativeOods.readField(bytes32(fields[index * FIELD:]));
+        return NativeOm31Packed.fromCanonicalWire(bytes32(fields[index * FIELD:]));
     }
 
-    function operation(uint8 op, uint256 node, uint256 lhs, uint256 rhs, uint32[8][] memory values)
-        private pure returns (uint32[8] memory)
+    function operation(uint8 op, uint256 node, uint256 lhs, uint256 rhs, bytes32[] memory values)
+        private pure returns (bytes32)
     {
         if (lhs >= node || (op != 6 && rhs >= node)) revert InvalidProgram();
-        if (op == 3) return NativeOods.add(values[lhs], values[rhs]);
-        if (op == 4) return NativeOods.sub(values[lhs], values[rhs]);
-        if (op == 5) return NativeFriFold.multiply(values[lhs], values[rhs]);
+        if (op == 3) return NativeOm31Packed.add(values[lhs], values[rhs]);
+        if (op == 4) return NativeOm31Packed.sub(values[lhs], values[rhs]);
+        if (op == 5) return NativeOm31Packed.mul(values[lhs], values[rhs]);
         if (op == 6) {
-            uint32[8] memory zero;
-            return NativeOods.sub(zero, values[lhs]);
+            return NativeOm31Packed.sub(bytes32(0), values[lhs]);
         }
         revert InvalidProgram();
     }

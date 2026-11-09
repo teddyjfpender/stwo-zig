@@ -1,0 +1,81 @@
+{
+  "schema": "stwo.settlement.packed-air-gas.v1",
+  "scope": "Native AIR component evaluation only; not complete OP checkpoint settlement",
+  "control_commit": "9c94ad76e",
+  "solc": "0.8.30+commit.73712a01",
+  "viaIR": true,
+  "optimizerRuns": 100000,
+  "evmVersion": "shanghai",
+  "anvil": "1.7.1",
+  "gas_includes_intrinsic_and_calldata": true,
+  "rows": [
+    {
+      "variant": "initial_control",
+      "nativeInitialAirGas": 1221972,
+      "nodes": 177,
+      "residuals": 23
+    },
+    {
+      "variant": "mixed_control",
+      "nativeMixedAirGas": 149502,
+      "nodes": 17,
+      "residuals": 4
+    },
+    {
+      "variant": "mixed_control",
+      "nativeMixedAirGas": 1387443,
+      "nodes": 257,
+      "residuals": 4
+    },
+    {
+      "variant": "mixed_control",
+      "nativeMixedAirGas": 15983119,
+      "nodes": 2048,
+      "residuals": 4
+    },
+    {
+      "variant": "packed",
+      "nativeMixedAirGas": 125090,
+      "nodes": 17,
+      "residuals": 4
+    },
+    {
+      "variant": "packed",
+      "nativeMixedAirGas": 905387,
+      "nodes": 257,
+      "residuals": 4
+    },
+    {
+      "variant": "packed",
+      "nativeMixedAirGas": 6764679,
+      "nodes": 2048,
+      "residuals": 4
+    },
+    {
+      "variant": "packed",
+      "nativeInitialAirGas": 1067981,
+      "nodes": 177,
+      "residuals": 23
+    }
+  ],
+  "sources": {
+    "settlement/src/NativeOm31Packed.sol": "4af957c111cbd1cfbc669aedffeadb95fbfd91fceaa975013134eb792f3876f3",
+    "settlement/src/NativeAirProgram.sol": "a6a3dd15cb0884570ca5966d22af4b2b995be614dfb57bf2c3af20c9fa7fd371",
+    "settlement/src/NativeFriFold.sol": "4d53f774099d8883980b8b995862944aa47d062b6bdd50f6bd16f210252a1828"
+  },
+  "qualification": {
+    "default_suite_pass": 24,
+    "optional_external_fixtures_skipped": 3,
+    "basis_products": 64,
+    "edge_pairs": 25,
+    "random_pairs": 64,
+    "scratch_iterations": [
+      0,
+      1,
+      2,
+      64,
+      256
+    ],
+    "scratch_growth_bytes": 0
+  }
+}

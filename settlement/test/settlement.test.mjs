@@ -8,6 +8,8 @@ import { gunzipSync } from "node:zlib";
 import { AbiCoder, JsonRpcProvider, ContractFactory, id, keccak256 } from "ethers";
 import solc from "solc";
 import { registerFriTests, traceRowsInLeafOrder } from "./fri-cases.mjs";
+import { registerPackedOm31Tests } from "./packed-om31-cases.mjs";
+import { registerAirProgramTests } from "./air-program-cases.mjs";
 
 const sources = {};
 for (const directory of ["src", "test"]) {
@@ -88,6 +90,8 @@ async function deploy(path, name, ...args) {
 const verifier = await deploy("src/LiftedOpeningVerifier.sol", "LiftedOpeningVerifier");
 const harness = await deploy("test/Harness.sol", "Harness");
 registerFriTests(deploy);
+registerPackedOm31Tests(deploy);
+registerAirProgramTests(deploy);
 
 function hash(tag, ...payload) {
   const prefix = Buffer.alloc(64);

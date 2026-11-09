@@ -65,6 +65,12 @@ Sibling hashes are consumed in increasing index order at each level,
 starting at the leaves. Rows are the Stwo commitment's little-endian
 M31 words in commitment column order.
 
+The [packed native AIR evaluator](PACKED_AIR.md) stores one word per OM31
+value and reclaims multiplication scratch. The real initial-state AIR falls
+from 1.22M to 1.07M gas; a 2,048-node mixed-operation diagnostic falls from
+15.98M to 6.76M. These are component measurements, not complete checkpoint
+settlement costs.
+
 ## Native query binding and shared roots
 
 `NativeQueryOpening` uses the native 20-bit PoW and 108-query profile. It
