@@ -713,7 +713,20 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var local_fixed: ?FixedAuthority.Fixed.Cache = if (candidate and session == null and setup_owner == null) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
     defer if (local_fixed) |*owner| owner.deinit();
     const fixed_cache: ?*FixedAuthority.Fixed.Cache = if (!candidate) null else if (setup_owner) |owner| &owner.fixed else if (session) |shared| try shared.fixedAuthority(fixed_setup_bytes) else &local_fixed.?;
-    var fixed_set: ?FixedSet = if (fixed_cache) |owner| if (session != null and setup_owner == null) try FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, &session.?.validated_fixed) else if (session_setup != null and setup_owner != null and setup_owner.? == session_setup.?) try residentSetupFixedSet(a, owner, &keys, pcs, &session.?.setup_validated) else try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
+    var fixed_set: ?FixedSet = blk: {
+        const owner = fixed_cache orelse break :blk null;
+        const result = (if (session != null and setup_owner == null)
+            FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, &session.?.validated_fixed)
+        else if (session_setup != null and setup_owner != null and setup_owner.? == session_setup.?)
+            residentSetupFixedSet(a, owner, &keys, pcs, &session.?.setup_validated)
+        else
+            FixedSet.init(a, owner, keys.cpus, keys.truths, pcs)) catch |err| {
+            const snapshot = owner.snapshot();
+            std.log.err("producer fixed setup failed: error={s} limit_bytes={} live_bytes={} peak_bytes={} keys={} refused={}", .{ @errorName(err), snapshot.limit_bytes, snapshot.live_bytes, snapshot.peak_bytes, snapshot.keys, snapshot.refused });
+            return err;
+        };
+        break :blk result;
+    };
     defer if (fixed_set) |*owner| owner.deinit();
     const producer_fixed_ns = timer.read() - producer_fixed_start_ns;
     b2i.setup_done_at_ns = since(process_start);
