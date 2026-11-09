@@ -991,10 +991,10 @@
     },
     {
       "id": "aggregate_metal_existing_source_leaf_closure",
-      "net_code_budget": 15,
+      "net_code_budget": 25,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Issue348 pre-edit allowance: declare exactly the eleven existing Metal source leaves reported outside the aggregate manifest, preserving every prefix grant and dynamic-link requirement/refusal. Actual source graph and per-leaf holdouts protect isolation; no runtime, shader/proof pin, flag or launcher change."
+      "positive_growth_justification": "Issue348 pre-edit allowance: declare exactly the eleven existing Metal source leaves reported outside the aggregate manifest, preserving every prefix grant and dynamic-link requirement/refusal. Actual source graph and per-leaf holdouts protect isolation; no runtime, shader/proof pin, flag or launcher change. Pre-edit issue348 comment6750223692 extends the bounded slice with one scope-selection regression and compile/link-only hosted qualification in the existing metal_compile lane; no GPU tests, proof workloads, measurements, launchers or pins."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

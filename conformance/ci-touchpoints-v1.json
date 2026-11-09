@@ -921,6 +921,14 @@
           "metal-check",
           "-Doptimize=ReleaseSafe",
           "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "stwo-zig",
+          "-Daggregate-metal=true",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
         ]
       ]
     },
@@ -1910,6 +1918,14 @@
       "lanes": [
         "riscv_retained_contracts",
         "riscv_retained_contracts_releasefast"
+      ]
+    },
+    {
+      "prefixes": [
+        "build_support/products/aggregate.zig"
+      ],
+      "lanes": [
+        "metal_compile"
       ]
     }
   ],

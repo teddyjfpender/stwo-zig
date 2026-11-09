@@ -317,6 +317,12 @@ class PlanIntegrationTest(unittest.TestCase):
             {"static", "build_graph"},
         )
 
+    def test_aggregate_build_owner_selects_compile_only_metal_validation(self) -> None:
+        self.assertEqual(
+            self.select("build_support/products/aggregate.zig"),
+            {"static", "build_graph", "metal_compile"},
+        )
+
     def test_truly_unclassified_path_fails_open_to_the_full_matrix(self) -> None:
         self.assertEqual(self.select("third_party/vendored.c"), set(POLICY["lanes"]))
 
