@@ -93,3 +93,7 @@ pub fn collect_pairing_census(
 pub fn pairing_packet_probe() -> [u8; 43] {
     pairing::packet_probe()
 }
+
+/// Synthetic dense-field diagnostic; never an OP validity statement.
+#[cfg(feature="pairing-dense-probe")]
+pub fn pairing_dense_probe()->[u8;43]{pairing::dense_probe()}

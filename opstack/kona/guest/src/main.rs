@@ -2,9 +2,21 @@
 #![no_std]
 #![no_main]
 extern crate alloc;
+#[cfg(all(feature = "pairing-packet-probe", feature = "pairing-dense-probe"))]
+compile_error!("pairing diagnostics are distinct programs");
 #[cfg(any(
-    all(feature = "pairing-packet-probe", any(feature = "blob-eval-probe", feature = "transition-program", feature = "brotli-probe")),
-    all(feature = "brotli-probe", any(feature = "transition-program", feature = "blob-eval-probe")),
+    all(
+        any(feature = "pairing-packet-probe", feature = "pairing-dense-probe"),
+        any(
+            feature = "blob-eval-probe",
+            feature = "transition-program",
+            feature = "brotli-probe"
+        )
+    ),
+    all(
+        feature = "brotli-probe",
+        any(feature = "transition-program", feature = "blob-eval-probe")
+    ),
     all(feature = "blob-eval-probe", feature = "transition-program")
 ))]
 compile_error!("diagnostic and transition guest modes are mutually exclusive");
@@ -30,7 +42,7 @@ use core::{
 #[cfg(not(any(
     feature = "transition-program",
     feature = "blob-eval-probe",
-    feature = "pairing-packet-probe",
+    any(feature = "pairing-packet-probe", feature = "pairing-dense-probe"),
     feature = "brotli-probe"
 )))]
 use stwo_kona_execution::{
@@ -86,7 +98,7 @@ extern "C" fn guest_main() -> ! {
     #[cfg(not(any(
         feature = "transition-program",
         feature = "blob-eval-probe",
-        feature = "pairing-packet-probe",
+        any(feature = "pairing-packet-probe", feature = "pairing-dense-probe"),
         feature = "brotli-probe"
     )))]
     let mode = if cfg!(feature = "eager-preimages") {
@@ -96,13 +108,16 @@ extern "C" fn guest_main() -> ! {
     };
     #[cfg(all(feature = "precompile-services", not(feature = "pairing-hints")))]
     assert!(stwo_kona_execution::precompiles::install());
-    #[cfg(all(feature = "pairing-hints", not(feature = "pairing-packet-probe")))]
+    #[cfg(all(
+        feature = "pairing-hints",
+        not(any(feature = "pairing-packet-probe", feature = "pairing-dense-probe"))
+    ))]
     let input = stwo_kona_execution::precompiles::install_hinted(input)
         .expect("invalid pairing hint stream");
     #[cfg(not(any(
         feature = "transition-program",
         feature = "blob-eval-probe",
-        feature = "pairing-packet-probe",
+        any(feature = "pairing-packet-probe", feature = "pairing-dense-probe"),
         feature = "brotli-probe"
     )))]
     let output = execute(&Witness::parse(input, mode).expect("invalid OP witness"))
@@ -112,6 +127,11 @@ extern "C" fn guest_main() -> ! {
     let output = {
         assert_eq!(input, b"PKT1");
         stwo_kona_execution::precompiles::pairing_packet_probe()
+    };
+    #[cfg(feature = "pairing-dense-probe")]
+    let output = {
+        assert_eq!(input, b"DENSE1");
+        stwo_kona_execution::precompiles::pairing_dense_probe()
     };
     #[cfg(feature = "brotli-probe")]
     let output =

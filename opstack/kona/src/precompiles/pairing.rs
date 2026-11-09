@@ -291,3 +291,9 @@ pub(super) fn finish_census() -> Vec<CensusRow> {
 mod packet_probe_impl;
 #[cfg(feature = "pairing-packet-probe")]
 pub(super) use packet_probe_impl::run as packet_probe;
+
+#[cfg(feature="pairing-dense-probe")]
+#[path="pairing_dense_probe.rs"]
+mod dense_probe_impl;
+#[cfg(feature="pairing-dense-probe")]
+pub(super) use dense_probe_impl::run as dense_probe;

@@ -32,6 +32,7 @@ pairing-sparse-service = ["pairing-hints", "bn254-canonical", "stwo-kona-executi
 pairing-dense-service = ["pairing-sparse-service", "stwo-kona-execution/pairing-dense-service"]
 pairing-packet-batching = ["pairing-sparse-service", "stwo-kona-execution/pairing-packet-batching"]
 pairing-packet-probe = ["pairing-packet-batching", "stwo-kona-execution/pairing-packet-probe"]
+pairing-dense-probe = ["pairing-sparse-service", "stwo-kona-execution/pairing-dense-probe"]
 jumpdest-service = ["dep:revm-bytecode", "revm-bytecode/stwo-jumpdest-service"]
 
 [dependencies]

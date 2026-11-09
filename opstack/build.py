@@ -106,6 +106,8 @@ LEAN_VARIANTS["canonical-glv-hinted-sparse-dense"] = (
     "frontier",
     [*LEAN_VARIANTS["canonical-glv-hinted-sparse"][1], "pairing-dense-service"],
 )
+LEAN_VARIANTS["dense-probe-control"] = ("frontier", [*LEAN_VARIANTS["canonical-glv-hinted-sparse"][1], "pairing-dense-probe"])
+LEAN_VARIANTS["dense-probe-candidate"] = ("frontier", [*LEAN_VARIANTS["canonical-glv-hinted-sparse"][1], "pairing-dense-probe", "pairing-dense-service"])
 
 BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
 

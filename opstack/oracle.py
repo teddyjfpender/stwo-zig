@@ -194,6 +194,9 @@ def execute(config, expected_steps, timeout=600, *, output_kind="op", entry_prob
         # Explicit diagnostic scope; this cannot be admitted as OP validity.
         if payload[:4] not in (b"BEV1", b"BKV1") or expected[32:36] != payload[:4] or expected[41:43] != b"BP":
             raise ValueError("expected blob probe framing")
+    elif output_kind == "pairing-dense-probe":
+        if payload != b"DENSE1" or expected[:11] != b"OPDENSE0001":
+            raise ValueError("expected dense-field diagnostic framing")
     elif output_kind == "pairing-packet-probe":
         # Explicit synthetic ABI scope: never accepted as OP execution output.
         if payload != b"PKT1" or expected[:11] != b"OPPACKET001":
