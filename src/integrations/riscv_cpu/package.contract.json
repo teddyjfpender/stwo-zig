@@ -166,7 +166,10 @@
       "--build-file",
       "src/integrations/riscv_cpu/build.zig",
       "-Doptimize=ReleaseFast",
-      "-j2"
+      "-j2",
+      "--verbose",
+      "--summary",
+      "all"
     ]
   }
 }

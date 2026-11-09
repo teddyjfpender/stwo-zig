@@ -1864,7 +1864,7 @@ theorem div_programIdentity :
 
       Programs.div.source.family = .div ∧
       Programs.div.source.contentDigest =
-        "ded4ef0a25a4f0f7dc28a5b157ad224f9a481b0ab6fc7af84f625abceee7e04d" :=
+        "2fffce12c6ed3a8132fc509872e220d562ed8e8a5ac1e5cd7fb6fc4529748bf3" :=
   ⟨rfl, rfl, rfl, rfl⟩
 
 theorem divu_programIdentity :
@@ -1872,7 +1872,7 @@ theorem divu_programIdentity :
       Programs.divu.source.opcodeSelector.mnemonic = "divu" ∧
       Programs.divu.source.family = .div ∧
       Programs.divu.source.contentDigest =
-        "99bf3bc5ea983a9171abcfb0fee5836462feae417410520a4ac26b33b535f386" :=
+        "87431aac75e9ea7f587d99c2bdf273566e4eca4710db376843c543bc9cea85b5" :=
   ⟨rfl, rfl, rfl, rfl⟩
 
 theorem rem_programIdentity :
@@ -1880,7 +1880,7 @@ theorem rem_programIdentity :
       Programs.rem.source.opcodeSelector.mnemonic = "rem" ∧
       Programs.rem.source.family = .div ∧
       Programs.rem.source.contentDigest =
-        "7158824451e9f30909e1e0f8d45fd3bfddc09679185eaacc6cef9b595aea490a" :=
+        "4f6f5924b2249ca1bfc89876376825fa6c3f4e834327dc39a57ddb4cb02f99be" :=
   ⟨rfl, rfl, rfl, rfl⟩
 
 theorem remu_programIdentity :
@@ -1888,7 +1888,7 @@ theorem remu_programIdentity :
       Programs.remu.source.opcodeSelector.mnemonic = "remu" ∧
       Programs.remu.source.family = .div ∧
       Programs.remu.source.contentDigest =
-        "78d79d00716a232c6024bd8e16ae9c60ca759df8650b6f60bab7ea45061b0a94" :=
+        "8fdf18112fc2ef406ed3441312d2c4aa260aef09b5b5ad4a9f7d6cff5253cb37" :=
   ⟨rfl, rfl, rfl, rfl⟩
 
 structure SelectorAdmission
@@ -1955,7 +1955,7 @@ theorem div_selectorAdmission
       row.isDiv = true ∧ row.isDivu = false ∧
         row.isRem = false ∧ row.isRemu = false) :
     SelectorAdmission .div row .div Programs.div 41 "div"
-      "ded4ef0a25a4f0f7dc28a5b157ad224f9a481b0ab6fc7af84f625abceee7e04d" := by
+      "2fffce12c6ed3a8132fc509872e220d562ed8e8a5ac1e5cd7fb6fc4529748bf3" := by
   refine {
     rowSelected := selected
     exactProgram := rfl
@@ -1976,7 +1976,7 @@ theorem divu_selectorAdmission
       row.isDiv = false ∧ row.isDivu = true ∧
         row.isRem = false ∧ row.isRemu = false) :
     SelectorAdmission .divu row .divu Programs.divu 42 "divu"
-      "99bf3bc5ea983a9171abcfb0fee5836462feae417410520a4ac26b33b535f386" := by
+      "87431aac75e9ea7f587d99c2bdf273566e4eca4710db376843c543bc9cea85b5" := by
   refine {
     rowSelected := selected
     exactProgram := rfl
@@ -1997,7 +1997,7 @@ theorem rem_selectorAdmission
       row.isDiv = false ∧ row.isDivu = false ∧
         row.isRem = true ∧ row.isRemu = false) :
     SelectorAdmission .rem row .rem Programs.rem 43 "rem"
-      "7158824451e9f30909e1e0f8d45fd3bfddc09679185eaacc6cef9b595aea490a" := by
+      "4f6f5924b2249ca1bfc89876376825fa6c3f4e834327dc39a57ddb4cb02f99be" := by
   refine {
     rowSelected := selected
     exactProgram := rfl
@@ -2018,7 +2018,7 @@ theorem remu_selectorAdmission
       row.isDiv = false ∧ row.isDivu = false ∧
         row.isRem = false ∧ row.isRemu = true) :
     SelectorAdmission .remu row .remu Programs.remu 44 "remu"
-      "78d79d00716a232c6024bd8e16ae9c60ca759df8650b6f60bab7ea45061b0a94" := by
+      "8fdf18112fc2ef406ed3441312d2c4aa260aef09b5b5ad4a9f7d6cff5253cb37" := by
   refine {
     rowSelected := selected
     exactProgram := rfl
@@ -2062,7 +2062,7 @@ theorem div_accepted_air_implies_retirement
         relationHolds)
     (admission : Admission row) :
     SelectorAdmission .div row .div Programs.div 41 "div"
-        "ded4ef0a25a4f0f7dc28a5b157ad224f9a481b0ab6fc7af84f625abceee7e04d" ∧
+        "2fffce12c6ed3a8132fc509872e220d562ed8e8a5ac1e5cd7fb6fc4529748bf3" ∧
       DivHolds (normalize row) ∧
       divRetirement (normalize row) =
         Sail.Reviewed.executeDiv
@@ -2119,7 +2119,7 @@ theorem divu_accepted_air_implies_retirement
         relationHolds)
     (admission : Admission row) :
     SelectorAdmission .divu row .divu Programs.divu 42 "divu"
-        "99bf3bc5ea983a9171abcfb0fee5836462feae417410520a4ac26b33b535f386" ∧
+        "87431aac75e9ea7f587d99c2bdf273566e4eca4710db376843c543bc9cea85b5" ∧
       DivHolds (normalize row) ∧
       divRetirement (normalize row) =
         Sail.Reviewed.executeDivu
@@ -2176,7 +2176,7 @@ theorem rem_accepted_air_implies_retirement
         relationHolds)
     (admission : Admission row) :
     SelectorAdmission .rem row .rem Programs.rem 43 "rem"
-        "7158824451e9f30909e1e0f8d45fd3bfddc09679185eaacc6cef9b595aea490a" ∧
+        "4f6f5924b2249ca1bfc89876376825fa6c3f4e834327dc39a57ddb4cb02f99be" ∧
       DivHolds (normalize row) ∧
       divRetirement (normalize row) =
         Sail.Reviewed.executeRem
@@ -2234,7 +2234,7 @@ theorem remu_accepted_air_implies_retirement
         relationHolds)
     (admission : Admission row) :
     SelectorAdmission .remu row .remu Programs.remu 44 "remu"
-        "78d79d00716a232c6024bd8e16ae9c60ca759df8650b6f60bab7ea45061b0a94" ∧
+        "8fdf18112fc2ef406ed3441312d2c4aa260aef09b5b5ad4a9f7d6cff5253cb37" ∧
       DivHolds (normalize row) ∧
       divRetirement (normalize row) =
         Sail.Reviewed.executeRemu

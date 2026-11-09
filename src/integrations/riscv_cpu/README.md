@@ -188,7 +188,7 @@ Focused local checks use `scripts/dev_test.py`. The exact declared Linux CI
 command, run from the repository root, is:
 
 ```sh
-zig build test --build-file src/integrations/riscv_cpu/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/integrations/riscv_cpu/build.zig -Doptimize=ReleaseFast -j2 --verbose --summary all
 ```
 
 A bounded host test or semantic compile is evidence for that check alone. Full

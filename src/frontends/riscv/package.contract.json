@@ -80,7 +80,10 @@
       "--build-file",
       "src/frontends/riscv/build.zig",
       "-Doptimize=Debug",
-      "-j2"
+      "-j2",
+      "--verbose",
+      "--summary",
+      "all"
     ]
   }
 }
