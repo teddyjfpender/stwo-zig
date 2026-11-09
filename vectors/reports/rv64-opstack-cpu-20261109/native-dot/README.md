@@ -107,3 +107,32 @@ accumulation use packed OM31; OODS stays scalar. The scalar-domain control
 produces **exactly the same full proof bytes**. A separate randomized test
 compares all eleven roots across every SIMD lane, including arbitrary current
 and previous accumulator values. This is not a measured large-domain speedup.
+
+## Actual small CPU source: padding regression, no promotion
+
+[actual-small-cpu-source.json](actual-small-cpu-source.json) uses the retained
+native bundle for OP block 120,794,432. The shared `ShapeView.emitInto` now owns
+the common CPU verifier emission; callers retain their Context, scopes and
+finalization policy. Its returned statement handle keeps teardown at the same
+point as before. The old R6 source identity and complete 689,252-byte golden
+proof (`e80751cd…88c6`) remain **byte-identical** after extraction.
+
+R7 reuses that emitter and qualifies the same public result and joint source
+usage. Actual generic rows fall **3,992,911 → 2,135,023**, with **465,408** dot
+rows over **1,800** calls. This leaves generic arithmetic **37,871 rows above**
+the next power-of-two boundary: its padded log stays 22, and dot adds log 19.
+Total native cells consequently **increase 264,302,592 → 291,041,280 (10.12%)**.
+R7 is refused for this class; no actual R7 CPU leaf proof was attempted.
+
+Declared mask counts are `[96,521,320,16] → [106,546,352,16]`; sample references
+are `1001 → 1084`, including the new previous-accumulator/prefix periodicity
+samples. These counts come from the actual old source geometry plus the
+qualified physical dot layout, without building a wide R7 key. No block
+execution/native proof was regenerated. A fresh native receiver admits the
+retained complete bundle before the report is written. The 32 GiB allocator
+cap records 5.79 GB peak and zero final live allocation.
+
+Heavier source classes may cross the padding boundary and win, as the earlier
+frozen source model predicts, but must be checked independently. A production
+choice between R6 and R7 must be source-derived and receiver-authorized;
+producer-selected geometry or a blanket switch is insufficient.

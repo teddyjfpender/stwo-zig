@@ -1,4 +1,5 @@
 test {
+    _ = @import("poseidon2_outer/native_dot/cpu_source_test.zig");
     _ = @import("poseidon2_outer/native_dot/outer_domain_lane.zig");
     _ = @import("poseidon2_outer/native_dot/outer_test.zig");
     _ = @import("poseidon2_outer/native_dot/live_test.zig");

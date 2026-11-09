@@ -39,6 +39,36 @@ pub const ShapeView = struct {
     pub fn buildForProving(self: @This(), a: std.mem.Allocator) !C.PoseidonContext {
         return self.buildMode(a, false, null, false);
     }
+    /// Shared CPU verifier emission only. Context/scopes/finalization remain
+    /// caller-owned, so R7 can use its explicit joint finalization capability.
+    /// The returned statement preserves its original teardown lifetime.
+    pub const Emitted = struct {
+        output: [9]C.Var,
+        mutations: [3]C.Var,
+        statement: Full.Statement,
+        pub fn deinit(self: *Emitted, ctx: *C.Context) void {
+            self.statement.deinit(ctx);
+            self.* = undefined;
+        }
+    };
+    pub fn emitInto(self: @This(), owner: *C.PoseidonContext, census: ?*CompleteCounts) !Emitted {
+        if (owner.isClosed()) return error.PoseidonContextClosed;
+        const ctx = owner.algebra();
+        if (try C.sidecar(ctx) != owner) return error.PoseidonBuilderScopeMismatch;
+        const before_proof = Phase.Counts.take(owner);
+        const proof = try V.proof.guess(ctx, self.values, self.shape);
+        const after_proof = Phase.Counts.take(owner);
+        var frame = Public.Frame.init(ctx);
+        const physical = Full.Physical{ .fixed = proof.commitments[0], .main = proof.commitments[1], .fixed_source = self.key.root };
+        const binding = @import("pure_p2_worker_circuit.zig").Binding{ .identity = self.key.identity, .root = self.key.root, .profile = self.key.profile };
+        var statement = if (self.op_span) |span| try Full.Statement.initForOp(&frame, self.setup, self.request, self.first, span, self.expected, self.manifest, self.claims, physical, self.child, self.key.profile.config(), binding) else try Full.Statement.init(&frame, self.setup, self.request, self.first, self.expected, self.manifest, self.claims, physical, self.child, self.key.profile.config(), binding);
+        errdefer statement.deinit(ctx);
+        _ = try V.verify(ctx, self.shape, &proof, &statement);
+        const before_frame = Phase.Counts.take(owner);
+        const output = try frame.finish();
+        if (census) |counts| counts.* = .{ .proof_inputs = after_proof.sub(before_proof), .statement = statement.phase, .frame = Phase.Counts.take(owner).sub(before_frame) };
+        return .{ .output = output, .mutations = .{ proof.sampled_values[1][0][0].c0.v, statement.pending.artifact.claims_to_verify_by_instance[0][0].c0.v, output[8] }, .statement = statement };
+    }
     fn buildMode(self: @This(), a: std.mem.Allocator, trace_only: bool, census: ?*CompleteCounts, qualify: bool) !C.PoseidonContext {
         var structural = @import("../rv64_recursion/circuit_lane.zig").StructuralScope.init();
         defer structural.deinit();
@@ -48,18 +78,9 @@ pub const ShapeView = struct {
         var active = true;
         defer if (active) C.finish() catch {};
         const ctx = owner.algebra();
-        const before_proof = Phase.Counts.take(&owner);
-        const proof = try V.proof.guess(ctx, self.values, self.shape);
-        const after_proof = Phase.Counts.take(&owner);
-        var frame = Public.Frame.init(ctx);
-        const physical = Full.Physical{ .fixed = proof.commitments[0], .main = proof.commitments[1], .fixed_source = self.key.root };
-        const binding = @import("pure_p2_worker_circuit.zig").Binding{ .identity = self.key.identity, .root = self.key.root, .profile = self.key.profile };
-        var statement = if (self.op_span) |span| try Full.Statement.initForOp(&frame, self.setup, self.request, self.first, span, self.expected, self.manifest, self.claims, physical, self.child, self.key.profile.config(), binding) else try Full.Statement.init(&frame, self.setup, self.request, self.first, self.expected, self.manifest, self.claims, physical, self.child, self.key.profile.config(), binding);
-        defer statement.deinit(ctx);
-        _ = try V.verify(ctx, self.shape, &proof, &statement);
-        const before_frame = Phase.Counts.take(&owner);
-        const output = try frame.finish();
-        if (census) |counts| counts.* = .{ .proof_inputs = after_proof.sub(before_proof), .statement = statement.phase, .frame = Phase.Counts.take(&owner).sub(before_frame) };
+        var emitted = try self.emitInto(&owner, census);
+        defer emitted.deinit(ctx);
+        const output = emitted.output;
         if (!trace_only) for (output, try self.expectedOutput(a)) |port, value| try std.testing.expect(ctx.get(port).eql(value));
         try C.finish();
         active = false;
@@ -69,7 +90,7 @@ pub const ShapeView = struct {
         if (census) |counts| counts.finalization = Phase.Counts.take(&owner).sub(before_finalization);
         if (!trace_only and qualify) {
             try std.testing.expect(try owner.isCircuitValid());
-            const mutants = [_]C.Var{ proof.sampled_values[1][0][0].c0.v, statement.pending.artifact.claims_to_verify_by_instance[0][0].c0.v, output[8] };
+            const mutants = emitted.mutations;
             for (mutants) |port| {
                 const old = ctx.get(port);
                 ctx.value_table.items[port.idx] = old.add(C.Q.one());
