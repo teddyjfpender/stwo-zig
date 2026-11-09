@@ -1,0 +1,32 @@
+{
+  "schema": "om31-compact-beta1-host-view-v1",
+  "scope": "storage correctness; no AIR, transcript or profile change",
+  "bug": "A compact beta1 column retains its 2n domain tag while host values are empty. Both shadow selection and preparation incorrectly treated matching log as available host LDE.",
+  "fix": "Prepare the exact coefficient-domain 2n view whenever host values are absent, even when the domain tag matches.",
+  "qualification": {
+    "serial_and_parallel_minimal_domain_and_duplicate_requests": true,
+    "same_domain_compact_column_reconstructed_exactly": true,
+    "all_allocation_failure_cleanup": true,
+    "tiny_B2_q144_compact_full_storage_complete_proof_bytes_identical": true,
+    "fresh_source_receiver": true,
+    "wrong_output_rejected": true
+  },
+  "tiny_B2_proof_bytes": 919620,
+  "affected_paths": [
+    "circuit_cpu/om31/component.zig DomainRead and native_program.Prepared via shared shadow resolution"
+  ],
+  "already_correct_paths": [
+    "poseidon2_outer/native_omul/p2_domain.zig: matching log also requires nonempty values",
+    "poseidon2_outer/native_omul/component.zig: matching log also requires nonempty values"
+  ],
+  "initial_actual_B2_attempt": {
+    "accepted": false,
+    "error": "Om31CircuitRequiresHostLde",
+    "root_published": false,
+    "wall_seconds": 43.83,
+    "maximum_RSS_bytes": 12674744320,
+    "peak_memory_footprint_bytes": 12677901304
+  },
+  "security_qualified": false,
+  "production_admission": false
+}

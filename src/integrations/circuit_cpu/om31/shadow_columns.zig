@@ -70,7 +70,9 @@ pub fn prepare(a: std.mem.Allocator, trace: *const Trace, requests: []const Requ
         if (source.device != null) return error.Om31CircuitRequiresHostLde;
         const coefficients = source.coefficients orelse return error.Om31CircuitRequiresHostLde;
         const log = coefficients.logSize() + 1;
-        if (source.log_size == log) continue;
+        // Compact storage keeps the domain tag but releases its host LDE.
+        // A matching tag alone does not make host values available.
+        if (source.log_size == log and source.values.len != 0) continue;
         if (log >= 32) return error.InvalidLogSize;
         var duplicate = false;
         for (jobs.items) |job| if (std.meta.eql(job.request, request)) {
@@ -125,6 +127,7 @@ fn qualify(a: std.mem.Allocator, parallel: bool) !void {
     const fixed = [_]Poly{
         .{ .log_size = 6, .values = &.{}, .coefficients = ac },
         .{ .log_size = 4, .values = &already, .coefficients = ac },
+        .{ .log_size = 4, .values = &.{}, .coefficients = ac },
     };
     const main = [_]Poly{.{ .log_size = 6, .values = &.{}, .coefficients = bc }};
     var trees = [_][]const Poly{ &fixed, &main, &.{} };
@@ -132,7 +135,7 @@ fn qualify(a: std.mem.Allocator, parallel: bool) !void {
     var pool: Pool.WorkPool = .{};
     if (parallel) try pool.initInPlaceWithOptions(.{ .worker_count = 2 });
     defer if (parallel) pool.deinit();
-    const requests = [_]Request{ .{ .tree = 0, .column = 0 }, .{ .tree = 1, .column = 0 }, .{ .tree = 0, .column = 0 }, .{ .tree = 0, .column = 1 } };
+    const requests = [_]Request{ .{ .tree = 0, .column = 0 }, .{ .tree = 1, .column = 0 }, .{ .tree = 0, .column = 0 }, .{ .tree = 0, .column = 1 }, .{ .tree = 0, .column = 2 } };
     var shadow = try prepare(a, &trace, &requests, if (parallel) &pool else null);
     defer shadow.deinit(a);
     const ae = try ac.evaluate(a, Core.poly.circle.canonic.CanonicCoset.new(4).circleDomain());
@@ -142,6 +145,7 @@ fn qualify(a: std.mem.Allocator, parallel: bool) !void {
     try std.testing.expectEqualSlices(M, ae.values, shadow.values[0][0].?);
     try std.testing.expectEqualSlices(M, be.values, shadow.values[1][0].?);
     try std.testing.expect(shadow.values[0][1] == null);
+    try std.testing.expectEqualSlices(M, ae.values, shadow.values[0][2].?);
 }
 test "OM31 shadow column preparation preserves minimal domains and duplicate read custody" {
     try qualify(std.testing.allocator, false);

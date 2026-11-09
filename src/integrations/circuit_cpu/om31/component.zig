@@ -150,7 +150,7 @@ pub const Component = struct {
         for (trace.polys.items) |tree| for (tree) |poly| {
             if (poly.device != null) continue;
             const coefficients = poly.coefficients orelse continue;
-            if (poly.log_size != coefficients.logSize() + 1) return true;
+            if (poly.values.len == 0 or poly.log_size != coefficients.logSize() + 1) return true;
         };
         return false;
     }

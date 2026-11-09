@@ -160,3 +160,31 @@ test "OP R6 physical six-component proof closes complete Var and range relations
     try rejected(Proof.proveMutation(a, &owner, &key, &expected, .claim_balanced));
     std.debug.print("OP_R6_PHYSICAL bytes={} mul_rows={} legacy_arith_rows={} all6claims_bound=true globalclosed=true fresh_source=true production_admission=false\n", .{ proof.len, key.mul_rows, key.base.rows[1] });
 }
+
+test "OP R6 beta1 compact same-domain proof matches full host storage" {
+    var owner = try fixture(false);
+    defer owner.deinit();
+    var trace = try fixture(true);
+    defer trace.deinit();
+    const profile = @import("../op_profile.zig").Profile.op_control_b2_q144_p0_fold4_v1;
+    var key = try K.Key.init(a, &trace, profile);
+    defer key.deinit();
+    var full_key = try K.Key.initFullStorageControl(a, &trace, profile);
+    defer full_key.deinit();
+    try std.testing.expectEqualSlices(u8, &full_key.base.identity, &key.base.identity);
+    const expected = outputs();
+    const compact = try Proof.prove(a, &owner, &key, &expected);
+    defer a.free(compact);
+    const full = try Proof.proveFullStorageControl(a, &owner, &full_key, &expected);
+    defer a.free(full);
+    try std.testing.expectEqualSlices(u8, full, compact);
+    var fresh_trace = try fixture(true);
+    defer fresh_trace.deinit();
+    var fresh = try K.Key.init(a, &fresh_trace, profile);
+    defer fresh.deinit();
+    try Proof.verify(a, &fresh, &expected, compact);
+    var changed = expected;
+    changed[0] = changed[0].add(Q.one());
+    try std.testing.expect(std.meta.isError(Proof.verify(a, &fresh, &changed, compact)));
+    std.debug.print("OP_R6_BETA1_COMPACT bytes={} exact_fullstorage=true fresh_source=true wrong_output_rejected=true\n", .{compact.len});
+}
