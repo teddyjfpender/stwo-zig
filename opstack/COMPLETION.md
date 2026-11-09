@@ -255,6 +255,44 @@ forwarding remain explicit guest candidates, with selected ELF/defaults unchange
 
 The heavy complete-root target remains **unachieved** and was not rerun.
 
+## Latest one-process small-block qualification (November 10)
+
+The explicit R7 terminal Blake test harness now supports `MODE=from-guest`.
+It starts from the selected ELF and input, executes the actual guest, produces
+the native proofs, releases their wide owners, freshly verifies them, constructs
+both source-derived FIXED keys, and proves and self-verifies the grouped root
+in one process. Explicit `config.workers` is honored; the fallback remains eight.
+
+| Actual block 120794432, 796,406 instructions, ReleaseFast, 16 workers | Time |
+| --- | ---: |
+| Guest execution and native proof production | 11.410 s |
+| Fresh native verification, cold source setup and root production | 18.156 s |
+| Total producer | **29.566 s** |
+| Root proving alone, included above | 9.319 s |
+| Additional independent source-only receiver, including nine controls | 7.914 s |
+
+Peak requested memory is 8.667 GB under the unchanged 32 GiB cap; final heap
+and external counters are zero. All native proofs and the 1,263,064-byte root,
+metadata and templates match retained controls byte for byte. This is one
+qualification observation, not a quiet repeated performance claim. The final
+receiver reads no native proof bytes. The experiment retains the documented
+security assumptions and has no production or settlement admission.
+
+The separate actual-heavy first-four-million-instruction conditional fragment
+identified commitment hashing as 59.34 of 74.73 seconds. Packed Poseidon2
+bounded-tail dispatch and lifted-prefix reuse now reduce the same fragment's
+seal plus complete time to **23.93 seconds (3.12×)**. MAIN Merkle falls
+39.25→5.79 seconds and INTER Merkle 20.10→3.83 seconds. Both PCS and GKR
+proofs are byte-identical, independent verification passes, requested peak is
+exactly unchanged at 10,093,072,140 bytes, and no major faults occur.
+Outstanding aggregate RAM/Wire obligations remain explicit. This is not a
+complete block/root or a controlled repeated benchmark; the heavy tenfold
+end-to-end target remains open.
+
+Receipts: [one-process small block](../vectors/reports/rv64-opstack-performance-20261110/selected-from-guest-r7-terminal-blake-v1.json),
+[bounded-tail microprobe](../vectors/reports/rv64-opstack-performance-20261110/p2-bounded-tail-packed-reuse-micro-v1.json),
+[actual heavy fragment parity and timing](../vectors/reports/rv64-opstack-cpu-20261109/heavy-conditional-prefix-p2-tail-v1.json).
+
 The separate dense BN254 reuse experiment illustrates why guest instruction
 count alone is insufficient. Square+multiply drops 19,344 to 8,988 instructions
 with independent native/VM/Unicorn agreement, but active field cells rise
