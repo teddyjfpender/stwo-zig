@@ -72,10 +72,11 @@ pub const Pending = struct {
     }
 };
 pub fn validateExpected(expected: []const Expected) !void {
-    if (expected.len < 3 or expected.len > Manifest.MAX_WORKERS or expected[0].authority.kind != .sponge_cpu) return error.DetachedManifestRoster;
+    if (expected.len == 0 or expected.len > Manifest.MAX_WORKERS or expected[0].authority.kind != .sponge_cpu) return error.DetachedManifestRoster;
     var previous: u32 = 0;
     var detached: usize = 0;
     var keccak: usize = 0;
+    var calls: u64 = 0;
     var mass = Global.Mass{ .ram = 0, .kio = 0, .wire = 0 };
     const profile = expected[0].authority.profile;
     for (expected, 0..) |entry, ordinal| {
@@ -95,6 +96,7 @@ pub fn validateExpected(expected: []const Expected) !void {
             .sponge_cpu => {
                 if (!mask.ram) return error.GlobalGkrRelationRoster;
                 const recipe = entry.cpu orelse return error.MissingGlobalGkrLocalChild;
+                calls = std.math.add(u64, calls, recipe.calls) catch return error.GlobalGkrCharacteristicBound;
                 if (recipe.epoch != ordinal + 1 or recipe.instances.len < 2 or recipe.instances.len > 256) return error.SpongeCpuGeometry;
                 for (recipe.instances[0 .. recipe.instances.len - 1]) |instance| {
                     if (instance != .legacy or instance.legacy.origin == .sponge) return error.SpongeCpuRequiresDetachedSetup;
@@ -118,7 +120,9 @@ pub fn validateExpected(expected: []const Expected) !void {
             .secp_add, .secp_double, .delegation => if (entry.cpu != null or mask.ram or mask.kio or !mask.wire) return error.GlobalGkrRelationRoster,
         }
     }
-    if (detached == 0 or keccak == 0) return error.DetachedManifestRoster;
+    // A zero-call CPU roster does not require an empty provider. Full source
+    // Inventory additionally checks aggregate permutations and truth coverage.
+    if ((detached == 0) != (calls == 0) or (detached != 0 and keccak == 0)) return error.DetachedManifestRoster;
 }
 pub fn verifyAndSeal(a: std.mem.Allocator, execution: [32]u8, expected: []const Expected, stages: []const StageOne) !Pending {
     try validateExpected(expected);

@@ -78,3 +78,17 @@ pub fn exerciseCheckedCpu(a: std.mem.Allocator, source: N.Scope, instances: []co
 test {
     _ = @import("mass.zig");
 }
+
+test "detached manifest absent provider requires exact zero CPU call authority" {
+    var roster = expected(testScope(), &INSTANCES);
+    roster[0].cpu.?.calls = 0;
+    roster[0].authority.mass.wire = 0;
+    var absent = [_]M.Expected{ roster[0], roster[2] };
+    absent[1].authority.ordinal = 1;
+    try M.validateExpected(&absent);
+    try M.validateExpected(absent[0..1]);
+    absent[0].cpu.?.calls = 1;
+    absent[0].authority.mass.wire = 1;
+    try std.testing.expectError(error.DetachedManifestRoster, M.validateExpected(&absent));
+    try std.testing.expectError(error.DetachedManifestRoster, M.validateExpected(&roster));
+}

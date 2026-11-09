@@ -45,7 +45,7 @@ pub const Inventory = struct {
     }
     pub fn init(a: std.mem.Allocator, profile: Profile, cpus: []const Cpu, detached: []const Detached, catalog: []const Catalog, towers: []const Tower, expected: P.Expected) !Inventory {
         const count = try std.math.add(usize, try std.math.add(usize, cpus.len, detached.len), try std.math.add(usize, catalog.len, towers.len));
-        if (cpus.len == 0 or detached.len == 0 or count > Base.MAX_WORKERS or profile == .reference_b2_q24_p0) return error.DetachedInventoryRoster;
+        if (cpus.len == 0 or count > Base.MAX_WORKERS or profile == .reference_b2_q24_p0) return error.DetachedInventoryRoster;
         const setups = try a.alloc(*const R.CpuSetup, cpus.len);
         defer a.free(setups);
         const requests = try a.alloc(P.Request, cpus.len);
@@ -86,6 +86,8 @@ pub const Inventory = struct {
         // ordinal/epoch and full OWNER tuple, not a new per-worker numbering.
         var call_total: u64 = 0;
         for (requests) |request| call_total = try std.math.add(u64, call_total, request.sponge.calls);
+        // Absence is exact: never fabricate a zero-call detached provider.
+        if ((detached.len == 0) != (call_total == 0 and kio.total_sponge == 0)) return error.DetachedInventoryCoverage;
         var next: u64 = kio.detached_first;
         var covered: u64 = 0;
         var calls: u64 = 0;
