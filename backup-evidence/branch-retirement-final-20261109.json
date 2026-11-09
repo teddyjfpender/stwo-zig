@@ -1,0 +1,1463 @@
+{
+  "schema": "stwo-branch-retirement-v1",
+  "status": "retired-and-remote-verified",
+  "prepared_at": "2026-11-09T05:33:19.638220+00:00",
+  "cutoff_timestamp": 1791610399,
+  "policy": "No open PR; commit older than 30 days; exact archive verified before compare-and-delete.",
+  "source_remote": "origin",
+  "archive_remote": "origin",
+  "source_remote_url": "https://github.com/teddyjfpender/stwo-zig.git",
+  "total_live_heads_before": 553,
+  "protected": [
+    "archive/pre-restructure-20261108",
+    "archive/riscv-ethereum-block-v5-20261006",
+    "autoresearch/rtx6000-pro-two-rounds",
+    "backup/circuit-oracle-regeneration-20261109",
+    "backup/delivery-20261109-c7d950b46399",
+    "backup/delivery-evidence-20261109",
+    "backup/delivery-evidence-cpu-followup-20261109",
+    "backup/exact-script-owners-20261109",
+    "backup/hosted-cpu-diagnostics-20261109",
+    "backup/live-sail-bindings-20261109",
+    "backup/local-20261108/codex/rv64-ge-calib",
+    "backup/local-20261108/codex/rv64-gpu-hygiene",
+    "backup/local-20261108/codex/rv64-opstack-study",
+    "backup/local-20261108/codex/rv64-post-merge-hygiene",
+    "backup/local-20261108/stash-0",
+    "backup/local-20261108/stash-1",
+    "backup/local-20261108/stash-2",
+    "backup/local-20261108/stash-3",
+    "codex/cairo-cuda-bounded-openings",
+    "codex/cairo-cuda-dense-prefetch",
+    "codex/cairo-cuda-managed-arena",
+    "codex/cas05-independent-degrees-20261014",
+    "codex/cas05-key-artifact-binding-20261014",
+    "codex/cas05-production-admission-20261014",
+    "codex/cas05-sparse-heights-20261014",
+    "codex/cas05-versioned-verifier-dispatch-20261014",
+    "codex/cas07-accepted-relation-20261014",
+    "codex/cas07-four-slot-map-native-20261014",
+    "codex/cas07-gate-quotient-degree-20261014",
+    "codex/cas09-independent-heights-20261014",
+    "codex/cas10-four-root-openings-20261014",
+    "codex/cas10-source-wire-20261014",
+    "codex/cas11-four-root-h1-20261014",
+    "codex/cas12-framed-raw-query-join-20261014",
+    "codex/cas13-typed-gate-events-20261014",
+    "codex/native-empty-tree-capture-20261014",
+    "codex/native-pcs-fri-reduction-20261014",
+    "codex/native-pcs-fri-shape-20261014",
+    "codex/p07-adjacent-line-pairs-20261014",
+    "codex/p07-authenticated-source-ood-20261014",
+    "codex/p07-framed-channel-v2-20261014",
+    "codex/p07-line-admission-cache-20261014",
+    "codex/p07-line-descriptor-binding-20261014",
+    "codex/p07-owned-h1-fold-equation-20261014",
+    "codex/p07-owned-verifier-custody-20261014",
+    "codex/p07-paired-event-plan-20261014",
+    "codex/p07-personalized-line-merkle-20261014",
+    "codex/p07-query-bound-line-openings-20261014",
+    "codex/p07-sparse-h3-fold-equations-20261014",
+    "codex/p07-sparse-h3-literal-claim-pairs-20261014",
+    "codex/p07-sparse-h3-source-projection-20261014",
+    "codex/p07-sparse-h3-terminal-fold-20261014",
+    "codex/p07-sparse-h3-weighted-receipt-20261014",
+    "codex/p08-uniform-query-v1-20261014",
+    "codex/paired-degree-protocol-20261013",
+    "codex/pie-construction-geometry",
+    "codex/repo-standards",
+    "codex/riscv-large-program-quality",
+    "codex/rv64-global-ram-recursion-gates-20261101",
+    "codex/rv64-opstack-study",
+    "codex/s31-cas05-transcript-prelude-20261014",
+    "codex/s31-engine-extraction",
+    "codex/tensor-frontend",
+    "experiment/bend-compute-pr198",
+    "experiment/stwo-zig-lab-20261006",
+    "feature/riscv-recursion-audit-realignment",
+    "main",
+    "ryan/s31-math-eq-ne-prod"
+  ],
+  "recent_non_pr": [
+    "challenge/proof-v2-stage-timers",
+    "codex/cas05-canonical-input-boundary-20261013",
+    "codex/cas05-extractor-channel-pin-20261013",
+    "codex/cas05-merkle-byte-separation-20261013",
+    "codex/cas05-native-boundary-followup-20261013",
+    "codex/cas05-native-relation-bridge-20261013",
+    "codex/cas05-operational-extractor-20261013",
+    "codex/cas05-protocol-join-20261013",
+    "codex/cas05-round-cost-bound-20261013",
+    "codex/cas05-sampler-pin-followup-20261013",
+    "codex/cas05-secure-draw-tail-20261013",
+    "codex/cas05-sparse-profile-audit-20261013",
+    "codex/cas05-typed-transcript-20261013",
+    "codex/circuit-lookup-repeat2",
+    "codex/circuit-om31-native",
+    "codex/circuit-production-trace-only",
+    "codex/circuit-witness-dag-trace",
+    "codex/cuda-ingress-transform-snapshot",
+    "codex/empty-lifted-capture-20261013",
+    "codex/ethereum-block-fast-lab",
+    "codex/keth-ethereum-op-proving",
+    "codex/migrate-macos-15-runners",
+    "codex/riscv-v3-field-witness",
+    "codex/rv64-4gpu-realtime-design",
+    "codex/rv64-arith-memory",
+    "codex/rv64-block-to-inputs",
+    "codex/rv64-candidate-facts",
+    "codex/rv64-capture-cli",
+    "codex/rv64-capture-prefetch",
+    "codex/rv64-classic-packed-inline",
+    "codex/rv64-classic-witness-parallel",
+    "codex/rv64-cmp-bits-harness",
+    "codex/rv64-cmp-capture-design",
+    "codex/rv64-cmp-guest-compare",
+    "codex/rv64-cmp-segment-size",
+    "codex/rv64-combined-air-preflight",
+    "codex/rv64-composed-security-analysis",
+    "codex/rv64-composite-diagnostics",
+    "codex/rv64-composition-coefficient-lease",
+    "codex/rv64-composition-pool-trim",
+    "codex/rv64-cuda-ethereum",
+    "codex/rv64-cuda-resident-gkr",
+    "codex/rv64-curve-basket-coverage",
+    "codex/rv64-deep-dot4-combine",
+    "codex/rv64-deferred-binding-witness",
+    "codex/rv64-device-fixed-ingress-reuse",
+    "codex/rv64-dot4-evidence",
+    "codex/rv64-fixed-column-sharing",
+    "codex/rv64-fixed-native-cache",
+    "codex/rv64-fixed-source-audit",
+    "codex/rv64-full-candidate-7282",
+    "codex/rv64-ge-base-merge",
+    "codex/rv64-ge-bulk",
+    "codex/rv64-ge-calib",
+    "codex/rv64-ge-capture",
+    "codex/rv64-ge-cells",
+    "codex/rv64-ge-cells-fused-tail",
+    "codex/rv64-ge-client3",
+    "codex/rv64-ge-compexport",
+    "codex/rv64-ge-curves",
+    "codex/rv64-ge-decode",
+    "codex/rv64-ge-docs",
+    "codex/rv64-ge-eest2",
+    "codex/rv64-ge-fastexec",
+    "codex/rv64-ge-final",
+    "codex/rv64-ge-fused-fix",
+    "codex/rv64-ge-fused2",
+    "codex/rv64-ge-gkr-fast",
+    "codex/rv64-ge-gkr-v3perf",
+    "codex/rv64-ge-interp",
+    "codex/rv64-ge-jumpdest",
+    "codex/rv64-ge-keccak-tput",
+    "codex/rv64-ge-keccak2",
+    "codex/rv64-ge-logup",
+    "codex/rv64-ge-ls64",
+    "codex/rv64-ge-measure",
+    "codex/rv64-ge-secp",
+    "codex/rv64-ge-seg23",
+    "codex/rv64-ge-sponge",
+    "codex/rv64-ge-zbb",
+    "codex/rv64-ge-zbb2",
+    "codex/rv64-generated-inter-accounting",
+    "codex/rv64-gkr-batched-fold-sum",
+    "codex/rv64-gkr-beta2-authority",
+    "codex/rv64-gkr-consuming-inputs",
+    "codex/rv64-gkr-direct-capture",
+    "codex/rv64-gkr-eq-parallel",
+    "codex/rv64-gkr-gate-fusion",
+    "codex/rv64-gkr-hybrid-tree",
+    "codex/rv64-gkr-late-binding",
+    "codex/rv64-gkr-lazy-checkpoint",
+    "codex/rv64-gkr-mixed-fold-sum",
+    "codex/rv64-gkr-owned-fold",
+    "codex/rv64-gkr-owner-memory",
+    "codex/rv64-gkr-paired-fold",
+    "codex/rv64-gkr-parallel-rows",
+    "codex/rv64-gkr-public-aux",
+    "codex/rv64-gkr-readiness-guards",
+    "codex/rv64-gkr-resource-bound",
+    "codex/rv64-gkr-route-speedups",
+    "codex/rv64-gkr-stream-bottom",
+    "codex/rv64-gkr-stream-dense-upper",
+    "codex/rv64-gkr-unit-cross",
+    "codex/rv64-gkrmem",
+    "codex/rv64-gpu-316-320-integration",
+    "codex/rv64-gpu-hygiene",
+    "codex/rv64-gpu-hygiene-local",
+    "codex/rv64-gpu-padding-range-candidate",
+    "codex/rv64-gpu-ready-fixed-integration",
+    "codex/rv64-guest-candidate-curves",
+    "codex/rv64-guest-candidate-isa",
+    "codex/rv64-guest-candidate-services",
+    "codex/rv64-guest-client-eest-fixes",
+    "codex/rv64-guest-client-evmone",
+    "codex/rv64-guest-client-interpreter",
+    "codex/rv64-guest-client-interpreter2",
+    "codex/rv64-guest-client-trie-state",
+    "codex/rv64-guest-efficiency",
+    "codex/rv64-guest-prover-arith256",
+    "codex/rv64-guest-prover-bulk-memory",
+    "codex/rv64-guest-prover-bulk-unaligned",
+    "codex/rv64-guest-prover-curves",
+    "codex/rv64-guest-prover-eest",
+    "codex/rv64-guest-prover-keccak-sponge",
+    "codex/rv64-guest-prover-recursion-v3",
+    "codex/rv64-guest-prover-sha256",
+    "codex/rv64-guest-prover-v3-integration",
+    "codex/rv64-guest-rust-lean",
+    "codex/rv64-guest-services-base",
+    "codex/rv64-inspect-recursion-schedule",
+    "codex/rv64-integration-308-311",
+    "codex/rv64-keccak-memory-cost",
+    "codex/rv64-keccak-prefix-lowering",
+    "codex/rv64-keccak-quartet-truth",
+    "codex/rv64-keccakdeep",
+    "codex/rv64-ls32-qualified",
+    "codex/rv64-m3-host",
+    "codex/rv64-m3-infra",
+    "codex/rv64-m3-integrate",
+    "codex/rv64-m3-mem",
+    "codex/rv64-m3-pipe",
+    "codex/rv64-m3-recsize",
+    "codex/rv64-m3-topo",
+    "codex/rv64-m4-arena",
+    "codex/rv64-m4-capture",
+    "codex/rv64-m4-diet",
+    "codex/rv64-m4-integrate",
+    "codex/rv64-m4-kernels",
+    "codex/rv64-m4-measure",
+    "codex/rv64-m4-profiles",
+    "codex/rv64-m4-recsize-port",
+    "codex/rv64-m4-resident",
+    "codex/rv64-m5-blake-gadget",
+    "codex/rv64-m5-canon-native",
+    "codex/rv64-m5-canon-vk",
+    "codex/rv64-m5-capture",
+    "codex/rv64-m5-integrate",
+    "codex/rv64-m5-native-gkr",
+    "codex/rv64-m5-outer-gkr",
+    "codex/rv64-m5-platform",
+    "codex/rv64-m5-profiles",
+    "codex/rv64-m5-rootverify",
+    "codex/rv64-m6-capture",
+    "codex/rv64-m6-diet-wire",
+    "codex/rv64-m6-enqueue",
+    "codex/rv64-m6-fold-v3",
+    "codex/rv64-m6-hint-tape",
+    "codex/rv64-m6-integrate",
+    "codex/rv64-m6-native-format",
+    "codex/rv64-m6-native-stream",
+    "codex/rv64-m6-profiles",
+    "codex/rv64-m6-sched",
+    "codex/rv64-m7-admission",
+    "codex/rv64-m7-blake-inputs",
+    "codex/rv64-m7-callback-retire",
+    "codex/rv64-m7-capture",
+    "codex/rv64-m7-cpu-prestage",
+    "codex/rv64-m7-critical-chain",
+    "codex/rv64-m7-device-fs",
+    "codex/rv64-m7-device-fs-p1",
+    "codex/rv64-m7-device-fs-p2",
+    "codex/rv64-m7-device-graph",
+    "codex/rv64-m7-device-lanes-checkpoint",
+    "codex/rv64-m7-early-recursion",
+    "codex/rv64-m7-fold-circuit",
+    "codex/rv64-m7-fold-expanded",
+    "codex/rv64-m7-graph-checkpoint",
+    "codex/rv64-m7-graph-shape-checkpoint",
+    "codex/rv64-m7-integrate",
+    "codex/rv64-m7-keccak-batches",
+    "codex/rv64-m7-keccak-stream",
+    "codex/rv64-m7-memory-census",
+    "codex/rv64-m7-native-capture",
+    "codex/rv64-m7-native-gkr",
+    "codex/rv64-m7-native-inter-retire",
+    "codex/rv64-m7-native-witness",
+    "codex/rv64-m7-outer-gkr",
+    "codex/rv64-m7-owner-cleanup",
+    "codex/rv64-m7-projection-cost",
+    "codex/rv64-m7-rc-sparse",
+    "codex/rv64-m7-rc-workspace",
+    "codex/rv64-m7-stage1-cost",
+    "codex/rv64-main-merkle-parking",
+    "codex/rv64-main-prefetch-qualified",
+    "codex/rv64-narrow-driver-integration",
+    "codex/rv64-native-image-qualification-plan",
+    "codex/rv64-offhost-input-mapping",
+    "codex/rv64-offhost-receiver",
+    "codex/rv64-om-classic-control",
+    "codex/rv64-om-domain-pool",
+    "codex/rv64-om-fri-packed",
+    "codex/rv64-om31-compact",
+    "codex/rv64-om31-core",
+    "codex/rv64-om31-cost",
+    "codex/rv64-om31-fri",
+    "codex/rv64-om31-gkr",
+    "codex/rv64-om31-pcs",
+    "codex/rv64-om31-security-candidate",
+    "codex/rv64-om31-wrap-resume",
+    "codex/rv64-outer-assignment-narrow-runs",
+    "codex/rv64-outer-device-fixed",
+    "codex/rv64-outer-largest-memory",
+    "codex/rv64-packed-gkr",
+    "codex/rv64-packed-om-air",
+    "codex/rv64-padding-range-prototype",
+    "codex/rv64-padding-range-real-cpu0",
+    "codex/rv64-parking-qualified",
+    "codex/rv64-pcs-default-pool-diagnostics",
+    "codex/rv64-pcs-idle-cache-cap",
+    "codex/rv64-pcs-oom-pool-diagnostics",
+    "codex/rv64-perf-expansion-cleanup",
+    "codex/rv64-perf-half-scratch-default",
+    "codex/rv64-perf-quotient-setup",
+    "codex/rv64-perf-secp-interaction",
+    "codex/rv64-perf-truths-first",
+    "codex/rv64-perf-wave1-integration",
+    "codex/rv64-perf2-air-boundary",
+    "codex/rv64-perf2-air-div-trims",
+    "codex/rv64-perf2-air-integration",
+    "codex/rv64-perf2-air-ls32",
+    "codex/rv64-perf2-air-small-trims",
+    "codex/rv64-perf2-composition-queue",
+    "codex/rv64-perf2-gkr-prototype",
+    "codex/rv64-perf2-interaction-gen",
+    "codex/rv64-perf2-sched-sweep",
+    "codex/rv64-post-merge-hygiene-backup",
+    "codex/rv64-pr308-compact-guard",
+    "codex/rv64-pr308-integration-review",
+    "codex/rv64-prefix-bank-sizing",
+    "codex/rv64-program-metadata-arc",
+    "codex/rv64-ready-basket-harness",
+    "codex/rv64-ready-device-fixed",
+    "codex/rv64-ready-fixed-snapshot",
+    "codex/rv64-ready-recycler-budget",
+    "codex/rv64-receiver-budget",
+    "codex/rv64-recovered-composition",
+    "codex/rv64-recovered-composition-layout",
+    "codex/rv64-recovered-div-review",
+    "codex/rv64-recovered-gkr",
+    "codex/rv64-recovered-interaction-layout",
+    "codex/rv64-recovered-interactions",
+    "codex/rv64-recovered-scheduling",
+    "codex/rv64-recursion-ready-lanes",
+    "codex/rv64-resident-ready-candidate",
+    "codex/rv64-retained-cpu-lde",
+    "codex/rv64-selective-half",
+    "codex/rv64-serial-device-fixed",
+    "codex/rv64-services-gkr-binding",
+    "codex/rv64-setup-cache",
+    "codex/rv64-sponge-gkr-integration",
+    "codex/rv64-truth-dispatch-qualified",
+    "codex/rv64-truth-parallel-composition",
+    "codex/rv64-truth-range-source",
+    "codex/rv64-truth-retention-contract",
+    "codex/rv64-truth-v3-om31",
+    "codex/rv64-v3-closure-completion",
+    "codex/rv64-v3-source-accounting",
+    "codex/rv64-wide-deep-phase-profile",
+    "codex/rv64-wide-finalize-blocked",
+    "codex/rv64-wide-fixed-setup",
+    "codex/rv64-wide-quotient-batch",
+    "codex/rv64-wide-quotient-rows",
+    "codex/rv64-wide-sampled-values",
+    "codex/rv64-witness-append-inline",
+    "codex/rv64-witness-task-capacity-audit",
+    "codex/rv64-zisk-comparison",
+    "codex/rv64im-frontend",
+    "codex/s31-blake2s-counter-guard-20261013",
+    "codex/s31-mixed-phase-timing-20261011",
+    "codex/tensor-accuracy",
+    "codex/tensor-attn",
+    "codex/tensor-cuda",
+    "codex/tensor-cuda2",
+    "codex/tensor-fix-kern",
+    "codex/tensor-fix-pcs",
+    "codex/tensor-fix-stmt",
+    "codex/tensor-int2",
+    "codex/tensor-integrate",
+    "codex/tensor-integrate2",
+    "codex/tensor-lean",
+    "codex/tensor-lean2",
+    "codex/tensor-lmclose",
+    "codex/tensor-lmfix",
+    "codex/tensor-metal",
+    "codex/tensor-perf",
+    "codex/tensor-r2-sec",
+    "codex/tensor-r2-serve",
+    "codex/tensor-r2-speed",
+    "codex/tensor-r2-zk",
+    "codex/tensor-review-ext",
+    "codex/tensor-review-kern",
+    "codex/tensor-review-parity",
+    "codex/tensor-review-pcs",
+    "codex/tensor-review-proto",
+    "codex/tensor-reviewb-sec",
+    "codex/tensor-reviewb-serve",
+    "codex/tensor-reviewb-zk",
+    "codex/tensor-sec-fast",
+    "codex/tensor-sec128",
+    "codex/tensor-sec2",
+    "codex/tensor-secfix",
+    "codex/tensor-size",
+    "codex/tensor-wide",
+    "codex/tensor-wire",
+    "codex/tensor-wv-attn-virtual-d-sel",
+    "codex/tensor-wv-fused-glu",
+    "codex/tensor-wv-ledger",
+    "codex/tensor-wv-wide-slack-key",
+    "codex/tensor-zk",
+    "codex/tensor-zk-matched",
+    "codex/tensor-zkfast",
+    "codex/tensor-zkfix",
+    "codex/tensor-zksec",
+    "feat/s31-mixed-verified-trace-audit-20261011",
+    "feature/s31-circuit-dsl",
+    "feeder-preview-nh",
+    "recovery/rv64-wave2-20261101/composition-queue",
+    "recovery/rv64-wave2-20261101/gkr-prototype",
+    "recovery/rv64-wave2-20261101/interaction-gen"
+  ],
+  "entries": [
+    {
+      "branch": "autoresearch/cache-skewed-shared-column-arena",
+      "sha": "d2d9852b8f4f5b746c4f9a9d80e835eb402c028b",
+      "committer_timestamp": 1784687142,
+      "archive_ref": "refs/tags/archive/autoresearch/cache-skewed-shared-column-arena",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/cairo-native-throughput-10x",
+      "sha": "88837a758f6cec9612600140e77a9f5c24bb26c8",
+      "committer_timestamp": 1785271840,
+      "archive_ref": "refs/tags/archive/autoresearch/cairo-native-throughput-10x",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/cpu-sqdmulh-submit",
+      "sha": "fd176a74eadf442881f7511371b50a8936805598",
+      "committer_timestamp": 1784746544,
+      "archive_ref": "refs/tags/archive/autoresearch/cpu-sqdmulh-submit",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/dual-hotpath-02-current",
+      "sha": "4ad1207455b252bffe270a9e5a384661a5f57c5a",
+      "committer_timestamp": 1784630604,
+      "archive_ref": "refs/tags/archive/autoresearch/dual-hotpath-02-current",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/dual-hotpath-03",
+      "sha": "3065d951c3924bfba852ef1abfbbc3fd579a775a",
+      "committer_timestamp": 1784636452,
+      "archive_ref": "refs/tags/archive/autoresearch/dual-hotpath-03",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-blake-leaves-epoch8",
+      "sha": "17376f1b222f88ec7606ee6d445987efddea067a",
+      "committer_timestamp": 1784792012,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-blake-leaves-epoch8",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-blake-unrolled-epoch9",
+      "sha": "78f6e0fa1358ead932c1fea7325518bc7d66a283",
+      "committer_timestamp": 1784799234,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-blake-unrolled-epoch9",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-ecdsa-subsecond-20260829",
+      "sha": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+      "committer_timestamp": 1789993445,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-ecdsa-subsecond-20260829",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-epoch2",
+      "sha": "86f6396f1995f5d473ff6cad1debc0a75a5810fc",
+      "committer_timestamp": 1784590641,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-epoch2",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-epoch3",
+      "sha": "016ced5f6468c59fa0eae211d5e71b93dde71972",
+      "committer_timestamp": 1784593346,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-epoch3",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-epoch4",
+      "sha": "755146a5d1585201fe7cbf343d0486c9d812e8c4",
+      "committer_timestamp": 1784595688,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-epoch4",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-fragmented-quotient-policy",
+      "sha": "6b8c39e64aa64057a0d6c305817d36efda2b652b",
+      "committer_timestamp": 1784838873,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-fragmented-quotient-policy",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-fri-inverse-domain-cache",
+      "sha": "8618d75593bf3833aab169802c7574b0468d4e51",
+      "committer_timestamp": 1784616462,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-fri-inverse-domain-cache",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-fri-transcript-epoch",
+      "sha": "0fc1478f3714cb343a356e2b2a06070a7b902e83",
+      "committer_timestamp": 1784588101,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-fri-transcript-epoch",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-gpu-air-recurrence",
+      "sha": "6ca90a711b7ab73803c9c0720796626df140906c",
+      "committer_timestamp": 1784709066,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-gpu-air-recurrence",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-main-commit-epoch",
+      "sha": "4709d182c2a7ed7d03462e46af15161adb7429cd",
+      "committer_timestamp": 1784716330,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-main-commit-epoch",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-next-epoch",
+      "sha": "c357bc103ffc538ffd4ead19a117c392d8aa3306",
+      "committer_timestamp": 1784718264,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-next-epoch",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-quotient-domain-cache",
+      "sha": "95d5646555f4518093f0e48bf6ace310cad04c80",
+      "committer_timestamp": 1784613203,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-quotient-domain-cache",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-residency-l2",
+      "sha": "2afe62bb232396c9fb403b39fecae10684d21d17",
+      "committer_timestamp": 1785280169,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-residency-l2",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-secure-composition-ifft",
+      "sha": "7e978bb9c50791287022955945f301ed4ecce398",
+      "committer_timestamp": 1784701780,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-secure-composition-ifft",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-simd-tails-final",
+      "sha": "14a3bf28e6a2c505a19a5960bb331e8f645b0eb3",
+      "committer_timestamp": 1784643486,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-simd-tails-final",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-transform-epoch7-score",
+      "sha": "c93c0839810f6c920ff352d7a4097f04fbb539e9",
+      "committer_timestamp": 1784786152,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-transform-epoch7-score",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/metal-transform-foundation",
+      "sha": "8f4e5cd8de4fc58da7954195b8808c2abf099630",
+      "committer_timestamp": 1784783696,
+      "archive_ref": "refs/tags/archive/autoresearch/metal-transform-foundation",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/page-colored-shared-columns",
+      "sha": "2f02b8e4416170e171f3532b434dfb43878dd91c",
+      "committer_timestamp": 1784696480,
+      "archive_ref": "refs/tags/archive/autoresearch/page-colored-shared-columns",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/paired-circle-basis-reuse-cpu",
+      "sha": "53c021b953de0adc0c24c2e54eaf2a300a38cff9",
+      "committer_timestamp": 1784627783,
+      "archive_ref": "refs/tags/archive/autoresearch/paired-circle-basis-reuse-cpu",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/paired-circle-basis-reuse-current",
+      "sha": "d727130e843ca5246d87394b89f3cb3202e1f934",
+      "committer_timestamp": 1784627151,
+      "archive_ref": "refs/tags/archive/autoresearch/paired-circle-basis-reuse-current",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/pr6-batched-cpu-metal-epoch",
+      "sha": "8d164dfa5c5dfaeeb842a9bdddbce3d26f8b5cae",
+      "committer_timestamp": 1784713329,
+      "archive_ref": "refs/tags/archive/autoresearch/pr6-batched-cpu-metal-epoch",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/pr6-metal-trace",
+      "sha": "90acf7d1217024e9142e62009703e7d436381fa1",
+      "committer_timestamp": 1784757120,
+      "archive_ref": "refs/tags/archive/autoresearch/pr6-metal-trace",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/pr6-supremacy-infra",
+      "sha": "b33783e85489541510da57aae97a565b53583ac5",
+      "committer_timestamp": 1784721811,
+      "archive_ref": "refs/tags/archive/autoresearch/pr6-supremacy-infra",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/recursion-preparation-20260921",
+      "sha": "2ef419d038d0ede197aa96b0b0583ffb0c586027",
+      "committer_timestamp": 1790749392,
+      "archive_ref": "refs/tags/archive/autoresearch/recursion-preparation-20260921",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/riscv-data-oriented",
+      "sha": "f51fe0149e7cb4d2b2d3119bf197f9e44cf12781",
+      "committer_timestamp": 1785710625,
+      "archive_ref": "refs/tags/archive/autoresearch/riscv-data-oriented",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/riscv-deep-epoch4",
+      "sha": "d25b1655f71624aba1b3f9e0767ad5e00ac1d9be",
+      "committer_timestamp": 1784762558,
+      "archive_ref": "refs/tags/archive/autoresearch/riscv-deep-epoch4",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/riscv-merkle-next",
+      "sha": "610f42d21eab083dcf594194ff58066dc317e59d",
+      "committer_timestamp": 1784753725,
+      "archive_ref": "refs/tags/archive/autoresearch/riscv-merkle-next",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/riscv-metal-fast",
+      "sha": "b99d428404b342f52acab690750b20554ec7a1da",
+      "committer_timestamp": 1785606269,
+      "archive_ref": "refs/tags/archive/autoresearch/riscv-metal-fast",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/riscv-quotient-layout",
+      "sha": "7fae755594ecbb3fd351e1029214c93b3a153bc3",
+      "committer_timestamp": 1784749462,
+      "archive_ref": "refs/tags/archive/autoresearch/riscv-quotient-layout",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/riscv-system2x-epoch1",
+      "sha": "e2b4926e3f89dcbb217c62a8bdfb3939bea9e9fb",
+      "committer_timestamp": 1784819590,
+      "archive_ref": "refs/tags/archive/autoresearch/riscv-system2x-epoch1",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/riscv-system2x-epoch2",
+      "sha": "4d654780844fb2f77d508d6b2040acc6b73bb53b",
+      "committer_timestamp": 1784825790,
+      "archive_ref": "refs/tags/archive/autoresearch/riscv-system2x-epoch2",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/system2x-cpu-wide-epoch1",
+      "sha": "632c3d62643663a5f4905603565ed4c5243427fd",
+      "committer_timestamp": 1784803810,
+      "archive_ref": "refs/tags/archive/autoresearch/system2x-cpu-wide-epoch1",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "autoresearch/system2x-metal-fri-arena-epoch2",
+      "sha": "5228b429c95102a503553ec356dd4e71808ed837",
+      "committer_timestamp": 1784811623,
+      "archive_ref": "refs/tags/archive/autoresearch/system2x-metal-fri-arena-epoch2",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "bench/current-main-judged-matrix",
+      "sha": "9249f2104ea3b74973f1c46ff6c101d712ce7386",
+      "committer_timestamp": 1784805173,
+      "archive_ref": "refs/tags/archive/bench/current-main-judged-matrix",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "cairo/zkvm-fixtures-live",
+      "sha": "5a5b4472d6174ce20dec7212177a50060c7721bb",
+      "committer_timestamp": 1785513737,
+      "archive_ref": "refs/tags/archive/cairo/zkvm-fixtures-live",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "checkpoint/cairo-cuda-20260929",
+      "sha": "214080ed64d4df5242effb3c3ef235c661bf8529",
+      "committer_timestamp": 1790681766,
+      "archive_ref": "refs/tags/archive/checkpoint/cairo-cuda-20260929",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "ci/s31-lane",
+      "sha": "ab7a87f89a8ad1f430527a3a0e1fba89d2c6b1f2",
+      "committer_timestamp": 1791384058,
+      "archive_ref": "refs/tags/archive/ci/s31-lane",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "cleanup/pr154-final2",
+      "sha": "9412e96b4c013b633ea64e89d6903e366be402e5",
+      "committer_timestamp": 1785425458,
+      "archive_ref": "refs/tags/archive/cleanup/pr154-final2",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "codex/cuda-ingress-owned-input",
+      "sha": "cbe735565b3f32eaec2e598ee4e7e4669434d397",
+      "committer_timestamp": 1791034017,
+      "archive_ref": "refs/tags/archive/codex/cuda-ingress-owned-input",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "codex/distributed-fold-stage",
+      "sha": "e589df683c16efea36b91ca9626ca8465cd5f18a",
+      "committer_timestamp": 1791018234,
+      "archive_ref": "refs/tags/archive/codex/distributed-fold-stage",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "codex/ethereum-experiment-extraction",
+      "sha": "7ff1d84a8f6fa5e4ddb2b35b97f79ee6931dc2b6",
+      "committer_timestamp": 1791297385,
+      "archive_ref": "refs/tags/archive/codex/ethereum-experiment-extraction",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "codex/fft-kernel-direct-attack",
+      "sha": "cb22081e24d621b98d5f283d3d2c0037613b8e9e",
+      "committer_timestamp": 1772786882,
+      "archive_ref": "refs/tags/archive/codex/fft-kernel-direct-attack",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "codex/hotspot-pass-sampled-quotients",
+      "sha": "87670d637d607abe39e4d74db8688164697d42a6",
+      "committer_timestamp": 1784105443,
+      "archive_ref": "refs/tags/archive/codex/hotspot-pass-sampled-quotients",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "codex/native-readiness-20260718",
+      "sha": "789feb4cf06842fbbdfe41e369cb18dadb1803f6",
+      "committer_timestamp": 1784343537,
+      "archive_ref": "refs/tags/archive/codex/native-readiness-20260718",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "codex/prove-cli-20260718",
+      "sha": "a8cdd31d64b3d339fd0567518b8dfb22efdcf783",
+      "committer_timestamp": 1784370552,
+      "archive_ref": "refs/tags/archive/codex/prove-cli-20260718",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "codex/riscv-v3-field-air",
+      "sha": "b26892c66b3c6081bb00f451a83cca0dea1f2f89",
+      "committer_timestamp": 1791309949,
+      "archive_ref": "refs/tags/archive/codex/riscv-v3-field-air",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "codex/riscv-v3-field-program",
+      "sha": "58fd306bfdc3307f7375c13c5eefdf44fa049bd1",
+      "committer_timestamp": 1791308148,
+      "archive_ref": "refs/tags/archive/codex/riscv-v3-field-program",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "codex/service-leaf-campaign",
+      "sha": "9c5ba4c11cd9b1cb0e6826e52b7c5786f28d62a5",
+      "committer_timestamp": 1791014508,
+      "archive_ref": "refs/tags/archive/codex/service-leaf-campaign",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "correction/pr83-landing-position",
+      "sha": "45ba5c98cce9b42e509db46d73ba7bc8d9d52065",
+      "committer_timestamp": 1784805705,
+      "archive_ref": "refs/tags/archive/correction/pr83-landing-position",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "cuda/source-authority-dedup",
+      "sha": "9909d3ae30ab888b7034657ceb1c4363e242df3b",
+      "committer_timestamp": 1785901920,
+      "archive_ref": "refs/tags/archive/cuda/source-authority-dedup",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "design/track-partition",
+      "sha": "55704653358dd01ad4c15efdf582ff0ea5f6b91b",
+      "committer_timestamp": 1785338492,
+      "archive_ref": "refs/tags/archive/design/track-partition",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "devx/production-repo-cleanup",
+      "sha": "98825fa1b63b4f4c13aa214d8949262744aa5e5d",
+      "committer_timestamp": 1785710725,
+      "archive_ref": "refs/tags/archive/devx/production-repo-cleanup",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "docs/soundness-roadmap",
+      "sha": "ff65a0c364a6e43709bb5281ed8e5ea389363fd8",
+      "committer_timestamp": 1784758096,
+      "archive_ref": "refs/tags/archive/docs/soundness-roadmap",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "evidence/judged-matrix-20260723",
+      "sha": "59b763613c824c6016929fac47f7270d8484a6a5",
+      "committer_timestamp": 1784796077,
+      "archive_ref": "refs/tags/archive/evidence/judged-matrix-20260723",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/architecture-hardening",
+      "sha": "5f4e8a1d82148c3ab75168947ca408a0c7b1a76d",
+      "committer_timestamp": 1785279345,
+      "archive_ref": "refs/tags/archive/feat/architecture-hardening",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/change-scoped-ci",
+      "sha": "263d2fe72501693191c59c8c98b949ec879f01d2",
+      "committer_timestamp": 1785277826,
+      "archive_ref": "refs/tags/archive/feat/change-scoped-ci",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/issue-136-air-ir-v2",
+      "sha": "9d86a203aa30c95f6c419d0561a0c90485e58032",
+      "committer_timestamp": 1785292448,
+      "archive_ref": "refs/tags/archive/feat/issue-136-air-ir-v2",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/issue-136-team-a-rollout",
+      "sha": "ee484bbf1d6a3419f19863619af0a8aa02157028",
+      "committer_timestamp": 1785411307,
+      "archive_ref": "refs/tags/archive/feat/issue-136-team-a-rollout",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/riscv-malicious-prover-131",
+      "sha": "fc911bccf27bf2190dbbed15544075d406dd6065",
+      "committer_timestamp": 1785278995,
+      "archive_ref": "refs/tags/archive/feat/riscv-malicious-prover-131",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/riscv-metal-backend-and-opcode-family-ub",
+      "sha": "0b5613be771aa466499875c58365d2b9917776f1",
+      "committer_timestamp": 1785371490,
+      "archive_ref": "refs/tags/archive/feat/riscv-metal-backend-and-opcode-family-ub",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/riscv-sail-frontend",
+      "sha": "e5ddef8c1109e6e7085103a33317a2b8f8d0fa03",
+      "committer_timestamp": 1785143830,
+      "archive_ref": "refs/tags/archive/feat/riscv-sail-frontend",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/riscv-team-b-sail-binding-137",
+      "sha": "dee19116ba5a1939c9d3a11612b67fc23256e8cc",
+      "committer_timestamp": 1785332655,
+      "archive_ref": "refs/tags/archive/feat/riscv-team-b-sail-binding-137",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/s31-hash-payment-prototype",
+      "sha": "4595c0c510b4aa9b9eaea85b039ac40ef5890625",
+      "committer_timestamp": 1791547732,
+      "archive_ref": "refs/tags/archive/feat/s31-hash-payment-prototype",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/s31-minus-operator",
+      "sha": "6c194325955984c346b85c983aeaccc83d5962dd",
+      "committer_timestamp": 1791388120,
+      "archive_ref": "refs/tags/archive/feat/s31-minus-operator",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/sm83-frontend",
+      "sha": "ef1cd5005cd307a4941b109c9b3c615495a53ba3",
+      "committer_timestamp": 1785529007,
+      "archive_ref": "refs/tags/archive/feat/sm83-frontend",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/typed-air-final-closeout",
+      "sha": "73beeaaa60519ea1d95ca4e38d42f4d090f78e18",
+      "committer_timestamp": 1787911633,
+      "archive_ref": "refs/tags/archive/feat/typed-air-final-closeout",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/typed-air-precompiles",
+      "sha": "8c84ff41c5e6cf15aa2f23d37d8935bb549acef7",
+      "committer_timestamp": 1787721620,
+      "archive_ref": "refs/tags/archive/feat/typed-air-precompiles",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feat/typed-air-recursion-complete",
+      "sha": "232a74356e9ef920a7dad37f888fecc7570d7c34",
+      "committer_timestamp": 1787908560,
+      "archive_ref": "refs/tags/archive/feat/typed-air-recursion-complete",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feature/cairo-frontend-completion",
+      "sha": "9a9639e6690c21b64affb7d6055d13f5525344f4",
+      "committer_timestamp": 1785185578,
+      "archive_ref": "refs/tags/archive/feature/cairo-frontend-completion",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feature/cuda-backend-port",
+      "sha": "0d1658440dd249b003f34317aa7e48e1278982ef",
+      "committer_timestamp": 1784882211,
+      "archive_ref": "refs/tags/archive/feature/cuda-backend-port",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feature/cuda-blake-full-adapter",
+      "sha": "66707ce863401d16be3009add74b5526f5be81c3",
+      "committer_timestamp": 1784908240,
+      "archive_ref": "refs/tags/archive/feature/cuda-blake-full-adapter",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feature/cuda-plonk-trace",
+      "sha": "649a02704913ea21887ba34edc1c4d6de4e142bf",
+      "committer_timestamp": 1784900777,
+      "archive_ref": "refs/tags/archive/feature/cuda-plonk-trace",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feature/cuda-state-machine-trace",
+      "sha": "99e65a0550b83bb268e809c8efcfd2d79b9b8a9d",
+      "committer_timestamp": 1784901410,
+      "archive_ref": "refs/tags/archive/feature/cuda-state-machine-trace",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "feature/cuda-system-architecture",
+      "sha": "0f21ba4c4c3059889a7e11512d4064e1d80fbe84",
+      "committer_timestamp": 1785020630,
+      "archive_ref": "refs/tags/archive/feature/cuda-system-architecture",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/automerge-fork-prs",
+      "sha": "270d5a89cb364d258bf4e9fa821ffcc60c213445",
+      "committer_timestamp": 1784685857,
+      "archive_ref": "refs/tags/archive/fix/automerge-fork-prs",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/automerge-sweep",
+      "sha": "835b5f66d631835ac266ec101dbf0c1a6df827c8",
+      "committer_timestamp": 1784702638,
+      "archive_ref": "refs/tags/archive/fix/automerge-sweep",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/autoresearch-guard-fixture",
+      "sha": "d058dee7cb9652f9a0a056d6a3955e7e23ae8b99",
+      "committer_timestamp": 1784643262,
+      "archive_ref": "refs/tags/archive/fix/autoresearch-guard-fixture",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/backend-restart-on-data",
+      "sha": "45a90b02bbacb720998c3eb09aec49e88d24b59c",
+      "committer_timestamp": 1784687734,
+      "archive_ref": "refs/tags/archive/fix/backend-restart-on-data",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/benchmark-capture-supersession",
+      "sha": "f0bb1c14e81f17a3833b709230ac80f518319561",
+      "committer_timestamp": 1784804899,
+      "archive_ref": "refs/tags/archive/fix/benchmark-capture-supersession",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/blake8-source-ceiling",
+      "sha": "7e5a29391058b8886e58d452c4eacc7b69f58085",
+      "committer_timestamp": 1784826605,
+      "archive_ref": "refs/tags/archive/fix/blake8-source-ceiling",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/cuda-native-ec-build-graph",
+      "sha": "5251bd391a01d4e60a45ef4407e5e90e36c6916f",
+      "committer_timestamp": 1785021672,
+      "archive_ref": "refs/tags/archive/fix/cuda-native-ec-build-graph",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/cuda-post-merge-contracts",
+      "sha": "9f833b028bf7d0a46a03ded10c9ca19f1a9241ed",
+      "committer_timestamp": 1785923147,
+      "archive_ref": "refs/tags/archive/fix/cuda-post-merge-contracts",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/pow-grind-rust-order",
+      "sha": "84d1cba00fb3f1c970df7af75967aed9bc7892bd",
+      "committer_timestamp": 1790756211,
+      "archive_ref": "refs/tags/archive/fix/pow-grind-rust-order",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/riscv-load-store-address-aliasing-140",
+      "sha": "2188336d80b76ad5ff0088dd712fe6a9e5ae9035",
+      "committer_timestamp": 1785319391,
+      "archive_ref": "refs/tags/archive/fix/riscv-load-store-address-aliasing-140",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/riscv-trace-compact-layout",
+      "sha": "77a1fc177399840ebf21860252f759cce43fc13a",
+      "committer_timestamp": 1785731247,
+      "archive_ref": "refs/tags/archive/fix/riscv-trace-compact-layout",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/sweep-updates-behind",
+      "sha": "6a3df25c036360fce65487b67e7cc5708030b6dd",
+      "committer_timestamp": 1784799615,
+      "archive_ref": "refs/tags/archive/fix/sweep-updates-behind",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "fix/typed-air-hosted-closeout",
+      "sha": "05b5fa4cfb41cff684fd5781a8d8246fe968b81e",
+      "committer_timestamp": 1787912997,
+      "archive_ref": "refs/tags/archive/fix/typed-air-hosted-closeout",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "formal/riscv-fv1-fv2-publication",
+      "sha": "8fb2732af0b6ca44d1fb8f3dd7580bda55072a91",
+      "committer_timestamp": 1785847448,
+      "archive_ref": "refs/tags/archive/formal/riscv-fv1-fv2-publication",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "governance/paired-verdict-validator",
+      "sha": "fcab128e98c518729a85ca71e19bc44c81f19605",
+      "committer_timestamp": 1784629997,
+      "archive_ref": "refs/tags/archive/governance/paired-verdict-validator",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "hardening/issue-152-devx",
+      "sha": "2fb002271e506d70fac010235acd721c9061ad57",
+      "committer_timestamp": 1785422923,
+      "archive_ref": "refs/tags/archive/hardening/issue-152-devx",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "issue44-complete",
+      "sha": "042b538e6741a3e2db110d543ccebb9fbd026239",
+      "committer_timestamp": 1784660521,
+      "archive_ref": "refs/tags/archive/issue44-complete",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "issue58-complete",
+      "sha": "14397a177b4fa891f2b2d667ba07e55f03e3726f",
+      "committer_timestamp": 1784664953,
+      "archive_ref": "refs/tags/archive/issue58-complete",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "latest-m5-matrix",
+      "sha": "fa02c27b2025cb5d0b1d0d9ff0ee0927e320b1b5",
+      "committer_timestamp": 1784662608,
+      "archive_ref": "refs/tags/archive/latest-m5-matrix",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "metal/frontend-backend-gap",
+      "sha": "5634f04a29be8a8ffbefde77f6605a8c742f3489",
+      "committer_timestamp": 1785519108,
+      "archive_ref": "refs/tags/archive/metal/frontend-backend-gap",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/circuit-recursion",
+      "sha": "19217d5f6a305fd73a42a935878cc4c4bccf5bd0",
+      "committer_timestamp": 1790872486,
+      "archive_ref": "refs/tags/archive/recursion/circuit-recursion",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/perf-baseline",
+      "sha": "21f59aac3799749cf573e2cc4ac279e7dda32b47",
+      "committer_timestamp": 1790758977,
+      "archive_ref": "refs/tags/archive/recursion/perf-baseline",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/perf-caches",
+      "sha": "f8765c5f27afdbdfa78cde361942ee1059b43731",
+      "committer_timestamp": 1790758337,
+      "archive_ref": "refs/tags/archive/recursion/perf-caches",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/perf-cuda",
+      "sha": "b9e4f4f669bb00e176e0aaa0d22f3d876c2e5866",
+      "committer_timestamp": 1790756039,
+      "archive_ref": "refs/tags/archive/recursion/perf-cuda",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/perf-metal",
+      "sha": "dfe841fc20aff1f2a764e83713b0ede656e4cef9",
+      "committer_timestamp": 1790757061,
+      "archive_ref": "refs/tags/archive/recursion/perf-metal",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/perf-scheduler",
+      "sha": "d98b8768e76b61378ab896c0cad75126fdaf5b7f",
+      "committer_timestamp": 1790758818,
+      "archive_ref": "refs/tags/archive/recursion/perf-scheduler",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/perf-simd-witness",
+      "sha": "f0238ae18a2f2105f6fae2268a68bd3c974c41d4",
+      "committer_timestamp": 1790759253,
+      "archive_ref": "refs/tags/archive/recursion/perf-simd-witness",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/perf-stream-commit",
+      "sha": "9b42d826a1d1d3728c53492158bc4920ceef4989",
+      "committer_timestamp": 1790752753,
+      "archive_ref": "refs/tags/archive/recursion/perf-stream-commit",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/perf-tape",
+      "sha": "c0a227475e8c34082675d6932721fafbbe93437c",
+      "committer_timestamp": 1790755080,
+      "archive_ref": "refs/tags/archive/recursion/perf-tape",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/wip/baseline",
+      "sha": "21f59aac3799749cf573e2cc4ac279e7dda32b47",
+      "committer_timestamp": 1790758977,
+      "archive_ref": "refs/tags/archive/recursion/wip/baseline",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/wip/caches",
+      "sha": "f8765c5f27afdbdfa78cde361942ee1059b43731",
+      "committer_timestamp": 1790758337,
+      "archive_ref": "refs/tags/archive/recursion/wip/caches",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/wip/cuda",
+      "sha": "b9e4f4f669bb00e176e0aaa0d22f3d876c2e5866",
+      "committer_timestamp": 1790756039,
+      "archive_ref": "refs/tags/archive/recursion/wip/cuda",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/wip/metal",
+      "sha": "dfe841fc20aff1f2a764e83713b0ede656e4cef9",
+      "committer_timestamp": 1790757061,
+      "archive_ref": "refs/tags/archive/recursion/wip/metal",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/wip/scheduler",
+      "sha": "d98b8768e76b61378ab896c0cad75126fdaf5b7f",
+      "committer_timestamp": 1790758818,
+      "archive_ref": "refs/tags/archive/recursion/wip/scheduler",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/wip/simd-witness",
+      "sha": "f0238ae18a2f2105f6fae2268a68bd3c974c41d4",
+      "committer_timestamp": 1790759253,
+      "archive_ref": "refs/tags/archive/recursion/wip/simd-witness",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/wip/stream-commit",
+      "sha": "c4a3398b1538f6d020b6193281c120fada6a4d67",
+      "committer_timestamp": 1790759388,
+      "archive_ref": "refs/tags/archive/recursion/wip/stream-commit",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "recursion/wip/tape",
+      "sha": "c0a227475e8c34082675d6932721fafbbe93437c",
+      "committer_timestamp": 1790755080,
+      "archive_ref": "refs/tags/archive/recursion/wip/tape",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "release/typed-air-v009-receipt",
+      "sha": "4f8890807a5a5009c8a54ec3999d9f28325156f1",
+      "committer_timestamp": 1787912593,
+      "archive_ref": "refs/tags/archive/release/typed-air-v009-receipt",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "review/pr55-deferred-current-main",
+      "sha": "cbe81ba74b731569e8f659610cc8824fb1a8d713",
+      "committer_timestamp": 1784667609,
+      "archive_ref": "refs/tags/archive/review/pr55-deferred-current-main",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-activation-complete",
+      "sha": "104e6236f3acb0e89c6440ddf9da9704c5aa1f15",
+      "committer_timestamp": 1784671046,
+      "archive_ref": "refs/tags/archive/riscv-activation-complete",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-calibration-d69d54cc",
+      "sha": "d69d54cc8069ba0fd2bb232060e63f3e66889f85",
+      "committer_timestamp": 1784667961,
+      "archive_ref": "refs/tags/archive/riscv-calibration-d69d54cc",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-release-anchor-54ad539c5823",
+      "sha": "54ad539c5823bb81cfcbc4d071d6d64e82caf139",
+      "committer_timestamp": 1784494241,
+      "archive_ref": "refs/tags/archive/riscv-release-anchor-54ad539c5823",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-release-anchor-866833e2d265",
+      "sha": "866833e2d265cc1b1b6028ae1fa4bf7c621586f7",
+      "committer_timestamp": 1784495152,
+      "archive_ref": "refs/tags/archive/riscv-release-anchor-866833e2d265",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-release-anchor-baa35d42f07a",
+      "sha": "baa35d42f07a940083faad2295a6f6e91fb51d3f",
+      "committer_timestamp": 1784494564,
+      "archive_ref": "refs/tags/archive/riscv-release-anchor-baa35d42f07a",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-release-anchor-c7f1492b691c",
+      "sha": "c7f1492b691cc366132fa66793d9385364ea29df",
+      "committer_timestamp": 1784493071,
+      "archive_ref": "refs/tags/archive/riscv-release-anchor-c7f1492b691c",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-release-candidate-9046758f",
+      "sha": "9046758f0def615398d54b75c59a01b059a68029",
+      "committer_timestamp": 1784649177,
+      "archive_ref": "refs/tags/archive/riscv-release-candidate-9046758f",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-release-candidate-e5a1597b4316",
+      "sha": "e5a1597b4316370326dc2eec65a90f770c68d26a",
+      "committer_timestamp": 1784643512,
+      "archive_ref": "refs/tags/archive/riscv-release-candidate-e5a1597b4316",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-release-candidate-f7cfb67de953",
+      "sha": "f7cfb67de95384bb5ae2123abd6eb7b60afe3556",
+      "committer_timestamp": 1784641105,
+      "archive_ref": "refs/tags/archive/riscv-release-candidate-f7cfb67de953",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-release-promoted-4c4049bd",
+      "sha": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "committer_timestamp": 1784654568,
+      "archive_ref": "refs/tags/archive/riscv-release-promoted-4c4049bd",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "riscv-release-promoted-8e58d701",
+      "sha": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+      "committer_timestamp": 1784652447,
+      "archive_ref": "refs/tags/archive/riscv-release-promoted-8e58d701",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "starknet/multiblock-pipeline",
+      "sha": "fafb7d8a552a640e53c6af9899bf5436c0d4e317",
+      "committer_timestamp": 1790749596,
+      "archive_ref": "refs/tags/archive/starknet/multiblock-pipeline",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "submission/deeper-merkle-pool-parallelism",
+      "sha": "99ff32efcc3560908ad262e20120b07bd0cf9626",
+      "committer_timestamp": 1784569707,
+      "archive_ref": "refs/tags/archive/submission/deeper-merkle-pool-parallelism",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "submission/four-way-fri-leaf-cascade",
+      "sha": "28e0b1af117dba253ce588c64098e22289e70e50",
+      "committer_timestamp": 1784572749,
+      "archive_ref": "refs/tags/archive/submission/four-way-fri-leaf-cascade",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "submission/linear-fri-coset-walk",
+      "sha": "32ee7f2bbb10258c1bf8813073815bbc39e768c8",
+      "committer_timestamp": 1784578328,
+      "archive_ref": "refs/tags/archive/submission/linear-fri-coset-walk",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "submission/packed-direct-quotient-resident-merkle-pool",
+      "sha": "12fd4b759cd32b1bc1b4af2d6e78eae0a5da8dee",
+      "committer_timestamp": 1784568551,
+      "archive_ref": "refs/tags/archive/submission/packed-direct-quotient-resident-merkle-pool",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "submission/packed-sampled-value-evaluation",
+      "sha": "a6cf82a9fcdb285c58f47bccad6a5d1f52fb4a80",
+      "committer_timestamp": 1784575472,
+      "archive_ref": "refs/tags/archive/submission/packed-sampled-value-evaluation",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "submission/pr83-retro",
+      "sha": "5bc4d55d80697d509ffbbe190d5fdca911a7ad8f",
+      "committer_timestamp": 1784798927,
+      "archive_ref": "refs/tags/archive/submission/pr83-retro",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "tracks/cuda-drop-and-baskets",
+      "sha": "b1d3cc8c5ba0f5de2db05a867f82c16559eaa102",
+      "committer_timestamp": 1785496305,
+      "archive_ref": "refs/tags/archive/tracks/cuda-drop-and-baskets",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "tracks/function-baskets",
+      "sha": "b7f6e30fe5f9d6ad1b553785d012a9698291a342",
+      "committer_timestamp": 1785498863,
+      "archive_ref": "refs/tags/archive/tracks/function-baskets",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "w1/cairo-boards",
+      "sha": "7c1656bcb261aaa9e1615d805c0cc0112fbf62b6",
+      "committer_timestamp": 1785341487,
+      "archive_ref": "refs/tags/archive/w1/cairo-boards",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "w1/cairo-oracle-dispatch",
+      "sha": "5289dd7c4b31f8d115bbfd48374a9f720828ec66",
+      "committer_timestamp": 1785343663,
+      "archive_ref": "refs/tags/archive/w1/cairo-oracle-dispatch",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "w2/confirmation-ladder",
+      "sha": "763db43ae5eaf3b5908ae55a60c0dbd08a2caa3d",
+      "committer_timestamp": 1785342336,
+      "archive_ref": "refs/tags/archive/w2/confirmation-ladder",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "w2/fast-boundary-cairo-pow",
+      "sha": "e6be658a83e8f3f0dac60fb2b54c5f4831efadd4",
+      "committer_timestamp": 1785343110,
+      "archive_ref": "refs/tags/archive/w2/fast-boundary-cairo-pow",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "w3/eras-retirement",
+      "sha": "2050648443a59601e58eadf59eaea82f86278f68",
+      "committer_timestamp": 1785344647,
+      "archive_ref": "refs/tags/archive/w3/eras-retirement",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "w4/guards-routing",
+      "sha": "0e3e513e74c4cc2b3c068911ec20125db4b45c58",
+      "committer_timestamp": 1785352215,
+      "archive_ref": "refs/tags/archive/w4/guards-routing",
+      "archive_already_remote": false
+    },
+    {
+      "branch": "wip/riscv-sail-reachability",
+      "sha": "7b2f5f00f69e457f97510b8bf372c72f68afd213",
+      "committer_timestamp": 1785414066,
+      "archive_ref": "refs/tags/archive/wip/riscv-sail-reachability",
+      "archive_already_remote": false
+    }
+  ],
+  "budget": {
+    "code_added": 0,
+    "code_removed": 0,
+    "flags_added": 0,
+    "flags_removed": 0,
+    "scripts_added": 0,
+    "scripts_removed": 0
+  },
+  "recovery": "git push origin <archive_ref>:refs/heads/<branch> (use exact entry values).",
+  "archive_verified_count": 146,
+  "heads_immediately_before": 554,
+  "retired_count": 146,
+  "heads_after": 408,
+  "completed_at": "2026-11-09T05:35:56.860791+00:00",
+  "evidence_ref": "refs/heads/backup/branch-retirement-20261109",
+  "prepared_evidence_commit": "b1888775dd6cac5221932c36dac839e342ed45ec",
+  "source_commit": "7a0a6cd0bef65a0898301fdf4282de599a921d46"
+}
