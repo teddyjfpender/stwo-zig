@@ -194,6 +194,51 @@ jobs:
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/${{ matrix.lane }}" \
             --output "$RUNNER_TEMP/focused-ci/${{ matrix.lane }}.json"
 
+      - name: Retain fresh CPU verification of rejected full-width reports
+        if: failure() && matrix.lane == 'riscv_cpu'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          from scripts.riscv.riscv_pr_proof_smoke import WORKLOADS, COMMAND_TIMEOUT_SECONDS, sha256_file, sha256_bytes, strict_json_file, strict_json_bytes, require_sha256
+          out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci"
+          cli = Path("zig-out/bin/stwo-zig-riscv-cpu").resolve()
+          records = []
+          for workload in WORKLOADS:
+              report_path = out / "riscv-pr-proof-smoke" / f"{workload.name}.prove.json"
+              if not report_path.is_file():
+                  continue
+              report = strict_json_file(report_path, "rejected producer report")
+              if report.get("schema") != "riscv_full_width_execution_v2":
+                  continue
+              artifact = report_path.with_name(f"{workload.name}.proof.json")
+              elf, inp = Path(workload.elf), Path(workload.input_path) if workload.input_path else None
+              input_hash = sha256_file(inp) if inp else sha256_bytes(b"")
+              expected = require_sha256(report.get("statement_blake3"), "candidate statement")
+              bindings = {"implementation_commit": os.environ["GITHUB_SHA"], "implementation_dirty": False, "executable_sha256": sha256_file(cli), "elf_sha256": sha256_file(elf), "input_sha256": input_hash, "proof_sha256": sha256_file(artifact), "proof_bytes": artifact.stat().st_size, "total_steps": workload.expected_steps}
+              assert all(report.get(key) == value for key, value in bindings.items()), "candidate source/artifact binding drift"
+              argv = [str(cli), "verify", "--artifact", str(artifact), "--elf", str(elf), "--protocol", "functional", "--expect-statement-digest", expected]
+              if inp:
+                  argv += ["--input", str(inp)]
+              result = subprocess.run(argv, capture_output=True, timeout=COMMAND_TIMEOUT_SECONDS)
+              (out / f"{workload.name}.fresh-verify.stdout").write_bytes(result.stdout)
+              (out / f"{workload.name}.fresh-verify.stderr").write_bytes(result.stderr)
+              assert result.returncode == 0, "candidate fresh CPU verification failed"
+              receipt = strict_json_bytes(result.stdout, "candidate fresh verifier receipt")
+              identity = {"schema": "riscv_full_width_verify_v1", "status": "verified", "artifact_magic": "B3RVART1", "proof_suite": "blake3", "execution_profile": "rv32im_zkvm_v1", "release_status": "experimental_full_width", "security_policy": "functional", "statement_blake3": expected, "transcript_digest_blake3": report["transcript_digest_blake3"]}
+              assert all(receipt.get(key) == value for key, value in {**bindings, **identity}.items()), "candidate verifier binding drift"
+              wrong = ("0" if expected[0] != "0" else "1") + expected[1:]
+              rejected_argv = list(argv)
+              rejected_argv[rejected_argv.index("--expect-statement-digest") + 1] = wrong
+              rejected = subprocess.run(rejected_argv, capture_output=True, timeout=COMMAND_TIMEOUT_SECONDS)
+              (out / f"{workload.name}.wrong-statement.stdout").write_bytes(rejected.stdout)
+              (out / f"{workload.name}.wrong-statement.stderr").write_bytes(rejected.stderr)
+              assert rejected.returncode != 0 and b"UntrustedExecutionManifest" in rejected.stderr, "wrong statement did not retain its expected rejection"
+              records.append({"workload": workload.name, "scope": "DIAGNOSTIC_ONLY_ORIGINAL_SMOKE_REJECTION_PRESERVED", "bindings": bindings, "fresh_verifier": receipt, "wrong_statement_exit": rejected.returncode, "wrong_statement_stderr_sha256": sha256_bytes(rejected.stderr)})
+          (out / "rejected-report-fresh-cpu-verification.json").write_text(json.dumps(records, indent=2) + "\n")
+          PY
+
       - name: Retain RV64 worker frame evidence
         if: always() && matrix.lane == 'riscv_cpu'
         shell: bash
