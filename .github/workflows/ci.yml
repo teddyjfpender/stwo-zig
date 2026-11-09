@@ -203,6 +203,7 @@ jobs:
           python3 - <<'PY'
           import base64, hashlib, io, json, os, platform, re, shutil, subprocess, tarfile, urllib.request
           from pathlib import Path
+          from scripts.repo.zig_serial_build import build_lock
           out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci/cm31-main-comparison"
           out.mkdir(parents=True, exist_ok=True)
           main = "4e260db9605d16fef5d405cc3c280e3042b22e35"
@@ -248,7 +249,8 @@ jobs:
                   argv = ["zig", "test", "-O" + mode, "--test-filter", selected, "--dep", "stwo_core", "-Mroot=" + str(probe), "-O" + mode, "-Mstwo_core=" + str(root / "mod.zig"), "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
                   if name == "main" and mode == "ReleaseFast":
                       argv.append("--verbose-llvm-ir=" + str(out / "main-ReleaseFast-unoptimized.ll"))
-                  result = subprocess.run(argv, capture_output=True, timeout=120)
+                  with build_lock(label="cm31-source-pinned-diagnosis"):
+                      result = subprocess.run(argv, capture_output=True, timeout=120)
                   for stream in ("stdout", "stderr"):
                       (out / (label + "." + stream)).write_bytes(getattr(result, stream))
                   records.append({"variant": name, "mode": mode, "argv": argv, "exit": result.returncode, "field_source_sha256": {field: hashlib.sha256((root / "fields" / field).read_bytes()).hexdigest() for field in ("m31.zig", "cm31.zig", "qm31.zig")}, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
@@ -264,7 +266,8 @@ jobs:
                   label = "main-explicit-" + target + "-" + mode
                   binary, ir = out / label, out / (label + ".ll")
                   argv = ["zig", "test", "-O" + mode, "-mcpu=" + target, "--test-filter", "qm31 integer:", "--dep", "stwo_core", "-Mroot=" + str(probe), "-O" + mode, "-mcpu=" + target, "-Mstwo_core=" + str(roots["main"] / "mod.zig"), "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
-                  result = subprocess.run(argv, capture_output=True, timeout=120)
+                  with build_lock(label="cm31-source-pinned-diagnosis"):
+                      result = subprocess.run(argv, capture_output=True, timeout=120)
                   for stream in ("stdout", "stderr"):
                       (out / (label + "." + stream)).write_bytes(getattr(result, stream))
                   records.append({"variant": "main-explicit-" + target, "mode": mode, "argv": argv, "exit": result.returncode, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
@@ -299,7 +302,8 @@ jobs:
                   label = "isolated-minimal-" + target + "-" + mode
                   binary, ir = isolated / label, isolated / (label + ".ll")
                   argv = ["zig", "test", str(minimal), "-O" + mode, "-mcpu=" + target, "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
-                  result = subprocess.run(argv, capture_output=True, timeout=120)
+                  with build_lock(label="cm31-source-pinned-diagnosis"):
+                      result = subprocess.run(argv, capture_output=True, timeout=120)
                   for stream in ("stdout", "stderr"):
                       (isolated / (label + "." + stream)).write_bytes(getattr(result, stream))
                   records.append({"variant": "isolated-minimal-" + target, "mode": mode, "argv": argv, "exit": result.returncode, "source_sha256": minimal_hash, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
@@ -802,7 +806,7 @@ jobs:
           git rev-parse HEAD > "$OUT/source-commit.txt"
           git rev-parse 'HEAD^{tree}' > "$OUT/source-tree.txt"
           zig version > "$OUT/zig-version.txt"
-          /usr/bin/time -v zig build riscv-recursion-shape-inspector -Doptimize=ReleaseFast -j2 > "$OUT/build.log" 2>&1
+          /usr/bin/time -v python3 scripts/repo/zig_serial_build.py -j2 riscv-recursion-shape-inspector -Doptimize=ReleaseFast > "$OUT/build.log" 2>&1
           sha256sum zig-out/bin/stwo-zig-riscv-recursion-shape-inspector > "$OUT/inspector-binary.sha256"
           cp zig-out/bin/stwo-zig-riscv-recursion-shape-inspector "$OUT/"
           python3 - "$OUT" <<'PYSHAPES'

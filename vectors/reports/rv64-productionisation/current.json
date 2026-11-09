@@ -4466,6 +4466,134 @@
         "prepush_pod_gate_exit": 2,
         "created_utc": "2026-11-09T10:39:31.104462+00:00"
       }
+    },
+    "native_isolated_followup": {
+      "status": "NATIVE_AVX2_PASS_AVX512_EXPLICITLY_UNRUN_FULL_PRODUCTIONISATION_INCOMPLETE",
+      "source_commit": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+      "recorded_utc": "2026-11-09T11:15:02.414412+00:00",
+      "source_sha256": "615f72e52f9d93a1c803a95165a258203ace7cefd984003654aa84be4377dde2",
+      "native_runs": [
+        {
+          "run": 42603424027,
+          "source": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+          "cpu": "AMD EPYC 7763; AVX2, no AVX512",
+          "comparison_sha256": "050406becd92db855799d62cdbd38e861c5741581952b5aa30e618de3d85a3d7",
+          "executed_avx2_modes": {
+            "Debug": 0,
+            "ReleaseSafe": 0,
+            "ReleaseFast": 0
+          },
+          "unrun_isa_targets": [
+            "isolated-minimal-x86_64_v4",
+            "isolated-minimal-znver4"
+          ]
+        },
+        {
+          "run": 42604585782,
+          "source": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+          "cpu": "AMD EPYC 7763; AVX2, no AVX512",
+          "comparison_sha256": "62764a40d8ec986d37b8b119b9dfc278226af76ca58212c1e89d2d9a5c426ea5",
+          "executed_avx2_modes": {
+            "Debug": 0,
+            "ReleaseSafe": 0,
+            "ReleaseFast": 0
+          },
+          "unrun_isa_targets": [
+            "isolated-minimal-x86_64_v4",
+            "isolated-minimal-znver4"
+          ]
+        }
+      ],
+      "qualification": "Two AVX2 allocations validate the immutable isolated repro in all modes. Native AVX512 execution is unrun. Preserve prior same-host full-owner AVX512 failure and optimizer SLP controls; no full-proof or timing qualification.",
+      "remote_native_evidence": {
+        "ref": "refs/heads/backup/delivery-evidence-cm31-native-20261109",
+        "commit": "be37f1dc354ce7a9908a5e5e5002a8d73e011407",
+        "source_commit": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+        "remote_ref_verified": true,
+        "all_LFS_objects_download_hash_verified": true,
+        "parts": [
+          {
+            "name": "delivery-evidence.tar.gz.part000",
+            "bytes": 18797921,
+            "sha256": "21781d3857412602d902e262be34eeb8e57b36df50ed2f6b16f83649f552aec6"
+          }
+        ],
+        "prepush_pod_gate_exit": 2,
+        "created_utc": "2026-11-09T11:06:57.859694+00:00"
+      },
+      "owned_cache_cleanup": {
+        "utc": "2026-11-09T10:50:59.612418+00:00",
+        "scope": "owned rebuildable temporary diagnostic caches only; source, binaries, IR and external evidence backups retained",
+        "local_compilers_running": false,
+        "caches": [
+          {
+            "path": "/tmp/stwo-cm31-standalone-current/cache",
+            "before_allocated_kib": 29736,
+            "removed": true
+          },
+          {
+            "path": "/tmp/stwo-cm31-standalone-current/global",
+            "before_allocated_kib": 39448,
+            "removed": true
+          },
+          {
+            "path": "/tmp/stwo-cm31-reduced-fold/cache",
+            "before_allocated_kib": 5932,
+            "removed": true
+          }
+        ],
+        "reclaimed_allocated_kib": 75116,
+        "tracked_code_change": 0
+      },
+      "frozen_pr_snapshot": {
+        "run": 42603468719,
+        "pr_head": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+        "merge_commit": "8bcbf721e47e96f9f260a9deb41154d7494d1832",
+        "head_and_merge_tree": "2aa679348548ab74ac562726d04b1ace6848810f",
+        "identical_trees_verified": true,
+        "overall_status": "in_progress",
+        "provider_results": {
+          "Focused Linux / circuit_frontend": "success",
+          "Focused Linux / prover": "success",
+          "Focused Linux / circuit_cpu_integration": "success",
+          "Focused Linux / circuit_recursion_cpu": "success",
+          "Focused Linux / core": "success",
+          "Focused Linux / prover_api": "success"
+        },
+        "failed_lanes": [
+          "Focused Linux / build_graph",
+          "Focused Linux / riscv_cpu",
+          "Focused Linux / native_cuda_static",
+          "Focused Linux / riscv_cuda_integration",
+          "Focused Linux / package",
+          "Focused Linux / script_contracts",
+          "Focused Linux / riscv_cpu_integration",
+          "Focused Linux / static"
+        ],
+        "still_active": [
+          "Focused Linux / cairo_cpu",
+          "Focused Linux / riscv_frontend"
+        ],
+        "complete_python_suite": {
+          "tests": 2306,
+          "failures": 8,
+          "errors": 54,
+          "skips": 57,
+          "status": "FAIL"
+        },
+        "read_failures": {
+          "build_graph": "stale Cairo CUDA configure closure and RISC-V Metal protocol identity declarations",
+          "riscv_cpu": "Debug dynamic-row-tiles test terminates with signal 11 after sixteen completed tests",
+          "csp_shape_audit": "eight RISC-V implementation source bindings stale; independent of CM31 field files"
+        }
+      },
+      "next_shape_owner": "existing regenerate-recursion-shapes CPU-only workflow; compare complete candidate before adopting; no expected classification changes",
+      "formal_job": {
+        "run": 42590995006,
+        "observed_status": "RUNNING source-bound regeneration; older source, not qualification of current checkout"
+      },
+      "gpu_work_started": false,
+      "phase_complete": false
     }
   }
 }

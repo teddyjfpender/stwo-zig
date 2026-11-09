@@ -22,7 +22,7 @@ class CiTests(unittest.TestCase):
         self.assertIn("if: github.event_name == 'workflow_dispatch' && (inputs.gate == 'regenerate-circuit-vectors' || inputs.gate == 'regenerate-recursion-shapes')", job)
         self.assertIn("if: inputs.gate == 'regenerate-circuit-vectors'", job)
         self.assertIn("if: inputs.gate == 'regenerate-recursion-shapes'", job)
-        self.assertIn("zig build riscv-recursion-shape-inspector -Doptimize=ReleaseFast -j2", job)
+        self.assertIn("python3 scripts/repo/zig_serial_build.py -j2 riscv-recursion-shape-inspector -Doptimize=ReleaseFast", job)
         self.assertIn("scripts/riscv/riscv_recursion_csp_benchmark.py audit-shapes", job)
         self.assertIn("scripts/riscv/riscv_recursion_csp_benchmark.py validate-shapes", job)
         self.assertIn('test ! -s "$OUT/worktree-status.txt"', job)
