@@ -112,7 +112,10 @@
     "zero_sponge_accepts_no_detached_worker_without_empty_provider": true,
     "zero_and_nonzero_report_allocation_failures_clean": true,
     "positive_counts_with_no_detached_or_zero_counts_with_nonempty_detached_rejected": true,
-    "strict_actual_relation_ids_and_arities_checked_by_metadata_sink": true
+    "strict_actual_relation_ids_and_arities_checked_by_metadata_sink": true,
+    "pre_key_allocation_free_conservative_GKR_preflight": true,
+    "preflight_bounds_every_exact_ledger_term_nonzero_and_zero_detached": true,
+    "preflight_rejects_reference_profile": true
   },
   "model_notes": [
     "CPU frontier is an explicit new role: no fake legacy Frame.Origin and no erased request call counts",

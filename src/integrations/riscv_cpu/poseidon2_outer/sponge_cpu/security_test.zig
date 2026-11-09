@@ -48,7 +48,11 @@ test "detached security complete actual source scopes characteristic and conditi
     const detached = [_]Detached.Geometry{.{ .calls = 3, .permutations = 5, .first_id = 2, .detached = true }};
     var report = try Bounds.deriveForOpDetached(a, setups[0].materials.program.log_size, &declarations, &truth, &requests, &spans, &.{}, &.{ 5, 5 }, &detached);
     defer report.deinit();
+    const preflight = try Security.preflight(.op_target_b4_q72_p0_fold4_v1, &report, &truth, &.{});
     const checked = try Security.check(.op_target_b4_q72_p0_fold4_v1, &report, &instances, &detached, &truth, &.{});
+    for (checked.conditional_degree_weight, preflight.conditional_degree_weight) |exact, envelope| try std.testing.expect(exact <= envelope);
+    try std.testing.expect(!preflight.security_qualified and !preflight.production_admission);
+    try std.testing.expectError(error.DetachedSecurityShape, Security.preflight(.reference_b2_q24_p0, &report, &truth, &.{}));
     try std.testing.expectEqual(@as(usize, 4), report.op.base.shape.native_proofs);
     try std.testing.expectEqual(@as(u32, 3), checked.cpu_and_detached.scopes);
     try std.testing.expectEqual(@as(u32, 1), checked.truth.scopes);
@@ -77,7 +81,9 @@ test "detached security complete actual source scopes characteristic and conditi
     var empty = try Bounds.deriveForOpDetached(a, setups[0].materials.program.log_size, &declarations, &zero_truth, &zero_requests, &spans, &.{}, &.{ 5, 5 }, &.{});
     defer empty.deinit();
     try std.testing.checkAllAllocationFailures(a, allocationRoundtrip, .{ setups[0].materials.program.log_size, &declarations, &zero_truth, &zero_requests, &spans, @as([]const Detached.Geometry, &.{}) });
+    const zero_preflight = try Security.preflight(.op_target_b4_q72_p0_fold4_v1, &empty, &zero_truth, &.{});
     const zero_checked = try Security.check(.op_target_b4_q72_p0_fold4_v1, &empty, &instances, &.{}, &zero_truth, &.{});
+    for (zero_checked.conditional_degree_weight, zero_preflight.conditional_degree_weight) |exact, envelope| try std.testing.expect(exact <= envelope);
     try std.testing.expectEqual(@as(usize, 3), empty.op.base.shape.native_proofs);
     try std.testing.expectEqual(@as(usize, 0), empty.detached_scopes.len);
     try std.testing.expectEqual(@as(u32, 2), zero_checked.cpu_and_detached.scopes);

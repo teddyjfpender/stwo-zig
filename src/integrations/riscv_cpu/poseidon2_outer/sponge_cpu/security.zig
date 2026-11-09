@@ -84,6 +84,27 @@ pub fn check(profile: Profile, bounds: *Bounds.DetachedOpReport, cpus: []const [
         }
         try gkr.addScope(8, variables, row_variables);
     }
+    return finish(profile, bounds, gkr, local_truth, local_miller);
+}
+/// Allocation-free conservative GKR preflight before building any wide FIXED
+/// key. Maxima/counts come from deriveForOpDetached's independently admitted
+/// source inventory, never a proof or producer-supplied GKR roster. This is an
+/// upper envelope; exact check remains mandatory after source rosters exist.
+pub fn preflight(profile: Profile, bounds: *Bounds.DetachedOpReport, local_truth: []const Wire.TruthDeclaration, local_miller: []const MillerGeometry) !Checked {
+    if (profile == .reference_b2_q24_p0) return error.DetachedSecurityShape;
+    try bounds.op.base.shape.validate();
+    const shape = bounds.op.base.shape;
+    const count = @max(shape.max_local_instances, 8);
+    if (count > Policy.MAX_LOCAL_INSTANCES or shape.max_gkr_variables < 5) return error.DetachedSecurityShape;
+    const scopes = try std.math.add(usize, bounds.op.base.cpu_scopes.len, bounds.detached_scopes.len);
+    if (scopes == 0 or scopes > Policy.MAX_PROOFS) return error.DetachedSecurityShape;
+    var gkr = GkrReport{};
+    for (0..scopes) |_| try gkr.addScope(@intCast(count), shape.max_gkr_variables, try std.math.mul(u64, @intCast(count), shape.max_gkr_variables));
+    var result = try finish(profile, bounds, gkr, local_truth, local_miller);
+    result.accounting_profile = "op-detached-typed-source-security-preflight/v1";
+    return result;
+}
+fn finish(profile: Profile, bounds: *Bounds.DetachedOpReport, gkr: GkrReport, local_truth: []const Wire.TruthDeclaration, local_miller: []const MillerGeometry) !Checked {
     const truth = try Truth.derive(local_truth);
     const miller = try Miller.derive(local_miller);
     truth.augmentShape(&bounds.op.base.shape);
