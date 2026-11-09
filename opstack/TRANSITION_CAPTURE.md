@@ -413,3 +413,15 @@ The public-output encoder is independently checked against the retained historic
 set are independently expected; the payload commitment is recomputed by the
 native verifier. Historical reproduction remains a separate gate even when a
 new recent transition completes.
+
+For a missing storage trie node (including deletion siblings),
+`capture_host/recover_storage_sibling.py` takes the pinned prior `--header`,
+reauthenticated account `--provenance`, the contract `--address`, `--target` node
+hash and retained `--kv`. It finds the exact subtree prefix by traversing cached
+nodes from that authenticated storage root. For prefixes up to 24 bits, it searches
+at most 2^26 numeric slots / 60 seconds for a genuine Keccak key entering that
+subtree, then sends one standard `eth_getProof` query. Inclusion or absence is
+verified normally; the exact requested node must occur in the verified proof.
+Only verified nodes become a resumable supplement. Unknown/nonreachable nodes,
+longer prefixes and missing account authority fail explicitly. This is a recovery
+tool, not permission to synthesize a missing node or infer a storage value.
