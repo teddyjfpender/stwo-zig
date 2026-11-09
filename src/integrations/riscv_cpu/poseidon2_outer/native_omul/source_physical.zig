@@ -6,9 +6,10 @@ const Topology = @import("topology.zig");
 const Proof = @import("proof.zig");
 const CPU = @import("../pure_p2_cpu_leaf_test.zig");
 const Catalog = @import("../pure_p2_truth_leaf_test.zig");
+const LocalCatalog = @import("../truth_local_gkr/leaf_test.zig");
 fn key(a: std.mem.Allocator, source: anytype) !Topology.SourceLeaf {
     const V = @TypeOf(source);
-    return if (V == CPU.ShapeView) Topology.SourceLeaf.initCpu(a, source) else if (V == Catalog.View) Topology.SourceLeaf.initCatalog(a, source) else Topology.SourceLeaf.initMiller(a, source);
+    return if (V == CPU.ShapeView) Topology.SourceLeaf.initCpu(a, source) else if (V == Catalog.View) Topology.SourceLeaf.initCatalog(a, source) else if (V == LocalCatalog.View) Topology.SourceLeaf.initLocalCatalog(a, source) else Topology.SourceLeaf.initMiller(a, source);
 }
 pub fn maybe(a: std.mem.Allocator, kind: []const u8, source: anytype, owner: *const C.PoseidonContext) !void {
     const selected = std.posix.getenv("STWO_OP_R6_PHYSICAL_KIND") orelse return;
