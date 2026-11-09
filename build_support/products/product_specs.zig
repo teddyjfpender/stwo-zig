@@ -61,6 +61,8 @@ pub const products = [_]Spec{
         .dependency_module_roots = catalog.package_dependencies.riscv_cpu_protocol_package_roots,
         .configure_allowed_files = &.{
             "src/frontends/riscv/air/lang/artifacts/embedded.zig",
+            "vectors/circuit/official/circuit_air.air_programs_v1.bin",
+            "vectors/circuit/official/compiled_air_constraints_v1.bin",
             "src/frontends/riscv/air/lang/artifacts/h009_embedded.zig",
             "src/frontends/riscv/air/lang/artifacts/h010_embedded.zig",
             "src/products/riscv/cpu/test_root.zig",

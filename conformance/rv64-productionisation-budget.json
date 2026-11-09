@@ -668,6 +668,13 @@
       "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
     },
     {
+      "id": "delivery_existing_cpu_embedded_asset_roots",
+      "net_code_budget": 10,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Complete the measured CPU configure inventory with the two existing embedded circuit AIR binaries. These exact files are already created as anonymous asset modules by the CPU recursion tools and remain authenticated by existing circuit provenance; no directory prefix, artifact pin, runtime graph, test discovery or validation rule changes. Keep unrelated GPU-scope failures rejected."
+    },
+    {
       "id": "delivery_exact_riscv_cpu_configure_inventory",
       "net_code_budget": 240,
       "flags_added_budget": 0,
