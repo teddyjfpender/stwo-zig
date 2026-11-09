@@ -19,3 +19,17 @@ Pre-edit target: net code growth zero; at most +800 contained private ownership,
 build/compatibility and P-3 wiring. Flags/scripts zero; no new top-level launcher.
 Moves receive no removal credit. Hosted CPU and frozen Native proof-byte gates
 remain the acceptance safety net; GPU validation is deferred.
+
+The neutral Owner foundation is now implemented on the existing umbrella;
+full hosted type/execution/proof acceptance is still pending. The existing
+session/result aliases and canonical identities remain intact.
+
+The canonical `secp256k1_recovery_memory_abi` is the exact existing 168-byte
+fixed memory ABI, including recovery status, word order and its pinned test.
+The canonical `binary_node9` is the complete fixed ETN0/ETN1 sponge/AIR,
+including Row, build/evaluate, bus constraints and both original tests. Its
+historical memory/program enum labels select existing domain framing in RV64;
+they do not perform Ethereum guest admission. No domain parameter, second
+implementation, new security claim or public provider surface is introduced.
+The retained node test directly imports its existing canonical permutation
+table instead of the upper infra-trace facade.

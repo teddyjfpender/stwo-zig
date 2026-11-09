@@ -8,7 +8,7 @@
 
 const std = @import("std");
 const execution_profile = @import("../../isa/execution_profile.zig");
-const ethereum_abi = @import("../../isa/ethereum_signer_recovery.zig");
+const ethereum_abi = @import("../../isa/secp256k1_recovery_memory_abi.zig");
 const Cpu = @import("../cpu.zig").Cpu;
 const keccak_calls = @import("../guest_precompile/keccakf_call_buffer.zig");
 const recovery_calls = @import("../guest_precompile/secp256k1_recover_call_buffer.zig");

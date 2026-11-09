@@ -360,7 +360,7 @@ test "Ethereum node V1 provider bus binds the second squeeze and padded trace" {
     const provider = try permutation_air.claimsFromIoOutputs(&calls, &outputs, 4, &relations);
     const caller_sum = interaction.claims[0].add(interaction.claims[1]);
     try std.testing.expect(caller_sum.add(provider.total()).isZero());
-    const placement = try @import("../../infra_trace.zig").BitReversalTable.init(allocator, 4);
+    const placement = try @import("../../infra_trace/permutation.zig").BitReversalTable.init(allocator, 4);
     defer placement.deinit(allocator);
     for (0..16) |logical| {
         const current = placement.map(logical);
