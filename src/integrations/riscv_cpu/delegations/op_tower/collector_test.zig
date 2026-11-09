@@ -80,4 +80,43 @@ test "OP tower collector binds all80words through readonly tail and cross-shard 
     // is refused before any new proof route can use its truth advice.
     tapes[0].tower_calls.items[0].before[Tower.WORDS - 1] ^= 1;
     try std.testing.expectError(error.InvalidWord16SecpPredecessor, C.collect(a, &.{ &natives[0], &natives[1] }, &.{ &tapes[0], &tapes[1] }, image()));
+    tapes[0].tower_calls.items[0].before[Tower.WORDS - 1] ^= 1;
+    // Existing setup/worker APIs must fail closed on the optional OP block.
+    const R = @import("../../word16_global_execution/services/roster.zig");
+    const Pipeline = @import("../../word16_global_execution/services/pipeline.zig");
+    const Protocol = @import("../../word16_global_execution/services/protocol.zig");
+    const Types = @import("../../word16_global_execution/services/types.zig");
+    var geometry = try natives[0].geometry();
+    geometry.initial_log = 7;
+    const bridges = Types.Logs{ .tower = 5 };
+    try std.testing.expectError(error.UnqualifiedOpSetup, R.CpuSetup.initProgramWithProfile(a, .{ .base = 4096, .words = &.{ 0x73, 0x73 } }, geometry, bridges, .ethereum_services_op_v1));
+    var setup = try R.CpuSetup.initForOpProgram(a, .{ .base = 4096, .words = &.{ 0x73, 0x73 } }, geometry, bridges);
+    defer setup.deinit();
+    const request = Protocol.Request{ .calls = @splat(0), .base = .{ .cpu = natives[0].cpu.?.public, .epoch = 1, .division_requests = 0, .multiplication_requests = 0, .memory = .{ .initial = advice.initial, .terminal = &.{}, .epoch = 1, .ls_count = 0 } } };
+    const expected = Protocol.Expected{ .admission = .{ .image = image(), .image_identity = @splat(0x4e), .initial_pc = 4096, .initial_registers = registers(), .max_prefix_steps = 2 }, .program_identity = setup.materials.program.identity, .total_steps = 2, .max_total_steps = 2, .final_pc = 4104, .final_registers = registers() };
+    try std.testing.expectError(error.UnqualifiedOpProtocol, Protocol.admit(a, &.{&setup}, &.{}, &.{request}, expected));
+    try std.testing.expectError(error.UnqualifiedOpProtocol, Pipeline.buildCpuSource(a, &setup, request, &natives[0], &advice, 0, @splat(1), false, null));
+    try std.testing.expectError(error.UnqualifiedOpProtocol, @import("../../word16_global_execution/services/gkr_local/roster.zig").fromSetup(a, &setup));
+    try std.testing.expectError(error.UnqualifiedOpProtocol, @import("../../word16_global_execution/services/gkr_local/service_scope.zig").profile(.ethereum_services_op_v1));
+    const span = Types.OpTowerSpan{ .calls = 1, .first_id = 1 };
+    const mass = try span.mass(bridges);
+    try std.testing.expectEqual(@as(u64, 160), mass.ram);
+    try std.testing.expectEqual(@as(u64, 32), mass.wire);
+    var source = try Pipeline.buildCpuSourceForOp(a, &setup, request, span, &natives[0], &advice, 0, @splat(1), false, null);
+    defer source.deinit();
+    try std.testing.expect(source.tower != null);
+    const headers = try source.columns(a, &setup, 1);
+    defer a.free(headers);
+    try std.testing.expectEqual(setup.columnCount(1), headers.len);
+    const trace_headers = try source.mainTraceColumns(a, &setup);
+    defer a.free(trace_headers);
+    const tower_main = source.tower.?.main;
+    source.tower.?.main = source.core.range16.main[0..tower_main.len];
+    try std.testing.expectError(error.AliasedCombinedMain, source.takeMain(&setup));
+    source.tower.?.main = tower_main;
+    try std.testing.expect(source.tower.?.owns_main and source.core.cpu.main.len != 0);
+    const commit = try source.takeMain(&setup);
+    defer commit.deinit(a);
+    try std.testing.expectEqual(setup.columnCount(1), commit.columns.len);
+    try std.testing.expect(!source.tower.?.owns_main and source.tower.?.main.len == 0);
 }

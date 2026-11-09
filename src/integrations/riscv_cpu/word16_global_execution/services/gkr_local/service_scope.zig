@@ -14,6 +14,7 @@ pub fn geometry(g: @import("../../../word16_execution/geometry.zig").Geometry) !
     if (g.cpu_log > 22) return error.InvalidLocalGkrGeometry;
 }
 pub fn bridges(logs: T.Logs) !void {
+    if (logs.tower != null) return error.UnqualifiedOpProtocol;
     // The Zbb BINARY component (ethereum_services_v3_zbb) has no GKR role.
     if (logs.zbb != null) return error.UnsupportedGkrLocalZbbComponent;
     for (T.sponge_kinds) |kind| if (logs.sponge.at(kind)) |log| {
@@ -32,6 +33,7 @@ pub fn bridges(logs: T.Logs) !void {
     };
 }
 pub fn setup(s: *const R.CpuSetup) !void {
+    if (s.op_only) return error.UnqualifiedOpProtocol;
     try geometry(s.materials.geometry);
     try bridges(s.bridges);
 }
@@ -53,6 +55,7 @@ pub fn truthDeclaration(d: @import("../wire.zig").TruthDeclaration) !void {
 }
 
 pub fn advice(a: *const @import("../collector.zig").Advice) !void {
+    for (a.tower) |calls_| if (calls_.len != 0) return error.UnqualifiedOpProtocol;
     if (a.events.len != a.keccak.len or a.secp.len != a.keccak.len or a.sha256.len != a.keccak.len or a.arith256_mod.len != a.keccak.len or a.curves.len != a.keccak.len or a.bulk.len != a.keccak.len or a.sponge.len != a.keccak.len) return error.InvalidCombinedInventory;
 }
 
@@ -79,6 +82,7 @@ test "new classic defaults cannot silently enter authenticated GKR query shapes"
 /// The Zbb execution profile (Zbb ROM rows, Zbb BINARY component) has no
 /// authenticated GKR projection; producer and receiver refuse it up front.
 pub fn profile(p: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) !void {
+    if (p == .ethereum_services_op_v1) return error.UnqualifiedOpProtocol;
     if (p == .ethereum_services_v3_zbb) return error.UnsupportedGkrZbbProfile;
 }
 

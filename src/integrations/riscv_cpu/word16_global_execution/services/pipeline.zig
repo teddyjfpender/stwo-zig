@@ -238,6 +238,24 @@ pub fn adviceCalls(advice: *const Advice, i: usize) [T.FAMILIES]u32 {
 /// Shared original source construction. Both native-Q and explicit OM routes
 /// use the same memory/bridge owner and range-merge authority.
 pub fn buildCpuSource(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, native: *Native, advice: *const Advice, ordinal: usize, first_ids: [T.FAMILIES]u32, consume_events: bool, recorder: ?*Profile.Recorder) !R.Sources {
+    if (setup.op_only or setup.bridges.tower != null or (ordinal < advice.tower.len and advice.tower[ordinal].len != 0)) return error.UnqualifiedOpProtocol;
+    return buildCpuSourceInternal(a, setup, request, native, advice, ordinal, first_ids, consume_events, recorder, null);
+}
+/// Explicit closed OP producer seam. A new OP worker must bind this span and
+/// all five tower bridge claims in its own statement, not a legacy request.
+pub fn buildCpuSourceForOp(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, span: T.OpTowerSpan, native: *Native, advice: *const Advice, ordinal: usize, first_ids: [T.FAMILIES]u32, consume_events: bool, recorder: ?*Profile.Recorder) !R.Sources {
+    if (!setup.op_only or setup.materials.program.profile != .ethereum_services_op_v1) return error.UnqualifiedOpProtocol;
+    try span.validate(setup.bridges);
+    if (ordinal >= advice.tower.len or advice.tower[ordinal].len != span.calls) return error.InvalidCombinedInventory;
+    return buildCpuSourceInternal(a, setup, request, native, advice, ordinal, first_ids, consume_events, recorder, span);
+}
+fn buildCpuSourceInternal(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, native: *Native, advice: *const Advice, ordinal: usize, first_ids: [T.FAMILIES]u32, consume_events: bool, recorder: ?*Profile.Recorder, tower_span: ?T.OpTowerSpan) !R.Sources {
+    var tower: ?A.crypto.secp256k1.word16_bridge.source.TowerSource = null;
+    errdefer if (tower) |*source| source.deinit();
+    if (setup.bridges.tower) |log| {
+        const span = tower_span orelse return error.UnqualifiedOpProtocol;
+        tower = try A.crypto.secp256k1.word16_bridge.source.TowerSource.init(a, .bn254_sparse034, advice.tower[ordinal], span.first_id, log);
+    }
     const g = setup.materials.geometry;
     // Zbb BINARY provider: exactly the shard's FUNCTION 19..24 facts; a
     // Zbb fact without a Zbb component fails closed.
@@ -334,7 +352,7 @@ pub fn buildCpuSource(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P
             out.* = try A.crypto.keccak_sponge.source.Source.init(a, kind, p, request.sponge.first_id, log);
         };
     }
-    var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge, .ls_dword = ls_dword, .zbb = zbb };
+    var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge, .ls_dword = ls_dword, .zbb = zbb, .tower = tower };
     // Locals own all fields until this final fallible operation succeeds.
     try source.mergeRanges();
     return source;

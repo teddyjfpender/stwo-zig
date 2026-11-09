@@ -57,6 +57,8 @@ pub const Logs = struct {
     /// CPU-local block. It answers the CPU FUNCTION ids 19..24 against the
     /// core byte-AND table; it takes no Family ordinal and has no public count.
     zbb: ?u32 = null,
+    /// OP-only packet bridge; excluded from legacyFamily/claim arrays.
+    tower: ?u32 = null,
     pub fn dwordLog(self: @This(), k: usize) ?u32 {
         return if (k == 0) self.ls_dword else self.ls_dword_tail;
     }
@@ -112,6 +114,10 @@ pub const Logs = struct {
         }
         if (self.zbb) |log| {
             try jws.objectField("zbb");
+            try jws.write(log);
+        }
+        if (self.tower) |log| {
+            try jws.objectField("tower");
             try jws.write(log);
         }
         try jws.endObject();
@@ -369,4 +375,25 @@ pub fn zbbWidths() [3]usize {
 }
 pub fn zbbZero() ZbbClaims {
     return .{ .and_ = Q.zero(), .function = Q.zero() };
+}
+
+/// Separate OP frame span. Legacy request arrays and Family ordinals remain
+/// byte-for-byte unchanged when the optional OP block is absent.
+pub const OpTowerSpan = struct {
+    calls: u32 = 0,
+    first_id: u32 = 0,
+    pub fn validate(self: @This(), logs: Logs) !void {
+        if ((logs.tower != null) != (self.calls != 0) or (self.calls == 0 and self.first_id != 0)) return error.InvalidOpTowerPresence;
+        if (logs.tower) |log| _ = try A.crypto.secp256k1.word16_bridge.types.validateGeometry(.bn254_sparse034, self.calls, self.first_id, log);
+    }
+    pub fn mass(self: @This(), logs: Logs) !struct { ram: u64, owner: u64, wire: u64, range16: u64, range8: u64 } {
+        try self.validate(logs);
+        const rows: u64 = if (logs.tower) |log| @as(u64, 1) << @intCast(log) else 0;
+        const layout = A.crypto.secp256k1.word16_bridge.layout;
+        return .{ .ram = 160 * @as(u64, self.calls), .owner = self.calls, .wire = 32 * @as(u64, self.calls), .range16 = layout.U16.len * rows, .range8 = layout.U8.len * rows };
+    }
+};
+pub fn towerWidths() [3]usize {
+    const L = A.crypto.secp256k1.word16_bridge.layout;
+    return .{ L.FIXED, L.MAIN, L.INTERACTION };
 }

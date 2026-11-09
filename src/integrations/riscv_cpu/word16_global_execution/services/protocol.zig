@@ -162,6 +162,7 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     var sponge_io: u64 = 0;
     var sponge_perms: u64 = 0;
     for (setups, requests, mats, rr) |setup, req, *m, *old| {
+        if (setup.op_only or setup.bridges.tower != null) return error.UnqualifiedOpProtocol;
         m.* = &setup.materials;
         old.* = req.base;
         var service_calls: u64 = req.bulk.ecalls() + req.sponge.calls + req.base.memory.ls_count + req.ls_dword;
