@@ -239,3 +239,42 @@ The first bounded native attempt retained4532 authenticated records,103 L1 and10
 L2 headers, then hit its180second deadline with zero unknown-preimage errors.
 It did not reach native acceptance. See the native-capture receipt for subsequent
 attempts; filesystem allocation and decoded witness bytes are reported separately.
+
+### Parallel authenticated L1 transport cache
+
+`transition_transport_cache.py` precollects the ordinary L1 transaction bodies
+and receipts that a serial native derivation would otherwise fetch one at a
+time. It reads header ancestry by direct expected-Keccak lookup in the retained
+native KV, so hundreds of thousands of unrelated blob-field/helper entries never
+enter the OPD ordinary-record counter. At most8RPC requests are in flight;
+responses, file sizes, candidate count and total transport bytes are bounded.
+
+Each completed entry authenticates the header, every transaction hash, the
+entire transaction trie, and the entire receipt trie before publication. Legacy,
+EIP-2930/1559/4844/7702 and OP deposit encodings have explicit layouts. Coherent
+payload edits plus a recomputed cache-file SHA still fail the header's trie root.
+The sealed cache is bound to the exact pinned candidate identity and contains
+no acceptance flag. Native Kona still performs its original checks.
+
+```sh
+$PY opstack/transition_transport_cache.py --rpc https://rpc.flashbots.net \
+  --kv /path/to/retained-native-run/kv --candidate /path/to/recent-candidate \
+  --workers 8 --count 128 --seconds 180 --output /new/path/l1-transport-cache
+# Add these flags to the next bounded native run:
+# --transport-cache /new/path/l1-transport-cache --resume /path/to/retained-native-run
+```
+
+The actual103-block window26378527..26378629 completed in120.6seconds with zero
+errors and131.57MB of transport JSON, below the256MiB cache cap. This is distinct
+from the native witness's64MiB decoded-KV budget and4GiB filesystem-allocation
+budget. Blob fields can contribute approximately4096entries per blob and are
+not ordinary OPD Keccak records. Export must reconstruct full authenticated
+sidecars, including standard KZG proofs, rather than pack those fields as
+ordinary records or manufacture missing proofs.
+
+The recent next origin is now independently pinned as26378577/hash
+`a318027d823bee7ebe41f143d57c441bc6c461ca5c7af237871b7ae023b152a1`.
+It is decoded from the authenticated Jovian L1-info deposit at transaction zero,
+checks the fixed depositor/predeploy and L1-info source-hash domain, and appears
+in the authenticated parent chain from the selected L1 anchor. This completes
+claim framing, not derivation or proving acceptance.

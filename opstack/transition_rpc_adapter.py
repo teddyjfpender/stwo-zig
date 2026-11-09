@@ -186,7 +186,7 @@ def verified_proof(block, address, slots, proof):
 
 
 class Adapter:
-    def __init__(self, upstream, record_limit=MAX_RECORD_BYTES, header_window=1):
+    def __init__(self, upstream, record_limit=MAX_RECORD_BYTES, header_window=1, transport_cache=None, cache_claim=None):
         C.endpoint_label(upstream)
         if not 1 <= record_limit <= MAX_RECORD_BYTES:
             raise ValueError("invalid record budget")
@@ -195,6 +195,10 @@ class Adapter:
         self.upstream, self.record_limit = upstream, record_limit
         self.header_window = header_window
         self.prefetched_headers = 0
+        self.transport_cache = None
+        if transport_cache is not None:
+            from transition_transport_cache import Cache
+            self.transport_cache = Cache(transport_cache, cache_claim)
         self.records, self.record_bytes = {}, 0
         self.headers = OrderedDict()
         self.header_bytes = 0
@@ -269,7 +273,12 @@ class Adapter:
         elif identifier not in ("latest", "finalized", "safe", "earliest"):
             integer(identifier)
         method = "eth_getBlockByHash" if is_hash else "eth_getBlockByNumber"
-        block = C.rpc(self.upstream, method, [identifier, False], cap=MAX_RESPONSE)
+        cached = self.transport_cache.load(identifier) if self.transport_cache is not None and is_hash else None
+        if cached is not None:
+            block = dict(cached["block"])
+            block["transactions"] = [tx["hash"] for tx in block["transactions"]]
+        else:
+            block = C.rpc(self.upstream, method, [identifier, False], cap=MAX_RESPONSE)
         encoded = C.header_rlp(block)
         if is_hash and C.unhex(block["hash"], 32) != C.unhex(identifier, 32):
             raise ValueError("requested header hash mismatch")
@@ -277,7 +286,7 @@ class Adapter:
             raise ValueError("requested header number mismatch")
         # Cache immutable hash aliases only; never retain a moving safe/latest tag.
         self.cache_header(block)
-        if self.header_window > 1:
+        if self.header_window > 1 and cached is None:
             self.prefetch_parents(block)
         return block
 
@@ -292,7 +301,8 @@ class Adapter:
             block = self.block(params[0])
             if method == "debug_getRawHeader":
                 return "0x" + C.header_rlp(block).hex()
-            receipts = C.rpc(self.upstream, "eth_getBlockReceipts", [block["number"]], cap=MAX_RESPONSE)
+            cached = self.transport_cache.load(block["hash"]) if self.transport_cache is not None else None
+            receipts = cached["receipts"] if cached is not None else C.rpc(self.upstream, "eth_getBlockReceipts", [block["number"]], cap=MAX_RESPONSE)
             raw, records = ordered_receipts(block, receipts)
             self.retain(records)
             return ["0x" + r.hex() for r in raw]
@@ -338,6 +348,10 @@ class Adapter:
                 raise ValueError("code hash mismatch")
             self.retain({key: raw})
             return "0x" + raw.hex()
+        if method == "eth_getBlockByHash" and len(params) == 2 and params[1] is True and self.transport_cache is not None:
+            cached = self.transport_cache.load(params[0])
+            if cached is not None:
+                return cached["block"]
         # These ordinary calls are only transport passthrough, not proof caches.
         # The host/receiver must still authenticate their contents. No generic
         # debug_dbGet or execution-witness passthrough exists.
@@ -405,10 +419,12 @@ def main():
     p.add_argument("--seconds", type=int, default=180)
     p.add_argument("--max-requests", type=int, default=10000)
     p.add_argument("--header-window", type=int, default=1)
+    p.add_argument("--transport-cache", type=Path)
+    p.add_argument("--cache-claim")
     a = p.parse_args()
     if not 1 <= a.seconds <= 180 or not 1 <= a.max_requests <= 10000 or not 1024 <= a.port <= 65535:
         raise ValueError("adapter limits invalid")
-    adapter = Adapter(a.rpc, header_window=a.header_window)
+    adapter = Adapter(a.rpc, header_window=a.header_window, transport_cache=a.transport_cache, cache_claim=a.cache_claim)
     try:
         if a.block:
             adapter.dispatch("debug_getRawHeader", [a.block])

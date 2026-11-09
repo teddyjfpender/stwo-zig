@@ -1,0 +1,88 @@
+{
+  "schema": "op-transport-prefetch-qualified-v1",
+  "date": "2026-11-09",
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false,
+  "prefetch": {
+    "schema": "op-l1-transport-cache-v1",
+    "claim_sha256": "f4ce72035f136d8b507d1f83dda35b92d7671b6318d2cd9ad6415468dd296aae",
+    "anchor": {
+      "number": 26378629,
+      "hash": "0xad0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9",
+      "header_sha256": "af8437ddb8878bf2381cd161d11104b64691c101e118e98efb9c2a5c9ad7a30c"
+    },
+    "bytes": 131565839,
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false,
+    "elapsed_seconds": 120.57555049995426,
+    "header_candidates": 103,
+    "errors": []
+  },
+  "cached_blocks": 103,
+  "source_authentication": [
+    "pinned L1 anchor plus exact parent ancestry",
+    "canonical header RLP and hash",
+    "every full transaction hash",
+    "entire transaction trie against header",
+    "entire typed receipt trie against header",
+    "immutable candidate-bound cache with independent revalidation on load"
+  ],
+  "bounds": {
+    "upstream_requests_inflight_max": 8,
+    "transport_cache_bytes_max": 268435456,
+    "cache_file_bytes_max": 33554432,
+    "native_decoded_kv_bytes_max": 67108864,
+    "native_filesystem_kv_bytes_max": 4294967296,
+    "native_KV_rows_max": 1000000,
+    "ordinary_OPD_records_max": 131072
+  },
+  "namespace_note": "Native blob-field/helper KV is distinct from ordinary OPD records; ancestry uses direct expected-Keccak header lookup and does not import/count all blob entries. Full sidecar export/KZG remains pending.",
+  "recent_origin": {
+    "origin": {
+      "number": 26378577,
+      "hash": "0xa318027d823bee7ebe41f143d57c441bc6c461ca5c7af237871b7ae023b152a1",
+      "sequence_number": 1,
+      "transaction_hash": "0xe85834aef5bba01b17a178c75e2796482ddeacfc07ea94347490e25a958b0ce5",
+      "transactions_root": "0xe5bf1696a1f6a4d9ee3c03695522e1d018c588a6db318a37b06191825ea539d6"
+    },
+    "L2_transactions_verified": true,
+    "L1_anchor_ancestry_verified": true,
+    "derivation_accepted": false
+  },
+  "recent_claim": {
+    "anchor": {
+      "number": 26378629,
+      "hash": "0xad0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9"
+    },
+    "previous_number": 159321793,
+    "previous_root": "0x94625ee179240693eae780eb83dd89ed052b586030073af009949d722e6b613a",
+    "next_number": 159321794,
+    "next_root": "0xead7bdb1bc28a437fabe299df41cda2af89c3149d7380be180ff49240e542aed",
+    "next_origin": {
+      "number": 26378577,
+      "hash": "0xa318027d823bee7ebe41f143d57c441bc6c461ca5c7af237871b7ae023b152a1"
+    }
+  },
+  "validation": {
+    "focused_python_tests_passed": 33,
+    "actual_L1_transactions_verified": 185,
+    "actual_OP_transactions_verified": 102,
+    "actual_types": [
+      "0x0",
+      "0x2",
+      "0x3",
+      "0x4",
+      "0x7e"
+    ],
+    "coherent_transaction_rehash_still_rejected_by_header_root": true,
+    "coherent_cache_file_SHA_and_payload_mutations_rejected": true
+  },
+  "artifact": {
+    "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/l1-transport-cache/cache.json",
+    "bytes": 22569,
+    "sha256": "27a6749340d2976bc9516a830098cbf5ab6ac7b79455437d1cf2773e8db2c9df"
+  },
+  "native_capture": "third resumed bounded attempt using sealed cache in progress; no acceptance claimed"
+}

@@ -20,6 +20,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 sys.path.insert(0, str(HERE))
 import transition_capture as C
+from transition_transport_cache import Cache, claim_id
 from prepare import validate_tree
 
 
@@ -84,18 +85,33 @@ def resume_kv(previous, output, candidate, pin, host_hash, limit):
     return {'rows':count,'decoded_bytes':total}
 
 
-def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resume=None,header_window=1):
+
+def kv_usage(path):
+    decoded=allocated=count=0
+    for directory,_,names in os.walk(path):
+        allocated+=Path(directory).stat().st_blocks*512
+        for name in names:
+            try:info=Path(directory,name).stat()
+            except FileNotFoundError:continue
+            allocated+=info.st_blocks*512
+            if name.endswith('.txt'):
+                decoded+=info.st_size//2;count+=1
+    return decoded,allocated,count
+
+
+def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resume=None,header_window=1,transport_cache=None):
     if not 1<=seconds<=180 or not 1<=kv_limit<=64 << 20 or not 1<=header_window<=32:
         raise ValueError('capture limits invalid')
     for url in (l1,l2,beacon):C.endpoint_label(url)
     pin,v=validate(source,candidate)
+    if transport_cache is not None:Cache(transport_cache,claim_id(v))
     binary=source/'rust/target/debug/kona-host'
     if binary.is_symlink() or not binary.is_file():raise ValueError('prepared native executable missing')
     output.mkdir(parents=True,exist_ok=False)
     resumed=resume_kv(resume,output/'kv',v,pin,hash_file(binary),kv_limit) if resume else None
     started=time.monotonic()
     deadline=started+seconds
-    children=[];logs=[];host=None;reason='failed';peak=0
+    children=[];logs=[];host=None;reason='failed';peak=0;peak_allocated=0
     # Explicit minimal child environment: no ambient RPC credentials/CLI config.
     child_env={'PATH':'/usr/bin:/bin','RUST_LOG':'warn'}
     try:
@@ -104,6 +120,8 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
             port=free_port();ports.append(port)
             log=(output/(label+'-adapter.log')).open('xb');logs.append(log)
             command=[sys.executable,str(HERE.parent/'transition_rpc_adapter.py'),'--rpc',rpc,'--port',str(port),'--seconds',str(seconds),'--header-window',str(header_window),'--output',str(output/(label+'-adapter'))]
+            if label=='l1' and transport_cache is not None:
+                command += ['--transport-cache',str(transport_cache),'--cache-claim',claim_id(v)]
             proc=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,env=child_env);children.append(proc)
             ready=False
             while time.monotonic()<deadline and proc.poll() is None:
@@ -124,13 +142,9 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
         log=(output/'host.log').open('xb');logs.append(log)
         host=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,env=child_env);children.append(host)
         while host.poll() is None:
-            total=0;count=0
-            for directory,_,names in os.walk(output/'kv'):
-                for name in names:
-                    if name.endswith('.txt'):
-                        total+=Path(directory,name).stat().st_size//2;count+=1
-            peak=max(peak,total)
-            if total>kv_limit or count>1000000:reason='kv_limit';break
+            total,allocated,count=kv_usage(output/'kv')
+            peak=max(peak,total);peak_allocated=max(peak_allocated,allocated)
+            if total>kv_limit or allocated>4<<30 or count>1000000:reason='kv_limit';break
             if any(p.stat().st_size>2 << 20 for p in output.glob('*.log')):reason='log_limit';break
             if time.monotonic()>=deadline:reason='deadline';break
             if any(p.poll() is not None for p in children[:-1]):reason='adapter_exited';break
@@ -147,11 +161,14 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
             except subprocess.TimeoutExpired:
                 os.killpg(proc.pid,signal.SIGKILL);proc.wait()
         for log in logs:log.close()
-        result={'status':reason,'elapsed_seconds':time.monotonic()-started,'seconds_cap':seconds,'decoded_kv_bytes_cap':kv_limit,'peak_observed_decoded_kv_bytes':peak,
+        total,allocated,count=kv_usage(output/'kv')
+        peak=max(peak,total);peak_allocated=max(peak_allocated,allocated)
+        if total>kv_limit or allocated>4<<30 or count>1000000:reason='kv_limit'
+        result={'status':reason,'elapsed_seconds':time.monotonic()-started,'seconds_cap':seconds,'decoded_kv_bytes_cap':kv_limit,'peak_observed_decoded_kv_bytes':peak,'filesystem_kv_bytes_cap':4<<30,'peak_observed_allocated_kv_bytes':peak_allocated,'kv_rows':count,
                 'upstream_revision':pin['revision'],'patch_sha256':pin['patch_sha256'],'host_sha256':hash_file(binary),
                 'candidate':v,'upstream_native_client_accepted':reason=='native_accepted',
                 'complete_exported_witness':False,'derivation_accepted':False,'proof_verified':False,'guest_executed':False,
-                'host_exit_code':host.returncode if host else None,'resumed_kv':resumed,'header_window':header_window}
+                'host_exit_code':host.returncode if host else None,'resumed_kv':resumed,'header_window':header_window,'transport_cache':str(transport_cache) if transport_cache else None}
         C.write_new(output/'capture-run.json',(json.dumps(result,indent=2)+'\n').encode())
     return result
 
@@ -160,8 +177,8 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--source',type=Path,required=True);p.add_argument('--candidate',type=Path,required=True)
     p.add_argument('--l1-rpc',required=True);p.add_argument('--l2-rpc',required=True);p.add_argument('--beacon',required=True)
-    p.add_argument('--output',type=Path,required=True);p.add_argument('--seconds',type=int,default=180);p.add_argument('--resume',type=Path);p.add_argument('--header-window',type=int,default=1)
+    p.add_argument('--output',type=Path,required=True);p.add_argument('--seconds',type=int,default=180);p.add_argument('--resume',type=Path);p.add_argument('--header-window',type=int,default=1);p.add_argument('--transport-cache',type=Path)
     a=p.parse_args()
-    try:print(json.dumps(run(a.source.resolve(),a.candidate.resolve(),a.l1_rpc,a.l2_rpc,a.beacon,a.output.absolute(),a.seconds,resume=a.resume.resolve() if a.resume else None,header_window=a.header_window),indent=2))
+    try:print(json.dumps(run(a.source.resolve(),a.candidate.resolve(),a.l1_rpc,a.l2_rpc,a.beacon,a.output.absolute(),a.seconds,resume=a.resume.resolve() if a.resume else None,header_window=a.header_window,transport_cache=a.transport_cache.resolve() if a.transport_cache else None),indent=2))
     except (ValueError,OSError,KeyError,TypeError,subprocess.SubprocessError) as error:
         print(json.dumps({'status':'capture_host_failed','error_type':type(error).__name__}));raise SystemExit(1)from None
