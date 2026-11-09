@@ -21,7 +21,7 @@ pub const interaction = @import("interaction.zig");
 pub const logup = @import("logup.zig");
 pub const lookups = @import("lookups/mod.zig");
 pub const lookup_physical_manifest_v2 =
-    @import("lang/lookup_physical_manifest_v2.zig");
+    @import("lang/lookup_physical_manifest.zig");
 pub const lookup_batch_execution = @import("lang/lookup_batch_execution.zig");
 pub const memory_commitment = @import("memory_commitment/mod.zig");
 pub const typed_poseidon2_authority = @import("lang/typed_poseidon2_authority.zig");
@@ -71,4 +71,4 @@ test {
 }
 
 /// Source-only authenticated inventory; its backend emitter is supplied by the caller.
-pub const native_polynomial_inventory_v1 = @import("native_polynomial_inventory_v1.zig");
+pub const native_polynomial_inventory_v1 = @import("native_polynomial_inventory.zig");

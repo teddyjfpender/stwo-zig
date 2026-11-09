@@ -11,7 +11,7 @@ const component_order = @import("../air/component_order.zig");
 const clock_update_component = @import("../air/clock_update_component.zig");
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
 const composition_manifest = @import("../air/lang/opcode_composition_manifest.zig");
-const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
+const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest.zig");
 const opcode_component = @import("../air/lookups/opcode_component.zig");
 const lookup_table_component = @import("../air/lookups/tables/component.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
@@ -28,8 +28,8 @@ const statement_mod = @import("../air/statement.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const types = @import("types.zig");
 
-const circuit_mod = @import("ethereum_circuit_profile_v1.zig");
-const narrow_poseidon = @import("../air/memory_commitment/poseidon2_narrow_component_v1.zig");
+const circuit_mod = @import("ethereum_circuit_profile.zig");
+const narrow_poseidon = @import("../air/memory_commitment/poseidon2_narrow_component.zig");
 
 pub const Direction = enum { prover, verifier };
 
@@ -148,7 +148,7 @@ pub fn infrastructureDescriptor(
 pub fn infrastructureDescriptorForCircuit(kind: statement_mod.InfraKind, profile: circuit_mod.CircuitProfileV1) InfrastructureDescriptor {
     var descriptor = infrastructureDescriptor(kind);
     if (kind == .poseidon2 and profile.poseidonLayout() == .narrow_degree3_v1)
-        descriptor.main_columns = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig").N_MAIN_COLUMNS;
+        descriptor.main_columns = @import("../air/memory_commitment/poseidon2_narrow_degree3.zig").N_MAIN_COLUMNS;
     return descriptor;
 }
 

@@ -12,9 +12,9 @@
 //! and alias boundary without writing scratch. The second pass uses one
 //! retained, pointer-free workspace and performs no allocation.
 const shard_0 = @import("binary_global_closure_outer_source_contract.zig");
-const shard_1 = @import("binary_global_closure_outer_source_public_boundary_claim_v2.zig");
-const shard_2 = @import("binary_global_closure_outer_source_closure_receipt_v2.zig");
-const shard_3 = @import("binary_global_closure_outer_source_fill_into_v2.zig");
+const shard_1 = @import("binary_global_closure_outer_source_public_boundary_claim.zig");
+const shard_2 = @import("binary_global_closure_outer_source_closure_receipt.zig");
+const shard_3 = @import("binary_global_closure_outer_source_fill_into.zig");
 
 pub const FORMAT_VERSION = shard_0.FORMAT_VERSION;
 pub const SOURCE_AUTHORITY_FORMAT_VERSION = shard_0.SOURCE_AUTHORITY_FORMAT_VERSION;

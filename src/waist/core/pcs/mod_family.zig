@@ -1,7 +1,7 @@
 const std = @import("std");
 const m31 = @import("../fields/m31.zig");
 const vcs_verifier = @import("../vcs_lifted/verifier.zig");
-const config_v2_module = @import("config_v2.zig");
+const config_v2_module = @import("config.zig");
 const shared = @import("mod.zig");
 pub fn ForField(comptime Secure: type) type {
     return struct {

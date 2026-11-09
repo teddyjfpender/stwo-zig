@@ -174,7 +174,7 @@ pub fn Ops(comptime B: type) type {
                     domain.node_seed,
                     domain.domain_prefix_bytes,
                 );
-                const accepted = try @import("quotient_result_ownership_v1.zig").acceptReceipt(allocator, provider, &profiled);
+                const accepted = try @import("quotient_result_ownership.zig").acceptReceipt(allocator, provider, &profiled);
                 break :blk .{
                     .gpu_ms = accepted.gpu_ms,
                     .tree = accepted.tree,
@@ -195,7 +195,7 @@ pub fn Ops(comptime B: type) type {
                 domain.node_seed,
                 domain.domain_prefix_bytes,
             );
-            var raw_trees = @import("quotient_result_ownership_v1.zig").Batch(@import("../runtime.zig").Tree).init(allocator, runtime_result.tree, runtime_result.fri.trees);
+            var raw_trees = @import("quotient_result_ownership.zig").Batch(@import("../runtime.zig").Tree).init(allocator, runtime_result.tree, runtime_result.fri.trees);
             defer raw_trees.deinit();
             var first_tree = try B.MerkleTree(H).fromSharedRuntime(try raw_trees.takeInitial());
             errdefer first_tree.deinit(allocator);

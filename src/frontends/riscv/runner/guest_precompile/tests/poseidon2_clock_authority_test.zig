@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const custom0 = @import("../../../isa/custom0.zig");
-const subject = @import("../poseidon2_v1.zig");
+const subject = @import("../poseidon2.zig");
 const call_buffer = @import("../call_buffer.zig");
 const Cpu = @import("../../cpu.zig").Cpu;
 const Memory = @import("../../memory.zig").Memory;

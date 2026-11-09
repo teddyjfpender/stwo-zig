@@ -2,8 +2,8 @@
 
 const std = @import("std");
 const runtime = @import("../runtime.zig");
-const dispatch_ffi = @import("sampled_dispatch_bindings_v1.zig");
-const dispatch_budget = @import("sampled_dispatch_budget_v1.zig");
+const dispatch_ffi = @import("sampled_dispatch_bindings.zig");
+const dispatch_budget = @import("sampled_dispatch_budget.zig");
 const coefficient_geometry = @import("sampled_coefficient_geometry.zig");
 const work_profile = @import("stwo_prover_api").work_profile;
 

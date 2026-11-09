@@ -25,10 +25,10 @@ const sparse_merkle = @import("../air/memory_commitment/sparse_merkle.zig");
 const public_data_mod = @import("../air/public_data.zig");
 const public_data_v2 = @import("../air/public_data_v2.zig");
 const statement_v2 = @import("../air/statement_v2.zig");
-const segment_v2 = @import("../recursion/segment_statement_v2.zig");
+const segment_v2 = @import("../recursion/segment_statement.zig");
 const memory_state = @import("../runner/memory_state.zig");
 const trace_mod = @import("../runner/trace.zig");
-const guest_runner = @import("../runner/guest_precompile/poseidon2_v1.zig");
+const guest_runner = @import("../runner/guest_precompile/poseidon2.zig");
 const poseidon_work = @import("poseidon_witness_work.zig");
 const types = @import("types.zig");
 
@@ -65,7 +65,7 @@ const appendTreeCalls = tree_owner.appendTreeCalls;
 const appendTreeRows = tree_owner.appendTreeRows;
 
 pub const CommitmentWitness = struct {
-    circuit_profile: @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1 = .legacy_v4,
+    circuit_profile: @import("ethereum_circuit_profile.zig").CircuitProfileV1 = .legacy_v4,
     boundary: ?memory_boundary.Claims,
     program: ProgramWitnessV1,
     poseidon_calls: std.ArrayList(poseidon2_air.Call),
@@ -341,7 +341,7 @@ pub const CommitmentWitness = struct {
     }
 
     fn buildExternalProfileWithProgramPolicy(
-        comptime circuit_profile: @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+        comptime circuit_profile: @import("ethereum_circuit_profile.zig").CircuitProfileV1,
         allocator: std.mem.Allocator,
         selected_profile: @import("../isa/execution_profile.zig").ExecutionProfile,
         execution_sources: anytype,

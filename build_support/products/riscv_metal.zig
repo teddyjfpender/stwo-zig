@@ -291,7 +291,7 @@ pub fn addProduct(context: Context) void {
     );
     const lookup_v2_test_backend = context.b.createModule(.{
         .root_source_file = context.b.path(
-            "src/integrations/riscv_metal/lookup_v2_test_backend.zig",
+            "src/integrations/riscv_metal/lookup_test_backend.zig",
         ),
         .target = context.target,
         .optimize = context.optimize,
@@ -311,7 +311,7 @@ pub fn addProduct(context: Context) void {
     );
     const lookup_v2_proof_test = context.b.createModule(.{
         .root_source_file = context.b.path(
-            "src/integrations/riscv_cpu/lookup_v2_native_proof_test.zig",
+            "src/integrations/riscv_cpu/lookup_native_proof_test.zig",
         ),
         .target = context.target,
         .optimize = context.optimize,

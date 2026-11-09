@@ -5,7 +5,7 @@
 //!   range-hi table (2^hi_log rows), range-lo table (2^lo_log rows).
 //! The consumer has two variants over the SAME MAIN columns:
 //!   classic: 8 paired-inverse QM31 columns + 1 cyclic prefix (36 INTER cols),
-//!            mirroring load_store_v2/local_lookup.zig;
+//!            mirroring load_store/local_lookup.zig;
 //!   gkr:     eq column c and weighted-sum prefix S (8 INTER cols) that bind the
 //!            GKR terminal claim delta to MAIN (design note section 5).
 //! Tables are classic LogUp in both variants (inverse + cyclic prefix).

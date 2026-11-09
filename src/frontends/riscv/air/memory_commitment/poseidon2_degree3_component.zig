@@ -349,7 +349,7 @@ test "degree3 Poseidon prepared rows match full secure evaluation off-domain" {
             return QM31.fromM31(base(r), base(r), base(r), base(r));
         }
     };
-    inline for (.{ @import("poseidon2_narrow_degree3_v1.zig"), @import("poseidon2_universal_degree3_v1.zig") }) |Air| {
+    inline for (.{ @import("poseidon2_narrow_degree3.zig"), @import("poseidon2_universal_degree3.zig") }) |Air| {
         const Component = Namespace(Air, null).Component;
         const count = Air.N_CONSTRAINTS + Air.N_SUMS;
         var relations: Relations = undefined;

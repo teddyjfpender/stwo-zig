@@ -5,7 +5,7 @@ const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const binding = @import("universal_relation_binding.zig");
-const exporter = @import("framework_polynomial_export_v1.zig");
+const exporter = @import("framework_polynomial_export.zig");
 const framework = @import("framework_interaction.zig");
 
 /// Destination is already zeroed so absent logical rows retain AIR padding.

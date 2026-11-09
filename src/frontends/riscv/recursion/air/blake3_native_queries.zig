@@ -9,7 +9,7 @@ const encoding = @import("blake3_field_bytes.zig");
 const lower = @import("verifier_arithmetic_lowering.zig");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
-const Direct = @import("blake3_pcs_source_columns_v1.zig");
+const Direct = @import("blake3_pcs_source_columns.zig");
 pub const DEEP_CIRCUIT: u32 = 1502;
 pub const FRI_CIRCUIT: u32 = 1504;
 pub const Prepared = struct {
@@ -19,7 +19,7 @@ pub const Prepared = struct {
     fixed: []scalar.Row,
     encoded: []encoding.Row,
     fixed_encoded: []encoding.Row,
-    columns: ?@import("blake3_upstream_source_columns_v1.zig").ForSlots(.{ 12, 10 }) = null,
+    columns: ?@import("blake3_upstream_source_columns.zig").ForSlots(.{ 12, 10 }) = null,
     paths_applied: bool = false,
     pub fn deinit(self: *Prepared) void {
         if (self.columns) |*columns| columns.deinit();

@@ -12,7 +12,7 @@ pub fn localZeroSemanticDigest() [32]u8 {
     hash.update("stwo.riscv.ethereum-sha.statement.local-zero.v1\x00");
     hash.update(&profile.ethereum_sha_semantic_digest);
     hash.update(&@import("../../air/guest_precompile/ethereum_statement.zig").localZeroSemanticDigest());
-    hash.update(&@import("../../air/guest_precompile/sha256_caller_local_zero_v1.zig").SEMANTIC_DIGEST);
+    hash.update(&@import("../../air/guest_precompile/sha256_caller_local_zero.zig").SEMANTIC_DIGEST);
     var digest: [32]u8 = undefined;
     hash.final(&digest);
     return digest;

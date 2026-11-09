@@ -13,7 +13,7 @@ const base_statement = @import("../../air/statement.zig");
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
 const base_preprocessed = @import("../preprocessed.zig");
 const statement_v2 = @import("../../air/statement_v2.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit_v1.zig");
+const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
 const external_tree = @import("external_profile_tree.zig");
 
 pub const extension_column_count: usize =

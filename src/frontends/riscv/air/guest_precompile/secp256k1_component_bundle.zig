@@ -259,7 +259,7 @@ fn generateRecoveryCallerForRecipe(
     try rows.ensureTotalCapacity(allocator, records.len);
     try active_prefix.ensureTotalCapacity(allocator, records.len);
     for (records, 0..) |record, index| {
-        const row = if (local_zero) try @import("secp256k1_caller_local_zero_v1.zig").rowFromRecord(record) else recovery_caller.rowFromRecord(record);
+        const row = if (local_zero) try @import("secp256k1_caller_local_zero.zig").rowFromRecord(record) else recovery_caller.rowFromRecord(record);
         rows.appendAssumeCapacity(row);
         active_prefix.appendAssumeCapacity(index);
     }

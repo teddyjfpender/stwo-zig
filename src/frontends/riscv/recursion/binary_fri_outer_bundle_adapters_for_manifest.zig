@@ -103,7 +103,7 @@ pub const relation_interaction = @import("air/relation_interaction.zig");
 
 pub const shared_provider = @import("air/universal_shared_provider.zig");
 
-pub const shared_schedule_v2 = @import("segment_shared_poseidon_schedule_v2.zig");
+pub const shared_schedule_v2 = @import("segment_shared_poseidon_schedule.zig");
 
 pub const typed_component = @import("air/universal_typed_component.zig");
 

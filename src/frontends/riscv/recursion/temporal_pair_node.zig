@@ -12,7 +12,7 @@
 //! canonical record is compared field-for-field with that authority before
 //! any authenticated parent is returned.
 const shard_0 = @import("temporal_pair_node_contract.zig");
-const shard_1 = @import("temporal_pair_node_preparation_permutation_cost_v2.zig");
+const shard_1 = @import("temporal_pair_node_preparation_permutation_cost.zig");
 const permutation_audit = @import("temporal_pair_node_permutation_audit.zig");
 
 pub const Digest = shard_0.Digest;

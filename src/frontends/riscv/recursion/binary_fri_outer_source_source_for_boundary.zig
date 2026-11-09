@@ -1,6 +1,6 @@
 //! Internal shard of binary_fri_outer_source.zig; use the public facade.
 const dependency_0 = @import("binary_fri_outer_source_claims.zig");
-const dependency_1 = @import("binary_fri_outer_source_trusted_composition_profile_v1.zig");
+const dependency_1 = @import("binary_fri_outer_source_trusted_composition_profile.zig");
 const dependency_2 = @import("binary_fri_outer_source_composition_rows_authority.zig");
 const dependency_3 = @import("binary_fri_outer_source_fri_rows_authority.zig");
 const dependency_4 = @import("binary_fri_outer_source_arithmetic_rows_authority.zig");

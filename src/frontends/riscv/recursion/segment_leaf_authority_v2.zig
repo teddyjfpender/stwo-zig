@@ -28,10 +28,10 @@
 //!
 //! This is a source/authority contract.  It does not add the V2 component to
 //! the frozen 36-row proof and does not claim recursive proof activation.
-const shard_0 = @import("segment_leaf_authority_v2_contract.zig");
-const shard_1 = @import("segment_leaf_authority_v2_source_preflight_public_log_up_publication_v2.zig");
-const shard_2 = @import("segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig");
-const shard_3 = @import("segment_leaf_authority_v2_publish_cohort_handoff_into.zig");
+const shard_0 = @import("segment_leaf_authority_contract.zig");
+const shard_1 = @import("segment_leaf_authority_source_preflight_public_log_up_publication.zig");
+const shard_2 = @import("segment_leaf_authority_authority_hash_poseidon_plan.zig");
+const shard_3 = @import("segment_leaf_authority_publish_cohort_handoff_into.zig");
 
 pub const Digest = shard_0.Digest;
 pub const FORMAT_VERSION = shard_0.FORMAT_VERSION;

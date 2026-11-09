@@ -5,7 +5,7 @@ const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
 const program_commitment = @import("../air/program/commitment.zig");
 const sparse_merkle = @import("../air/memory_commitment/sparse_merkle.zig");
-const segment_v2 = @import("../recursion/segment_statement_v2.zig");
+const segment_v2 = @import("../recursion/segment_statement.zig");
 const poseidon_work = @import("poseidon_witness_work.zig");
 
 pub fn buildV2Boundary(

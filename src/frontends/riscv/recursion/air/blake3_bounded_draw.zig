@@ -1,7 +1,7 @@
 //! Fixed-capacity native retry fragment with authenticated private u64 counters.
 const std = @import("std");
-const Nonhash = @import("blake3_nonhash_emission_v1.zig");
-const DirectFrame = @import("blake3_frame_nonhash_v1.zig");
+const Nonhash = @import("blake3_nonhash_emission.zig");
+const DirectFrame = @import("blake3_frame_nonhash.zig");
 const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const frame = @import("blake3_frame_witness.zig");

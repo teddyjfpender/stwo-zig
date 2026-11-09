@@ -130,7 +130,7 @@ pub const LdeCommitResult = struct {
 pub const CircleLdeBatch = struct {
     handle: *anyopaque,
     runtime_handle: *anyopaque,
-    admission: @import("runtime/external_allocation_admission_v1.zig").Scope,
+    admission: @import("runtime/external_allocation_admission.zig").Scope,
     failed: bool = false,
     ordinary_compatibility: bool = false,
 };

@@ -8,7 +8,7 @@ pub const route = @import("blake3_byte_route.zig");
 pub const pack = @import("qm31_pack_wire.zig");
 const packed_circuit: u32 = 5_000_004;
 const index_circuit: u32 = 5_000_005;
-pub const Columns = @import("blake3_upstream_source_columns_v1.zig").ForSlots(.{ 11, 7 });
+pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{ 11, 7 });
 pub const Prepared = struct {
     bit_reads: [][31]u32,
     ports: [32]?[]route.Endpoint,

@@ -90,7 +90,7 @@ pub fn build(b: *std.Build) void {
     // The shared SegmentV2 detached protocol has one producer implementation;
     // Metal supplies only its authenticated backend/runtime boundary.
     const leaf_root = b.createModule(.{
-        .root_source_file = b.path("recursive_segment_v2_detached_leaf_runner.zig"),
+        .root_source_file = b.path("recursive_segment_detached_leaf_runner.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -105,7 +105,7 @@ pub fn build(b: *std.Build) void {
         .dependOn(&b.addInstallArtifact(leaf, .{}).step);
 
     const parent_root = b.createModule(.{
-        .root_source_file = b.path("recursive_segment_v2_detached_parent_producer_runner.zig"),
+        .root_source_file = b.path("recursive_segment_detached_parent_producer_runner.zig"),
         .target = target,
         .optimize = optimize,
     });

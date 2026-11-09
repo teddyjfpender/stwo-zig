@@ -8,7 +8,7 @@ const lower = @import("../verifier_arithmetic_lowering.zig");
 const fusion = @import("../arithmetic_fusion_rows.zig");
 const storage = @import("../blake3_parent_row_storage.zig");
 const Column = @import("stwo_prover_engine").pcs.ColumnEvaluation;
-const FixedColumns = @import("../arithmetic_fusion_fixed_columns_v1.zig");
+const FixedColumns = @import("../arithmetic_fusion_fixed_columns.zig");
 
 fn requireFixedParity(a: std.mem.Allocator, rows: *const fusion.Rows, fixed: *const fusion.Fixed) !void {
     const cohorts = .{ rows.opening, rows.multiply, rows.inverse, rows.linear };
@@ -102,8 +102,8 @@ test "direct recursive arithmetic emitter matches legacy FMA inverse linear dot4
         try requireFixedParity(a, &old, &fixed);
         try std.testing.expectEqual(old.dot4_matches, direct.dot4_matches);
         try std.testing.expectEqual(old.fma_matches, direct.fma_matches);
-        try std.testing.expectEqualSlices(@import("../detached_opening_accumulate4_v1.zig").Row, old.opening, direct.opening);
-        try requireParity(@import("../qm31_mul_add_v1.zig"), a, old.multiply, &direct.multiply);
+        try std.testing.expectEqualSlices(@import("../detached_opening_accumulate4.zig").Row, old.opening, direct.opening);
+        try requireParity(@import("../qm31_mul_add.zig"), a, old.multiply, &direct.multiply);
         try requireParity(@import("../qm31_inv.zig"), a, old.inverse, &direct.inverse);
         try requireParity(@import("../linear_ops.zig"), a, old.linear, &direct.linear);
         // Move columns into exactly the production Prepared owner, then consume
@@ -152,8 +152,8 @@ test "fixed recursive arithmetic: empty active mode retains canonical padded fix
 }
 
 test "fixed recursive arithmetic: original fixed helpers reject routing outside canonical M31" {
-    const Mul = @import("../qm31_mul_add_v1.zig");
-    const Open = @import("../detached_opening_accumulate4_v1.zig");
+    const Mul = @import("../qm31_mul_add.zig");
+    const Open = @import("../detached_opening_accumulate4.zig");
     const invalid = core.fields.m31.Modulus;
     const schedule = Mul.Schedule{ .circuit = 2, .output = 3, .lhs = 0, .rhs = 1, .uses = 4 };
     var changed = schedule;

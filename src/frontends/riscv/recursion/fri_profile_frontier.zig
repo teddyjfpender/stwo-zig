@@ -5,8 +5,8 @@
 //! then exposes the trade between larger prover domains and fewer recursive
 //! verifier queries. Protocol V1 remains frozen until real proof measurements
 //! and a reviewed versioned decision select a candidate.
-const shard_0 = @import("fri_profile_frontier_fri_path_dimensions_v1.zig");
-const shard_1 = @import("fri_profile_frontier_comparison_v1.zig");
+const shard_0 = @import("fri_profile_frontier_fri_path_dimensions.zig");
+const shard_1 = @import("fri_profile_frontier_comparison.zig");
 
 pub const MAX_CANDIDATES = shard_0.MAX_CANDIDATES;
 pub const MAX_OBSERVATIONS = shard_0.MAX_OBSERVATIONS;

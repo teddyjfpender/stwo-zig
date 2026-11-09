@@ -126,7 +126,7 @@ pub fn build(b: *std.Build) void {
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-vm-leaf-context-v2",
         .description = "Test SegmentV2 verifier-instance and capture authority",
-        .root = "vm_leaf_context_v2_test_root.zig",
+        .root = "vm_leaf_context_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{ "SegmentV2 VM leaf ContextV2", "Ethereum selected base claim admission" },
         .minimum = 4,

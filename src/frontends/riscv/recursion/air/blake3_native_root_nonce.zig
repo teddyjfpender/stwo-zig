@@ -9,8 +9,8 @@ const roots = @import("blake3_root_sources.zig");
 const word = @import("blake3_private_word.zig");
 const boundary = @import("blake3_boundary.zig");
 const M = core.fields.m31.M31;
-pub const Columns = @import("blake3_upstream_source_columns_v1.zig").ForSlots(.{ 2, 9 });
-pub const MainColumns = @import("blake3_upstream_source_columns_v1.zig").ForSlots(.{2});
+pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{ 2, 9 });
+pub const MainColumns = @import("blake3_upstream_source_columns.zig").ForSlots(.{2});
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     words: []word.Row,

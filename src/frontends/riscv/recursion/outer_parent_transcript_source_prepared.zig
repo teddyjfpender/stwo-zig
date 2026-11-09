@@ -1,6 +1,6 @@
 //! Internal outer parent transcript source authority shard; use outer_parent_transcript_source.zig publicly.
 
-const dependency_0 = @import("outer_parent_transcript_source_child_witness_v1.zig");
+const dependency_0 = @import("outer_parent_transcript_source_child_witness.zig");
 
 const BoundContextV1 = dependency_0.BoundContextV1;
 const CHILD_COUNT = dependency_0.CHILD_COUNT;

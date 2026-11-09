@@ -490,7 +490,7 @@ pub fn build(b: *std.Build) void {
     );
 
     const lookup_v2_root = b.createModule(.{
-        .root_source_file = b.path("runtime/lookup_polynomial_v2_owner.zig"),
+        .root_source_file = b.path("runtime/lookup_polynomial_owner.zig"),
         .target = target,
         .optimize = optimize,
     });
