@@ -1,0 +1,11 @@
+[package]
+name = "op-capture-slot-search"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sha3 = "=0.10.8"
+
+[profile.release]
+opt-level = 3
+codegen-units = 1

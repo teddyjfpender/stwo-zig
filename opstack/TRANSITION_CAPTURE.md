@@ -425,3 +425,10 @@ verified normally; the exact requested node must occur in the verified proof.
 Only verified nodes become a resumable supplement. Unknown/nonreachable nodes,
 longer prefixes and missing account authority fail explicitly. This is a recovery
 tool, not permission to synthesize a missing node or infer a storage value.
+
+An optional `--search-helper` can use the small offline Rust implementation in
+`capture_host/slot_search` (`cargo build --offline --locked --release`). It is
+limited to 2^28 candidates / 60 seconds. Its result is untrusted advice: Python
+checks the numeric bounds and independently hashes the resulting 32-byte slot
+with Keccak before making the one standard proof query. Helper executable hashes
+enter the recovery receipt; the ordinary Python path remains available.

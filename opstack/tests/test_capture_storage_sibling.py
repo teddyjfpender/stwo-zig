@@ -24,3 +24,13 @@ class StorageSibling(unittest.TestCase):
             with self.assertRaises(ValueError):R.find_slot(prefix)
         with self.assertRaises(ValueError):R.find_slot('',seconds=61)
         with self.assertRaisesRegex(ValueError,'exhausted'):R.find_slot('ffffff',seconds=1,limit=1)
+
+    def test_helper_advice_is_rehashed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helper=Path(directory)/'search';helper.write_text('#!/bin/sh\necho \'{"candidate":0,"attempts":1}\'\n');helper.chmod(0o700)
+            actual=C.keccak(bytes(32)).hex()[:2]
+            self.assertEqual(R.helper_slot(helper,actual,1),(bytes(32),1))
+            wrong='ff'if actual!='ff'else'00'
+            with self.assertRaisesRegex(ValueError,'Keccak'):R.helper_slot(helper,wrong,1)
+            helper.write_text('#!/bin/sh\necho \'{"candidate":268435456,"attempts":268435457}\'\n')
+            with self.assertRaisesRegex(ValueError,'bounds'):R.helper_slot(helper,actual,1)

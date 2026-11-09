@@ -10,6 +10,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import subprocess
 import time
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import transition_capture as C
@@ -58,7 +59,18 @@ def find_slot(prefix,seconds=60,start=0,limit=1<<26):
     raise ValueError('slot search exhausted')
 
 
-def recover(kv,header_path,provenance,address,target,url,output,seconds=60):
+def helper_slot(helper,prefix,seconds):
+    if not 1<=seconds<=60 or not 1<=len(prefix)<=6 or any(c not in'0123456789abcdef'for c in prefix):raise ValueError('bounded helper search')
+    completed=subprocess.run([str(helper),prefix,str(seconds)],capture_output=True,timeout=seconds+1,env={'PATH':'/usr/bin:/bin'})
+    if completed.returncode!=0 or len(completed.stdout)>4096:raise ValueError('bounded native slot search failed')
+    result=json.loads(completed.stdout);candidate=result['candidate'];attempts=result['attempts']
+    if type(candidate)is not int or not 0<=candidate<1<<28 or attempts!=candidate+1:raise ValueError('native slot advice bounds')
+    slot=candidate.to_bytes(32,'big')
+    if not C.keccak(slot).hex().startswith(prefix):raise ValueError('native slot advice independent Keccak mismatch')
+    return slot,attempts
+
+
+def recover(kv,header_path,provenance,address,target,url,output,seconds=60,search_helper=None):
     raw=header_path.read_bytes();header=C.decode_rlp(raw);block_hash=C.keccak(raw)
     entries=C.read_json(provenance,16<<20)['entries'];matches=[]
     for entry in entries.values():
@@ -67,7 +79,7 @@ def recover(kv,header_path,provenance,address,target,url,output,seconds=60):
             _,_,storage=A.verified_account(header[3],address,entry['account']);matches.append(storage)
     if not matches or len(set(matches))!=1:raise ValueError('authenticated storage owner required')
     prefix=missing_path(kv,matches[0],target)
-    slot,attempts=find_slot(prefix,seconds)
+    slot,attempts=helper_slot(search_helper,prefix,seconds)if search_helper else find_slot(prefix,seconds)
     block=C.rpc(url,'eth_getBlockByHash',['0x'+block_hash.hex(),False])
     if C.header_rlp(block)!=raw:raise ValueError('independent RPC pinned header mismatch')
     proof=C.rpc(url,'eth_getProof',[address,['0x'+slot.hex()],{'blockHash':'0x'+block_hash.hex(),'requireCanonical':True}])
@@ -78,14 +90,14 @@ def recover(kv,header_path,provenance,address,target,url,output,seconds=60):
     C.write_new(output/'header.rlp',raw)
     C.write_new(output/'target-node.rlp',records[target])
     C.write_new(output/'records.json',(json.dumps([(k.hex(),v.hex())for k,v in sorted(records.items())])+'\n').encode())
-    result={'schema':'op-exact-storage-sibling-recovery-v1','block_hash':block_hash.hex(),'state_root':header[3].hex(),'address':address,'target':target.hex(),'prefix':prefix,'slot':slot.hex(),'search_attempts':attempts,'verified_nodes':len(records),'rpc':C.endpoint_label(url),'complete_witness':False,'derivation_accepted':False,'proof_verified':False}
+    result={'schema':'op-exact-storage-sibling-recovery-v1','block_hash':block_hash.hex(),'state_root':header[3].hex(),'address':address,'target':target.hex(),'prefix':prefix,'slot':slot.hex(),'search_attempts':attempts,'search_helper_sha256':C.sha(search_helper.read_bytes())if search_helper else None,'verified_nodes':len(records),'rpc':C.endpoint_label(url),'complete_witness':False,'derivation_accepted':False,'proof_verified':False}
     C.write_new(output/'recovery.json',(json.dumps(result,indent=2)+'\n').encode());return result
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for name in('kv','header','provenance','output'):p.add_argument('--'+name,type=Path,required=True)
     for name in('address','target','rpc'):p.add_argument('--'+name,required=True)
-    p.add_argument('--seconds',type=int,default=60);args=p.parse_args()
-    try:print(json.dumps(recover(args.kv,args.header,args.provenance,args.address,C.unhex(args.target,32),args.rpc,args.output,args.seconds),indent=2))
-    except(ValueError,OSError,KeyError,TypeError)as error:
+    p.add_argument('--seconds',type=int,default=60);p.add_argument('--search-helper',type=Path);args=p.parse_args()
+    try:print(json.dumps(recover(args.kv,args.header,args.provenance,args.address,C.unhex(args.target,32),args.rpc,args.output,args.seconds,args.search_helper),indent=2))
+    except(ValueError,OSError,KeyError,TypeError,subprocess.SubprocessError)as error:
         print(json.dumps({'status':'storage_sibling_recovery_failed','error_type':type(error).__name__,'error':str(error)if isinstance(error,ValueError)else'source/transport failure'}));raise SystemExit(1)from None

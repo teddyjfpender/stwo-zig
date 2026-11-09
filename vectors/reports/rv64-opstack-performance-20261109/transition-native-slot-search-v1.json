@@ -1,0 +1,28 @@
+{
+  "schema": "op-bounded-native-slot-search-qualification-v1",
+  "block_hash": "3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+  "state_root": "7e77c23c053933fd100f7a5fd28de93d854c1c10d8e0ededbfb0b3a9681900a2",
+  "address": "0x8f6a9ea8304fe2c16a6a11f31aba71f2c526cfd9",
+  "target": "960dbccdb24eb9c2a56e7b86742bde91e48a64d8457f45079376a79e29eea6de",
+  "prefix": "15b028",
+  "slot": "00000000000000000000000000000000000000000000000000000000000eee99",
+  "search_attempts": 978586,
+  "search_helper_sha256": "e5f6fc528e5c8f99d499a4909e3ccfc3cf5b43efc78970d9b7927f3ef9fbfa3c",
+  "verified_nodes": 16,
+  "rpc": "https://mainnet.optimism.io",
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false,
+  "records_sha256": "efc1f660721b2d42227e8b5da7d26dbf9b6437623a45a2c10dbacdaa36abb299",
+  "proof_sha256": "2512fc6da8ea984f6e25faa2b364d30bf171fadd29f3c64e09a54403de95a2c0",
+  "node_sha256": "236f6719b472c5e92f51d0488642635508d4d80c7396f0ae618a17b570e8fb92",
+  "helper_source": "opstack/capture_host/slot_search",
+  "dependencies": "sha3=0.10.8; offline locked build using already cached official host dependencies",
+  "bounds": {
+    "candidates": 268435456,
+    "seconds": 60,
+    "prefix_bits": 24
+  },
+  "independent_python_keccak_recheck": true,
+  "tests": 51
+}
