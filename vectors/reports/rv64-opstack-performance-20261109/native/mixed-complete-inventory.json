@@ -1,0 +1,46 @@
+{
+  "schema": "op-native-pure-p2-mixed-inventory/v1",
+  "status": "qualified-small-complete-execution-not-full-block",
+  "production_admitted": false,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "execution_profile": "ethereum_services_op_v1",
+  "steps": 19,
+  "cpu_shards": 2,
+  "truth_proofs": 2,
+  "calls": {
+    "sha256": 2,
+    "arith256_mod": 2,
+    "bulk": 2
+  },
+  "native_proof_bytes": 3915744,
+  "fresh_receiver": true,
+  "durable_bundle_roundtrip": true,
+  "closure": [
+    "RAM",
+    "Wire"
+  ],
+  "authority": [
+    "receiver expected image and program",
+    "genesis register state",
+    "CPU adjacency and epochs",
+    "terminal PC and registers",
+    "exact inherited-provider coverage",
+    "contiguous OP CPU and Miller spans",
+    "joint and per-proof source characteristic bounds",
+    "fresh pure P2 fixed keys",
+    "local GKR physical binding"
+  ],
+  "negative_controls": [
+    "legacy admission refuses OP",
+    "missing arithmetic provider",
+    "wrong expected final PC",
+    "bundle proof count mismatch",
+    "truncated bundle",
+    "byte-cap refusal before allocation",
+    "changed physical claim",
+    "omitted global claim"
+  ],
+  "validation": "zig build test-riscv64-op-native-join -Doptimize=ReleaseSafe -j1 -Driscv-test-filter=\"OP complete mixed\"",
+  "security": "128-bit security target under documented assumptions; no certified whole-protocol claim",
+  "limits": "Source/PCS worker budgets retained; bundle bytes/proof bytes/claims bounded and preflighted; keys and capture external. No complete-block memory or timing claim."
+}

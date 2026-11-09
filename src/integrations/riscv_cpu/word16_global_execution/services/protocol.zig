@@ -146,6 +146,16 @@ pub fn firstIds(requests: []const Request, index: usize) ![T.FAMILIES]u32 {
     return out;
 }
 pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const Request, expected: Expected) ![T.FAMILIES]u32 {
+    return admitMode(a, setups, truths, requests, expected, null);
+}
+/// Explicit OP metadata admission. The complete receiver additionally checks
+/// Miller truth coverage and source-owned local/global bounds with deriveForOp.
+/// Old entrypoints never erase OP flags or project away packet obligations.
+pub fn admitForOp(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const Request, expected: Expected, spans: []const T.OpTowerSpan) ![T.FAMILIES]u32 {
+    if (spans.len != setups.len) return error.InvalidCombinedInventory;
+    return admitMode(a, setups, truths, requests, expected, spans);
+}
+fn admitMode(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const Request, expected: Expected, op_spans: ?[]const T.OpTowerSpan) ![T.FAMILIES]u32 {
     if (setups.len == 0 or setups.len > 65535 or truths.len > 65535 - setups.len or setups.len != requests.len) return error.InvalidCombinedInventory;
     const suite = setups[0].materials.suite;
     try suite.validate();
@@ -161,12 +171,17 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     var ram: u64 = 0;
     var sponge_io: u64 = 0;
     var sponge_perms: u64 = 0;
-    for (setups, requests, mats, rr) |setup, req, *m, *old| {
-        if (setup.op_only or setup.bridges.tower != null) return error.UnqualifiedOpProtocol;
+    var op_wire: u64 = 0;
+    for (setups, requests, mats, rr, 0..) |setup, req, *m, *old, index| {
+        if (op_spans) |spans| {
+            if (!setup.op_only or setup.materials.program.profile != .ethereum_services_op_v1) return error.UnqualifiedOpProtocol;
+            try spans[index].validate(setup.bridges);
+        } else if (setup.op_only or setup.bridges.tower != null) return error.UnqualifiedOpProtocol;
         m.* = &setup.materials;
         old.* = req.base;
         var service_calls: u64 = req.bulk.ecalls() + req.sponge.calls + req.base.memory.ls_count + req.ls_dword;
         for (req.calls) |c| service_calls += c;
+        if (op_spans) |spans| service_calls = try std.math.add(u64, service_calls, spans[index].calls);
         if (service_calls > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
         const bulk = try admitBulk(setup, req);
         const sponge = try admitSponge(setup, req);
@@ -187,6 +202,13 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
         sponge_perms = try std.math.add(u64, sponge_perms, req.sponge.perms);
         var mass16 = try std.math.add(u64, try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.range16Mass(), bulk.range16), sponge.range16), dword.range16);
         var mass8 = try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.range8Mass(), sponge.range8), dword.range8);
+        if (op_spans) |spans| {
+            const extra = try spans[index].mass(setup.bridges);
+            mass16 = try std.math.add(u64, mass16, extra.range16);
+            mass8 = try std.math.add(u64, mass8, extra.range8);
+            ram = try std.math.add(u64, ram, extra.ram);
+            op_wire = try std.math.add(u64, op_wire, extra.wire);
+        }
         for (0..T.FAMILIES) |k| {
             const family: T.Family = @enumFromInt(k);
             const log = setup.bridges.at(family);
@@ -227,7 +249,7 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     }
     var next: [T.FAMILIES]u64 = @splat(1);
     var previous: u8 = 0;
-    var wire: u64 = 0;
+    var wire: u64 = op_wire;
     for (1..T.FAMILIES) |k| wire = try std.math.add(u64, wire, T.bridgeWires(@enumFromInt(k)) * totals[k]);
     for (truths) |truth| {
         const family = @intFromEnum(truth.family());
