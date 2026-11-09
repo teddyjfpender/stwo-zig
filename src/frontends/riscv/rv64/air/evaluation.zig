@@ -246,7 +246,7 @@ pub const PackedSink = struct {
     pub inline fn emit(self: *PackedSink, value: anytype) void {
         // Repeated unoptimized packed products must not share one caller frame.
         // Optimized builds retain the original mandatory arithmetic inlining.
-        return @call(if (comptime @import("builtin").mode == .Debug) .never_inline else .always_inline, emitImpl, .{ self, value });
+        return @call(if (@import("builtin").mode == .Debug) .never_inline else .always_inline, emitImpl, .{ self, value });
     }
     fn emitImpl(self: *PackedSink, value: anytype) void {
         @setEvalBranchQuota(1_000_000);
