@@ -1,0 +1,63 @@
+{
+  "schema": "op-r7-retained-actual-cpu-plus-tiny-parent-v2",
+  "bytes": 678412,
+  "sha256": "4dc4c07edd0b53b90c27d2470a62e0951e474e8294ec7ee7787a9c1c56ba8b83",
+  "source_identity": "676f38368d03a794efc3695ac451264c7db0fdad459946e0c1456c7ef0d75175",
+  "actual_child_source": "612e27325c59ed2b715cf582f9cfa1f0fe10638d8f83e7611bce390921e79138",
+  "tiny_child_source": "0fcb5ec9e09ae0fc93a412996c6c9c88cc13777cfa6cd545d58384c97f00bb4b",
+  "counts": {
+    "raw": [
+      36470,
+      1594941,
+      268,
+      61995,
+      65536,
+      27970,
+      160416,
+      193759
+    ],
+    "rows": [
+      65536,
+      2097152,
+      512,
+      65536,
+      65536,
+      32768,
+      262144,
+      262144
+    ],
+    "logs": [
+      16,
+      21,
+      9,
+      16,
+      16,
+      15,
+      18,
+      18
+    ],
+    "main_cells": 62982144,
+    "fixed_cells": 25200128,
+    "interaction_cells": 56373248,
+    "total_native_cells": 144555520,
+    "dot_calls": 936,
+    "dot_terms": 160416
+  },
+  "prove_ns": 17891662625,
+  "fresh_setup_ns": 5091128208,
+  "fresh_verify_ns": 45421667,
+  "actual_cpu_reproved": false,
+  "ordered_sources_and_public_words_bound": true,
+  "swapped_public_frames_rejected": true,
+  "pending_parent_only": true,
+  "execution_root_admitted": false,
+  "heavy_run": false,
+  "controlled_speed_measurement": false,
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/pure-p2-r7-actual-cpu-parent-v2",
+  "security_qualification": "R7 composed ledger/root admission remains pending",
+  "physical_rejection_stage": "See recursive-parent-v2.json for physical invalid-witness controls; this pair also rejects swapped expected public frames",
+  "accounted_peak_bytes": 3901118443,
+  "final_live_bytes": 0,
+  "hard_cap_bytes": 34359738368,
+  "max_rss_bytes": 3918495744
+}

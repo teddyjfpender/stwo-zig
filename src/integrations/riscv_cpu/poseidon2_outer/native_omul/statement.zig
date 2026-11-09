@@ -49,6 +49,10 @@ pub const Statement = struct {
         return denominator.inv();
     }
     pub fn drawChallenges(self: *@This(), ctx: *C.Context, channel: *C.Channel) !void {
+        return self.drawChallengesForClaims(ctx, channel, &self.claims);
+    }
+    /// Shared challenge/closure body; R6 passes exactly its original six claims.
+    pub fn drawChallengesForClaims(self: *@This(), ctx: *C.Context, channel: *C.Channel, claims: []const F) !void {
         self.z = try channel.draw(ctx);
         self.alpha = try channel.draw(ctx);
         var power = F.one();
@@ -57,7 +61,7 @@ pub const Statement = struct {
             power = power.mul(self.alpha);
         }
         var sum = F.zero();
-        for (self.claims) |claim| sum = sum.add(claim);
+        for (claims) |claim| sum = sum.add(claim);
         for (self.outputs, 0..) |output, i| sum = sum.add(try self.outputTerm(ctx, 3 + i, output));
         sum = sum.add(try self.outputTerm(ctx, 2, try ctx.constant(Circuit.witness.trace.U_VALUE)));
         try C.eq(ctx, sum, F.zero());
@@ -89,8 +93,13 @@ pub const Statement = struct {
         }
     };
     pub fn evalComposition(self: *@This(), ctx: *C.Context, point: V.Point, sampled: []const []const []const F, alpha: F, _: void) !F {
-        const global_log = self.key.maxLog();
         var accumulator = @import("stwo_riscv_frontend").rv64_air.evaluation.lane.PointAccumulator(F).init(alpha);
+        try self.evalInto(ctx, point, sampled, self.key.maxLog(), &accumulator);
+        return accumulator.finalize();
+    }
+    /// The exact six-role body, with the enclosing roster's lifted height.
+    pub fn evalInto(self: *@This(), ctx: *C.Context, point: V.Point, sampled: []const []const []const F, global_log: u32, accumulator: *@import("stwo_riscv_frontend").rv64_air.evaluation.lane.PointAccumulator(F)) !void {
+        if (global_log < self.key.maxLog()) return error.InvalidNativeOmulLift;
         // Exact native component order: EQ, arithmetic, M31/u32, P2, range, OMmul.
         for (0..6) |kind| {
             const log = if (kind == 5) self.key.mul_log else self.key.base.logs[kind];
@@ -174,6 +183,5 @@ pub const Statement = struct {
             }
         }
         try C.lane.check();
-        return accumulator.finalize();
     }
 };

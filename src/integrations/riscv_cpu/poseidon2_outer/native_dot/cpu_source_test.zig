@@ -93,6 +93,7 @@ fn cpu(raw: ?*anyopaque, a: std.mem.Allocator, v: Bundle.CpuVerified) !void {
         state.output_parity = true;
         state.r7 = try Counts.derive(&owner);
     }
+    if (std.posix.getenv("STWO_OP_R7_CPU_FOLD")) |path| try @import("cpu_recursive.zig").run(a, view, path);
     state.callbacks += 1;
 }
 test "OP R7 actual small CPU source lowering and unchanged R6 golden proof" {

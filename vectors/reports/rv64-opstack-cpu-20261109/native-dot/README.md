@@ -233,3 +233,39 @@ remains log 22. This supersedes the historical seven-role figure of
 318,238,720 cells. Source-only peak is 3,655,278,362 accounted bytes under a
 12 GiB cap, with zero live allocations at teardown. It is a representation
 cost model, not a heavy execution acceptance or timing forecast.
+
+### Closed R7 recursive statement and pending parents
+
+The R7 statement reuses the exact six-role R6 evaluator through two additive
+helpers. The original R6 wrappers pass the original six claims and preserve
+operation order. R7 sums and mixes **all eight** claims, then appends DOT and
+INPUT roots at the eight-role global lifted height. Its source key, ordered
+geometry, wire magic and fold digest domain are distinct. The ordinary R6
+fold/trace control still matches the retained 2,108,321 generic rows and
+25,276 native multiplications.
+
+`recursive-parent-v2.json` qualifies a physical parent over two independently
+compiled nine-word child proofs. One child has DOT log 17 above its six-role
+core log 16, exercising lifted-mask and vanishing semantics. The parent has
+144,096,768 cells, a 680,332-byte proof and independently reconstructed source
+receiver. Balanced claims, swapped public frames, zeroed second public frame
+and child MAIN-root transcript corruption each fail physical authenticated Var
+closure with `PoseidonGlobalLookupSum`. These are **not** described as parser
+failures or composition-AIR rejections. Wrong source keys and swapped expected
+parent frames are separately rejected.
+
+`actual-cpu-parent-v2.json` folds the retained actual 681,484-byte CPU leaf with
+the independently reconstructed tiny fixture. The CPU proof is read unchanged;
+it is never regenerated. This parent is 678,412 bytes over 144,555,520 cells,
+with 17.892 s proving, 5.091 s fresh source/key reconstruction and 0.045 s fresh
+verification in a qualification run. The known actual source identity remains
+`612e27325c59ed2b715cf582f9cfa1f0fe10638d8f83e7611bce390921e79138`.
+
+Physical synthetic-parent reproduction explicitly sets a **new**
+`STWO_OP_R7_RECURSIVE_ARTIFACTS` directory on the `OP R7 recursive eight claim
+statement` test; without it the gate stops after numerical/source checks.
+The retained actual pair uses `STWO_OP_R7_CPU_FOLD`, `STWO_OP_R7_CPU_LEAF` and
+`STWO_OP_R7_TINY_LEAF` alongside the existing small CPU config/native paths.
+Neither pair authenticates complete execution coverage, adjacency, terminal
+state or manifest closure. These are pending parents. Final execution-root
+admission and composed security accounting remain closed.

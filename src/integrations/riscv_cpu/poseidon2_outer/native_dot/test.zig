@@ -250,3 +250,7 @@ test {
 test {
     _ = @import("physical_test.zig");
 }
+
+test {
+    _ = @import("recursive_test.zig");
+}
