@@ -67,3 +67,24 @@ pub const Sponge4 = struct {
         return output;
     }
 };
+
+test "Sponge4 full permutation matches independent dense vectors in every lane" {
+    const vectors = @import("poseidon2_m31_w24_vectors.zig").VECTORS;
+    for (0..vectors.len) |first| {
+        var state: [P.WIDTH]V = undefined;
+        for (&state, 0..) |*value, i| {
+            var words: [4]u32 = undefined;
+            for (&words, 0..) |*word, lane| word.* = vectors[(first + lane) % vectors.len].input[i];
+            value.* = @bitCast(words);
+        }
+        try P.permuteFor(V, Ops{}, &state);
+        for (state, 0..) |value, i| {
+            const words: [4]u32 = value;
+            for (words, 0..) |word, lane| try std.testing.expectEqual(vectors[(first + lane) % vectors.len].output[i], word);
+        }
+    }
+    var state: [P.WIDTH]V = undefined;
+    for (&state, 0..) |*value, i| value.* = @splat(@intCast(i));
+    try P.permuteFor(V, Ops{}, &state);
+    for (state, P.parameters.KAT_0_TO_23) |value, expected| for (@as([4]u32, value)) |word| try std.testing.expectEqual(expected, word);
+}
