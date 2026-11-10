@@ -29,7 +29,7 @@ const Profile = ProfileType.op_target_b4_q72_p0_fold4_v1;
 const B2 = ProfileType.op_control_b2_q144_p0_fold4_v1;
 const Write = @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive;
 const N = 4_000_000;
-const Mode = enum { plan, prove, gkr_only };
+const Mode = enum { plan, prove, gkr_only, gkr_all_upper_only };
 const Endpoint = struct { steps: u64, initial_pc: u64, initial_registers: [32]u64, final_pc: u64, final_registers: [32]u64, elf_sha256: []const u8, input_sha256: []const u8, completed: bool };
 fn json(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, value: anytype) !void {
     const raw = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
@@ -43,7 +43,7 @@ fn cells(logs: []const u32) u64 {
 }
 fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std.fs.Dir, comptime mode: Mode, comptime selected_profile: ProfileType, retained: ?[]const u8) !void {
     if (selected_profile != Profile and selected_profile != B2) return error.ConditionalProfileNotAdmitted;
-    if (mode == .gkr_only and selected_profile != Profile) return error.ConditionalRetainedProfile;
+    if ((mode == .gkr_only or mode == .gkr_all_upper_only) and selected_profile != Profile) return error.ConditionalRetainedProfile;
     if (endpoint.steps != N or endpoint.completed or config.workers != 16) return error.ConditionalPrefixOnly;
     try std.testing.expectEqualStrings(config.elf_sha256, endpoint.elf_sha256);
     try std.testing.expectEqualStrings(config.input_sha256, endpoint.input_sha256);
@@ -138,7 +138,10 @@ fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std
         try numerical.add(.{ .kind = .multiplicities, .variables = try instance.variables() });
     }
     try numerical.finish();
-    const child_reserve = try std.math.add(usize, facts * 52, numerical.metadata_bytes + 65536);
+    // Both policies are independently charged before the P2 key/child. The
+    // opt-in all-upper candidate retains no raw bottom but uses 80 B/fact;
+    // checkpointed keeps its original 52 B/fact reserve and default schedule.
+    const child_reserve = try std.math.add(usize, try std.math.mul(usize, facts, if (mode == .gkr_all_upper_only) 80 else 52), numerical.metadata_bytes + 65536);
     if (child_reserve > 12 << 30) return error.ConditionalPrefixGkrBudget;
     var part_plan = try @import("../../word16_global_execution/services/gkr_local/cpu_components.zig").Plan.initForOp(a, &setup);
     defer part_plan.deinit();
@@ -161,11 +164,11 @@ fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std
     };
     const plan_at = timer.read();
     const plan_info = .{ .schema = "op-heavy-conditional-prefix-plan/v1", .profile = @tagName(selected_profile), .steps = N, .final_pc = boundary.final_pc, .final_registers = boundary.final_registers, .cpu = declaration, .request = @import("../../word16_global_execution/services/wire.zig").CompactRequest.from(request), .init_words = advice.initial.len, .terminal_words_proved = 0, .init_fixed_cells = init_fixed, .init_main_cells = init_main, .init_interaction_cells = init_inter, .planned_unproved_truths = truths, .unproved_detached = if (request.sponge.calls == 0) @as(usize, 0) else 1, .gkr_facts = facts, .gkr_checkpoint_floor_bytes = child_reserve, .gkr_checkpoint_planning_reserve_bytes = child_reserve, .gkr_checkpoint_estimate_semantics = "Conservative admission planning reserve; legacy floor field is NOT a lower bound or measured peak", .fixed_cells = cells(fixed_logs) + 3 * (@as(u64, 1) << @intCast(frontier_log)), .main_cells = cells(main_logs) + 8 * (@as(u64, 1) << @intCast(frontier_log)), .interaction_cells_excluding_frontier = cells(inter_logs), .image_program_ns = image_program_ns, .execution_ns = execution_ns, .capture_prepare_ns = capture_ns, .through_setup_ns = plan_at, .security = checked, .init_scope = "prefix-touched cells only, not full-block touched set", .conditional_cpu_fragment_only = true, .block_accepted = false, .root_accepted = false };
-    try json(a, dir, if (mode == .prove) "prove-plan.json" else if (mode == .gkr_only) "gkr-plan.json" else "plan.json", plan_info);
+    try json(a, dir, if (mode == .prove) "prove-plan.json" else if ((mode == .gkr_only or mode == .gkr_all_upper_only)) "gkr-plan.json" else "plan.json", plan_info);
     std.debug.print("OP_HEAVY_PREFIX_PLAN steps={} CPUlog={} facts={} planning_reserve={} INIT={} services={any} sponge={any} mass_admitted=true block_accepted=false\n", .{ N, declaration.geometry.cpu_log, facts, child_reserve, advice.initial.len, request.calls, request.sponge });
     if (mode == .plan) return;
-    if (mode == .gkr_only) {
-        return gkrOnly(a, &setup, request, span, &native, &advice, frontier_log, &roster, dir, retained orelse return error.MissingConditionalRetainedSource);
+    if ((mode == .gkr_only or mode == .gkr_all_upper_only)) {
+        return gkrOnly(a, &setup, request, span, &native, &advice, frontier_log, &roster, dir, retained orelse return error.MissingConditionalRetainedSource, if (mode == .gkr_all_upper_only) .all_upper else .checkpointed);
     } else {
         var key = try Key.init(a, &setup, selected_profile, frontier_log);
         defer key.deinit();
@@ -226,7 +229,7 @@ fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std
 }
 // Qualified retained artifacts are pinned by source-controlled full-fileSHA.
 // They supply authentic scope roots, not a producer-selected key or admission.
-fn gkrOnly(a: std.mem.Allocator, setup: *@import("../../word16_global_execution/services/roster.zig").CpuSetup, request: @import("../../word16_global_execution/services/protocol.zig").Request, span: Types.OpTowerSpan, native: *Prepared, advice: *Collector.Advice, frontier_log: u32, roster: *const Frame.Roster, dir: std.fs.Dir, retained_path: []const u8) !void {
+fn gkrOnly(a: std.mem.Allocator, setup: *@import("../../word16_global_execution/services/roster.zig").CpuSetup, request: @import("../../word16_global_execution/services/protocol.zig").Request, span: Types.OpTowerSpan, native: *Prepared, advice: *Collector.Advice, frontier_log: u32, roster: *const Frame.Roster, dir: std.fs.Dir, retained_path: []const u8, storage: @import("native.zig").SourceStorage) !void {
     const Native = @import("native.zig");
     const Timing = E.lookups.gkr_profile;
     const Prof = E.stage_profile;
@@ -273,6 +276,19 @@ fn gkrOnly(a: std.mem.Allocator, setup: *@import("../../word16_global_execution/
     discarded_main.deinit(a);
     a.free(try frontier.takeMain());
     const source_ns = timer.read() - source_key_ns;
+    var checkpoint_bytes: usize = 0;
+    var all_upper_bytes: usize = 0;
+    var regenerated_odd_secure_pairs: usize = 0;
+    for (roster.instances) |instance| {
+        const variables = try instance.variables();
+        const fact_count = try instance.facts();
+        var h: usize = 1;
+        while (h <= variables) : (h += 1) {
+            const pairs = fact_count >> @intCast(h);
+            all_upper_bytes += 2 * @sizeOf(C.fields.om31.OM31) * pairs;
+            if (h % 2 == 0 or h == variables) checkpoint_bytes += 2 * @sizeOf(C.fields.om31.OM31) * pairs else regenerated_odd_secure_pairs += pairs;
+        }
+    }
     const child_budget = try E.host_budget_allocator.SharedHostBudget.createRetainingParent(a, 12 << 30);
     defer child_budget.destroy();
     const provider = @import("provider.zig").Provider{ .legacy = .{ .source = &source }, .frontier = &frontier };
@@ -281,7 +297,7 @@ fn gkrOnly(a: std.mem.Allocator, setup: *@import("../../word16_global_execution/
     var local_phase = try Prof.StageScope.begin(&recorder, "local_gkr", "Authentic retained MAIN scope localGKR replay only");
     defer local_phase.end();
     const begin = timer.read();
-    var child = try Native.proveUnbound(child_budget.allocator(), source_scope, roster.instances, provider);
+    var child = try Native.proveUnboundWithSourceStorage(child_budget.allocator(), source_scope, roster.instances, provider, storage);
     defer child.deinit(child_budget.allocator());
     const child_ns = timer.read() - begin;
     local_phase.end();
@@ -296,7 +312,7 @@ fn gkrOnly(a: std.mem.Allocator, setup: *@import("../../word16_global_execution/
     defer stages.deinit(a);
     try json(a, dir, "gkr-stages.json", stages);
     try Write(dir, "local.gkr.bin", encoded);
-    try json(a, dir, "gkr-only.json", .{ .schema = "op-heavy-conditional-local-gkr-only/v1", .retained_pcs_sha256 = pcs_sha, .retained_local_sha256 = local_sha, .source_key_ns = source_key_ns, .source_build_merge_take_retire_ns = source_ns, .local_gkr_ns = child_ns, .key = key.identity, .scope = source_scope, .receipt = child.digest, .encoded_bytes = encoded.len, .exact_retained_GKR_bytes_receipt_eta = true, .source_postmerge_owned_MAIN_take = true, .new_MAIN_or_INTER_commit = false, .new_PCS_physical_verification = false, .new_CPU_or_block_or_root_acceptance = false, .provenance = "Retained fullPCS andGKR files independently pinned to qualified4900/9c36 SHA. Independent sourceFIXED+statement reconstructed, retained child freshly verified. This benchmarks only localGKR, with physicalMAIN authority borrowed from that authentic retained conditional fragment." });
+    try json(a, dir, "gkr-only.json", .{ .schema = "op-heavy-conditional-local-gkr-only/v1", .source_storage = @tagName(storage), .source_storage_work = .{ .checkpoint_retained_upper_bytes = checkpoint_bytes, .all_retained_upper_bytes = all_upper_bytes, .odd_secure_pairs_not_recomputed = regenerated_odd_secure_pairs, .semantics = "Exact layer sizes; pair counts are source arithmetic work, not elapsed time. Raw bottom is never retained; all-upper builds height1 and every subsequent upper level." }, .retained_pcs_sha256 = pcs_sha, .retained_local_sha256 = local_sha, .source_key_ns = source_key_ns, .source_build_merge_take_retire_ns = source_ns, .local_gkr_ns = child_ns, .key = key.identity, .scope = source_scope, .receipt = child.digest, .encoded_bytes = encoded.len, .exact_retained_GKR_bytes_receipt_eta = true, .source_postmerge_owned_MAIN_take = true, .new_MAIN_or_INTER_commit = false, .new_PCS_physical_verification = false, .new_CPU_or_block_or_root_acceptance = false, .provenance = "Retained fullPCS andGKR files independently pinned to qualified4900/9c36 SHA. Independent sourceFIXED+statement reconstructed, retained child freshly verified. This benchmarks only localGKR, with physicalMAIN authority borrowed from that authentic retained conditional fragment." });
     std.debug.print("OP_HEAVY_GKR_ONLY steps={} local_bytes={} child_ns={} exact_retained_bytes_receipt_eta=true no_MAIN_INTER_commit=true CPU_block_root_accepted=false\n", .{ N, encoded.len, child_ns });
 }
 const RetainedFragment = struct {
@@ -344,7 +360,7 @@ fn environment(comptime forced: ?Mode, comptime selected_profile: ProfileType) !
     const mode = std.meta.stringToEnum(Mode, mode_name) orelse return error.InvalidConditionalPrefixMode;
     if (forced) |value| if (mode != value) return error.InvalidConditionalPrefixMode;
     const retained = std.posix.getenv("STWO_OP_HEAVY_PREFIX_RETAINED");
-    if ((mode == .gkr_only or selected_profile == B2) and retained == null) return error.MissingConditionalRetainedSource;
+    if (((mode == .gkr_only or mode == .gkr_all_upper_only) or selected_profile == B2) and retained == null) return error.MissingConditionalRetainedSource;
     // Optional qualification-only control; default fixture behavior is exact.
     // Existing real two-CPU/serialized-sponge/Keccak join independently closes
     // all global relations before the separate conditional large CPU fragment.
@@ -378,7 +394,7 @@ fn environment(comptime forced: ?Mode, comptime selected_profile: ProfileType) !
     }
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
-    try json(a, dir, if (mode == .prove) "prove-budget.json" else if (mode == .gkr_only) "gkr-budget.json" else "plan-budget.json", budget.snapshot());
+    try json(a, dir, if (mode == .prove) "prove-budget.json" else if ((mode == .gkr_only or mode == .gkr_all_upper_only)) "gkr-budget.json" else "plan-budget.json", budget.snapshot());
     std.debug.print("OP_HEAVY_PREFIX_DONE peak={} cap={} live=0 external=0\n", .{ budget.snapshot().peak_live_bytes, @as(usize, 32) << 30 });
 }
 
@@ -395,4 +411,8 @@ test "OP heavy selected conditional B2 CPU fragment control" {
     // Existing typedB2/q144control only, never incoming-proof selection or a
     // production mixed-profile suite. Source/security guards precede keys.
     try environment(.prove, B2);
+}
+
+test "OP heavy selected retained all upper local GKR profile" {
+    try environment(.gkr_all_upper_only, Profile);
 }

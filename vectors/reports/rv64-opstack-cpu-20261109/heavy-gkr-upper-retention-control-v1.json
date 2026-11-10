@@ -1,0 +1,327 @@
+{
+  "schema": "op-heavy-authentic-gkr-upper-retention-control/v1",
+  "scope": "Authentic retained conditional first4M CPU fragment localGKR only. No newMAIN/INTER commitment, no newCPU physical proof, no block/root/full-prefix acceptance.",
+  "policy": {
+    "default": "checkpointed; unchanged for OP/Ethereum/other engine callers",
+    "candidate": "all_upper; explicit Native execution-only method/qualification entry; existing GP.proveBatchSource algorithm",
+    "cryptographic_profile": "op_target_b4_q72_p0_fold4_v1; unchanged",
+    "transcript_wire_source_identity": "exactly unchanged"
+  },
+  "model": {
+    "facts": 149605184,
+    "source_field_bytes": 32,
+    "checkpoint_reserved_bytes_per_fact": 52,
+    "all_upper_reserved_bytes_per_fact": 80,
+    "checkpoint_child_planning_bytes": 7785949440,
+    "all_upper_child_planning_bytes": 11974894592,
+    "child_hard_cap_bytes": 12884901888,
+    "parent_hard_cap_bytes": 34359738368,
+    "fixed_or_input_caps_raised": false,
+    "derivation": "Raw bottom stays streamed. All secure upper pairs total <2*s*N=64N bytes (firstheight1 then alllevels). Existing dense source-storage reserve adds16N for nonresizing fold/copy overlap beyond the moving-tree/Eq bound; metadata plus64KiB margin independently added before P2key/child. Not the checkpointed52N reserve. Intermediate bank exact sizes below; planning reserve is conservative, not measured lower bound.",
+    "liveness": "Upper layers remain until moved into a sumcheck oracle; each successful fold retires its predecessor. At raw bottom no retained upper bank remains. Dense builder avoids missing odd-layer recomputation; no source/fact expansion cache or retained raw N/D planes.",
+    "exact_source_work": {
+      "checkpoint_retained_upper_bytes": 3191577088,
+      "all_retained_upper_bytes": 9574729856,
+      "odd_secure_pairs_not_recomputed": 99736762,
+      "semantics": "Exact layer sizes; pair counts are source arithmetic work, not elapsed time. Raw bottom is never retained; all-upper builds height1 and every subsequent upper level."
+    },
+    "work_warning": "Secure pair counts/retained bytes are derived source-work and storage counts, not time shares."
+  },
+  "baseline": {
+    "local_seconds": 3.413142167,
+    "source_setup_seconds": 1.731111708,
+    "source_build_merge_take_retire_seconds": 0.693317542,
+    "requested_peak_bytes_whole_fixture": 4869066225,
+    "live_after_teardown": 0,
+    "external_after_teardown": 0,
+    "phases": {
+      "local_gkr": {
+        "seconds": 3.413112,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 41.746509,
+          "system_seconds": 1.845575,
+          "minor_faults": 813723,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 25866,
+          "process_peak_resident_bytes_at_end": 5370003456,
+          "process_resident_bytes_at_end": 1703460864,
+          "process_footprint_bytes_at_end": 1702431504,
+          "process_footprint_peak_bytes_at_end": 5370811744,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      },
+      "gkr_source_tree_construction": {
+        "seconds": 0.658667,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 8.747007,
+          "system_seconds": 0.250502,
+          "minor_faults": 194845,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 2830,
+          "process_peak_resident_bytes_at_end": 4877631488,
+          "process_resident_bytes_at_end": 4877631488,
+          "process_footprint_bytes_at_end": 4877980208,
+          "process_footprint_peak_bytes_at_end": 4877980208,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      },
+      "gkr_sumcheck_traversal": {
+        "seconds": 2.751065,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 32.996197,
+          "system_seconds": 1.594984,
+          "minor_faults": 618857,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 23035,
+          "process_peak_resident_bytes_at_end": 5370003456,
+          "process_resident_bytes_at_end": 1703739392,
+          "process_footprint_bytes_at_end": 1702759208,
+          "process_footprint_peak_bytes_at_end": 5370811744,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      },
+      "gkr_terminal_artifact": {
+        "seconds": 2.1e-05,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 3e-06,
+          "system_seconds": 1.5e-05,
+          "minor_faults": 1,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 0,
+          "process_peak_resident_bytes_at_end": 5370003456,
+          "process_resident_bytes_at_end": 1703755776,
+          "process_footprint_bytes_at_end": 1702759208,
+          "process_footprint_peak_bytes_at_end": 5370811744,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      },
+      "gkr_terminal_receipt": {
+        "seconds": 0.002973,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 0.00295,
+          "system_seconds": 9e-06,
+          "minor_faults": 0,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 1,
+          "process_peak_resident_bytes_at_end": 5370003456,
+          "process_resident_bytes_at_end": 1703772160,
+          "process_footprint_bytes_at_end": 1702759208,
+          "process_footprint_peak_bytes_at_end": 5370811744,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      },
+      "gkr_wire_encoding": {
+        "seconds": 9.8e-05,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 6.6e-05,
+          "system_seconds": 3e-05,
+          "minor_faults": 27,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 0,
+          "process_peak_resident_bytes_at_end": 5370003456,
+          "process_resident_bytes_at_end": 1703591936,
+          "process_footprint_bytes_at_end": 1702562576,
+          "process_footprint_peak_bytes_at_end": 5370811744,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      }
+    },
+    "proof_sha256": "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3",
+    "exact_retained_wire_receipt_eta": true
+  },
+  "all_upper": {
+    "local_seconds": 2.636439834,
+    "source_setup_seconds": 1.7408455,
+    "source_build_merge_take_retire_seconds": 0.699559959,
+    "requested_peak_bytes_whole_fixture": 11252209310,
+    "live_after_teardown": 0,
+    "external_after_teardown": 0,
+    "phases": {
+      "local_gkr": {
+        "seconds": 2.636403,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 29.767014,
+          "system_seconds": 2.864422,
+          "minor_faults": 1008222,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 27994,
+          "process_peak_resident_bytes_at_end": 11260854272,
+          "process_resident_bytes_at_end": 1697923072,
+          "process_footprint_bytes_at_end": 1696959368,
+          "process_footprint_peak_bytes_at_end": 11264271432,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      },
+      "gkr_source_tree_construction": {
+        "seconds": 0.544006,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 6.572237,
+          "system_seconds": 1.367073,
+          "minor_faults": 584442,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 6126,
+          "process_peak_resident_bytes_at_end": 11260461056,
+          "process_resident_bytes_at_end": 11260461056,
+          "process_footprint_bytes_at_end": 11263960136,
+          "process_footprint_peak_bytes_at_end": 11263960136,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      },
+      "gkr_sumcheck_traversal": {
+        "seconds": 2.089021,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 23.191501,
+          "system_seconds": 1.497235,
+          "minor_faults": 423759,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 21867,
+          "process_peak_resident_bytes_at_end": 11260854272,
+          "process_resident_bytes_at_end": 1698217984,
+          "process_footprint_bytes_at_end": 1697270664,
+          "process_footprint_peak_bytes_at_end": 11264271432,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      },
+      "gkr_terminal_artifact": {
+        "seconds": 2e-05,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 3e-06,
+          "system_seconds": 1.6e-05,
+          "minor_faults": 1,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 0,
+          "process_peak_resident_bytes_at_end": 11260854272,
+          "process_resident_bytes_at_end": 1698234368,
+          "process_footprint_bytes_at_end": 1697270664,
+          "process_footprint_peak_bytes_at_end": 11264271432,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      },
+      "gkr_terminal_receipt": {
+        "seconds": 0.002972,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 0.00293,
+          "system_seconds": 2.6e-05,
+          "minor_faults": 0,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 1,
+          "process_peak_resident_bytes_at_end": 11260854272,
+          "process_resident_bytes_at_end": 1698234368,
+          "process_footprint_bytes_at_end": 1697270664,
+          "process_footprint_peak_bytes_at_end": 11264271432,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      },
+      "gkr_wire_encoding": {
+        "seconds": 0.000105,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 6.6e-05,
+          "system_seconds": 3.5e-05,
+          "minor_faults": 28,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 0,
+          "process_peak_resident_bytes_at_end": 11260854272,
+          "process_resident_bytes_at_end": 1698070528,
+          "process_footprint_bytes_at_end": 1697106824,
+          "process_footprint_peak_bytes_at_end": 11264271432,
+          "lane_threads": 0,
+          "lane_user_seconds": null,
+          "lane_system_seconds": null
+        }
+      }
+    },
+    "proof_sha256": "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3",
+    "exact_retained_wire_receipt_eta": true
+  },
+  "comparison": {
+    "local_speedup": 1.2946027149884127,
+    "local_reduction_percent": 22.756225641860294,
+    "traversal_reduction_percent": 24.06500755162093,
+    "whole_fixture_requested_peak_increase_bytes": 6383143085,
+    "measurement": "Single sequential authentic baseline/control qualification samples; no repeated statistical claim and no extrapolated complete native/block speedup."
+  },
+  "decision": "Keep checkpointed production default. All-upper is a useful opt-in control demonstrating a real regeneration cost, but spends about6.38GB additional live heap to save0.78s in this localchild. Worker policy/admission requires a separate explicit decision; no automatic cap-dependent selection added.",
+  "controls": {
+    "Fast_unit_source_wire_receipt_eta_parity": true,
+    "engine_whole_channel_and_next_draw_parity": true,
+    "exhaustive_allocator_failure_unwind": true,
+    "retained_actual_GKR_wire_receipt_eta_exact": true,
+    "fresh_partial_child_verifier": true,
+    "focused_physical_tests_passed": 69,
+    "major_page_faults": 0,
+    "all_live_external_teardown_zero": true,
+    "no_extra_native_or_heavy_proof": true
+  },
+  "process": {
+    "wall_seconds": 6.58,
+    "user_seconds": 59.42,
+    "system_seconds": 4.52,
+    "rss_peak_bytes": 11260854272,
+    "footprint_peak_bytes": 11264271432,
+    "minor_faults": 1626599,
+    "major_faults": 0,
+    "swaps": 0,
+    "stacks_allocator_metadata_note": "Requested allocator bytes and OS RSS/footprint are distinct. No child-only peak was serialized; whole-fixture requestedpeak is a conservative upper bound for child-only actualpeak."
+  },
+  "artifacts": {
+    "baseline": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-gkr-profile-v1",
+    "candidate": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-gkr-upper-retention-v1",
+    "log": "/private/tmp/op-gkr-upper-retention-physical.log",
+    "baseline_receipt": "heavy-retained-gkr-subphases-v1.json"
+  },
+  "reproduction": {
+    "build": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseFast -j1 -Driscv-test-filter='OP heavy selected retained all upper local GKR profile'",
+    "mode": "gkr_all_upper_only",
+    "workers": 16,
+    "caps": "unchanged12GiB child/32GiB parent",
+    "output": "Create a new empty output directory; files use exclusive writes. Existing retained proof artifacts never overwritten.",
+    "initial_nonmeasurement_failure": "Initial missing output directory returnedFileNotFound before any execution/capture; created it, then ran the single actual replay."
+  },
+  "security": "Same128-bit security target under documented assumptions; storage policy does not alter source equations, challenges, proof, security ledger or acceptance. This child verification alone cannot close physical/global/block obligations."
+}

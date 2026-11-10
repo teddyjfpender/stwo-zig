@@ -131,12 +131,22 @@ pub const Unbound = struct {
         self.* = undefined;
     }
 };
+/// Execution-only storage choice; neither proof framing nor transcript changes.
+/// Callers selecting all_upper must separately admit the dense source-storage
+/// planning reserve (80 B/fact plus metadata), not the checkpointed 52 B charge.
+pub const SourceStorage = enum { checkpointed, all_upper };
 pub fn proveUnbound(a: std.mem.Allocator, scope: Scope, instances: []const Frame.Instance, provider: Provider.Provider) !Unbound {
+    return proveUnboundWithSourceStorage(a, scope, instances, provider, .checkpointed);
+}
+pub fn proveUnboundWithSourceStorage(a: std.mem.Allocator, scope: Scope, instances: []const Frame.Instance, provider: Provider.Provider, storage: SourceStorage) !Unbound {
     var channel = try begin(scope, instances);
     const challenges = draw(&channel, instances);
     var inputs = try @import("source_inputs.zig").Batch.init(a, instances, challenges, provider);
     defer inputs.deinit();
-    var result = try GP.proveBatchSourceCheckpointed(a, &channel, inputs.sources);
+    var result = switch (storage) {
+        .checkpointed => try GP.proveBatchSourceCheckpointed(a, &channel, inputs.sources),
+        .all_upper => try GP.proveBatchSource(a, &channel, inputs.sources),
+    };
     errdefer result.deinit(a);
     var terminal_phase = try Profile.begin("gkr_terminal_receipt", "Terminal closure and Poseidon receipt serialization");
     defer terminal_phase.end();

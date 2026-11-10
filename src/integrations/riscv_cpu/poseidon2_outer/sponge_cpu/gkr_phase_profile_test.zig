@@ -129,6 +129,29 @@ test "OP CPU GKR coarse phases preserve child proof receipt eta and engine chann
     }
     try std.testing.expectEqualDeep(channel0, channel1);
     try std.testing.expect(channel0.drawSecureFelt().eql(channel1.drawSecureFelt()));
+    // Denser upper retention is operational only: whole channel, proof wire,
+    // terminal receipt and next challenge equal the stride-two source path.
+    var dense_channel = try Native.begin(source_scope, &instances);
+    _ = Provider.Challenges.draw(&dense_channel);
+    var dense = try GP.proveBatchSource(a, &dense_channel, inputs.sources);
+    defer dense.deinit(a);
+    const dense_wire = try Native.encode(a, &instances, &dense.proof);
+    defer a.free(dense_wire);
+    try std.testing.expectEqualSlices(u8, expected, dense_wire);
+    // channel0 has already drawn one extra challenge above.
+    _ = dense_channel.drawSecureFelt();
+    try std.testing.expectEqualDeep(channel0, dense_channel);
+    var dense_native = try Native.proveUnboundWithSourceStorage(a, source_scope, &instances, provider, .all_upper);
+    defer dense_native.deinit(a);
+    try std.testing.expectEqualSlices(u8, &plain.digest, &dense_native.digest);
+    try std.testing.expect(plain.eta.eql(dense_native.eta));
+    const Failure = struct {
+        fn run(alloc: std.mem.Allocator, scope: Native.Scope, inst: []const Frame.Instance, source: Provider.Provider) !void {
+            var result = try Native.proveUnboundWithSourceStorage(alloc, scope, inst, source, .all_upper);
+            defer result.deinit(alloc);
+        }
+    };
+    try std.testing.checkAllAllocationFailures(a, Failure.run, .{ source_scope, @as([]const Frame.Instance, &instances), provider });
     // Recorder failure must cleanly unwind source/tree allocations and restore
     // the disabled coordinator scope. It is not a transcript retry API.
     var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
