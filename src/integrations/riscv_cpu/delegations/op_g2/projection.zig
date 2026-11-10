@@ -1,4 +1,4 @@
-//! Source-derived BYTE and SSA terminal projections for one G2 transition.
+//! Source-derived BYTE and SSA terminal projections for the closed two-op DAG.
 const std = @import("std");
 const core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
