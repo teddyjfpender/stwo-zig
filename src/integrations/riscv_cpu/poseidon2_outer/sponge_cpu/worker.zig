@@ -97,6 +97,8 @@ pub const Worker = struct {
         const root = self.scheme.trees.items[1].root();
         var local_gkr = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "local_gkr", "CPU local source-streamed GKR");
         defer local_gkr.end();
+        var gkr_profile = engine.lookups.gkr_profile.Scope.init(self.native_recorder);
+        defer gkr_profile.deinit();
         self.child = try Native.proveUnbound(self.budget.allocator(), self.scope(root), self.roster.instances, self.provider());
         self.sealed = true;
         self.consumed = false;
@@ -112,7 +114,10 @@ pub const Worker = struct {
         const terminal = try pending.checkedLegacy(self.roster.legacy.len, &prefix);
         var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "CPU terminal binding and shared global relations");
         defer generation.end();
+        var binding_phase = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "gkr_terminal_binding", "Legacy terminal Eq/projection binding replay");
+        defer binding_phase.end();
         var binding = try @import("../../word16_global_execution/services/gkr_local/witness.zig").Witness.initFromProvider(a, self.budget.allocator(), self.roster.legacy, &child.challenges, @import("../../word16_global_execution/services/gkr_local/native_provider.zig").Provider{ .source = &self.source }, &prefix, child.eta);
+        binding_phase.end();
         defer binding.deinit();
         const witnesses = try a.alloc(?Classic.Witness, self.plan.slots.len);
         defer a.free(witnesses);
@@ -158,6 +163,8 @@ pub const Worker = struct {
         defer proof.deinit(a);
         const bytes = try W.Wire.encodeProofBytesBinary(a, proof.proof);
         errdefer a.free(bytes);
+        var local_wire_profile = engine.lookups.gkr_profile.Scope.init(self.native_recorder);
+        defer local_wire_profile.deinit();
         return .{ .bytes = bytes, .local = try Native.encode(a, self.roster.instances, &child.result.proof), .receipt = child.digest, .claims = claims };
     }
     pub fn deinit(self: *Worker) void {

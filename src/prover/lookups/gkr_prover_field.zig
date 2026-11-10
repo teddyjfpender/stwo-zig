@@ -7,6 +7,7 @@ const gkr_verifier_module = @import("gkr_verifier.zig");
 const mle_mod = @import("mle.zig");
 const sumcheck_module = @import("sumcheck.zig");
 const utils = @import("utils.zig");
+const Profile = @import("gkr_profile.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -127,6 +128,8 @@ pub fn ForField(comptime Secure: type) type {
                 allocator.free(layers_by_instance);
             }
 
+            var tree_phase = try Profile.begin("gkr_source_tree_construction", if (source_input) "Fraction projection and checkpoint tree construction (fused)" else "Lookup layer/checkpoint tree construction");
+            defer tree_phase.end();
             for (input_layer_by_instance, 0..) |input_layer, i| {
                 if (checkpointed) {
                     if (owned_input) input_transferred += 1;
@@ -137,6 +140,8 @@ pub fn ForField(comptime Secure: type) type {
                 next_layer_idx[i] = layers_by_instance[i].len;
                 layers_initialized += 1;
             }
+
+            tree_phase.end();
 
             var output_claims_by_instance = try allocator.alloc(?[]Secure, n_instances);
             defer {
@@ -175,6 +180,8 @@ pub fn ForField(comptime Secure: type) type {
             var ood_point = try allocator.alloc(Secure, 0);
             defer allocator.free(ood_point);
 
+            var traversal_phase = try Profile.begin("gkr_sumcheck_traversal", "Sumcheck traversal, checkpoint regeneration and layer transcript");
+            defer traversal_phase.end();
             var layer_idx: usize = 0;
             while (layer_idx < n_layers) : (layer_idx += 1) {
                 const n_remaining_layers = n_layers - layer_idx;
@@ -300,6 +307,9 @@ pub fn ForField(comptime Secure: type) type {
                 }
             }
 
+            traversal_phase.end();
+            var artifact_phase = try Profile.begin("gkr_terminal_artifact", "Terminal proof and artifact assembly");
+            defer artifact_phase.end();
             const proof_sumcheck = try sumcheck_proofs.toOwnedSlice(allocator);
             errdefer {
                 for (proof_sumcheck) |*v| v.deinit(allocator);
@@ -359,6 +369,7 @@ pub fn ForField(comptime Secure: type) type {
             };
 
             ood_point = &[_]Secure{};
+            artifact_phase.end();
             return .{ .proof = proof, .artifact = artifact };
         }
 

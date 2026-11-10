@@ -1,0 +1,39 @@
+{
+  "schema": "op-gkr-coarse-phase-telemetry/v1",
+  "scope": "Opt-in operational telemetry through existing spongeCPU Worker.native_recorder; no new proof/profile/wire/prover options. Coordinator-only threadlocal scope restoresnested/errorcontexts and helpers inheritnone.",
+  "stages": [
+    {
+      "id": "gkr_source_tree_construction",
+      "meaning": "Fused fraction projection and initial checkpointtree construction. Dense mode honestlylabels lookup layer/checkpointconstruction. No claimed projection/tree split."
+    },
+    {
+      "id": "gkr_sumcheck_traversal",
+      "meaning": "One scope for WHOLE sumcheck traversal, including source/checkpointregeneration and layertranscript. No perrow/perlayer/perroundtimers."
+    },
+    {
+      "id": "gkr_terminal_artifact",
+      "meaning": "Terminal proof/mask/artifact ownership assembly, endingbeforegeneral deferredcleanup."
+    },
+    {
+      "id": "gkr_terminal_receipt",
+      "meaning": "Native childclosure and Poseidonreceipt serialization."
+    },
+    {
+      "id": "gkr_wire_encoding",
+      "meaning": "Native localGKR binarycodec, separatelyvisible duringWorker.complete."
+    },
+    {
+      "id": "gkr_terminal_binding",
+      "meaning": "ActualWorker.complete legacy terminalEq/projectionbinding replay, nestedwithinexistinginteraction_generation."
+    }
+  ],
+  "validation": [
+    "ReleaseSafeOM31unitusesactualspongeCPU provider/childcodec on explicitlysynthetic closedU16/U8+frontier sources. No physicalCPU/executionadmission. Complete childbytes,receipt,eta and partialfreshverification match profilingoff/on.",
+    "DirectOM31enginechannels comparefullstruct and followingchallenge draw; QM31control proof/artifact/channel and followingdraw alsoexact.",
+    "Nestednullscope,errorunwind, helperthread isolation and recorderOOM unwind passed; existingnullrecorderStageScope allocatesno node/readsnoclock.",
+    "Fastsemanticcheck-rv64-op-native passed, includingWorker paths."
+  ],
+  "proofs_or_crypto_changed": false,
+  "new_MAIN_INTER_commit_or_4M_physical_reprove": false,
+  "real_subphase_timings": "Pending authorized GKR-only replay of authentic retained4Msource, not a new fullnativeproof."
+}

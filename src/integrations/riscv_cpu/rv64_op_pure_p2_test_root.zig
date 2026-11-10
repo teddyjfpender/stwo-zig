@@ -287,3 +287,7 @@ test {
 test {
     _ = @import("poseidon2_outer/p2_bounded_tail_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/gkr_phase_profile_test.zig");
+}

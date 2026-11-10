@@ -12,12 +12,15 @@ const S = core.crypto.poseidon2_m31_sponge;
 const O = core.fields.om31.OM31;
 const GP = engine.lookups.gkr_prover.ForField(O);
 const GV = engine.lookups.gkr_verifier.ForField(O);
+const Profile = engine.lookups.gkr_profile;
 pub const Wire = @import("../../word16_global_execution/services/gkr_local/wire.zig");
 pub const WIRE_MAGIC = "OPSPCPU1";
 pub const DOMAIN = [_]u32{ 0x53504350, 1, 8, 9 };
 pub const Scope = struct { statement: [32]u8, fixed: S.Digest, main: S.Digest, ordinal: u32, epoch: u16, calls: u32 };
 pub const Channel = Base.Channel;
 pub fn encode(a: std.mem.Allocator, instances: []const Frame.Instance, proof: *const GV.GkrBatchProof) ![]u8 {
+    var wire_phase = try Profile.begin("gkr_wire_encoding", "Local GKR binary wire encoding");
+    defer wire_phase.end();
     return Wire.encodeFor(a, instances, proof, WIRE_MAGIC);
 }
 pub fn decode(a: std.mem.Allocator, instances: []const Frame.Instance, bytes: []const u8) !Wire.Owned {
@@ -135,6 +138,8 @@ pub fn proveUnbound(a: std.mem.Allocator, scope: Scope, instances: []const Frame
     defer inputs.deinit();
     var result = try GP.proveBatchSourceCheckpointed(a, &channel, inputs.sources);
     errdefer result.deinit(a);
+    var terminal_phase = try Profile.begin("gkr_terminal_receipt", "Terminal closure and Poseidon receipt serialization");
+    defer terminal_phase.end();
     try Closure.close(a, result.proof.output_claims_by_instance);
     const digest = try receipt(scope, instances, &result.proof, result.artifact.claims_to_verify_by_instance);
     return .{ .result = result, .challenges = challenges, .eta = channel.drawSecureFelt(), .digest = digest };
