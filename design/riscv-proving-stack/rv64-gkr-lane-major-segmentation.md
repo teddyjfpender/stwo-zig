@@ -145,3 +145,65 @@ MSB/LSB row-suffix semantics and late-aggregation multilinear identities over
 base-field samples. These are algebra/source-order tests, not physical proof
 rejections or security certification. The committed receipt records the
 source-only capture and reproduction paths.
+
+## Reader feasibility and small prototype boundary
+
+Lane-major ordering changes contiguous source reads. The existing row-major
+reader emits all T queries once per row. Naively calling that same full emitter
+for each single lane-major fact would compute up to T² denominators per row,
+not T, and could erase the entire saving. A dense N/D cache is not a remedy
+within this proposal. The first bounded ALU prototype instead switches on its
+trusted lane: lanes0..11 extract exactly one saved U16 value; lane12 extracts
+one FUNCTION payload. Every requested fact is checked against the original
+committed-MAIN fraction emitter. Production CPU and other roles need equivalent
+per-lane specialization or independently bounded tiling before any speed claim.
+
+The retained4M phase measurement was0.659s fused source/tree construction versus
+2.751s traversal/regeneration. It does not establish what either bucket will
+become under the changed ordering. More segment metadata, point projections and
+masks can offset the saved facts; no wall multiplier follows from18.92%.
+
+The ALU prototype intentionally leaves FUNCTION/range closure outstanding. It
+verifies an actual3-instance GKR child (416facts, old512), derives a single
+late-aggregated physical binding over the original47 MAIN columns and16 binding
+columns, and retains the original ALU degree3/2n authority. It is a conditional
+source-binding experiment, not a new execution route. Neither its key nor its
+local envelope is registered with OP production admission.
+
+## Qualified isolated ALU binding gate
+
+The closed `sponge_cpu/segmented_lane/alu.zig` prototype and its test pass a
+ReleaseSafe physical gate: three actual source-checkpointed GKR instances,
+416facts, original47-column ALU MAIN and ONE16-column binding. It deliberately
+uses the existing OM31/Blake2s role-test PCS authority with B4/q72 parameters;
+it is not a production Pure-P2 OP proof or a new live source admission.
+A fresh receiver decodes the distinct bounded local envelope, verifies every
+segment and derives the late coefficients/target independently. No incoming
+physical key, free terminal claims or legacy row-major binding artifact is used.
+
+A valid proof first rejects a different independently known source context,
+then the same unchanged proof accepts under its correct context. Malformed
+source version/cover/order and local-envelope magic/count reject separately.
+The physical controls retain invalid PCS proofs and require a fresh receiver
+to reject them: opposite constant denominator errors with a valid GKR child
+and cancelling unweighted terminal errors; early all-one aggregation whose
+numerical cyclic prefix still closes; Eq mutation; prefix mutation. Thus these
+are not merely host parse failures or a prover refusing to build bad witnesses.
+The source extraction is compared against the original committed-MAIN fraction
+emitter for every row/lane, including padding. Global row-suffix behavior is
+also tested with an11-coordinate common point and differently sized segments.
+
+The additive guard keeps the unchanged conservative native cap ledger and adds
+this three-instance scope:252 sumcheck degree weight,40 instance mixing,3 late
+binding (conservatively covers fresh mu),30 degenerate point weight, and2 for
+the fresh rho degree(segment_count−1). It still requires the existing151-bit
+raw-modulo algebraic envelope. The new aggregation/independent compression
+alone has a union bound≤3/|OM31|. This is a128-bit security target under the
+existing documented hash/FRI/Fiat-Shamir assumptions, not certified whole-protocol
+security. Full same-role aggregation in a live scope still needs its own exact
+source-derived ledger, recursion and global closure qualification.
+
+All71 focused tests pass; positive requested peak2,629,652bytes/2GiB, all
+live bytes return to zero after every case. No speed measurement is claimed.
+FUNCTION/range output debts remain unclosed: this gate proves conditional source
+binding, not complete lookup, execution, block or root acceptance.
