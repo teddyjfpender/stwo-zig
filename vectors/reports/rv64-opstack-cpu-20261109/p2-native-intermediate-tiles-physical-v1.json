@@ -1,0 +1,527 @@
+{
+  "schema": "op-p2-native-intermediate-tiles-real-fragment/v1",
+  "implementation": {
+    "baseline_receipt": "c44b0ef05",
+    "baseline_instrumentation": "79ecc7328",
+    "candidate": "05b3c085c",
+    "fix": "Bounded4state native-height caches, by-value parent snapshots and native4 intermediate absorption. No H/arithmetic/domain/profile/transcript/constraints/source/geometry/wire changes.",
+    "independent_source_review": "op_recursion_redesign read-only review: no source blocker. Composed parity, eviction snapshots, minimal2row fallback, counter equality and disjoint workers checked."
+  },
+  "scope": "ONE same real4,000,000-retirement CPU22 conditional-fragment A/B. No whole238M heavy execution/proof or block/root acceptance.",
+  "artifacts": {
+    "baseline": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-owned-inter-v1",
+    "candidate": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-native-tiles-v1",
+    "log": "/private/tmp/op-p2-native-tiles-physical.log"
+  },
+  "same_configuration": {
+    "guest_ELF_sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930",
+    "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+    "optimization": "ReleaseFast",
+    "workers": 16,
+    "host_cap_bytes": 34359738368,
+    "prefix_state_cap_bytes": 100663296,
+    "CPU_native_cells": 564103680,
+    "padded_local_GKR_facts": 149605184,
+    "security": "128-bit security target under documented assumptions; unchanged and not certified"
+  },
+  "qualification": {
+    "exact_PC_and_all32_registers_match_independent_Unicorn": true,
+    "PCS_GKR_entire_bytes_identical": true,
+    "source_key_MAIN_receipt_manifest_all_claims_identical": true,
+    "fresh_source_digest_receiver_passes": true,
+    "all68focused_Fast_tests_pass": true,
+    "expanded_Safe_Fast_unit_and_genericMerkle_Safe_regressions_pass": true,
+    "heap_and_external_ownership_end_zero": true,
+    "production_admission_or_whole_execution_acceptance": false
+  },
+  "proofs": [
+    {
+      "name": "cpu.pcs.bin",
+      "bytes": 1333204,
+      "entire_file_byte_identical": true,
+      "sha256": "db731dc7bc725b68eca35ed7462cd3550dc691c42dab73a06ffe76f8301b8a70"
+    },
+    {
+      "name": "cpu.gkr.bin",
+      "bytes": 113288,
+      "entire_file_byte_identical": true,
+      "sha256": "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3"
+    }
+  ],
+  "totals": {
+    "native_seal_complete": {
+      "baseline_seconds": 24.426455375,
+      "candidate_seconds": 21.170132125,
+      "speedup": 1.1538168600353031,
+      "reduction_percent": 13.33113298678933
+    },
+    "full_fragment_fixture_including_both_independent_FIXED_keys_capture_and_freshverify": {
+      "baseline_seconds": 31.267634666,
+      "candidate_seconds": 27.218493708,
+      "speedup": 1.1487643291887928
+    },
+    "MAIN_INTER_merkle": {
+      "baseline_seconds": 9.733115999999999,
+      "candidate_seconds": 6.5491779999999995,
+      "speedup": 1.4861584156057446,
+      "baseline_share_native": 0.3984661650892521,
+      "candidate_share_native": 0.3093593351864827
+    },
+    "fresh_physical_verify_seconds": 0.069207875
+  },
+  "stages": [
+    {
+      "stage": "MAIN_merkle",
+      "baseline": {
+        "wall_seconds": 5.856494,
+        "user_seconds": 92.99992,
+        "system_seconds": 0.40135,
+        "busy_cores": 15.948325055912292,
+        "minor_faults": 80710,
+        "major_faults": 0,
+        "resident_at_end_bytes": 3503521792
+      },
+      "candidate": {
+        "wall_seconds": 3.810476,
+        "user_seconds": 59.067447,
+        "system_seconds": 0.415368,
+        "busy_cores": 15.610337133733424,
+        "minor_faults": 80713,
+        "major_faults": 0,
+        "resident_at_end_bytes": 3499458560
+      },
+      "wall_speedup": 1.5369455154684086
+    },
+    {
+      "stage": "local_gkr",
+      "baseline": {
+        "wall_seconds": 3.556101,
+        "user_seconds": 43.641786,
+        "system_seconds": 1.986573,
+        "busy_cores": 12.831007611988525,
+        "minor_faults": 813171,
+        "major_faults": 0,
+        "resident_at_end_bytes": 3512958976
+      },
+      "candidate": {
+        "wall_seconds": 3.555241,
+        "user_seconds": 43.076723,
+        "system_seconds": 2.058482,
+        "busy_cores": 12.695399552379149,
+        "minor_faults": 813419,
+        "major_faults": 0,
+        "resident_at_end_bytes": 3512041472
+      },
+      "wall_speedup": 1.0002418964002722
+    },
+    {
+      "stage": "interaction_generation",
+      "baseline": {
+        "wall_seconds": 0.435723,
+        "user_seconds": 5.455805,
+        "system_seconds": 0.225305,
+        "busy_cores": 13.038352347707143,
+        "minor_faults": 46030,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4206067712
+      },
+      "candidate": {
+        "wall_seconds": 0.434254,
+        "user_seconds": 5.413223,
+        "system_seconds": 0.243796,
+        "busy_cores": 13.026981904599612,
+        "minor_faults": 45918,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4205035520
+      },
+      "wall_speedup": 1.0033828128238313
+    },
+    {
+      "stage": "INTER_merkle",
+      "baseline": {
+        "wall_seconds": 3.876622,
+        "user_seconds": 61.871256,
+        "system_seconds": 0.369941,
+        "busy_cores": 16.05552385556291,
+        "minor_faults": 80706,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4277731328
+      },
+      "candidate": {
+        "wall_seconds": 2.738702,
+        "user_seconds": 43.694595,
+        "system_seconds": 0.325992,
+        "busy_cores": 16.073522055338625,
+        "minor_faults": 80710,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4277174272
+      },
+      "wall_speedup": 1.4154960999772885
+    },
+    {
+      "stage": "composition_evaluation",
+      "baseline": {
+        "wall_seconds": 1.855526,
+        "user_seconds": 12.935513,
+        "system_seconds": 0.378175,
+        "busy_cores": 7.175155724037282,
+        "minor_faults": 262964,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4581048320
+      },
+      "candidate": {
+        "wall_seconds": 1.866699,
+        "user_seconds": 13.182421,
+        "system_seconds": 0.390424,
+        "busy_cores": 7.271041019468055,
+        "minor_faults": 263214,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4580753408
+      },
+      "wall_speedup": 0.9940145679619478
+    },
+    {
+      "stage": "composition_interpolate_and_split",
+      "baseline": {
+        "wall_seconds": 0.028483,
+        "user_seconds": 0.21727,
+        "system_seconds": 0.000343,
+        "busy_cores": 7.6401011129445635,
+        "minor_faults": 7,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4581048320
+      },
+      "candidate": {
+        "wall_seconds": 0.030055,
+        "user_seconds": 0.223893,
+        "system_seconds": 0.00037,
+        "busy_cores": 7.461753452004659,
+        "minor_faults": 8,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4580769792
+      },
+      "wall_speedup": 0.9476958908667444
+    },
+    {
+      "stage": "composition_commit",
+      "baseline": {
+        "wall_seconds": 1.748187,
+        "user_seconds": 26.562733,
+        "system_seconds": 0.298632,
+        "busy_cores": 15.365269848134098,
+        "minor_faults": 155697,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4924981248
+      },
+      "candidate": {
+        "wall_seconds": 1.705325,
+        "user_seconds": 25.973421,
+        "system_seconds": 0.301471,
+        "busy_cores": 15.407556917303152,
+        "minor_faults": 155698,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4924719104
+      },
+      "wall_speedup": 1.0251342119537332
+    },
+    {
+      "stage": "sampled_value_evaluation",
+      "baseline": {
+        "wall_seconds": 0.127637,
+        "user_seconds": 1.58129,
+        "system_seconds": 0.009188,
+        "busy_cores": 12.46094784427713,
+        "minor_faults": 62,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4656857088
+      },
+      "candidate": {
+        "wall_seconds": 0.123407,
+        "user_seconds": 1.561155,
+        "system_seconds": 0.007001,
+        "busy_cores": 12.707188409085385,
+        "minor_faults": 63,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4656660480
+      },
+      "wall_speedup": 1.034276823843056
+    },
+    {
+      "stage": "fri_quotient_build_and_commit",
+      "baseline": {
+        "wall_seconds": 2.405397,
+        "user_seconds": 24.697615,
+        "system_seconds": 1.712088,
+        "busy_cores": 10.979353096391158,
+        "minor_faults": 571862,
+        "major_faults": 0,
+        "resident_at_end_bytes": 5268733952
+      },
+      "candidate": {
+        "wall_seconds": 2.341024,
+        "user_seconds": 24.166322,
+        "system_seconds": 1.652303,
+        "busy_cores": 11.02877416036743,
+        "minor_faults": 571801,
+        "major_faults": 0,
+        "resident_at_end_bytes": 5268766720
+      },
+      "wall_speedup": 1.0274977958363518
+    },
+    {
+      "stage": "fri_decommit",
+      "baseline": {
+        "wall_seconds": 0.053188,
+        "user_seconds": 0.552091,
+        "system_seconds": 0.053011,
+        "busy_cores": 11.376663909152441,
+        "minor_faults": 35042,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4658069504
+      },
+      "candidate": {
+        "wall_seconds": 0.055544,
+        "user_seconds": 0.547857,
+        "system_seconds": 0.056698,
+        "busy_cores": 10.884253924816363,
+        "minor_faults": 35047,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4658184192
+      },
+      "wall_speedup": 0.9575831773008785
+    },
+    {
+      "stage": "trace_decommit",
+      "baseline": {
+        "wall_seconds": 0.901273,
+        "user_seconds": 2.805378,
+        "system_seconds": 0.174402,
+        "busy_cores": 3.3061902442434206,
+        "minor_faults": 45850,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4662116352
+      },
+      "candidate": {
+        "wall_seconds": 0.90773,
+        "user_seconds": 2.817619,
+        "system_seconds": 0.179098,
+        "busy_cores": 3.3013307921959174,
+        "minor_faults": 45839,
+        "major_faults": 0,
+        "resident_at_end_bytes": 4662312960
+      },
+      "wall_speedup": 0.9928866513170216
+    },
+    {
+      "stage": "MAIN_prepare",
+      "baseline": {
+        "wall_seconds": 2.428885,
+        "user_seconds": 4.36981,
+        "system_seconds": 0.420066,
+        "minor_faults": 415142,
+        "major_faults": 0
+      },
+      "candidate": {
+        "wall_seconds": 2.452419,
+        "user_seconds": 4.421452,
+        "system_seconds": 0.451039,
+        "minor_faults": 415114,
+        "major_faults": 0
+      },
+      "wall_speedup": 0.9904037605319483
+    },
+    {
+      "stage": "INTER_prepare",
+      "baseline": {
+        "wall_seconds": 1.085088,
+        "user_seconds": 2.3183890000000003,
+        "system_seconds": 0.214475,
+        "minor_faults": 211623,
+        "major_faults": 0
+      },
+      "candidate": {
+        "wall_seconds": 1.070527,
+        "user_seconds": 2.278596,
+        "system_seconds": 0.21319,
+        "minor_faults": 211648,
+        "major_faults": 0
+      },
+      "wall_speedup": 1.0136017120539698
+    }
+  ],
+  "actual_histogram_collected_on_necessary_run": [
+    {
+      "role": "producer_FIXED",
+      "hasher": "vcs.poseidon2_m31_merkle.ForVersion(2)",
+      "columns": 191,
+      "LDE_log_widths": {
+        "7": 43,
+        "9": 3,
+        "10": 6,
+        "14": 11,
+        "15": 11,
+        "16": 21,
+        "17": 5,
+        "18": 32,
+        "19": 6,
+        "20": 10,
+        "21": 6,
+        "22": 34,
+        "24": 3
+      },
+      "bounded_prefix": {
+        "final_log": 24,
+        "prefix_log": 19,
+        "prefix_columns": 138,
+        "tail_columns": 53,
+        "prefix_state_bytes": 54525952,
+        "leaf_bytes": 603979776,
+        "leaf_phase_peak_bytes": 658505728,
+        "repeated_tail_absorptions": 0,
+        "tail_cache_bytes": 1312128
+      }
+    },
+    {
+      "role": "fresh_receiver_FIXED",
+      "hasher": "vcs.poseidon2_m31_merkle.ForVersion(2)",
+      "columns": 191,
+      "LDE_log_widths": {
+        "7": 43,
+        "9": 3,
+        "10": 6,
+        "14": 11,
+        "15": 11,
+        "16": 21,
+        "17": 5,
+        "18": 32,
+        "19": 6,
+        "20": 10,
+        "21": 6,
+        "22": 34,
+        "24": 3
+      },
+      "bounded_prefix": {
+        "final_log": 24,
+        "prefix_log": 19,
+        "prefix_columns": 138,
+        "tail_columns": 53,
+        "prefix_state_bytes": 54525952,
+        "leaf_bytes": 603979776,
+        "leaf_phase_peak_bytes": 658505728,
+        "repeated_tail_absorptions": 0,
+        "tail_cache_bytes": 1312128
+      }
+    },
+    {
+      "role": "MAIN",
+      "hasher": "vcs.poseidon2_m31_merkle.ForVersion(2)",
+      "columns": 1578,
+      "LDE_log_widths": {
+        "7": 137,
+        "9": 8,
+        "10": 288,
+        "14": 195,
+        "15": 182,
+        "16": 218,
+        "17": 73,
+        "18": 21,
+        "19": 55,
+        "20": 207,
+        "21": 109,
+        "22": 48,
+        "24": 37
+      },
+      "bounded_prefix": {
+        "final_log": 24,
+        "prefix_log": 19,
+        "prefix_columns": 1177,
+        "tail_columns": 401,
+        "prefix_state_bytes": 54525952,
+        "leaf_bytes": 603979776,
+        "leaf_phase_peak_bytes": 658505728,
+        "repeated_tail_absorptions": 0,
+        "tail_cache_bytes": 1312128
+      }
+    },
+    {
+      "role": "INTER",
+      "hasher": "vcs.poseidon2_m31_merkle.ForVersion(2)",
+      "columns": 1008,
+      "LDE_log_widths": {
+        "7": 96,
+        "9": 24,
+        "10": 112,
+        "14": 128,
+        "15": 120,
+        "16": 160,
+        "17": 56,
+        "18": 64,
+        "19": 56,
+        "20": 80,
+        "21": 64,
+        "22": 32,
+        "24": 16
+      },
+      "bounded_prefix": {
+        "final_log": 24,
+        "prefix_log": 19,
+        "prefix_columns": 816,
+        "tail_columns": 192,
+        "prefix_state_bytes": 54525952,
+        "leaf_bytes": 603979776,
+        "leaf_phase_peak_bytes": 658505728,
+        "repeated_tail_absorptions": 0,
+        "tail_cache_bytes": 1312128
+      }
+    }
+  ],
+  "resource": {
+    "baseline": {
+      "live_bytes": 0,
+      "peak_live_bytes": 10093072140,
+      "host_live_bytes": 0,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 10093072140,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    },
+    "candidate": {
+      "live_bytes": 0,
+      "peak_live_bytes": 10093072140,
+      "host_live_bytes": 0,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 10093072140,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    },
+    "explicit_algorithm_owned_stack_workspace_per_worker_bytes": 82008,
+    "all16workers_explicit_workspace_bytes": 1312128,
+    "workspace_limit_note": "No new heap storage;96MiB prefix cap unchanged. Workspace is explicit cache+worst-case recursion batch/slab/index storage, not compiler/backend helper/register-spill or whole-worker-stack measurement. Worker stack configuration1MiB/thread.",
+    "measured_candidate_rss_peak_bytes": 10099752960,
+    "measured_candidate_footprint_peak_bytes": 10102956192
+  },
+  "candidate_process_time": {
+    "wall_seconds": 27.24,
+    "user_seconds": 280.77,
+    "system_seconds": 8.45,
+    "minor_faults": 3498293,
+    "major_faults": 0,
+    "swaps": 0
+  },
+  "interpretation": [
+    "ActualMAIN hashing5.8565\u21923.8105s(1.537x) andINTER3.8766\u21922.7387s(1.416x); realgeometry benefits more than the4.6% tiny balanced median.",
+    "Only37of1578MAIN and16of1008INTERcolumns are finalheight24. Actualintermediate widths48MAIN/32INTERat22,109MAIN/64INTERat21,207MAIN/80INTERat20 explain why scalar intermediate absorption mattered.",
+    "NativeGKR3.5561\u21923.5552s andcomposition1.8555\u21921.8667s are effectively unchanged. Hashing remains30.94% ofnative time; this doesnot establish an isolated node/finalization share.",
+    "Allfour bounded builds retainedprefixlog19(54,525,952state bytes), leaf603,979,776B, repeatedtailabsorptions0. No full-height hasher slab or cap increase.",
+    "The original pre-packed-tail native74.7318s control is now21.1701s onthissame conditionalCPUfragment(~3.53x); do not extrapolate to an acceptedheavyblock."
+  ],
+  "limitations": [
+    "Single same-source qualification A/B, not a repeated statistical whole-proof benchmark. Histogram printing was enabled only on this otherwise-required candidate run.",
+    "INIT is67,326prefix-touchedcells/log17, not full-heavy touched-setINITlog20. No Miller calls occur in this prefix.",
+    "NoTEARDOWN/truth/detached/laterCPU proofs; nonzeroRAM/Wire debt remains unchanged and KIOzero. No terminal/wholeexecution/root claim.",
+    "Baseline whole process additionally ran a separate tinyjoin BEFORE its fragmenttimer; process-totalCPU counters are therefore not used as a like-for-like comparison. Scoped fragmenttimers/stages remain separate.",
+    "No further4M rerun was performed to seek favorable timing."
+  ]
+}
