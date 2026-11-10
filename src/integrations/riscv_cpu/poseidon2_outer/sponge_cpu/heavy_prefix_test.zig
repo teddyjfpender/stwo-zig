@@ -24,7 +24,9 @@ const Source = @import("source.zig").Source;
 const Key = @import("key.zig").Key;
 const Worker = @import("worker.zig");
 const Protocol = @import("../pure_p2_worker_protocol.zig");
-const Profile = @import("../op_profile.zig").Profile.op_target_b4_q72_p0_fold4_v1;
+const ProfileType = @import("../op_profile.zig").Profile;
+const Profile = ProfileType.op_target_b4_q72_p0_fold4_v1;
+const B2 = ProfileType.op_control_b2_q144_p0_fold4_v1;
 const Write = @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive;
 const N = 4_000_000;
 const Mode = enum { plan, prove, gkr_only };
@@ -39,7 +41,9 @@ fn cells(logs: []const u32) u64 {
     for (logs) |log| out += @as(u64, 1) << @intCast(log);
     return out;
 }
-fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std.fs.Dir, comptime mode: Mode, retained: ?[]const u8) !void {
+fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std.fs.Dir, comptime mode: Mode, comptime selected_profile: ProfileType, retained: ?[]const u8) !void {
+    if (selected_profile != Profile and selected_profile != B2) return error.ConditionalProfileNotAdmitted;
+    if (mode == .gkr_only and selected_profile != Profile) return error.ConditionalRetainedProfile;
     if (endpoint.steps != N or endpoint.completed or config.workers != 16) return error.ConditionalPrefixOnly;
     try std.testing.expectEqualStrings(config.elf_sha256, endpoint.elf_sha256);
     try std.testing.expectEqualStrings(config.input_sha256, endpoint.input_sha256);
@@ -118,7 +122,7 @@ fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std
     defer a.free(truths);
     var bounds = try Bounds.deriveForOpDetached(a, program.log_size, &.{declaration}, truths, &.{request}, &.{span}, &.{}, &.{frontier_log}, if (request.sponge.calls == 0) &.{} else &detached);
     defer bounds.deinit();
-    const checked = try Security.preflight(Profile, &bounds, &.{}, &.{});
+    const checked = try Security.preflight(selected_profile, &bounds, &.{}, &.{});
     const capture_ns = timer.read() - image_program_ns;
     // Wide keys are constructed only after source field-mass/security admission.
     var metadata = try @import("../../word16_execution/program_metadata.zig").Cache.init(a, 256 << 20);
@@ -156,18 +160,22 @@ fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std
         init_inter = @as(u64, @intCast(end - slot.inter_offset)) << @intCast(slot.log);
     };
     const plan_at = timer.read();
-    const plan_info = .{ .schema = "op-heavy-conditional-prefix-plan/v1", .steps = N, .final_pc = boundary.final_pc, .final_registers = boundary.final_registers, .cpu = declaration, .request = @import("../../word16_global_execution/services/wire.zig").CompactRequest.from(request), .init_words = advice.initial.len, .terminal_words_proved = 0, .init_fixed_cells = init_fixed, .init_main_cells = init_main, .init_interaction_cells = init_inter, .planned_unproved_truths = truths, .unproved_detached = if (request.sponge.calls == 0) @as(usize, 0) else 1, .gkr_facts = facts, .gkr_checkpoint_floor_bytes = child_reserve, .gkr_checkpoint_planning_reserve_bytes = child_reserve, .gkr_checkpoint_estimate_semantics = "Conservative admission planning reserve; legacy floor field is NOT a lower bound or measured peak", .fixed_cells = cells(fixed_logs) + 3 * (@as(u64, 1) << @intCast(frontier_log)), .main_cells = cells(main_logs) + 8 * (@as(u64, 1) << @intCast(frontier_log)), .interaction_cells_excluding_frontier = cells(inter_logs), .image_program_ns = image_program_ns, .execution_ns = execution_ns, .capture_prepare_ns = capture_ns, .through_setup_ns = plan_at, .security = checked, .init_scope = "prefix-touched cells only, not full-block touched set", .conditional_cpu_fragment_only = true, .block_accepted = false, .root_accepted = false };
+    const plan_info = .{ .schema = "op-heavy-conditional-prefix-plan/v1", .profile = @tagName(selected_profile), .steps = N, .final_pc = boundary.final_pc, .final_registers = boundary.final_registers, .cpu = declaration, .request = @import("../../word16_global_execution/services/wire.zig").CompactRequest.from(request), .init_words = advice.initial.len, .terminal_words_proved = 0, .init_fixed_cells = init_fixed, .init_main_cells = init_main, .init_interaction_cells = init_inter, .planned_unproved_truths = truths, .unproved_detached = if (request.sponge.calls == 0) @as(usize, 0) else 1, .gkr_facts = facts, .gkr_checkpoint_floor_bytes = child_reserve, .gkr_checkpoint_planning_reserve_bytes = child_reserve, .gkr_checkpoint_estimate_semantics = "Conservative admission planning reserve; legacy floor field is NOT a lower bound or measured peak", .fixed_cells = cells(fixed_logs) + 3 * (@as(u64, 1) << @intCast(frontier_log)), .main_cells = cells(main_logs) + 8 * (@as(u64, 1) << @intCast(frontier_log)), .interaction_cells_excluding_frontier = cells(inter_logs), .image_program_ns = image_program_ns, .execution_ns = execution_ns, .capture_prepare_ns = capture_ns, .through_setup_ns = plan_at, .security = checked, .init_scope = "prefix-touched cells only, not full-block touched set", .conditional_cpu_fragment_only = true, .block_accepted = false, .root_accepted = false };
     try json(a, dir, if (mode == .prove) "prove-plan.json" else if (mode == .gkr_only) "gkr-plan.json" else "plan.json", plan_info);
     std.debug.print("OP_HEAVY_PREFIX_PLAN steps={} CPUlog={} facts={} planning_reserve={} INIT={} services={any} sponge={any} mass_admitted=true block_accepted=false\n", .{ N, declaration.geometry.cpu_log, facts, child_reserve, advice.initial.len, request.calls, request.sponge });
     if (mode == .plan) return;
     if (mode == .gkr_only) {
         return gkrOnly(a, &setup, request, span, &native, &advice, frontier_log, &roster, dir, retained orelse return error.MissingConditionalRetainedSource);
     } else {
-        var key = try Key.init(a, &setup, Profile, frontier_log);
+        var key = try Key.init(a, &setup, selected_profile, frontier_log);
         defer key.deinit();
         // Independently recompute the source key before retiring source FIXED.
-        var fresh = try Key.initDigest(a, &setup, Profile, frontier_log);
+        var fresh = try Key.initDigest(a, &setup, selected_profile, frontier_log);
         defer fresh.deinit();
+        // Existing B4 is an independently source-rebuilt positive control, not
+        // a producer-supplied key. No mixed-profile inventory is constructed.
+        var cross_key: ?Key = if (selected_profile == B2) try Key.initDigest(a, &setup, Profile, frontier_log) else null;
+        defer if (cross_key) |*v| v.deinit();
         try @import("../pure_p2_op_source_setup.zig").retireLegacy(a, &setup);
         const first: [Types.FAMILIES]u32 = @splat(1);
         const Prof = @import("stwo_prover_api").stage_profile;
@@ -206,11 +214,13 @@ fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std
         // Source-only fresh key, never the producer key, verifies this fragment.
         const verify_at = timer.read();
         const debt = try Worker.verify(a, &setup, request, span, first, 0, &fresh, manifest, stage.main, &encoded);
+        const fresh_verify_ns = timer.read() - verify_at;
+        if (selected_profile == B2) try crossProfileControls(a, &setup, request, span, first, &fresh, &cross_key.?, manifest, stage.main, &encoded, retained orelse return error.MissingConditionalRetainedSource);
         if (debt.ram.isZero() and debt.kio.isZero() and debt.wire.isZero()) return error.ConditionalDebtUnexpectedlyClosed;
         var profile = try recorder.snapshot(a);
         defer profile.deinit(a);
         try json(a, dir, "stages.json", profile);
-        try json(a, dir, "fragment.json", .{ .schema = "op-heavy-conditional-cpu-fragment/v1", .steps = N, .key_identity = key.identity, .manifest = manifest, .stage = stage, .pcs_bytes = encoded.bytes.len, .gkr_bytes = encoded.local.len, .claims = encoded.claims, .outstanding_global_debt = debt, .seal_ns = sealed_at - seal_begin, .complete_ns = proved_at - sealed_at, .fresh_verify_ns = timer.read() - verify_at, .full_elapsed_ns = timer.read(), .conditional_fragment_verified = true, .complete_execution_accepted = false, .root_accepted = false, .owed = "truth KIO/Wire, detached sponge, end memory, remaining CPU execution; not a block proof" });
+        try json(a, dir, "fragment.json", .{ .schema = "op-heavy-conditional-cpu-fragment/v1", .profile = @tagName(selected_profile), .cross_profile_controls = if (selected_profile == B2) 2 else 0, .valid_independent_B4_positive_control = selected_profile == B2, .steps = N, .key_identity = key.identity, .manifest = manifest, .stage = stage, .pcs_bytes = encoded.bytes.len, .gkr_bytes = encoded.local.len, .claims = encoded.claims, .outstanding_global_debt = debt, .seal_ns = sealed_at - seal_begin, .complete_ns = proved_at - sealed_at, .fresh_verify_ns = fresh_verify_ns, .full_elapsed_ns = timer.read(), .conditional_fragment_verified = true, .complete_execution_accepted = false, .root_accepted = false, .owed = "truth KIO/Wire, detached sponge, end memory, remaining CPU execution; not a block proof" });
         std.debug.print("OP_HEAVY_PREFIX_PHYSICAL pcs={} GKR={} seal_ns={} complete_ns={} conditional_fragment_only=true block_accepted=false\n", .{ encoded.bytes.len, encoded.local.len, sealed_at - seal_begin, proved_at - sealed_at });
     }
 }
@@ -289,7 +299,44 @@ fn gkrOnly(a: std.mem.Allocator, setup: *@import("../../word16_global_execution/
     try json(a, dir, "gkr-only.json", .{ .schema = "op-heavy-conditional-local-gkr-only/v1", .retained_pcs_sha256 = pcs_sha, .retained_local_sha256 = local_sha, .source_key_ns = source_key_ns, .source_build_merge_take_retire_ns = source_ns, .local_gkr_ns = child_ns, .key = key.identity, .scope = source_scope, .receipt = child.digest, .encoded_bytes = encoded.len, .exact_retained_GKR_bytes_receipt_eta = true, .source_postmerge_owned_MAIN_take = true, .new_MAIN_or_INTER_commit = false, .new_PCS_physical_verification = false, .new_CPU_or_block_or_root_acceptance = false, .provenance = "Retained fullPCS andGKR files independently pinned to qualified4900/9c36 SHA. Independent sourceFIXED+statement reconstructed, retained child freshly verified. This benchmarks only localGKR, with physicalMAIN authority borrowed from that authentic retained conditional fragment." });
     std.debug.print("OP_HEAVY_GKR_ONLY steps={} local_bytes={} child_ns={} exact_retained_bytes_receipt_eta=true no_MAIN_INTER_commit=true CPU_block_root_accepted=false\n", .{ N, encoded.len, child_ns });
 }
-fn environment(comptime forced: ?Mode) !void {
+const RetainedFragment = struct {
+    key_identity: [32]u8,
+    manifest: [36]u8,
+    stage: Worker.StageOne,
+    claims: []C.fields.om31.OM31,
+    conditional_fragment_verified: bool,
+};
+fn readPinned(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, limit: usize, sha: []const u8) ![]u8 {
+    const raw = try dir.readFileAlloc(a, name, limit);
+    errdefer a.free(raw);
+    try Config.pin(raw, sha);
+    return raw;
+}
+fn crossProfileControls(a: std.mem.Allocator, setup: *@import("../../word16_global_execution/services/roster.zig").CpuSetup, request: @import("../../word16_global_execution/services/protocol.zig").Request, span: Types.OpTowerSpan, first: [Types.FAMILIES]u32, b2: *const Key, b4: *const Key, manifest: [36]u8, main: [36]u8, encoded: *const Worker.Encoded, retained_path: []const u8) !void {
+    var dir = try std.fs.cwd().openDir(retained_path, .{});
+    defer dir.close();
+    const raw = try readPinned(a, dir, "cpu.pcs.bin", 16 << 20, "db731dc7bc725b68eca35ed7462cd3550dc691c42dab73a06ffe76f8301b8a70");
+    defer a.free(raw);
+    const local = try readPinned(a, dir, "cpu.gkr.bin", 16 << 20, "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3");
+    defer a.free(local);
+    // This complete metadata file is pinned too, not merely its proof bytes:
+    // the outer claim vector/manifest must be the known validB4 source frame.
+    const metadata = try readPinned(a, dir, "fragment.json", 1 << 20, "860f231708c6e6f9ecce5f7a495e3989881e114c6f4f5102dd0302e09df8e998");
+    defer a.free(metadata);
+    const frame = try std.json.parseFromSlice(RetainedFragment, a, metadata, .{ .ignore_unknown_fields = true });
+    defer frame.deinit();
+    if (!frame.value.conditional_fragment_verified or frame.value.claims.len > 512) return error.ConditionalRetainedProfile;
+    try std.testing.expectEqualSlices(u8, &b4.identity, &frame.value.key_identity);
+    try std.testing.expect(!std.mem.eql(u8, raw, encoded.bytes));
+    const old = Worker.Encoded{ .bytes = raw, .local = local, .receipt = frame.value.stage.receipt, .claims = frame.value.claims };
+    // Positive before negative: the independently source-builtB4 digest key
+    // accepts the actual valid retainedB4 proof under its authentic statements.
+    _ = try Worker.verify(a, setup, request, span, first, 0, b4, frame.value.manifest, frame.value.stage.main, &old);
+    try std.testing.expectError(error.SpongeCpuProofScope, Worker.verify(a, setup, request, span, first, 0, b2, frame.value.manifest, frame.value.stage.main, &old));
+    try std.testing.expectError(error.SpongeCpuProofScope, Worker.verify(a, setup, request, span, first, 0, b4, manifest, main, encoded));
+    std.debug.print("OP_HEAVY_B2_CONTROL valid_independent_B4_positive=true cross_B4_to_B2_rejected=true cross_B2_to_B4_rejected=true semantic_capture_same=true protocol_bytes_differ=true complete_block_admission=false\n", .{});
+}
+fn environment(comptime forced: ?Mode, comptime selected_profile: ProfileType) !void {
     const path = std.posix.getenv("STWO_OP_HEAVY_PREFIX_CONFIG") orelse return error.SkipZigTest;
     const oracle = std.posix.getenv("STWO_OP_HEAVY_PREFIX_ORACLE") orelse return error.MissingPrefixOracle;
     const out = std.posix.getenv("STWO_OP_HEAVY_PREFIX_OUT") orelse return error.MissingPrefixOutput;
@@ -297,7 +344,7 @@ fn environment(comptime forced: ?Mode) !void {
     const mode = std.meta.stringToEnum(Mode, mode_name) orelse return error.InvalidConditionalPrefixMode;
     if (forced) |value| if (mode != value) return error.InvalidConditionalPrefixMode;
     const retained = std.posix.getenv("STWO_OP_HEAVY_PREFIX_RETAINED");
-    if (mode == .gkr_only and retained == null) return error.MissingConditionalRetainedSource;
+    if ((mode == .gkr_only or selected_profile == B2) and retained == null) return error.MissingConditionalRetainedSource;
     // Optional qualification-only control; default fixture behavior is exact.
     // Existing real two-CPU/serialized-sponge/Keccak join independently closes
     // all global relations before the separate conditional large CPU fragment.
@@ -324,9 +371,9 @@ fn environment(comptime forced: ?Mode) !void {
         var binding = try E.work_pool.ScopedPoolBinding.init(&pool);
         defer binding.deinit();
         if (forced) |value| {
-            try run(budget.allocator(), config.value, endpoint.value, dir, value, retained);
+            try run(budget.allocator(), config.value, endpoint.value, dir, value, selected_profile, retained);
         } else switch (mode) {
-            inline else => |value| try run(budget.allocator(), config.value, endpoint.value, dir, value, retained),
+            inline else => |value| try run(budget.allocator(), config.value, endpoint.value, dir, value, selected_profile, retained),
         }
     }
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
@@ -336,10 +383,16 @@ fn environment(comptime forced: ?Mode) !void {
 }
 
 test "OP heavy selected conditional 4M CPU fragment profile" {
-    try environment(null);
+    try environment(null, Profile);
 }
 test "OP heavy selected retained local GKR only profile" {
     // Fixed compile-time path avoids compiling the unrelated full physical
     // AIR/PCS prover for this source-and-local-child-only qualification.
-    try environment(.gkr_only);
+    try environment(.gkr_only, Profile);
+}
+
+test "OP heavy selected conditional B2 CPU fragment control" {
+    // Existing typedB2/q144control only, never incoming-proof selection or a
+    // production mixed-profile suite. Source/security guards precede keys.
+    try environment(.prove, B2);
 }
