@@ -4,8 +4,29 @@ The historical bounded M7 group has three cold trials at 21.981 s median and
 a later 18.840 s qualification. New source-only grouped constructions have
 separate qualification results below; these are different protocols and timing
 scopes, so this note does not rank them using unmatched runs. Native production
-is additional to every recursion time in this note. The heavy target is still
+is additional to recursion-only times in this note. The heavy target is still
 open; no new heavy proof has been rerun.
+
+## Current execution and root observations
+
+The experimental R7 terminal route now has a real one-process small-block
+measurement, including guest execution and native production. It is separate
+from the historical M6/M7 experiments below.
+
+| Qualified scope | Time | Requested peak | Evidence |
+| --- | ---: | ---: | --- |
+| Actual OP120794432, guest through complete R7 root | 25.624 s | 8.667 GB | [Producer and fresh receiver](../vectors/reports/rv64-opstack-performance-20261110/selected-from-guest-r7-p2-tail-v1.json) |
+| Additional source-only receiver, including nine controls | 6.580 s | 4.511 GB | Same receipt; native proof bytes absent |
+| Actual heavy guest's first 4M instructions, conditional CPU proof | 23.931 s, previously 74.732 s | 10.093 GB unchanged | [Exact proof parity and stages](../vectors/reports/rv64-opstack-cpu-20261109/heavy-conditional-prefix-p2-tail-v1.json) |
+
+These are single qualification observations, not repeated quiet medians.
+The last row leaves RAM/Wire obligations outstanding and proves no complete
+block or recursive root. The first row closes the actual small execution, but
+does not prove anchored derivation or admit experimental terminal Blake into
+production or settlement. The heavy tenfold target remains open.
+
+Use the [narrow terminal development gate](../src/integrations/riscv_cpu/poseidon2_outer/native_group/terminal_blake/DEV_LOOP.md)
+for isolated root work, then the broader regression gates for integration.
 
 The [matched small-block receipt](../vectors/reports/rv64-opstack-cpu-20261108/cpu-recursion-admission.json)
 compares the existing M6 three-child tree on the same already produced D2 bundle:

@@ -9,6 +9,11 @@ The current CPU-first [delivery gates](COMPLETION.md) distinguish execution,
 anchored transition proofs, recursive closure and complete settlement. Historical
 replay measurements do not close those later gates.
 
+The [CPU tuning record](CPU_TUNING.md) links current actual guest-to-root
+measurements, bounded heavy-fragment profiles and their exact qualification
+limits. The experimental [terminal development loop](../src/integrations/riscv_cpu/poseidon2_outer/native_group/terminal_blake/DEV_LOOP.md)
+provides narrower build/check commands without changing the standard drivers.
+
 ## Build and measure
 
 Requirements: Rust `nightly-2026-08-08` with `rust-src`, Zig 0.15.2, Python 3.12+.
