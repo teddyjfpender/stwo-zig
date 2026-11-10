@@ -1,0 +1,45 @@
+{
+  "schema": "op-terminal-r7-fresh-only-dev-loop-v1",
+  "scope": "Retained selected796406-instruction source-only receiver; no native or root proving",
+  "native_profile": "op_target_b4_q72_p0_fold4_v1",
+  "terminal_profile": "op_control_b2_q144_p0_fold4_v1",
+  "root_bytes": 1263064,
+  "root_sha256": "8cc0c6259801fd7939c94ac4fd8b44bcb519adf3876f86b47cd39f3ce8773d63",
+  "fresh_only_comptime": true,
+  "controls": 9,
+  "native_proof_bytes_read": 0,
+  "source_setup_ns": 4266575958,
+  "physical_root_read_verify_ns": 8991417,
+  "fresh_receiver_total_ns": 6139059750,
+  "p2_source_and_FIXED_ns": 3067672833,
+  "additional_blake_FIXED_ns": 1028085417,
+  "peak_requested_bytes": 4510553430,
+  "final_live_bytes": 0,
+  "final_external_bytes": 0,
+  "build_and_test_wall_seconds": 41.71,
+  "build_and_test_user_seconds": 87.47,
+  "build_and_test_system_seconds": 5.53,
+  "timing_caveat": "Single build-plus-test observation, includes compilation/build work and receiver; no isolated compiler benchmark or speed claim. Other semantic check ran concurrently.",
+  "optimization": "ReleaseFast",
+  "workers": 16,
+  "source_only_files": [
+    "detached-op.json",
+    "cells.bin"
+  ],
+  "proof_generation": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "qualification": [
+    "Filtered and complete narrow-root ReleaseSafe semantic checks pass",
+    "Retained real selected root and same-source P2 control both verify",
+    "All nine existing controls pass using unchanged Reception implementation",
+    "Filtered binary nm inventory has no produceDirectory/proveRecorded/proveExWith/Producer callback symbols",
+    "Existing actual run() forwards to runMode(false), modes/env remain unchanged"
+  ],
+  "logs": [
+    "/private/tmp/op-terminal-fresh-retained.log",
+    "/private/tmp/op-terminal-fresh-sema.log",
+    "/private/tmp/op-terminal-fresh-all-sema.log"
+  ]
+}

@@ -63,7 +63,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
     const terminal_check = context.b.addTest(.{ .root_module = createRoot(context, product, terminal_source), .filters = terminal_filters });
     context.b.step("check-riscv64-op-terminal-blake", "Type-check isolated R6/R7 terminal Blake gates without LLVM output").dependOn(&terminal_check.step);
     const terminal_tests = context.b.addTest(.{ .root_module = createRoot(context, product, terminal_source), .filters = terminal_filters });
-    context.b.step("test-riscv64-op-terminal-blake", "Qualify isolated terminal Blake formats, env-gated actual roots and fresh-path policy").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = terminal_tests, .minimum = 6 }}));
+    context.b.step("test-riscv64-op-terminal-blake", "Qualify isolated terminal Blake formats, env-gated actual roots and fresh-path policy").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = terminal_tests, .minimum = 7 }}));
     const op_pure_p2_check = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = test_filter.apply(context.b, &.{"OP pure P2"}) });
     context.b.step("check-riscv64-op-pure-p2", "Type-check OP P2 reference gates without emitting or running test binaries").dependOn(&op_pure_p2_check.step);
     const op_group_check = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = test_filter.apply(context.b, &.{"direct native group"}) });
