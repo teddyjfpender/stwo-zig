@@ -15,6 +15,14 @@ test "pairing fixture source row once and independent frontier authority" {
     defer values.deinit();
     const expected = try S.initialValues(V.INPUT);
     var model = try C.Model.init(&p, &values, &expected);
+    var authority = try C.Model.initAuthority(&p, &expected);
+    try std.testing.expect(authority.witness == null);
+    inline for (comptime std.meta.tags(C.Role)) |role| {
+        const rows = @as(usize, 1) << @intCast(C.logSize(role));
+        for (0..rows) |row| for (0..C.fixedWidth(role)) |col| try std.testing.expect(model.fixed(role, row, col).eql(authority.fixed(role, row, col)));
+    }
+    inline for (.{ C.Role.arithmetic, C.Role.hints, C.Role.frontier }) |role| try std.testing.expectError(error.PairingFixtureMissingWitness, authority.materialize(role, 0));
+
     try std.testing.expectError(error.PairingFixtureMissingColumns, model.requireColumns());
     const first = try model.materialize(.arithmetic, 0);
     try std.testing.expectEqual(@as(u32, 1), first.main_values[0]);

@@ -106,16 +106,22 @@ fn signed(n: i32) Q {
 }
 pub const Model = struct {
     plan: *const L.Program,
-    witness: *const NW.Witness,
+    witness: ?*const NW.Witness = null,
     public: [S.INITIAL]u256,
     table: [256]u32 = @splat(0),
     columns: [4]?[]const M = @splat(null),
     table_ready: bool = false,
     pub fn init(plan: *const L.Program, witness: *const NW.Witness, expected: *const [S.INITIAL]u256) !Model {
+        var out = try initAuthority(plan, expected);
+        out.witness = witness;
+        return out;
+    }
+    /// Receiver authority has no private certificate, values or MAIN builder.
+    pub fn initAuthority(plan: *const L.Program, expected: *const [S.INITIAL]u256) !Model {
         if (plan.stages.len > 32768 or plan.hints.len > 2048 or FRONTIER_ROWS > 2048) return error.PairingFixtureGeometry;
         for (expected) |v| if (v >= S.B.BN254_P) return error.NonCanonicalPairingFrontier;
         for (expected[24..], S.LITERALS.values[0..S.LITERALS.len]) |actual, literal| if (actual != literal) return error.PairingLiteralAuthority;
-        return .{ .plan = plan, .witness = witness, .public = expected.* };
+        return .{ .plan = plan, .public = expected.* };
     }
     pub fn activeRows(m: *const Model, role: Role) usize {
         return switch (role) {
@@ -139,21 +145,22 @@ pub const Model = struct {
     }
     pub fn materialize(m: *Model, role: Role, row: usize) !Materialized {
         if (row >= @as(usize, 1) << @intCast(logSize(role))) return error.PairingFixtureRow;
+        if (role != .table and m.witness == null) return error.PairingFixtureMissingWitness;
         var out = Materialized{ .model = m, .role = role, .row = row, .main_values = @splat(0) };
         if (role == .arithmetic) {
             if (row < m.plan.stages.len) {
-                const values = try m.witness.row(m.plan, row);
+                const values = try m.witness.?.row(m.plan, row);
                 @memcpy(out.main_values[0..Mac.MAIN], &values);
             }
         } else if (role == .hints) {
             if (row < m.plan.hints.len) {
-                const values = try m.witness.hintRow(m.plan, row);
+                const values = try m.witness.?.hintRow(m.plan, row);
                 @memcpy(out.main_values[0..Hint.MAIN], &values);
             }
         } else if (role == .frontier) {
             if (row < FRONTIER_ROWS) {
                 out.main_values[0] = 1;
-                const value = m.witness.values[m.plan.frontierId(row)];
+                const value = m.witness.?.values[m.plan.frontierId(row)];
                 for (0..32) |i| out.main_values[1 + i] = @intCast((value >> @intCast(8 * i)) & 255);
             }
         } else {
