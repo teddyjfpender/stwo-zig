@@ -66,6 +66,18 @@ remain identical. Overall native improvement against the original fragment is
 per worker; this is not a complete compiler/thread-stack peak measurement.
 See the [real cache qualification](../vectors/reports/rv64-opstack-cpu-20261109/p2-native-intermediate-tiles-physical-v1.json).
 
+## Explicit B2 conditional control
+
+The same actual-heavy 4M CPU fragment takes **12.612 s** under the existing
+B2/q144 profile, versus **21.170 s** with B4/q72. Requested peak falls from
+10.093 to **7.351 GB**, while the native proof grows from 1,333,204 to
+2,411,820 bytes (**80.9% larger**). This is a different-protocol control,
+not byte parity or a mixed-profile block acceptance result. Source layout,
+base cells and execution agree; independently rebuilt profile keys verify
+their genuine proofs and reject both cross-profile replays. No whole-block
+or recursive performance follows from this conditional fragment.
+See the [control receipt](../vectors/reports/rv64-opstack-cpu-20261109/heavy-conditional-b2-cpu-control-v1.json).
+
 ## CPU interaction ownership
 
 The detached CPU worker now transfers completed interaction matrices to PCS
@@ -102,6 +114,20 @@ source/key/replay process is 4.869 GB; measured RSS is 5.370 GB. The legacy
 not a measured lower bound; all caps and admission charges remain unchanged.
 See the [profile](../vectors/reports/rv64-opstack-cpu-20261109/heavy-retained-gkr-subphases-v1.json)
 and [reserve reconciliation](../vectors/reports/rv64-opstack-cpu-20261109/gkr-checkpoint-reserve-reconciliation-v1.json).
+
+## GKR memory and denominator controls
+
+Retaining all upper fraction-tree layers reduces this isolated authentic child
+from 3.413 to **2.636 s**, but raises requested peak from 4.869 to **11.252 GB**.
+Proof bytes, channel state, receipt and eta match. Checkpointed storage remains
+the default: a 0.777 s saving does not justify another 6.383 GB per concurrent
+worker. This measures only the child, not a complete native proof or root.
+
+Denominator lookup tables passed byte parity and allocation-failure tests but
+took **3.544 s**, versus the checkpointed 3.413 s observation. This single
+comparison establishes no benefit; the code remains isolated and only the
+[negative receipt](../vectors/reports/rv64-opstack-cpu-20261109/heavy-gkr-denominator-tables-negative-v1.json)
+was integrated. Neither control is counted as a production speedup.
 
 ## Current-source small-group repeat
 

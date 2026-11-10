@@ -318,9 +318,26 @@ coherent internal result+p retains local lookup closure but fails the physical
 proof. These small correctness fixtures use deliberately input-specific FIXED
 keys and do not admit a reusable production provider.
 
-The next source gate is one composite proof of all 87 preparation lines, with
-Q-independent program IDs and source-owned Frobenius corrections. Complete
-curve/subgroup/infinity handling, final pairing/residue endpoints, variable-input
-Wire/RAM authority, recursive reception and a real performance comparison remain
-open. See the [G2 design and gates](../design/riscv-proving-stack/op-bn254-g2-transition.md)
-and [physical receipt](../vectors/reports/rv64-opstack-performance-20261109/guest/g2-transition-physical-v1.json).
+The complete 87-line preparation now has a physical BYTE/SSA proof, including
+source-owned Frobenius corrections and all line exports. Exact non-infinity G2
+curve/subgroup checking and a positive pairing residue certificate have separate
+physical proofs as well. Each uses an independently reconstructed receiver and
+adversarial source/statement controls; coherent noncanonical writers and an
+unrestricted inverse-scale residue attack reject.
+
+| Conditional arithmetic gate | Native + child bytes | Requested peak | Remaining authority |
+| --- | ---: | ---: | --- |
+| All 87 G2 preparation lines | 186,188 | 59.54 MB | Variable-input Wire/RAM and reusable setup |
+| Exact G2 curve/subgroup | 146,656 | 114.17 MB | Infinity handling and composite pairing linkage |
+| Positive pairing residue | 253,004 | 36.93 MB | Bind z to the complete shared Miller computation |
+
+These are small q12 correctness fixtures with input-specific FIXED authority,
+not production security or performance qualifications. The private residue
+hints are canonical, and its scale is constrained to Fp6; they are not free
+host validity claims. The next engineering gate is the source-owned shared
+Miller accumulation, then one authenticated composite provider, variable-input
+Wire/RAM closure and recursive reception. No new VM tag or default is admitted.
+
+Evidence: [preparation](../vectors/reports/rv64-opstack-performance-20261109/guest/g2-preparation-physical-v1.json),
+[subgroup](../vectors/reports/rv64-opstack-cpu-20261110/g2-exact-subgroup-physical-v1.json),
+[residue](../vectors/reports/rv64-opstack-performance-20261109/guest/positive-residue-physical-v1.json).
