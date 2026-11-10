@@ -174,15 +174,15 @@ PROFILE_SHAPE_KEYS = frozenset(PROFILE_SHAPE_FIELD_ORDER)
 # this small verifier here means a self-consistent but forged inspector report
 # cannot relabel one exact shape as another.
 PROFILE_SPECS: tuple[tuple[str, int, tuple[int, ...], int], ...] = (
-    ("hash_compact", 1, (12, 11, 54, 916, 444, 20), 8),
-    ("sha256_2048", 2, (13, 11, 56, 951, 480, 20), 1),
-    ("keccak_2048", 3, (14, 11, 58, 999, 512, 20), 1),
-    ("poseidon2_2", 4, (13, 11, 56, 953, 468, 20), 1),
-    ("poseidon2_4", 5, (14, 11, 58, 988, 504, 20), 1),
-    ("poseidon2_8", 6, (15, 11, 60, 1023, 540, 20), 1),
-    ("poseidon2_12", 7, (18, 11, 66, 1144, 644, 20), 1),
-    ("poseidon2_16", 8, (21, 11, 72, 1271, 740, 20), 1),
-    ("ecdsa_secp256k1_32", 9, (94, 11, 218, 4444, 3624, 20), 1),
+    ("hash_compact", 1, (12, 11, 54, 918, 448, 20), 8),
+    ("sha256_2048", 2, (13, 11, 56, 953, 484, 20), 1),
+    ("keccak_2048", 3, (14, 11, 58, 1003, 520, 20), 1),
+    ("poseidon2_2", 4, (13, 11, 56, 955, 472, 20), 1),
+    ("poseidon2_4", 5, (14, 11, 58, 990, 508, 20), 1),
+    ("poseidon2_8", 6, (15, 11, 60, 1025, 544, 20), 1),
+    ("poseidon2_12", 7, (18, 11, 66, 1146, 648, 20), 1),
+    ("poseidon2_16", 8, (21, 11, 72, 1275, 748, 20), 1),
+    ("ecdsa_secp256k1_32", 9, (94, 11, 218, 4508, 3752, 20), 1),
 )
 PROFILE_BY_ID = {spec[0]: spec for spec in PROFILE_SPECS}
 

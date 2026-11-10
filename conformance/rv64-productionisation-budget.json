@@ -1016,6 +1016,13 @@
       "positive_growth_justification": "Approved RFC367 consumer-owned waist behavior, strict v2/v3 metadata and real source ownership/module identity/discovery gates; initial schema-only checkpoint does not admit unvalidated v3 registrations. Full D3 and populated/enforced D5 remain open.",
       "scope": "Existing metadata/build/CI owners and consumer test roots only. Preserve provider commands/versions, proof bytes, actual rejection checks and all D2/D4 gates; no GPU execution or new launcher.",
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/367#issuecomment-6752608217"
+    },
+    {
+      "id": "csp_protocol_shape_source_contract",
+      "net_code_budget": 5,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue361: pin the exact already-shipped RISC-V Metal protocol manifest including typed ECDSA recovery; retain strict single-registration checks. Regenerate stale proof-independent shape coverage only with the existing pinned CPU inspector/audit entrypoints, complete16-case matrix and source identity; no hand-edited hash or performance/proof/GPU reclassification. Code growth is limited to the existing test contract; metadata/receipts reported separately."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
