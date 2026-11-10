@@ -1,0 +1,187 @@
+{
+  "schema": "op-P2-w24-power-rotation-rejected-experiment/v1",
+  "decision": "Discard both candidates: no packed permutation gain. No core implementation change committed.",
+  "baseline_commit": "d003cc189df4ad45a67cf81503cd87378ec67271",
+  "baseline_sources": [
+    {
+      "path": "src/core/crypto/poseidon2_m31_w24.zig",
+      "sha256": "5446a578bdf071c02263b7d6182ccdb57eaa3867dcdc6f3ddf3c5c3661784003"
+    },
+    {
+      "path": "src/core/crypto/poseidon2_m31_sponge4.zig",
+      "sha256": "b38327418913d52edf73e7bf0f31432b570848641cd5b1745196d70e0f8add50"
+    }
+  ],
+  "source_identity": "same unchanged width24 P2 parameters/domain/round constants; native-only optional numeric hook; generic mul/constant order preserved",
+  "fixture": {
+    "packed_states": 4,
+    "iterations_per_sample": 2048,
+    "total_state_permutations_per_sample": 8192,
+    "chain": "Each sample initializes all4lanes with state0..23 and permutes the evolving state2048times",
+    "samples_per_variant": 16,
+    "schedule": "Balanced pairs alternate control-first/candidate-first;128iteration warmup each variant",
+    "optimization": "ReleaseFast",
+    "threads": 1,
+    "timing_instrumentation": "one timer per2048permutations, output states consumed and exact compared"
+  },
+  "measurements": [
+    {
+      "candidate": "unrolled",
+      "control_ns": [
+        3859375,
+        3482667,
+        3270084,
+        3051959,
+        3056125,
+        2923417,
+        2808166,
+        2734458,
+        2706958,
+        2563334,
+        2514042,
+        2502042,
+        2505500,
+        2450250,
+        2407958,
+        2406958
+      ],
+      "candidate_ns": [
+        3756333,
+        3586833,
+        3320125,
+        3225792,
+        3031833,
+        2986541,
+        2870000,
+        2862375,
+        2779708,
+        2796000,
+        2575625,
+        2607416,
+        2574000,
+        2590708,
+        2474958,
+        2497458
+      ],
+      "control_median_ns": 2720708,
+      "candidate_median_ns": 2829187,
+      "control_over_candidate": 0.9616571827878468,
+      "exact_state_parity": true
+    },
+    {
+      "candidate": "bounded_loop",
+      "control_ns": [
+        4920958,
+        2525542,
+        2551541,
+        2542459,
+        2550792,
+        2566583,
+        2608625,
+        2582292,
+        2580291,
+        2571458,
+        2594333,
+        2539708,
+        2578541,
+        2572584,
+        2573292,
+        2571250
+      ],
+      "candidate_ns": [
+        2503083,
+        2492000,
+        2529792,
+        2474125,
+        2585209,
+        2582292,
+        2538917,
+        2571875,
+        2585833,
+        2580292,
+        2471500,
+        2493375,
+        2611042,
+        2575709,
+        2582833,
+        2589500
+      ],
+      "control_median_ns": 2572021,
+      "candidate_median_ns": 2573792,
+      "control_over_candidate": 0.9993119102087503,
+      "exact_state_parity": true
+    }
+  ],
+  "qualification": {
+    "ReleaseSafe_14pass_1skip": true,
+    "known_answer_and_independent_dense_vectors": true,
+    "scalar_allshifts0to30_canonical_edges_random": true,
+    "packed_allshifts0to30_edges_random": true,
+    "full_random_packed_control_candidate_exact": true,
+    "generic_absent_hook_source_operation_stream_exact": true,
+    "parameter_identity_exact": true,
+    "full_native_or_root_proof_run": false,
+    "hardware_limit_claim": false,
+    "both_candidate_source_variants_safe14pass_1skip": true
+  },
+  "optimistic_compute_reference": {
+    "MAIN_intermediate_leaf_state_permutations": 109700992,
+    "MAIN_final_leaf_state_permutations": 16777216,
+    "MAIN_internal_node_state_permutations": 33554430,
+    "total_MAIN_state_permutations": 160032638,
+    "control_nanoseconds_per_state": 313.9674072265625,
+    "single_core_compute_seconds": 50.24503242448706,
+    "ideal16_equal_core_compute_seconds": 3.140314526530441,
+    "measured_MAIN_Merkle_seconds_approx": 3.81,
+    "caveat": "Micro-derived optimistic compute reference, not a physical lower bound/hardware guarantee.16cores heterogeneous; cache,memory,state scheduling and instruction mix differ. Not evidence of achieved or available1.21x speedup."
+  },
+  "commands": [
+    "zig test src/core/poseidon2_sponge4_test_root.zig -O ReleaseSafe",
+    "zig test src/core/poseidon2_sponge4_test_root.zig -O ReleaseFast --test-filter \"power rotation balanced\" --test-no-exec -femit-bin=/private/tmp/op-p2-pow2-micro",
+    "STWO_P2_POW2_BENCH=1 /private/tmp/op-p2-pow2-micro",
+    "zig test src/core/poseidon2_sponge4_test_root.zig -O ReleaseFast --test-filter \"power rotation balanced\" --test-no-exec -femit-bin=/private/tmp/op-p2-pow2-loop-micro",
+    "STWO_P2_POW2_BENCH=1 /private/tmp/op-p2-pow2-loop-micro"
+  ],
+  "recovery_artifacts": [
+    {
+      "path": "/private/tmp/op-p2-pow2-unrolled-rejected.patch",
+      "sha256": "0b71e2d7ac4d806975756c2d088fec0632cab195520128e84100d233540ce9ab"
+    },
+    {
+      "path": "/private/tmp/op-p2-pow2-loop-rejected.patch",
+      "sha256": "a6a19e2caaa0e611bc9ceeaf1ff69f92a4f4cc587241ea5eb88454148ec42524"
+    },
+    {
+      "path": "/private/tmp/op-p2-pow2-micro",
+      "sha256": "576bedd3e91b856987e2d4cfa167c7c121abb0b434e8b93110b1def101a3e535"
+    },
+    {
+      "path": "/private/tmp/op-p2-pow2-loop-micro",
+      "sha256": "baca6e0a8dd39dc0cf8560292f9e1c87f881473fa62e3772f539991c31940540"
+    },
+    {
+      "path": "/private/tmp/op-w24-unrolled-control.zig",
+      "sha256": "0ac4084585aa87ed750d8b8a6efe0c23ab8215115d47117c8836c982f3289739"
+    },
+    {
+      "path": "/private/tmp/op-sponge4-unrolled-control.zig",
+      "sha256": "9e5ce206c7717c695fb093d44af773725e8aea3046e18c13220f901aa09f1e08"
+    },
+    {
+      "path": "/private/tmp/op-p2-pow2-loop-recovery/src/core/crypto/poseidon2_m31_w24.zig",
+      "sha256": "8794dc42918fd2ac6949168530dc7594d881abbb22f74892c235d6cd0bfdbe1e"
+    },
+    {
+      "path": "/private/tmp/op-p2-pow2-loop-recovery/src/core/crypto/poseidon2_m31_sponge4.zig",
+      "sha256": "5e6e397a3065a90639a198802d40bb58ef6595be2ad41a5f25929d02ef26fac5"
+    }
+  ],
+  "artifact_note": "Scratch recovery artifacts are not committed. Unrolled source snapshot includes additional test-only edge coverage added after its micro binary build; measured micro function/algorithm unchanged. Loop source snapshot/patch matches its micro build.",
+  "logs": [
+    "/private/tmp/op-p2-pow2-safe.log",
+    "/private/tmp/op-p2-pow2-micro.log",
+    "/private/tmp/op-p2-pow2-loop-micro.log",
+    "/private/tmp/op-p2-pow2-loop-safe.log"
+  ],
+  "explanation": "Compiler simplification or register/code-size effects are hypotheses only; codegen explanation unconfirmed."
+}
