@@ -17,9 +17,10 @@ pub const TestProofPoolAuditConfig = struct {
 };
 
 /// Immutable receipt copied after a real proof attempt has returned. A zero
-/// pool address is the intentional serial (`N=1`) representation.
+/// composition address denotes serial execution, not absence of a pool owner.
 pub const TestProofPoolAuditSnapshot = struct {
     pool_address: usize,
+    pool_worker_count: usize,
     pool_init_count: usize,
     pool_deinit_count: usize,
     binding_init_count: usize,
@@ -53,6 +54,7 @@ pub const TestProofPoolAudit = struct {
     mutex: std.Thread.Mutex = .{},
     config: TestProofPoolAuditConfig,
     pool_address: usize = 0,
+    pool_worker_count: usize = 0,
     pool_init_count: usize = 0,
     pool_deinit_count: usize = 0,
     binding_init_count: usize = 0,
@@ -90,6 +92,7 @@ pub const TestProofPoolAudit = struct {
         defer self.mutex.unlock();
         return .{
             .pool_address = self.pool_address,
+            .pool_worker_count = self.pool_worker_count,
             .pool_init_count = self.pool_init_count,
             .pool_deinit_count = self.pool_deinit_count,
             .binding_init_count = self.binding_init_count,
@@ -117,13 +120,15 @@ pub const TestProofPoolAudit = struct {
         };
     }
 
-    pub fn recordPoolInit(self: *TestProofPoolAudit, address: usize) void {
+    pub fn recordPoolInit(self: *TestProofPoolAudit, address: usize, worker_count: usize) void {
         self.mutex.lock();
         defer self.mutex.unlock();
         self.pool_init_count += 1;
+        if (address == 0 or worker_count == 0) self.stage_identity_mismatches += 1;
         if (self.pool_address == 0) {
             self.pool_address = address;
-        } else if (self.pool_address != address) {
+            self.pool_worker_count = worker_count;
+        } else if (self.pool_address != address or self.pool_worker_count != worker_count) {
             self.stage_identity_mismatches += 1;
         }
     }
@@ -170,7 +175,8 @@ pub const TestProofPoolAudit = struct {
         } else if (self.stage_pool_addresses[index] != address) {
             self.stage_identity_mismatches += 1;
         }
-        if (self.pool_address != address) self.stage_identity_mismatches += 1;
+        const expected_address = if (stage == .composition and self.pool_worker_count == 1) 0 else self.pool_address;
+        if (expected_address != address) self.stage_identity_mismatches += 1;
         if (self.config.fail_at_stage == stage and self.injected_failure_count == 0) {
             self.injected_failure_count = 1;
             return true;
@@ -247,3 +253,48 @@ pub const TestProofPoolAudit = struct {
         if (self.pool_address != address) self.stage_identity_mismatches += 1;
     }
 };
+
+test "proof-pool audit distinguishes serial composition from physical ownership" {
+    for ([_]usize{ 1, 2, 4 }) |width| {
+        var audit = TestProofPoolAudit.init(.{});
+        audit.recordPoolInit(1234, width);
+        audit.recordBindingInit(1234);
+        for (std.enums.values(ProofPoolStage)) |stage| {
+            try std.testing.expect(!audit.recordStage(stage, if (width == 1 and stage == .composition) 0 else 1234));
+        }
+        audit.recordGlobalResolution(1234);
+        audit.recordLeaseAcquire(1234, width);
+        audit.recordLeaseRelease(1234, width);
+        audit.recordPublication(1234);
+        audit.recordBindingDeinit(1234);
+        audit.recordPoolDeinit(0, 0, 0);
+        const receipt = audit.snapshot();
+        try std.testing.expectEqual(width, receipt.pool_worker_count);
+        try std.testing.expectEqual(@as(usize, 0), receipt.stage_identity_mismatches);
+        try std.testing.expectEqual(@as(usize, 0), receipt.global_resolution_mismatches);
+        try std.testing.expectEqual(@as(usize, 0), receipt.active_lease_count);
+    }
+}
+
+test "proof-pool audit rejects missing wrong and inconsistent owners" {
+    for ([_]usize{ 1, 2, 4 }) |width| {
+        for (std.enums.values(ProofPoolStage)) |stage| {
+            const expected: usize = if (width == 1 and stage == .composition) 0 else 1234;
+            for ([_]usize{ 0, 1234, 5678 }) |wrong| {
+                if (wrong == expected) continue;
+                var audit = TestProofPoolAudit.init(.{});
+                audit.recordPoolInit(1234, width);
+                _ = audit.recordStage(stage, wrong);
+                try std.testing.expectEqual(@as(usize, 1), audit.snapshot().stage_identity_mismatches);
+            }
+        }
+        var changed = TestProofPoolAudit.init(.{});
+        changed.recordPoolInit(1234, width);
+        changed.recordPoolInit(1234, width + 1);
+        changed.recordPoolInit(5678, width);
+        try std.testing.expectEqual(@as(usize, 2), changed.snapshot().stage_identity_mismatches);
+    }
+    var invalid = TestProofPoolAudit.init(.{});
+    invalid.recordPoolInit(0, 0);
+    try std.testing.expectEqual(@as(usize, 1), invalid.snapshot().stage_identity_mismatches);
+}

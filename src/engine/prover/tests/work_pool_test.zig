@@ -18,6 +18,41 @@ test "work_pool: detection and test-global behavior" {
     try std.testing.expect(getGlobalPool() == null);
 }
 
+test "work_pool: serial owner audits balanced rebinding and leases" {
+    var audit = work_pool.TestProofPoolAudit.init(.{});
+    var observer = try work_pool.TestProofPoolAuditBinding.init(&audit);
+    defer observer.deinit();
+    {
+        var pool: WorkPool = undefined;
+        try pool.initInPlaceWithOptions(.{ .worker_count = 1, .backing_allocator = std.testing.allocator });
+        defer pool.deinit();
+        for (0..2) |_| {
+            var binding = try ScopedPoolBinding.init(&pool);
+            defer binding.deinit();
+            try std.testing.expectEqual(&pool, getGlobalPool().?);
+            var lease = try pool.acquire(WorkerBudget.serial());
+            defer lease.deinit();
+        }
+        try work_pool.observeProofPoolStageForTest(.composition, null);
+    }
+    const receipt = audit.snapshot();
+    try std.testing.expect(receipt.pool_address != 0);
+    try std.testing.expectEqual(@as(usize, 1), receipt.pool_worker_count);
+    try std.testing.expectEqual(@as(usize, 1), receipt.pool_init_count);
+    try std.testing.expectEqual(receipt.pool_init_count, receipt.pool_deinit_count);
+    try std.testing.expectEqual(@as(usize, 2), receipt.binding_init_count);
+    try std.testing.expectEqual(receipt.binding_init_count, receipt.binding_deinit_count);
+    try std.testing.expectEqual(@as(usize, 2), receipt.lease_acquire_count);
+    try std.testing.expectEqual(receipt.lease_acquire_count, receipt.lease_release_count);
+    try std.testing.expectEqual(@as(usize, 0), receipt.active_lease_count);
+    try std.testing.expectEqual(@as(usize, 0), receipt.stage_identity_mismatches);
+    try std.testing.expectEqual(@as(usize, 0), receipt.global_resolution_mismatches);
+    try std.testing.expectEqual(@as(usize, 0), receipt.structured_submitted);
+    try std.testing.expectEqual(@as(usize, 0), receipt.deinit_residual_leased_workers);
+    try std.testing.expectEqual(@as(usize, 0), receipt.deinit_residual_reserved_slots);
+    try std.testing.expectEqual(@as(usize, 0), receipt.deinit_residual_active_slots);
+}
+
 test "work_pool: scoped binding exposes one pool and suppresses unbound helpers" {
     var pool: WorkPool = undefined;
     try pool.initInPlaceWithOptions(.{

@@ -994,7 +994,7 @@
       "net_code_budget": 80,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Issue368: retain five connected live full-width timing, cleanup, independent verification, deterministic sampling and publication contracts in place of retired source fixtures; preserve discovery floors and exact pool identity assertions, with bounded failure-only receipt diagnostics. Retired implementation and tests remain together under archive/profiled-adapter-before-full-width-20261110. No runtime, protocol, proof pin or performance policy change; rollback restores the bounded test/catalog transaction."
+      "positive_growth_justification": "Issue368: retain five connected live full-width timing, cleanup, independent verification, deterministic sampling and publication contracts in place of retired source fixtures. Observe physical pool width and distinguish explicit one-worker serial composition from its live owner; negatively test wrong/null parallel owners and inconsistent owner/width observations. Preserve discovery floors, all proof/claim/transcript comparisons, failure recovery, lease/binding balance and teardown checks. Test-only model and compiled-out observation hooks; no runtime scheduling, protocol, proof pin or performance policy change. Retired implementation/tests remain under archive/profiled-adapter-before-full-width-20261110; rollback restores this audit/test transaction. Pre-edit scope: issuecomment-6759947826; existing overall net80 ceiling unchanged."
     },
     {
       "id": "riscv_pr_smoke_live_schema_349",
