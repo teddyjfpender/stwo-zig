@@ -1,0 +1,523 @@
+{
+  "schema": "op-authentic-lane-segmentation-design-cost/v1",
+  "scope": "Source-only first4M actualretirements. No newGKR/witness/PCS/recursion proof; no block/root/full-prefix admission.",
+  "census": {
+    "schema": "op-authentic-4m-lane-role-census/v1",
+    "retirements": 4000000,
+    "program_log": 20,
+    "program_entries": 643629,
+    "raw_function_counts": {
+      "alu": 1933410,
+      "binary": 408183,
+      "shift": 395828,
+      "jalr": 19748,
+      "division": 15,
+      "multiplication": 159714,
+      "memory": 1109111,
+      "service": 13487
+    },
+    "roles": [
+      {
+        "kind": "core",
+        "role": "cpu",
+        "row_log": 22,
+        "queries": 14,
+        "semantic_rows": 4000000,
+        "semantic_scope": "captured active metadata rows; padded rows may still emit UNIT range fractions"
+      },
+      {
+        "kind": "core",
+        "role": "rom",
+        "row_log": 20,
+        "queries": 1,
+        "semantic_rows": 1048576,
+        "semantic_scope": "entire structural/public support domain, NOT nonzero multiplicity rows"
+      },
+      {
+        "kind": "core",
+        "role": "boundary",
+        "row_log": 5,
+        "queries": 2,
+        "semantic_rows": 32,
+        "semantic_scope": "entire structural/public support domain, NOT nonzero multiplicity rows"
+      },
+      {
+        "kind": "core",
+        "role": "alu",
+        "row_log": 20,
+        "queries": 13,
+        "semantic_rows": 882634,
+        "semantic_scope": "captured active metadata rows; padded rows may still emit UNIT range fractions"
+      },
+      {
+        "kind": "core",
+        "role": "binary",
+        "row_log": 18,
+        "queries": 9,
+        "semantic_rows": 202790,
+        "semantic_scope": "captured active metadata rows; padded rows may still emit UNIT range fractions"
+      },
+      {
+        "kind": "core",
+        "role": "shift",
+        "row_log": 18,
+        "queries": 11,
+        "semantic_rows": 247714,
+        "semantic_scope": "captured active metadata rows; padded rows may still emit UNIT range fractions"
+      },
+      {
+        "kind": "core",
+        "role": "jalr",
+        "row_log": 15,
+        "queries": 3,
+        "semantic_rows": 19748,
+        "semantic_scope": "captured active metadata rows; padded rows may still emit UNIT range fractions"
+      },
+      {
+        "kind": "core",
+        "role": "division",
+        "row_log": 5,
+        "queries": 26,
+        "semantic_rows": 15,
+        "semantic_scope": "captured active metadata rows; padded rows may still emit UNIT range fractions"
+      },
+      {
+        "kind": "core",
+        "role": "multiplication",
+        "row_log": 18,
+        "queries": 97,
+        "semantic_rows": 159744,
+        "semantic_scope": "captured active metadata rows; padded rows may still emit UNIT range fractions"
+      },
+      {
+        "kind": "core",
+        "role": "shift_table",
+        "row_log": 16,
+        "queries": 16,
+        "semantic_rows": 65536,
+        "semantic_scope": "entire structural/public support domain, NOT nonzero multiplicity rows"
+      },
+      {
+        "kind": "core",
+        "role": "and_table",
+        "row_log": 16,
+        "queries": 2,
+        "semantic_rows": 65536,
+        "semantic_scope": "entire structural/public support domain, NOT nonzero multiplicity rows"
+      },
+      {
+        "kind": "core",
+        "role": "range16",
+        "row_log": 16,
+        "queries": 1,
+        "semantic_rows": 65536,
+        "semantic_scope": "entire structural/public support domain, NOT nonzero multiplicity rows"
+      },
+      {
+        "kind": "core",
+        "role": "range8",
+        "row_log": 8,
+        "queries": 1,
+        "semantic_rows": 256,
+        "semantic_scope": "entire structural/public support domain, NOT nonzero multiplicity rows"
+      },
+      {
+        "kind": "core",
+        "role": "ls",
+        "row_log": 19,
+        "queries": 10,
+        "semantic_rows": 413581,
+        "semantic_scope": "captured active metadata rows; padded rows may still emit UNIT range fractions"
+      },
+      {
+        "kind": "core",
+        "role": "initial",
+        "row_log": 17,
+        "queries": 0,
+        "semantic_rows": 67326,
+        "semantic_scope": "captured active metadata rows; padded rows may still emit UNIT range fractions"
+      },
+      {
+        "kind": "core",
+        "role": "terminal",
+        "row_log": 5,
+        "queries": 0,
+        "semantic_rows": 0,
+        "semantic_scope": "captured active metadata rows; padded rows may still emit UNIT range fractions"
+      },
+      {
+        "kind": "core",
+        "role": "selection",
+        "row_log": 16,
+        "queries": 2,
+        "semantic_rows": 65536,
+        "semantic_scope": "entire structural/public support domain, NOT nonzero multiplicity rows"
+      },
+      {
+        "kind": "bridge",
+        "role": "add",
+        "row_log": 14,
+        "queries": 100,
+        "semantic_rows": 10584,
+        "semantic_scope": "captured calls times exact provider coordinate count"
+      },
+      {
+        "kind": "bridge",
+        "role": "double",
+        "row_log": 13,
+        "queries": 100,
+        "semantic_rows": 4524,
+        "semantic_scope": "captured calls times exact provider coordinate count"
+      },
+      {
+        "kind": "bridge",
+        "role": "sha256",
+        "row_log": 12,
+        "queries": 100,
+        "semantic_rows": 2853,
+        "semantic_scope": "captured calls times exact provider coordinate count"
+      },
+      {
+        "kind": "bulk",
+        "role": "desc",
+        "row_log": 13,
+        "queries": 20,
+        "semantic_rows": 6632,
+        "semantic_scope": "captured bulk plan row count"
+      },
+      {
+        "kind": "bulk",
+        "role": "copy",
+        "row_log": 17,
+        "queries": 7,
+        "semantic_rows": 85094,
+        "semantic_scope": "captured bulk plan row count"
+      },
+      {
+        "kind": "bulk",
+        "role": "set",
+        "row_log": 14,
+        "queries": 4,
+        "semantic_rows": 8670,
+        "semantic_scope": "captured bulk plan row count"
+      },
+      {
+        "kind": "bulk",
+        "role": "ucopy",
+        "row_log": 15,
+        "queries": 19,
+        "semantic_rows": 20903,
+        "semantic_scope": "captured bulk plan row count"
+      },
+      {
+        "kind": "bulk",
+        "role": "cdesc",
+        "row_log": 12,
+        "queries": 19,
+        "semantic_rows": 2503,
+        "semantic_scope": "captured bulk plan row count"
+      },
+      {
+        "kind": "bulk",
+        "role": "cmp",
+        "row_log": 14,
+        "queries": 15,
+        "semantic_rows": 11407,
+        "semantic_scope": "captured bulk plan row count"
+      },
+      {
+        "kind": "bulk",
+        "role": "jdesc",
+        "row_log": 5,
+        "queries": 17,
+        "semantic_rows": 3,
+        "semantic_scope": "captured bulk plan row count"
+      },
+      {
+        "kind": "bulk",
+        "role": "jscan",
+        "row_log": 8,
+        "queries": 92,
+        "semantic_rows": 160,
+        "semantic_scope": "captured bulk plan row count"
+      },
+      {
+        "kind": "bulk",
+        "role": "jtab",
+        "row_log": 14,
+        "queries": 1,
+        "semantic_rows": 8448,
+        "semantic_scope": "entire fixed JUMPDEST table domain, NOT nonzero multiplicities"
+      },
+      {
+        "kind": "dword",
+        "role": "head",
+        "row_log": 19,
+        "queries": 7,
+        "semantic_rows": 524288,
+        "semantic_scope": "captured aligned memory events, head first; padding emits unit range queries"
+      },
+      {
+        "kind": "dword",
+        "role": "tail",
+        "row_log": 18,
+        "queries": 7,
+        "semantic_rows": 171242,
+        "semantic_scope": "captured aligned memory events, head first; padding emits unit range queries"
+      },
+      {
+        "kind": "frontier",
+        "role": "sponge",
+        "row_log": 7,
+        "queries": 3,
+        "semantic_rows": 126,
+        "semantic_scope": "captured calls; padding emits unit U16/U8 queries"
+      }
+    ],
+    "proposal_only": true,
+    "new_GKR_or_physical_proof": false,
+    "block_or_root_accepted": false
+  },
+  "all_segments": {
+    "policy": "all",
+    "old_instances": 30,
+    "proposed_instances": 68,
+    "instance_cap": 128,
+    "instance_cap_passes": true,
+    "old_max_variables": 26,
+    "proposed_max_variables": 25,
+    "old_facts": 149605184,
+    "proposed_facts": 121295904,
+    "saved_facts": 28309280,
+    "saved_percent": 18.922659792323774,
+    "old_common_sumcheck_rounds": 325,
+    "proposed_common_sumcheck_rounds": 300,
+    "old_instance_layer_records": 533,
+    "proposed_instance_layer_records": 1117,
+    "old_numerical_metadata_envelope": 6414336,
+    "proposed_numerical_metadata_envelope": 10117120,
+    "old_checkpoint_planning_bytes": 7785883904,
+    "proposed_checkpoint_planning_bytes": 6317504128,
+    "old_local_binding_cells": 143011328,
+    "proposed_aggregated_local_binding_cells": 143011328,
+    "naive_extra_binding_cells": 230047232,
+    "proposed_additional_physical_FIXED_columns": 0,
+    "proposed_additional_physical_MAIN_columns": 0,
+    "source_descriptor_words": 408,
+    "qualification": "Planning only; no live source/wire/receiver/proof implementation or timing prediction."
+  },
+  "high_yield_segments": {
+    "policy": "high_yield",
+    "old_instances": 30,
+    "proposed_instances": 40,
+    "instance_cap": 128,
+    "instance_cap_passes": true,
+    "old_max_variables": 26,
+    "proposed_max_variables": 25,
+    "old_facts": 149605184,
+    "proposed_facts": 123652928,
+    "saved_facts": 25952256,
+    "saved_percent": 17.347163584919624,
+    "old_common_sumcheck_rounds": 325,
+    "proposed_common_sumcheck_rounds": 300,
+    "old_instance_layer_records": 533,
+    "proposed_instance_layer_records": 732,
+    "old_numerical_metadata_envelope": 6414336,
+    "proposed_numerical_metadata_envelope": 7135232,
+    "old_checkpoint_planning_bytes": 7785883904,
+    "proposed_checkpoint_planning_bytes": 6437087488,
+    "old_local_binding_cells": 143011328,
+    "proposed_aggregated_local_binding_cells": 143011328,
+    "naive_extra_binding_cells": 197132288,
+    "proposed_additional_physical_FIXED_columns": 0,
+    "proposed_additional_physical_MAIN_columns": 0,
+    "source_descriptor_words": 240,
+    "qualification": "Planning only; no live source/wire/receiver/proof implementation or timing prediction."
+  },
+  "high_yield_roles": [
+    {
+      "kind": "core",
+      "role": "cpu",
+      "queries": 14,
+      "old_lanes": 16,
+      "segments": [
+        {
+          "first_lane": 0,
+          "width": 8,
+          "lane_log": 3,
+          "variables": 25
+        },
+        {
+          "first_lane": 8,
+          "width": 4,
+          "lane_log": 2,
+          "variables": 24
+        },
+        {
+          "first_lane": 12,
+          "width": 2,
+          "lane_log": 1,
+          "variables": 23
+        }
+      ],
+      "old_facts": 67108864,
+      "new_facts": 58720256
+    },
+    {
+      "kind": "core",
+      "role": "alu",
+      "queries": 13,
+      "old_lanes": 16,
+      "segments": [
+        {
+          "first_lane": 0,
+          "width": 8,
+          "lane_log": 3,
+          "variables": 23
+        },
+        {
+          "first_lane": 8,
+          "width": 4,
+          "lane_log": 2,
+          "variables": 22
+        },
+        {
+          "first_lane": 12,
+          "width": 1,
+          "lane_log": 0,
+          "variables": 20
+        }
+      ],
+      "old_facts": 16777216,
+      "new_facts": 13631488
+    },
+    {
+      "kind": "core",
+      "role": "binary",
+      "queries": 9,
+      "old_lanes": 16,
+      "segments": [
+        {
+          "first_lane": 0,
+          "width": 8,
+          "lane_log": 3,
+          "variables": 21
+        },
+        {
+          "first_lane": 8,
+          "width": 1,
+          "lane_log": 0,
+          "variables": 18
+        }
+      ],
+      "old_facts": 4194304,
+      "new_facts": 2359296
+    },
+    {
+      "kind": "core",
+      "role": "shift",
+      "queries": 11,
+      "old_lanes": 16,
+      "segments": [
+        {
+          "first_lane": 0,
+          "width": 8,
+          "lane_log": 3,
+          "variables": 21
+        },
+        {
+          "first_lane": 8,
+          "width": 2,
+          "lane_log": 1,
+          "variables": 19
+        },
+        {
+          "first_lane": 10,
+          "width": 1,
+          "lane_log": 0,
+          "variables": 18
+        }
+      ],
+      "old_facts": 4194304,
+      "new_facts": 2883584
+    },
+    {
+      "kind": "core",
+      "role": "multiplication",
+      "queries": 97,
+      "old_lanes": 128,
+      "segments": [
+        {
+          "first_lane": 0,
+          "width": 64,
+          "lane_log": 6,
+          "variables": 24
+        },
+        {
+          "first_lane": 64,
+          "width": 32,
+          "lane_log": 5,
+          "variables": 23
+        },
+        {
+          "first_lane": 96,
+          "width": 1,
+          "lane_log": 0,
+          "variables": 18
+        }
+      ],
+      "old_facts": 33554432,
+      "new_facts": 25427968
+    },
+    {
+      "kind": "core",
+      "role": "ls",
+      "queries": 10,
+      "old_lanes": 16,
+      "segments": [
+        {
+          "first_lane": 0,
+          "width": 8,
+          "lane_log": 3,
+          "variables": 22
+        },
+        {
+          "first_lane": 8,
+          "width": 2,
+          "lane_log": 1,
+          "variables": 20
+        }
+      ],
+      "old_facts": 8388608,
+      "new_facts": 5242880
+    }
+  ],
+  "resource": {
+    "live_bytes": 0,
+    "peak_live_bytes": 1752300842,
+    "host_live_bytes": 0,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 1752300842,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "source_census_sha256": "9fe2175e66221092bcee4cdee805cf279493d132aa29d68415de3fe5da08648e",
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-lane-census-v1",
+  "reproduction": {
+    "census_target": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseFast -j1 -Driscv-test-filter='OP heavy selected source only lane census'",
+    "mode": "census_only",
+    "config": "../heavy-prefix-4m-v1/config.json",
+    "oracle": "../heavy-prefix-4m-v1/oracle.json",
+    "model": "python3 scripts/rv64_gkr_lane_segment_report.py lane-census.json --output NEWFILE --self-test"
+  },
+  "qualification": {
+    "focused_census_tests": 69,
+    "algebra_tests": 3,
+    "Unicorn_PC_and_all32_registers_match": true,
+    "live_external_after_teardown": 0,
+    "no_wide_FIXED_key_or_physical_proof": true,
+    "no_timing_or_certified_security_claim": true
+  },
+  "next_gate": "Explicit new trusted source version, segmented actualGP child and one complete physical binding per role with fresh post-receipt powers aggregation; new ledger/wire/receiver/recursion controls before production admission."
+}

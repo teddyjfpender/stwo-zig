@@ -29,7 +29,7 @@ const Profile = ProfileType.op_target_b4_q72_p0_fold4_v1;
 const B2 = ProfileType.op_control_b2_q144_p0_fold4_v1;
 const Write = @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive;
 const N = 4_000_000;
-const Mode = enum { plan, prove, gkr_only, gkr_all_upper_only };
+const Mode = enum { plan, prove, gkr_only, gkr_all_upper_only, census_only };
 const Endpoint = struct { steps: u64, initial_pc: u64, initial_registers: [32]u64, final_pc: u64, final_registers: [32]u64, elf_sha256: []const u8, input_sha256: []const u8, completed: bool };
 fn json(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, value: anytype) !void {
     const raw = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
@@ -124,6 +124,10 @@ fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std
     defer bounds.deinit();
     const checked = try Security.preflight(selected_profile, &bounds, &.{}, &.{});
     const capture_ns = timer.read() - image_program_ns;
+    if (mode == .census_only) {
+        try laneCensus(a, dir, &program, &native, declaration, request, frontier_log);
+        return;
+    }
     // Wide keys are constructed only after source field-mass/security admission.
     var metadata = try @import("../../word16_execution/program_metadata.zig").Cache.init(a, 256 << 20);
     defer metadata.deinit();
@@ -415,4 +419,62 @@ test "OP heavy selected conditional B2 CPU fragment control" {
 
 test "OP heavy selected retained all upper local GKR profile" {
     try environment(.gkr_all_upper_only, Profile);
+}
+
+const CensusRole = struct { kind: []const u8, role: []const u8, row_log: u32, queries: u32, semantic_rows: usize, semantic_scope: []const u8 };
+fn laneCensus(a: std.mem.Allocator, dir: std.fs.Dir, program: *const Program, native: *const Prepared, declaration: @import("../../word16_global_execution/services/wire.zig").CpuDeclaration, request: @import("../../word16_global_execution/services/protocol.zig").Request, frontier_log: u32) !void {
+    const G = @import("../../word16_execution/geometry.zig");
+    const Roster = @import("../../word16_global_execution/services/gkr_local/roster.zig");
+    const A = front.rv64_air;
+    var roles: std.ArrayList(CensusRole) = .empty;
+    defer roles.deinit(a);
+    for (G.shapes(program, declaration.geometry)) |shape| {
+        if (!shape.present()) continue;
+        const count = if (declaration.geometry.cpu_u8_pairs and shape.role == .cpu) 14 else if (declaration.geometry.cpu_u8_pairs and shape.role == .and_table) 2 else Roster.terms(shape.role);
+        const rows: usize = @as(usize, 1) << @intCast(shape.log);
+        const active: usize = switch (shape.role) {
+            .cpu => native.cpu.?.public.steps,
+            .alu => @min(rows, native.alu.facts.len),
+            .binary => @min(rows, native.binary.facts.len),
+            .shift => @min(rows, native.shift.len),
+            .jalr => if (native.jalr) |v| v.facts.len else 0,
+            .division => native.division.len,
+            .multiplication => native.multiplication.len,
+            .ls => @min(rows, request.base.memory.ls_count),
+            .initial => request.base.memory.initial.len,
+            .terminal => request.base.memory.terminal.len,
+            .alu_tail, .binary_tail, .shift_tail, .ls_tail => return error.CensusTailRequiresExplicitCount,
+            else => rows,
+        };
+        try roles.append(a, .{ .kind = "core", .role = @tagName(shape.role), .row_log = shape.log, .queries = count, .semantic_rows = active, .semantic_scope = switch (shape.role) {
+            .cpu, .alu, .binary, .shift, .jalr, .division, .multiplication, .ls, .initial, .terminal => "captured active metadata rows; padded rows may still emit UNIT range fractions",
+            else => "entire structural/public support domain, NOT nonzero multiplicity rows",
+        } });
+    }
+    for (std.enums.values(Types.Family)) |family| if (declaration.bridges.at(family)) |log| {
+        const calls = request.calls[@intFromEnum(family)];
+        const coords: usize = if (family == .keccak) 25 else A.crypto.secp256k1.word16_bridge.types.coordinates(switch (family) {
+            .add => .add,
+            .double => .double,
+            .sha256 => .sha256,
+            else => return error.CensusExtraFamily,
+        });
+        try roles.append(a, .{ .kind = "bridge", .role = @tagName(family), .row_log = log, .queries = Roster.bridgeTerms(family), .semantic_rows = calls * coords, .semantic_scope = "captured calls times exact provider coordinate count" });
+    };
+    inline for (Types.bulk_kinds) |kind| if (declaration.bridges.bulk.at(kind)) |log| {
+        try roles.append(a, .{ .kind = "bulk", .role = @tagName(kind), .row_log = log, .queries = @import("../../word16_global_execution/services/gkr_local/bulk_projection.zig").localTerms(kind), .semantic_rows = request.bulk.rows(kind), .semantic_scope = if (kind == .jtab) "entire fixed JUMPDEST table domain, NOT nonzero multiplicities" else "captured bulk plan row count" });
+    };
+    var dword_remaining: usize = request.ls_dword;
+    for (0..Types.DWORD_INSTANCES) |index| if (declaration.bridges.dwordLog(index)) |log| {
+        const rows = @as(usize, 1) << @intCast(log);
+        const actual = @min(rows, dword_remaining);
+        dword_remaining -= actual;
+        try roles.append(a, .{ .kind = "dword", .role = if (index == 0) "head" else "tail", .row_log = log, .queries = @import("../../word16_global_execution/services/gkr_local/dword_projection.zig").LOCAL_TERMS, .semantic_rows = actual, .semantic_scope = "captured aligned memory events, head first; padding emits unit range queries" });
+    };
+    if (dword_remaining != 0) return error.CensusDwordOverflow;
+    try roles.append(a, .{ .kind = "frontier", .role = "sponge", .row_log = frontier_log, .queries = 3, .semantic_rows = request.sponge.calls, .semantic_scope = "captured calls; padding emits unit U16/U8 queries" });
+    try json(a, dir, "lane-census.json", .{ .schema = "op-authentic-4m-lane-role-census/v1", .retirements = N, .program_log = program.log_size, .program_entries = program.entries.len, .raw_function_counts = native.raw_counts, .roles = roles.items, .proposal_only = true, .new_GKR_or_physical_proof = false, .block_or_root_accepted = false });
+}
+test "OP heavy selected source only lane census" {
+    try environment(.census_only, Profile);
 }
