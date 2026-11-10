@@ -29,6 +29,15 @@ pub fn fill(input: *const Inputs, c: Coefficients) !S.Row {
     const value: u256 = @intCast(@mod(expression(input, c), @as(i1024, P)));
     return fillOutput(input, c, value);
 }
+/// Adversarial physical probe only. Canonical input inheritance must reject
+/// such a value; this exposes its otherwise valid integer arithmetic witness.
+pub fn fillRawInputsForTesting(input: *const Inputs, c: Coefficients) !S.Row {
+    if (!@import("builtin").is_test) @compileError("test-only raw MAC inputs");
+    for (input) |x| if (x >= 2 * P) return error.Mac12RawInputBound;
+    if (!coefficientsValid(c)) return error.Mac12CoefficientBound;
+    const value: u256 = @intCast(@mod(expression(input, c), @as(i1024, P)));
+    return fillOutput(input, c, value);
+}
 pub fn aliasForTesting(input: *const Inputs, c: Coefficients) !S.Row {
     if (!@import("builtin").is_test) @compileError("test-only output+p");
     const value: u256 = @intCast(@mod(expression(input, c), @as(i1024, P)));

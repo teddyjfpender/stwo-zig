@@ -135,3 +135,18 @@ test "MAC12 trusted fixed authority and inactive zero padding" {
     const v = View{ .row = &zero, .coefficients = @splat(0) };
     try std.testing.expectEqual(@as(u32, 256), S.byteQuery(O, v, 32 + 33 + 192).toM31Array()[0].v);
 }
+
+test "MAC12 coherent raw input alias has valid carried arithmetic pending canonical SSA" {
+    var input: W.Inputs = @splat(S.B.P - 1);
+    input[0] += S.B.P;
+    const c: W.Coefficients = @splat(18);
+    try std.testing.expectError(error.Mac12NoncanonicalInput, W.fill(&input, c));
+    const row = try W.fillRawInputsForTesting(&input, c);
+    try std.testing.expect(W.arithmeticValid(&row, c));
+    try std.testing.expect(!W.valid(&row, c));
+    var sink = Sink{};
+    const v = View{ .row = &row, .coefficients = c };
+    S.emit(O, v, &sink);
+    for (sink.values) |x| try std.testing.expect(x.isZero());
+    for (0..S.BYTE_QUERIES) |i| try std.testing.expect(S.byteQuery(O, v, i).toM31Array()[0].v < 256);
+}
