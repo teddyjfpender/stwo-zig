@@ -1,0 +1,56 @@
+{
+  "schema": "op-p2-source-state-permutation-census/v1",
+  "authority": "Actual4M column histograms committed9c36e3805; no additional execution/proof/benchmark.",
+  "measurement_kind": "Source-derived semantic work counts, NOT measured time fractions, hardware instruction counts or SIMD kernel launch counts.",
+  "construction": {
+    "rate_words": 12,
+    "group_absorption_formula": "Trackat=cumulative previous column count mod12. Eachheight(log,width) absorbs floor((at+width)/12)*2^log state permutations, thenat=(at+width)%12. Native4 caching has zero repeatedtailabsorptions on this real16worker shape.",
+    "leaf_finalization": "Exactlyone mandatory permutation per finalheight leaf, includingat0.",
+    "binary_node": "Two permutations per binary node:18digest-coordinate words at rate12, then mandatory finalization.",
+    "SIMD_caveat": "Four independent state permutations may shareone packed native4 call. Prefix/helper/scalar overhead and memorytraffic differ; these counts are not stage wall-time shares."
+  },
+  "trees": [
+    {
+      "tree": "producer_FIXED",
+      "absorption_state_permutations": 14665088,
+      "mandatory_leaf_finalization_state_permutations": 16777216,
+      "binary_internal_node_state_permutations": 33554430,
+      "total_state_permutations": 64996734,
+      "source_work_percent": {
+        "absorption": 22.562807540452724,
+        "leaf_finalization": 25.812398512208322,
+        "internal_nodes": 51.62479394733895
+      }
+    },
+    {
+      "tree": "MAIN",
+      "absorption_state_permutations": 109700992,
+      "mandatory_leaf_finalization_state_permutations": 16777216,
+      "binary_internal_node_state_permutations": 33554430,
+      "total_state_permutations": 160032638,
+      "source_work_percent": {
+        "absorption": 68.54913683295028,
+        "leaf_finalization": 10.483621472264927,
+        "internal_nodes": 20.967241694784786
+      }
+    },
+    {
+      "tree": "INTER",
+      "absorption_state_permutations": 66776064,
+      "mandatory_leaf_finalization_state_permutations": 16777216,
+      "binary_internal_node_state_permutations": 33554430,
+      "total_state_permutations": 117107710,
+      "source_work_percent": {
+        "absorption": 57.02106547895096,
+        "leaf_finalization": 14.326312076292842,
+        "internal_nodes": 28.6526224447562
+      }
+    }
+  ],
+  "interpretation": [
+    "Absorption remains the largest semantic permutation count in MAIN(68.55%) and INTER(57.02%). Binarynodes/mandatoryfinalization are meaningful but not the majority.",
+    "ColdFIXED is different: internalnodes51.62% and mandatoryleaf-finalization25.81% dominate. Independent freshreceiver builds the sameFIXED shape; immutable source setup reuse can avoid repeatedcold work.",
+    "Measured remainingMAIN+INTERhash wall6.549s comes from the physical receipt. This note does not partition that time or claim a new speedup."
+  ],
+  "security_or_protocol_changed": false
+}
