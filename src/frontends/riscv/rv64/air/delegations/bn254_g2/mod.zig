@@ -11,3 +11,4 @@ pub fn sourceDigest() [32]u8 {
     h.update(@embedFile("fixture.zig"));
     return h.finalResult();
 }
+pub const preparation = @import("preparation/mod.zig");

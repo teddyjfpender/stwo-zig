@@ -60,6 +60,22 @@ pub const Witness = struct {
         @memcpy(&result, main[index * L.MAIN ..][0..L.MAIN]);
         return result;
     }
+    /// Coherent field-congruence forgery control: propagate the noncanonical
+    /// negative-Q writer into every later read, preserving all modular outputs.
+    pub fn corruptPrefixForTesting(self: *Witness) void {
+        if (!@import("builtin").is_test) @compileError("test-only canonicality attack");
+        const node = ROM.doubles[0];
+        const input = self.operands(.doubling, node);
+        const L = Layout(.doubling);
+        const forged = L.congruentForgeryForTesting(0, &input);
+        @memcpy(self.double_main[0..L.MAIN], &forged);
+        self.values[node.writer] += S.B.BN254_P;
+        inline for (1..S.PREFIX) |opcode| self.write(.doubling, opcode, opcode);
+        for (ROM.transitions) |step_| switch (step_.kind) {
+            .doubling => self.transition(.doubling, step_.row_start),
+            .addition => self.transition(.addition, step_.row_start),
+        };
+    }
     pub fn finalPoint(self: *const Witness) S.Base.Point {
         var out: S.Base.Point = undefined;
         for (ROM.final_point, 0..) |id, i| out[i / 2][i % 2] = self.values[id];
