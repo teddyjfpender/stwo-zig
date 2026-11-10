@@ -42,6 +42,21 @@ complete roots, every physical recursive proof and the tree bytes match exactly.
 Every separate strict receiver accepts. Defaults remain serial with a 64 MiB
 CPU wrap cache. The fanout experiment below is now rejected.
 
+## CPU interaction ownership
+
+The detached CPU worker now transfers completed interaction matrices to PCS
+through a failure-atomic ownership handoff. Component handles keep immutable
+points, challenges and claims; they read the committed trace during proving.
+Failed irreversible commits mark the worker consumed before transcript mixing.
+
+The same actual 4M fragment removes a source-derived 690,888,704-byte payload
+copy and measures approximately 690 MB less RSS during composition/decommit.
+The earlier MAIN/GKR high watermark remains 10.093 GB. Native time is
+24.426 seconds versus 23.931 seconds in single observations: **no latency gain
+is established**. Tiny complete two-CPU closure and both large fragment proof
+files remain byte-identical; OOM, alias and early-PCS-error cleanup tests pass.
+See the [ownership receipt](../vectors/reports/rv64-opstack-cpu-20261109/sponge-cpu-owned-interaction-v1.json).
+
 ## Current-source small-group repeat
 
 The final [balanced repeat](../vectors/reports/rv64-opstack-cpu-20261108/final-small-group-repeat.json)
