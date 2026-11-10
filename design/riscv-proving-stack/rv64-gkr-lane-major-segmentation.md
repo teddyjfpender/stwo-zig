@@ -81,15 +81,21 @@ P_r is the known weighted sum of any dummy N=0,D=1 lanes retained by an unsplit
 low-volume role. High-yield segmented roles have P_r=0. Removing this constant
 for the unsplit roles would be a soundness bug. The uniform prefix target uses
 T_r/rows; rows are below the base characteristic and invertible. The same
-Eq8+prefix8 planes suffice. The projection remains linear in committed base
-MAIN, with transcript-derived coefficients, so no degree increase is implied.
+Eq8+prefix8 planes suffice. A constant-weight combination preserves the existing projection degree per
+role; aggregation itself adds no degree. CPU REG products/FUNCTION projections
+remain nonlinear, and an ALU fixture cannot establish CPU projection linearity.
 
 `prepared_projection.zig` currently requires a power-of-two weight vector and
 adds a padded constant. It cannot simply be called with13 aggregate weights.
-A new explicitly versioned projection helper must accept real coefficients
-plus the independently derived padded constant; it must preserve full tuple
-and field-coordinate authority. Physical original-role components still emit
-all canonical real queries and bind the immutable source MAIN.
+A clean adapter can instead retain the original power-of-two weight array:
+write each derived aggregate coefficient into its original real-query lane and
+set coefficients of removed dummy lanes to ZERO. The unchanged projection then
+adds a zero padding constant for a segmented role. For an unsplit role, retain
+the actual dummy coefficients and its D=1 constant. This reuses the existing
+physical projection/binding authority, with a NEW trusted source constructor
+for weights/point/target; it must never call the old row-major Data.initChecked
+on segmented artifacts. Physical original-role components still emit all
+canonical real queries and bind the immutable source MAIN.
 
 Two errors can cancel if lambda is fixed to1. With source MAIN committed and
 all segment terminal claims bound before rho, a nonzero role error polynomial
