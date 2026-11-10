@@ -134,8 +134,8 @@ fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std
         try numerical.add(.{ .kind = .multiplicities, .variables = try instance.variables() });
     }
     try numerical.finish();
-    const child_floor = try std.math.add(usize, facts * 52, numerical.metadata_bytes + 65536);
-    if (child_floor > 12 << 30) return error.ConditionalPrefixGkrBudget;
+    const child_reserve = try std.math.add(usize, facts * 52, numerical.metadata_bytes + 65536);
+    if (child_reserve > 12 << 30) return error.ConditionalPrefixGkrBudget;
     var part_plan = try @import("../../word16_global_execution/services/gkr_local/cpu_components.zig").Plan.initForOp(a, &setup);
     defer part_plan.deinit();
     const fixed_logs = try setup.logs(a, 0);
@@ -156,9 +156,9 @@ fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std
         init_inter = @as(u64, @intCast(end - slot.inter_offset)) << @intCast(slot.log);
     };
     const plan_at = timer.read();
-    const plan_info = .{ .schema = "op-heavy-conditional-prefix-plan/v1", .steps = N, .final_pc = boundary.final_pc, .final_registers = boundary.final_registers, .cpu = declaration, .request = @import("../../word16_global_execution/services/wire.zig").CompactRequest.from(request), .init_words = advice.initial.len, .terminal_words_proved = 0, .init_fixed_cells = init_fixed, .init_main_cells = init_main, .init_interaction_cells = init_inter, .planned_unproved_truths = truths, .unproved_detached = if (request.sponge.calls == 0) @as(usize, 0) else 1, .gkr_facts = facts, .gkr_checkpoint_floor_bytes = child_floor, .fixed_cells = cells(fixed_logs) + 3 * (@as(u64, 1) << @intCast(frontier_log)), .main_cells = cells(main_logs) + 8 * (@as(u64, 1) << @intCast(frontier_log)), .interaction_cells_excluding_frontier = cells(inter_logs), .image_program_ns = image_program_ns, .execution_ns = execution_ns, .capture_prepare_ns = capture_ns, .through_setup_ns = plan_at, .security = checked, .init_scope = "prefix-touched cells only, not full-block touched set", .conditional_cpu_fragment_only = true, .block_accepted = false, .root_accepted = false };
+    const plan_info = .{ .schema = "op-heavy-conditional-prefix-plan/v1", .steps = N, .final_pc = boundary.final_pc, .final_registers = boundary.final_registers, .cpu = declaration, .request = @import("../../word16_global_execution/services/wire.zig").CompactRequest.from(request), .init_words = advice.initial.len, .terminal_words_proved = 0, .init_fixed_cells = init_fixed, .init_main_cells = init_main, .init_interaction_cells = init_inter, .planned_unproved_truths = truths, .unproved_detached = if (request.sponge.calls == 0) @as(usize, 0) else 1, .gkr_facts = facts, .gkr_checkpoint_floor_bytes = child_reserve, .gkr_checkpoint_planning_reserve_bytes = child_reserve, .gkr_checkpoint_estimate_semantics = "Conservative admission planning reserve; legacy floor field is NOT a lower bound or measured peak", .fixed_cells = cells(fixed_logs) + 3 * (@as(u64, 1) << @intCast(frontier_log)), .main_cells = cells(main_logs) + 8 * (@as(u64, 1) << @intCast(frontier_log)), .interaction_cells_excluding_frontier = cells(inter_logs), .image_program_ns = image_program_ns, .execution_ns = execution_ns, .capture_prepare_ns = capture_ns, .through_setup_ns = plan_at, .security = checked, .init_scope = "prefix-touched cells only, not full-block touched set", .conditional_cpu_fragment_only = true, .block_accepted = false, .root_accepted = false };
     try json(a, dir, if (mode == .prove) "prove-plan.json" else if (mode == .gkr_only) "gkr-plan.json" else "plan.json", plan_info);
-    std.debug.print("OP_HEAVY_PREFIX_PLAN steps={} CPUlog={} facts={} child_floor={} INIT={} services={any} sponge={any} mass_admitted=true block_accepted=false\n", .{ N, declaration.geometry.cpu_log, facts, child_floor, advice.initial.len, request.calls, request.sponge });
+    std.debug.print("OP_HEAVY_PREFIX_PLAN steps={} CPUlog={} facts={} planning_reserve={} INIT={} services={any} sponge={any} mass_admitted=true block_accepted=false\n", .{ N, declaration.geometry.cpu_log, facts, child_reserve, advice.initial.len, request.calls, request.sponge });
     if (mode == .plan) return;
     if (mode == .gkr_only) {
         return gkrOnly(a, &setup, request, span, &native, &advice, frontier_log, &roster, dir, retained orelse return error.MissingConditionalRetainedSource);

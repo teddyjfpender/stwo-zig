@@ -1,0 +1,44 @@
+{
+  "schema": "op-gkr-checkpoint-planning-reserve-reconciliation/v1",
+  "scope": "Clarify existing planning semantics fromsource andonealready-recordedGKR-only run. No model/cap reduction or new run.",
+  "values": {
+    "padded_facts": 149605184,
+    "working_reserve_per_fact_bytes": 52,
+    "working_plane_reserve_bytes": 7779469568,
+    "metadata_and_diagnostic_margin_bytes": 6479872,
+    "total_existing_planning_reserve_bytes": 7785949440,
+    "observed_GKR_only_whole_requested_peak_bytes": 4869066225,
+    "observed_whole_process_RSS_peak_bytes": 5370003456
+  },
+  "source_authority": [
+    {
+      "file": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/resource.zig:1",
+      "meaning": "Explicitlyconservativehardplanning, not a physicalallocationlowerbound."
+    },
+    {
+      "file": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/resource.zig:6",
+      "meaning": "OM31securewords32B. Stride-two opaque-source tree retains levels2/4/... withfirstheight2fused. Planning assumesworst concurrentfirstfold32B/fact +nonresizinghalfcopy8B/fact +sharedEq12B/fact =52B/fact, metadataadded."
+    },
+    {
+      "file": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/resource.zig:13",
+      "meaning": "Halfcopy/Eqterms concernlargestinstance, butsame conservativeperfactmultiplier isapplied toSUMofallinstancefacts. Actualscope/lifetime/resize/overlap can use less; unstaggeredfirstfoldassumption isdeliberatelyconservative."
+    },
+    {
+      "file": "src/prover/lookups/gkr_prover_field.zig:390",
+      "meaning": "Samecheckpointalgorithm inbothnative andGKR-only replay: firstSourceCheckpoint atmin(2,variables), thennextLayerTwice. No newcheckpoint schedule explainsdifference."
+    }
+  ],
+  "coverage": {
+    "large_numeric_arrays": "GP/circuit/sumcheckallocate throughcaller childSharedHostBudget. InGKR-only itretains sameparent32GiB budget; childlimit12GiB unchanged.",
+    "source_and_codec": "Pipeline/source/key/read/decode/profilenodes useparentSharedHostBudget andcontributeouterrequestedpeak.",
+    "outside_requested_heap": "Workerthreadstacks, allocatorreserved/slop andsomebackendruntime state remainoutside-requested orhave OSdifferentaccounting, asalreadydocumented. RSSisnot equivalentto sumrequestedbytes.",
+    "exact_child_only_peak": "Not separatelyrecorded here;4.869GB isWHOLEfixture highwater. No exactpeak formula fittedto thisoneobservation."
+  },
+  "naming": {
+    "legacy": "Frozen plan/receipts containgkr_checkpoint_floor_bytes/child_floor. Thosewere misleadingdiagnosticnames, notsourcepolicy lowerbounds. Authenticfrozenartifacts remainunchanged.",
+    "future": "Fixtureadds canonicalgkr_checkpoint_planning_reserve_bytes andexplicitsemantics alongsidelegacyfieldforcompatibility; guardandnumbersunchanged."
+  },
+  "admission_changed": false,
+  "caps_changed": false,
+  "claim": "Observedpeakbelowconservative reserve isconsistent. ThisdoesNOTjustifyweakening sourceplanning or resourceadmission without anindependentfullphase/lifetime model."
+}
