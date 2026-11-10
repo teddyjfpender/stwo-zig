@@ -10,3 +10,6 @@ test {
 test {
     _ = @import("delegations/op_g2_preparation/physical_test.zig");
 }
+test {
+    _ = @import("delegations/op_residue/physical_test.zig");
+}
