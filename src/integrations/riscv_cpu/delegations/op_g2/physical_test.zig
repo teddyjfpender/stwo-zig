@@ -1,4 +1,4 @@
-//! Physical two-operation local SSA fixture, not a CPU/VM service admission.
+//! Physical G2 transition fixture; CPU/VM service admission remains closed.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");

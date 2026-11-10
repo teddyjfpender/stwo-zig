@@ -1,4 +1,4 @@
-//! Complete two-operation BYTE/SSA binding and final public output debt.
+//! Canonical G2 arithmetic, source frontier and local BYTE/SSA bindings.
 //! Packed execution reuses the common qualified truth-role domain kernel.
 const std = @import("std");
 const core = @import("stwo_core");
