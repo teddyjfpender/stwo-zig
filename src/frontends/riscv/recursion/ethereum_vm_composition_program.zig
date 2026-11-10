@@ -236,7 +236,8 @@ pub fn compile(
         input.authenticated_lookup,
         input.base_profile,
     );
-    try selected.validateAuthority(
+    try selected_lookup.ForProfile(profile_mod.ProfileV2).validateAuthority(
+        &selected,
         allocator,
         input.core_statement,
         input.lookup_manifest,

@@ -189,7 +189,7 @@ pub fn expectedSampledValueCountWithCircuitProfile(
     manifest: *const lookup_physical_v2.Manifest,
     circuit_profile: circuit.CircuitProfileV1,
 ) !u32 {
-    return @import("stwo_riscv_frontend").recursion.vm_composition_sample_geometry.expectedSampledValueCountWithLayout(statement, manifest, circuit_profile.layout());
+    return @import("vm_composition_sample_geometry.zig").expectedSampledValueCountWithLayout(statement, manifest, circuit_profile.layout());
 }
 
 fn installSpan(

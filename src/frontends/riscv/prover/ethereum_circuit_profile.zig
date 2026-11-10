@@ -2,7 +2,7 @@
 //! The profile selects constraints and column layouts; callers must separately
 //! admit the exact ELF-derived fixed table and independently derive Tree0.
 const execution = @import("../isa/execution_profile.zig");
-const layout_mod = @import("stwo_riscv_frontend").air.program.circuit_layout;
+const layout_mod = @import("../air/program/circuit_layout.zig");
 
 pub const CircuitProfileV1 = enum(u16) {
     legacy_v4 = 0,
@@ -27,7 +27,7 @@ pub const CircuitProfileV1 = enum(u16) {
             .fixed_program_narrow_v1, .ethereum_v5, .ethereum_local_zero_v1 => .fixed_decoded_narrow,
         };
     }
-    pub fn programPolicy(self: @This()) @import("stwo_riscv_frontend").air.program.interaction.Policy {
+    pub fn programPolicy(self: @This()) @import("../air/program/interaction.zig").Policy {
         return self.layout().programPolicy();
     }
     /// Execution-only singleton Keccak residency ceiling. The exact call count
