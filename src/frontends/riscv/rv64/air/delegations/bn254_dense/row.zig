@@ -5,11 +5,16 @@ const std = @import("std");
 pub const S = @import("spec.zig");
 const B = S.B;
 pub fn Layout(comptime kind: S.Kind) type {
+    return LayoutFor(S, kind);
+}
+/// Source-polymorphic interpreter for the same bounded integer/canonical row.
+/// A Source supplies fixed polynomial terms, input width and carry envelope.
+pub fn LayoutFor(comptime Source: type, comptime kind: Source.Kind) type {
     return struct {
-        pub const G = S.commonGeometry(kind);
+        pub const G = Source.commonGeometry(kind);
         pub const ACTIVE = 0;
         pub const INPUT = 1;
-        pub const OUTPUT = INPUT + 32 * S.inputs(kind);
+        pub const OUTPUT = INPUT + 32 * Source.inputs(kind);
         pub const QUOTIENT = OUTPUT + 32;
         pub const CARRY = QUOTIENT + G.q_bytes;
         pub const DISTANCE = CARRY + G.carries * G.carry_bytes;
@@ -26,27 +31,27 @@ pub fn Layout(comptime kind: S.Kind) type {
         fn put(row: *Row, start: usize, bytes: usize, v: B.Big) void {
             for (0..bytes) |i| row[start + i] = B.limbOf(v, i);
         }
-        pub fn output(comptime coordinate: usize, input: *const [S.inputs(kind)]u256) u256 {
+        pub fn output(comptime coordinate: usize, input: *const [Source.inputs(kind)]u256) u256 {
             var pos: B.Big = G.kp;
             var neg: B.Big = 0;
-            inline for (comptime S.terms(kind, coordinate)) |t| if (t.b) |bb| {
-                const a = input[t.a.in];
-                const b = input[bb.in];
-                const magnitude = @as(B.Big, a) * b * @as(B.Big, @intCast(@abs(t.coef)));
-                if (t.coef > 0) pos += magnitude else neg += magnitude;
-            };
+            inline for (comptime Source.terms(kind, coordinate)) |t| {
+                if (t.a == .in) {
+                    const magnitude = @as(B.Big, input[t.a.in]) * (if (t.b) |bb| @as(B.Big, input[bb.in]) else 1) * @as(B.Big, @intCast(@abs(t.coef)));
+                    if (t.coef > 0) pos += magnitude else neg += magnitude;
+                }
+            }
             std.debug.assert(pos >= neg);
             return @intCast((pos - neg) % B.BN254_P);
         }
         pub fn coefficient(comptime coordinate: usize, row: *const Row, n: usize) i64 {
             var total: i64 = 0;
-            inline for (comptime S.terms(kind, coordinate)) |term| {
+            inline for (comptime Source.terms(kind, coordinate)) |term| {
                 if (term.b) |bb| {
                     if (n < 63) {
                         const first = if (n >= 32) n - 31 else 0;
                         for (first..@min(n + 1, 32)) |i| total += @as(i64, term.coef) * row[INPUT + 32 * @as(usize, term.a.in) + i] * row[INPUT + 32 * @as(usize, bb.in) + n - i];
                     }
-                } else if (n < 32) total -= row[OUTPUT + n];
+                } else if (n < 32) total += @as(i64, term.coef) * (if (term.a == .in) row[INPUT + 32 * @as(usize, term.a.in) + n] else row[OUTPUT + n]);
             }
             total += @as(i64, B.limbOf(G.kp, n)) * row[ACTIVE];
             const first = if (n >= 32) n - 31 else 0;
@@ -54,25 +59,27 @@ pub fn Layout(comptime kind: S.Kind) type {
             while (i < G.q_bytes and i <= n) : (i += 1) total -= @as(i64, row[QUOTIENT + i]) * B.limbOf(B.BN254_P, n - i);
             return total;
         }
-        pub fn fill(comptime coordinate: usize, input: *const [S.inputs(kind)]u256) Row {
+        pub fn fill(comptime coordinate: usize, input: *const [Source.inputs(kind)]u256) Row {
             return fillWithOutput(coordinate, input, output(coordinate, input));
         }
         /// Coherent algebraic forgery control, excluded from non-test builds.
-        pub fn congruentForgeryForTesting(comptime coordinate: usize, input: *const [S.inputs(kind)]u256) Row {
+        pub fn congruentForgeryForTesting(comptime coordinate: usize, input: *const [Source.inputs(kind)]u256) Row {
             if (!@import("builtin").is_test) @compileError("test-only congruent forgery");
             return fillWithOutput(coordinate, input, output(coordinate, input) + B.BN254_P);
         }
-        fn fillWithOutput(comptime coordinate: usize, input: *const [S.inputs(kind)]u256, value: u256) Row {
+        fn fillWithOutput(comptime coordinate: usize, input: *const [Source.inputs(kind)]u256, value: u256) Row {
             var row: Row = @splat(0);
             row[ACTIVE] = 1;
             for (input, 0..) |v, i| put(&row, INPUT + 32 * i, 32, v);
             put(&row, OUTPUT, 32, value);
             var pos: B.Big = G.kp;
             var neg: B.Big = value;
-            inline for (comptime S.terms(kind, coordinate)) |t| if (t.b) |bb| {
-                const mag = @as(B.Big, input[t.a.in]) * input[bb.in] * @as(B.Big, @intCast(@abs(t.coef)));
-                if (t.coef > 0) pos += mag else neg += mag;
-            };
+            inline for (comptime Source.terms(kind, coordinate)) |t| {
+                if (t.a == .in) {
+                    const mag = @as(B.Big, input[t.a.in]) * (if (t.b) |bb| @as(B.Big, input[bb.in]) else 1) * @as(B.Big, @intCast(@abs(t.coef)));
+                    if (t.coef > 0) pos += mag else neg += mag;
+                }
+            }
             std.debug.assert(pos >= neg and (pos - neg) % B.BN254_P == 0);
             const q = (pos - neg) / B.BN254_P;
             std.debug.assert(q >> @intCast(8 * G.q_bytes) == 0);
