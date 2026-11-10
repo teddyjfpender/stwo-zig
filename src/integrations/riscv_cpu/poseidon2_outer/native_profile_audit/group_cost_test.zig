@@ -11,6 +11,7 @@ const State = struct {
     groups: [2]?Group.Stream = .{ null, null },
     seen: u32 = 0,
     complete: bool = false,
+    all_members: bool = false,
     fn deinit(self: *State) void {
         for (&self.groups) |*group| if (group.*) |*stream| stream.deinit();
     }
@@ -42,17 +43,21 @@ const State = struct {
             if (slot.* == null) slot.* = try Group.Stream.init(a, true, 0, 4, member.profile(), member.manifest());
             var arena = std.heap.ArenaAllocator.init(a);
             defer arena.deinit();
-            if (index == 1 and member == .cpu) {
-                var shape = member.cpu.shape.*;
-                shape.pcs.fri_config.log_blowup_factor = 1;
-                shape.pcs.fri_config.n_queries = 144;
-                shape.pcs.pow_bits = 0;
-                try shape.validate();
-                const values = try @import("../pure_p2_trace_skeleton.zig").init(arena.allocator(), &shape);
-                var candidate = member.cpu;
-                candidate.shape = &shape;
-                candidate.values = &values;
-                try emit(a, &slot.*.?, .{ .cpu = candidate });
+            if (index == 1 and (member == .cpu or self.all_members)) {
+                switch (member) {
+                    inline else => |value, tag| {
+                        var shape = value.shape.*;
+                        shape.pcs.fri_config.log_blowup_factor = 1;
+                        shape.pcs.fri_config.n_queries = 144;
+                        shape.pcs.pow_bits = 0;
+                        try shape.validate();
+                        const values = try @import("../pure_p2_trace_skeleton.zig").init(arena.allocator(), &shape);
+                        var candidate = value;
+                        candidate.shape = &shape;
+                        candidate.values = &values;
+                        try emit(a, &slot.*.?, @unionInit(Capture.View, @tagName(tag), candidate));
+                    },
+                }
             } else try emit(a, &slot.*.?, member);
         }
         self.seen += 1;
@@ -68,7 +73,7 @@ const State = struct {
             defer owner.deinit();
             const cost = try Group.Cost.derive(&owner);
             if (index == 0) try std.testing.expectEqual(@as(u64, 643035136), cost.total_cells);
-            const json = try std.json.Stringify.valueAlloc(a, .{ .scope = "ACTUAL_selected_fourmember_R7_complete_group_source_emission_only_not_admitted", .hypothetical_CPU_B2 = index == 1, .other_three_members_B4 = true, .cost = cost, .p2_permutations = owner.calls.items.len, .source_normalization_intentionally_not_admitted = true, .new_key_or_profile = false, .physical_proof = false }, .{});
+            const json = try std.json.Stringify.valueAlloc(a, .{ .scope = "ACTUAL_selected_fourmember_R7_complete_group_source_emission_only_not_admitted", .hypothetical_CPU_B2 = index == 1, .other_three_members_B4 = !(index == 1 and self.all_members), .all_four_native_B2 = index == 1 and self.all_members, .cost = cost, .p2_permutations = owner.calls.items.len, .source_normalization_intentionally_not_admitted = true, .new_key_or_profile = false, .physical_proof = false }, .{});
             defer a.free(json);
             std.debug.print("NATIVE_PROFILE_FOUR_GROUP_MODEL {s}\n", .{json});
         }
@@ -85,7 +90,7 @@ test "terminal Blake native B2 selected four group source plateau model no proof
     if (config.value.max_steps > 10_000_000) return error.ProfileModelSmallOnly;
     const budget = try E.host_budget_allocator.SharedHostBudget.create(std.heap.smp_allocator, 8 << 30);
     defer budget.destroy();
-    var state = State{};
+    var state = State{ .all_members = std.process.hasEnvVarConstant("STWO_OP_NATIVE_PROFILE_ALL4") };
     {
         defer state.deinit();
         try Runtime.verifyDirectoryWithHooks(budget.allocator(), config.value, input, .op_target_b4_q72_p0_fold4_v1, .{}, .{ .context = &state, .complete = State.done, .fragments = .{ .context = &state, .fragment = State.fragment } });

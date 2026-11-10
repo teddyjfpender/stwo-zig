@@ -116,3 +116,18 @@ implemented and no production guard was overridden.
 Reproduce with the same CONFIG/NATIVE variables above and filter
 `native B2 selected four group`. The JSON follow-up receipt stores both complete
 raw/padded eight-role censuses.
+
+
+## All four members B2: exact source-only follow-up
+
+Setting`STWO_OP_NATIVE_PROFILE_ALL4=1` changes all four hypothetical native PCS
+shapes, still without a new profile/key/proof or normalized source admission.
+The baseline raw vector again matches the retained actual group exactly.
+UniformB2 yields`[126558,8601317,3451,311423,65536,335473,3030336,570272]`,
+padded logs`[17,24,12,19,16,19,22,20]`:221,589,504 FIXED +539,574,272 MAIN +
+492,404,736 INTER = **1,253,568,512 cells**,1.949x the643,035,136-cell control.
+QM arithmetic, P2, OMdot and input each cross a padding cliff. This confirms why
+CPU-only differs from uniformB2 for this mixed selected group. It remains a source
+cost result, not an actual uniformB2 proof or measured end-to-end regression.
+The future trusted mixed-suite audit is in
+`design/riscv-proving-stack/op-native-mixed-pcs-policy-audit-20261110.md`.

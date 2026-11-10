@@ -1,0 +1,123 @@
+{
+  "schema": "op-native-all-B2-selected-fourmember-source-model/v1",
+  "scope": "Exact full R7 source-emission counterfactual only, not proof/key/profile/policy admission. Actual retained selected native B4bundle freshly verified; candidate all four native PCS shapes B2q144.",
+  "models": [
+    {
+      "scope": "ACTUAL_selected_fourmember_R7_complete_group_source_emission_only_not_admitted",
+      "hypothetical_CPU_B2": false,
+      "other_three_members_B4": true,
+      "all_four_native_B2": false,
+      "cost": {
+        "raw": [
+          73080,
+          5173527,
+          3451,
+          173939,
+          65536,
+          321145,
+          1515168,
+          335498
+        ],
+        "rows": [
+          131072,
+          8388608,
+          4096,
+          262144,
+          65536,
+          524288,
+          2097152,
+          524288
+        ],
+        "logs": [
+          17,
+          23,
+          12,
+          18,
+          16,
+          19,
+          21,
+          19
+        ],
+        "fixed_cells": 113324032,
+        "main_cells": 276381696,
+        "interaction_cells": 253329408,
+        "total_cells": 643035136,
+        "dot_calls": 3384,
+        "dot_terms": 1515168
+      },
+      "p2_permutations": 173939,
+      "source_normalization_intentionally_not_admitted": true,
+      "new_key_or_profile": false,
+      "physical_proof": false
+    },
+    {
+      "scope": "ACTUAL_selected_fourmember_R7_complete_group_source_emission_only_not_admitted",
+      "hypothetical_CPU_B2": true,
+      "other_three_members_B4": false,
+      "all_four_native_B2": true,
+      "cost": {
+        "raw": [
+          126558,
+          8601317,
+          3451,
+          311423,
+          65536,
+          335473,
+          3030336,
+          570272
+        ],
+        "rows": [
+          131072,
+          16777216,
+          4096,
+          524288,
+          65536,
+          524288,
+          4194304,
+          1048576
+        ],
+        "logs": [
+          17,
+          24,
+          12,
+          19,
+          16,
+          19,
+          22,
+          20
+        ],
+        "fixed_cells": 221589504,
+        "main_cells": 539574272,
+        "interaction_cells": 492404736,
+        "total_cells": 1253568512,
+        "dot_calls": 6768,
+        "dot_terms": 3030336
+      },
+      "p2_permutations": 311423,
+      "source_normalization_intentionally_not_admitted": true,
+      "new_key_or_profile": false,
+      "physical_proof": false
+    }
+  ],
+  "all_B2_over_B4_cells": 1.949455701282239,
+  "same_selected_CPU_only_B2_cells": 643035136,
+  "padding_cliffs": [
+    "QM arithmetic23->24",
+    "P2permutation18->19",
+    "OMdot21->22",
+    "input19->20"
+  ],
+  "qualification": {
+    "ReleaseSafe_semantic": true,
+    "ReleaseSafe_source_gate": true,
+    "baseline_raw_exact_retained_group": true,
+    "complete_native_global_and_terminal_check": true,
+    "native_or_recursive_proof_generated": false,
+    "new_production_profile_or_key": false,
+    "candidate_normalization_or_validity_claim": false
+  },
+  "security": "Nominal144query*blowup product only, no composed128certification; CPU-onlymixedsuite requires new independently pinned policy/ledger before integration.",
+  "decision": "UniformB2 almostdoubles paddedgroupcells on this selectedfixture; CPU-onlyB2 stays on originalplateau. No performanceclaim.",
+  "log": "/private/tmp/op-native-b2-all4-group-model.log",
+  "reproduce": "Set STWO_OP_NATIVE_PROFILE_ALL4=1 alongside CONFIG/NATIVE; zig build test-riscv64-op-terminal-blake -Doptimize=ReleaseSafe -Driscv-test-filter=\"native B2 selected four group\" -j1"
+}
