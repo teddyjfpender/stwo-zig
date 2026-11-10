@@ -111,9 +111,16 @@ pub const Model = struct {
     table: [256]u32 = @splat(0),
     columns: [4]?[]const M = @splat(null),
     table_ready: bool = false,
+    reference_encoder: bool = false,
     pub fn init(plan: *const L.Program, witness: *const NW.Witness, expected: *const [S.INITIAL]u256) !Model {
         var out = try initAuthority(plan, expected);
         out.witness = witness;
+        return out;
+    }
+    pub fn initReferenceForTesting(plan: *const L.Program, witness: *const NW.Witness, expected: *const [S.INITIAL]u256) !Model {
+        if (!@import("builtin").is_test) @compileError("test-only reference materializer");
+        var out = try init(plan, witness, expected);
+        out.reference_encoder = true;
         return out;
     }
     /// Receiver authority has no private certificate, values or MAIN builder.
@@ -149,7 +156,10 @@ pub const Model = struct {
         var out = Materialized{ .model = m, .role = role, .row = row, .main_values = @splat(0) };
         if (role == .arithmetic) {
             if (row < m.plan.stages.len) {
-                const values = try m.witness.?.row(m.plan, row);
+                const values = if (m.reference_encoder) blk: {
+                    if (!@import("builtin").is_test) return error.PairingReferenceEncoderTestOnly;
+                    break :blk try m.witness.?.rowReferenceForTesting(m.plan, row);
+                } else try m.witness.?.row(m.plan, row);
                 @memcpy(out.main_values[0..Mac.MAIN], &values);
             }
         } else if (role == .hints) {

@@ -1,0 +1,9 @@
+# MAC12 witness encoding control
+
+The candidate reuses each already-computed canonical normalized output. It evaluates the signed expression once, computes q with truncating division, verifies q*p equals the exact integer difference, then generates the same carried row. Wrong known outputs return an error; they cannot cause a division-exactness trap. Zero coefficient terms are skipped in numeric expression evaluation and byte convolution. The AIR, integer envelopes and BYTE/SSA recipe are unchanged.
+
+The original encoder is retained behind test-only reference entrypoints. A same-binary full four-role benchmark generates every canonical/carry row, scatters all FIXED/MAIN columns and recomputes the actual BYTE histogram. It uses the real retained four-pair source and a256 MiB arena, with a120-second bound. It does not retain two wide row banks.
+
+Quiet Apple M5 Max ReleaseFast ABBA times were0.658509/0.661375 seconds for the reference and0.508102/0.506661 seconds for the candidate. The two-sample median ratio is1.301× (0.659942→0.507381 seconds). All four complete matrices hash identically to `ac10dfb24bae10bc073c55187d1b0eff09309635cacce7460a5dc80602830f2d`. Requested arena storage was159,524,144 bytes. This is a warm witness-generation measurement; it is not a full proof speedup. The separate q72 one-worker control measured1.463 seconds in its full column-materialization phase under its own qualification configuration.
+
+ReleaseSafe tests cover48 dense/sparse/boundary coefficient cases, exact full-row reference equality, canonical input/output refusals and wrong known values. The full same-source physical positive, coherent hint+p negative and q72 reference/candidate proof parity are being requalified in the next combined proof batch. The conservative source identity includes encoder code, so that requalification uses a new source fingerprint even though rows are identical. No VM, production security or profile admission changes.

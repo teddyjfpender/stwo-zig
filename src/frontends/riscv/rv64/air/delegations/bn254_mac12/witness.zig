@@ -7,8 +7,14 @@ const P = S.B.P;
 pub const Inputs = [25]u256;
 pub const Coefficients = [12]i32;
 pub fn expression(input: *const Inputs, coefficients: Coefficients) i1024 {
+    return expressionMode(true, input, coefficients);
+}
+fn expressionMode(comptime skip_zero: bool, input: *const Inputs, coefficients: Coefficients) i1024 {
     var out: i1024 = input[24];
-    for (coefficients, 0..) |c, i| out += @as(i1024, c) * @as(i1024, input[2 * i]) * @as(i1024, input[2 * i + 1]);
+    for (coefficients, 0..) |c, i| {
+        if (skip_zero and c == 0) continue;
+        out += @as(i1024, c) * @as(i1024, input[2 * i]) * @as(i1024, input[2 * i + 1]);
+    }
     return out;
 }
 fn put(row: *S.Row, start: usize, count: usize, value: anytype) void {
@@ -26,36 +32,57 @@ fn coefficientsValid(c: Coefficients) bool {
 pub fn fill(input: *const Inputs, c: Coefficients) !S.Row {
     for (input) |x| if (x >= P) return error.Mac12NoncanonicalInput;
     if (!coefficientsValid(c)) return error.Mac12CoefficientBound;
-    const value: u256 = @intCast(@mod(expression(input, c), @as(i1024, P)));
-    return fillOutput(input, c, value);
+    const total = expression(input, c);
+    const value: u256 = @intCast(@mod(total, @as(i1024, P)));
+    return encodeOutput(true, input, c, value, total);
 }
-/// Adversarial physical probe only. Canonical input inheritance must reject
-/// such a value; this exposes its otherwise valid integer arithmetic witness.
+/// Reuse a canonical result already computed by the normalized value pass.
+/// Exact integer q validation remains explicit; a wrong known value never traps.
+pub fn fillKnownCanonical(input: *const Inputs, c: Coefficients, known: u256) !S.Row {
+    for (input) |x| if (x >= P) return error.Mac12NoncanonicalInput;
+    if (!coefficientsValid(c)) return error.Mac12CoefficientBound;
+    if (known >= P) return error.Mac12NoncanonicalOutput;
+    return encodeOutput(true, input, c, known, expression(input, c));
+}
+/// Original encoder kept only for exact-row and same-binary performance controls.
+pub fn fillReferenceForTesting(input: *const Inputs, c: Coefficients) !S.Row {
+    if (!@import("builtin").is_test) @compileError("test-only reference encoder");
+    for (input) |x| if (x >= P) return error.Mac12NoncanonicalInput;
+    if (!coefficientsValid(c)) return error.Mac12CoefficientBound;
+    const value: u256 = @intCast(@mod(expressionMode(false, input, c), @as(i1024, P)));
+    // Deliberately repeat the original expression work for an honest control.
+    return encodeOutput(false, input, c, value, expressionMode(false, input, c));
+}
+/// Adversarial physical probe only, with no canonical-input authority.
 pub fn fillRawInputsForTesting(input: *const Inputs, c: Coefficients) !S.Row {
     if (!@import("builtin").is_test) @compileError("test-only raw MAC inputs");
     for (input) |x| if (x >= 2 * P) return error.Mac12RawInputBound;
     if (!coefficientsValid(c)) return error.Mac12CoefficientBound;
-    const value: u256 = @intCast(@mod(expression(input, c), @as(i1024, P)));
-    return fillOutput(input, c, value);
+    const total = expression(input, c);
+    const value: u256 = @intCast(@mod(total, @as(i1024, P)));
+    return encodeOutput(true, input, c, value, total);
 }
 pub fn aliasForTesting(input: *const Inputs, c: Coefficients) !S.Row {
     if (!@import("builtin").is_test) @compileError("test-only output+p");
-    const value: u256 = @intCast(@mod(expression(input, c), @as(i1024, P)));
-    return fillOutput(input, c, value + P);
+    const total = expression(input, c);
+    const value: u256 = @intCast(@mod(total, @as(i1024, P)));
+    return encodeOutput(true, input, c, value + P, total);
 }
-fn fillOutput(input: *const Inputs, c: Coefficients, value: u256) !S.Row {
+fn encodeOutput(comptime fast: bool, input: *const Inputs, c: Coefficients, value: u256, total_expression: i1024) !S.Row {
     var row: S.Row = @splat(0);
     row[S.ACTIVE] = 1;
     for (input, 0..) |x, i| put(&row, S.INPUT + 32 * i, 32, x);
     Canon.fill(&row, S.canonical, value);
-    const q = @divExact(expression(input, c) - @as(i1024, value), @as(i1024, P));
+    const delta = total_expression - @as(i1024, value);
+    const q = if (fast) @divTrunc(delta, @as(i1024, P)) else @divExact(delta, @as(i1024, P));
+    if (fast and q * @as(i1024, P) != delta) return error.Mac12KnownOutputMismatch;
     row[S.SIGN] = @intFromBool(q < 0);
     const magnitude: u272 = @intCast(@abs(q));
     if (magnitude >> 264 != 0) return error.Mac12QuotientBound;
     put(&row, S.QUOTIENT, 33, magnitude);
     var previous: i64 = 0;
     for (0..65) |n| {
-        const total = coefficient(&row, c, n) + previous;
+        const total = coefficientMode(fast, &row, c, n) + previous;
         if (n == 64) {
             if (total != 0) return error.Mac12TerminalCarry;
             break;
@@ -68,8 +95,12 @@ fn fillOutput(input: *const Inputs, c: Coefficients, value: u256) !S.Row {
     return row;
 }
 pub fn coefficient(row: *const S.Row, c: Coefficients, n: usize) i64 {
+    return coefficientMode(true, row, c, n);
+}
+fn coefficientMode(comptime skip_zero: bool, row: *const S.Row, c: Coefficients, n: usize) i64 {
     var total: i64 = 0;
     if (n < 63) for (c, 0..) |weight, term| {
+        if (skip_zero and weight == 0) continue;
         const first = if (n >= 32) n - 31 else 0;
         for (first..@min(n + 1, 32)) |i| total += @as(i64, weight) * row[S.INPUT + 64 * term + i] * row[S.INPUT + 64 * term + 32 + n - i];
     };

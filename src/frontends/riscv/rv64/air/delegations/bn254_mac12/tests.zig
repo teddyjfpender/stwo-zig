@@ -150,3 +150,26 @@ test "MAC12 coherent raw input alias has valid carried arithmetic pending canoni
     for (sink.values) |x| try std.testing.expect(x.isZero());
     for (0..S.BYTE_QUERIES) |i| try std.testing.expect(S.byteQuery(O, v, i).toM31Array()[0].v < 256);
 }
+
+test "MAC12 known canonical encoder matches reference at dense sparse and boundary inputs" {
+    var random = std.Random.DefaultPrng.init(0x6d61633132706172);
+    for (0..48) |case| {
+        var input: W.Inputs = undefined;
+        for (&input) |*x| x.* = if (case < 3) ([_]u256{ 0, 1, S.B.P - 1 })[case] else random.random().int(u256) % S.B.P;
+        var coefficients: W.Coefficients = @splat(0);
+        for (&coefficients, 0..) |*c, i| if (i < case % 13) {
+            c.* = if (i % 2 == 0) 18 else -18;
+        };
+        const reference = try W.fillReferenceForTesting(&input, coefficients);
+        const known: @TypeOf(input[0]) = @intCast(W.read(&reference, S.OUTPUT, 32));
+        const actual = try W.fillKnownCanonical(&input, coefficients, known);
+        try std.testing.expectEqualSlices(u32, &reference, &actual);
+        try std.testing.expect(W.valid(&actual, coefficients));
+        try std.testing.expectError(error.Mac12KnownOutputMismatch, W.fillKnownCanonical(&input, coefficients, (known + 1) % S.B.P));
+    }
+    var input: W.Inputs = @splat(0);
+    const coefficients: W.Coefficients = @splat(0);
+    try std.testing.expectError(error.Mac12NoncanonicalOutput, W.fillKnownCanonical(&input, coefficients, S.B.P));
+    input[0] = S.B.P;
+    try std.testing.expectError(error.Mac12NoncanonicalInput, W.fillKnownCanonical(&input, coefficients, 0));
+}

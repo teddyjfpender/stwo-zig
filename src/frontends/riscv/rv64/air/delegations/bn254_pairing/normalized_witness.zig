@@ -36,10 +36,17 @@ pub const Witness = struct {
         w.* = undefined;
     }
     pub fn row(w: *const Witness, p: *const L.Program, index: usize) !Mac.Row {
+        return w.rowMode(false, p, index);
+    }
+    pub fn rowReferenceForTesting(w: *const Witness, p: *const L.Program, index: usize) !Mac.Row {
+        if (!@import("builtin").is_test) @compileError("test-only reference row encoder");
+        return w.rowMode(true, p, index);
+    }
+    fn rowMode(w: *const Witness, comptime reference: bool, p: *const L.Program, index: usize) !Mac.Row {
         const stage = p.stages[index];
         var input: MW.Inputs = undefined;
         for (stage.input, &input) |id, *value| value.* = w.values[id];
-        const out = try MW.fill(&input, stage.coefficients);
+        const out = if (reference) try MW.fillReferenceForTesting(&input, stage.coefficients) else try MW.fillKnownCanonical(&input, stage.coefficients, w.values[stage.writer]);
         if (MW.read(&out, Mac.OUTPUT, 32) != w.values[stage.writer]) return error.NormalizedSourceOutputMismatch;
         return out;
     }

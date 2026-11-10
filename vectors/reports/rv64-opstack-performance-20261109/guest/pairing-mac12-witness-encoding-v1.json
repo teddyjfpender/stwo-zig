@@ -1,0 +1,53 @@
+{
+  "status": "numeric and fullwitness equivalence qualified; fullphysical requalification nextbatch",
+  "production_admitted": false,
+  "security_qualified": false,
+  "host": "Apple M5 Max",
+  "optimize": "ReleaseFast",
+  "scope": "real4pair all4roles FIXED+MAIN generation/scatter +actualBYTEhist;warmABBA,notfullproof",
+  "reference_seconds": [
+    0.658509,
+    0.661375
+  ],
+  "candidate_seconds": [
+    0.508102,
+    0.506661
+  ],
+  "reference_median_seconds": 0.659942,
+  "candidate_median_seconds": 0.5073815,
+  "speedup": 1.3006804796868725,
+  "all_FIXED_MAIN_sha256": "ac10dfb24bae10bc073c55187d1b0eff09309635cacce7460a5dc80602830f2d",
+  "requested_arena_bytes": 159524144,
+  "cap_bytes": 268435456,
+  "deadline_seconds": 120,
+  "MAC_rows": 32533,
+  "passed": [
+    "17SafeMACtests incl48edge/sparse/dense rowcomparisons/wrongknownrefusals",
+    "15Safeloweringtests",
+    "11Safefrontendtests",
+    "all4ABBAcompleteFIXED/MAINmatriceshashidentically"
+  ],
+  "changes": [
+    "reuseknowncanonicaloutputandexplicitexactqcheck",
+    "skipnumericzero-coefficientproductsandconvolutions",
+    "test-onlyslowreferenceencoderwithsame-binaryModelselection"
+  ],
+  "unchanged": [
+    "AIR",
+    "integerbounds",
+    "BYTE/SSArecipe",
+    "VM/defaultadmission"
+  ],
+  "command": "STWO_MAC12_FILL_BENCH=1 zig test -O ReleaseFast --dep stwo_core -Mroot=src/frontends/riscv/rv64_bn254_pairing_fill_bench_test_root.zig -O ReleaseFast -Mstwo_core=src/core/mod.zig --test-filter \"MAC12 whole witness\"",
+  "pending": [
+    "samebinary16workerfullnativeproofref-fastbyteparity",
+    "updated-sourcepositive andcoherenthint+p physicalnegative requalification"
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/bn254_mac12/witness.zig": "13b0c12829d18fe97187c9270eb1671da8fdef56bb3a93ccc6fac2120d700104",
+    "src/frontends/riscv/rv64/air/delegations/bn254_mac12/tests.zig": "4699cb6ea364f9a697f7c1b21c2d2c2a32f1454aad0a339022bb4370d3baa546",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/normalized_witness.zig": "a15dd130c998eca1cf5c16304381302819f239f1ab7f721d022eefbd1ad403de",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/fixture.zig": "d6024fc97252e259f6cff1c4f25ea11615b1860c77303755b62765cf6bd23ae9",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/fill_bench.zig": "cc5a86ddd0eddfa3b598ad28da678e9bebf75b689ae469cea75d3c760cf23ad9"
+  }
+}
