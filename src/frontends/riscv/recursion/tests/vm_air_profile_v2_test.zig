@@ -51,6 +51,18 @@ test "authenticated VM AIR ProfileV2 binds fixed program and narrow Poseidon as 
         },
         else => {},
     };
+    inline for (.{ &legacy, &fixed }) |profile| std.debug.print("C3_PROFILE_RECEIPT tag={d} schema={d} identity={s}\n", .{ @intFromEnum(profile.circuit_profile), profile.schema_version, std.fmt.bytesToHex(profile.identity_digest, .lower) });
+    var previous_identity = fixed.identity_digest;
+    inline for (.{ @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1.ethereum_v5, .ethereum_local_zero_v1 }) |selected| {
+        var tagged = try subject.deriveAuthorityWithCircuitProfile(allocator, &statement, &manifest, &authenticated, samples, selected);
+        defer tagged.deinit();
+        try tagged.validateAuthority(allocator, &statement, &manifest, &authenticated);
+        try std.testing.expectEqual(subject.CIRCUIT_SCHEMA_VERSION, tagged.schema_version);
+        try std.testing.expect(!std.mem.eql(u8, &fixed.identity_digest, &tagged.identity_digest));
+        try std.testing.expect(!std.mem.eql(u8, &previous_identity, &tagged.identity_digest));
+        std.debug.print("C3_PROFILE_RECEIPT tag={d} schema={d} identity={s}\n", .{ @intFromEnum(tagged.circuit_profile), tagged.schema_version, std.fmt.bytesToHex(tagged.identity_digest, .lower) });
+        previous_identity = tagged.identity_digest;
+    }
     fixed.circuit_profile = .legacy_v4;
     try std.testing.expectError(error.InvalidStatementShape, fixed.validate());
     fixed.circuit_profile = .fixed_program_narrow_v1;

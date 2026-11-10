@@ -305,6 +305,7 @@ test "authenticated VM AIR ProfileV2 cold-compiles the Ethereum verifier program
     var program = try program_v2.compile(allocator, input);
     defer program.deinit();
     try program.validateAgainst(input);
+    std.debug.print("C3_GRAPH_RECEIPT kind=product profile={s} geometry={s} extension_geometry={s} graph={s} reference={s} schedule={s} authority={s} nodes={d} outputs={d} bindings={d}\n", .{ std.fmt.bytesToHex(program.base_profile_sha256, .lower), std.fmt.bytesToHex(program.base_geometry_sha256, .lower), std.fmt.bytesToHex(program.extension_geometry_sha256, .lower), std.fmt.bytesToHex(program.graph_sha256, .lower), std.fmt.bytesToHex(program.reference_sha256, .lower), std.fmt.bytesToHex(program.schedule_sha256, .lower), std.fmt.bytesToHex(program.verifier_program_authority, .lower), program.nodes.len, program.outputs.len, program.bindings.len });
     try std.testing.expectEqual(@as(u32, 25), program.input_profile.relation_challenge_count);
     try std.testing.expectEqual(@as(u32, 42), program.input_profile.transcript_claimed_sum_count);
     try std.testing.expect(program.nodes.len > program.bindings.len);
