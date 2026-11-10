@@ -19,3 +19,5 @@ pub const bn254_dense = @import("bn254_dense/mod.zig");
 pub const bn254_tower = @import("bn254_tower/mod.zig");
 
 pub const bn254_mac12 = @import("bn254_mac12/mod.zig");
+
+pub const bn254_pairing_mac12 = @import("bn254_pairing/normalized.zig");
