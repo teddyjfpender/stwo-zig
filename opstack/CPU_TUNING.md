@@ -15,9 +15,9 @@ from the historical M6/M7 experiments below.
 
 | Qualified scope | Time | Requested peak | Evidence |
 | --- | ---: | ---: | --- |
-| Actual OP120794432, guest through complete R7 root | 25.624 s | 8.667 GB | [Producer and fresh receiver](../vectors/reports/rv64-opstack-performance-20261110/selected-from-guest-r7-p2-tail-v1.json) |
-| Additional source-only receiver, including nine controls | 6.580 s | 4.511 GB | Same receipt; native proof bytes absent |
-| Actual heavy guest's first 4M instructions, conditional CPU proof | 23.931 s, previously 74.732 s | 10.093 GB unchanged | [Exact proof parity and stages](../vectors/reports/rv64-opstack-cpu-20261109/heavy-conditional-prefix-p2-tail-v1.json) |
+| Actual OP120794432, guest through complete R7 root, latest integrated cache/ownership | 24.927 s | 8.667 GB | [Producer and fresh receiver](../vectors/reports/rv64-opstack-performance-20261110/selected-latest-cache-from-guest-v1.json) |
+| Additional source-only receiver, including nine controls | 6.040 s | 4.511 GB | Same receipt; native proof bytes absent |
+| Actual heavy guest's first 4M instructions, conditional B4 CPU proof | 21.170 s, originally 74.732 s | 10.093 GB unchanged | [Exact proof parity and stages](../vectors/reports/rv64-opstack-cpu-20261109/p2-native-intermediate-tiles-physical-v1.json) |
 
 These are single qualification observations, not repeated quiet medians.
 The last row leaves RAM/Wire obligations outstanding and proves no complete

@@ -1,6 +1,6 @@
 # OP Stack CPU delivery gates
 
-Updated 2026-11-09. This is the completion checklist for PR #322, not a claim
+Updated 2026-11-10. This is the completion checklist for PR #322, not a claim
 that the unchecked gates already work. Receipts, source and fresh receivers
 are the authority. Historical plans in `DESIGN.md` and the feasibility study
 predate the anchored transition implementation.
@@ -22,6 +22,13 @@ latency figures are not CPU acceptance criteria.
 | Settlement | Packed pinned AIR 637,484 gas; full native worker PCS remains about 1.724 billion gas | Complete authorized checkpoint verifier under actual transaction constraints |
 | Security | 128-bit security target under documented assumptions; `security_qualified=false` | Bounded composed accounting for the concrete derivation, segmentation, recursive and settlement construction; no certification claim |
 | Regression hygiene | Fixed-source geometry repair; both heavy profiles accepted by final executable; 24 settlement tests pass, three external-fixture skips | Keep formats/defaults stable; resolve outstanding broader CI failures and qualify new shared changes independently |
+
+Latest integrated small execution: **24.927 s guest through recursive root**,
+plus **6.040 s** for a separate source-only receiver and nine controls. Requested
+peaks are 8.667 GB and 4.511 GB. Native and root proof bytes match the previous
+25.624 s qualification; these single observations establish correctness, not a
+controlled new speedup. This is OP120794432, not the heavy target or an anchored
+derivation proof. [Receipt](../vectors/reports/rv64-opstack-performance-20261110/selected-latest-cache-from-guest-v1.json).
 
 ## Current optimization branch: explicit pure-P2 execution
 
