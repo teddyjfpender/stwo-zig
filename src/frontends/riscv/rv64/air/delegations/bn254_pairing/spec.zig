@@ -36,12 +36,12 @@ pub const LITERALS: struct { values: [36]u256, len: usize } = blk: {
     break :blk .{ .values = values, .len = len };
 };
 pub const INITIAL = 24 + LITERALS.len;
-pub const SG_HINTS = 4 * 352;
+pub const SG_HINTS = M.GROUPS * SG_ROM.hints;
 pub const HINTS = SG_HINTS + R.PRIVATE_HINTS;
-pub const ARITHMETIC = M.ROWS + 4 * (4390 - 352) + R.SQUARE_ROWS + R.MULTIPLY_ROWS + R.FROBENIUS_ROWS;
+pub const ARITHMETIC = M.ROWS + M.GROUPS * (SG_ROM.count - SG_ROM.hints) + R.SQUARE_ROWS + R.MULTIPLY_ROWS + R.FROBENIUS_ROWS;
 pub const ROWS = ARITHMETIC + HINTS;
 pub const VALUES = INITIAL + ROWS;
-pub const ASSERTIONS = 4 + 4 * 358 + 24;
+pub const ASSERTIONS = M.GROUPS + M.GROUPS * SG_ROM.assertion_count + 2 * R.Dense.OUTPUTS;
 pub const Kind = enum { g1, prep_double, prep_add, scale, square, sparse, subgroup, res_square, res_multiply, res_frobenius, hint };
 pub const Hint = enum { none, inverse, provided };
 pub const Node = struct { kind: Kind, opcode: u8, writer: ID, input: [24]ID = @splat(NONE), asserted: ?u8 = null, hint: Hint = .none, hint_denominator: ID = NONE };
@@ -135,7 +135,14 @@ pub fn program() Program {
     @setEvalBranchQuota(8_000_000);
     var p = Program{};
     for (MW.ROM.nodes) |old| {
-        var node = Node{ .kind = @enumFromInt(@intFromEnum(old.kind)), .opcode = old.opcode, .writer = p.next, .asserted = if (old.must_zero) 0 else null };
+        var node = Node{ .kind = switch (old.kind) {
+            .g1 => .g1,
+            .prep_double => .prep_double,
+            .prep_add => .prep_add,
+            .scale => .scale,
+            .square => .square,
+            .sparse => .sparse,
+        }, .opcode = old.opcode, .writer = p.next, .asserted = if (old.must_zero) 0 else null };
         for (old.input, &node.input) |id, *to| if (id != M.NONE) {
             to.* = p.millerId(id);
         };
