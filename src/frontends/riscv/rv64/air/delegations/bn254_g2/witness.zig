@@ -4,6 +4,24 @@
 const std = @import("std");
 const S = @import("spec.zig");
 const Generic = @import("../bn254_dense/row.zig");
+pub fn initialValues(comptime kind: S.Kind, input_point: S.Point, q: [2]S.FQ2) ![S.initialCount(kind)]u256 {
+    var initial: [S.initialCount(kind)]u256 = undefined;
+    for (input_point, 0..) |p, i| for (p, 0..) |v, j| {
+        if (v >= S.B.BN254_P) return error.NonCanonicalG2FixtureInput;
+        initial[2 * i + j] = v;
+    };
+    if (kind == .doubling) {
+        initial[6] = (S.B.BN254_P + 1) / 2;
+        initial[7] = S.TWIST_B[0];
+        initial[8] = S.TWIST_B[1];
+    } else {
+        for (q, 0..) |p, i| for (p, 0..) |v, j| {
+            if (v >= S.B.BN254_P) return error.NonCanonicalG2FixtureInput;
+            initial[6 + 2 * i + j] = v;
+        };
+    }
+    return initial;
+}
 pub fn Layout(comptime kind: S.Kind) type {
     return Generic.LayoutFor(S, kind);
 }
@@ -16,20 +34,7 @@ pub fn Witness(comptime kind: S.Kind) type {
         pub fn init(input_point: S.Point, q: [2]S.FQ2) !@This() {
             var self: @This() = undefined;
             self.values = @splat(0);
-            for (input_point, 0..) |p, i| for (p, 0..) |v, j| {
-                if (v >= S.B.BN254_P) return error.NonCanonicalG2FixtureInput;
-                self.initial[2 * i + j] = v;
-            };
-            if (kind == .doubling) {
-                self.initial[6] = (S.B.BN254_P + 1) / 2;
-                self.initial[7] = S.TWIST_B[0];
-                self.initial[8] = S.TWIST_B[1];
-            } else {
-                for (q, 0..) |p, i| for (p, 0..) |v, j| {
-                    if (v >= S.B.BN254_P) return error.NonCanonicalG2FixtureInput;
-                    self.initial[6 + 2 * i + j] = v;
-                };
-            }
+            self.initial = try initialValues(kind, input_point, q);
             @memcpy(self.values[0..S.initialCount(kind)], &self.initial);
             const program = comptime S.program(kind);
             inline for (0..comptime S.rows(kind)) |step| {

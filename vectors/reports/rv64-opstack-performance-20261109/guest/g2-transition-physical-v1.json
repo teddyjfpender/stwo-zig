@@ -1,0 +1,174 @@
+{
+  "status": "qualified closed homogeneous G2 transition physical fixture",
+  "production_admitted": false,
+  "security_qualified": false,
+  "profile": {
+    "field": "OM31",
+    "queries": 12,
+    "pow_bits": 0,
+    "log_blowup": 1,
+    "quotient_split": 1
+  },
+  "scope": "single exact G2 double/add arithmetic transition; conditional canonical source input; not curve/subgroup/infinity proof, whole pairing or VM admission",
+  "initial_authority": "independent expected_initial built from pinned input point/q plus literal half/twistB, never copied from private actual.initial; all expected values canonical and source constants checked",
+  "program": "immutable quadratic polynomial ROM, strictly topological unique writer IDs and exact fanout; canonical line preimages with fixed signs/factor3",
+  "roles": {
+    "doubling": {
+      "arithmetic": {
+        "active_rows": 24,
+        "padded_rows": 256,
+        "main": 498,
+        "fixed": 26,
+        "inter": 32
+      },
+      "initial_export_frontier": {
+        "active_rows": 21,
+        "padded_rows": 32,
+        "main": 33,
+        "fixed": 35,
+        "inter": 16
+      },
+      "shared_BYTE_table": {
+        "rows": 256,
+        "main": 1,
+        "fixed": 1,
+        "inter": 16
+      },
+      "padded_main_inter_cells": 141600,
+      "padded_fixed_cells": 8032,
+      "opening_columns": 658,
+      "positive_negative_ssa_mass": 90,
+      "byte_query_mass": 8472
+    },
+    "addition": {
+      "arithmetic": {
+        "active_rows": 22,
+        "padded_rows": 256,
+        "main": 626,
+        "fixed": 24,
+        "inter": 32
+      },
+      "initial_export_frontier": {
+        "active_rows": 22,
+        "padded_rows": 32,
+        "main": 33,
+        "fixed": 35,
+        "inter": 16
+      },
+      "shared_BYTE_table": {
+        "rows": 256,
+        "main": 1,
+        "fixed": 1,
+        "inter": 16
+      },
+      "padded_main_inter_cells": 174368,
+      "padded_fixed_cells": 7520,
+      "opening_columns": 784,
+      "positive_negative_ssa_mass": 124,
+      "byte_query_mass": 7766
+    }
+  },
+  "instances": [
+    {
+      "family": "BYTE",
+      "role": "arithmetic",
+      "row_log": 8,
+      "lane_log": 9,
+      "facts": 131072
+    },
+    {
+      "family": "BYTE",
+      "role": "table",
+      "row_log": 8,
+      "lane_log": 0,
+      "facts": 256
+    },
+    {
+      "family": "SSA",
+      "role": "arithmetic",
+      "row_log": 8,
+      "lane_log": 4,
+      "facts": 4096
+    },
+    {
+      "family": "SSA",
+      "role": "frontier",
+      "row_log": 5,
+      "lane_log": 0,
+      "facts": 32
+    }
+  ],
+  "padded_facts": 135456,
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/g2-transition-physical-v2",
+  "artifacts": [
+    {
+      "file": "doubling/chain.gkr.bin",
+      "bytes": 23688,
+      "sha256": "a28c66ea4e76fc430cf92c7fd592cab010c19ffc2bd829c7945e180a96d5221f",
+      "acceptance": "local GKR child only; complete physical source acceptance depends on its native proof"
+    },
+    {
+      "file": "doubling/chain.proof.bin",
+      "bytes": 67696,
+      "sha256": "617f332e29e41ee96e96c2af4a0528698123bc7c71831f601b0dea787ec5b508",
+      "acceptance": "fresh complete physical source verification"
+    },
+    {
+      "file": "doubling/temporary-plus-p.gkr.bin",
+      "bytes": 23688,
+      "sha256": "a57cfb3d69109ed85725254c272d2e40ed77cb0426932b2131758ad646c731f6",
+      "acceptance": "local GKR child only; complete physical source acceptance depends on its native proof"
+    },
+    {
+      "file": "doubling/temporary-plus-p.unverified.proof.bin",
+      "bytes": 75584,
+      "sha256": "0848205d05cfe8ddacb6973b535a13258ad4606f0bd6207c154bd3e4b5255b90",
+      "acceptance": "rejected OodsNotMatching"
+    },
+    {
+      "file": "addition/chain.gkr.bin",
+      "bytes": 23688,
+      "sha256": "c2ad0a732e940b34181ae7f2dcca15cd589a873fca9a061d39b405d0654e515b",
+      "acceptance": "local GKR child only; complete physical source acceptance depends on its native proof"
+    },
+    {
+      "file": "addition/chain.proof.bin",
+      "bytes": 85136,
+      "sha256": "0b5da89afcc70d2cf9a4c0a0becf03052f78ce21af16053834bfa7fc4fe8f7ae",
+      "acceptance": "fresh complete physical source verification"
+    },
+    {
+      "file": "addition/temporary-plus-p.gkr.bin",
+      "bytes": 23688,
+      "sha256": "6d5f0227c610259dc3cf3a1418b8d28275908803bec1c0c3789056793e100171",
+      "acceptance": "local GKR child only; complete physical source acceptance depends on its native proof"
+    },
+    {
+      "file": "addition/temporary-plus-p.unverified.proof.bin",
+      "bytes": 84944,
+      "sha256": "7c87d129a5140764bcaa433cb4fb503b11ebf4d45c74fa11e99a6508e64d4727",
+      "acceptance": "rejected OodsNotMatching"
+    }
+  ],
+  "passed": [
+    "complete packed physical proofs accepted by fresh receiver with independently rebuilt FIXED/source authority",
+    "11 physical source-binding/public-key controls per class, including genuine alternate ID/initial-byte FIXED trees and coherent replay against another pinned input+output+statement class",
+    "coherent internal result+p propagated through every later canonical write: local BYTE/SSA child still verifies and final output unchanged; captured failed physical proof rejects specifically OodsNotMatching",
+    "all complete source equations degree at most3, including quadratic SSA numerator weights and global/local mixed-height masks",
+    "independent expected frontier constructor guards and alternate valid arithmetic cannot self-select its expected frontier",
+    "ReleaseSafe full regression includes previous split BYTE and two-operation dense SSA physical positives/negatives"
+  ],
+  "physical_allocator_cap_bytes": 2147483648,
+  "performance_claim": "none; small correctness fixtures with deliberately padded geometry",
+  "remaining": [
+    "full87-line source dataflow proof",
+    "curve/subgroup/infinity and complete pairing endpoints",
+    "production input/globalWire/RAM bindings and receiver",
+    "source security/capacity inventory and recursive leaf/root",
+    "real total prover measurement before promotion"
+  ],
+  "commands": [
+    "zig build test-riscv64-op-dense-local-gkr -Doptimize=ReleaseSafe",
+    "zig build test-riscv64-op-dense-local-gkr -Doptimize=ReleaseSafe -Driscv-test-filter='G2 expected frontier'"
+  ]
+}
