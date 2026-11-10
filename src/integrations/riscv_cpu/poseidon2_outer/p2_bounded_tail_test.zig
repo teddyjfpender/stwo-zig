@@ -184,3 +184,77 @@ test "OP P2 bounded tail preserves checked prefix and shared heap budgets" {
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
     try std.testing.expect(budget.snapshot().peak_live_bytes <= 4 << 20);
 }
+
+// Diagnostic only: count semantic work, not a timing oracle. Timed probes use
+// the uninstrumented native hasher so atomics do not manufacture a speedup.
+const WorkProbe = struct {
+    inner: H,
+    const Self = @This();
+    var scalar_words: std.atomic.Value(usize) = .init(0);
+    var packed_words: std.atomic.Value(usize) = .init(0);
+    var scalar_permutations: std.atomic.Value(usize) = .init(0);
+    var packed_permutations: std.atomic.Value(usize) = .init(0);
+    var nodes: std.atomic.Value(usize) = .init(0);
+    pub const Hash = H.Hash;
+    pub const NodeSeed = void;
+    pub fn nodeSeed() void {}
+    pub fn defaultWithInitialState() Self {
+        return .{ .inner = H.defaultWithInitialState() };
+    }
+    pub fn updateLeaf(self: *Self, values: []const M) void {
+        _ = scalar_words.fetchAdd(values.len, .monotonic);
+        _ = scalar_permutations.fetchAdd((self.inner.inner.at + values.len) / 12, .monotonic);
+        self.inner.updateLeaf(values);
+    }
+    pub fn finalize(self: Self) Hash {
+        _ = scalar_permutations.fetchAdd(1, .monotonic);
+        return self.inner.finalize();
+    }
+    pub fn updateM31Columns4(hashers: *[4]Self, columns: anytype, position: usize) void {
+        _ = packed_words.fetchAdd(4 * columns.len, .monotonic);
+        _ = packed_permutations.fetchAdd(4 * ((hashers[0].inner.inner.at + columns.len) / 12), .monotonic);
+        var inner: [4]H = undefined;
+        inline for (0..4) |i| inner[i] = hashers[i].inner;
+        H.updateM31Columns4(&inner, columns, position);
+        inline for (0..4) |i| hashers[i].inner = inner[i];
+    }
+    pub fn finalize4(hashers: *[4]Self) [4]Hash {
+        _ = packed_permutations.fetchAdd(4, .monotonic);
+        var inner: [4]H = undefined;
+        inline for (0..4) |i| inner[i] = hashers[i].inner;
+        return H.finalize4(&inner);
+    }
+    pub fn hashChildren(children: struct { left: Hash, right: Hash }) Hash {
+        _ = nodes.fetchAdd(1, .monotonic);
+        return H.hashChildren(.{ .left = children.left, .right = children.right });
+    }
+    pub fn hashChildrenWithSeed(_: void, children: struct { left: Hash, right: Hash }) Hash {
+        return hashChildren(.{ .left = children.left, .right = children.right });
+    }
+    pub fn hashChildrenWithSeed4(_: void, children: *const [8]Hash) [4]Hash {
+        _ = nodes.fetchAdd(4, .monotonic);
+        return H.hashChildrenWithSeed4({}, children);
+    }
+};
+test "OP P2 reused intermediate semantic work diagnostic" {
+    if (!std.process.hasEnvVarConstant("STWO_OP_P2_INTERMEDIATE_WORK")) return error.SkipZigTest;
+    const a = std.testing.allocator;
+    var columns = try Columns.init(a, 16, true);
+    defer columns.deinit();
+    var pool: E.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 1 });
+    defer pool.deinit();
+    var binding = try E.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    WorkProbe.scalar_words.store(0, .monotonic);
+    WorkProbe.packed_words.store(0, .monotonic);
+    WorkProbe.scalar_permutations.store(0, .monotonic);
+    WorkProbe.packed_permutations.store(0, .monotonic);
+    WorkProbe.nodes.store(0, .monotonic);
+    var stats: E.vcs_lifted.prover.MerkleProverLifted(WorkProbe).BoundedPrefixStats = .{};
+    var tree = try commit(WorkProbe, a, columns.values, 2 * @sizeOf(WorkProbe), true, &stats);
+    defer tree.deinit(a);
+    const info = try std.json.Stringify.valueAlloc(a, .{ .scalar_absorbed_words = WorkProbe.scalar_words.load(.monotonic), .native4_absorbed_words = WorkProbe.packed_words.load(.monotonic), .scalar_leaf_state_permutations = WorkProbe.scalar_permutations.load(.monotonic), .native4_leaf_state_permutations = WorkProbe.packed_permutations.load(.monotonic), .binary_nodes = WorkProbe.nodes.load(.monotonic), .internal_state_permutations = 2 * WorkProbe.nodes.load(.monotonic), .stats = stats, .root = std.fmt.bytesToHex(tree.root(), .lower), .timing_claim = false }, .{});
+    defer a.free(info);
+    std.debug.print("OP_P2_INTERMEDIATE_WORK {s}\n", .{info});
+}
