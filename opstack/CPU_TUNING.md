@@ -81,6 +81,28 @@ is established**. Tiny complete two-CPU closure and both large fragment proof
 files remain byte-identical; OOM, alias and early-PCS-error cleanup tests pass.
 See the [ownership receipt](../vectors/reports/rv64-opstack-cpu-20261109/sponge-cpu-owned-interaction-v1.json).
 
+## Retained-source GKR subphase profile
+
+An isolated replay of the authentic 4M fragment's local GKR child matches its
+entire 113,288-byte proof, receipt and eta. It reads the pinned retained MAIN
+commitment and rebuilds source authority; it produces no new MAIN/INTER
+commitment or native STARK and makes no new block/root acceptance claim.
+
+| Local GKR phase | Wall |
+| --- | ---: |
+| Fused source projection and initial checkpoint tree | 0.659 s |
+| Complete sumcheck traversal, including regeneration and transcript | 2.751 s |
+| Total child production | 3.413 s |
+
+Artifact assembly, closure/receipt and wire encoding are negligible here.
+Traversal is 80.6% of this child measurement, but this does not isolate pure
+field arithmetic from checkpoint regeneration. Requested peak for the isolated
+source/key/replay process is 4.869 GB; measured RSS is 5.370 GB. The legacy
+52-byte-per-fact diagnostic is a conservative admission planning reserve,
+not a measured lower bound; all caps and admission charges remain unchanged.
+See the [profile](../vectors/reports/rv64-opstack-cpu-20261109/heavy-retained-gkr-subphases-v1.json)
+and [reserve reconciliation](../vectors/reports/rv64-opstack-cpu-20261109/gkr-checkpoint-reserve-reconciliation-v1.json).
+
 ## Current-source small-group repeat
 
 The final [balanced repeat](../vectors/reports/rv64-opstack-cpu-20261108/final-small-group-repeat.json)
