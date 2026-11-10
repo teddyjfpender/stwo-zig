@@ -18,3 +18,12 @@ The canonical line preimages are exported separately from their immutable signed
 ReleaseSafe source tests compare all point and line outputs against independent direct Fq2 formulas on zero, p−1 and mixed coordinates; four pinned generator/nontrivial-homogeneous cases also match the existing complete-pairing Python oracle exactly. Every scalar result, quotient and carry mutation rejects. A coherent result+p forgery retains BYTE/range and exact integer congruence validity for every writer, while its strict canonical-write certificate rejects. All old dense source/witness tests remain in the same test root.
 
 The next gate is physical BYTE/SSA source binding and a source-owned initial/export frontier, followed by the complete positive request and recursive receiver. No full heavy replay is required for this foundation.
+
+Reproduce the source and existing dense regression gate with:
+
+```sh
+zig build test-riscv64-op-g2-source -Doptimize=ReleaseSafe -j1
+```
+
+The test-count guard requires all 18 source tests. This command does not admit
+the prototype into the VM, production proving or the recursive receiver.
