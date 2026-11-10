@@ -341,10 +341,16 @@ unrestricted inverse-scale residue attack reject.
 These are small q12 correctness fixtures with input-specific FIXED authority,
 not production security or performance qualifications. The private residue
 hints are canonical, and its scale is constrained to Fp6; they are not free
-host validity claims. The next engineering gate is the source-owned shared
-Miller accumulation, then one authenticated composite provider, variable-input
-Wire/RAM closure and recursive reception. No new VM tag or default is admitted.
+host validity claims. The shared four-pair Miller source now also passes its independent oracle
+and chronology gate: all 348 lines, 63 real squares, 347 sparse products and
+14,536 scalar writers. Its final z matches the residue fixture. This is source
+evidence, not a physical composite proof. The next engineering gate is one
+authenticated composite provider sharing Q and z IDs across subgroup, Miller
+and residue constraints, then variable-input Wire/RAM closure and recursive
+reception. No new VM tag or default is admitted.
 
 Evidence: [preparation](../vectors/reports/rv64-opstack-performance-20261109/guest/g2-preparation-physical-v1.json),
 [subgroup](../vectors/reports/rv64-opstack-cpu-20261110/g2-exact-subgroup-physical-v1.json),
 [residue](../vectors/reports/rv64-opstack-performance-20261109/guest/positive-residue-physical-v1.json).
+
+Shared-source evidence: [Miller gate](../vectors/reports/rv64-opstack-performance-20261109/guest/shared-miller-source-v1.json).
