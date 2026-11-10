@@ -27,6 +27,7 @@ const Protocol = @import("../pure_p2_worker_protocol.zig");
 const Profile = @import("../op_profile.zig").Profile.op_target_b4_q72_p0_fold4_v1;
 const Write = @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive;
 const N = 4_000_000;
+const Mode = enum { plan, prove, gkr_only };
 const Endpoint = struct { steps: u64, initial_pc: u64, initial_registers: [32]u64, final_pc: u64, final_registers: [32]u64, elf_sha256: []const u8, input_sha256: []const u8, completed: bool };
 fn json(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, value: anytype) !void {
     const raw = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
@@ -38,7 +39,7 @@ fn cells(logs: []const u32) u64 {
     for (logs) |log| out += @as(u64, 1) << @intCast(log);
     return out;
 }
-fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std.fs.Dir, prove: bool) !void {
+fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std.fs.Dir, comptime mode: Mode, retained: ?[]const u8) !void {
     if (endpoint.steps != N or endpoint.completed or config.workers != 16) return error.ConditionalPrefixOnly;
     try std.testing.expectEqualStrings(config.elf_sha256, endpoint.elf_sha256);
     try std.testing.expectEqualStrings(config.input_sha256, endpoint.input_sha256);
@@ -156,64 +157,147 @@ fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std
     };
     const plan_at = timer.read();
     const plan_info = .{ .schema = "op-heavy-conditional-prefix-plan/v1", .steps = N, .final_pc = boundary.final_pc, .final_registers = boundary.final_registers, .cpu = declaration, .request = @import("../../word16_global_execution/services/wire.zig").CompactRequest.from(request), .init_words = advice.initial.len, .terminal_words_proved = 0, .init_fixed_cells = init_fixed, .init_main_cells = init_main, .init_interaction_cells = init_inter, .planned_unproved_truths = truths, .unproved_detached = if (request.sponge.calls == 0) @as(usize, 0) else 1, .gkr_facts = facts, .gkr_checkpoint_floor_bytes = child_floor, .fixed_cells = cells(fixed_logs) + 3 * (@as(u64, 1) << @intCast(frontier_log)), .main_cells = cells(main_logs) + 8 * (@as(u64, 1) << @intCast(frontier_log)), .interaction_cells_excluding_frontier = cells(inter_logs), .image_program_ns = image_program_ns, .execution_ns = execution_ns, .capture_prepare_ns = capture_ns, .through_setup_ns = plan_at, .security = checked, .init_scope = "prefix-touched cells only, not full-block touched set", .conditional_cpu_fragment_only = true, .block_accepted = false, .root_accepted = false };
-    try json(a, dir, if (prove) "prove-plan.json" else "plan.json", plan_info);
+    try json(a, dir, if (mode == .prove) "prove-plan.json" else if (mode == .gkr_only) "gkr-plan.json" else "plan.json", plan_info);
     std.debug.print("OP_HEAVY_PREFIX_PLAN steps={} CPUlog={} facts={} child_floor={} INIT={} services={any} sponge={any} mass_admitted=true block_accepted=false\n", .{ N, declaration.geometry.cpu_log, facts, child_floor, advice.initial.len, request.calls, request.sponge });
-    if (!prove) return;
-    var key = try Key.init(a, &setup, Profile, frontier_log);
-    defer key.deinit();
-    // Independently recompute the source key before retiring source FIXED.
-    var fresh = try Key.initDigest(a, &setup, Profile, frontier_log);
-    defer fresh.deinit();
-    try @import("../pure_p2_op_source_setup.zig").retireLegacy(a, &setup);
-    const first: [Types.FAMILIES]u32 = @splat(1);
-    const Prof = @import("stwo_prover_api").stage_profile;
-    var recorder = Prof.Recorder.initWithOptions(a, "cpu", "heavy conditional 4M CPU fragment", .{ .capture_tasks = false, .capture_process_usage = true });
-    defer recorder.deinit();
-    var source = try Pipeline.buildCpuSourceForOp(a, &setup, request, span, &native, &advice, 0, first, false, &recorder);
-    var source_owned = true;
-    defer if (source_owned) source.deinit();
-    var frontier = try Source.initCalls(a, advice.sponge[0].calls, request.sponge.calls, frontier_log, 1, 0);
-    var frontier_owned = true;
-    defer if (frontier_owned) frontier.deinit();
-    var worker = try Worker.Worker.init(a, &setup, request, span, first, 0, &key, source, frontier, .{ .gkr_bytes = 12 << 30, .global_bytes = 2 << 30 });
-    source_owned = false;
-    frontier_owned = false;
-    defer worker.deinit();
-    worker.native_recorder = &recorder;
-    const seal_begin = timer.read();
-    const stage = try worker.seal();
-    const sealed_at = timer.read();
-    // A conditional experiment challenge, NOT a complete execution manifest.
-    var h = std.crypto.hash.sha2.Sha256.init(.{});
-    h.update("op-conditional-heavy-prefix/v1");
-    h.update(&key.identity);
-    h.update(&worker.expected.statement);
-    h.update(&stage.main);
-    h.update(&stage.receipt);
-    const digest = h.finalResult();
-    var manifest_words: [16]C.fields.m31.M31 = undefined;
-    for (&manifest_words, 0..) |*word, i| word.* = C.fields.m31.M31.fromCanonical(std.mem.readInt(u16, digest[i * 2 ..][0..2], .little));
-    const manifest = Protocol.W.H.hashNode(null, &manifest_words);
-    var encoded = try worker.complete(manifest);
-    defer encoded.deinit(a);
-    const proved_at = timer.read();
-    try Write(dir, "cpu.pcs.bin", encoded.bytes);
-    try Write(dir, "cpu.gkr.bin", encoded.local);
-    // Source-only fresh key, never the producer key, verifies this fragment.
-    const verify_at = timer.read();
-    const debt = try Worker.verify(a, &setup, request, span, first, 0, &fresh, manifest, stage.main, &encoded);
-    if (debt.ram.isZero() and debt.kio.isZero() and debt.wire.isZero()) return error.ConditionalDebtUnexpectedlyClosed;
-    var profile = try recorder.snapshot(a);
-    defer profile.deinit(a);
-    try json(a, dir, "stages.json", profile);
-    try json(a, dir, "fragment.json", .{ .schema = "op-heavy-conditional-cpu-fragment/v1", .steps = N, .key_identity = key.identity, .manifest = manifest, .stage = stage, .pcs_bytes = encoded.bytes.len, .gkr_bytes = encoded.local.len, .claims = encoded.claims, .outstanding_global_debt = debt, .seal_ns = sealed_at - seal_begin, .complete_ns = proved_at - sealed_at, .fresh_verify_ns = timer.read() - verify_at, .full_elapsed_ns = timer.read(), .conditional_fragment_verified = true, .complete_execution_accepted = false, .root_accepted = false, .owed = "truth KIO/Wire, detached sponge, end memory, remaining CPU execution; not a block proof" });
-    std.debug.print("OP_HEAVY_PREFIX_PHYSICAL pcs={} GKR={} seal_ns={} complete_ns={} conditional_fragment_only=true block_accepted=false\n", .{ encoded.bytes.len, encoded.local.len, sealed_at - seal_begin, proved_at - sealed_at });
+    if (mode == .plan) return;
+    if (mode == .gkr_only) {
+        return gkrOnly(a, &setup, request, span, &native, &advice, frontier_log, &roster, dir, retained orelse return error.MissingConditionalRetainedSource);
+    } else {
+        var key = try Key.init(a, &setup, Profile, frontier_log);
+        defer key.deinit();
+        // Independently recompute the source key before retiring source FIXED.
+        var fresh = try Key.initDigest(a, &setup, Profile, frontier_log);
+        defer fresh.deinit();
+        try @import("../pure_p2_op_source_setup.zig").retireLegacy(a, &setup);
+        const first: [Types.FAMILIES]u32 = @splat(1);
+        const Prof = @import("stwo_prover_api").stage_profile;
+        var recorder = Prof.Recorder.initWithOptions(a, "cpu", "heavy conditional 4M CPU fragment", .{ .capture_tasks = false, .capture_process_usage = true });
+        defer recorder.deinit();
+        var source = try Pipeline.buildCpuSourceForOp(a, &setup, request, span, &native, &advice, 0, first, false, &recorder);
+        var source_owned = true;
+        defer if (source_owned) source.deinit();
+        var frontier = try Source.initCalls(a, advice.sponge[0].calls, request.sponge.calls, frontier_log, 1, 0);
+        var frontier_owned = true;
+        defer if (frontier_owned) frontier.deinit();
+        var worker = try Worker.Worker.init(a, &setup, request, span, first, 0, &key, source, frontier, .{ .gkr_bytes = 12 << 30, .global_bytes = 2 << 30 });
+        source_owned = false;
+        frontier_owned = false;
+        defer worker.deinit();
+        worker.native_recorder = &recorder;
+        const seal_begin = timer.read();
+        const stage = try worker.seal();
+        const sealed_at = timer.read();
+        // A conditional experiment challenge, NOT a complete execution manifest.
+        var h = std.crypto.hash.sha2.Sha256.init(.{});
+        h.update("op-conditional-heavy-prefix/v1");
+        h.update(&key.identity);
+        h.update(&worker.expected.statement);
+        h.update(&stage.main);
+        h.update(&stage.receipt);
+        const digest = h.finalResult();
+        var manifest_words: [16]C.fields.m31.M31 = undefined;
+        for (&manifest_words, 0..) |*word, i| word.* = C.fields.m31.M31.fromCanonical(std.mem.readInt(u16, digest[i * 2 ..][0..2], .little));
+        const manifest = Protocol.W.H.hashNode(null, &manifest_words);
+        var encoded = try worker.complete(manifest);
+        defer encoded.deinit(a);
+        const proved_at = timer.read();
+        try Write(dir, "cpu.pcs.bin", encoded.bytes);
+        try Write(dir, "cpu.gkr.bin", encoded.local);
+        // Source-only fresh key, never the producer key, verifies this fragment.
+        const verify_at = timer.read();
+        const debt = try Worker.verify(a, &setup, request, span, first, 0, &fresh, manifest, stage.main, &encoded);
+        if (debt.ram.isZero() and debt.kio.isZero() and debt.wire.isZero()) return error.ConditionalDebtUnexpectedlyClosed;
+        var profile = try recorder.snapshot(a);
+        defer profile.deinit(a);
+        try json(a, dir, "stages.json", profile);
+        try json(a, dir, "fragment.json", .{ .schema = "op-heavy-conditional-cpu-fragment/v1", .steps = N, .key_identity = key.identity, .manifest = manifest, .stage = stage, .pcs_bytes = encoded.bytes.len, .gkr_bytes = encoded.local.len, .claims = encoded.claims, .outstanding_global_debt = debt, .seal_ns = sealed_at - seal_begin, .complete_ns = proved_at - sealed_at, .fresh_verify_ns = timer.read() - verify_at, .full_elapsed_ns = timer.read(), .conditional_fragment_verified = true, .complete_execution_accepted = false, .root_accepted = false, .owed = "truth KIO/Wire, detached sponge, end memory, remaining CPU execution; not a block proof" });
+        std.debug.print("OP_HEAVY_PREFIX_PHYSICAL pcs={} GKR={} seal_ns={} complete_ns={} conditional_fragment_only=true block_accepted=false\n", .{ encoded.bytes.len, encoded.local.len, sealed_at - seal_begin, proved_at - sealed_at });
+    }
 }
-test "OP heavy selected conditional 4M CPU fragment profile" {
+// Qualified retained artifacts are pinned by source-controlled full-fileSHA.
+// They supply authentic scope roots, not a producer-selected key or admission.
+fn gkrOnly(a: std.mem.Allocator, setup: *@import("../../word16_global_execution/services/roster.zig").CpuSetup, request: @import("../../word16_global_execution/services/protocol.zig").Request, span: Types.OpTowerSpan, native: *Prepared, advice: *Collector.Advice, frontier_log: u32, roster: *const Frame.Roster, dir: std.fs.Dir, retained_path: []const u8) !void {
+    const Native = @import("native.zig");
+    const Timing = E.lookups.gkr_profile;
+    const Prof = E.stage_profile;
+    var timer = try std.time.Timer.start();
+    var retained = try std.fs.cwd().openDir(retained_path, .{});
+    defer retained.close();
+    const pcs_sha = "db731dc7bc725b68eca35ed7462cd3550dc691c42dab73a06ffe76f8301b8a70";
+    const local_sha = "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3";
+    const raw = try retained.readFileAlloc(a, "cpu.pcs.bin", 16 << 20);
+    defer a.free(raw);
+    try Config.pin(raw, pcs_sha);
+    var original = try Protocol.W.Wire.decodeProofBytesBinary(a, raw);
+    defer original.deinit(a);
+    const roots = original.commitment_scheme_proof.commitments.items;
+    if (roots.len != 4 or !std.meta.eql(original.commitment_scheme_proof.config, Profile.config()) or original.commitment_scheme_proof.revision_config != null) return error.ConditionalRetainedProfile;
+    const local = try retained.readFileAlloc(a, "cpu.gkr.bin", 16 << 20);
+    defer a.free(local);
+    try Config.pin(local, local_sha);
+    var expected_receipt: [36]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&expected_receipt, "3f110a09da6e4916c5a1f618215acb5477ff050459edce3095313e70aba6103364ad8e00");
+    // Rebuild immutable source FIXED authority independently; this is the only
+    // new commitment here. Never commit reconstructed MAIN or INTER columns.
+    var key = try Key.initDigest(a, setup, Profile, frontier_log);
+    defer key.deinit();
+    try std.testing.expectEqualSlices(u8, &roots[0], &key.root);
+    const first: [Types.FAMILIES]u32 = @splat(1);
+    const source_scope = Native.Scope{ .statement = try key.statement(setup, request, first, span, 0), .fixed = key.root, .main = roots[1], .ordinal = 0, .epoch = @intCast(request.base.epoch), .calls = request.sponge.calls };
+    var decoded = try Native.decode(a, roster.instances, local);
+    defer decoded.deinit();
+    var baseline = try Native.verifyPending(a, source_scope, roster.instances, &decoded.proof, expected_receipt);
+    defer baseline.deinit(a);
+    try @import("../pure_p2_op_source_setup.zig").retireLegacy(a, setup);
+    const source_key_ns = timer.read();
+    var recorder = Prof.Recorder.initWithOptions(a, "cpu", "Pinned heavy4M localGKR replay only", .{ .capture_tasks = false, .capture_process_usage = true });
+    defer recorder.deinit();
+    var source = try Pipeline.buildCpuSourceForOp(a, setup, request, span, native, advice, 0, first, false, &recorder);
+    defer source.deinit();
+    var frontier = try Source.initCalls(a, advice.sponge[0].calls, request.sponge.calls, frontier_log, 1, 0);
+    defer frontier.deinit();
+    try frontier.mergeInto(&source);
+    // Same post-merge/owned-MAIN-take metadata state as Worker.seal, then retire
+    // the generated raw matrices immediately. No surrogate MAIN is admitted.
+    const discarded_main = try source.takeMain(setup);
+    discarded_main.deinit(a);
+    a.free(try frontier.takeMain());
+    const source_ns = timer.read() - source_key_ns;
+    const child_budget = try E.host_budget_allocator.SharedHostBudget.createRetainingParent(a, 12 << 30);
+    defer child_budget.destroy();
+    const provider = @import("provider.zig").Provider{ .legacy = .{ .source = &source }, .frontier = &frontier };
+    var profiling = Timing.Scope.init(&recorder);
+    defer profiling.deinit();
+    var local_phase = try Prof.StageScope.begin(&recorder, "local_gkr", "Authentic retained MAIN scope localGKR replay only");
+    defer local_phase.end();
+    const begin = timer.read();
+    var child = try Native.proveUnbound(child_budget.allocator(), source_scope, roster.instances, provider);
+    defer child.deinit(child_budget.allocator());
+    const child_ns = timer.read() - begin;
+    local_phase.end();
+    const encoded = try Native.encode(a, roster.instances, &child.result.proof);
+    defer a.free(encoded);
+    try std.testing.expectEqualSlices(u8, local, encoded);
+    try std.testing.expectEqualSlices(u8, &expected_receipt, &child.digest);
+    try std.testing.expect(baseline.eta.eql(child.eta));
+    var checked = try Native.verifyPending(a, source_scope, roster.instances, &child.result.proof, child.digest);
+    defer checked.deinit(a);
+    var stages = try recorder.snapshot(a);
+    defer stages.deinit(a);
+    try json(a, dir, "gkr-stages.json", stages);
+    try Write(dir, "local.gkr.bin", encoded);
+    try json(a, dir, "gkr-only.json", .{ .schema = "op-heavy-conditional-local-gkr-only/v1", .retained_pcs_sha256 = pcs_sha, .retained_local_sha256 = local_sha, .source_key_ns = source_key_ns, .source_build_merge_take_retire_ns = source_ns, .local_gkr_ns = child_ns, .key = key.identity, .scope = source_scope, .receipt = child.digest, .encoded_bytes = encoded.len, .exact_retained_GKR_bytes_receipt_eta = true, .source_postmerge_owned_MAIN_take = true, .new_MAIN_or_INTER_commit = false, .new_PCS_physical_verification = false, .new_CPU_or_block_or_root_acceptance = false, .provenance = "Retained fullPCS andGKR files independently pinned to qualified4900/9c36 SHA. Independent sourceFIXED+statement reconstructed, retained child freshly verified. This benchmarks only localGKR, with physicalMAIN authority borrowed from that authentic retained conditional fragment." });
+    std.debug.print("OP_HEAVY_GKR_ONLY steps={} local_bytes={} child_ns={} exact_retained_bytes_receipt_eta=true no_MAIN_INTER_commit=true CPU_block_root_accepted=false\n", .{ N, encoded.len, child_ns });
+}
+fn environment(comptime forced: ?Mode) !void {
     const path = std.posix.getenv("STWO_OP_HEAVY_PREFIX_CONFIG") orelse return error.SkipZigTest;
     const oracle = std.posix.getenv("STWO_OP_HEAVY_PREFIX_ORACLE") orelse return error.MissingPrefixOracle;
     const out = std.posix.getenv("STWO_OP_HEAVY_PREFIX_OUT") orelse return error.MissingPrefixOutput;
-    const mode = std.posix.getenv("STWO_OP_HEAVY_PREFIX_MODE") orelse "plan";
+    const mode_name = std.posix.getenv("STWO_OP_HEAVY_PREFIX_MODE") orelse (if (forced) |value| @tagName(value) else "plan");
+    const mode = std.meta.stringToEnum(Mode, mode_name) orelse return error.InvalidConditionalPrefixMode;
+    if (forced) |value| if (mode != value) return error.InvalidConditionalPrefixMode;
+    const retained = std.posix.getenv("STWO_OP_HEAVY_PREFIX_RETAINED");
+    if (mode == .gkr_only and retained == null) return error.MissingConditionalRetainedSource;
     // Optional qualification-only control; default fixture behavior is exact.
     // Existing real two-CPU/serialized-sponge/Keccak join independently closes
     // all global relations before the separate conditional large CPU fragment.
@@ -239,10 +323,23 @@ test "OP heavy selected conditional 4M CPU fragment profile" {
         defer pool.deinit();
         var binding = try E.work_pool.ScopedPoolBinding.init(&pool);
         defer binding.deinit();
-        try run(budget.allocator(), config.value, endpoint.value, dir, std.mem.eql(u8, mode, "prove"));
+        if (forced) |value| {
+            try run(budget.allocator(), config.value, endpoint.value, dir, value, retained);
+        } else switch (mode) {
+            inline else => |value| try run(budget.allocator(), config.value, endpoint.value, dir, value, retained),
+        }
     }
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
-    try json(a, dir, if (std.mem.eql(u8, mode, "prove")) "prove-budget.json" else "plan-budget.json", budget.snapshot());
+    try json(a, dir, if (mode == .prove) "prove-budget.json" else if (mode == .gkr_only) "gkr-budget.json" else "plan-budget.json", budget.snapshot());
     std.debug.print("OP_HEAVY_PREFIX_DONE peak={} cap={} live=0 external=0\n", .{ budget.snapshot().peak_live_bytes, @as(usize, 32) << 30 });
+}
+
+test "OP heavy selected conditional 4M CPU fragment profile" {
+    try environment(null);
+}
+test "OP heavy selected retained local GKR only profile" {
+    // Fixed compile-time path avoids compiling the unrelated full physical
+    // AIR/PCS prover for this source-and-local-child-only qualification.
+    try environment(.gkr_only);
 }
