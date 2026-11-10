@@ -1,0 +1,13 @@
+# Bounded signed MAC12 physical gate
+
+This is a correctness-only one-row fixture, not a provider/VM delegation or complete pairing proof. It uses q12/B2/P0 with OM31 challenges and Blake2s PCS, so it does not claim128-bit security. All25 canonical inputs and the canonical output are independently pinned as public parameters. A fresh receiver reconstructs the immutable coefficient/FIXED commitment. Production read inheritance via SSA remains open.
+
+The concrete row has1106 MAIN/40 FIXED,12 signed product terms,33 quotient bytes and22-bit biased carries. Independent Python bounds (`opstack/tools/mac12/bounds.py`) match the Zig interval bound: maximum valid carry1,766,123 and maximum integer residual989,384,508, below M31's modulus. The full output comparison uses WORD16 only for a linear canonical-distance equation; arithmetic multiplication remains BYTE8 convolution.
+
+For this small probe, classic BYTE closure adds one MAIN multiplicity column, one FIXED BYTE column and1,416 INTER columns at log8. This deliberately differs from the planned narrow local-GKR terminal-binding geometry; its width/timing must not be quoted as the composite provider cost. It reuses the qualified common packed truth-role domain kernel and original generic PCS/proof wire.
+
+Both all-positive and all-negative coefficient extrema physically prove and pass independent fresh source verification. Changed input, expected output and coefficient/FIXED authority reject. A coherent `output+p` attack recomputes quotient, carries, canonical-distance bytes and the entire BYTE multiplicity histogram: its BYTE rational argument closes, but the native prover detects unsatisfied constraints. The retained failed physical proof then rejects with exactly `OodsNotMatching` at the fresh receiver. This checks both quotient signs. Numeric tests additionally isolate canonicality and bound the full emitter's degree by3 with arbitrary FIXED values.
+
+The source/root test is `src/integrations/riscv_cpu/rv64_op_mac12_test_root.zig`, filtered by `MAC12`. `STWO_MAC12_OUT` optionally persists two accepted proofs and two explicitly unverified failed proofs; this does not alter the transcript. The development harness initially stopped on the expected forged prover's `ConstraintsNotSatisfied`; using the existing diagnosed failure-retention API now also tests rejection of its complete physical proof. No accepted proof was changed to bypass that rejection.
+
+[Qualification receipt](../../../../../vectors/reports/opstack-cpu-20261110/mac12-bounded-physical-v1.json). Next is the complete immutable composite DAG's canonical hint/SSA/source binding; no admission changes occur here.

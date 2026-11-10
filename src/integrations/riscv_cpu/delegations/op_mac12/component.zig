@@ -1,0 +1,163 @@
+//! Correctness-only bounded MAC12 row with classic BYTE closure. Inputs/output
+//! are independently public; this fixture does not establish production SSA.
+const std = @import("std");
+const core = @import("stwo_core");
+const engine = @import("stwo_prover_engine");
+const A = @import("stwo_riscv_frontend").rv64_air;
+const E = A.evaluation;
+const S = A.crypto.bn254_mac12.source;
+const W = A.crypto.bn254_mac12.witness;
+const C = @import("equations.zig");
+const O = core.fields.om31.OM31;
+const Point = core.circle.CirclePoint(O);
+const Air = core.air.components.ForField(O);
+const CP = engine.air.component_prover.ForField(O);
+const Acc = engine.air.accumulation.ForField(O);
+pub fn Component() type {
+    return struct {
+        const Self = @This();
+        const FIXED = C.FIXED;
+        const MAIN = C.MAIN;
+        const INTER = C.INTER;
+        pub const DOMAIN_BINDINGS = 0;
+        kind: enum { mac12 } = .mac12,
+        input: *const W.Inputs,
+        output: u256,
+        beta: O,
+        log_size: u32 = 8,
+        offsets: [3]usize = .{ 0, 0, 0 },
+        pub fn validate(self: *const Self) !void {
+            if (self.log_size != 8) return error.Mac12FixtureShape;
+            for (self.input) |x| if (x >= S.B.P) return error.Mac12FixtureInput;
+            if (self.output >= S.B.P) return error.Mac12FixtureOutput;
+        }
+        pub fn widths(_: *const Self) [3]usize {
+            return .{ FIXED, MAIN, INTER };
+        }
+        pub fn nConstraints(_: *const Self) usize {
+            return C.CONSTRAINTS;
+        }
+        pub fn maxConstraintLogDegreeBound(_: *const Self) u32 {
+            return 9;
+        }
+        pub fn compositionLogSplit(_: *const Self) u32 {
+            return 1;
+        }
+        pub fn constraintDegreeBound(self: *const Self, index: usize) !u8 {
+            if (index >= self.nConstraints()) return error.InvalidConstraintIndex;
+            return 3;
+        }
+        pub fn shifts(_: *const Self, tree: usize, column: usize) []const i32 {
+            return if (tree == 2 and column >= C.LAST) &.{ 0, -1 } else &.{0};
+        }
+        pub fn traceLogDegreeBounds(self: *const Self, a: std.mem.Allocator) !Air.TraceLogDegreeBounds {
+            try self.validate();
+            const trees = try a.alloc([]u32, 3);
+            errdefer a.free(trees);
+            var n: usize = 0;
+            errdefer for (trees[0..n]) |v| a.free(v);
+            for (trees, self.widths()) |*v, width| {
+                v.* = try a.alloc(u32, width);
+                @memset(v.*, self.log_size);
+                n += 1;
+            }
+            return Air.TraceLogDegreeBounds.initOwned(trees);
+        }
+        pub fn preprocessedColumnIndices(self: *const Self, a: std.mem.Allocator) ![]usize {
+            const v = try a.alloc(usize, FIXED);
+            for (v, 0..) |*x, i| x.* = self.offsets[0] + i;
+            return v;
+        }
+        pub fn maskPoints(self: *const Self, a: std.mem.Allocator, point: Point, global_log: u32) !Air.MaskPoints {
+            try self.validate();
+            _ = try A.geometry.localPointFor(O, point, global_log, self.log_size);
+            const trees = try a.alloc([][]Point, 3);
+            errdefer a.free(trees);
+            var done: usize = 0;
+            errdefer for (trees[0..done]) |tree| {
+                for (tree) |col| a.free(col);
+                a.free(tree);
+            };
+            const step = core.poly.circle.canonic.CanonicCoset.new(global_log).coset().step;
+            const lift = Point{ .x = O.fromBase(step.x), .y = O.fromBase(step.y) };
+            for (trees, self.widths(), 0..) |*tree, width, t| {
+                tree.* = try a.alloc([]Point, width);
+                var n: usize = 0;
+                errdefer {
+                    for (tree.*[0..n]) |col| a.free(col);
+                    a.free(tree.*);
+                }
+                for (tree.*, 0..) |*col, c| {
+                    const shifts_ = self.shifts(t, c);
+                    col.* = try a.alloc(Point, shifts_.len);
+                    for (col.*, shifts_) |*v, shift| v.* = point.add(lift.mulSigned(shift));
+                    n += 1;
+                }
+                done += 1;
+            }
+            return Air.MaskPoints.initOwned(trees);
+        }
+        pub fn Workspace(comptime F: type) type {
+            return @import("../../word16_global_execution/services/gkr_local/truth_role.zig").Component.Workspace(F);
+        }
+        pub fn emitForWithWorkspace(self: *const Self, comptime F: type, samples: anytype, sink: *E.SinkFor(F), _: *Workspace(F)) !void {
+            const View = struct {
+                fixed_values: [FIXED]F,
+                main_values: [MAIN]F,
+                current: [INTER]F,
+                shifted: [INTER]F,
+                pub fn fixed(v: *const @This(), c: usize) F {
+                    return v.fixed_values[c];
+                }
+                pub fn main(v: *const @This(), c: usize) F {
+                    return v.main_values[c];
+                }
+                pub fn interactionAt(v: *const @This(), c: usize, comptime shift: i32) F {
+                    return if (shift == 0) v.current[c] else v.shifted[c];
+                }
+            };
+            var v: View = undefined;
+            for (&v.fixed_values, 0..) |*x, c| x.* = try samples.get(0, c, 0);
+            for (&v.main_values, 0..) |*x, c| x.* = try samples.get(1, c, 0);
+            for (&v.current, &v.shifted, 0..) |*now, *shifted, c| {
+                now.* = try samples.get(2, c, 0);
+                shifted.* = try samples.get(2, c, if (c >= C.LAST) -1 else 0);
+            }
+            C.emit(F, &v, self.input, self.output, self.beta, sink);
+        }
+        pub fn evaluateConstraintQuotientsOnDomain(self: *const Self, trace: *const CP.Trace, acc: *Acc.DomainEvaluationAccumulator) !void {
+            return @import("../../word16_global_execution/services/gkr_local/truth_role_domain.zig").evaluate(self, trace, acc);
+        }
+        pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, masks: *const Air.MaskValues, acc: *core.air.accumulation.ForField(O).PointEvaluationAccumulator, global_log: u32) !void {
+            try self.validate();
+            const local = try A.geometry.localPointFor(O, point, global_log, self.log_size);
+            const Samples = struct {
+                owner: *const Self,
+                masks: *const Air.MaskValues,
+                point: Point,
+                pub fn get(s: @This(), tree: usize, c: usize, shift: i32) !O {
+                    if (tree >= s.masks.items.len or s.owner.offsets[tree] + c >= s.masks.items[tree].len) return error.DenseProjectionMask;
+                    const values = s.masks.items[tree][s.owner.offsets[tree] + c];
+                    const shifts_ = s.owner.shifts(tree, c);
+                    if (values.len != shifts_.len) return error.DenseProjectionMask;
+                    for (values, shifts_) |v, w| if (shift == w) return v;
+                    return error.DenseProjectionMask;
+                }
+            };
+            var workspace: Workspace(O) = undefined;
+            var sink = E.SinkFor(O){ .accumulator = acc, .scale = try A.geometry.denominatorInverseFor(O, point, global_log, self.log_size) };
+            try self.emitForWithWorkspace(O, Samples{ .owner = self, .masks = masks, .point = local }, &sink, &workspace);
+            std.debug.assert(sink.count == self.nConstraints());
+        }
+        const Adapter = core.air.derive.ForField(O).ComponentAdapter(Self, CP.ComponentProver, CP.Trace, Acc.DomainEvaluationAccumulator);
+        pub fn asProverComponent(self: *const Self) CP.ComponentProver {
+            var result = Adapter.asProverComponent(self);
+            result.pool_exclusive_domain = true;
+            result.cooperative_domain = true;
+            return result;
+        }
+        pub fn asVerifierComponent(self: *const Self) Air.Component {
+            return Adapter.asVerifierComponent(self);
+        }
+    };
+}

@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "status": "qualified_bounded_correctness_only",
+  "production_admitted": false,
+  "security_qualified": false,
+  "profile": {
+    "field": "OM31",
+    "hash": "Blake2s256",
+    "queries": 12,
+    "blowup": 2,
+    "pow_bits": 0,
+    "production_security_claim": false
+  },
+  "geometry": {
+    "log": 8,
+    "fixed": 41,
+    "main": 1107,
+    "inter": 1416,
+    "base_mac_fixed": 40,
+    "base_mac_main": 1106,
+    "byte_queries": 353,
+    "public_inputs": 25
+  },
+  "bounds": {
+    "carry_bits": 22,
+    "offset": 2097152,
+    "max_valid_carry": 1766123,
+    "max_integer_residual": 989384508,
+    "signed_quotient_bytes": 33,
+    "quotient_bits": 262
+  },
+  "tests": {
+    "focused_source_safe": 5,
+    "focused_physical_safe": 2,
+    "both_signs_fresh_source_accept": true,
+    "changed_input_reject": true,
+    "changed_output_reject": true,
+    "changed_fixed_coeff_reject": true,
+    "coherent_output_plus_p_byte_closes": true,
+    "coherent_plus_p_native_prover_error": "ConstraintsNotSatisfied",
+    "coherent_plus_p_fresh_physical_error": "OodsNotMatching",
+    "peak_requested_bytes": 12989269,
+    "final_requested_bytes": 0,
+    "cap": 2147483648
+  },
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/mac12-bounded-physical-v1",
+  "artifacts": {
+    "positive.bin": {
+      "bytes": 241040,
+      "sha256": "a53ad3da837d8f105046bf70d3a0f4e3006452184a56e6b5a0ac6c6186f52c91",
+      "accepted": true
+    },
+    "negative-plus-p.unverified.bin": {
+      "bytes": 229920,
+      "sha256": "080ed1bad03f488c8153dc729b011b3aa8c1cfb49cb90cfa3e22c126d44a16fa",
+      "accepted": false
+    },
+    "negative.bin": {
+      "bytes": 240656,
+      "sha256": "4d0e0a2183f2cc03405f61dbc5cc42b9a960ab38dca26d29b0fbaddb341ad0cc",
+      "accepted": true
+    },
+    "positive-plus-p.unverified.bin": {
+      "bytes": 229088,
+      "sha256": "146919ff0bf255f874cb531d08dd8073198f7859c10b14996a51766459e7da63",
+      "accepted": false
+    }
+  },
+  "scope": [
+    "one active MAC12 row",
+    "canonical public input/output authority",
+    "classic BYTE rational closure",
+    "no production SSA inheritance",
+    "no whole pairing or VM proof"
+  ],
+  "development_failure": "First test run stopped on expected forged ConstraintsNotSatisfied; harness now retains failed proof and tests exact fresh OODS rejection. No speed claim."
+}
