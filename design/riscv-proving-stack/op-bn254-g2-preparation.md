@@ -20,3 +20,11 @@ The next physical candidate is:
 This gives 1,476,864 padded MAIN+INTER cells under the proposed bindings, before final physical qualification. Six GKR source instances would contain 1,352,960 padded facts: separate BYTE double/add/table and SSA double/add/frontier. Their52-byte/fact checkpoint model is70,353,920 bytes, not a whole-worker memory bound. BYTE query mass is724,356. The original complete canonical rows and degree-three authority can be reused; actual GKR binding, source masks, mixed geometry, caps and adversarial proofs are still pending.
 
 A conditional public fixture may pin Q-specific bytes in FIXED to qualify arithmetic; such a key is input-specific and must never be called a reusable production chip VK. Production must keep variable canonical Q in MAIN and bind it to the authenticated CPU/service Wire source. Source constants alone are immutable setup data. Complete pairing endpoints, subgroup/curve/infinity checks, memory authority, security accounting and recursive acceptance remain open.
+
+The guarded source regression is:
+
+```sh
+zig build test-riscv64-op-g2-preparation-source -Doptimize=ReleaseSafe -j1
+```
+
+Its minimum test count is 14. It does not run or admit a whole preparation proof.
