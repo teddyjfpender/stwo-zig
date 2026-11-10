@@ -23,6 +23,10 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
     const merklePoolReuseEnabled = parameters.merklePoolReuseEnabled;
     const WaitGroup = std.Thread.WaitGroup;
     const native_four = @hasDecl(H, "updateM31Columns4") and @hasDecl(H, "finalize4");
+    // Only qualification wrappers override this capability to retain the old
+    // scalar-intermediate control. No protocol/wire/runtime selector changes.
+    const native_tiles = native_four and (!@hasDecl(H, "native_four_intermediate_tiles") or H.native_four_intermediate_tiles);
+    const NativeTiles = if (native_four) @import("native_four_tail.zig").For(H, ColumnRef) else void;
 
     return struct {
         const Committer = @This();
@@ -419,10 +423,13 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                     64 * (4 * @sizeOf(@import("stwo_core").fields.m31.M31) + @sizeOf(ColumnRef)) + 4 * (@sizeOf(H) + @sizeOf(H.Hash))
                 else
                     0;
-                // Explicit bounded caller workspace, separate from the
-                // heap-only leaf_phase_peak_bytes statistic. This is not
-                // a bound on helper call frames or compiler spills.
-                out.tail_cache_bytes = worker_count * ((if (reuse_tail) tail_cache_bytes_per_worker else 0) + native_scratch);
+                // Explicit algorithm-owned stack workspace, NOT a measured
+                // compiler/helper-frame/thread-stack peak. Heap prefix cap
+                // and leaf_phase_peak_bytes retain their original meaning.
+                out.tail_cache_bytes = worker_count * (if (reuse_tail and native_tiles)
+                    NativeTiles.explicit_workspace_bytes
+                else
+                    (if (reuse_tail) tail_cache_bytes_per_worker else 0) + native_scratch);
             }
 
             var ranges: [parameters.max_parallel_workers]BoundedTailRange = undefined;
@@ -480,6 +487,10 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
         fn finalizeBoundedTailRangeReusing(range: *BoundedTailRange) void {
             if (std.process.hasEnvVarConstant("STWO_ZIG_SCALAR_TAIL_UPDATES")) {
                 return finalizeBoundedTailRangeReusingImpl(range, false);
+            }
+            if (comptime native_tiles) {
+                range.absorptions = NativeTiles.finish(range);
+                return;
             }
             if (@import("bounded_blake2_tail.zig").finalize(H, range)) |absorptions| {
                 range.absorptions = absorptions;

@@ -71,6 +71,44 @@ const Packed = struct {
         return H.finalize4(&inner);
     }
 };
+// Retains native-four final updates/nodes while disabling only the new
+// intermediate tile cache, for a like-for-like uninstrumented control.
+const LegacyNative = struct {
+    inner: H,
+    pub const native_four_intermediate_tiles = false;
+    pub const Hash = H.Hash;
+    pub const NodeSeed = void;
+    pub fn nodeSeed() void {}
+    pub fn defaultWithInitialState() @This() {
+        return .{ .inner = H.defaultWithInitialState() };
+    }
+    pub fn updateLeaf(self: *@This(), values: []const M) void {
+        self.inner.updateLeaf(values);
+    }
+    pub fn finalize(self: @This()) Hash {
+        return self.inner.finalize();
+    }
+    pub fn hashChildren(children: struct { left: Hash, right: Hash }) Hash {
+        return H.hashChildren(.{ .left = children.left, .right = children.right });
+    }
+    pub fn hashChildrenWithSeed(_: void, children: struct { left: Hash, right: Hash }) Hash {
+        return hashChildren(.{ .left = children.left, .right = children.right });
+    }
+    pub fn hashChildrenWithSeed4(_: void, children: *const [8]Hash) [4]Hash {
+        return H.hashChildrenWithSeed4({}, children);
+    }
+    pub fn updateM31Columns4(hashers: *[4]@This(), columns: anytype, position: usize) void {
+        var inner: [4]H = undefined;
+        inline for (0..4) |i| inner[i] = hashers[i].inner;
+        H.updateM31Columns4(&inner, columns, position);
+        inline for (0..4) |i| hashers[i].inner = inner[i];
+    }
+    pub fn finalize4(hashers: *[4]@This()) [4]Hash {
+        var inner: [4]H = undefined;
+        inline for (0..4) |i| inner[i] = hashers[i].inner;
+        return H.finalize4(&inner);
+    }
+};
 const Columns = struct {
     a: std.mem.Allocator,
     values: [][]const M,
@@ -149,9 +187,9 @@ test "OP P2 bounded tail tiny benchmark identical geometry scalar vector reused"
     var binding = try E.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     var expected: ?H.Hash = null;
-    inline for (.{ 0, 1, 2 }) |mode| {
-        const Hasher = if (mode == 0) Scalar else H;
-        const reuse = mode == 2;
+    inline for (.{ 0, 1, 2, 3 }) |mode| {
+        const Hasher = if (mode == 0) Scalar else if (mode == 2) LegacyNative else H;
+        const reuse = mode >= 2;
         var timer = try std.time.Timer.start();
         var stats: E.vcs_lifted.prover.MerkleProverLifted(Hasher).BoundedPrefixStats = .{};
         var tree = try commit(Hasher, a, columns.values, 2 * @sizeOf(Hasher), reuse, &stats);
@@ -257,4 +295,135 @@ test "OP P2 reused intermediate semantic work diagnostic" {
     const info = try std.json.Stringify.valueAlloc(a, .{ .scalar_absorbed_words = WorkProbe.scalar_words.load(.monotonic), .native4_absorbed_words = WorkProbe.packed_words.load(.monotonic), .scalar_leaf_state_permutations = WorkProbe.scalar_permutations.load(.monotonic), .native4_leaf_state_permutations = WorkProbe.packed_permutations.load(.monotonic), .binary_nodes = WorkProbe.nodes.load(.monotonic), .internal_state_permutations = 2 * WorkProbe.nodes.load(.monotonic), .stats = stats, .root = std.fmt.bytesToHex(tree.root(), .lower), .timing_claim = false }, .{});
     defer a.free(info);
     std.debug.print("OP_P2_INTERMEDIATE_WORK {s}\n", .{info});
+}
+
+fn oomTiles(a: std.mem.Allocator) !void {
+    const c2 = [_]M{M.fromCanonical(3)} ** 2;
+    const c4 = [_]M{M.fromCanonical(5)} ** 4;
+    const c16 = [_]M{M.fromCanonical(7)} ** 16;
+    var tree = try commit(H, a, &.{ &c2, &c4, &c16 }, 2 * @sizeOf(H), true, null);
+    defer tree.deinit(a);
+}
+test "OP P2 native four cache minimum log and full-prefix empty and OOM gates" {
+    const a = std.testing.allocator;
+    const c1 = [_]M{M.fromCanonical(2)};
+    const c2 = [_]M{ M.fromCanonical(3), M.fromCanonical(5) };
+    const c4 = [_]M{ M.fromCanonical(7), M.fromCanonical(11), M.fromCanonical(13), M.fromCanonical(17) };
+    try std.testing.expectError(error.InvalidColumnSize, commit(H, a, &.{&c1}, 2 * @sizeOf(H), true, null));
+    try std.testing.expectError(error.InvalidColumnSize, E.vcs_lifted.prover.MerkleProverLifted(H).commit(a, &.{&c1}));
+    for ([_][]const []const M{ &.{}, &.{&c2}, &.{ &c2, &c4 } }) |columns| {
+        var oracle = try commit(Scalar, a, columns, 4 * @sizeOf(Scalar), true, null);
+        defer oracle.deinit(a);
+        var actual = try commit(H, a, columns, 4 * @sizeOf(H), true, null);
+        defer actual.deinit(a);
+        for (oracle.layers, actual.layers) |x, y| try std.testing.expectEqualSlices(H.Hash, x, y);
+    }
+    try std.testing.checkAllAllocationFailures(a, oomTiles, .{});
+}
+test "OP P2 native four intermediate cache leaf parity on unaligned short ranges and missing final suffix" {
+    const Tree = E.vcs_lifted.prover.MerkleProverLifted(H);
+    const Tiles = E.vcs_lifted.native_four_tail.For(H, Tree.ColumnRef);
+    var c2: [2]M = undefined;
+    var c4: [4]M = undefined;
+    var c16: [16]M = undefined;
+    for (&c2, 0..) |*v, i| v.* = M.fromCanonical(@intCast(i + 3));
+    for (&c4, 0..) |*v, i| v.* = M.fromCanonical(@intCast(i + 7));
+    for (&c16, 0..) |*v, i| v.* = M.fromCanonical(@intCast(i + 13));
+    const cols = [_]Tree.ColumnRef{ .{ .log_size = 1, .values = &c2, .original_index = 0 }, .{ .log_size = 2, .values = &c4, .original_index = 1 }, .{ .log_size = 4, .values = &c16, .original_index = 2 } };
+    var base = [_]H{ H.defaultWithInitialState(), H.defaultWithInitialState() };
+    // Nonzero and equal absorption counters across independently seeded parity
+    // states. Neither source prefix state may be mutated by a tail worker.
+    const seed = [_]M{M.fromCanonical(23)} ** 13;
+    for (&base) |*state| state.updateLeaf(&seed);
+    const saved = base;
+    for ([_]usize{ 0, 1, 3 }) |column_count| for ([_][2]usize{ .{ 0, 0 }, .{ 0, 64 }, .{ 1, 5 }, .{ 1, 33 }, .{ 3, 63 }, .{ 7, 12 }, .{ 63, 64 } }) |span| {
+        var actual: [64]H.Hash = @splat(@splat(0xff));
+        const Range = struct { base_hashers: []const H, base_log_size: u32, tail_columns: []const Tree.ColumnRef, final_log_size: u32, leaves: []H.Hash, start: usize, end: usize };
+        const range = Range{ .base_hashers = &base, .base_log_size = 1, .tail_columns = cols[0..column_count], .final_log_size = 6, .leaves = &actual, .start = span[0], .end = span[1] };
+        _ = Tiles.finish(&range);
+        for (actual, 0..) |value, row| {
+            if (row < span[0] or row >= span[1]) {
+                try std.testing.expectEqualSlices(u8, &(@as(H.Hash, @splat(0xff))), &value);
+                continue;
+            }
+            var oracle = base[row & 1];
+            for (cols[0..column_count]) |column| {
+                const shift: std.math.Log2Int(usize) = @intCast(6 - column.log_size + 1);
+                const index = ((row >> shift) << 1) + (row & 1);
+                oracle.updateLeaf(column.values[index..][0..1]);
+            }
+            try std.testing.expectEqualSlices(u8, &oracle.finalize(), &value);
+        }
+        inline for (0..2) |i| try std.testing.expectEqualDeep(saved[i], base[i]);
+    };
+}
+
+test "OP P2 native intermediate cache more than64 sameheight columns and nested heights" {
+    const Tree = E.vcs_lifted.prover.MerkleProverLifted(H);
+    const Tiles = E.vcs_lifted.native_four_tail.For(H, Tree.ColumnRef);
+    const c2 = [_]M{ M.fromCanonical(3), M.fromCanonical(7) };
+    const c4 = [_]M{ M.fromCanonical(11), M.fromCanonical(13), M.fromCanonical(17), M.fromCanonical(19) };
+    const base = [_]H{ H.defaultWithInitialState(), H.defaultWithInitialState() };
+    for ([_]bool{ false, true }) |two_rows| {
+        var columns: [70]Tree.ColumnRef = undefined;
+        for (&columns, 0..) |*column, i| column.* = .{ .log_size = if (two_rows) 1 else 2, .values = if (two_rows) &c2 else &c4, .original_index = i };
+        var actual: [64]H.Hash = undefined;
+        const Range = struct { base_hashers: []const H, base_log_size: u32, tail_columns: []const Tree.ColumnRef, final_log_size: u32, leaves: []H.Hash, start: usize, end: usize };
+        const range = Range{ .base_hashers = &base, .base_log_size = 1, .tail_columns = &columns, .final_log_size = 6, .leaves = &actual, .start = 0, .end = 64 };
+        _ = Tiles.finish(&range);
+        for (actual, 0..) |value, row| {
+            var oracle = base[row & 1];
+            for (columns) |column| {
+                const shift: std.math.Log2Int(usize) = @intCast(6 - column.log_size + 1);
+                const index = ((row >> shift) << 1) + (row & 1);
+                oracle.updateLeaf(column.values[index..][0..1]);
+            }
+            try std.testing.expectEqualSlices(u8, &oracle.finalize(), &value);
+        }
+    }
+    var storage: [8][256]M = undefined;
+    var columns: [8][]const M = undefined;
+    for (&storage, &columns, 0..) |*values, *column, log_minus1| {
+        const n = @as(usize, 1) << @intCast(log_minus1 + 1);
+        for (values[0..n], 0..) |*v, i| v.* = M.fromCanonical(@intCast(29 + 31 * log_minus1 + i));
+        column.* = values[0..n];
+    }
+    var oracle = try commit(Scalar, std.testing.allocator, &columns, 2 * @sizeOf(Scalar), false, null);
+    defer oracle.deinit(std.testing.allocator);
+    var actual = try commit(H, std.testing.allocator, &columns, 2 * @sizeOf(H), true, null);
+    defer actual.deinit(std.testing.allocator);
+    for (oracle.layers, actual.layers) |x, y| try std.testing.expectEqualSlices(H.Hash, x, y);
+}
+fn timedReuse(comptime Hasher: type, a: std.mem.Allocator, columns: []const []const M) !u64 {
+    var timer = try std.time.Timer.start();
+    var tree = try commit(Hasher, a, columns, 2 * @sizeOf(Hasher), true, null);
+    const ns = timer.read();
+    defer tree.deinit(a);
+    try std.testing.expectEqualStrings("36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a", &std.fmt.bytesToHex(tree.root(), .lower));
+    return ns;
+}
+test "OP P2 native intermediate balanced uninstrumented microqualification" {
+    if (!std.process.hasEnvVarConstant("STWO_OP_P2_INTERMEDIATE_BALANCED")) return error.SkipZigTest;
+    const a = std.heap.smp_allocator;
+    var columns = try Columns.init(a, 16, true);
+    defer columns.deinit();
+    var pool: E.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 1 });
+    defer pool.deinit();
+    var binding = try E.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    var control: [8]u64 = undefined;
+    var candidate: [8]u64 = undefined;
+    for (0..8) |round| {
+        if (round % 2 == 0) {
+            control[round] = try timedReuse(LegacyNative, a, columns.values);
+            candidate[round] = try timedReuse(H, a, columns.values);
+        } else {
+            candidate[round] = try timedReuse(H, a, columns.values);
+            control[round] = try timedReuse(LegacyNative, a, columns.values);
+        }
+    }
+    const data = try std.json.Stringify.valueAlloc(a, .{ .control_ns = control, .candidate_ns = candidate, .pattern = "AB BA AB BA AB BA AB BA", .workers = 1, .whole_proof_claim = false }, .{});
+    defer a.free(data);
+    std.debug.print("OP_P2_NATIVE_TILES_BALANCED {s}\n", .{data});
 }

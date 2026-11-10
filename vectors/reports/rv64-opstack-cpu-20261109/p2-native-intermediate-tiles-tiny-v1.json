@@ -1,0 +1,153 @@
+{
+  "schema": "op-p2-native-intermediate-tiles-tiny-qualification/v1",
+  "baseline_source_commit": "79ecc7328",
+  "implementation": "One fourstate tile per native height. Cache misses derive four parent-prefix VALUE snapshots before native4absorption; minimal two-row heights use scalar2 fallback; disjoint worker caches/output ranges. No full-domain state slab or heap-cap increase.",
+  "policy": "Isolated candidate; real4M proof parity/performance pending before adoption.",
+  "cap_bytes": 100663296,
+  "exact_tree_parity": "Every Merkle layer matches independent scalar hasher across1/3workers,equal/mixedheights,seed/partial/fullprefix and66columns.",
+  "edge_gates": [
+    "Both ordinary and bounded column APIs reject log0/one-row columns; empty SET and2-rowlog1 are handled.",
+    "Direct leaf tests: log1/2/4intermediates atfinalheight6 withNO finalheightcolumn; range0..0,0..64,1..5,1..33,3..63,7..12,63..64; nonzeroequalprefixcounter(seed13words).",
+    "Immutableprefixstates and outside-range leafsentinels preserved.",
+    "70sameheight intermediate columns,including2-rowfallback64+6scalarwords; nestedheights1..8everylayer comparison.",
+    "All allocation failures on minimum mixed-height commit, checked prefix-cap refusal and4MiBsharedheapcap; zero heap/external teardown.",
+    "Existing shared genericMerkle regression passed ReleaseSafe.",
+    "Expanded OP P2 gates passed ReleaseSafe and ReleaseFast."
+  ],
+  "work_after": {
+    "scalar_absorbed_words": 0,
+    "native4_absorbed_words": 1158144,
+    "scalar_leaf_state_permutations": 0,
+    "native4_leaf_state_permutations": 141312,
+    "binary_nodes": 65535,
+    "internal_state_permutations": 131070,
+    "stats": {
+      "final_log_size": 16,
+      "prefix_log_size": 1,
+      "prefix_column_count": 0,
+      "tail_column_count": 66,
+      "prefix_state_count": 2,
+      "prefix_state_bytes": 208,
+      "leaf_layer_bytes": 2359296,
+      "leaf_phase_peak_bytes": 2359504,
+      "tail_cache_bytes": 82008,
+      "tail_absorptions": 1158144,
+      "repeated_tail_absorptions": 0
+    },
+    "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a",
+    "timing_claim": false
+  },
+  "unbalanced_probe": [
+    {
+      "mode": 0,
+      "elapsed_ns": 388464416,
+      "stats": {
+        "final_log_size": 16,
+        "prefix_log_size": 1,
+        "prefix_column_count": 0,
+        "tail_column_count": 66,
+        "prefix_state_count": 2,
+        "prefix_state_bytes": 208,
+        "leaf_layer_bytes": 2359296,
+        "leaf_phase_peak_bytes": 2359504,
+        "tail_cache_bytes": 0,
+        "tail_absorptions": 4325376,
+        "repeated_tail_absorptions": 3167232
+      },
+      "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a"
+    },
+    {
+      "mode": 1,
+      "elapsed_ns": 166382084,
+      "stats": {
+        "final_log_size": 16,
+        "prefix_log_size": 1,
+        "prefix_column_count": 0,
+        "tail_column_count": 66,
+        "prefix_state_count": 2,
+        "prefix_state_bytes": 208,
+        "leaf_layer_bytes": 2359296,
+        "leaf_phase_peak_bytes": 2359504,
+        "tail_cache_bytes": 3632,
+        "tail_absorptions": 4325376,
+        "repeated_tail_absorptions": 3167232
+      },
+      "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a"
+    },
+    {
+      "mode": 2,
+      "elapsed_ns": 98152791,
+      "stats": {
+        "final_log_size": 16,
+        "prefix_log_size": 1,
+        "prefix_column_count": 0,
+        "tail_column_count": 66,
+        "prefix_state_count": 2,
+        "prefix_state_bytes": 208,
+        "leaf_layer_bytes": 2359296,
+        "leaf_phase_peak_bytes": 2359504,
+        "tail_cache_bytes": 19760,
+        "tail_absorptions": 1158144,
+        "repeated_tail_absorptions": 0
+      },
+      "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a"
+    },
+    {
+      "mode": 3,
+      "elapsed_ns": 109580666,
+      "stats": {
+        "final_log_size": 16,
+        "prefix_log_size": 1,
+        "prefix_column_count": 0,
+        "tail_column_count": 66,
+        "prefix_state_count": 2,
+        "prefix_state_bytes": 208,
+        "leaf_layer_bytes": 2359296,
+        "leaf_phase_peak_bytes": 2359504,
+        "tail_cache_bytes": 82008,
+        "tail_absorptions": 1158144,
+        "repeated_tail_absorptions": 0
+      },
+      "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a"
+    }
+  ],
+  "balanced_micro": {
+    "control_ns": [
+      97586416,
+      98235250,
+      97549625,
+      97966958,
+      99618125,
+      97619209,
+      97802417,
+      98055541
+    ],
+    "candidate_ns": [
+      92953417,
+      95701667,
+      94232375,
+      112297875,
+      97130459,
+      91029333,
+      91358958,
+      91421375
+    ],
+    "pattern": "AB BA AB BA AB BA AB BA",
+    "workers": 1,
+    "whole_proof_claim": false,
+    "control_median_ns": 97884687.5,
+    "candidate_median_ns": 93592896.0,
+    "median_speedup": 1.0458559536399001,
+    "candidate_reduction_percent": 4.38453818427933,
+    "note": "Eight uninstrumented samples each in alternatingAB/BAorder. Development compilers may have overlapped; candidate has one112msoutlier. Relative median4.6%gain is a modest microqualification, not a predicted whole-proof speedup."
+  },
+  "workspace": {
+    "algorithm_owned_per_worker_bytes": 82008,
+    "baseline_algorithm_owned_per_worker_bytes": 19760,
+    "definition": "Cache struct +worst-case64recursive batch/slab/group/indexworkspaces+finalbatch/digests. Not measured compiler-frame/registerspill/backend-helper or whole-worker-stack usage. No extra heapallocation.",
+    "thread_stack_configuration_bytes": 1048576
+  },
+  "proof_security_changes": false,
+  "complete_heavy_replay": false,
+  "whole_block_or_root_acceptance_claim": false
+}
