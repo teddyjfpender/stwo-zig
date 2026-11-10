@@ -101,6 +101,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-op-g2-subgroup-source", .description = "Exact conditional G2 curve and subgroup source, inverse obligations and oracle controls", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-hint-source", .description = "Canonical private hint source, range and modulus controls", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-residue-source", .description = "Conditional positive pairing residue source and subfield controls", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-op-miller-source", .description = "Complete shared four-pair Miller source, oracle, chronology and curve controls", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-g2-subgroup-proof", .description = "Conditional exact subgroup physical proof, fresh authority and attacks", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-residue-proof", .description = "Conditional residue physical proof, subfield attack and degree gate", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-native-truth", .description = "Pure-P2 physical truth catalog for OP inherited service providers", .scope = .riscv_cpu },
