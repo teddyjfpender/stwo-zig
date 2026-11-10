@@ -98,6 +98,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-op-native-join", .description = "Closed OP Miller CPU local GKR, truth and global RAM/Wire join", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-g2-source", .description = "Source-owned homogeneous G2 transition, canonical witness and dense arithmetic regressions", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-g2-preparation-source", .description = "Complete immutable G2 preparation DAG, canonical corrections and pinned line oracle", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-op-g2-subgroup-source", .description = "Exact conditional G2 curve and subgroup source, inverse obligations and oracle controls", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-native-truth", .description = "Pure-P2 physical truth catalog for OP inherited service providers", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-arith256-truth", .description = "arith256_mod truth AIR: big-integer known answers, edge values and adversarial rows", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-v3-services", .description = "ethereum_services_v3 SHA-256 + arith256_mod + bulk memory in one bundle: fresh receiver and closure rejections", .scope = .riscv_cpu },

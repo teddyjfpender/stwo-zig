@@ -149,6 +149,7 @@ pub fn addProduct(context: Context) void {
         .{ "op-tower", "src/frontends/riscv/rv64_op_tower_test_root.zig", 3 },
         .{ "op-g2-source", "src/frontends/riscv/rv64_bn254_g2_test_root.zig", 18 },
         .{ "op-g2-preparation-source", "src/frontends/riscv/rv64_bn254_g2_preparation_test_root.zig", 14 },
+        .{ "op-g2-subgroup-source", "src/frontends/riscv/rv64_bn254_g2_subgroup_test_root.zig", 16 },
         .{ "op-dense-local-gkr", "src/integrations/riscv_cpu/rv64_op_dense_local_gkr_test_root.zig", 2 },
         .{ "op-dense-proof", "src/integrations/riscv_cpu/rv64_op_dense_physical_test_root.zig", 1 },
         .{ "op-tower-proof", "src/integrations/riscv_cpu/rv64_op_tower_physical_test_root.zig", 1 },

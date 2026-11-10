@@ -100,3 +100,12 @@ BYTE/SSA closure with adversarial proofs; source-bound whole-pairing input and
 validity/infinity/subgroup policy; all-loop G2/prepared-line and Fp12/residue
 composition; native/fresh-recursive receivers and conditional soundness accounting.
 No production code can select this program as an admitted service today.
+
+
+The source gate is also registered in the product build with a 16-test minimum:
+
+```sh
+zig build test-riscv64-op-g2-subgroup-source -Doptimize=ReleaseSafe -j1
+```
+
+This source/witness gate does not establish physical hint or subgroup admission.
