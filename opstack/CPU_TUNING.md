@@ -42,6 +42,21 @@ complete roots, every physical recursive proof and the tree bytes match exactly.
 Every separate strict receiver accepts. Defaults remain serial with a 64 MiB
 CPU wrap cache. The fanout experiment below is now rejected.
 
+The first P2 repair changes only commitment dispatch/reuse. Selected stages of
+the same conditional 4M fragment are:
+
+| Stage | Before | After |
+| --- | ---: | ---: |
+| MAIN Merkle | 39.245 s | 5.792 s |
+| INTER Merkle | 20.095 s | 3.828 s |
+| Local GKR | 3.864 s | 3.515 s |
+| Composition evaluation | 1.924 s | 1.803 s |
+| FRI quotient and commit | 2.503 s | 2.316 s |
+
+The non-hashing stages have no algorithmic change in this comparison; their
+small timing differences are not additional claimed optimizations. Both proof
+files and all statement/claim identities are identical.
+
 ## CPU interaction ownership
 
 The detached CPU worker now transfers completed interaction matrices to PCS

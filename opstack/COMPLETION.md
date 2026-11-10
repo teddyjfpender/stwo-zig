@@ -37,7 +37,7 @@ replacing the qualified execution controls above. Its records are in
 | Bounded immutable setup | Two fresh heavy captures reuse all 36 setup classes with no new misses; all roots, public cells and final states match; 28.068 GB peak requested memory under 32 GiB; final heap/external counters zero | Uninterrupted warm end-to-end proving measurements; both preparation timers were interrupted |
 | R5 portable root-only handoff | Actual small block: three physical leaves, two folds, 667,304-byte root; fresh receiver derives source authority and verifies only the root | Practical performance: 305.567 seconds additional recursion remains too slow; not a default promotion |
 | R6 independent OM31 multiplication | Actual small execution closes all three leaves and two folds: 687,908-byte root: original Safe run 198.102 seconds; subsequent Fast run 138.898 seconds with every node/root/sidecar byte-identical and fresh source-only acceptance; native production is additional | Actual full-height heavy classes and complete heavy native-plus-root performance; no extrapolation from the small block |
-| Service-local GKR | Actual Kona120794432 completes native suite3 and a 683,432-byte R6 root, with separate source-only acceptance and policy/output refusal; explicit suite3 additionally closes a complete synthetic CPU + Miller native bundle, two recursive leaves and one fold, with physical adversaries | Actual full-height Miller and heavy resource-derived physical sharding. The small Kona block has zero Miller calls; the synthetic fixture is not a Kona block or a heavy performance result |
+| Service-local GKR | Actual Kona120794432 completes native suite3 and a 683,432-byte R6 root, with separate source-only acceptance and policy/output refusal; explicit suite3 additionally closes a complete synthetic CPU + Miller native bundle, two recursive leaves and one fold, with physical adversaries | The full-height synthetic log15 Miller fixture now passes native and complete R7 root qualification with 1,023 actual VM calls; actual heavy integration and performance remain open. The small Kona block has zero Miller calls; capacity fixtures are not Kona blocks or heavy performance results |
 | Bounded truth planning | Source-derived checkpoint/whole-worker estimator refuses heavy log18 Keccak and admits log16/4,518-permutation shards under the declared 8 GiB worker limit | Resource-derived shard-plan integration is present; physical heavy qualification remains open. Estimates are requested bytes, not measured RSS |
 | Retained source custody | Small native bundle remains byte-identical with CPU advice parking and post-seal LS/SHIFT auxiliary retirement; witness-free ledger reproduces capture and event payloads exactly | Model excludes scratch/mappings; 27.46 GB CPU seal payload is not whole-worker admission or measured RSS |
 | Detached sponge and CPU frontier | Actual selected796k guest and alternate1.317M guest complete fresh native proof production and independent receivers, with global closure and all typed callbacks. Selected guest includes CPU, detached sponge, local Keccak and classic SHA | Production source-suite admission remains closed; representative heavy/resource and broader regression qualification still required |
@@ -306,3 +306,21 @@ with independent native/VM/Unicorn agreement, but active field cells rise
 53,220 to 88,632. Conditional heavy padding saves only about 10.3% field cells
 and doubles Miller leaf count. It stays opt-in; a dedicated fused tower provider
 is the next experiment. See the [full cost review](../design/riscv-proving-stack/op-bn254-dense-reuse-cost.md).
+
+
+## Fused pairing foundation
+
+The immutable G2 doubling/addition source now has complete physical BYTE/SSA
+fixtures with independently pinned expected input/export authority. All writers
+are canonical, the complete equations have degree at most three, and both local
+relations close independently. Eleven source/public-key attacks per class reject;
+coherent internal result+p retains local lookup closure but fails the physical
+proof. These small correctness fixtures use deliberately input-specific FIXED
+keys and do not admit a reusable production provider.
+
+The next source gate is one composite proof of all 87 preparation lines, with
+Q-independent program IDs and source-owned Frobenius corrections. Complete
+curve/subgroup/infinity handling, final pairing/residue endpoints, variable-input
+Wire/RAM authority, recursive reception and a real performance comparison remain
+open. See the [G2 design and gates](../design/riscv-proving-stack/op-bn254-g2-transition.md)
+and [physical receipt](../vectors/reports/rv64-opstack-performance-20261109/guest/g2-transition-physical-v1.json).
