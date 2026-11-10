@@ -2,8 +2,8 @@
 
 The current work replaces a long sequence of guest field operations with one
 source-owned pairing computation. It is an experimental, finite, four-pair,
-positive-certificate construction. It has no new VM tag, production admission,
-Wire/RAM integration or recursive acceptance yet. Existing qualified OP routes
+positive-certificate construction. It has a complete experimental physical arithmetic proof, but no new VM tag,
+production admission, Wire/RAM integration or recursive acceptance yet. Existing qualified OP routes
 remain available.
 
 ## Source authority
@@ -37,7 +37,7 @@ results to be handled before admitting a replacement service.
 | Exact G2 subgroup | `bn254_g2/subgroup/`; integration `op_g2_subgroup/` | Conditional physical proof and canonical-hint attacks |
 | Positive residue | `bn254_residue/`; integration `op_residue/` | Conditional physical proof and off-subfield inverse-scale rejection |
 | Whole shared Miller | `bn254_miller/` | Source/oracle and chronology gates |
-| Connected pairing | `bn254_pairing/` | Complete source DAG and substitution gates; physical composite pending |
+| Connected pairing | `bn254_pairing/`; integration `op_pairing_mac12/` | Complete four-role physical BYTE/SSA proof; VM and recursion pending |
 | Arithmetic layout | `bn254_mac6/`, `bn254_mac12/`; integration `op_mac12/` | Numeric/cost controls and bounded physical integer/BYTE gate; composite SSA join pending |
 
 Frontend paths in this table are below
@@ -73,6 +73,16 @@ this is not measured hashing traffic or a root speedup. It adds GKR instances
 and must remap the existing subgroup equations into the same canonical source.
 The first complete physical gate remains the universal MAC12 construction.
 
+The complete universal MAC12 physical gate now passes at q12/B2 correctness
+settings: 175,544-byte PCS plus 48,604-byte GKR child, with 995,747,973-byte
+requested peak under 2 GiB. BYTE and SSA close independently, and all six
+terminal instances bind committed MAIN. Thirteen independently reconstructed
+source/mask controls reject. A coherent hint+p attack changes actual committed
+read ports, recomputes quotient/carries and rebuilds the actual BYTE histogram;
+its GKR child closes, but fresh physical verification rejects OODS. All four
+role constraint systems have degree at most three. This is not a production
+security, speed or VM-admission claim. [Receipt](../vectors/reports/opstack-cpu-20261110/pairing-mac12-whole-physical-v1.json).
+
 ## Advice and packet compatibility
 
 The existing guest residue hint has thirty fields in the order seed12,
@@ -85,14 +95,17 @@ old guest packet needs an explicit authenticated conversion or new version,
 not reuse of a tag with changed meaning. The host positive-certificate generator
 already exists in `opstack/kona/src/precompiles/pairing_residue.rs`.
 
-## Remaining acceptance gates
+## Acceptance gates
 
 1. Lower the complete immutable source into one concrete physical arithmetic
-   bank, private-hint bank and frontier, preserving all IDs, fanout and endpoints.
+   bank, private-hint bank and frontier, preserving all IDs, fanout and endpoints
+   (q12 correctness gate established).
 2. Close BYTE and SSA separately, bind every GKR terminal to committed MAIN,
-   and independently reconstruct source/FIXED authority in a fresh receiver.
+   and independently reconstruct source/FIXED authority in a fresh receiver
+   (q12 gate and witness-free authority requalification established).
 3. Reject physical canonicality, signed-quotient, disconnected Q/z, missing
-   obligation, changed-source and balanced lookup attacks.
+   obligation, changed-source and balanced lookup attacks
+   (q12 retained-forgery and source controls established).
 4. Establish the concrete production security profile and resource bounds;
    the existing small physical fixtures use q12 correctness settings.
 5. Bind variable VM inputs and outputs through authenticated Wire/RAM, handle
@@ -103,14 +116,80 @@ already exists in `opstack/kona/src/precompiles/pairing_residue.rs`.
 ## Focused development gates
 
 ```sh
+zig build check-riscv64-op-pairing -Doptimize=ReleaseSafe -j1
 zig build test-riscv64-op-g2-preparation-source \
   test-riscv64-op-g2-subgroup-source test-riscv64-op-residue-source \
   test-riscv64-op-miller-source test-riscv64-op-pairing-source \
   test-riscv64-op-mac-source test-riscv64-op-mac12-source \
   -Doptimize=ReleaseSafe -j1
 zig build test-riscv64-op-g2-subgroup-proof \
-  test-riscv64-op-residue-proof -Doptimize=ReleaseSafe -j1
+  test-riscv64-op-residue-proof test-riscv64-op-pairing-proof \
+  -Doptimize=ReleaseSafe -j1
 ```
 
 These targets retain test-count guards. Run the bounded gates while iterating;
 complete OP production and recursion qualification is an integration step.
+
+## Target-parameter control
+
+The [caller-pinned q72 control](../vectors/reports/opstack-cpu-20261110/pairing-mac12-target-profile-v2.json)
+uses OM31, Blake2s PCS, B4/q72/fold4/PoW0. These are existing OP FRI parameters,
+not the OP lane's Poseidon2 hash/profile identity. Both profile substitutions
+reject. A fresh receiver derives only immutable plan plus expected public
+fields; no private certificate or normalized witness is needed. Its source
+authority revision is explicit and the earlier receiver/artifacts are retained.
+
+One-worker qualified producer phases total 14.854 s including 0.122 s of
+diagnostic checks; an additional fresh receiver takes 0.556 s. GKR 8.251 s and
+terminal bindings 2.084 s dominate; column materialization is 1.463 s and native
+STARK production is 1.171 s. These single observations identify work, not a
+quiet speed comparison. The next execution gate combines a bounded worker pool
+with packed base-field bindings and measured witness encoding. Typed full
+36-byte Poseidon2 transport is required before entering the existing OP lane.
+
+## Current native P2 qualification
+
+Revision4 uses native Poseidon2 M31 Om31V2 PCS with all nine root coordinates
+bound directly in scope, receipt, codec and native verification. Cross-suite,
+wrong-profile and ninth-coordinate controls reject. The complete provider
+proves in1.869s inReleaseFast on16CPUworkers; fresh reception is additional
+0.150s and requested peak1.007GB. ReleaseSafe is2.306s plus0.168s. All nine
+gates pass, and all twelve Safe/Fast binary artifacts match exactly. These
+are given-certificate arithmetic-provider observations, not arbitrary hint
+generation, VM, OP block or recursive-root results.
+
+Bounded physical-row generation preserves all FIXED/MAIN fields under a poison
+allocator; partial worker and allocation failures join and clear borrowed views
+before freeing. Parallel/scalar full native proof and GKR child match exactly.
+[Safe receipt](../vectors/reports/opstack-cpu-20261110/pairing-mac12-columns-v4.json) ·
+[Fast receipt](../vectors/reports/opstack-cpu-20261110/pairing-mac12-columns-v4-fast.json).
+
+## Recursion preparation
+
+Two isolated source gates prepare the real R7 integration, without changing
+its current authority or claiming recursive proof timings.
+
+- [Typed terminal parameters](../design/riscv-proving-stack/rv64-whole-pairing-r7-typed-projection.md)
+  carry dynamic beta, SSA coefficients, weights, eta and targets in external
+  lanes. All six native projections and packed16 cases agree. Circuit-verified
+  GKR outputs still need to supply those parameters; caller values alone do not
+  prove that provenance.
+- [Same-residual convolution factorization](../design/riscv-proving-stack/rv64-mac12-horner-convolution-prototype.md)
+  evaluates the unchanged65-convolution block with1,099generic multiplications
+  rather than14,871, including arbitrary full-extension masks andalpha0/1.
+  This is an algebraic operation count, not lowered IR or proving speed. It has
+  not changed the live evaluator, sink or protocol.
+
+The [exact OP/P2/R7 integration checklist](../design/riscv-proving-stack/rv64-whole-pairing-op-p2-r7-integration.md)
+identifies the VM/session/tape, global Wire/RAM, immutable input authority and
+source-emission work. Moving24input fields into canonical writers fits existing
+heights, but global I/O authority and actual circuit transcript provenance must
+be established before admitting that replacement.
+
+The [final integrated receipt](../vectors/reports/opstack-cpu-20261110/pairing-main-integrated-v4.json)
+repeats all nine gates in both optimization modes on the PR branch and checks
+all twelve binary files exactly. Native P2 proof678,856B plus48,604B local child.
+An earlier derived-count/explicit-enum cleanup gives this tree a different
+code-byte source fingerprint from the agent control; identical proof bytes are
+claimed only within each cohort. The retained complete OP small root also
+freshly verifies on the integrated tree, reading zero native proof bytes.

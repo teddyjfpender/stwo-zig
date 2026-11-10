@@ -78,6 +78,42 @@ their genuine proofs and reject both cross-profile replays. No whole-block
 or recursive performance follows from this conditional fragment.
 See the [control receipt](../vectors/reports/rv64-opstack-cpu-20261109/heavy-conditional-b2-cpu-control-v1.json).
 
+## Complete pairing arithmetic provider
+
+A complete finite four-pair provider now qualifies under native Poseidon2 M31
+Om31V2 commitments, full canonical36-byte roots, q72/B4/fold4/PoW0, and16CPU
+workers. This is arithmetic-provider qualification with supplied30-field
+residue-certificate advice, not VM, block or recursive-root proving. Arbitrary
+request hint generation is not timed. All certificate equations are constrained.
+
+| Mode | Profiled producer | Additional fresh receiver | Requested peak |
+| --- | ---: | ---: | ---: |
+| ReleaseSafe | 2.306 s | 0.168 s | 1.007 GB |
+| ReleaseFast | 1.869 s | 0.150 s | 1.007 GB |
+
+All nine physical gates pass and all twelve retained Safe/Fast binary artifacts
+match exactly, including rejected forgeries. Native proof678,856B plus local
+GKR48,604B. Producer timing excludes explicitly recorded qualification-only
+value/projection checks, receivers and attack runs; these are single
+observations, not quiet repeated benchmarks.
+
+Bounded physical-row parallelization fills FIXED/MAIN once and joins failures
+before publishing borrowed views. Full matrices and complete P2 proof/child
+match the scalar reference. On the same Fast binary, columns take0.174s versus
+1.061s; this is a stage observation. Packed base-field terminal construction
+reuses the original equations; its six planes match the scalar source oracle.
+Source-plan construction uses6allocations rather than32,002. Its49× testing-
+allocator observation is a debug-page-fault effect: the SMP comparison is only
+1.026× and establishes no production wall gain.
+
+The [integrated branch receipt](../vectors/reports/opstack-cpu-20261110/pairing-main-integrated-v4.json)
+qualifies both modes under the same exact source identity. Earlier agent
+controls use a different code-byte fingerprint and are retained separately.
+
+Evidence: [Safe physical/ownership gate](../vectors/reports/opstack-cpu-20261110/pairing-mac12-columns-v4.json),
+[Fast byte parity](../vectors/reports/opstack-cpu-20261110/pairing-mac12-columns-v4-fast.json),
+[provider map and remaining integration](PAIRING_PROVIDER.md).
+
 ## CPU interaction ownership
 
 The detached CPU worker now transfers completed interaction matrices to PCS

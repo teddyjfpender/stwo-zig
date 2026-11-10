@@ -28,7 +28,7 @@ Hint95 is private to the frontend fixture and has no public import alias. The ne
 Run from the repository root:
 
 ```
-scripts/rv64_pairing_r7_projection_test.sh --test-filter 'MAC12 typed R7'
+zig build test-riscv64-op-pairing-r7-projection -Doptimize=ReleaseSafe -Driscv-test-filter='MAC12 typed R7' -j1
 ```
 
 All five ReleaseSafe tests pass (focused root plus four substantive cases):

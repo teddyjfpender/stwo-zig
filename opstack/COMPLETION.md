@@ -357,3 +357,18 @@ Shared-source evidence: [Miller gate](../vectors/reports/rv64-opstack-performanc
 
 The [pairing provider map](PAIRING_PROVIDER.md) distinguishes source, physical,
 VM and recursive gates and records the coupled layout choice.
+
+The connected finite four-pair source now has a complete q12/B2 physical
+correctness gate: 175,544-byte PCS plus 48,604-byte GKR child, 995,747,973-byte
+requested peak. All six BYTE/SSA terminal instances bind committed MAIN; the
+coherent hint+p child closes but physical OODS rejects. VM/Wire/RAM, production
+security/resource profile and recursive reception remain open.
+[Whole physical receipt](../vectors/reports/opstack-cpu-20261110/pairing-mac12-whole-physical-v1.json).
+
+Latest integrated native P2 four-pair provider: **1.869s producer phases +0.150s
+fresh receiver**,16workers/ReleaseFast,1.007GB requested peak. ReleaseSafe and
+Fast pass all nine gates with twelve exact matching binary artifacts. This
+includes supplied private-certificate checking, not arbitrary host certificate
+generation, VM execution or a recursive root. Input-specific setup/global
+Wire/RAM and actual circuit transcript provenance remain required.
+[Integrated qualification](../vectors/reports/opstack-cpu-20261110/pairing-main-integrated-v4.json).

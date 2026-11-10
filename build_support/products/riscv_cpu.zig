@@ -158,6 +158,10 @@ pub fn addProduct(context: Context) void {
         .{ "op-mac12-source", "src/frontends/riscv/rv64_bn254_mac12_test_root.zig", 7 },
         .{ "op-pairing-lowering", "src/frontends/riscv/rv64_bn254_pairing_lowering_test_root.zig", 15 },
         .{ "op-mac12-proof", "src/integrations/riscv_cpu/rv64_op_mac12_test_root.zig", 2 },
+        .{ "op-pairing-proof", "src/integrations/riscv_cpu/rv64_op_pairing_mac12_test_root.zig", 9 },
+        .{ "op-pairing-horner", "src/integrations/riscv_cpu/rv64_op_pairing_horner_test_root.zig", 5 },
+        .{ "op-pairing-r7-projection", "src/integrations/riscv_cpu/rv64_op_pairing_r7_projection_test_root.zig", 5 },
+        .{ "op-mac12-padding-audit", "src/frontends/riscv/rv64_bn254_mac12_padding_audit_test_root.zig", 2 },
         .{ "op-pairing-fixture", "src/frontends/riscv/rv64_bn254_pairing_fixture_test_root.zig", 11 },
         .{ "op-segmented-lane", "src/integrations/riscv_cpu/rv64_op_segmented_lane_test_root.zig", 3 },
         .{ "op-g2-subgroup-proof", "src/integrations/riscv_cpu/rv64_op_g2_subgroup_test_root.zig", 4 },
@@ -185,6 +189,21 @@ pub fn addProduct(context: Context) void {
             .minimum = suite[2],
         }}));
     }
+    inline for (.{
+        .{ "fill", "src/frontends/riscv/rv64_bn254_pairing_fill_bench_test_root.zig" },
+        .{ "plan", "src/frontends/riscv/rv64_bn254_pairing_plan_bench_test_root.zig" },
+    }) |bench| {
+        context.b.step("bench-riscv64-op-pairing-" ++ bench[0], "Environment-gated bounded pairing witness benchmark").dependOn(test_filter.addSuites(context.b, &.{.{
+            .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), bench[1], &.{}),
+            .minimum = 1,
+        }}));
+    }
+    const pairing_check = riscv_cpu_tests.addFocusedTestRoot(
+        testContext(context),
+        "src/integrations/riscv_cpu/rv64_op_pairing_mac12_test_root.zig",
+        &.{},
+    );
+    context.b.step("check-riscv64-op-pairing", "Type-check complete pairing experiment without LLVM output").dependOn(&pairing_check.step);
     context.b.step("test-riscv64-proof", "Prove and verify authenticated RV64 execution").dependOn(test_filter.addSuites(context.b, &.{.{
         .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/integrations/riscv_cpu/rv64_proof_test_root.zig", &.{}),
         .minimum = 9,

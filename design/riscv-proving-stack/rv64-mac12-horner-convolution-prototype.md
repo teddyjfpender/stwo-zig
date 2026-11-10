@@ -39,7 +39,7 @@ This is **evaluation of the same randomized combination**, not removal of constr
 Run from the repository root:
 
 ```
-scripts/rv64_pairing_horner_test.sh --test-filter 'MAC12 Horner prototype'
+zig build test-riscv64-op-pairing-horner -Doptimize=ReleaseSafe -Driscv-test-filter='MAC12 Horner prototype' -j1
 ```
 
 All five ReleaseSafe tests (including the focused root import) pass:
