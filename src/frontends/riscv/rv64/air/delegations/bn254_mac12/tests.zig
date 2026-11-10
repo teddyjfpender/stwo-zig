@@ -173,3 +173,49 @@ test "MAC12 known canonical encoder matches reference at dense sparse and bounda
     input[0] = S.B.P;
     try std.testing.expectError(error.Mac12NoncanonicalInput, W.fillKnownCanonical(&input, coefficients, 0));
 }
+
+test "MAC12 lowerInto matches allocating plan and refuses before any partial write" {
+    var terms: [26]N.Term = undefined;
+    for (&terms, 0..) |*t, i| t.* = .{ .a = @intCast(4 + i), .b = if (i % 3 == 0) null else @as(?u32, 2), .coefficient = if (i % 2 == 0) 1 else -18 };
+    const sentinel = N.Stage{ .coefficients = @splat(7), .input = @splat(11), .writer = 999 };
+    var output: [4]N.Stage = @splat(sentinel);
+    var next: u32 = 100;
+    var reference_next = next;
+    var reference = try N.lower(std.testing.allocator, &terms, &reference_next, 0, 3);
+    defer reference.deinit();
+    const written = try N.lowerInto(&output, &terms, &next, 0, 3);
+    try std.testing.expectEqualDeep(reference.stages, written);
+    try std.testing.expectEqual(reference_next, next);
+    for (output[written.len..]) |unused| try std.testing.expectEqualDeep(sentinel, unused);
+    output = @splat(sentinel);
+    const before = output;
+    next = 100;
+    try std.testing.expectError(error.Mac12OutputCapacity, N.lowerInto(output[0..1], &terms, &next, 0, 3));
+    try std.testing.expectEqualDeep(before, output);
+    try std.testing.expectEqual(100, next);
+    var bad = terms;
+    bad[0].coefficient = 19;
+    try std.testing.expectError(error.Mac12CoefficientBound, N.lowerInto(&output, &bad, &next, 0, 3));
+    try std.testing.expectEqualDeep(before, output);
+    try std.testing.expectEqual(100, next);
+    bad = terms;
+    bad[0].a = 100;
+    try std.testing.expectError(error.Mac12InputAuthority, N.lowerInto(&output, &bad, &next, 0, 3));
+    try std.testing.expectEqualDeep(before, output);
+    try std.testing.expectEqual(100, next);
+    try std.testing.expectError(error.Mac12ConstantAuthority, N.lowerInto(&output, &terms, &next, 0, 0));
+    try std.testing.expectEqualDeep(before, output);
+    try std.testing.expectEqual(100, next);
+    next = 2147483646;
+    try std.testing.expectError(error.Mac12IdBound, N.lowerInto(&output, &terms, &next, 0, 3));
+    try std.testing.expectEqualDeep(before, output);
+    try std.testing.expectEqual(2147483646, next);
+    var alias_storage: [4]N.Stage align(@alignOf(N.Term)) = @splat(sentinel);
+    const alias_terms: [*]N.Term = @ptrCast(&alias_storage);
+    alias_terms[0] = .{ .a = 1, .b = null, .coefficient = 1 };
+    const alias_before = alias_storage;
+    next = 10;
+    try std.testing.expectError(error.Mac12OutputAlias, N.lowerInto(&alias_storage, alias_terms[0..1], &next, 0, 2));
+    try std.testing.expectEqualDeep(alias_before, alias_storage);
+    try std.testing.expectEqual(10, next);
+}

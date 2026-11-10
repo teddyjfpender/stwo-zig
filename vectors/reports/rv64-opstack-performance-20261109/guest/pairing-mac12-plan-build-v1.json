@@ -1,0 +1,59 @@
+{
+  "status": "qualified failure-atomic direct plan lowering; wholephysical batch pending",
+  "production_admitted": false,
+  "security_qualified": false,
+  "host": "Apple M5 Max",
+  "optimize": "ReleaseFast",
+  "allocations": {
+    "allocating_reference": 32002,
+    "direct": 6
+  },
+  "cumulative_allocated_bytes": {
+    "allocating_reference": 10738308,
+    "direct": 5793292
+  },
+  "metadata_sha256": "8dbe484c3fe8ac535d5bc08d6295a30c263ffd6cb98ca1a7f7d47cc55372a628",
+  "testing_allocator": {
+    "reference_seconds": [
+      0.349839,
+      0.351672
+    ],
+    "direct_seconds": [
+      0.007193,
+      0.007127
+    ],
+    "reference_median": 0.3507555,
+    "direct_median": 0.00716,
+    "speedup": 48.98819832402235,
+    "interpretation": "samequalificationallocator;eliminateddebugmapping/stacktraceallocationtax"
+  },
+  "smp_allocator": {
+    "reference_seconds": [
+      0.007262,
+      0.007252
+    ],
+    "direct_seconds": [
+      0.007078,
+      0.007064
+    ],
+    "reference_median": 0.007257,
+    "direct_median": 0.007071,
+    "speedup": 1.026304624522698,
+    "interpretation": "small/noiselevelwallgain;not49xproductionclaim"
+  },
+  "passed": [
+    "18SafeMACtests",
+    "17Safecompositeloweringtests",
+    "exactallstage/hint/event/map/assertion/fanoutreferenceparity",
+    "allvalidationerrorsleaveoutputandnextIDunchanged",
+    "all6planinitOOMguards+first/lastallocatingreferenceOOM",
+    "allABBAcanonicalmetadatahashesidentical"
+  ],
+  "command": "STWO_MAC12_PLAN_BENCH=1 zig test -O ReleaseFast --dep stwo_core -Mroot=src/frontends/riscv/rv64_bn254_pairing_plan_bench_test_root.zig -O ReleaseFast -Mstwo_core=src/core/mod.zig --test-filter \"MAC12 complete plan\"",
+  "performance_claim": "planbuildscopeonly;nofullproveclaim",
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/bn254_mac12/normalize.zig": "fe07811b970512c8566d59f92908a4962995bd703f805a0679a2f03d74f63f07",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/lowering.zig": "ea07351aac427c089afce0a724f991dfbc9a8e58a92293205f18918ee2d385c3",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/plan_bench.zig": "98ce97b26dc3d10f2cadf8bcd80046745d11d44494e82e0474e4107661df39e7"
+  }
+}

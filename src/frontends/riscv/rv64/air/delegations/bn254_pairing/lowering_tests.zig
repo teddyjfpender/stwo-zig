@@ -90,7 +90,7 @@ test "complete pairing lowering rejects coherently disconnected source reference
     try std.testing.expectError(error.NormalizedSourceOutputMismatch, NW.Witness.init(std.testing.allocator, &p, &source));
 }
 test "complete pairing lowering cleans early and late allocation failures" {
-    for ([_]usize{ 0, 1, 2, 3, 4, 5, 6, 32001 }) |index| {
+    for ([_]usize{ 0, 1, 2, 3, 4, 5 }) |index| {
         var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = index });
         const result = L.Program.init(failing.allocator());
         if (result) |value| {
@@ -101,6 +101,17 @@ test "complete pairing lowering cleans early and late allocation failures" {
     }
 }
 
+test "allocating plan reference cleans first and last per-expression failures" {
+    for ([_]usize{ 6, 32001 }) |index| {
+        var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = index });
+        const result = L.Program.initReferenceForTesting(failing.allocator());
+        if (result) |value| {
+            var p = value;
+            p.deinit();
+            return error.ExpectedAllocationFailure;
+        } else |err| try std.testing.expectEqual(error.OutOfMemory, err);
+    }
+}
 test "pairing literal folding is source ID authority and preserves variables at zero one" {
     const F = @import("literal_fold.zig");
     const N = L.N;
@@ -119,4 +130,18 @@ test "pairing literal folding is source ID authority and preserves variables at 
         try std.testing.expectEqual(@as(i1024, 7) * x + @as(i1024, x) * y, left);
     };
     try std.testing.expectError(error.PairingLiteralAuthority, F.apply(&.{}, 10, 10));
+}
+
+test "pairing direct stage output matches allocating reference metadata exactly" {
+    var actual = try L.Program.init(std.testing.allocator);
+    defer actual.deinit();
+    var reference = try L.Program.initReferenceForTesting(std.testing.allocator);
+    defer reference.deinit();
+    try std.testing.expectEqual(reference.value_count, actual.value_count);
+    try std.testing.expectEqualDeep(reference.stages, actual.stages);
+    try std.testing.expectEqualDeep(reference.hints, actual.hints);
+    try std.testing.expectEqualDeep(reference.events, actual.events);
+    try std.testing.expectEqualDeep(reference.assertions, actual.assertions);
+    try std.testing.expectEqualSlices(u32, reference.source_to_new, actual.source_to_new);
+    try std.testing.expectEqualSlices(u32, reference.fanout, actual.fanout);
 }

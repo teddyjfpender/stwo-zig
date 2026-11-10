@@ -19,6 +19,13 @@ pub const Program = struct {
     fanout: []u32,
     value_count: u32,
     pub fn init(a: std.mem.Allocator) !Program {
+        return initMode(false, a);
+    }
+    pub fn initReferenceForTesting(a: std.mem.Allocator) !Program {
+        if (!@import("builtin").is_test) @compileError("test-only allocating plan reference");
+        return initMode(true, a);
+    }
+    fn initMode(comptime allocating_reference: bool, a: std.mem.Allocator) !Program {
         var stage_count: usize = 0;
         for (W.ROM.nodes) |node| if (node.kind != .hint) {
             const expression = S.expression(node);
@@ -65,10 +72,14 @@ pub const Program = struct {
                 out.* = .{ .a = mapping[term.a], .b = if (term.b) |b| mapping[b] else null, .coefficient = term.coefficient };
             }
             const folded = try Literal.apply(terms[0..expression.len], S.literalId(0), S.literalId(1));
-            var plan = try N.lower(a, folded.terms[0..folded.len], &next, S.literalId(0), S.literalId(1));
-            defer plan.deinit();
-            for (plan.stages) |stage| {
-                stages[arithmetic_at] = stage;
+            var owned: ?N.Plan = null;
+            defer if (owned) |*plan| plan.deinit();
+            const lowered = if (allocating_reference) blk: {
+                owned = try N.lower(a, folded.terms[0..folded.len], &next, S.literalId(0), S.literalId(1));
+                break :blk owned.?.stages;
+            } else try N.lowerInto(stages[arithmetic_at..], folded.terms[0..folded.len], &next, S.literalId(0), S.literalId(1));
+            for (lowered) |stage| {
+                if (allocating_reference) stages[arithmetic_at] = stage;
                 events[event_at] = .{ .kind = .arithmetic, .index = arithmetic_at };
                 for (stage.input) |id| {
                     if (id >= stage.writer) return error.PairingLoweredSourceCycle;
@@ -77,7 +88,7 @@ pub const Program = struct {
                 arithmetic_at += 1;
                 event_at += 1;
             }
-            mapping[node.writer] = plan.output();
+            mapping[node.writer] = lowered[lowered.len - 1].writer;
         }
         for (W.ROM.assertions, assertions) |obligation, *out| {
             out.* = .{ .id = mapping[obligation.id], .value = obligation.value };

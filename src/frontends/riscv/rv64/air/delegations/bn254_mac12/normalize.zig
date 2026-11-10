@@ -69,3 +69,44 @@ pub fn lower(a: std.mem.Allocator, terms: []const Term, next: *ID, zero: ID, one
     next.* += @intCast(c.rows);
     return .{ .allocator = a, .stages = stages };
 }
+
+/// Allocation-free, failure-atomic source lowering into caller-owned storage.
+/// All shape/coefficient/ID/capacity/alias checks happen before the first write.
+/// The allocating lower() remains unchanged as an independent reference.
+pub fn lowerInto(out: []Stage, terms: []const Term, next: *ID, zero: ID, one: ID) ![]Stage {
+    const c = try count(terms);
+    if (out.len < c.rows) return error.Mac12OutputCapacity;
+    const first = next.*;
+    if (zero == one or zero >= first or one >= first) return error.Mac12ConstantAuthority;
+    for (terms) |term| if (term.a >= first or (term.b != null and term.b.? >= first)) return error.Mac12InputAuthority;
+    if (first >= 2147483647 or c.rows >= 2147483647 - first) return error.Mac12IdBound;
+    const selected_out = out[0..c.rows];
+    const output_start = @intFromPtr(selected_out.ptr);
+    const output_end = std.math.add(usize, output_start, selected_out.len * @sizeOf(Stage)) catch return error.Mac12OutputAlias;
+    const input_start = @intFromPtr(terms.ptr);
+    const input_end = std.math.add(usize, input_start, terms.len * @sizeOf(Term)) catch return error.Mac12OutputAlias;
+    if (terms.len != 0 and output_start < input_end and input_start < output_end) return error.Mac12OutputAlias;
+    var seed = zero;
+    var selected: ?usize = null;
+    for (terms, 0..) |term, i| if (term.b == null and term.coefficient == 1) {
+        seed = term.a;
+        selected = i;
+        break;
+    };
+    for (selected_out, 0..) |*stage, i| stage.* = .{ .coefficients = @splat(0), .input = @splat(zero), .writer = first + @as(ID, @intCast(i)) };
+    selected_out[0].input[24] = seed;
+    for (1..selected_out.len) |i| selected_out[i].input[24] = selected_out[i - 1].writer;
+    var at: usize = 0;
+    for (terms, 0..) |term, i| {
+        if (term.coefficient == 0 or selected == i) continue;
+        const stage = &selected_out[at / 12];
+        const slot = at % 12;
+        stage.coefficients[slot] = term.coefficient;
+        stage.input[2 * slot] = term.a;
+        stage.input[2 * slot + 1] = term.b orelse one;
+        at += 1;
+    }
+    std.debug.assert(at == c.terms);
+    next.* = first + @as(ID, @intCast(c.rows));
+    return selected_out;
+}
