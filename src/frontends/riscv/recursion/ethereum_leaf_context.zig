@@ -153,7 +153,7 @@ pub const ContextV1 = struct {
             assembly,
             @intCast(base.profile.physical_component_count),
             @intCast(base.profile.interaction_column_count),
-            base.profile.circuit_profile,
+            .legacy_v4,
         );
     }
 
@@ -308,7 +308,7 @@ pub const ContextV1 = struct {
             extension,
             claim,
             @intCast(base.profile.interaction_column_count),
-            base.profile.circuit_profile,
+            .legacy_v4,
         );
         const expected_identity = self.computeIdentityDigest();
         if (base.profile.physical_component_count != self.base_component_count or

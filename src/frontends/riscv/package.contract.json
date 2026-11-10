@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_frontend",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "layer": "frontend",
   "owner": "riscv-frontend",
   "public_modules": {
@@ -67,6 +67,7 @@
       "mod.zig::api signature: RISC-V facade preserves runner and prover entry points"
     ],
     "invariant_tests": [
+      "mod.zig::api invariant: native and product VM authority bindings preserve canonical records",
       "opcode_coverage_test.zig::all 46 proof opcodes reach witness, semantic, lookup, and component authorities"
     ]
   },

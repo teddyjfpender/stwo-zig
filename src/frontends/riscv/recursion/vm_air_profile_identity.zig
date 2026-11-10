@@ -5,18 +5,10 @@ const std = @import("std");
 const Sha256 = std.crypto.hash.sha2.Sha256;
 
 pub const PROFILE_DOMAIN = "stwo-zig/riscv/recursion/vm-air-profile/v2\x00";
-pub const CIRCUIT_PROFILE_DOMAIN = "stwo-zig/riscv/recursion/vm-air-profile/ethereum-circuit/v1\x00";
 
-pub fn compute(self: anytype) [32]u8 {
+pub fn compute(comptime Owner: type, self: anytype) [32]u8 {
     var hash = Sha256.init(.{});
-    // Preserve the frozen legacy transcript exactly. The opt-in circuit
-    // has a disjoint namespace and an explicit selector/version binding.
-    if (self.circuit_profile == .legacy_v4) {
-        hash.update(PROFILE_DOMAIN);
-    } else {
-        hash.update(CIRCUIT_PROFILE_DOMAIN);
-        hashInt(&hash, u16, @intFromEnum(self.circuit_profile));
-    }
+    Owner.hashIdentityPrefix(&hash, self.circuit_profile);
     hashInt(&hash, u16, self.format_version);
     hashInt(&hash, u16, self.schema_version);
     hash.update(&self.lookup_manifest_identity);

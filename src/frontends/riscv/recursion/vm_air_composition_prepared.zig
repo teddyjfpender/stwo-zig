@@ -14,9 +14,9 @@ const selected_lookup = @import("vm_selected_lookup_compiler.zig");
 const relations_mod = @import("../air/relation_challenges.zig");
 const transcript = @import("../air/transcript/claims.zig");
 const logup = @import("../air/logup.zig");
-const base_graph = @import("ethereum_vm_composition_graph_base.zig");
-const support = @import("ethereum_vm_composition_graph_support.zig");
-const program = @import("ethereum_vm_composition_program.zig");
+const base_graph = @import("vm_composition_graph_base.zig").ForProfile(@import("vm_air_profile_v2.zig").ProfileV2, support);
+const support = @import("vm_composition_graph_support.zig").ForExtension(null);
+const transcript_arithmetic = @import("vm_composition_transcript_aggregates.zig").ForProfile(@import("vm_air_profile_v2.zig").ProfileV2, usize);
 const Scalar = support.Scalar;
 
 pub fn prepare(
@@ -66,7 +66,7 @@ pub fn prepare(
     }
     const randomness = try support.scalarInput(&builder, .composition_randomness);
     const seed = try support.scalarInput(&builder, .oods_point);
-    try program.bindTranscriptAggregates(&builder, selector, profile, null, claims, &aggregates);
+    try transcript_arithmetic.bindBase(&builder, selector, profile, claims, &aggregates);
     const relations = circuit.GraphRelations.init(draws);
     var layout = try support.SampleLayoutV2.init(allocator, &geometry, null, sampled);
     defer layout.deinit();
@@ -93,7 +93,9 @@ pub fn prepare(
         value.* = try inputWord(binding.source, capture);
     // This constructor copies the graph and replays every non-input node.
     // Admission requires all designated outputs to be zero.
-    return circuit.Prepared.initFromAuthenticatedLaneV2(allocator, lane, profile.identity_digest, inputs);
+    const result = try circuit.Prepared.initFromAuthenticatedLaneV2(allocator, lane, profile.identity_digest, inputs);
+    if (@import("builtin").is_test) std.debug.print("C3_GRAPH_RECEIPT kind=native profile={s} geometry={s} graph={s} reference={s} schedule={s} authority={s} nodes={d} outputs={d} bindings={d}\n", .{ std.fmt.bytesToHex(profile.identity_digest, .lower), std.fmt.bytesToHex(geometry.identity_sha256, .lower), std.fmt.bytesToHex(result.circuit.graph_digest, .lower), std.fmt.bytesToHex(result.circuit.reference_digest, .lower), std.fmt.bytesToHex(result.circuit.schedule_digest, .lower), std.fmt.bytesToHex(result.circuit.identity_digest, .lower), result.circuit.nodes.len, result.circuit.outputs.len, result.circuit.bindings.len });
+    return result;
 }
 
 fn validateCaptureGeometry(geometry: *const geometry_mod.GeometryV2, capture: anytype, blowup: u32) !void {

@@ -4,7 +4,7 @@
 const statement_mod = @import("../air/statement.zig");
 const ethereum_statement = @import("../air/guest_precompile/ethereum_statement.zig");
 const lookup_manifest = @import("../air/lang/lookup_physical_manifest.zig");
-const profile_mod = @import("vm_air_profile_v2.zig");
+const profile_mod = @import("ethereum_vm_air_profile_v2.zig");
 const bridge_external = @import("../prover/incremental_bridge_external.zig");
 
 pub const BridgeInputV4 = struct {

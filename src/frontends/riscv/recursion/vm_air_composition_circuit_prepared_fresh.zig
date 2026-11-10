@@ -166,7 +166,7 @@ pub fn init(
                     "VM_COMPOSITION_UNSAT output={d}/{d} node={d} value={any}\n",
                     .{ output_index, circuit.outputs.len, node, values[node] },
                 );
-                if (@import("ethereum_vm_composition_graph_support.zig").compositionDiagnosticsEnabled())
+                if (@import("vm_composition_graph_support.zig").ForExtension(null).compositionDiagnosticsEnabled())
                     printCompositionHorner(circuit.nodes, node, values);
                 break;
             }

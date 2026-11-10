@@ -191,29 +191,12 @@ pub const SelectedBaseClaimsV3 = struct {
         authenticated: *const lookup_physical_v2.AuthenticatedStatement,
         claim: *const base_statement.RiscVInteractionClaim,
     ) !SelectedBaseClaimsV3 {
-        _ = try authenticated.canonicalInteractionClaim(core, manifest, claim);
-        var count: usize = authenticated.detailed_claim_count;
-        for (core.infra_descs[0..core.n_infra]) |descriptor| {
-            count = try std.math.add(usize, count, base_statement.nClaimedSumsForInfra(descriptor.kind));
-        }
-        return .{ .core = core, .manifest = manifest, .claim = claim, .count = count };
+        const selected_count = try @import("../selected_base_claims_v3.zig").count(core, manifest, authenticated, claim);
+        return .{ .core = core, .manifest = manifest, .claim = claim, .count = selected_count };
     }
 
     pub fn write(self: SelectedBaseClaimsV3, destination: []QM31) !void {
-        if (destination.len != self.count) return error.InvalidContextCounts;
-        var cursor: usize = 0;
-        for (self.core.component_descs[0..self.core.n_components], 0..) |descriptor, index| {
-            const count = self.manifest.entryForFamily(descriptor.family).detailed_claim_count;
-            const values = try self.claim.opcodeClaims(descriptor.family, index);
-            @memcpy(destination[cursor..][0..count], values[0..count]);
-            cursor += count;
-        }
-        for (self.core.infra_descs[0..self.core.n_infra], 0..) |descriptor, index| {
-            const values = try self.claim.infraClaims(descriptor.kind, index);
-            @memcpy(destination[cursor..][0..values.len], values);
-            cursor += values.len;
-        }
-        if (cursor != destination.len) return error.InvalidContextCounts;
+        return @import("../selected_base_claims_v3.zig").write(self.core, self.manifest, self.claim, self.count, destination);
     }
 
     pub fn mix(self: SelectedBaseClaimsV3, allocator: std.mem.Allocator, channel: anytype) !void {

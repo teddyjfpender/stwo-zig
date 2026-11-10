@@ -1,5 +1,7 @@
 //! Recursion protocol namespace.
 
+pub const vm_composition_sample_geometry = @import("vm_composition_sample_geometry.zig");
+
 pub const air = @import("air/mod.zig");
 pub const detached_boundary_preparation_v1 = @import("detached_boundary_preparation.zig");
 pub const detached_child_capture_v1 = @import("detached_child_capture.zig");
@@ -24,7 +26,7 @@ pub const fri_profile_frontier = @import("fri_profile_frontier.zig");
 pub const leaf_profile = @import("leaf_profile.zig");
 pub const pair_node = @import("pair_node.zig");
 pub const poseidon2_channel = @import("poseidon2_channel.zig");
-pub const proof_ingress = @import("proof_ingress.zig");
+pub const proof_ingress = @import("ethereum_proof_ingress_compat.zig");
 pub const protocol = @import("protocol.zig");
 pub const recording_poseidon_channel_v4 =
     @import("recording_poseidon_channel.zig");
@@ -121,3 +123,9 @@ pub const segment_outer_transaction_v2 = @import("segment_outer_transaction.zig"
 pub const engine_protocol = @import("engine_protocol.zig");
 pub const canonical_proof_identity_v1 = @import("canonical_proof_identity.zig");
 pub const segment_outer_wire_geometry_v2 = @import("segment_outer_wire_geometry.zig");
+
+pub const vm_composition_base_geometry_v2 = @import("vm_composition_base_geometry.zig");
+pub const vm_selected_lookup_compiler_v2 = @import("vm_selected_lookup_compiler.zig");
+pub const vm_composition_graph_support_v2 = @import("vm_composition_graph_support.zig");
+pub const vm_composition_graph_base_v2 = @import("vm_composition_graph_base.zig");
+pub const vm_composition_transcript_aggregates_v2 = @import("vm_composition_transcript_aggregates.zig");

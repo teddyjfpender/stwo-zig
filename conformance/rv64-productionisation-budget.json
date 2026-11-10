@@ -1002,6 +1002,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Pre-edit issue333 comment6752084383: apply pinned Zig0.15.2 canonical whitespace after path shortening. All changed Zig files are checked; only one declaration-array alignment differs. Preserve line counts, non-whitespace source bytes, literal strings and all protocol/source pins; no implementation or optimization change. Existing13-line P003 facade retains its separate16-line allowance."
+    },
+    {
+      "id": "c3_authority_graph_foundation",
+      "net_code_budget": 400,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue335 / RFC352 decisions6753253656 and6753472871: carve at most400 net lines ONCE from the existing4000 total C3 allowance (later package split allowance excludes this charge). One source-bound VM profile authority/graph implementation separates native proof authority from product selector/routing policy; preserves full original tags, identity bytes, canonical records, validation/error/cleanup and actual test ownership. Closed CircuitLayout prerequisite and exact upper compatibility wrappers are included, not extra allowance. Containment is concrete typed native/product bindings with no runtime registry or copied recorder. Rollback reverts the complete owner/consumer/test transaction together; actual hosted graph byte/negative tests are required, not AST or Native golden alone."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

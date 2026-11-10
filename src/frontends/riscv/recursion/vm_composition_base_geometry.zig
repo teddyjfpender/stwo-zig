@@ -88,92 +88,7 @@ pub const GeometryV2 = struct {
         allocator: std.mem.Allocator,
         profile: *const profile_mod.ProfileV2,
     ) !GeometryV2 {
-        try profile.validate();
-        const composition_columns = verifier_types.compositionColumnCount(
-            profile.composition_log_split,
-            qm31.SECURE_EXTENSION_DEGREE,
-        ) orelse return error.InvalidColumnGeometry;
-        const counts = [TREE_COUNT]usize{
-            profile.preprocessed_column_count,
-            profile.main_column_count,
-            profile.interaction_column_count,
-            composition_columns,
-        };
-        var columns: [TREE_COUNT][]ColumnV2 = undefined;
-        var initialized: usize = 0;
-        errdefer for (columns[0..initialized]) |tree| allocator.free(tree);
-        for (&columns, counts) |*tree, count| {
-            tree.* = try allocator.alloc(ColumnV2, count);
-            @memset(tree.*, .{ .log_size = 0, .sample_count = 0 });
-            initialized += 1;
-        }
-
-        for (profile.entries) |entry| {
-            try installSpan(
-                columns[PREPROCESSED_TREE],
-                entry.preprocessed,
-                entry.log_size,
-                false,
-            );
-            try installSpan(
-                columns[MAIN_TREE],
-                entry.main,
-                entry.log_size,
-                false,
-            );
-            try installSpan(
-                columns[INTERACTION_TREE],
-                entry.interaction,
-                entry.log_size,
-                true,
-            );
-        }
-        const composition_log_size = profile.composition_log_degree_bound -
-            profile.composition_log_split;
-        for (columns[COMPOSITION_TREE]) |*column| column.* = .{
-            .log_size = composition_log_size,
-            .sample_count = 1,
-        };
-
-        var offsets: [TREE_COUNT + 1]u32 = .{0} ** (TREE_COUNT + 1);
-        var value_count: u32 = 0;
-        for (columns, 0..) |tree, tree_index| {
-            offsets[tree_index] = value_count;
-            for (tree) |column| {
-                try column.validate(tree_index);
-                value_count = std.math.add(
-                    u32,
-                    value_count,
-                    column.sample_count,
-                ) catch return error.ArithmeticOverflow;
-            }
-        }
-        offsets[TREE_COUNT] = value_count;
-        if (value_count != profile.input_profile.sampled_value_count)
-            return error.SampledValueCountMismatch;
-
-        var result = GeometryV2{
-            .allocator = allocator,
-            .profile_identity = profile.identity_digest,
-            .columns = columns,
-            .tree_value_offsets = offsets,
-            .sampled_value_count = value_count,
-            .composition_log_size = composition_log_size,
-            .composition_log_split = profile.composition_log_split,
-            .identity_sha256 = undefined,
-        };
-        result.identity_sha256 = result.computeIdentity();
-        try result.validate();
-        if (!std.mem.eql(
-            u8,
-            &result.profile_identity,
-            &profile.identity_digest,
-        ) or result.sampled_value_count !=
-            profile.input_profile.sampled_value_count)
-        {
-            return error.InvalidProfileAuthority;
-        }
-        return result;
+        return ForProfile(profile_mod.ProfileV2).init(allocator, profile);
     }
 
     pub fn validate(self: *const GeometryV2) Error!void {
@@ -215,11 +130,7 @@ pub const GeometryV2 = struct {
         self: *const GeometryV2,
         profile: *const profile_mod.ProfileV2,
     ) !void {
-        try self.validate();
-        var expected = try init(self.allocator, profile);
-        defer expected.deinit();
-        if (!geometriesEqual(self, &expected))
-            return error.InvalidProfileAuthority;
+        return ForProfile(profile_mod.ProfileV2).validateAgainst(self, profile);
     }
 
     pub fn flatSampleIndex(
@@ -278,46 +189,7 @@ pub fn expectedSampledValueCountWithCircuitProfile(
     manifest: *const lookup_physical_v2.Manifest,
     circuit_profile: circuit.CircuitProfileV1,
 ) !u32 {
-    try manifest.validate();
-    if (statement.n_components > statement_mod.MAX_COMPONENTS or
-        statement.n_infra > statement_mod.MAX_INFRA_COMPONENTS)
-        return error.InvalidColumnGeometry;
-    var interaction: u32 = 0;
-    for (statement.component_descs[0..statement.n_components]) |descriptor| {
-        interaction = std.math.add(
-            u32,
-            interaction,
-            manifest.entryForFamily(descriptor.family)
-                .lookup_authority.interaction_column_count,
-        ) catch return error.ArithmeticOverflow;
-    }
-    for (statement.infra_descs[0..statement.n_infra]) |descriptor| {
-        const layout = base_assembly.infrastructureDescriptorForCircuit(descriptor.kind, circuit_profile);
-        if (descriptor.n_columns != layout.main_columns)
-            return error.InvalidColumnGeometry;
-        interaction = std.math.add(
-            u32,
-            interaction,
-            @intCast(layout.interaction_columns),
-        ) catch return error.ArithmeticOverflow;
-    }
-    const composition = verifier_types.compositionColumnCount(
-        verifier_types.COMPOSITION_LOG_SPLIT,
-        qm31.SECURE_EXTENSION_DEGREE,
-    ) orelse return error.InvalidColumnGeometry;
-    var total = std.math.add(
-        u32,
-        statement.nPreprocessedColumns(),
-        statement.nMainColumns(),
-    ) catch return error.ArithmeticOverflow;
-    total = std.math.add(
-        u32,
-        total,
-        std.math.mul(u32, interaction, 2) catch
-            return error.ArithmeticOverflow,
-    ) catch return error.ArithmeticOverflow;
-    return std.math.add(u32, total, @intCast(composition)) catch
-        return error.ArithmeticOverflow;
+    return @import("stwo_riscv_frontend").recursion.vm_composition_sample_geometry.expectedSampledValueCountWithLayout(statement, manifest, circuit_profile.layout());
 }
 
 fn installSpan(
@@ -387,4 +259,111 @@ comptime {
     {
         @compileError("VM composition base geometry V2 contract drifted");
     }
+}
+
+pub fn ForProfile(comptime Profile: type) type {
+    return struct {
+        pub fn init(
+            allocator: std.mem.Allocator,
+            profile: *const Profile,
+        ) !GeometryV2 {
+            try profile.validate();
+            const composition_columns = verifier_types.compositionColumnCount(
+                profile.composition_log_split,
+                qm31.SECURE_EXTENSION_DEGREE,
+            ) orelse return error.InvalidColumnGeometry;
+            const counts = [TREE_COUNT]usize{
+                profile.preprocessed_column_count,
+                profile.main_column_count,
+                profile.interaction_column_count,
+                composition_columns,
+            };
+            var columns: [TREE_COUNT][]ColumnV2 = undefined;
+            var initialized: usize = 0;
+            errdefer for (columns[0..initialized]) |tree| allocator.free(tree);
+            for (&columns, counts) |*tree, count| {
+                tree.* = try allocator.alloc(ColumnV2, count);
+                @memset(tree.*, .{ .log_size = 0, .sample_count = 0 });
+                initialized += 1;
+            }
+
+            for (profile.entries) |entry| {
+                try installSpan(
+                    columns[PREPROCESSED_TREE],
+                    entry.preprocessed,
+                    entry.log_size,
+                    false,
+                );
+                try installSpan(
+                    columns[MAIN_TREE],
+                    entry.main,
+                    entry.log_size,
+                    false,
+                );
+                try installSpan(
+                    columns[INTERACTION_TREE],
+                    entry.interaction,
+                    entry.log_size,
+                    true,
+                );
+            }
+            const composition_log_size = profile.composition_log_degree_bound -
+                profile.composition_log_split;
+            for (columns[COMPOSITION_TREE]) |*column| column.* = .{
+                .log_size = composition_log_size,
+                .sample_count = 1,
+            };
+
+            var offsets: [TREE_COUNT + 1]u32 = .{0} ** (TREE_COUNT + 1);
+            var value_count: u32 = 0;
+            for (columns, 0..) |tree, tree_index| {
+                offsets[tree_index] = value_count;
+                for (tree) |column| {
+                    try column.validate(tree_index);
+                    value_count = std.math.add(
+                        u32,
+                        value_count,
+                        column.sample_count,
+                    ) catch return error.ArithmeticOverflow;
+                }
+            }
+            offsets[TREE_COUNT] = value_count;
+            if (value_count != profile.input_profile.sampled_value_count)
+                return error.SampledValueCountMismatch;
+
+            var result = GeometryV2{
+                .allocator = allocator,
+                .profile_identity = profile.identity_digest,
+                .columns = columns,
+                .tree_value_offsets = offsets,
+                .sampled_value_count = value_count,
+                .composition_log_size = composition_log_size,
+                .composition_log_split = profile.composition_log_split,
+                .identity_sha256 = undefined,
+            };
+            result.identity_sha256 = result.computeIdentity();
+            try result.validate();
+            if (!std.mem.eql(
+                u8,
+                &result.profile_identity,
+                &profile.identity_digest,
+            ) or result.sampled_value_count !=
+                profile.input_profile.sampled_value_count)
+            {
+                return error.InvalidProfileAuthority;
+            }
+            return result;
+        }
+
+        pub fn validateAgainst(
+            self: *const GeometryV2,
+            profile: *const Profile,
+        ) !void {
+            try self.validate();
+            var expected = try init(self.allocator, profile);
+            defer expected.deinit();
+            if (!geometriesEqual(self, &expected))
+                return error.InvalidProfileAuthority;
+        }
+    };
 }

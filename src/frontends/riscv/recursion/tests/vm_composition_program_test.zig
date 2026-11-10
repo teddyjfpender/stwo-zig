@@ -23,7 +23,7 @@ const trace = @import("../../runner/trace.zig");
 const support = @import("../ethereum_leaf_context_test_support.zig");
 const geometry_mod = @import("../vm_composition_base_geometry.zig");
 const lookup_compiler_mod = @import("../vm_selected_lookup_compiler.zig");
-const profile_mod = @import("../vm_air_profile_v2.zig");
+const profile_mod = @import("../ethereum_vm_air_profile_v2.zig");
 const circuit = @import("../vm_air_composition_circuit.zig");
 const ethereum_relations = @import("../ethereum_composition_relations.zig");
 const extension_geometry =
@@ -35,12 +35,12 @@ test "authenticated VM AIR ProfileV2 composition geometry is cold-derived" {
     var fixture = try Fixture.init(allocator);
     defer fixture.deinit();
 
-    var geometry = try geometry_mod.GeometryV2.init(
+    var geometry = try geometry_mod.ForProfile(profile_mod.ProfileV2).init(
         allocator,
         &fixture.profile,
     );
     defer geometry.deinit();
-    try geometry.validateAgainst(&fixture.profile);
+    try geometry_mod.ForProfile(profile_mod.ProfileV2).validateAgainst(&geometry, &fixture.profile);
     try std.testing.expectEqual(
         fixture.profile.input_profile.sampled_value_count,
         geometry.sampled_value_count,
@@ -64,7 +64,7 @@ test "authenticated VM AIR ProfileV2 composition geometry is cold-derived" {
     geometry_mod.testing.reseal(&geometry);
     try std.testing.expectError(
         error.InvalidProfileAuthority,
-        geometry.validateAgainst(&fixture.profile),
+        geometry_mod.ForProfile(profile_mod.ProfileV2).validateAgainst(&geometry, &fixture.profile),
     );
 }
 
@@ -72,14 +72,15 @@ test "authenticated VM AIR ProfileV2 selected compiler binds mul eleven batches"
     const allocator = std.testing.allocator;
     var fixture = try Fixture.init(allocator);
     defer fixture.deinit();
-    var compiler = try lookup_compiler_mod.CompilerV2.init(
+    var compiler = try lookup_compiler_mod.ForProfile(profile_mod.ProfileV2).init(
         allocator,
         &fixture.statement,
         &fixture.manifest,
         &fixture.authenticated,
         &fixture.profile,
     );
-    try compiler.validateAuthority(
+    try lookup_compiler_mod.ForProfile(profile_mod.ProfileV2).validateAuthority(
+        &compiler,
         allocator,
         &fixture.statement,
         &fixture.manifest,
@@ -305,6 +306,7 @@ test "authenticated VM AIR ProfileV2 cold-compiles the Ethereum verifier program
     var program = try program_v2.compile(allocator, input);
     defer program.deinit();
     try program.validateAgainst(input);
+    std.debug.print("C3_GRAPH_RECEIPT kind=product profile={s} geometry={s} extension_geometry={s} graph={s} reference={s} schedule={s} authority={s} nodes={d} outputs={d} bindings={d}\n", .{ std.fmt.bytesToHex(program.base_profile_sha256, .lower), std.fmt.bytesToHex(program.base_geometry_sha256, .lower), std.fmt.bytesToHex(program.extension_geometry_sha256, .lower), std.fmt.bytesToHex(program.graph_sha256, .lower), std.fmt.bytesToHex(program.reference_sha256, .lower), std.fmt.bytesToHex(program.schedule_sha256, .lower), std.fmt.bytesToHex(program.verifier_program_authority, .lower), program.nodes.len, program.outputs.len, program.bindings.len });
     try std.testing.expectEqual(@as(u32, 25), program.input_profile.relation_challenge_count);
     try std.testing.expectEqual(@as(u32, 42), program.input_profile.transcript_claimed_sum_count);
     try std.testing.expect(program.nodes.len > program.bindings.len);
@@ -394,7 +396,7 @@ test "authenticated VM AIR ProfileV2 rejects aggregate sample-count substitution
     defer profile.deinit();
     try std.testing.expectError(
         error.SampledValueCountMismatch,
-        geometry_mod.GeometryV2.init(allocator, &profile),
+        geometry_mod.ForProfile(profile_mod.ProfileV2).init(allocator, &profile),
     );
 }
 
@@ -474,7 +476,7 @@ test "authenticated VM AIR ProfileV2 schema5 compiles fixed program and narrow P
     };
     const manifest = lookup_manifest_mod.Manifest.native();
     const authenticated = try lookup_manifest_mod.AuthenticatedStatement.init(&native, &manifest);
-    const count = try geometry_mod.expectedSampledValueCountWithCircuitProfile(&native, &manifest, .fixed_program_narrow_v1);
+    const count = try @import("../vm_composition_sample_geometry.zig").expectedSampledValueCountWithLayout(&native, &manifest, .fixed_decoded_narrow);
     var profile = try profile_mod.deriveAuthorityWithCircuitProfile(allocator, &native, &manifest, &authenticated, count, .fixed_program_narrow_v1);
     defer profile.deinit();
     const extension = try ethereum_statement.Statement.canonical(&native, 0, 0, support.emptySecpShapes());

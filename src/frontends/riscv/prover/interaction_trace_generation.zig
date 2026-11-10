@@ -433,7 +433,7 @@ pub fn Ops(comptime Owner: type) type {
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
         ) !void {
-            const generated = switch (witness.circuit_profile.programPolicy()) {
+            const generated = switch (witness.circuit_layout.programPolicy()) {
                 .sparse_merkle_v1 => try program_interaction.generate(allocator, witness.program.rows, geometry.program_log_size, relations),
                 .fixed_decoded_table_v1 => try program_interaction.generateWithPolicy(.fixed_decoded_table_v1, allocator, witness.program.rows, geometry.program_log_size, relations),
             };

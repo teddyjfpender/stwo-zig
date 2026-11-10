@@ -114,7 +114,7 @@ pub const prover_orchestration = @import("prover/orchestration.zig");
 pub const commitment_witness = @import("prover/commitment_witness.zig");
 pub const statement_geometry = @import("prover/statement_geometry.zig");
 pub const proof_workspace = @import("prover/proof_workspace.zig");
-pub const main_trace_plan = @import("prover/main_trace_plan.zig");
+pub const main_trace_plan = @import("prover/ethereum_main_trace_plan_compat.zig");
 pub const witness_hook = @import("prover/test_witness_hook.zig");
 
 test {

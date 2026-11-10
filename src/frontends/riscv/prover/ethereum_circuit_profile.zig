@@ -2,7 +2,7 @@
 //! The profile selects constraints and column layouts; callers must separately
 //! admit the exact ELF-derived fixed table and independently derive Tree0.
 const execution = @import("../isa/execution_profile.zig");
-const program = @import("../air/program/interaction.zig");
+const layout_mod = @import("stwo_riscv_frontend").air.program.circuit_layout;
 
 pub const CircuitProfileV1 = enum(u16) {
     legacy_v4 = 0,
@@ -21,11 +21,14 @@ pub const CircuitProfileV1 = enum(u16) {
     pub fn localZeroCustody(self: @This()) bool {
         return self == .ethereum_local_zero_v1;
     }
-    pub fn programPolicy(self: @This()) program.Policy {
+    pub fn layout(self: @This()) layout_mod.CircuitLayout {
         return switch (self) {
-            .legacy_v4 => .sparse_merkle_v1,
-            .fixed_program_narrow_v1, .ethereum_v5, .ethereum_local_zero_v1 => .fixed_decoded_table_v1,
+            .legacy_v4 => .ordinary_sparse,
+            .fixed_program_narrow_v1, .ethereum_v5, .ethereum_local_zero_v1 => .fixed_decoded_narrow,
         };
+    }
+    pub fn programPolicy(self: @This()) @import("stwo_riscv_frontend").air.program.interaction.Policy {
+        return self.layout().programPolicy();
     }
     /// Execution-only singleton Keccak residency ceiling. The exact call count
     /// and canonical row geometry remain authenticated by the native profile.
@@ -37,10 +40,19 @@ pub const CircuitProfileV1 = enum(u16) {
     }
 
     pub fn poseidonLayout(self: @This()) PoseidonLayoutV1 {
-        return switch (self) {
-            .legacy_v4 => .legacy_v1,
-            .fixed_program_narrow_v1, .ethereum_v5, .ethereum_local_zero_v1 => .narrow_degree3_v1,
-        };
+        return self.layout().poseidonLayout();
     }
 };
-pub const PoseidonLayoutV1 = enum(u8) { legacy_v1 = 0, narrow_degree3_v1 = 1 };
+pub const PoseidonLayoutV1 = layout_mod.PoseidonLayoutV1;
+
+test "product circuit profile: original tags retain layout, Keccak and custody selection" {
+    const std = @import("std");
+    const profiles = [_]CircuitProfileV1{ .legacy_v4, .fixed_program_narrow_v1, .ethereum_v5, .ethereum_local_zero_v1 };
+    for (profiles, 0..) |profile, tag| {
+        try std.testing.expectEqual(@as(u16, @intCast(tag)), @intFromEnum(profile));
+        try std.testing.expectEqual(if (tag == 0) layout_mod.CircuitLayout.ordinary_sparse else layout_mod.CircuitLayout.fixed_decoded_narrow, profile.layout());
+        try std.testing.expectEqual(@as(u32, if (tag == 0) 16 else 18), profile.keccakMaximumLogSize());
+        try std.testing.expectEqual(tag == 3, profile.localZeroCustody());
+    }
+    try std.testing.expect(PoseidonLayoutV1 == layout_mod.PoseidonLayoutV1);
+}

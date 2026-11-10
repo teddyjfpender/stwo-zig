@@ -7,6 +7,7 @@
 //! preprocessed commitment root before publishing a verified-node descriptor.
 
 const std = @import("std");
+const transcript_arithmetic = @import("vm_composition_transcript_aggregates.zig");
 const graph_mod = @import("air/composition_circuit.zig");
 const component_order = @import("../air/component_order.zig");
 const ethereum_statement =
@@ -24,7 +25,7 @@ const extension_graph =
     @import("ethereum_vm_composition_graph_extension.zig");
 const relations_mod = @import("ethereum_composition_relations.zig");
 const selected_lookup = @import("vm_selected_lookup_compiler.zig");
-const profile_mod = @import("vm_air_profile_v2.zig");
+const profile_mod = @import("ethereum_vm_air_profile_v2.zig");
 const protocol = @import("protocol.zig");
 const support = @import("ethereum_vm_composition_graph_support.zig");
 
@@ -216,7 +217,7 @@ pub fn compile(
     try input.extension_statement.validateStructure(input.core_statement);
     try (protocol.Profile{}).validate();
 
-    var base_geometry = try base_geometry_mod.GeometryV2.init(
+    var base_geometry = try base_geometry_mod.ForProfile(profile_mod.ProfileV2).init(
         allocator,
         input.base_profile,
     );
@@ -228,7 +229,7 @@ pub fn compile(
         input.extension_statement,
     );
     defer extension_geometry.deinit();
-    const selected = try selected_lookup.CompilerV2.init(
+    const selected = try selected_lookup.ForProfile(profile_mod.ProfileV2).init(
         allocator,
         input.core_statement,
         input.lookup_manifest,
@@ -441,28 +442,10 @@ pub fn bindTranscriptAggregates(
     const expected_count = if (extension != null) TRANSCRIPT_CLAIM_COUNT else BASE_TRANSCRIPT_CLAIM_COUNT;
     if (transcript_aggregates.len != expected_count) return error.InvalidClaimCount;
     var reconstructed = [_]Scalar{Scalar.zero()} ** TRANSCRIPT_CLAIM_COUNT;
-    for (profile.entries) |entry| switch (entry.registry) {
-        .opcode_lookup => |key| try addClaimRange(
-            &reconstructed[
-                @intFromEnum(
-                    component_order.transcriptComponentForOpcodeFamily(key.family),
-                )
-            ],
-            claims,
-            entry.claimed_sum_offset,
-            entry.claimed_sum_count,
-        ),
-        .infrastructure => |key| try addClaimRange(
-            &reconstructed[@intFromEnum(transcriptComponentForInfra(key.kind))],
-            claims,
-            entry.claimed_sum_offset,
-            entry.claimed_sum_count,
-        ),
-        .opcode_semantic => {},
-    };
-    var claim_cursor: u32 = profile.input_profile.claimed_sum_count;
+    var claim_cursor = try transcript_arithmetic.ForProfile(profile_mod.ProfileV2, usize).reconstructBase(profile, claims, reconstructed[0..BASE_TRANSCRIPT_CLAIM_COUNT]);
     if (extension) |extra| for (extra.components, 0..) |component, component_index| {
-        try addClaimRange(
+        try transcript_arithmetic.addClaimRange(
+            usize,
             &reconstructed[BASE_TRANSCRIPT_CLAIM_COUNT + component_index],
             claims,
             claim_cursor,
@@ -471,42 +454,7 @@ pub fn bindTranscriptAggregates(
         claim_cursor = try add(claim_cursor, component.interaction_batch_count);
     };
     if (@as(usize, claim_cursor) != claims.len) return error.InvalidClaimCount;
-    for (transcript_aggregates, reconstructed[0..expected_count]) |authenticated, aggregate| {
-        try builder.constrainZero(selector.mul(authenticated.sub(aggregate)));
-    }
-    try builder.check();
-}
-
-fn addClaimRange(
-    destination: *Scalar,
-    claims: []const Scalar,
-    offset: u32,
-    count: u32,
-) !void {
-    const start: usize = offset;
-    const end = std.math.add(usize, start, @as(usize, count)) catch
-        return error.ArithmeticOverflow;
-    if (end > claims.len) return error.InvalidClaimCount;
-    for (claims[start..end]) |claim|
-        destination.* = destination.add(claim);
-}
-
-fn transcriptComponentForInfra(
-    kind: statement_mod.InfraKind,
-) transcript_claims.Component {
-    return switch (kind) {
-        .program => .program,
-        .memory => .memory,
-        .merkle => .merkle,
-        .poseidon2 => .poseidon2,
-        .clock_update => .clock_update,
-        .bitwise => .bitwise,
-        .range_check_20 => .range_check_20,
-        .range_check_8_11 => .range_check_8_11,
-        .range_check_8_8_4 => .range_check_8_8_4,
-        .range_check_8_8 => .range_check_8_8,
-        .range_check_m31 => .range_check_m31,
-    };
+    try transcript_arithmetic.bindAggregates(builder, selector, transcript_aggregates, reconstructed[0..expected_count]);
 }
 
 fn protocolProfileIdentity() [32]u8 {

@@ -405,9 +405,9 @@ fn writeSelectedDetailedClaims(
     claim: *const statement.RiscVInteractionClaim,
     destination: []QM31,
 ) !void {
-    const selected = try @import("../prover/guest_precompile/ethereum_transcript.zig")
-        .SelectedBaseClaimsV3.init(core, manifest, authenticated, claim);
-    try selected.write(destination);
+    const selected = @import("../prover/selected_base_claims_v3.zig");
+    const count = try selected.count(core, manifest, authenticated, claim);
+    try selected.write(core, manifest, claim, count, destination);
 }
 
 fn deriveCanonicalClaims(

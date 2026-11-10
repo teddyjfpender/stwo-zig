@@ -1,6 +1,8 @@
 //! Native CPU proof evidence for authenticated resumable V2 segments.
 
 const std = @import("std");
+const milliseconds = @import("segment_native_proof_receipts.zig").milliseconds;
+const printDigest = @import("segment_native_proof_receipts.zig").printDigest;
 const stwo_core = @import("stwo_core");
 const prover_api = @import("stwo_prover_api");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
@@ -270,6 +272,10 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     try std.testing.expect(
         left_capture.public_data.canonical_words.ptr != left_words.ptr,
     );
+    if (comptime ProofEngine.Hasher == prover.Hasher) {
+        var graph_receipt = try frontend.recursion.vm_air_composition_prepared_v2.prepare(allocator, &left_capture, test_config);
+        defer graph_receipt.deinit();
+    }
     if (comptime ProofEngine.Hasher != prover.Hasher) {
         const adapter = frontend.recursion.air.blake3_native_transcript;
         const coordinator = frontend.recursion.blake3_native_parent_preparation;
@@ -1080,14 +1086,4 @@ fn scalarDigest(value: u32) span.Digest {
     var result: span.Digest = .{0} ** channel.RATE;
     result[0] = value;
     return result;
-}
-
-fn milliseconds(nanoseconds: u64) f64 {
-    return @as(f64, @floatFromInt(nanoseconds)) / std.time.ns_per_ms;
-}
-
-fn printDigest(label: []const u8, value: channel.Digest) void {
-    std.debug.print("  {s}=", .{label});
-    for (value) |word| std.debug.print("{x:0>8}", .{word});
-    std.debug.print("\n", .{});
 }

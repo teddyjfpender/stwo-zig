@@ -494,7 +494,7 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
     const workspace = try proof_workspace.VerificationWorkspace.create(allocator);
     defer workspace.destroy(allocator);
     workspace.canonical = canonical;
-    try base_assembly.assembleIntoAuthenticatedLookupV2WithCircuitProfile(.verifier, workspace, &statement_value.core, base_claim, &relations.base, statement_value.core.nMainColumns(), try authenticated.totalInteractionColumns(&statement_value.core, &manifest), &manifest, &authenticated, profile.circuitProfile());
+    try base_assembly.assembleIntoAuthenticatedLookupV2WithCircuitLayout(.verifier, workspace, &statement_value.core, base_claim, &relations.base, statement_value.core.nMainColumns(), try authenticated.totalInteractionColumns(&statement_value.core, &manifest), &manifest, &authenticated, profile.circuitProfile().layout());
     if (fixed_rows != null) {
         var indices: [fixed_program_table.COLUMN_COUNT]usize = undefined;
         for (&indices, 0..) |*index, offset| index.* = profile.bridge_geometry.placement.is_first_col_idx - fixed_program_table.COLUMN_COUNT + offset;

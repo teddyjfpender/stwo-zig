@@ -8,6 +8,8 @@
 //! listed to make coverage explicit.
 
 test {
+    _ = @import("air/program/circuit_layout.zig");
+    _ = @import("prover/ethereum_circuit_profile.zig");
     _ = @import("releasefast_acceptance_test_root.zig");
     _ = @import("recursion/tests/segment_leaf_local_projection_test.zig");
     _ = @import("recursion/tests/vm_composition_program_test.zig");

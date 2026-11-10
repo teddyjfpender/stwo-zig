@@ -7,7 +7,7 @@ that satisfies the stable prover transaction contract.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `1.0.0` |
 | Layer | `frontend` |
 | Owner | `riscv-frontend` |
 | Public Zig module | `stwo_riscv_frontend` |

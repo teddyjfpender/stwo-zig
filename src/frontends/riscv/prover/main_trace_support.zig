@@ -259,7 +259,7 @@ fn appendPoseidonColumns(
     witness: *const CommitmentWitness,
     geometry: Geometry,
 ) !void {
-    if (witness.circuit_profile.poseidonLayout() == .narrow_degree3_v1) {
+    if (witness.circuit_layout.poseidonLayout() == .narrow_degree3_v1) {
         if (columns.isArenaBacked()) {
             var destinations = try columns.reserve(narrow_poseidon.N_MAIN_COLUMNS, geometry.poseidon_log_size);
             return narrow_poseidon.generateMainInto(allocator, &destinations, witness.poseidonCalls(), geometry.poseidon_log_size);
@@ -305,7 +305,7 @@ fn appendPoseidonColumnsWithWorkReceipt(
     geometry: Geometry,
     authority: *const poseidon_witness_work.Authority,
 ) !poseidon_witness_work.ProducerReceipt {
-    if (witness.circuit_profile.poseidonLayout() == .narrow_degree3_v1) {
+    if (witness.circuit_layout.poseidonLayout() == .narrow_degree3_v1) {
         try appendPoseidonColumns(allocator, columns, witness, geometry);
         return poseidon_witness_work.complete(authority, .base_air_row_materialization, @intCast(witness.poseidonCalls().len));
     }

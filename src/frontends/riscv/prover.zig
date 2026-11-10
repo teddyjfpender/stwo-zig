@@ -565,3 +565,5 @@ pub const blake3_segment_execution = @import("prover/blake3_segment_execution.zi
 pub const blake3_profile_artifact = @import("prover/blake3_profile_artifact.zig");
 pub const blake3_poseidon_proof = @import("prover/blake3_poseidon_proof.zig");
 pub const blake3_poseidon_witness = @import("prover/blake3_poseidon_witness.zig");
+
+pub const selected_base_claims_v3 = @import("prover/selected_base_claims_v3.zig");

@@ -143,8 +143,8 @@ test "Ethereum narrow degree3 Poseidon central profile rejects legacy width and 
     const manifest = @import("../lang/opcode_composition_manifest.zig");
     var cursor = assembly.InfrastructureCursor.init(manifest.PlacementCursor{});
     try std.testing.expectError(error.MainColumnCountMismatch, cursor.append(.poseidon2, air.N_MAIN_COLUMNS));
-    try std.testing.expectError(error.MainColumnCountMismatch, cursor.appendWithCircuit(.poseidon2, legacy.N_MAIN_COLUMNS, .fixed_program_narrow_v1));
-    const placement = try cursor.appendWithCircuit(.poseidon2, air.N_MAIN_COLUMNS, .fixed_program_narrow_v1);
+    try std.testing.expectError(error.MainColumnCountMismatch, cursor.appendWithLayout(.poseidon2, legacy.N_MAIN_COLUMNS, .fixed_decoded_narrow));
+    const placement = try cursor.appendWithLayout(.poseidon2, air.N_MAIN_COLUMNS, .fixed_decoded_narrow);
     try std.testing.expectEqual(@as(usize, air.N_MAIN_COLUMNS), placement.main_columns);
     const allocator = std.testing.allocator;
     const calls = [_]legacy.Call{ legacy.Call.narrow(3, 7), legacy.Call.narrow(5, 11) };

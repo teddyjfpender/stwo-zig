@@ -1,5 +1,7 @@
 //! Decoded RV32IM program relation table.
 
+pub const circuit_layout = @import("circuit_layout.zig");
+
 pub const opcode = @import("opcode.zig");
 pub const commitment = @import("commitment.zig");
 pub const decode = @import("decode.zig");

@@ -100,3 +100,25 @@ test {
     // which roots a test artifact at the file itself.
     _ = @import("runner/sail_oracle.zig");
 }
+
+test "api invariant: native and product VM authority bindings preserve canonical records" {
+    const std = @import("std");
+    const native = recursion.vm_air_profile_v2;
+    const product = @import("recursion/ethereum_vm_air_profile_v2.zig");
+    const Selector = @TypeOf(@as(native.ProfileV2, undefined).circuit_profile);
+    try std.testing.expect(@typeInfo(Selector).@"enum".tag_type == u16);
+    try std.testing.expectEqual(@as(usize, 1), @typeInfo(Selector).@"enum".fields.len);
+    try std.testing.expectEqual(@as(u16, 0), @intFromEnum(Selector.legacy_v4));
+    try std.testing.expect(@TypeOf(@as(product.ProfileV2, undefined).circuit_profile) == @import("prover/ethereum_circuit_profile.zig").CircuitProfileV1);
+    try std.testing.expect(native.ProfileV2 != product.ProfileV2);
+    try std.testing.expect(native.EntryV2 == product.EntryV2 and native.TreeSpanV2 == product.TreeSpanV2 and native.InputProfileV2 == product.InputProfileV2);
+    const Support = recursion.vm_composition_graph_support_v2;
+    try std.testing.expect(Support.ForExtension(null) == Support.ForExtension(null));
+    const no_extension = @TypeOf(@as(Support.ForExtension(null).SampleLayoutV2, undefined).extension);
+    try std.testing.expect(no_extension == @TypeOf(null));
+    try std.testing.expect(@import("recursion/ethereum_vm_composition_graph_base.zig").Result == recursion.vm_composition_graph_base_v2.Result);
+    const geometry = recursion.vm_composition_base_geometry_v2;
+    const compiler = recursion.vm_selected_lookup_compiler_v2;
+    try std.testing.expect(@TypeOf(geometry.ForProfile(product.ProfileV2).init) != @TypeOf(geometry.ForProfile(native.ProfileV2).init));
+    try std.testing.expect(@TypeOf(compiler.ForProfile(product.ProfileV2).init) != @TypeOf(compiler.ForProfile(native.ProfileV2).init));
+}

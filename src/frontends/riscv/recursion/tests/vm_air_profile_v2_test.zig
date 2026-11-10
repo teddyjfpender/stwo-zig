@@ -3,7 +3,7 @@ const std = @import("std");
 const lookup_physical_v2 =
     @import("../../air/lang/lookup_physical_manifest.zig");
 const support = @import("../ethereum_leaf_context_test_support.zig");
-const subject = @import("../vm_air_profile_v2.zig");
+const subject = @import("../ethereum_vm_air_profile_v2.zig");
 
 const SAMPLED_VALUE_COUNT: u32 = 317;
 const MUL_LOOKUP_INDEX: usize = 19;
@@ -29,7 +29,7 @@ test "authenticated VM AIR ProfileV2 binds fixed program and narrow Poseidon as 
     }
     authenticated = try lookup_physical_v2.AuthenticatedStatement.init(&statement, &manifest);
     try std.testing.expectError(error.InvalidColumnGeometry, geometry.expectedSampledValueCount(&statement, &manifest));
-    const samples = try geometry.expectedSampledValueCountWithCircuitProfile(&statement, &manifest, .fixed_program_narrow_v1);
+    const samples = try @import("../vm_composition_sample_geometry.zig").expectedSampledValueCountWithLayout(&statement, &manifest, .fixed_decoded_narrow);
     try std.testing.expectEqual(legacy_samples - 158, samples);
     try std.testing.expectError(error.MainColumnCountMismatch, subject.deriveAuthority(allocator, &statement, &manifest, &authenticated, samples));
     var fixed = try subject.deriveAuthorityWithCircuitProfile(allocator, &statement, &manifest, &authenticated, samples, .fixed_program_narrow_v1);
@@ -40,9 +40,9 @@ test "authenticated VM AIR ProfileV2 binds fixed program and narrow Poseidon as 
     // Fixed program columns are authenticated after the extension prefix,
     // not silently inserted into the base selector/sample offsets.
     try std.testing.expectEqual(legacy.preprocessed_column_count, fixed.preprocessed_column_count);
-    var fixed_geometry = try geometry.GeometryV2.init(allocator, &fixed);
+    var fixed_geometry = try geometry.ForProfile(subject.ProfileV2).init(allocator, &fixed);
     defer fixed_geometry.deinit();
-    try fixed_geometry.validateAgainst(&fixed);
+    try geometry.ForProfile(subject.ProfileV2).validateAgainst(&fixed_geometry, &fixed);
     for (fixed.entries) |entry| switch (entry.registry) {
         .infrastructure => |key| switch (key.kind) {
             .program => try std.testing.expectEqual(@as(u32, program.N_FIXED_CONSTRAINTS), entry.constraint_count),
@@ -51,6 +51,18 @@ test "authenticated VM AIR ProfileV2 binds fixed program and narrow Poseidon as 
         },
         else => {},
     };
+    inline for (.{ &legacy, &fixed }) |profile| std.debug.print("C3_PROFILE_RECEIPT tag={d} schema={d} identity={s}\n", .{ @intFromEnum(profile.circuit_profile), profile.schema_version, std.fmt.bytesToHex(profile.identity_digest, .lower) });
+    var previous_identity = fixed.identity_digest;
+    inline for (.{ @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1.ethereum_v5, .ethereum_local_zero_v1 }) |selected| {
+        var tagged = try subject.deriveAuthorityWithCircuitProfile(allocator, &statement, &manifest, &authenticated, samples, selected);
+        defer tagged.deinit();
+        try tagged.validateAuthority(allocator, &statement, &manifest, &authenticated);
+        try std.testing.expectEqual(subject.CIRCUIT_SCHEMA_VERSION, tagged.schema_version);
+        try std.testing.expect(!std.mem.eql(u8, &fixed.identity_digest, &tagged.identity_digest));
+        try std.testing.expect(!std.mem.eql(u8, &previous_identity, &tagged.identity_digest));
+        std.debug.print("C3_PROFILE_RECEIPT tag={d} schema={d} identity={s}\n", .{ @intFromEnum(tagged.circuit_profile), tagged.schema_version, std.fmt.bytesToHex(tagged.identity_digest, .lower) });
+        previous_identity = tagged.identity_digest;
+    }
     fixed.circuit_profile = .legacy_v4;
     try std.testing.expectError(error.InvalidStatementShape, fixed.validate());
     fixed.circuit_profile = .fixed_program_narrow_v1;

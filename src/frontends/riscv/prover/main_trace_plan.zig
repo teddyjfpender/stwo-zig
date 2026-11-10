@@ -18,7 +18,7 @@ const component_order = @import("../air/component_order.zig");
 const lookup_schema = @import("../air/lookups/tables/schema.zig");
 const memory_trace = @import("../air/memory_commitment/trace.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
-const CircuitProfile = @import("ethereum_circuit_profile.zig").CircuitProfileV1;
+const CircuitLayout = @import("../air/program/circuit_layout.zig").CircuitLayout;
 const poseidon2_narrow = @import("../air/memory_commitment/poseidon2_narrow_degree3.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
 const program_commitment = @import("../air/program/commitment.zig");
@@ -72,7 +72,7 @@ pub fn build(
     statement: *const statement_mod.RiscVStatement,
     options: BuildOptions,
 ) Error!Plan {
-    return buildWithOrdinarySteps(.legacy_v4, statement, statement.total_steps, options);
+    return buildWithOrdinarySteps(.ordinary_sparse, statement, statement.total_steps, options);
 }
 
 /// Builds the base Tree-1 plan for a Poseidon2 extension statement. Guest
@@ -88,27 +88,27 @@ pub fn buildPoseidon2(
         extension,
         counts,
     );
-    return buildWithOrdinarySteps(.legacy_v4, statement, ordinary_steps, options);
+    return buildWithOrdinarySteps(.ordinary_sparse, statement, ordinary_steps, options);
 }
 
 /// Explicit profile twin; ordinary steps are already projected by the admitted
 /// Ethereum extension caller, as in the legacy base plan.
-pub fn buildWithCircuitProfileV1(statement: *const statement_mod.RiscVStatement, options: BuildOptions, circuit_profile: CircuitProfile) Error!Plan {
-    return buildWithOrdinarySteps(circuit_profile, statement, statement.total_steps, options);
+pub fn buildWithCircuitLayout(statement: *const statement_mod.RiscVStatement, options: BuildOptions, circuit_layout: CircuitLayout) Error!Plan {
+    return buildWithOrdinarySteps(circuit_layout, statement, statement.total_steps, options);
 }
 
-pub fn validateWithCircuitProfileV1(plan: *const Plan, statement: *const statement_mod.RiscVStatement, circuit_profile: CircuitProfile) Error!void {
+pub fn validateWithCircuitLayout(plan: *const Plan, statement: *const statement_mod.RiscVStatement, circuit_layout: CircuitLayout) Error!void {
     if (plan.ordinary_steps != statement.total_steps) return error.InvalidPlan;
-    return validateCommon(circuit_profile, plan, statement, statement.total_steps);
+    return validateCommon(circuit_layout, plan, statement, statement.total_steps);
 }
 
 fn buildWithOrdinarySteps(
-    circuit_profile: CircuitProfile,
+    circuit_layout: CircuitLayout,
     statement: *const statement_mod.RiscVStatement,
     ordinary_steps: u32,
     options: BuildOptions,
 ) Error!Plan {
-    const shape = try validateStatementGeometry(circuit_profile, statement, ordinary_steps);
+    const shape = try validateStatementGeometry(circuit_layout, statement, ordinary_steps);
     const admitted_workers = try resolveAdmittedWorkers(
         options.execution,
         options.pool_capacity,
@@ -213,7 +213,7 @@ fn buildWithOrdinarySteps(
         poseidon_chunks,
         options.enable_opcode_audit,
     );
-    try validateCommon(circuit_profile, &result, statement, ordinary_steps);
+    try validateCommon(circuit_layout, &result, statement, ordinary_steps);
     return result;
 }
 
@@ -225,7 +225,7 @@ pub fn validate(
 ) Error!void {
     if (plan.ordinary_steps != statement.total_steps)
         return error.InvalidPlan;
-    return validateCommon(.legacy_v4, plan, statement, statement.total_steps);
+    return validateCommon(.ordinary_sparse, plan, statement, statement.total_steps);
 }
 
 /// Revalidates both the compact plan and the extension/runtime cardinality
@@ -241,16 +241,16 @@ pub fn validatePoseidon2(
         extension,
         counts,
     );
-    return validateCommon(.legacy_v4, plan, statement, ordinary_steps);
+    return validateCommon(.ordinary_sparse, plan, statement, ordinary_steps);
 }
 
 fn validateCommon(
-    circuit_profile: CircuitProfile,
+    circuit_layout: CircuitLayout,
     plan: *const Plan,
     statement: *const statement_mod.RiscVStatement,
     ordinary_steps: u32,
 ) Error!void {
-    const shape = try validateStatementGeometry(circuit_profile, statement, ordinary_steps);
+    const shape = try validateStatementGeometry(circuit_layout, statement, ordinary_steps);
     if (plan.n_components != shape.n_components or
         plan.n_infra != shape.n_infra or
         plan.descriptor_count != shape.descriptor_count or
@@ -398,7 +398,7 @@ const StatementShape = struct {
 };
 
 fn validateStatementGeometry(
-    circuit_profile: CircuitProfile,
+    circuit_layout: CircuitLayout,
     statement: *const statement_mod.RiscVStatement,
     ordinary_steps: u32,
 ) Error!StatementShape {
@@ -463,7 +463,7 @@ fn validateStatementGeometry(
         merkle_desc.log_size != @max(@as(u32, 4), computeLogSize(merkle_desc.n_rows)))
         return error.InvalidInfrastructureDescriptor;
     if (poseidon_desc.kind != .poseidon2 or
-        poseidon_desc.n_columns != (switch (circuit_profile.poseidonLayout()) {
+        poseidon_desc.n_columns != (switch (circuit_layout.poseidonLayout()) {
             .legacy_v1 => poseidon2_air.N_MAIN_COLUMNS,
             .narrow_degree3_v1 => poseidon2_narrow.N_MAIN_COLUMNS,
         }) or
