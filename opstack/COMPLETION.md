@@ -278,6 +278,13 @@ qualification observation, not a quiet repeated performance claim. The final
 receiver reads no native proof bytes. The experiment retains the documented
 security assumptions and has no production or settlement admission.
 
+The subsequent packed-P2-tail run reproduces every native/root/sidecar byte at
+**25.624 seconds total**: 9.159 seconds native and 16.465 seconds root producer.
+Requested peak remains 8.667 GB. Its separate source-only receiver passes all
+nine controls in 6.580 seconds (4.556 seconds setup, 9.293 ms root read/verify).
+These are single observations; terminal Blake root proving itself did not speed
+up in this run. See the [post-fix complete small-block receipt](../vectors/reports/rv64-opstack-performance-20261110/selected-from-guest-r7-p2-tail-v1.json).
+
 The separate actual-heavy first-four-million-instruction conditional fragment
 identified commitment hashing as 59.34 of 74.73 seconds. Packed Poseidon2
 bounded-tail dispatch and lifted-prefix reuse now reduce the same fragment's

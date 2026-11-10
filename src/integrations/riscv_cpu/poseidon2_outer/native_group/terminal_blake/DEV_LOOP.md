@@ -27,14 +27,15 @@ negative controls through the same narrow artifact:
 STWO_OP_TERMINAL_BLAKE_R7_CONFIG=/absolute/path/config.json \
 STWO_OP_TERMINAL_BLAKE_R7_NATIVE=/absolute/path/source-only-directory \
 STWO_OP_TERMINAL_BLAKE_R7_OUT=/absolute/path/retained-root-directory \
-STWO_OP_TERMINAL_BLAKE_R7_P2_CONTROL=/absolute/path/valid-same-source-p2-root.bin \
+STWO_OP_TERMINAL_BLAKE_R7_P2_CONTROL=/absolute/path/valid-same-source-p2-root-directory \
 STWO_OP_TERMINAL_BLAKE_R7_MODE=verify \
 zig build test-riscv64-op-terminal-blake -Doptimize=ReleaseSafe \
   -Driscv-test-filter='terminal Blake R7 actual selected' -j1
 ```
 
-The source-only directory may omit `native.bin`; it must retain independently
-admitted source declarations and public cells. Use the matching P2 control and
+The source-only directory omits `detached-op.bin`; it retains
+`detached-op.json` and `cells.bin` for independent source admission. The P2
+control directory contains the matching `root.bin`. Use the matching P2 control and
 source metadata for the same fixture. `MODE=prove` consumes retained native
 proofs; `MODE=from-guest` generates native proofs too and requires fresh disjoint
 NATIVE/OUT directories. Actual modes remain gated by explicit environment
