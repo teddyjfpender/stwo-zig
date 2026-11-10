@@ -4,6 +4,7 @@ const std = @import("std");
 const S = @import("spec.zig");
 const W = @import("witness.zig");
 pub const N = @import("../bn254_mac12/normalize.zig");
+const Literal = @import("literal_fold.zig");
 pub const Mac = @import("../bn254_mac12/source.zig");
 pub const Hint = struct { writer: u32, source_writer: u32, kind: S.Hint, denominator: u32 };
 pub const Event = struct { kind: enum { arithmetic, hint }, index: usize };
@@ -23,7 +24,8 @@ pub const Program = struct {
             const expression = S.expression(node);
             var terms: [145]N.Term = undefined;
             for (expression.terms[0..expression.len], terms[0..expression.len]) |term, *out| out.* = .{ .a = term.a, .b = term.b, .coefficient = term.coefficient };
-            stage_count += (try N.count(terms[0..expression.len])).rows;
+            const folded = try Literal.apply(terms[0..expression.len], S.literalId(0), S.literalId(1));
+            stage_count += (try N.count(folded.terms[0..folded.len])).rows;
         };
         const stages = try a.alloc(N.Stage, stage_count);
         errdefer a.free(stages);
@@ -62,7 +64,8 @@ pub const Program = struct {
                 if (term.a >= node.writer or (term.b != null and term.b.? >= node.writer)) return error.PairingSourceNotTopological;
                 out.* = .{ .a = mapping[term.a], .b = if (term.b) |b| mapping[b] else null, .coefficient = term.coefficient };
             }
-            var plan = try N.lower(a, terms[0..expression.len], &next, S.literalId(0), S.literalId(1));
+            const folded = try Literal.apply(terms[0..expression.len], S.literalId(0), S.literalId(1));
+            var plan = try N.lower(a, folded.terms[0..folded.len], &next, S.literalId(0), S.literalId(1));
             defer plan.deinit();
             for (plan.stages) |stage| {
                 stages[arithmetic_at] = stage;
@@ -121,6 +124,7 @@ pub fn sourceDigest() [32]u8 {
     h.update("complete-finite-pairing-canonical-mac12-lowering/v1");
     h.update(&@import("mod.zig").sourceDigest());
     h.update(@embedFile("lowering.zig"));
+    h.update(@embedFile("literal_fold.zig"));
     h.update(@embedFile("normalized_witness.zig"));
     h.update(@embedFile("../bn254_mac12/normalize.zig"));
     h.update(@embedFile("../bn254_mac12/source.zig"));
