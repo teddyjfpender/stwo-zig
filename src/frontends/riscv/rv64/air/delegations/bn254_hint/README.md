@@ -1,7 +1,10 @@
 # Canonical private BN254 hint writer
 
-Shared source foundation for subgroup/residue experiments. No physical proof,
-BYTE/SSA binding, VM operation or production admission is implemented here.
+Shared source foundation for subgroup/residue experiments. This module alone
+defines no physical envelope or admission. The closed pinned-Q subgroup fixture
+now physically binds this gate through BYTE/SSA; see
+`src/integrations/riscv_cpu/delegations/op_g2_subgroup/README.md`.
+No VM operation or production admission is implemented here.
 A hint is free witness data; this chip proves canonicality only. Consumers must
 separately constrain inverse/product/final-result predicates and literal outputs.
 

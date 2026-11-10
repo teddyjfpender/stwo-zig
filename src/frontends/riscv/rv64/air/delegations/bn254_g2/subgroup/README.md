@@ -1,8 +1,11 @@
 # Conditional exact G2 subgroup source program
 
-Source/witness foundation only. No physical hint AIR, BYTE/SSA closure, STARK,
-VM tag, native suite, receiver or execution admission is added. Curve and subgroup
-obligations are explicit equations; no host-supplied `isValid` bit is an input.
+This document records the original source/witness checkpoint. A later closed
+physical fixture now binds the canonical hints, BYTE/SSA and all zero assertions
+for independently pinned generatorQ: see
+`src/integrations/riscv_cpu/delegations/op_g2_subgroup/README.md`.
+No VM tag, production native suite or execution admission is added. Curve and
+subgroup obligations are explicit equations; no host-supplied `isValid` bit is an input.
 
 Scope: canonical **non-infinity** affine Q on BN254's twist. Infinity and malformed
 inputs must retain the complete guest/fallback policy; this is not a universal
@@ -44,8 +47,9 @@ read, while the subsequent checked multiplication reads both norm and hint.
 
 `CanonicalHint` records the mandatory future physical contract:32 output BYTEs,
 32 canonical-distance BYTEs,15 Boolean borrow bits, output+distance+1=p, and
-source-owned active/ID/fanout; no producer flag can replace these gates. These
-physical gates are **still open**. Source-only Witness validation checks those
+source-owned active/ID/fanout; no producer flag can replace these gates. These physical gates were open at this source checkpoint; the later pinned-Q
+fixture binds the equivalent concrete31-byte-carry canonical writer, with its
+own source identity. Variable/call-bound production gates remain open. Source-only Witness validation checks those
 canonical values numerically and never calls that a physical proof. All ordinary
 field writers reuse the existing exact bounded integer/canonical implementation
 `bn254_dense/row.zig::LayoutFor`, with seven canonical/raw-byte input slots and
@@ -95,8 +99,9 @@ infinity, zero denominators, changed expected Q, noncanonical hints, coherently
 bad inverse hints with otherwise valid rows, a slope+p forgery propagated through
 all later reads, output mutation and allocation failures.
 
-Remaining gates are physical canonical hint writers/zero-assertion export and
-BYTE/SSA closure with adversarial proofs; source-bound whole-pairing input and
+The later pinned-Q fixture closes physical canonical hint writers, zero-assertion
+export and BYTE/SSA closure with adversarial proofs for its conditional toy scope.
+Remaining gates are source-bound whole-pairing input and
 validity/infinity/subgroup policy; all-loop G2/prepared-line and Fp12/residue
 composition; native/fresh-recursive receivers and conditional soundness accounting.
 No production code can select this program as an admitted service today.
