@@ -80,3 +80,39 @@ The test is env-gated and makes no new proof. The checked JSON receipt records
 all eight-role raw/padded counts and native per-tree LDE counts. This is a partial
 end-to-end model: only one actual CPU verifier is costed, not Keccak/detached/SHA,
 group folds, source-key setup, execution or a complete block.
+
+
+## Exact selected mixed four-member plateau follow-up
+
+A second bounded source gate emits the complete actual four-member R7 group,
+then the same group with ONLY the CPU PCS shape changed to hypotheticalB2/q144.
+Detached sponge, Keccak and SHA remain B4. It uses the same member emitters,
+structural/native-multiply/dot scopes and canonical group finalizer, deliberately
+without source normalization/admission of the candidate. The retained B4 native
+bundle is freshly verified first, including full global/terminal closure.
+
+The source baseline reproduces the retained actual group raw vector exactly:
+`[73080,5173527,3451,173939,65536,321145,1515168,335498]`. The CPU-onlyB2
+counterfactual is`[91926,6153803,3451,212468,65536,326545,1789776,428270]`.
+Both pad to`[17,23,12,18,16,19,21,19]`, with exactly113,324,032 FIXED +
+276,381,696 MAIN +253,329,408 INTER = **643,035,136 cells**.
+
+Thus the measured source-emission plateau hides the isolated CPU wrapper's
+1.949x padded-cell increase. This is stronger than an additive estimate: the
+whole group is emitted/finalized with normal shared structural handling. It is
+still NOT a physical/correctness or wall-time result for a B2 native suite.
+Raw QM arithmetic increases19.0%, P2 calls22.2%, and dot terms18.1%; source graph,
+usage metadata and witness generation can cost more even when committed padded
+cells remain equal. No exact native proof-size, memory or time saving is claimed.
+
+This reopens only a conditional, bounded future mixed-profile experiment for
+this selected source class. The native manifest currently requires uniform
+profiles; the candidate is intentionally NOT a legal admitted source. New policy,
+keys/transcript and security review are mandatory before any implementation.
+Four-CPU homogeneous groups or heavy source classes may cross padding cliffs;
+this mixed small group does not settle those workloads. No new profile/proof was
+implemented and no production guard was overridden.
+
+Reproduce with the same CONFIG/NATIVE variables above and filter
+`native B2 selected four group`. The JSON follow-up receipt stores both complete
+raw/padded eight-role censuses.

@@ -12,8 +12,8 @@ The check target emits no LLVM/test binary. The test target includes the two R6
 and R7 physical format/source-authority tests, the two environment-gated actual
 selected-root tests, a separate R7 fresh-only receiver test, and the two
 fresh-path/allocation-failure tests, plus an env-gated native-profile CPU
-source-cost model (no proof). Its pinned
-filters select `terminal Blake` or `terminal fresh path`, with a minimum of eight
+source-cost model and its selected four-member group follow-up (no proof). Its pinned
+filters select `terminal Blake` or `terminal fresh path`, with a minimum of nine
 named tests. An explicit caller filter replaces those patterns and keeps the
 existing unmatched-selection guard:
 
