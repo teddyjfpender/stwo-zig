@@ -47,13 +47,15 @@ pub const INSTANCES = [_]Instance{
     .{ .family = .ssa, .role = .frontier, .row_log = 11, .lane_log = 0 },
 };
 pub const MAGIC = "PAIRMAC1";
-pub const Scope = struct { statement: [32]u8, fixed: [32]u8, main: [32]u8 };
+pub const Blake = ForTransport(false);
+pub const Poseidon = ForTransport(true);
+pub const Scope = Blake.Scope;
 fn raw(channel: anytype, data: [32]u8) void {
     var words: [8]u32 = undefined;
     for (&words, 0..) |*v, i| v.* = std.mem.readInt(u32, data[4 * i ..][0..4], .little);
     channel.mixU32s(&words);
 }
-pub fn statement(public: []const u256) [32]u8 {
+fn baseStatement(public: []const u256) [32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
     h.update("closed-complete-finite-pairing-mac12/v1");
     h.update(&D.sourceDigest());
@@ -70,27 +72,47 @@ pub fn statement(public: []const u256) [32]u8 {
     }
     return h.finalResult();
 }
+pub fn statement(public: []const u256) [32]u8 {
+    return Blake.statement(public);
+}
 pub fn begin(scope: Scope) Channel {
+    return beginFor(false, scope) catch unreachable;
+}
+fn beginFor(comptime poseidon: bool, scope: ForTransport(poseidon).Scope) !Channel {
+    if (poseidon) {
+        _ = try core.crypto.poseidon2_m31_sponge.decode(scope.fixed);
+        _ = try core.crypto.poseidon2_m31_sponge.decode(scope.main);
+    }
     var channel = Channel.init();
-    channel.mixU32s(&.{ 0x504d3132, 1, 6, 3 });
+    channel.mixU32s(&.{ if (poseidon) @as(u32, 0x504d5032) else 0x504d3132, 1, 6, if (poseidon) @as(u32, 9) else 3 });
     for (INSTANCES) |i| channel.mixU32s(&.{ @intFromEnum(i.family), @intFromEnum(i.role), i.row_log, i.lane_log });
     raw(&channel, scope.statement);
-    raw(&channel, scope.fixed);
-    raw(&channel, scope.main);
+    if (poseidon) {
+        channel.mixRoot(scope.fixed);
+        channel.mixRoot(scope.main);
+    } else {
+        raw(&channel, scope.fixed);
+        raw(&channel, scope.main);
+    }
     return channel;
 }
 pub fn validateArtifact(artifact: *const GV.GkrArtifact) !void {
     if (artifact.n_variables_by_instance.len != INSTANCES.len or artifact.claims_to_verify_by_instance.len != INSTANCES.len or artifact.ood_point.len != 24) return error.DenseSsaShape;
     for (INSTANCES, artifact.n_variables_by_instance, artifact.claims_to_verify_by_instance) |i, variables, claims| if (variables != try i.variables() or claims.len != 2) return error.DenseSsaShape;
 }
-pub fn receipt(scope: Scope, proof: *const GV.GkrBatchProof, marginals: []const []const Q) !core.crypto.poseidon2_m31_sponge.Digest {
+fn receiptFor(comptime poseidon: bool, scope: ForTransport(poseidon).Scope, proof: *const GV.GkrBatchProof, marginals: []const []const Q) !core.crypto.poseidon2_m31_sponge.Digest {
     var vars: [6]u32 = undefined;
     var writer = Base.ReceiptWriter{};
-    writer.tag(0x504d3132);
+    writer.tag(if (poseidon) 0x504d5032 else 0x504d3132);
     writer.integer(1);
     writer.rawDigest(scope.statement);
-    writer.rawDigest(scope.fixed);
-    writer.rawDigest(scope.main);
+    if (poseidon) {
+        writer.root(scope.fixed);
+        writer.root(scope.main);
+    } else {
+        writer.rawDigest(scope.fixed);
+        writer.rawDigest(scope.main);
+    }
     for (INSTANCES, &vars) |i, *v| {
         v.* = try i.variables();
         writer.integer(@intFromEnum(i.family));
@@ -175,15 +197,15 @@ pub const Pending = struct {
         self.* = undefined;
     }
 };
-pub fn verify(a: std.mem.Allocator, scope: Scope, proof: *const GV.GkrBatchProof) !Pending {
-    var channel = begin(scope);
+fn verifyFor(comptime poseidon: bool, a: std.mem.Allocator, scope: ForTransport(poseidon).Scope, proof: *const GV.GkrBatchProof) !Pending {
+    var channel = try beginFor(poseidon, scope);
     const beta = channel.drawSecureFelt();
     const ssa = C.Wire.draw(&channel);
     var artifact = try GV.partiallyVerifyBatch(a, &.{ .LogUp, .LogUp, .LogUp, .LogUp, .LogUp, .LogUp }, proof, &channel);
     errdefer artifact.deinit(a);
     try validateArtifact(&artifact);
     try close(a, proof);
-    return .{ .artifact = artifact, .beta = beta, .ssa = ssa, .eta = channel.drawSecureFelt(), .digest = try receipt(scope, proof, artifact.claims_to_verify_by_instance) };
+    return .{ .artifact = artifact, .beta = beta, .ssa = ssa, .eta = channel.drawSecureFelt(), .digest = try receiptFor(poseidon, scope, proof, artifact.claims_to_verify_by_instance) };
 }
 pub const Unbound = struct {
     result: GP.ProveBatchResult,
@@ -196,9 +218,9 @@ pub const Unbound = struct {
         self.* = undefined;
     }
 };
-pub fn prove(a: std.mem.Allocator, scope: Scope, witness: *const C.Model) !Unbound {
+fn proveFor(comptime poseidon: bool, a: std.mem.Allocator, scope: ForTransport(poseidon).Scope, witness: *const C.Model) !Unbound {
     try witness.requireColumns();
-    var channel = begin(scope);
+    var channel = try beginFor(poseidon, scope);
     const beta = channel.drawSecureFelt();
     const ssa = C.Wire.draw(&channel);
     var readers: [6]Reader() = undefined;
@@ -211,11 +233,56 @@ pub fn prove(a: std.mem.Allocator, scope: Scope, witness: *const C.Model) !Unbou
     errdefer result.deinit(a);
     try validateArtifact(&result.artifact);
     try close(a, &result.proof);
-    return .{ .result = result, .beta = beta, .ssa = ssa, .eta = channel.drawSecureFelt(), .digest = try receipt(scope, &result.proof, result.artifact.claims_to_verify_by_instance) };
+    return .{ .result = result, .beta = beta, .ssa = ssa, .eta = channel.drawSecureFelt(), .digest = try receiptFor(poseidon, scope, &result.proof, result.artifact.claims_to_verify_by_instance) };
 }
 pub fn encode(a: std.mem.Allocator, proof: *const GV.GkrBatchProof) ![]u8 {
     return Wire.encodeFor(a, &INSTANCES, proof, MAGIC);
 }
 pub fn decode(a: std.mem.Allocator, bytes: []const u8) !Wire.Owned {
     return Wire.decodeFor(a, &INSTANCES, bytes, MAGIC);
+}
+
+/// Only crypto-root transport varies. Arithmetic source, readers, GKR traversal,
+/// source roster and closure equations are shared by both explicit suites.
+fn ForTransport(comptime poseidon: bool) type {
+    return struct {
+        pub const Root = if (poseidon) core.crypto.poseidon2_m31_sponge.Digest else [32]u8;
+        pub const Scope = struct { statement: [32]u8, fixed: Root, main: Root };
+        pub const MAGIC = if (poseidon) "PAIRP2V1" else "PAIRMAC1";
+        pub fn statement(public: []const u256) [32]u8 {
+            if (!poseidon) return baseStatement(public);
+            var h = std.crypto.hash.sha2.Sha256.init(.{});
+            h.update("complete-finite-pairing-mac12/native-P2v2-scope36/v1\x00");
+            h.update(&core.vcs_lifted.poseidon2_profile.Om31V2.identity());
+            h.update(&baseStatement(public));
+            return h.finalResult();
+        }
+        pub fn begin(scope: @This().Scope) !Channel {
+            return beginFor(poseidon, scope);
+        }
+        pub fn receipt(scope: @This().Scope, proof: *const GV.GkrBatchProof, marginals: []const []const Q) !core.crypto.poseidon2_m31_sponge.Digest {
+            return receiptFor(poseidon, scope, proof, marginals);
+        }
+        pub fn prove(a: std.mem.Allocator, scope: @This().Scope, witness: *const C.Model) !Unbound {
+            return proveFor(poseidon, a, scope, witness);
+        }
+        pub fn verify(a: std.mem.Allocator, scope: @This().Scope, proof: *const GV.GkrBatchProof) !Pending {
+            return verifyFor(poseidon, a, scope, proof);
+        }
+        pub fn encode(a: std.mem.Allocator, proof: *const GV.GkrBatchProof) ![]u8 {
+            return Wire.encodeFor(a, &INSTANCES, proof, @This().MAGIC);
+        }
+        pub fn decode(a: std.mem.Allocator, bytes: []const u8) !Wire.Owned {
+            return Wire.decodeFor(a, &INSTANCES, bytes, @This().MAGIC);
+        }
+    };
+}
+pub fn prove(a: std.mem.Allocator, scope: Scope, witness: *const C.Model) !Unbound {
+    return Blake.prove(a, scope, witness);
+}
+pub fn verify(a: std.mem.Allocator, scope: Scope, proof: *const GV.GkrBatchProof) !Pending {
+    return Blake.verify(a, scope, proof);
+}
+pub fn receipt(scope: Scope, proof: *const GV.GkrBatchProof, marginals: []const []const Q) !core.crypto.poseidon2_m31_sponge.Digest {
+    return Blake.receipt(scope, proof, marginals);
 }
