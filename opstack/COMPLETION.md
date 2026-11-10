@@ -354,3 +354,6 @@ Evidence: [preparation](../vectors/reports/rv64-opstack-performance-20261109/gue
 [residue](../vectors/reports/rv64-opstack-performance-20261109/guest/positive-residue-physical-v1.json).
 
 Shared-source evidence: [Miller gate](../vectors/reports/rv64-opstack-performance-20261109/guest/shared-miller-source-v1.json).
+
+The [pairing provider map](PAIRING_PROVIDER.md) distinguishes source, physical,
+VM and recursive gates and records the coupled layout choice.
