@@ -207,3 +207,38 @@ All71 focused tests pass; positive requested peak2,629,652bytes/2GiB, all
 live bytes return to zero after every case. No speed measurement is claimed.
 FUNCTION/range output debts remain unclosed: this gate proves conditional source
 binding, not complete lookup, execution, block or root acceptance.
+
+## Authentic numerical experiment: no promotion
+
+A subsequent isolated first4M numerical replay selected CPU and ALU only:
+30→34 GKR instances,149,605,184→138,070,848 facts (7.71% fewer), max variables
+26→25. The other28 roles kept their original row-major input order under an
+explicit NEW hybrid source version and bounded `OPLSCPU1` codec. Scope roots
+came from the authentic pinned old source, but the transcript/points/proof were
+new; this was never a replacement for the old PCS binding.
+
+Direct REG6 and gap/pair5 getters avoided naive full-row replay; only FUNCTION,
+ROM and OWNER reconstructed compact CPU rows. All14 query kinds were checked
+against the original emitter across nine instruction families and padding.
+ALU used direct saved-index/payload extraction. No dense fraction cache was used.
+Even so, real denominator counts were unchanged: old readers already skipped
+0/1 dummy-lane denomination. Metadata/ROM reads and some tuple construction
+repeat across lane-major passes.
+
+The observed new GP+closure was4.280s versus the retained3.413s control. Source
+construction/tree was1.043s versus0.659s; traversal3.237s versus2.751s. New
+receipt/encoding4.9ms, fresh GP verification11.5ms, and independent evaluation
+of ALL34 terminal N/D marginals against the original provider640.6ms were
+recorded separately. Every marginal and local closure passed. Proof bytes rose
+113,288→121,392; layer/mask records533→620 despite fewer common rounds.
+The candidate child requested peak2.946GB under12GiB; whole-fixture peak4.623GB
+under32GiB, all allocations retired. The old child-only peak was not recorded,
+so comparing that new child peak to the old whole-fixture peak is invalid.
+
+This is one observation with possible one-core AOT overlap, not a statistical
+wall-regression measurement. It supplies no evidence of a speedup and therefore
+fails promotion. The code remains isolated at406f0fb3e; only the negative-result
+receipt/design finding belongs on mainline. No retry was made to find a favorable
+sample. No full4M native proof, heavy block replay or new execution/root admission
+was performed. Specialized reader kernels and masking/instance cost need new
+evidence before pursuing this protocol direction further.
