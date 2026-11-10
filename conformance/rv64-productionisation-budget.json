@@ -1002,6 +1002,20 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Strict private CPU smoke consumers for retained legacy schema pairs and the actual full-width BLAKE3 producer/verifier, source-pinned hosted report fixtures, identity/PCS/phase/ambiguity negatives, separate CLI admission/proof release metadata and independent workload-input binding. No producer, public API, proof suite/default, pin, corpus, floor or timeout changes. Issue #349."
+    },
+    {
+      "id": "c2_p003_source_path_compatibility",
+      "net_code_budget": 16,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue333 allowance: retain the source-pinned P003 matrix unchanged through one13-line nine-export forwarding facade to the canonical implementation. Preserve nominal identities and the immutable blocked receipt without re-pinning; retire only with the owner-reviewed source-binding migration. No duplicate implementation, runtime flag or launcher."
+    },
+    {
+      "id": "c2_canonical_formatting",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue333 comment6752084383: apply pinned Zig0.15.2 canonical whitespace after path shortening. All changed Zig files are checked; only one declaration-array alignment differs. Preserve line counts, non-whitespace source bytes, literal strings and all protocol/source pins; no implementation or optimization change. Existing13-line P003 facade retains its separate16-line allowance."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

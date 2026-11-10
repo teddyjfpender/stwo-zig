@@ -1,8 +1,8 @@
 //! Three shared hashes for a fixed two-level frontier. Private activity flags
 //! select opaque unqueried branches; each query proves its branch is active.
 const std = @import("std");
-const Nonhash = @import("blake3_nonhash_emission_v1.zig");
-const DirectFrame = @import("blake3_frame_nonhash_v1.zig");
+const Nonhash = @import("blake3_nonhash_emission.zig");
+const DirectFrame = @import("blake3_frame_nonhash.zig");
 const core = @import("stwo_core");
 const frame = @import("blake3_frame_witness.zig");
 const group = @import("blake3_merkle_group_witness.zig");

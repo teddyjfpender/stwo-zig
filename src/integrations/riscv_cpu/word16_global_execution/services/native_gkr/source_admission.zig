@@ -114,7 +114,7 @@ pub fn truthClassCaps(a: std.mem.Allocator, d: @import("../wire.zig").TruthDecla
         }
         out.global_slots[1] = try std.math.mul(u64, rows, policy.ioLookups());
     } else {
-        const q = try @import("../gkr_local/truth_v3_catalog.zig").lookupCountsForDeclaration(d);
+        const q = try @import("../gkr_local/truth_catalog.zig").lookupCountsForDeclaration(d);
         const bound = &out.local[@intFromEnum(TF.Relation.byte)];
         bound.unit_consumer_mass = q.byte_unit_consumers;
         bound.valid_provider_support = q.byte_provider_support;

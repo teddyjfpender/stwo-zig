@@ -11,7 +11,7 @@ const E = @import("equations.zig");
 const schema = @import("../../../../air/guest_precompile/keccakf_tables.zig");
 /// Throughput-v1 universes (2^21 five-output chi, 2^16 three-position xor5)
 /// are the RV32 authority's tables, reused unchanged.
-const throughput = @import("../../../../air/guest_precompile/keccakf_throughput_tables_v1.zig");
+const throughput = @import("../../../../air/guest_precompile/keccakf_throughput_tables.zig");
 pub const Policy = E.BatchPolicy;
 fn tableOf(kind: C.Kind) @import("batch_policy.zig").Table {
     return if (kind == .chi) .chi else .xor5;

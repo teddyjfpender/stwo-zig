@@ -17,7 +17,7 @@
 
 const std = @import("std");
 const pcs = @import("pcs/mod.zig");
-const config_v2 = @import("pcs/config_v2.zig");
+const config_v2 = @import("pcs/config.zig");
 
 pub const Revision = enum {
     stwo_7b211ed,

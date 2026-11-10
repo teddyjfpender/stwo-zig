@@ -107,7 +107,7 @@ pub fn cpu(a: std.mem.Allocator, program_log: u32, declaration: Wire.CpuDeclarat
 }
 pub fn truth(a: std.mem.Allocator, declaration: Wire.TruthDeclaration) !Report {
     if (declaration.family != .keccak and (@intFromEnum(declaration.family) >= 3 or declaration.logs[1] == 0)) {
-        const d = try @import("truth_v3_catalog.zig").descriptorForDeclaration(declaration);
+        const d = try @import("truth_catalog.zig").descriptorForDeclaration(declaration);
         const parts = try a.alloc(Part, 1);
         errdefer a.free(parts);
         parts[0] = try part(@tagName(declaration.family), .provider_program_schedule, d.log_size, d.widths()[0], d.widths()[0]);

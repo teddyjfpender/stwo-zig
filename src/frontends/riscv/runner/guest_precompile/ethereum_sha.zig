@@ -2,8 +2,8 @@
 //! SHA. Explicit ELF execution admission is separate from proof activation.
 const std = @import("std");
 const session = @import("session_state.zig");
-const ethereum = @import("ethereum_v1.zig");
-const sha = @import("sha256_compression_v1.zig");
+const ethereum = @import("ethereum.zig");
+const sha = @import("sha256_compression.zig");
 const custom0 = @import("../../isa/custom0.zig");
 const Cpu = @import("../cpu.zig").Cpu;
 const Memory = @import("../memory.zig").Memory;
@@ -16,9 +16,9 @@ pub const production_active = sha.production_active;
 /// Proof-owned tapes. Freezing moves their backing allocations unchanged.
 pub const Frozen = struct {
     keccakf_calls: @import("keccakf_call_buffer.zig").Frozen,
-    keccakf_execution_rows: @import("keccakf_v1.zig").FrozenExecutionRows,
+    keccakf_execution_rows: @import("keccakf.zig").FrozenExecutionRows,
     signer_recovery_calls: @import("secp256k1_recover_call_buffer.zig").Frozen,
-    signer_recovery_execution_rows: @import("secp256k1_recover_v1.zig").FrozenExecutionRows,
+    signer_recovery_execution_rows: @import("secp256k1_recover.zig").FrozenExecutionRows,
     sha_calls: sha.Frozen,
 
     pub fn deinit(self: *Frozen) void {

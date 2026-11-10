@@ -12,7 +12,7 @@ const source_ingest = @import("../air/lookups/tables/source_ingest.zig");
 const semantic_eval = @import("../air/semantic_eval.zig");
 const statement_mod = @import("../air/statement.zig");
 const trace = @import("../runner/trace.zig");
-const local_zero = @import("../air/x0_native_envelope_v1.zig");
+const local_zero = @import("../air/x0_native_envelope.zig");
 const runtime_program = @import("../air/extract/runtime_program.zig");
 const LookupProgram = @import("stwo_prover_engine").air.component_prover.OwnedLookupPolynomialProgram;
 

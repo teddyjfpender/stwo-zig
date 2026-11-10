@@ -8,13 +8,13 @@ const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
 const universal = @import("air/universal_challenges.zig");
-const boundary_air = @import("segment_leaf_outer_air_v2.zig");
-const boundary = @import("segment_leaf_outer_authority_v2.zig");
-const witness = @import("air/segment_publication_input_provider_witness_v2.zig");
+const boundary_air = @import("segment_leaf_outer_air.zig");
+const boundary = @import("segment_leaf_outer_authority.zig");
+const witness = @import("air/segment_publication_input_provider_witness.zig");
 const public_support = @import("segment_public_outer_test_support.zig");
 const public_data_v2 = @import("../air/public_data_v2.zig");
 const native_relations = @import("../air/relation_challenges.zig");
-const lookup = @import("../air/lang/lookup_physical_manifest_v2.zig");
+const lookup = @import("../air/lang/lookup_physical_manifest.zig");
 const statement_v1 = @import("../air/statement.zig");
 const statement_v2 = @import("../air/statement_v2.zig");
 const trace_mod = @import("../runner/trace.zig");
@@ -220,7 +220,7 @@ fn verifiedContextWithCore(
     const relations = native_relations.Relations.dummy();
     const sums = try statement_v2.NativePublicSums.init(data, &relations);
     const receipt = try native.verifiedReceipt();
-    const sampled_count = try @import("vm_composition_base_geometry_v2.zig").expectedSampledValueCount(&native.core, &manifest);
+    const sampled_count = try @import("vm_composition_base_geometry.zig").expectedSampledValueCount(&native.core, &manifest);
     return vm_leaf_context.testing.initFromFacts(
         allocator,
         &native,

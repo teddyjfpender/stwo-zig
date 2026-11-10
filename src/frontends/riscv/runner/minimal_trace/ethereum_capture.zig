@@ -13,8 +13,8 @@ const decode = @import("../decode.zig");
 const memory_state = @import("../memory_state.zig");
 const result_mod = @import("../result.zig");
 const trace_mod = @import("../trace.zig");
-const keccakf_v1 = @import("../guest_precompile/keccakf_v1.zig");
-const recovery_v1 = @import("../guest_precompile/secp256k1_recover_v1.zig");
+const keccakf_v1 = @import("../guest_precompile/keccakf.zig");
+const recovery_v1 = @import("../guest_precompile/secp256k1_recover.zig");
 const replay = @import("replay.zig");
 const types = @import("ethereum_types.zig");
 

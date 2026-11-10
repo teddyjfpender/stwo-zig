@@ -8,16 +8,16 @@ const scalar = @import("scalar_wire_source.zig");
 pub const selectors = @import("proof_kind.zig").ProofKind.segment_leaf.selectors();
 pub const G_SHARD_COUNT: usize = 4;
 pub const Airs = .{
-    @import("blake3_g_call.zig"),                   @import("blake3_xor_call.zig"),        boundary,
-    @import("qm31_mul_add_v1.zig"),                 @import("qm31_inv.zig"),               @import("linear_ops.zig"),
-    @import("blake3_challenge_block.zig"),          @import("blake3_byte_route.zig"),      @import("blake3_query_mask.zig"),
-    @import("blake3_private_word.zig"),             @import("blake3_field_bytes.zig"),     @import("qm31_pack_wire.zig"),
-    scalar,                                         @import("blake3_path_select.zig"),     @import("blake3_retry_control.zig"),
-    @import("blake3_counter_step.zig"),             @import("readonly_consistency.zig"),   @import("readonly_input.zig"),
-    @import("detached_opening_accumulate4_v1.zig"), @import("native_pcs_opening4_v1.zig"),
+    @import("blake3_g_call.zig"),                @import("blake3_xor_call.zig"),      boundary,
+    @import("qm31_mul_add.zig"),                 @import("qm31_inv.zig"),             @import("linear_ops.zig"),
+    @import("blake3_challenge_block.zig"),       @import("blake3_byte_route.zig"),    @import("blake3_query_mask.zig"),
+    @import("blake3_private_word.zig"),          @import("blake3_field_bytes.zig"),   @import("qm31_pack_wire.zig"),
+    scalar,                                      @import("blake3_path_select.zig"),   @import("blake3_retry_control.zig"),
+    @import("blake3_counter_step.zig"),          @import("readonly_consistency.zig"), @import("readonly_input.zig"),
+    @import("detached_opening_accumulate4.zig"), @import("native_pcs_opening4.zig"),
     // Separately sized G remainders, all sharing the authenticated relation.
-    @import("blake3_g_call.zig"),
-    @import("blake3_g_call.zig"),                   @import("blake3_g_call.zig"),
+     @import("blake3_g_call.zig"),
+    @import("blake3_g_call.zig"),                @import("blake3_g_call.zig"),
 };
 pub fn Tuple(comptime list: bool) type {
     var types: [Airs.len]type = undefined;

@@ -4,9 +4,9 @@ const std = @import("std");
 
 const program_decode = @import("../../../air/program/decode.zig");
 const custom0 = @import("../../../isa/custom0.zig");
-const authority_mod = @import("../../../isa/ethereum_stack_swap_candidate_v1.zig");
+const authority_mod = @import("../../../isa/ethereum_stack_swap_candidate.zig");
 const combined_decode =
-    @import("../../../prover/guest_precompile/ethereum_stack_swap_candidate_decode_v1.zig");
+    @import("../../../prover/guest_precompile/ethereum_stack_swap_candidate_decode.zig");
 const segment_session = @import("../../segment_session.zig");
 const test_elf = @import("../test_elf.zig");
 

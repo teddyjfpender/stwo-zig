@@ -1,10 +1,10 @@
 //! Immutable decode/effect authority; operation normalization computes no ISA result.
 const isa = @import("../../decode.zig");
 const execution = @import("../../execution_profile.zig");
-const Old = @import("../word16_v1/operations.zig");
+const Old = @import("../word16/operations.zig");
 const M = @import("stwo_core").fields.m31.M31;
 const L = @import("layout.zig");
-const Zbb = @import("../word16_v1/binary_zbb.zig");
+const Zbb = @import("../word16/binary_zbb.zig");
 pub const PROFILE = execution.Profile.ethereum_services_v2;
 /// FUNCTION id of the BINARY AND (zext.h is AND with the ROM immediate 0xffff).
 pub const AND = 16;

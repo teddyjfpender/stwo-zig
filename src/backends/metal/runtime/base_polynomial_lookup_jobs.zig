@@ -9,7 +9,7 @@ const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const metal_runtime = @import("../runtime.zig");
 const v1_codegen = @import("lookup_polynomial_codegen.zig");
-const v2_owner = @import("lookup_polynomial_v2_owner.zig");
+const v2_owner = @import("lookup_polynomial_owner.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;

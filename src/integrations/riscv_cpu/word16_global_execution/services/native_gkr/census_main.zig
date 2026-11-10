@@ -18,7 +18,7 @@ const Plan = @import("../gkr_local/cpu_components.zig").Plan;
 const Global = @import("../gkr_local/global_cpu.zig");
 const Roster = @import("../gkr_local/roster.zig");
 const TruthShapes = @import("../gkr_local/truth_components.zig");
-const V3 = @import("../gkr_local/truth_v3_catalog.zig");
+const V3 = @import("../gkr_local/truth_catalog.zig");
 
 const Input = struct { cpus: []struct { declaration: Wire.CpuDeclaration }, truths: []struct { declaration: Wire.TruthDeclaration }, memory_words: u32 };
 

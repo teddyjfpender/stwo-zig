@@ -15,7 +15,7 @@ test "BLAKE3 field byte encoding pins canonical coordinates and rejects modular 
     defer d.deinit();
     const plan = try binding.Binding(encoding).authenticate(&d);
     const direct = try @import("../direct_constraint_program.zig").authenticate(&d.arena, encoding.SEMANTIC_DIGEST, encoding.LOGICAL_INPUT_COUNT);
-    var exported = try @import("../framework_polynomial_export_v1.zig").exportLocalPrepared(encoding, a, &direct, &plan);
+    var exported = try @import("../framework_polynomial_export.zig").exportLocalPrepared(encoding, a, &direct, &plan);
     defer exported.deinit();
     for ([_]u32{ 0, 1, 255, 256, 0x7fffff00, 0x7ffffffe }) |word| {
         const row = try encoding.logicalRow(schedule, QM31.fromM31Array(@splat(M31.fromCanonical(word))));

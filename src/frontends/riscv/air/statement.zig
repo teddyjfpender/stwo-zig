@@ -99,7 +99,7 @@ fn ExecutionStatement(comptime blake3: bool) type {
         infra_descs: [MAX_INFRA_COMPONENTS]InfraComponentDesc = undefined,
 
         pub fn localZeroCustody(self: *const Self) bool {
-            return blake3 and self.x0_local_custody_version == @import("x0_local_custody_v1.zig").VERSION;
+            return blake3 and self.x0_local_custody_version == @import("x0_local_custody.zig").VERSION;
         }
 
         /// Admits only execution geometry; commitment-plan/key admission must
@@ -114,8 +114,8 @@ fn ExecutionStatement(comptime blake3: bool) type {
             if (!blake3) @compileError("BLAKE3 execution requires full-width public roots");
             if (self.n_components > MAX_COMPONENTS or self.n_infra > MAX_INFRA_COMPONENTS) return error.InvalidStatement;
             try self.public_data.validate();
-            if (self.x0_local_custody_version > @import("x0_local_custody_v1.zig").VERSION) return error.InvalidStatement;
-            if (self.localZeroCustody()) try @import("x0_local_custody_v1.zig").requirePublic(&self.public_data);
+            if (self.x0_local_custody_version > @import("x0_local_custody.zig").VERSION) return error.InvalidStatement;
+            if (self.localZeroCustody()) try @import("x0_local_custody.zig").requirePublic(&self.public_data);
             if (self.initial_pc >= (1 << 30) or self.final_pc >= (1 << 30)) return error.InvalidStatement;
             if (self.initial_pc != self.public_data.initial_pc or self.final_pc != self.public_data.final_pc or self.total_steps != self.public_data.clock) return error.InvalidStatement;
             const order = @import("component_order.zig");
@@ -125,7 +125,7 @@ fn ExecutionStatement(comptime blake3: bool) type {
             var previous_family: ?usize = null;
             var previous_rows: u32 = 0;
             for (self.component_descs[0..self.n_components]) |desc| {
-                if (desc.n_rows == 0 or desc.n_rows > max_shard_rows or desc.log_size != @max(1, std.math.log2_int_ceil(u32, desc.n_rows)) or desc.n_columns != (if (self.localZeroCustody()) try @import("x0_native_envelope_v1.zig").mainColumnCount(desc.family) else trace_mod.nColumnsForFamily(desc.family))) return error.InvalidStatement;
+                if (desc.n_rows == 0 or desc.n_rows > max_shard_rows or desc.log_size != @max(1, std.math.log2_int_ceil(u32, desc.n_rows)) or desc.n_columns != (if (self.localZeroCustody()) try @import("x0_native_envelope.zig").mainColumnCount(desc.family) else trace_mod.nColumnsForFamily(desc.family))) return error.InvalidStatement;
                 if (!@import("semantic_eval.zig").isTraceCompatible(desc.family)) return error.InvalidStatement;
                 const family = order.opcodeFamilyIndex(desc.family);
                 if (previous_family) |previous| {
@@ -280,8 +280,8 @@ fn ExecutionStatement(comptime blake3: bool) type {
         pub fn mixShardManifest(self: Self, channel: anytype) void {
             if (blake3) {
                 if (self.localZeroCustody()) {
-                    channel.mixU32s(&.{ @import("x0_local_custody_v1.zig").TAG, self.x0_local_custody_version });
-                    channel.mixRoot(@import("x0_local_custody_v1.zig").abiId());
+                    channel.mixU32s(&.{ @import("x0_local_custody.zig").TAG, self.x0_local_custody_version });
+                    channel.mixRoot(@import("x0_local_custody.zig").abiId());
                 }
             }
             channel.mixU32s(&.{

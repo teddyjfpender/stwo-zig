@@ -1,5 +1,5 @@
 //! LS-D64 component (native Q lane). Domain/OODS plumbing mirrors LS32's
-//! load_store_v2/component.zig; only the layout and residual authority differ.
+//! load_store/component.zig; only the layout and residual authority differ.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");

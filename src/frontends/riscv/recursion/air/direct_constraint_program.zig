@@ -364,7 +364,7 @@ test "R-012 direct compiler evaluates control roots identically over M31 and QM3
 
 test "R-012 direct execution pruning preserves every parent catalog root over base and extension fields" {
     @setEvalBranchQuota(500_000);
-    const catalog = @import("detached_parent_catalog_v1.zig");
+    const catalog = @import("detached_parent_catalog.zig");
     var full_count: usize = 0;
     var live_count: usize = 0;
     inline for (catalog.LOGICAL_ROWS) |entry| {

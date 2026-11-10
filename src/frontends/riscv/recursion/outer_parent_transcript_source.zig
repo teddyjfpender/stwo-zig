@@ -15,7 +15,7 @@
 //! not turn either child into `pair_node.VerifiedChildV1`, and its status can
 //! never be interpreted as evidence for a complete recursive parent until a
 //! separate AIR proof and independent verifier exist.
-const shard_0 = @import("outer_parent_transcript_source_child_witness_v1.zig");
+const shard_0 = @import("outer_parent_transcript_source_child_witness.zig");
 const shard_1 = @import("outer_parent_transcript_source_prepared.zig");
 
 pub const FORMAT_VERSION = shard_0.FORMAT_VERSION;
