@@ -38,7 +38,7 @@ results to be handled before admitting a replacement service.
 | Positive residue | `bn254_residue/`; integration `op_residue/` | Conditional physical proof and off-subfield inverse-scale rejection |
 | Whole shared Miller | `bn254_miller/` | Source/oracle and chronology gates |
 | Connected pairing | `bn254_pairing/` | Complete source DAG and substitution gates; physical composite pending |
-| Arithmetic layout | `bn254_mac6/`, `bn254_mac12/` | Independent cost/numeric controls and concrete twelve-product source gate; no admitted service |
+| Arithmetic layout | `bn254_mac6/`, `bn254_mac12/`; integration `op_mac12/` | Numeric/cost controls and bounded physical integer/BYTE gate; composite SSA join pending |
 
 Frontend paths in this table are below
 `src/frontends/riscv/rv64/air/delegations/`; integration paths are below
@@ -62,6 +62,28 @@ recursive gates. A native cell saving does not establish a root-prover saving.
 The experiment requires independently bounded 22-bit carries, signed quotient
 handling, complete canonical-input inheritance and physical terminal bindings.
 See the [coupled cost review](../design/riscv-proving-stack/op-bn254-universal-mac-source-cost-20261110.md).
+
+A follow-up [independent-geometry model](../vectors/reports/rv64-opstack-cpu-20261110/pairing-independent-geometry-model-v1.json)
+also records the competing design rather than assuming one universal bank is
+optimal. Folding only trusted literal IDs removes ten stages, leaving 16,381
+non-subgroup and 16,152 subgroup rows. Separately sizing a narrow subgroup bank
+would put both at log14: 29.49M native cells versus 39.04M, but 2,005 opening
+columns versus 1,410. Its uniform-height leaf-payload model is 28.9% smaller;
+this is not measured hashing traffic or a root speedup. It adds GKR instances
+and must remap the existing subgroup equations into the same canonical source.
+The first complete physical gate remains the universal MAC12 construction.
+
+## Advice and packet compatibility
+
+The existing guest residue hint has thirty fields in the order seed12,
+seed-inverse12, scale6. The new source's private witness uses seed12, scale6,
+and inverse(seed^p²)12. These are different interfaces. The current source
+fixtures supply private advice directly and do not reinterpret an existing VM
+packet. A future service must bind its actual public P/Q inputs and result;
+private advice remains checked by source equations. Any conversion from the
+old guest packet needs an explicit authenticated conversion or new version,
+not reuse of a tag with changed meaning. The host positive-certificate generator
+already exists in `opstack/kona/src/precompiles/pairing_residue.rs`.
 
 ## Remaining acceptance gates
 
