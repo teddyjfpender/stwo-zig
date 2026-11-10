@@ -57,6 +57,13 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
     context.b.step("test-riscv64-register-boundary-lanes", "Qualify dynamic register endpoints and scalar provider wires").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = register_lane_tests, .minimum = 7 }}));
     const ls_lane_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_ls_circuit_lanes_test_root.zig") });
     context.b.step("test-riscv64-ls-circuit-lanes", "Qualify dynamic LS boundary selection arithmetic wires").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = ls_lane_tests, .minimum = 6 }}));
+    // Focused terminal-only loop: no unrelated dense/pairing fixture roots.
+    const terminal_source = "src/integrations/riscv_cpu/rv64_op_terminal_blake_test_root.zig";
+    const terminal_filters = test_filter.apply(context.b, &.{ "terminal Blake", "terminal fresh path" });
+    const terminal_check = context.b.addTest(.{ .root_module = createRoot(context, product, terminal_source), .filters = terminal_filters });
+    context.b.step("check-riscv64-op-terminal-blake", "Type-check isolated R6/R7 terminal Blake gates without LLVM output").dependOn(&terminal_check.step);
+    const terminal_tests = context.b.addTest(.{ .root_module = createRoot(context, product, terminal_source), .filters = terminal_filters });
+    context.b.step("test-riscv64-op-terminal-blake", "Qualify isolated terminal Blake formats, env-gated actual roots and fresh-path policy").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = terminal_tests, .minimum = 6 }}));
     const op_pure_p2_check = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = test_filter.apply(context.b, &.{"OP pure P2"}) });
     context.b.step("check-riscv64-op-pure-p2", "Type-check OP P2 reference gates without emitting or running test binaries").dependOn(&op_pure_p2_check.step);
     const op_group_check = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = test_filter.apply(context.b, &.{"direct native group"}) });
@@ -107,7 +114,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
 fn createRoot(context: circuit_product.Context, product: graph.Product, source: []const u8) *std.Build.Module {
     const root = createRootBase(context, product, source);
     // Pure arithmetic checks deliberately avoid a native compiler dependency.
-    if (!std.mem.endsWith(u8, source, "rv64_op_pure_p2_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_structural_arithmetic_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_lowering_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_polynomial_test_root.zig")) root.addImport("outer_gkr_cpu_aot", createHybridModule(context, product, root.import_table.get("stwo_cairo_frontend").?));
+    if (!std.mem.endsWith(u8, source, "rv64_op_terminal_blake_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_op_pure_p2_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_structural_arithmetic_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_lowering_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_polynomial_test_root.zig")) root.addImport("outer_gkr_cpu_aot", createHybridModule(context, product, root.import_table.get("stwo_cairo_frontend").?));
     return root;
 }
 
