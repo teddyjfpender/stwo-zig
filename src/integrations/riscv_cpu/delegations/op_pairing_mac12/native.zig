@@ -116,6 +116,7 @@ pub fn Reader() type {
         pub fn read(ctx: *const anyopaque, first: usize, n: []M, d: []Q) error{ OutOfMemory, ShapeMismatch, InvalidLayerStructure }!void {
             const self: *const Self = @ptrCast(@alignCast(ctx));
             const i = self.instance;
+            if (self.witness.columns[@intFromEnum(i.role)] == null) return error.ShapeMismatch;
             if (n.len != d.len or n.len > 512 or first > i.facts() or n.len > i.facts() - first) return error.ShapeMismatch;
             for (n, d, 0..) |*nn, *dd, j| {
                 const fact = first + j;
