@@ -281,4 +281,5 @@ test {
 
 test {
     _ = @import("poseidon2_outer/p2_bounded_tail_test.zig");
+    _ = @import("poseidon2_outer/sponge_cpu/interaction_ownership_test.zig");
 }

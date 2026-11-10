@@ -214,6 +214,12 @@ test "OP heavy selected conditional 4M CPU fragment profile" {
     const oracle = std.posix.getenv("STWO_OP_HEAVY_PREFIX_ORACLE") orelse return error.MissingPrefixOracle;
     const out = std.posix.getenv("STWO_OP_HEAVY_PREFIX_OUT") orelse return error.MissingPrefixOutput;
     const mode = std.posix.getenv("STWO_OP_HEAVY_PREFIX_MODE") orelse "plan";
+    // Optional qualification-only control; default fixture behavior is exact.
+    // Existing real two-CPU/serialized-sponge/Keccak join independently closes
+    // all global relations before the separate conditional large CPU fragment.
+    if (std.process.hasEnvVarConstant("STWO_OP_PREFIX_SMALL_JOIN_CONTROL")) {
+        try @import("join_test.zig").exerciseWithHook(false, void);
+    }
     const a = std.testing.allocator;
     const raw = try std.fs.cwd().readFileAlloc(a, path, 16384);
     defer a.free(raw);

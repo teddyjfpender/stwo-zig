@@ -142,21 +142,15 @@ pub const Worker = struct {
         defer a.free(handles);
         @memcpy(handles[0..old_handles.len], old_handles);
         handles[old_handles.len] = frontier.asProverComponent();
-        const columns = try a.alloc(engine.pcs.ColumnEvaluation, self.plan.inter_columns + Eq.Layout.INTERACTION);
-        defer a.free(columns);
-        for (self.plan.slots, witnesses) |slot, w| {
-            var offset = slot.inter_offset;
-            if (slot.binding_index) |i| {
-                fillColumns(binding.columns[i], slot.log, columns[offset..][0..16]);
-                offset += 16;
-            }
-            if (w) |v| fillColumns(v.data, slot.log, columns[offset..][0..v.width()]);
-        }
-        fillColumns(frontier_binding.data, self.frontier.log, columns[self.plan.inter_columns..]);
+        // Components retain only immutable points/challenges/claims; their
+        // evaluation reads PCS trace columns. No generator matrix escapes.
+        const interaction = try @import("interaction_ownership.zig").take(a, &self.plan, &binding, witnesses, &frontier_binding, self.frontier.log);
         generation.end();
-        Protocol.mixManifestAndClaims(&self.channel, manifest, claims);
-        try self.scheme.commitBorrowedStreamingWithRecorder(a, columns, 64, self.native_recorder, &self.channel);
+        // The transfer succeeded. Any later error requires deinit, never a
+        // retry against a channel/tree whose ownership may have advanced.
         self.consumed = true;
+        Protocol.mixManifestAndClaims(&self.channel, manifest, claims);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, interaction.columns, interaction.backings, 64, self.native_recorder, &self.channel);
         const scheme = self.scheme;
         self.owns_scheme = false;
         self.scheme = undefined;
