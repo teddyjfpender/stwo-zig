@@ -22,9 +22,10 @@ const Wire = @import("stwo_proof_wire").ForField(Q);
 comptime {
     std.debug.assert(A.crypto.bn254_mac12.source.MAIN == 1106);
 }
-const CONFIG = core.pcs.ForField(Q).PcsConfig{ .pow_bits = 0, .fri_config = .{ .log_last_layer_degree_bound = 0, .log_blowup_factor = 1, .n_queries = 12 } };
-fn Qualification() type {
+const TOY_CONFIG = core.pcs.ForField(Q).PcsConfig{ .pow_bits = 0, .fri_config = .{ .log_last_layer_degree_bound = 0, .log_blowup_factor = 1, .n_queries = 12 } };
+fn Qualification(comptime target: bool) type {
     return struct {
+        const CONFIG = if (target) @import("../../poseidon2_outer/op_profile.zig").Profile.op_target_b4_q72_p0_fold4_v1.config() else TOY_CONFIG;
         const V = G.vectors;
         const R = G.residue_vectors;
         fn private() G.original_witness.Private {
@@ -126,13 +127,10 @@ fn Qualification() type {
             const roots = proof.commitment_scheme_proof.commitments.items;
             if (roots.len != 4) return error.DenseProofShape;
             if (!std.meta.eql(proof.commitment_scheme_proof.config, CONFIG) or proof.commitment_scheme_proof.revision_config != null) return error.SubgroupProofProfile;
-            var independent = try sourceWitness(a);
-            defer independent.deinit();
             var plan = try G.lowering.Program.init(a);
             defer plan.deinit();
-            var normalized = try G.witness.Witness.init(a, &plan, &independent);
-            defer normalized.deinit();
-            const fresh_w = try model(&plan, &normalized);
+            const independent = try S.initialValues(V.INPUT);
+            const fresh_w = try G.fixture.Model.initAuthority(&plan, &independent);
             var pp = try fixedParts(a, &fresh_w);
             defer for (&pp) |*part| part.deinit();
             var fixed = columns(0, &pp);
@@ -205,13 +203,26 @@ fn Qualification() type {
             const budget = try engine.host_budget_allocator.SharedHostBudget.createRetainingParent(std.testing.allocator, 2 << 30);
             defer budget.destroy();
             const a = budget.allocator();
+            var recording: ?engine.stage_profile.Recorder = if (target) engine.stage_profile.Recorder.initWithOptions(a, "cpu", "complete_pairing_mac12_target", .{ .capture_tasks = false, .capture_process_usage = true }) else null;
+            defer if (recording) |*r| r.deinit();
+            const recorder = if (recording) |*r| r else null;
+            var phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.source_witness", "Original pairing source values");
+            defer phase.end();
             var actual = try sourceWitness(a);
             defer actual.deinit();
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.lowering", "Immutable source lowering");
             var plan = try G.lowering.Program.init(a);
             defer plan.deinit();
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.normalized_values", "Normalized canonical values");
             var normalized = try G.witness.Witness.init(a, &plan, &actual);
             defer normalized.deinit();
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.diagnostic_check", "Qualification-only normalized value check");
             try std.testing.expect(normalized.satisfied(&plan));
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.columns", "Carry/range rows and column materialization");
             var w = try model(&plan, &normalized);
             var pp = try parts(a, &w);
             defer for (&pp) |*part| part.deinit();
@@ -247,11 +258,19 @@ fn Qualification() type {
             scheme.setCompactPolynomialStorage(1);
             var channel = Channel.init();
             mix(&channel, &w.public);
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.fixed_commit", "FIXED commitment");
             try scheme.commit(a, &fixed, &channel);
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.main_commit", "MAIN commitment");
             try scheme.commit(a, &main, &channel);
             const scope = N.Scope{ .statement = N.statement(&w.public), .fixed = scheme.trees.items[0].root(), .main = scheme.trees.items[1].root() };
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.local_gkr", "Local GKR source/tree/traversal");
             var child = try N.prove(a, scope, &w);
             defer child.deinit(a);
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.local_encode", "Local child encoding and closure negative control");
             const child_bytes = try N.encode(a, &child.result.proof);
             defer a.free(child_bytes);
             var pairs: [6][2]Q = undefined;
@@ -265,10 +284,14 @@ fn Qualification() type {
             var balanced = child.result.proof;
             balanced.output_claims_by_instance = &views;
             try std.testing.expectError(error.UnclosedLocalGkr, N.close(a, &balanced));
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.local_verify", "Local GKR receipt and native check");
             var pending = try N.verify(a, scope, &child.result.proof);
             defer pending.deinit(a);
             var dd = try data(a, &pending);
             defer for (&dd) |*d| d.deinit();
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.binding_witness", "Physical terminal binding witness");
             try pp[0].installBinding(&w, &dd[5], 0);
             try pp[1].installBinding(&w, &dd[0], 0);
             try pp[1].installBinding(&w, &dd[3], 1);
@@ -277,14 +300,18 @@ fn Qualification() type {
             try pp[3].installBinding(&w, &dd[2], 0);
             var inter = columns(2, &pp);
             mixReceipt(&channel, pending.digest);
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.inter_commit", "INTER commitment");
             try scheme.commit(a, &inter, &channel);
             const cc = Components.init(&dd);
             const components = cc.prover();
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.native_stark", "Native composition and PCS proof");
             owns = false;
             var diagnostic: ?@import("stwo_prover_api").ProveDiagnostic = null;
             var failed: ?core.proof.ForField(Q).ExtendedStarkProof(H) = null;
             var refused = false;
-            var result = engine.prove.ForField(Q).proveExWithExecutionDiagnosedRetainingFailure(Backend, H, MC, a, &components, &channel, scheme, false, null, null, null, &diagnostic, &failed) catch |err| blk: {
+            var result = engine.prove.ForField(Q).proveExWithExecutionDiagnosedRetainingFailure(Backend, H, MC, a, &components, &channel, scheme, false, recorder, null, null, &diagnostic, &failed) catch |err| blk: {
                 if (err != error.ConstraintsNotSatisfied) return err;
                 refused = true;
                 break :blk failed orelse return error.DenseMissingFailedProof;
@@ -293,13 +320,15 @@ fn Qualification() type {
             var proof = result.proof;
             defer proof.deinit(a);
             try std.testing.expectEqual(forged, refused);
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.encode", "Encode and persist physical proof");
             const encoded = try Wire.encodeProofBytesBinary(a, proof);
             defer a.free(encoded);
             if (forged) {
                 try std.testing.expectError(error.OodsNotMatching, receive(a, child_bytes, encoded, 0));
                 if (std.process.getEnvVarOwned(a, "STWO_PAIRING_MAC12_OUT")) |path| {
                     defer a.free(path);
-                    const class_path = try std.fs.path.join(a, &.{ path, "four-pair" });
+                    const class_path = try std.fs.path.join(a, &.{ path, if (target) "four-pair-q72" else "four-pair" });
                     defer a.free(class_path);
                     var dir = try std.fs.cwd().makeOpenPath(class_path, .{});
                     defer dir.close();
@@ -312,13 +341,9 @@ fn Qualification() type {
                 } else |err| if (err != error.EnvironmentVariableNotFound) return err;
                 return;
             }
-            try receive(a, child_bytes, encoded, 0);
-            for (1..9) |m| try std.testing.expect(std.meta.isError(receive(a, child_bytes, encoded, @intCast(m))));
-            for (9..14) |m| try std.testing.expectError(error.DenseFixedAuthority, receive(a, child_bytes, encoded, @intCast(m)));
-
             if (std.process.getEnvVarOwned(a, "STWO_PAIRING_MAC12_OUT")) |path| {
                 defer a.free(path);
-                const class_path = try std.fs.path.join(a, &.{ path, "four-pair" });
+                const class_path = try std.fs.path.join(a, &.{ path, if (target) "four-pair-q72" else "four-pair" });
                 defer a.free(class_path);
                 var dir = try std.fs.cwd().makeOpenPath(class_path, .{});
                 defer dir.close();
@@ -329,16 +354,37 @@ fn Qualification() type {
                 defer g.close();
                 try g.writeAll(child_bytes);
             } else |err| if (err != error.EnvironmentVariableNotFound) return err;
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.fresh_receiver", "Independent public/source-only receiver");
+            try receive(a, child_bytes, encoded, 0);
+            phase.end();
+            phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.adversaries", "Fresh source and physical negative controls");
+            for (1..9) |m| try std.testing.expect(std.meta.isError(receive(a, child_bytes, encoded, @intCast(m))));
+            for (9..14) |m| try std.testing.expectError(error.DenseFixedAuthority, receive(a, child_bytes, encoded, @intCast(m)));
+
+            phase.end();
+            if (target) {
+                const path = std.posix.getenv("STWO_PAIRING_MAC12_OUT") orelse return error.MissingPairingArtifactDirectory;
+                var dir = try std.fs.cwd().openDir(path, .{});
+                defer dir.close();
+                var snapshot = try recorder.?.snapshot(a);
+                defer snapshot.deinit(a);
+                const json = try std.json.Stringify.valueAlloc(a, snapshot, .{});
+                defer a.free(json);
+                const file = try dir.createFile("four-pair-q72/stages.json", .{ .exclusive = true });
+                defer file.close();
+                try file.writeAll(json);
+            }
             const usage = budget.snapshot();
             std.debug.print("OP_PAIRING_MAC12_PHYSICAL correctness_only=true arithmetic_log=15 hint_log=11 frontier_log=11 BYTE_log=8 native_bytes={d} child_bytes={d} peak_requested_bytes={d} limit={d}\n", .{ encoded.len, child_bytes.len, usage.peak_live_bytes, usage.limit });
         }
     };
 }
 test "MAC12 complete four-pair physical fresh source and adversaries" {
-    try Qualification().physical(false);
+    try Qualification(false).physical(false);
 }
 test "MAC12 complete physical coherent canonical hint alias rejects" {
-    try Qualification().physical(true);
+    try Qualification(false).physical(true);
 }
 
 fn checkDegree(comptime role: N.Role) !void {
@@ -355,7 +401,7 @@ fn checkDegree(comptime role: N.Role) !void {
         d.* = .{ .allocator = std.testing.allocator, .instance = i, .weights = weights, .point = try P.MP.MleEvalPointFor(Q).init(point[0..i.row_log]), .beta = Q.fromBase(N.M.fromCanonical(13)), .ssa = wire, .eta = Q.fromBase(N.M.fromCanonical(17)), .target = Q.one() };
         n += 1;
     }
-    const cc = Qualification().Components.init(&dd);
+    const cc = Qualification(false).Components.init(&dd);
     const component = switch (role) {
         .frontier => cc.frontier,
         .arithmetic => cc.arithmetic,
@@ -396,4 +442,25 @@ fn checkDegree(comptime role: N.Role) !void {
 }
 test "MAC12 complete physical source equations degree three" {
     inline for (T.ORDER) |role| try checkDegree(role);
+}
+
+test "MAC12 complete opt-in target q72 caller profile and cross-profile controls" {
+    const enabled = std.posix.getenv("STWO_PAIRING_MAC12_TARGET") orelse return error.SkipZigTest;
+    if (!std.mem.eql(u8, enabled, "1")) return error.InvalidPairingTargetControl;
+    const path = std.posix.getenv("STWO_PAIRING_MAC12_OUT") orelse return error.MissingPairingArtifactDirectory;
+    try Qualification(true).physical(false);
+    const a = std.testing.allocator;
+    var dir = try std.fs.cwd().openDir(path, .{});
+    defer dir.close();
+    const toy = try dir.readFileAlloc(a, "four-pair/chain.proof.bin", 16 << 20);
+    defer a.free(toy);
+    const toy_child = try dir.readFileAlloc(a, "four-pair/chain.gkr.bin", 16 << 20);
+    defer a.free(toy_child);
+    const target = try dir.readFileAlloc(a, "four-pair-q72/chain.proof.bin", 16 << 20);
+    defer a.free(target);
+    const target_child = try dir.readFileAlloc(a, "four-pair-q72/chain.gkr.bin", 16 << 20);
+    defer a.free(target_child);
+    try Qualification(false).receive(a, toy_child, toy, 0);
+    try std.testing.expectError(error.SubgroupProofProfile, Qualification(true).receive(a, toy_child, toy, 0));
+    try std.testing.expectError(error.SubgroupProofProfile, Qualification(false).receive(a, target_child, target, 0));
 }

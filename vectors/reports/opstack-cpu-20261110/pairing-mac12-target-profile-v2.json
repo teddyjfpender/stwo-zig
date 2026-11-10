@@ -1,0 +1,98 @@
+{
+  "schema": 2,
+  "status": "qualified_opt_in_caller_target_config",
+  "production_admitted": false,
+  "security_qualified": false,
+  "security_label": "128-bit target under documented assumptions; no composed certification or VM admission",
+  "native_hash": "Blake2s256",
+  "scope_roots_bytes": 32,
+  "profile_parameters_from": "op_profile.Profile.op_target_b4_q72_p0_fold4_v1.config() only; not its Poseidon hash/profile identity",
+  "profile": {
+    "field": "OM31",
+    "queries": 72,
+    "blowup": 4,
+    "fold_step": 4,
+    "pow_bits": 0
+  },
+  "selection": "compile-time Qualification(true), entered only explicit test caller STWO_PAIRING_MAC12_TARGET=1; proof config must exactly equal caller policy",
+  "workers": 1,
+  "quiet_benchmark": false,
+  "source_authority_revision": {
+    "version": 2,
+    "change": "receiver reconstructs immutable plan/public FIXED without private certificate or normalized values",
+    "v1_artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/pairing-mac12-whole-physical-v1",
+    "v1_binary": "receiver-v1.tests.bin",
+    "proofs_expected_to_change": true,
+    "fixed_columns_producer_vs_authority": "all four roles exact full-field unit comparison passed"
+  },
+  "tests": {
+    "safe_filtered_passed": 5,
+    "fresh_target_accept": true,
+    "fresh_q12_v2_accept": true,
+    "q12_to_q72_rejected": "SubgroupProofProfile",
+    "q72_to_q12_rejected": "SubgroupProofProfile",
+    "source_and_mask_negative_controls": 13,
+    "q12_coherent_hint_plus_p_physical_reject": "OodsNotMatching",
+    "no_private_receiver_witness": true,
+    "cap": 2147483648,
+    "target_peak_requested_bytes": 1004420261,
+    "zero_retained_budget_on_destroy": true
+  },
+  "phase_seconds": {
+    "pairing.source_witness": 0.285776,
+    "pairing.lowering": 0.385867,
+    "pairing.normalized_values": 0.119461,
+    "pairing.diagnostic_check": 0.121706,
+    "pairing.columns": 1.463333,
+    "pairing.fixed_commit": 0.040796,
+    "pairing.main_commit": 0.875938,
+    "pairing.local_gkr": 8.25072,
+    "pairing.local_encode": 0.000127,
+    "pairing.local_verify": 0.006917,
+    "pairing.binding_witness": 2.083688,
+    "pairing.inter_commit": 0.046069,
+    "pairing.native_stark": 1.170923,
+    "pairing.encode": 0.002684,
+    "pairing.fresh_receiver": 0.5555,
+    "pairing.adversaries": 6.542322
+  },
+  "producer_profiled_seconds_including_diagnostic": 14.854004999999999,
+  "producer_profiled_seconds_without_diagnostic": 14.732299,
+  "phase_note": "Native engine child stages nest under native_stark; do not add them again. Fresh receiver and adversaries are separate. Process high-water RSS is cumulative across earlier q12 tests, not a per-target isolated peak.",
+  "artifacts": {
+    "four-pair/coherent-hint-plus-p.unverified.proof.bin": {
+      "bytes": 178104,
+      "sha256": "80a30a74b90dfcd367348fc10b6ac8e057c62ad17633c9e08cde536647bce0b5"
+    },
+    "four-pair/chain.proof.bin": {
+      "bytes": 174008,
+      "sha256": "f767ed899aa66a9670fd414d9fb98661fa7b2d6f977752dba205552c1c5d51a6"
+    },
+    "four-pair/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "6aa69a102c88c7a1709b90f0e6c5f8d7132b20b5f736933e5e4ce08c4069f12c"
+    },
+    "four-pair/coherent-hint-plus-p.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "4656a664fe369ba8c0164ed0873eb7361ce05dd8e809167effb2b680fe268ac0"
+    },
+    "four-pair-q72/chain.proof.bin": {
+      "bytes": 662432,
+      "sha256": "64334158a3a95ec87b0ec98dcfc7b1b675a66ff19e52644e465ddeabd8121574"
+    },
+    "four-pair-q72/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "4051db8fff703c476253e2fb267c0060d0e2ce2b1456286e144bc2e922207fff"
+    },
+    "four-pair-q72/stages.json": {
+      "bytes": 17621,
+      "sha256": "4176befba351e973df9e726205bc08c5ca092d0eb856c6bd437fd7b29d41c512"
+    }
+  },
+  "remaining": [
+    "16-worker and encoder reference/candidate same-source byte parity",
+    "typed36-byte Poseidon native worker for efficient existing recursive integration, or independently reviewed Blake verifier role",
+    "request-variable finite/infinity/fallback authority and VM/globalRAM/Wire",
+    "whole-protocol security review and recursive root gate"
+  ]
+}
