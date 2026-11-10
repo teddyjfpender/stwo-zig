@@ -12,3 +12,4 @@ pub fn sourceDigest() [32]u8 {
     return h.finalResult();
 }
 pub const preparation = @import("preparation/mod.zig");
+pub const subgroup = @import("subgroup/mod.zig");

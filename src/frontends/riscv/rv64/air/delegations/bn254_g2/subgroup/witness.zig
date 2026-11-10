@@ -128,6 +128,18 @@ pub const Witness = struct {
         };
         return h.finalResult();
     }
+    pub fn corruptHintAliasForTesting(self: *Witness) !void {
+        if (!@import("builtin").is_test) @compileError("test-only canonical hint alias");
+        var found = false;
+        for (ROM.nodes[0..ROM.count], 0..) |node, index| {
+            if (!found) {
+                if (node.op != .hint_norm_inverse) continue;
+                self.values[node.writer] += S.B.BN254_P;
+                found = true;
+            } else if (node.op == .hint_norm_inverse) self.values[node.writer] = try inverse(self.values[node.input[0]]) else self.write(node, index);
+        }
+        std.debug.assert(found);
+    }
     /// All later arithmetic is coherently regenerated after a field-congruent
     /// slope+P forgery. Canonical writer constraints still reject its first row.
     pub fn corruptSlopeForTesting(self: *Witness) !void {

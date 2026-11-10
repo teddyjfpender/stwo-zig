@@ -43,6 +43,7 @@ test "G2 exact subgroup immutable source r program hints and zero assertions" {
     }
     try std.testing.expectEqual(reads, weighted);
     try std.testing.expect(weighted < S.B.M31 and max < S.B.M31);
+    try std.testing.expectEqual(@as(usize, 1), W.Layout.G.group);
     try std.testing.expect(W.Layout.G.residual_positive_bound < S.B.M31 and W.Layout.G.residual_negative_bound < S.B.M31);
     std.debug.print("G2_SUBGROUP_SOURCE nodes={} arithmetic={} canonical_hint_writers={} assertions={} MAIN={} BYTE={} SSA_mass={} max_fanout={} residual_pos={} residual_neg={}\n", .{ rom.count, rom.count - rom.hints, rom.hints, rom.assertion_count, W.Layout.MAIN, W.Layout.BYTE_QUERIES, weighted, max, W.Layout.G.residual_positive_bound, W.Layout.G.residual_negative_bound });
 }
