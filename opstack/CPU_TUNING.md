@@ -57,6 +57,15 @@ The non-hashing stages have no algorithmic change in this comparison; their
 small timing differences are not additional claimed optimizations. Both proof
 files and all statement/claim identities are identical.
 
+The subsequent bounded native-four intermediate cache reduces the same fragment
+from 24.426 to **21.170 seconds** (1.154×). MAIN and INTER Merkle become
+3.810 and 2.739 seconds. GKR and composition timings remain essentially unchanged;
+PCS/GKR bytes, source statements, claims and the exact 10.093 GB requested peak
+remain identical. Overall native improvement against the original fragment is
+3.53×, not a whole-block result. The explicit caller workspace is about 82 KB
+per worker; this is not a complete compiler/thread-stack peak measurement.
+See the [real cache qualification](../vectors/reports/rv64-opstack-cpu-20261109/p2-native-intermediate-tiles-physical-v1.json).
+
 ## CPU interaction ownership
 
 The detached CPU worker now transfers completed interaction matrices to PCS
