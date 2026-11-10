@@ -236,7 +236,7 @@ pub const WorkPool = struct {
         };
         if (options.worker_count == 1) {
             if (comptime builtin.is_test) {
-                if (self.test_audit) |audit| audit.recordPoolInit(@intFromPtr(self));
+                if (self.test_audit) |audit| audit.recordPoolInit(@intFromPtr(self), self.n_workers);
             }
             return;
         }
@@ -248,7 +248,7 @@ pub const WorkPool = struct {
         });
         self.pool_initialized = true;
         if (comptime builtin.is_test) {
-            if (self.test_audit) |audit| audit.recordPoolInit(@intFromPtr(self));
+            if (self.test_audit) |audit| audit.recordPoolInit(@intFromPtr(self), self.n_workers);
         }
     }
 

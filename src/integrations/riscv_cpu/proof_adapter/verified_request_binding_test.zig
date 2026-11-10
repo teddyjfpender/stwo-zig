@@ -1,31 +1,10 @@
-//! Structural pins for the profiled verified-request boundary.
-//!
-//! A mock engine cannot prove where production I/O, verification, snapshots,
-//! and artifact publication sit around a real monotonic timer. These checks
-//! therefore bind the production adapter itself, following the same pattern as
-//! `staged_pcs_profile_test.zig`.
-
+//! Structural contracts for the connected full-width request transaction.
 const std = @import("std");
 const stwo = @import("stwo");
-
 const ADAPTER_SOURCE = @embedFile("../proof_adapter.zig");
-
-fn between(start_token: []const u8, end_token: []const u8) ![]const u8 {
-    return sourceBetween(ADAPTER_SOURCE, start_token, end_token);
-}
-
-fn sourceBetween(
-    source: []const u8,
-    start_token: []const u8,
-    end_token: []const u8,
-) ![]const u8 {
-    const start = std.mem.indexOf(u8, source, start_token) orelse
-        return error.StartTokenMissing;
-    const tail = source[start..];
-    const end = std.mem.indexOf(u8, tail, end_token) orelse
-        return error.EndTokenMissing;
-    return tail[0..end];
-}
+const ROUTER_SOURCE = @embedFile("profile_router.zig");
+const REQUEST_SOURCE = @embedFile("blake3_execution_request.zig");
+const PRODUCT_SOURCE = @embedFile("blake3_execution_product.zig");
 
 fn expectOrdered(source: []const u8, tokens: []const []const u8) !void {
     var cursor: usize = 0;
@@ -38,87 +17,90 @@ fn expectOrdered(source: []const u8, tokens: []const []const u8) !void {
     }
 }
 
-test "profiled phase clocks partition guest proof and native verification" {
-    const run_prove = try between("fn runProve(", "\nfn runBenchmark(");
-    try expectOrdered(run_prove, &.{
-        "Sha256.hash(input_bytes",
-        "Recorder.initWithOptions(",
-        "var profile_phase_timer: ?std.time.Timer",
-        "runner.runWithInput",
-        "const guest_execution_ns: ?u64",
-        "proof_phase_meter.Meter.init(",
-        "proveRiscVWithEngineAndPublicDataUsingChannelAndPhaseMeter(",
-        "proveRiscVWithEngineAndPublicDataUsingChannel(",
-        "const proving_including_witness_ns: ?u64",
-        "const witness_ns: ?u64",
-        "const proving_ns: ?u64",
-        "serializeProof(",
-        "verifyRiscVWithEngineUsingChannel(",
-        "error.TranscriptStateDigestMismatch",
-        "const verification_ns = verification_timer.read();",
-        "const telemetry_after = try Engine.telemetrySnapshot();",
-        "recorder.snapshot(allocator)",
-        "requireNativeOnlyStages(profile.stages)",
-        "verified_request_attempt.Attempt.capture(",
-        "artifact_mod.writeArtifact",
+test "full-width phase clocks partition execution through fresh verification" {
+    try expectOrdered(REQUEST_SOURCE, &.{
+        "var timer = try std.time.Timer.start();",
+        "try prover.admitRunForProving(base_run);",
+        "const execution_end = timer.read();",
+        "const witness_end = timer.read();",
+        "const admission_end = timer.read();",
+        "const proving_end = timer.read();",
+        "const artifact_end = timer.read();",
+        "const end = timer.read();",
+        ".execution_ns = execution_end,",
+        ".witness_ns = witness_end - execution_end,",
+        ".admission_ns = admission_end - witness_end,",
+        ".proving_ns = proving_end - admission_end,",
+        ".artifact_encoding_ns = artifact_end - proving_end,",
+        ".fresh_verification_ns = end - artifact_end,",
+        ".total_ns = end,",
     });
 }
 
-test "request clock and flat graph capture are absent on unprofiled attempts" {
-    const run_prove = try between("fn runProve(", "\nfn runBenchmark(");
+test "full-width ownership closes before independent CPU verification and publication" {
     for ([_][]const u8{
-        "profiled_sample_index: ?usize",
-        ".capture_tasks = profiled_sample_index != null,",
-        ".capture_work = profiled_sample_index != null,",
-        "if (profiled_sample_index != null)\n        try std.time.Timer.start()",
-        "if (profiled_sample_index != null)\n        try prover.proveRiscVWithEngineAndPublicDataUsingChannelAndPhaseMeter(",
-        "if (profiled_sample_index) |index|",
-    }) |token| {
-        try std.testing.expect(std.mem.indexOf(u8, run_prove, token) != null);
-    }
-    try std.testing.expect(std.mem.indexOf(u8, run_prove, "profile_attempt") == null);
-}
-
-test "profiled benchmark binds every measured sample to the new timing authority" {
-    const run_benchmark = try between("fn runBenchmark(", "\n/// Cryptographically verifies");
-    try expectOrdered(run_benchmark, &.{
-        "if (benchmark.profiled and is_sample) sample_index else null",
-        "verified_request_attempt.requireProfiled(",
-        "retained_profiled_reports[retained_profiled_report_count] = parsed",
-        "retained_profiled_report_count != benchmark.samples",
-        "verified_request_attempt.PROFILED_BENCHMARK_SCHEMA",
-        ".timing_authority = if (benchmark.profiled) .{} else null",
-        ".verified_request_attempts = if (benchmark.profiled) profiled_attempts else null",
-        ".emit_null_optional_fields = false",
+        "defer if (run_alive) run.deinit();",
+        "defer if (owner_alive) owner.deinit();",
+        "defer if (prepared_alive) prepared.deinit();",
+        "defer if (proof_alive) result.proof.deinit(a);",
+    }) |token| try std.testing.expect(std.mem.indexOf(u8, REQUEST_SOURCE, token) != null);
+    try expectOrdered(REQUEST_SOURCE, &.{
+        "const encoded = try Artifact.encode(",
+        "prepared.deinit();",
+        "errdefer a.free(encoded.bytes);",
+        "result.proof.deinit(a);",
+        "owner.deinit();",
+        "const verified = try Artifact.ForBackend(@import(\"stwo_cpu_backend\").CpuBackend).verifyPublic(",
+        "error.TranscriptStateDigestMismatch;",
+        "return .{ .public = verified,",
     });
-    try std.testing.expect(
-        std.mem.indexOf(
-            u8,
-            run_benchmark,
-            "else\n            benchmark_report.NATIVE_BENCHMARK_SCHEMA",
-        ) != null,
-    );
-    try std.testing.expect(
-        std.mem.indexOf(u8, run_benchmark, ".recursion_enabled = false") != null,
-    );
 }
 
-test "ordinary product prove path has no execution policy or recursive call" {
-    const run_prove = try between("fn runProve(", "\nfn runBenchmark(");
-    try std.testing.expect(std.mem.indexOf(
-        u8,
-        run_prove,
-        "proveRiscVWithEngineAndPublicDataUsingChannel(",
-    ) != null);
-    for ([_][]const u8{
-        "proveRiscVWithEngineAndPublicDataUsingChannelAndExecution(",
-        "StatementAdmission",
-        "recursive_fri_outer",
-        "proveRecursive",
-        "proveOuter",
-    }) |forbidden| {
-        try std.testing.expect(std.mem.indexOf(u8, run_prove, forbidden) == null);
-    }
+test "full-width benchmarks bind every measured sample to verified deterministic results" {
+    try expectOrdered(PRODUCT_SOURCE, &.{
+        "if (samples == 0) return error.NoBenchmarkSamples;",
+        "const count = try std.math.add(usize, warmups, samples);",
+        "for (0..count) |index|",
+        "var result = try request.execute(",
+        "defer result.deinit(a);",
+        "error.NonDeterministicStatement;",
+        "error.NonDeterministicTranscript;",
+        "error.NonDeterministicExecution;",
+        "if (index < warmups) continue;",
+        "timings[index - warmups] = result.timing;",
+        "if (index + 1 == count)",
+        "verified_public = result.public;",
+        "std.crypto.hash.sha2.Sha256.hash(result.artifact.bytes,",
+        "try file.writeAll(result.artifact.bytes);",
+        ".verified_in_process = true,",
+        ".verified_samples = samples,",
+        ".timings = timings,",
+    });
+}
+
+test "ordinary full-width routing admits only the declared execution profiles" {
+    try std.testing.expect(std.mem.indexOf(u8, ADAPTER_SOURCE, "return error.LegacyProofGenerationRemoved;") != null);
+    try expectOrdered(ROUTER_SOURCE, &.{
+        "const requested = try requestedExecutionProfile(",
+        "return switch (requested)",
+        "inline .rv32im_zkvm_v1, .rv32im_zkvm_poseidon2_v1, .rv32im_zkvm_ethereum_v1",
+        "@import(\"blake3_execution_product.zig\").runForProfile(",
+        "else => error.UnsupportedExecutionProfile,",
+    });
+    try std.testing.expect(std.mem.indexOf(u8, PRODUCT_SOURCE, ".recursion_enabled = false,") != null);
+}
+
+test "full-width structural fixtures cover the connected production owners" {
+    for ([_][]const u8{ ADAPTER_SOURCE, ROUTER_SOURCE, REQUEST_SOURCE, PRODUCT_SOURCE }) |source|
+        try std.testing.expect(source.len > 1024);
+    try expectOrdered(ADAPTER_SOURCE, &.{
+        "const profile_router = @import(\"proof_adapter/profile_router.zig\");",
+        "return profile_router.run(",
+    });
+    try expectOrdered(PRODUCT_SOURCE, &.{
+        "const request = @import(\"blake3_execution_request.zig\");",
+        "var result = try request.execute(",
+    });
 }
 
 test "ordinary public prove API types expose no execution policy parameter" {
@@ -157,13 +139,4 @@ test "ordinary public prove API types expose no execution policy parameter" {
     inline for (channel_ordinary.params) |parameter| {
         if (parameter.type) |T| try std.testing.expect(T != ExecutionOptions);
     }
-}
-
-test "the structural fixture still covers the production adapter" {
-    try std.testing.expect(ADAPTER_SOURCE.len > 1024);
-    try std.testing.expect((try between("fn runProve(", "\nfn runBenchmark(")).len > 1024);
-    try std.testing.expect((try between(
-        "fn runBenchmark(",
-        "\n/// Cryptographically verifies",
-    )).len > 1024);
 }

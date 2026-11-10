@@ -83,12 +83,12 @@ pub const profile_partition_test_names: []const []const u8 = &.{
     "verified request attempt: graph elapsed time cannot exceed proof boundary",
     "verified request attempt: single-worker eligibility is request bounded",
     "verified request attempt: raw phase sum is checked exactly",
-    "profiled phase clocks partition guest proof and native verification",
-    "request clock and flat graph capture are absent on unprofiled attempts",
-    "profiled benchmark binds every measured sample to the new timing authority",
-    "ordinary product prove path has no execution policy or recursive call",
+    "full-width phase clocks partition execution through fresh verification",
+    "full-width ownership closes before independent CPU verification and publication",
+    "full-width benchmarks bind every measured sample to verified deterministic results",
+    "ordinary full-width routing admits only the declared execution profiles",
     "ordinary public prove API types expose no execution policy parameter",
-    "the structural fixture still covers the production adapter",
+    "full-width structural fixtures cover the connected production owners",
     "profiled child reports require their distinct internal schema",
 };
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -139,12 +140,95 @@ def run_command(argv: list[str]) -> tuple[subprocess.CompletedProcess[bytes], in
     return result, duration_ns
 
 
+def require_fields(value: dict[str, Any], expected: dict[str, Any]) -> None:
+    for key, item in expected.items():
+        if type(value.get(key)) is not type(item) or json.dumps(value[key], sort_keys=True) != json.dumps(item, sort_keys=True):
+            raise SmokeError(f"full-width {key} drifted")
+
+
+def full_width_fields(value: dict[str, Any], workload: Workload) -> None:
+    # Actual full-width serializers, not the retained artifact4/5 JSON envelopes.
+    if any(key in value for key in ("transcript_state_blake2s", "transcript_receipt", "statement_sha256",
+                                    "artifact_kind", "artifact_schema_version")):
+        raise SmokeError("mixed full-width and retained report fields")
+    require_fields(value, dict(proof_suite="blake3", artifact_magic="B3RVART1",
+        execution_profile="rv32im_zkvm_v1", release_status="experimental_full_width",
+        security_policy="functional", total_steps=workload.expected_steps,
+        csp_ecdsa=False, signer_calls=0, keccak_calls=0, halt_flag=True,
+        elf_sha256=sha256_file(ROOT / workload.elf),
+        input_sha256=sha256_file(ROOT / workload.input_path) if workload.input_path else sha256_bytes(b"")))
+    config = value.get("pcs_config")
+    if not isinstance(config, dict):
+        raise SmokeError("full-width PCS configuration missing")
+    normalized = {"lifting_log_size": None, **config}
+    expected = dict(pow_bits=10, lifting_log_size=None, fri_config=dict(log_blowup_factor=1,
+        log_last_layer_degree_bound=0, n_queries=3, fold_step=1))
+    if json.dumps(normalized, sort_keys=True) != json.dumps(expected, sort_keys=True):
+        raise SmokeError("full-width functional PCS configuration drifted")
+    for key in ("statement_blake3", "transcript_digest_blake3", "proof_sha256", "executable_sha256", "output_sha256"):
+        require_sha256(value.get(key), key)
+    for key in ("proof_bytes", "output_len"):
+        if type(value.get(key)) is not int or value[key] < (1 if key == "proof_bytes" else 0):
+            raise SmokeError(f"full-width {key} invalid")
+
+
+def validate_full_width_report(report, workload, commit, allow_dirty, admission) -> tuple[str, str]:
+    full_width_fields(report, workload)
+    require_fields(report, dict(schema="riscv_full_width_execution_v2", mode="prove", backend="cpu",
+        experimental=admission.experimental, verified_in_process=True, recursion_enabled=False,
+        warmups=0, samples=1, verified_samples=1, profiled=False, profile_kind="phase_timings",
+        implementation_commit=commit, timing_unit="nanoseconds",
+        timing_partition="execution+witness+admission+proving+artifact_encoding+fresh_verification"))
+    if report.get("implementation_dirty") is not False and (not allow_dirty or report.get("implementation_dirty") is not True):
+        raise SmokeError("full-width dirty implementation")
+    phases = ("execution_ns", "witness_ns", "admission_ns", "proving_ns", "artifact_encoding_ns", "fresh_verification_ns")
+    timings = report.get("timings")
+    if not isinstance(timings, list) or len(timings) != 1 or not isinstance(timings[0], dict):
+        raise SmokeError("full-width timing sample count invalid")
+    sample = timings[0]
+    if (set(sample) != {*phases, "total_ns"} or any(type(v) is not int or v < 0 for v in sample.values())
+            or any(sample[p] <= 0 for p in ("proving_ns", "fresh_verification_ns", "total_ns"))
+            or sum(sample[p] for p in phases) != sample["total_ns"]):
+        raise SmokeError("full-width timing partition invalid")
+    median = report.get("median_seconds")
+    if (type(median) not in (int, float) or not math.isfinite(median)
+            or not math.isclose(median, sample["total_ns"] / 1e9, rel_tol=1e-12, abs_tol=1e-12)):
+        raise SmokeError("full-width timing median invalid")
+    if json.dumps(report.get("proof_device_counts"), sort_keys=True) != json.dumps([{"dispatches": 0, "cpu_fallbacks": 0}], sort_keys=True):
+        raise SmokeError("full-width CPU proof claims device work")
+    return report["statement_blake3"], report["transcript_digest_blake3"]
+
+
+def verify_pairing(report: dict[str, Any]) -> tuple[str, int]:
+    if report.get("schema") == "riscv_prove_v1":
+        return "riscv_verify_v1", 4
+    if report.get("schema") == "riscv_prove_v2":
+        return "riscv_verify_v2", 5
+    raise SmokeError("unexpected prove-report schema")
+
+
+def transcript_digest(value: dict[str, Any], modern: bool) -> str:
+    if any(key in value for key in ("transcript_digest_blake3", "statement_blake3", "artifact_magic")):
+        raise SmokeError("mixed retained and full-width report fields")
+    legacy, receipt = value.get("transcript_state_blake2s"), value.get("transcript_receipt")
+    if modern:
+        if (legacy is not None or not isinstance(receipt, dict)
+                or receipt.get("suite") != "blake3"
+                or type(receipt.get("version")) is not int or receipt["version"] != 2):
+            raise SmokeError("invalid transcript_receipt suite/version or mixed transcript fields")
+        return require_sha256(receipt.get("digest"), "transcript_receipt digest")
+    if receipt is not None:
+        raise SmokeError("mixed or unexpected transcript_receipt")
+    return require_sha256(legacy, "transcript_state_blake2s")
+
+
 def validate_prove_report(
     report: dict[str, Any], workload: Workload, commit: str, allow_dirty: bool,
     admission: riscv_cli_admission.Admission,
 ) -> tuple[str, str]:
-    if report.get("schema") != "riscv_prove_v1":
-        raise SmokeError(f"{workload.name}: unexpected prove-report schema")
+    if report.get("schema") == "riscv_full_width_execution_v2":
+        return validate_full_width_report(report, workload, commit, allow_dirty, admission)
+    _, artifact_version = verify_pairing(report)
     if (
         report.get("release_status") != admission.release_status
         or report.get("experimental") is not admission.experimental
@@ -165,9 +249,7 @@ def validate_prove_report(
     if report.get("implementation_dirty") is not False and not allow_dirty:
         raise SmokeError(f"{workload.name}: CI prover reports a dirty implementation")
     statement = require_sha256(report.get("statement_sha256"), f"{workload.name} statement")
-    transcript = require_sha256(
-        report.get("transcript_state_blake2s"), f"{workload.name} transcript",
-    )
+    transcript = transcript_digest(report, artifact_version == 5)
     require_sha256(report.get("executable_sha256"), f"{workload.name} executable")
     for field in ("proving_seconds", "verification_seconds", "total_seconds"):
         value = report.get(field)
@@ -181,21 +263,36 @@ def validate_verify_receipt(
     workload: Workload, commit: str, allow_dirty: bool,
     admission: riscv_cli_admission.Admission,
 ) -> None:
+    if report.get("schema") == "riscv_full_width_execution_v2":
+        if validate_full_width_report(report, workload, commit, allow_dirty, admission) != (statement, transcript):
+            raise SmokeError("full-width validated report digests drifted")
+        full_width_fields(receipt, workload)
+        require_fields(receipt, dict(schema="riscv_full_width_verify_v1", status="verified"))
+        require_fields(receipt, {key: report[key] for key in ("statement_blake3", "transcript_digest_blake3",
+            "implementation_commit", "executable_sha256", "implementation_dirty", "proof_bytes", "proof_sha256",
+            "output_len", "output_sha256")})
+        return
+    schema, artifact_version = verify_pairing(report)
+    if transcript_digest(report, artifact_version == 5) != transcript:
+        raise SmokeError(f"{workload.name}: validated report transcript drifted")
     expected = {
-        "schema": "riscv_verify_v1",
+        "schema": schema,
         "status": "verified",
         "artifact_kind": "stwo_riscv_proof",
-        "artifact_schema_version": 4,
+        "artifact_schema_version": artifact_version,
         "release_status": admission.release_status,
         "security_policy": "functional",
         "statement_sha256": statement,
-        "transcript_state_blake2s": transcript,
         "implementation_commit": commit,
         "executable_sha256": report["executable_sha256"],
     }
     for field, value in expected.items():
         if receipt.get(field) != value:
             raise SmokeError(f"{workload.name}: verify receipt field {field} drifted")
+    if type(receipt.get("artifact_schema_version")) is not int:
+        raise SmokeError(f"{workload.name}: invalid artifact_schema_version")
+    if transcript_digest(receipt, artifact_version == 5) != transcript:
+        raise SmokeError(f"{workload.name}: verify receipt transcript_state_blake2s/transcript_receipt drifted")
     if receipt.get("implementation_dirty") is not False and not allow_dirty:
         raise SmokeError(f"{workload.name}: verifier reports a dirty implementation")
     proof_bytes = receipt.get("proof_bytes")
@@ -245,6 +342,11 @@ def run_workload(
         "--elf", str(elf),
         "--protocol", "functional", "--expect-statement-digest", statement,
     ]
+    if input_path is not None:
+        verify_command.extend(["--input", str(input_path)])
+    if report.get("schema") == "riscv_full_width_execution_v2":
+        if report["proof_bytes"] != proof_path.stat().st_size or report["proof_sha256"] != sha256_file(proof_path):
+            raise SmokeError(f"{workload.name}: retained artifact differs from prove report")
     verify_result, verify_duration_ns = run_command(verify_command)
     verify_receipt_path.write_bytes(verify_result.stdout)
     receipt = strict_json_bytes(verify_result.stdout, f"{workload.name} verify receipt")
@@ -260,7 +362,10 @@ def run_workload(
         "input": workload.input_path,
         "input_sha256": sha256_file(input_path) if input_path is not None else None,
         "expected_steps": workload.expected_steps,
-        "statement_sha256": statement,
+        "proof_release_status": report["release_status"],
+        "prove_schema": report["schema"],
+        "verify_schema": receipt["schema"],
+        "statement_digest": statement,
         "proof_artifact_sha256": sha256_file(proof_path),
         "proof_bytes_sha256": receipt["proof_sha256"],
         "prove_duration_ns": prove_duration_ns,
@@ -314,8 +419,8 @@ def main(argv: list[str] | None = None) -> int:
             "cli": str(cli),
             "cli_sha256": sha256_file(cli),
             "protocol": "functional",
-            "release_status": admission.release_status,
-            "experimental": admission.experimental,
+            "cli_admission": {"release_status": admission.release_status, "experimental": admission.experimental},
+            "acceptance_scope": "functional_cpu_proof_verification",
             "oracle_boundary": (
                 "independent Zig artifact verification plus separately gated pinned "
                 "Sail/Spike corpus evidence; finite ISA agreement is not universal "

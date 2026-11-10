@@ -76,7 +76,10 @@ pub fn compareExecutionWidths(
         const audited = try runAuditedArm(allocator, guest, width);
         const planned = audited.arm;
         defer planned.deinit(allocator);
-        try expectProofPoolAudit(audited.audit, width, true, false);
+        expectProofPoolAudit(audited.audit, width, true, false) catch |err| {
+            std.debug.print("proof-pool audit width={d}: {any}\n", .{ width, audited.audit });
+            return err;
+        };
         try expectEqualStatement(predecessor.statement, planned.statement);
         try expectEqualClaim(
             predecessor.statement,
@@ -268,17 +271,15 @@ fn expectProofPoolAudit(
     expect_publication: bool,
     expect_injected_failure: bool,
 ) !void {
-    const expected_pool_address = if (worker_count > 1) receipt.pool_address else 0;
-    try std.testing.expectEqual(
-        @as(usize, if (worker_count > 1) 1 else 0),
-        receipt.pool_init_count,
-    );
+    try std.testing.expectEqual(worker_count, receipt.pool_worker_count);
+    try std.testing.expectEqual(@as(usize, 1), receipt.pool_init_count);
     try std.testing.expectEqual(receipt.pool_init_count, receipt.pool_deinit_count);
-    try std.testing.expectEqual(receipt.pool_init_count, receipt.binding_init_count);
+    try std.testing.expect(receipt.binding_init_count >= 1);
     try std.testing.expectEqual(receipt.binding_init_count, receipt.binding_deinit_count);
-    if (worker_count > 1) try std.testing.expect(receipt.pool_address != 0);
+    try std.testing.expect(receipt.pool_address != 0);
 
-    for (receipt.stage_observations, receipt.stage_pool_addresses) |observations, address| {
+    for (receipt.stage_observations, receipt.stage_pool_addresses, 0..) |observations, address, index| {
+        const expected_pool_address = if (worker_count == 1 and index == @intFromEnum(work_pool.ProofPoolStage.composition)) 0 else receipt.pool_address;
         try std.testing.expect(observations >= 1);
         try std.testing.expectEqual(expected_pool_address, address);
     }
@@ -291,14 +292,13 @@ fn expectProofPoolAudit(
     try std.testing.expectEqual(@as(usize, 0), receipt.active_leased_workers);
     try std.testing.expect(receipt.max_leased_workers <= worker_count);
     try std.testing.expectEqual(receipt.structured_submitted, receipt.structured_completed);
+    try std.testing.expect(receipt.lease_acquire_count >= 1);
     if (worker_count > 1) {
-        try std.testing.expect(receipt.lease_acquire_count >= 1);
         try std.testing.expect(receipt.structured_submitted >= 1);
         try std.testing.expectEqual(@as(usize, 1), receipt.nested_helper_probe_count);
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_saw_pool_count);
         try std.testing.expectEqual(@as(usize, 1), receipt.nested_binding_denied_count);
     } else {
-        try std.testing.expectEqual(@as(usize, 0), receipt.lease_acquire_count);
         try std.testing.expectEqual(@as(usize, 0), receipt.structured_submitted);
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_probe_count);
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_saw_pool_count);
