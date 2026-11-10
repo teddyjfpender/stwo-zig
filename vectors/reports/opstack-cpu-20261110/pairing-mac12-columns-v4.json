@@ -1,0 +1,218 @@
+{
+  "schema": 4,
+  "status": "qualified_bounded_parallel_column_materialization",
+  "production_admitted": false,
+  "security_qualified": false,
+  "security_label": "128-bit target under documented assumptions; no composed certification/VM/root admission",
+  "source_authority_revision": 4,
+  "implementation": {
+    "physical_row_tile": 32,
+    "max_joined_shards": 16,
+    "live_rows_per_helper": 1,
+    "multirow_scratch_bank": false,
+    "fixed_main_memset_removed": true,
+    "all_rows_including_padding_written": true,
+    "inter_zero_initialized": true,
+    "table_recount": "coordinator, after arithmetic/hint column installation",
+    "install_columns": "coordinator only after all rows complete and jobs join",
+    "deinit_borrow_invalidation": true
+  },
+  "tests": {
+    "ReleaseSafe_passed": 9,
+    "poison_allocation_full_matrix_exact_to_scalar": true,
+    "all_allocation_failures_clean": true,
+    "worker_noncanonical_mid_source_error_joined": true,
+    "authority_no_witness_error_joined": true,
+    "no_partial_columns_installed": true,
+    "zero_budget_after_worker_failure": true,
+    "producer_deinit_clears_model_borrow": true,
+    "native_P2_scalar_parallel_whole_proof_exact": true,
+    "native_P2_scalar_parallel_child_exact": true,
+    "encoder_reference_fast_whole_proof_exact": true,
+    "coherent_actual_hint_plus_p_GKR_closes_native_rejects": "OodsNotMatching",
+    "all_v3_profile_suite_ninth_root_controls_retained": true,
+    "cap": 2147483648,
+    "P2_peak_requested_bytes": 1006517525
+  },
+  "cases": {
+    "four-pair-q72": {
+      "phase_seconds": {
+        "pairing.source_witness": 0.269861,
+        "pairing.lowering": 0.008493,
+        "pairing.normalized_values": 0.104702,
+        "pairing.diagnostic_check": 0.111144,
+        "pairing.columns": 0.237591,
+        "pairing.fixed_commit": 0.009564,
+        "pairing.main_commit": 0.162092,
+        "pairing.local_gkr": 0.882852,
+        "pairing.local_encode": 0.000125,
+        "pairing.local_verify": 0.006869,
+        "pairing.binding_witness": 0.032696,
+        "pairing.projection_check": 1.936541,
+        "pairing.binding_finish": 5e-06,
+        "pairing.inter_commit": 0.009265,
+        "pairing.native_stark": 0.197715,
+        "pairing.encode": 0.002575,
+        "pairing.fresh_receiver": 0.115641,
+        "pairing.adversaries": 0.795703
+      },
+      "producer_seconds_excluding_qualification": 1.924405,
+      "fresh_receiver_seconds": 0.115641
+    },
+    "four-pair-q72-reference": {
+      "phase_seconds": {
+        "pairing.source_witness": 0.272332,
+        "pairing.lowering": 0.008749,
+        "pairing.normalized_values": 0.105901,
+        "pairing.diagnostic_check": 0.111667,
+        "pairing.columns": 0.251937,
+        "pairing.fixed_commit": 0.009607,
+        "pairing.main_commit": 0.158523,
+        "pairing.local_gkr": 0.885045,
+        "pairing.local_encode": 0.000121,
+        "pairing.local_verify": 0.006908,
+        "pairing.binding_witness": 0.032749,
+        "pairing.inter_commit": 0.009169,
+        "pairing.native_stark": 0.199212,
+        "pairing.encode": 0.00268,
+        "pairing.fresh_receiver": 0.117424,
+        "pairing.adversaries": 0.802608
+      },
+      "producer_seconds_excluding_qualification": 1.942933,
+      "fresh_receiver_seconds": 0.117424
+    },
+    "four-pair-p2-q72": {
+      "phase_seconds": {
+        "pairing.source_witness": 0.275149,
+        "pairing.lowering": 0.008623,
+        "pairing.normalized_values": 0.107023,
+        "pairing.diagnostic_check": 0.112178,
+        "pairing.columns": 0.23426,
+        "pairing.fixed_commit": 0.033645,
+        "pairing.main_commit": 0.436557,
+        "pairing.local_gkr": 0.884603,
+        "pairing.local_encode": 0.000126,
+        "pairing.local_verify": 0.006919,
+        "pairing.binding_witness": 0.032668,
+        "pairing.projection_check": 1.981171,
+        "pairing.binding_finish": 7e-06,
+        "pairing.inter_commit": 0.03826,
+        "pairing.native_stark": 0.220193,
+        "pairing.encode": 0.002719,
+        "pairing.fresh_receiver": 0.158001,
+        "pairing.adversaries": 1.220226
+      },
+      "producer_seconds_excluding_qualification": 2.280752,
+      "fresh_receiver_seconds": 0.158001
+    },
+    "four-pair-p2-q72-scalar-columns": {
+      "phase_seconds": {
+        "pairing.source_witness": 0.281439,
+        "pairing.lowering": 0.008754,
+        "pairing.normalized_values": 0.109003,
+        "pairing.diagnostic_check": 0.11456,
+        "pairing.columns": 1.098296,
+        "pairing.fixed_commit": 0.033443,
+        "pairing.main_commit": 0.440108,
+        "pairing.local_gkr": 0.886432,
+        "pairing.local_encode": 0.000128,
+        "pairing.local_verify": 0.006993,
+        "pairing.binding_witness": 0.032739,
+        "pairing.inter_commit": 0.038254,
+        "pairing.native_stark": 0.22177,
+        "pairing.encode": 0.005562,
+        "pairing.fresh_receiver": 0.161074,
+        "pairing.adversaries": 1.227641
+      },
+      "producer_seconds_excluding_qualification": 3.162921,
+      "fresh_receiver_seconds": 0.161074
+    }
+  },
+  "artifacts": {
+    "four-pair-q72-reference/chain.proof.bin": {
+      "bytes": 665344,
+      "sha256": "e3316677649e3d2c899ebb084f4ebe8ceb2b017b092e31abe1c0e7109a688fab",
+      "accepted": true
+    },
+    "four-pair-q72-reference/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "65f0d95ea4740cef75d3d5a01a74ef5717d49a9454da8778f682380698ed0d90",
+      "accepted": true
+    },
+    "four-pair-q72-reference/stages.json": {
+      "bytes": 17642,
+      "sha256": "e5960fbbfa829b1e255c6c0e7eff6ee4eac7c560969fbc8a16236eb0dc081608",
+      "accepted": true
+    },
+    "four-pair-p2-q72-scalar-columns/chain.proof.bin": {
+      "bytes": 675124,
+      "sha256": "cbcaee9131c172c51d9e0b5848f78d17377a742c3aefa2518c7b1aa30af8254a",
+      "accepted": true
+    },
+    "four-pair-p2-q72-scalar-columns/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "4b7a79299f430b6dad5d8329a039a8d0bbc7be014437b084a0ed371589ce0a31",
+      "accepted": true
+    },
+    "four-pair-p2-q72-scalar-columns/stages.json": {
+      "bytes": 17637,
+      "sha256": "d81485ee69ffde1d9ce024bee7446d4741230e0a518bf11fc999bc2bf0e8b9d6",
+      "accepted": true
+    },
+    "four-pair/coherent-hint-plus-p.unverified.proof.bin": {
+      "bytes": 175480,
+      "sha256": "159d2798743ae9255d2f0ca80a1121889e53fe1bf26495fcf95927f314d258d1",
+      "accepted": false
+    },
+    "four-pair/chain.proof.bin": {
+      "bytes": 179000,
+      "sha256": "8d42c3205fc2514a6b47730ce520bdca20ff3a5033d19e02cc727a754ed7dc0c",
+      "accepted": true
+    },
+    "four-pair/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "4fb4367cfadb3c739fdcafa63fa86e584422e6ed62d720722dc542113812391c",
+      "accepted": true
+    },
+    "four-pair/coherent-hint-plus-p.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "fdb7b9b9079a065b8bc6b5016e75d5bb2c9b394bbac4a2b36c770797b1f0ceb6",
+      "accepted": true
+    },
+    "four-pair-q72/chain.proof.bin": {
+      "bytes": 665344,
+      "sha256": "e3316677649e3d2c899ebb084f4ebe8ceb2b017b092e31abe1c0e7109a688fab",
+      "accepted": true
+    },
+    "four-pair-q72/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "65f0d95ea4740cef75d3d5a01a74ef5717d49a9454da8778f682380698ed0d90",
+      "accepted": true
+    },
+    "four-pair-q72/stages.json": {
+      "bytes": 18871,
+      "sha256": "f451cf08344d3b72641391df6d1b85cd0753db5bb38be881c163ff40252ab258",
+      "accepted": true
+    },
+    "four-pair-p2-q72/chain.proof.bin": {
+      "bytes": 675124,
+      "sha256": "cbcaee9131c172c51d9e0b5848f78d17377a742c3aefa2518c7b1aa30af8254a",
+      "accepted": true
+    },
+    "four-pair-p2-q72/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "4b7a79299f430b6dad5d8329a039a8d0bbc7be014437b084a0ed371589ce0a31",
+      "accepted": true
+    },
+    "four-pair-p2-q72/stages.json": {
+      "bytes": 18882,
+      "sha256": "ac1e5f182114943a7b289cbf43a33f50ac93c21e35af39cd13c631bafebcd75a",
+      "accepted": true
+    }
+  },
+  "measurement_note": "One same-binary qualification observation, ReleaseSafe16 workers. Producer phase sum excludes diagnostic/projection oracle checks, fresh receiver and adversaries. The source hash changed v3\u2192v4; no cross-version proof-byte equality claim.",
+  "same_binary_comparison": {
+    "column_speedup": 4.688363356953812,
+    "producer_speedup": 1.3867886556714626
+  }
+}

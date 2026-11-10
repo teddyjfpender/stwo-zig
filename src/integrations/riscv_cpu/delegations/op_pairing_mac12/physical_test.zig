@@ -36,6 +36,10 @@ fn QualificationForSuite(comptime target: bool, comptime poseidon: bool) type {
             return if (poseidon) "four-pair-p2-q72" else if (target) "four-pair-q72" else "four-pair";
         }
 
+        fn classDirectoryWithColumns(comptime reference: bool, comptime scalar_columns: bool) []const u8 {
+            if (scalar_columns) return if (poseidon) "four-pair-p2-q72-scalar-columns" else "four-pair-q72-scalar-columns";
+            return classDirectoryFor(reference);
+        }
         const CONFIG = if (target) @import("../../poseidon2_outer/op_profile.zig").Profile.op_target_b4_q72_p0_fold4_v1.config() else TOY_CONFIG;
         const V = G.vectors;
         const R = G.residue_vectors;
@@ -71,11 +75,14 @@ fn QualificationForSuite(comptime target: bool, comptime poseidon: bool) type {
             ch.mixU32s(&words);
         }
         fn parts(a: std.mem.Allocator, w: *G.fixture.Model) ![4]Part {
+            return partsWithColumns(a, w, false);
+        }
+        fn partsWithColumns(a: std.mem.Allocator, w: *G.fixture.Model, comptime scalar_columns: bool) ![4]Part {
             var result: [4]Part = undefined;
             var n: usize = 0;
             errdefer for (result[0..n]) |*part| part.deinit();
             inline for (T.ORDER, 0..) |r, i| {
-                result[i] = try Part.init(r, a, w);
+                result[i] = if (scalar_columns) try Part.initScalarReferenceForTesting(r, a, w) else try Part.init(r, a, w);
                 n += 1;
             }
             return result;
@@ -218,6 +225,9 @@ fn QualificationForSuite(comptime target: bool, comptime poseidon: bool) type {
             return physicalWithEncoder(forged, false);
         }
         fn physicalWithEncoder(comptime forged: bool, comptime reference: bool) !void {
+            return physicalWithOptions(forged, reference, false);
+        }
+        fn physicalWithOptions(comptime forged: bool, comptime reference: bool, comptime scalar_columns: bool) !void {
             const budget = try engine.host_budget_allocator.SharedHostBudget.createRetainingParent(std.testing.allocator, 2 << 30);
             defer budget.destroy();
             const a = budget.allocator();
@@ -248,7 +258,7 @@ fn QualificationForSuite(comptime target: bool, comptime poseidon: bool) type {
             phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.columns", "Carry/range rows and column materialization");
             const independent_initial = try S.initialValues(V.INPUT);
             var w = if (reference) try G.fixture.Model.initReferenceForTesting(&plan, &normalized, &independent_initial) else try model(&plan, &normalized);
-            var pp = try parts(a, &w);
+            var pp = try partsWithColumns(a, &w, scalar_columns);
             defer for (&pp) |*part| part.deinit();
             if (forged) {
                 const id = plan.hints[0].writer;
@@ -322,7 +332,7 @@ fn QualificationForSuite(comptime target: bool, comptime poseidon: bool) type {
             try pp[2].installBinding(&w, &dd[1], 0);
             try pp[2].installBinding(&w, &dd[4], 1);
             try pp[3].installBinding(&w, &dd[2], 0);
-            if (target and !reference) {
+            if (target and !reference and !scalar_columns) {
                 phase.end();
                 phase = try engine.stage_profile.StageScope.begin(recorder, "pairing.projection_check", "Qualification-only packed/scalar projection equality");
                 const slots = [_]struct { part: usize, index: usize }{ .{ .part = 1, .index = 0 }, .{ .part = 2, .index = 0 }, .{ .part = 3, .index = 0 }, .{ .part = 1, .index = 1 }, .{ .part = 2, .index = 1 }, .{ .part = 0, .index = 0 } };
@@ -365,7 +375,7 @@ fn QualificationForSuite(comptime target: bool, comptime poseidon: bool) type {
                 try std.testing.expectError(error.OodsNotMatching, receive(a, child_bytes, encoded, 0));
                 if (std.process.getEnvVarOwned(a, "STWO_PAIRING_MAC12_OUT")) |path| {
                     defer a.free(path);
-                    const class_path = try std.fs.path.join(a, &.{ path, classDirectoryFor(reference) });
+                    const class_path = try std.fs.path.join(a, &.{ path, classDirectoryWithColumns(reference, scalar_columns) });
                     defer a.free(class_path);
                     var dir = try std.fs.cwd().makeOpenPath(class_path, .{});
                     defer dir.close();
@@ -380,7 +390,7 @@ fn QualificationForSuite(comptime target: bool, comptime poseidon: bool) type {
             }
             if (std.process.getEnvVarOwned(a, "STWO_PAIRING_MAC12_OUT")) |path| {
                 defer a.free(path);
-                const class_path = try std.fs.path.join(a, &.{ path, classDirectoryFor(reference) });
+                const class_path = try std.fs.path.join(a, &.{ path, classDirectoryWithColumns(reference, scalar_columns) });
                 defer a.free(class_path);
                 var dir = try std.fs.cwd().makeOpenPath(class_path, .{});
                 defer dir.close();
@@ -408,7 +418,7 @@ fn QualificationForSuite(comptime target: bool, comptime poseidon: bool) type {
                 defer snapshot.deinit(a);
                 const json = try std.json.Stringify.valueAlloc(a, snapshot, .{});
                 defer a.free(json);
-                const stage_path = try std.fs.path.join(a, &.{ classDirectoryFor(reference), "stages.json" });
+                const stage_path = try std.fs.path.join(a, &.{ classDirectoryWithColumns(reference, scalar_columns), "stages.json" });
                 defer a.free(stage_path);
                 const file = try dir.createFile(stage_path, .{ .exclusive = true });
                 defer file.close();
@@ -525,11 +535,18 @@ test "MAC12 complete opt-in native Poseidon full-root target and cross-suite con
     defer a.free(blake_child);
     try Qualification(true).receive(a, blake_child, blake, 0);
     try QualificationForSuite(true, true).physical(false);
+    try QualificationForSuite(true, true).physicalWithOptions(false, false, true);
     const p2 = try dir.readFileAlloc(a, "four-pair-p2-q72/chain.proof.bin", 16 << 20);
     defer a.free(p2);
     const p2_child = try dir.readFileAlloc(a, "four-pair-p2-q72/chain.gkr.bin", 16 << 20);
     defer a.free(p2_child);
 
+    const scalar_proof = try dir.readFileAlloc(a, "four-pair-p2-q72-scalar-columns/chain.proof.bin", 16 << 20);
+    defer a.free(scalar_proof);
+    const scalar_child = try dir.readFileAlloc(a, "four-pair-p2-q72-scalar-columns/chain.gkr.bin", 16 << 20);
+    defer a.free(scalar_child);
+    try std.testing.expectEqualSlices(u8, scalar_proof, p2);
+    try std.testing.expectEqualSlices(u8, scalar_child, p2_child);
     try std.testing.expect(std.meta.isError(Qualification(true).receive(a, p2_child, p2, 0)));
     try std.testing.expect(std.meta.isError(QualificationForSuite(true, true).receive(a, blake_child, blake, 0)));
     try std.testing.expect(std.meta.isError(N.Blake.decode(a, p2_child)));
