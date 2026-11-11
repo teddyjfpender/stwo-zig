@@ -33,6 +33,44 @@ class TransportTests(unittest.TestCase):
         tx=copy.deepcopy(block['transactions'][0]);tx['type']='0x7f'
         with self.assertRaisesRegex(ValueError,'unsupported'):T.encoded(tx)
 
+    def test_mantle_deposit_is_explicit_and_hash_bound(self):
+        fixture=json.loads((F/'mantle-deposit-103132217.json').read_text())
+        block=fixture['block'];tx=block['transactions'][0]
+        self.assertEqual(T.encoded(tx,deposit_spec='mantle').hex(),fixture['raw_transactions'][0][2:])
+        self.assertTrue(T.verify_block(block,deposit_spec='mantle'))
+        with self.assertRaisesRegex(ValueError,'hash mismatch'):T.encoded(tx)
+        for field in ('ethValue','ethTxValue'):
+            bad=copy.deepcopy(tx);bad[field]='0x1'
+            with self.assertRaisesRegex(ValueError,'hash mismatch'):T.encoded(bad,deposit_spec='mantle')
+        for value in ('0x00','0x'+('1'+'0'*64)):
+            bad=copy.deepcopy(tx);bad['ethValue']=value
+            with self.assertRaises(ValueError):T.encoded(bad,deposit_spec='mantle')
+        nullable=copy.deepcopy(tx);nullable['ethValue']=None
+        self.assertEqual(T.encoded(nullable,deposit_spec='mantle'),T.encoded(tx,deposit_spec='mantle'))
+        bad=copy.deepcopy(tx);del bad['ethValue']
+        with self.assertRaises(ValueError):T.encoded(bad,deposit_spec='mantle')
+        with self.assertRaisesRegex(ValueError,'deposit spec'):T.encoded(tx,deposit_spec='auto')
+        op=json.loads(zlib.decompress((F/'recent-transactions.json.zlib').read_bytes()))['transactions'][0]
+        before=T.encoded(op);op['ethValue']='0x123';op['ethTxValue']='0x456'
+        self.assertEqual(T.encoded(op),before)
+        for invalid in ('0x00','0x'+('1'+'0'*64)):
+            bad=copy.deepcopy(tx);bad['ethTxValue']=invalid
+            with self.assertRaises(ValueError):T.encoded(bad,deposit_spec='mantle')
+        # Independent RLP reference: absent/null trailing value is nine fields;
+        # explicit zero is a tenth field, not silently elided.
+        fields=C.decode_rlp(bytes.fromhex(fixture['raw_transactions'][0][4:]))
+        self.assertEqual(len(fields),9)
+        for optional in (None,'0x0','0x2a'):
+            candidate=copy.deepcopy(tx);candidate['ethTxValue']=optional
+            expected=b'\x7e'+C.rlp(fields+([]if optional is None else[C.quantity(optional)]))
+            candidate['hash']='0x'+C.keccak(expected).hex()
+            self.assertEqual(T.encoded(candidate,deposit_spec='mantle'),expected)
+        # Rehashing a changed transaction still fails the independent block root.
+        bad=copy.deepcopy(block);changed=bad['transactions'][0];changed['ethValue']='0x1'
+        changed_fields=fields.copy();changed_fields[7]=b'\x01'
+        changed['hash']='0x'+C.keccak(b'\x7e'+C.rlp(changed_fields)).hex()
+        with self.assertRaisesRegex(ValueError,'trie root'):T.verify_block(bad,deposit_spec='mantle')
+
     def test_actual_l1_info_origin_is_transaction_and_domain_bound(self):
         block=json.loads(zlib.decompress((F/'recent-transactions.json.zlib').read_bytes()))
         origin=T.l1_origin(block)

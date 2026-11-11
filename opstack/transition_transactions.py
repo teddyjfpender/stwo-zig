@@ -22,7 +22,9 @@ def access_list(value):
     return out
 
 
-def encoded(tx):
+def encoded(tx, *, deposit_spec='op'):
+    """Reconstruct using caller-owned deposit policy; unknown specs fail closed."""
+    if deposit_spec not in ('op','mantle'):raise ValueError('unsupported deposit spec')
     kind=int.from_bytes(q(tx.get('type','0x0'),8),'big')
     data=C.unhex(tx['input'])
     if len(data)>1<<20:raise ValueError('transaction data bound')
@@ -31,6 +33,10 @@ def encoded(tx):
         if not isinstance(system,bool):raise ValueError('deposit system flag')
         fields=[C.unhex(tx['sourceHash'],32),C.unhex(tx['from'],20),address(tx.get('to')),
                 q(tx['mint'])if tx.get('mint')is not None else b'',q(tx['value']),q(tx['gas'],64),b'\x01'if system else b'',data]
+        if deposit_spec=='mantle':
+            if 'ethValue' not in tx:raise ValueError('missing Mantle ethValue')
+            fields.insert(7,q(tx['ethValue'])if tx['ethValue']is not None else b'')
+            if tx.get('ethTxValue')is not None:fields.append(q(tx['ethTxValue']))
     elif kind==0:
         fields=[q(tx['nonce'],64),q(tx['gasPrice']),q(tx['gas'],64),address(tx.get('to')),q(tx['value']),data,q(tx['v']),q(tx['r']),q(tx['s'])]
     elif kind in(1,2,3,4):
@@ -55,7 +61,8 @@ def encoded(tx):
     return raw
 
 
-def verify_block(block):
+def verify_block(block, *, deposit_spec='op'):
+    if deposit_spec not in ('op','mantle'):raise ValueError('unsupported deposit spec')
     from transition_rpc_adapter import trie_root
     C.header_rlp(block)
     txs=block['transactions']
@@ -64,7 +71,7 @@ def verify_block(block):
     for i,tx in enumerate(txs):
         if tx.get('blockHash')is not None and C.unhex(tx['blockHash'],32)!=C.unhex(block['hash'],32):raise ValueError('transaction block hash mismatch')
         if tx.get('transactionIndex')is not None and int.from_bytes(q(tx['transactionIndex'],64),'big')!=i:raise ValueError('transaction index mismatch')
-        raw.append(encoded(tx))
+        raw.append(encoded(tx,deposit_spec=deposit_spec))
     root,records=trie_root([(C.rlp(i.to_bytes((i.bit_length()+7)//8,'big')),v)for i,v in enumerate(raw)])
     if root!=C.unhex(block['transactionsRoot'],32):raise ValueError('transaction trie root mismatch')
     return records
