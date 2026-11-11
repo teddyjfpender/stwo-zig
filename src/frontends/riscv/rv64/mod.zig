@@ -18,9 +18,19 @@ pub const execution_profile = @import("execution_profile.zig");
 pub const services = @import("service_session.zig");
 pub const compact_tape = @import("compact_tape.zig");
 pub const compact_tape_wire = @import("compact_tape_wire.zig");
+pub const arith256_mod = @import("service_primitives/arith256.zig");
+pub const secp256k1_rcb = @import("service_primitives/secp256k1.zig");
+pub const sha256_compression = @import("service_primitives/sha256.zig");
 pub const ethereum_services = @import("ethereum_services/session.zig");
 pub const boundary_capture = @import("boundary_capture.zig");
 pub const ethereum_contract = @import("ethereum_contract.zig");
 pub const fast_execution = @import("fast_execution.zig");
 pub const ram_word_set = @import("ram_word_set.zig");
 pub const checkpoint = @import("checkpoint.zig");
+
+test "api signature: RV64 mathematical providers preserve canonical modules" {
+    const math_test = @import("std").testing;
+    try math_test.expect(arith256_mod == ethereum_services.arith256);
+    try math_test.expect(secp256k1_rcb == ethereum_services.secp256k1);
+    try math_test.expect(sha256_compression == ethereum_services.sha256);
+}

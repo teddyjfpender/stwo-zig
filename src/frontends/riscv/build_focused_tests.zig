@@ -17,6 +17,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-rv64-math-ownership",
+        .description = "Check canonical RV64 mathematical providers and the original independent oracles",
+        .root = "rv64_test_inventory.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "arith256 long division equals the generic u512 remainder", "packet arith256_mod matches the candidate executor's semantics", "secp256k1 fast reduction equals the generic u512 remainder", "packet compression matches std.crypto on abc", "api signature: RV64 mathematical providers preserve canonical modules" },
+        .minimum = 5,
+    },
+    .{
         .step = "test-releasefast-acceptance",
         .description = "Diagnose the four full-suite ReleaseFast correctness failures without replacing the complete gate",
         .root = "releasefast_acceptance_test_root.zig",

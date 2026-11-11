@@ -7,7 +7,7 @@ that satisfies the stable prover transaction contract.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `frontend` |
 | Owner | `riscv-frontend` |
 | Public Zig module | `stwo_riscv_frontend` |
@@ -16,6 +16,11 @@ that satisfies the stable prover transaction contract.
 
 The [package contract](package.contract.json) is the API/dependency authority;
 [mod.zig](mod.zig) is the public facade.
+
+RV64 exposes `arith256_mod`, `secp256k1_rcb` and `sha256_compression` from
+[their canonical mathematical implementations](rv64/service_primitives).
+The existing `rv64.ethereum_services` aliases use those same definitions;
+service admission and execution policy remain in the service session.
 
 The [composition preparation boundary](recursion/COMPOSITION_PREPARATION.md)
 documents immutable recursive preparation, explicit admission and audit checks,

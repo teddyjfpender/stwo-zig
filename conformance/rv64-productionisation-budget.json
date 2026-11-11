@@ -1009,6 +1009,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Pre-edit issue361: pin the exact already-shipped RISC-V Metal protocol manifest including typed ECDSA recovery; retain strict single-registration checks. Regenerate stale proof-independent shape coverage only with the existing pinned CPU inspector/audit entrypoints, complete16-case matrix and source identity; no hand-edited hash or performance/proof/GPU reclassification. Code growth is limited to the existing test contract; metadata/receipts reported separately."
+    },
+    {
+      "id": "c4_rv64_math_ownership",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "RFC352 decision6753676480: <=40 net is a contained sub-budget of the existing C4 <=800 allowance, not an additional overall reserve. Move three complete mathematical implementations to canonical RV64 owners with every original public declaration (25 when including the existing Program.rows/operation methods) and four named test bodies; retain the independent Candidate oracle in upper test composition, explicit public aliases and canonical record identity. No numerical rewrite or product admission below; geometry61 transfers once to the C3 foundation."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

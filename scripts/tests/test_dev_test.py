@@ -247,6 +247,8 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_optimized_ci_reproduction_covers_focused_and_broad_routes(self) -> None:
         for path, step in (
+            ("src/frontends/riscv/rv64/service_primitives/arith256.zig", "test-rv64-math-ownership"),
+            ("src/frontends/riscv/rv64/ethereum_services/arith256_candidate_test.zig", "test-rv64-math-ownership"),
             ("src/frontends/riscv/retained_fri_frontier_test_root.zig", "test-retained-fri-frontier"),
             ("src/integrations/riscv_cpu/blake3_proof_tests/blake3_memory_path_proof_test.zig", "test-blake3-proof-contracts"),
             ("src/integrations/riscv_cpu/blake3_proof_contract_test_root.zig", "test-blake3-proof-contracts"),
