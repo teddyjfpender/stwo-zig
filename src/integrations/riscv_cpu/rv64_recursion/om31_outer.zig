@@ -13,7 +13,7 @@
 //! accepted fold binds both words to the trusted values except with a Blake2s
 //! collision. The fold circuit therefore depends only on the child GEOMETRY
 //! CLASS (bound AIR, row logs, FIXED column logs, output count), never on the
-//! child proof or key values; see design/riscv-proving-stack/rv64-m3-topo-binding.md.
+//! child proof or key values; see design/riscv/rv64-m3-topo-binding.md.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
@@ -181,7 +181,7 @@ const Statement = struct {
         try channel.mixFelts(ctx, &self.claims);
     }
     const Read = struct {
-        component: @import("stwo_cairo_frontend").witness.composition_bundle.Component,
+        component: Outer.geometry.Component,
         masks: []const []const []const F,
         offsets: [2][]std.ArrayList(i32),
         fn get(raw: *const anyopaque, tree: u8, col: u32, offset: i32) !F {

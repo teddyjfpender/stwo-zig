@@ -63,6 +63,7 @@ test "R0: FRI fold_step 4 folds match the oracle digests" {
     const line_eval = try alloc.alloc(QM31, input.len / 2);
     @memset(line_eval, QM31.zero());
     try foldCircleIntoLine(line_eval, &input, source_domain, layer_alphas[0]);
+    try expectScalarCircleFold(&input, line_eval, source_domain, layer_alphas[0]);
     try expectValuesDigest(expected[0], line_eval);
 
     var workspace = try FoldLineWorkspace.init(alloc, line_eval.len / 2);
@@ -107,4 +108,119 @@ test "R0: FRI fold_step 4 folds match the oracle digests" {
     try std.testing.expectEqual(expected.len, step);
     try std.testing.expectEqual(@as(usize, 1), values.len);
     try std.testing.expect(values[0].eql(QM31.fromU32Unchecked(1266552422, 1856893702, 1654478679, 295175920)));
+}
+
+// The reference avoids field helpers, vector arithmetic and batch inversion.
+// Authenticate it against the oracle before using it to diagnose optimized code.
+fn expectScalarCircleFold(input: []const QM31, actual: []const QM31, domain: stwo_core.poly.circle.domain.CircleDomain, alpha: QM31) !void {
+    const a = [_]u64{ alpha.c0.a.v, alpha.c0.b.v, alpha.c1.a.v, alpha.c1.b.v };
+    const reference = try std.testing.allocator.alloc(QM31, actual.len);
+    defer std.testing.allocator.free(reference);
+    const inverses = try std.testing.allocator.alloc(u32, actual.len);
+    defer std.testing.allocator.free(inverses);
+    for (reference, 0..) |*value, i| {
+        const point = domain.at(stwo_core.utils.bitReverseIndex(i << 1, domain.logSize()));
+        try std.testing.expect(point.y.v != 0);
+        var exponent: u64 = modulus - 2;
+        var base: u64 = point.y.v;
+        var inverse: u64 = 1;
+        while (exponent != 0) : (exponent >>= 1) {
+            if (exponent & 1 != 0) inverse = inverse * base % modulus;
+            base = base * base % modulus;
+        }
+        inverses[i] = @intCast(inverse);
+        const left = &input[2 * i];
+        const right = &input[2 * i + 1];
+        const x = [_]u64{ left.c0.a.v, left.c0.b.v, left.c1.a.v, left.c1.b.v };
+        const y = [_]u64{ right.c0.a.v, right.c0.b.v, right.c1.a.v, right.c1.b.v };
+        var sum: [4]u64 = undefined;
+        var difference: [4]u64 = undefined;
+        for (0..4) |j| {
+            sum[j] = (x[j] + y[j]) % modulus;
+            difference[j] = (x[j] + modulus - y[j]) % modulus * inverse % modulus;
+        }
+        const product = scalarProduct(a, difference);
+        var expected: [4]u32 = undefined;
+        for (0..4) |j| expected[j] = @intCast((sum[j] + product[j]) % modulus);
+        value.* = QM31.fromU32Unchecked(expected[0], expected[1], expected[2], expected[3]);
+    }
+    try expectValuesDigest("012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec", reference);
+    for (reference, actual, 0..) |*expected_value, *value, i| {
+        const left = &input[2 * i];
+        const right = &input[2 * i + 1];
+        const x = [_]u64{ left.c0.a.v, left.c0.b.v, left.c1.a.v, left.c1.b.v };
+        const y = [_]u64{ right.c0.a.v, right.c0.b.v, right.c1.a.v, right.c1.b.v };
+        const oracle = [_]u64{ expected_value.c0.a.v, expected_value.c0.b.v, expected_value.c1.a.v, expected_value.c1.b.v };
+        var sum_words: [4]u32 = undefined;
+        var difference_words: [4]u32 = undefined;
+        var scaled_words: [4]u32 = undefined;
+        var product_words: [4]u32 = undefined;
+        for (0..4) |j| {
+            sum_words[j] = @intCast((x[j] + y[j]) % modulus);
+            difference_words[j] = @intCast((x[j] + modulus - y[j]) % modulus);
+            scaled_words[j] = @intCast(@as(u64, difference_words[j]) * inverses[i] % modulus);
+            product_words[j] = @intCast((oracle[j] + modulus - sum_words[j]) % modulus);
+        }
+        const point = domain.at(stwo_core.utils.bitReverseIndex(i << 1, domain.logSize()));
+        const inverse = try point.y.inv();
+        try std.testing.expectEqual(inverses[i], inverse.v);
+        const sum = left.add(right.*);
+        try expectStage("addition", i, sum_words, &sum);
+        const difference = left.sub(right.*);
+        try expectStage("subtraction", i, difference_words, &difference);
+        const scaled = difference.mulM31(inverse);
+        try expectStage("base scaling", i, scaled_words, &scaled);
+        const b = [_]u64{ scaled_words[0], scaled_words[1], scaled_words[2], scaled_words[3] };
+        const ac = alpha.c0.mul(scaled.c0);
+        const bd = alpha.c1.mul(scaled.c1);
+        const cross = alpha.c0.add(alpha.c1).mul(scaled.c0.add(scaled.c1));
+        try expectComplexStage("complex ac", i, scalarComplex(a[0..2].*, b[0..2].*), ac);
+        try expectComplexStage("complex bd", i, scalarComplex(a[2..4].*, b[2..4].*), bd);
+        try expectComplexStage("complex cross", i, scalarComplex(
+            .{ (a[0] + a[2]) % modulus, (a[1] + a[3]) % modulus },
+            .{ (b[0] + b[2]) % modulus, (b[1] + b[3]) % modulus },
+        ), cross);
+        const product = alpha.mul(scaled);
+        try expectStage("extension product", i, product_words, &product);
+        var f0 = left.*;
+        var f1 = right.*;
+        stwo_core.fft.ibutterfly(QM31, &f0, &f1, inverse);
+        try expectStage("butterfly sum", i, sum_words, &f0);
+        try expectStage("butterfly scaling", i, scaled_words, &f1);
+        const expected = [_]u32{ expected_value.c0.a.v, expected_value.c0.b.v, expected_value.c1.a.v, expected_value.c1.b.v };
+        const stored = [_]u32{ value.c0.a.v, value.c0.b.v, value.c1.a.v, value.c1.b.v };
+        if (!std.mem.eql(u32, &expected, &stored)) std.debug.print("FRI integer differential index={d}\n", .{i});
+        try std.testing.expectEqualSlices(u32, &expected, &stored);
+        try std.testing.expectEqualSlices(u32, &stored, &@import("stwo_circuit_frontend").builder.ivalue.limbs(value.*));
+    }
+}
+
+fn expectComplexStage(label: []const u8, index: usize, expected: [2]u64, value: stwo_core.fields.cm31.CM31) !void {
+    const words = [_]u32{ @intCast(expected[0]), @intCast(expected[1]), 0, 0 };
+    const extended = QM31{ .c0 = value, .c1 = stwo_core.fields.cm31.CM31.zero() };
+    try expectStage(label, index, words, &extended);
+}
+
+fn expectStage(label: []const u8, index: usize, expected: [4]u32, value: *const QM31) !void {
+    const stored = [_]u32{ value.c0.a.v, value.c0.b.v, value.c1.a.v, value.c1.b.v };
+    if (!std.mem.eql(u32, &expected, &stored)) std.debug.print("FRI stage={s} index={d}\n", .{ label, index });
+    try std.testing.expectEqualSlices(u32, &expected, &stored);
+}
+
+const modulus: u64 = 2147483647;
+fn scalarProduct(a: [4]u64, b: [4]u64) [4]u64 {
+    // (a0+a1*i) + (a2+a3*i)*u, with i^2=-1 and u^2=2+i.
+    const ac = scalarComplex(a[0..2].*, b[0..2].*);
+    const bd = scalarComplex(a[2..4].*, b[2..4].*);
+    const cross = scalarComplex(.{ (a[0] + a[2]) % modulus, (a[1] + a[3]) % modulus }, .{ (b[0] + b[2]) % modulus, (b[1] + b[3]) % modulus });
+    return .{
+        (ac[0] + 2 * bd[0] + modulus - bd[1]) % modulus,
+        (ac[1] + 2 * bd[1] + bd[0]) % modulus,
+        (cross[0] + 2 * modulus - ac[0] - bd[0]) % modulus,
+        (cross[1] + 2 * modulus - ac[1] - bd[1]) % modulus,
+    };
+}
+
+fn scalarComplex(a: [2]u64, b: [2]u64) [2]u64 {
+    return .{ (a[0] * b[0] % modulus + modulus - a[1] * b[1] % modulus) % modulus, (a[0] * b[1] % modulus + a[1] * b[0] % modulus) % modulus };
 }

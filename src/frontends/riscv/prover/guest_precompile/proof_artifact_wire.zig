@@ -97,7 +97,7 @@ fn encodeStatementFor(comptime blake3: bool, writer: anytype, statement: *const 
         return error.InvalidComponentCount;
     }
     try statement.public_data.validate();
-    if (blake3 and statement.x0_local_custody_version > @import("../../air/x0_local_custody_v1.zig").VERSION)
+    if (blake3 and statement.x0_local_custody_version > @import("../../air/x0_local_custody.zig").VERSION)
         return error.InvalidStatement;
     try validateIoResources(&statement.public_data, limits);
 
@@ -266,7 +266,7 @@ fn decodeStatementFor(comptime blake3: bool, allocator: std.mem.Allocator, bytes
     result.public_data = public;
     if (blake3 and cursor.position != bytes.len) {
         result.x0_local_custody_version = try cursor.readInt(u32);
-        if (result.x0_local_custody_version != @import("../../air/x0_local_custody_v1.zig").VERSION)
+        if (result.x0_local_custody_version != @import("../../air/x0_local_custody.zig").VERSION)
             return error.InvalidStatement;
     }
     try cursor.requireDone();

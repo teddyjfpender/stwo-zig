@@ -7,13 +7,13 @@ import re
 import unittest
 from pathlib import Path
 
-from scripts import air_uniqueness
-from scripts.air_uniqueness_lib import smtlib, solve
-from scripts.riscv_air_ir_lib import ir, tables
+from scripts.riscv import air_uniqueness
+from scripts.riscv.air_uniqueness_lib import smtlib, solve
+from scripts.riscv.riscv_air_ir_lib import ir, tables
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "air_uniqueness"
-SCHEMA_ZIG = ROOT / "src/frontends/riscv/air/lookups/tables/schema.zig"
+SCHEMA_ZIG = ROOT / "src/frontends/riscv/air/lookups/tables/schema_definition.zig"
 ENTRY_ZIG = ROOT / "src/frontends/riscv/air/lookups/entry.zig"
 UNDER_CONSTRAINED = FIXTURES / "sign_load_underconstrained.json"
 FIXED = FIXTURES / "sign_load_fixed.json"
@@ -29,8 +29,12 @@ except ModuleNotFoundError:  # pragma: no cover - environment dependent
 needs_z3 = unittest.skipUnless(HAVE_Z3, "z3 bindings are absent")
 
 
-def _zig_switch_arms(text: str, function: str) -> dict[str, int]:
+def _zig_switch_arms(text: str, function: str, facade: str | None = None) -> dict[str, int]:
     """Read `.member => literal,` arms out of one Zig switch function."""
+    if facade is not None:
+        for fragment in ('const definition = @import("schema_definition.zig");',
+                         f"pub const {function} = definition.{function};"):
+            assert facade.count(fragment) == 1, "schema definition reexport changed"
     body = re.search(rf"pub fn {function}\(.*?\n\}}", text, re.S)
     assert body is not None, f"{function} not found"
     arms: dict[str, int] = {}
@@ -46,9 +50,10 @@ class ZigTableTranscriptionTest(unittest.TestCase):
     """The Python table schema must remain tied to its Zig protocol owner."""
 
     def test_box_widths_match_schema_log_sizes_and_arities(self) -> None:
+        facade = SCHEMA_ZIG.with_name("schema.zig").read_text(encoding="utf-8")
         text = SCHEMA_ZIG.read_text(encoding="utf-8")
-        log_sizes = _zig_switch_arms(text, "logSize")
-        arities = _zig_switch_arms(text, "arity")
+        log_sizes = _zig_switch_arms(text, "logSize", facade)
+        arities = _zig_switch_arms(text, "arity", facade)
         self.assertEqual(
             set(log_sizes), set(tables.BOX_TABLES) | {tables.BITWISE_DOMAIN}
         )
@@ -59,6 +64,16 @@ class ZigTableTranscriptionTest(unittest.TestCase):
         lhs, rhs, _value, op = tables.BITWISE_WIDTHS
         self.assertEqual(lhs + rhs + op, log_sizes[tables.BITWISE_DOMAIN])
         self.assertEqual(arities[tables.BITWISE_DOMAIN], 4)
+
+    def test_schema_reexports_fail_closed(self) -> None:
+        text = SCHEMA_ZIG.read_text(encoding="utf-8")
+        facade = SCHEMA_ZIG.with_name("schema.zig").read_text(encoding="utf-8")
+        for function in ("logSize", "arity"):
+            for fragment in ('const definition = @import("schema_definition.zig");',
+                             f"pub const {function} = definition.{function};"):
+                for replacement in ("", fragment + fragment):
+                    with self.subTest(function=function, fragment=fragment, replacement=replacement), self.assertRaises(AssertionError):
+                        _zig_switch_arms(text, function, facade.replace(fragment, replacement, 1))
 
     def test_relation_domains_and_arities_match_entry_zig(self) -> None:
         text = ENTRY_ZIG.read_text(encoding="utf-8")

@@ -1,8 +1,0 @@
-GPU_COMPOSITION_ARENA ordinal=20 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
-GPU_COMPOSITION_ARENA ordinal=20 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
-GPU_COMPOSITION_ARENA ordinal=20 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
-GPU_COMPOSITION_OWNERSHIP ordinal=20 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
-GPU_COMPOSITION_TIMING ordinal=20 coefficient_stream_ms=0.006 auxiliary_ms=0.000 domain_fft_ms=66.166 rows_ms=20.362 finalize_ms=9.650 commit_fft_ms=2.896 commit_hash_ms=2.397 gpu_enqueued_kernel_span
-GPU_PCS_NATIVE prepare_ns=1045608 device_ns=144200256 total_ns=155565909 device_bytes=8317444260 retained_bytes=17451511140 coefficient_cells=1849232384 reused_columns=0 reused_cells=0 host_geometry_h
-info: rv64 OM31 pipelined recursion done: dag_wall_ns=14402826827 lane_device_stage_occupancy=0.628
-error: ImmutableSetupStillBorrowed

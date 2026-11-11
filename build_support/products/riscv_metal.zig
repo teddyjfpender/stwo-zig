@@ -4,35 +4,35 @@
 //! program:
 //!
 //!   * `stwo-zig-riscv-metal` — the production proof CLI, built from
-//!     `src/products/riscv_metal/main.zig`. It binds the engine-generic proof
+//!     `src/products/riscv/metal/main.zig`. It binds the engine-generic proof
 //!     adapter (`src/integrations/riscv_cpu/proof_adapter.zig`) to
 //!     `MetalProverEngine` through the shared product shell, so it speaks the
 //!     same `prove`/`bench`/`verify`/`applications` contract as
 //!     `stwo-zig-riscv-cpu` with `--backend metal` instead of `--backend cpu`.
 //!   * `riscv-metal-bench` — the benchmark CLI, still built from
-//!     `src/riscv_metal_bench_cli.zig`. Until this change that program was also
+//!     `src/products/riscv/tools/bench/metal_main.zig`. Until this change that program was also
 //!     installed under the `stwo-zig-riscv-metal` name; consumers of the *bench*
 //!     argv shape (`--elf X --production --profile`) must use
 //!     `riscv-metal-bench`.
 //!
-//! Injected module-name contract for `src/products/riscv_metal/*` (mirrors
+//! Injected module-name contract for `src/products/riscv/metal/*` (mirrors
 //! `riscv_cpu.zig` so the shared shell files compile unchanged in both
 //! products):
 //!
 //!   | module name              | source                                        |
 //!   |--------------------------|-----------------------------------------------|
-//!   | `stwo`, `stwo_riscv_metal` | `src/products/riscv_metal/root.zig`         |
+//!   | `stwo`, `stwo_riscv_metal` | `src/products/riscv/metal/root.zig`         |
 //!   | `riscv_adapter`          | `src/integrations/riscv_cpu/proof_adapter.zig`|
-//!   | `riscv_capabilities`     | `src/products/riscv_metal/capabilities.zig`   |
+//!   | `riscv_capabilities`     | `src/products/riscv/metal/capabilities.zig`   |
 //!   | `riscv_cpu_capabilities` | the same file, under the name the shared       |
 //!   |                          | adapter hard-codes                            |
-//!   | `riscv_shared_{app,cli,registry}` | `src/products/riscv_shared/*.zig`    |
-//!   | `output_transaction`     | `src/interop/output_transaction.zig`          |
-//!   | `interop_postcard`       | `src/interop/postcard.zig`                    |
-//!   | `interop_riscv_artifact` | `src/interop/riscv_artifact.zig`              |
+//!   | `riscv_shared_{app,cli,registry}` | `src/products/riscv/shared/*.zig`    |
+//!   | `output_transaction`     | `src/support/io/output_transaction.zig`          |
+//!   | `interop_postcard`       | `src/waist/recursion_wire/postcard/mod.zig`                    |
+//!   | `interop_riscv_artifact` | `src/products/riscv/artifact/mod.zig`              |
 //!
 //! The two `interop_*` names, and the absence of a third for
-//! `src/interop/atomic_file.zig`, both follow from Zig 0.15's module rules;
+//! `src/support/io/atomic_file.zig`, both follow from Zig 0.15's module rules;
 //! `addInteropImports` below carries that explanation in full.
 
 const std = @import("std");
@@ -58,32 +58,33 @@ const product = graph.Product{
 
 const source_closure = product_policy.SourceClosure{
     .entry_roots = &.{
-        "src/products/riscv_metal/main.zig",
-        "src/riscv_metal_bench_cli.zig",
-        "src/products/riscv_metal/root.zig",
+        "src/products/riscv/metal/main.zig",
+        "src/products/riscv/tools/bench/metal_main.zig",
+        "src/products/riscv/metal/root.zig",
         "src/integrations/riscv_metal/mod.zig",
-        "src/tests/riscv/metal_backend_test.zig",
-        "src/tests/riscv/recursive_framework_aot_test.zig",
-        "src/tests/riscv/recursive_framework_resident_test.zig",
+        "src/products/riscv/cpu/tests/metal_backend_test.zig",
+        "src/products/riscv/cpu/tests/recursive_framework_aot_test.zig",
+        "src/products/riscv/cpu/tests/recursive_framework_resident_test.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
-        .{ .name = "stwo", .source = "src/products/riscv_metal/root.zig" },
-        .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
-        .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo", .source = "src/products/riscv/metal/root.zig" },
+        .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
+        .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
-        .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
-        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
-        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_proof_wire", .source = "src/waist/proof_wire/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/waist/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/engine/prover/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
-        .{ .name = "stwo_riscv_metal", .source = "src/products/riscv_metal/root.zig" },
+        .{ .name = "stwo_riscv_metal", .source = "src/products/riscv/metal/root.zig" },
         .{ .name = "stwo_riscv_metal_integration", .source = "src/integrations/riscv_metal/mod.zig" },
         .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
-        .{ .name = "riscv_capabilities", .source = "src/products/riscv_metal/capabilities.zig" },
-        .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_metal/capabilities.zig" },
-        .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
-        .{ .name = "interop_postcard", .source = "src/interop/postcard.zig" },
-        .{ .name = "interop_riscv_artifact", .source = "src/interop/riscv_artifact.zig" },
+        .{ .name = "riscv_capabilities", .source = "src/products/riscv/metal/capabilities.zig" },
+        .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv/metal/capabilities.zig" },
+        .{ .name = "output_transaction", .source = "src/support/io/output_transaction.zig" },
+        .{ .name = "interop_postcard", .source = "src/waist/recursion_wire/postcard/mod.zig" },
+        .{ .name = "interop_riscv_artifact", .source = "src/products/riscv/artifact/mod.zig" },
+        .{ .name = "atomic_file", .source = "src/support/io/atomic_file.zig" },
     } ++ shared_shell.shell_named_imports),
     .generated_imports = &.{
         "build_identity",
@@ -96,33 +97,33 @@ const source_closure = product_policy.SourceClosure{
         "typed_air_h010_artifacts",
     },
     .allowed_files = &.{
-        "src/riscv_metal_bench_cli.zig",
-        "src/products/riscv_metal/root.zig",
-        "src/tests/riscv/metal_backend_test.zig",
-        "src/tests/riscv/recursive_framework_aot_test.zig",
-        "src/tests/riscv/recursive_framework_resident_test.zig",
-        "src/interop/atomic_file.zig",
-        "src/interop/output_transaction.zig",
-        "src/interop/postcard.zig",
-        "src/interop/proof_wire/mod.zig",
-        "src/interop/proof_wire/family.zig",
-        "src/interop/riscv_artifact.zig",
+        "src/products/riscv/tools/bench/metal_main.zig",
+        "src/products/riscv/metal/root.zig",
+        "src/products/riscv/cpu/tests/metal_backend_test.zig",
+        "src/products/riscv/cpu/tests/recursive_framework_aot_test.zig",
+        "src/products/riscv/cpu/tests/recursive_framework_resident_test.zig",
+        "src/support/io/atomic_file.zig",
+        "src/support/io/output_transaction.zig",
+        "src/waist/recursion_wire/postcard/mod.zig",
+        "src/waist/proof_wire/mod.zig",
+        "src/waist/proof_wire/family.zig",
+        "src/products/riscv/artifact/mod.zig",
     },
     .allowed_prefixes = &.{
-        "src/core",
-        "src/backend",
+        "src/waist/core",
+        "src/waist/backend",
         "src/backends/metal",
         "src/backends/cpu_scalar", // Device-independent full-width verifier key derivation.
-        "src/prover",
-        "src/prover_api",
+        "src/engine/prover",
+        "src/waist/prover_api",
         "src/frontends/riscv",
         "src/integrations/riscv_cpu",
         "src/integrations/riscv_metal",
-        "src/interop/postcard",
-        "src/interop/riscv_artifact",
-        "src/products/riscv_metal",
-        "src/products/riscv_shared",
-        "src/tools/riscv",
+        "src/waist/recursion_wire/postcard",
+        "src/products/riscv/artifact",
+        "src/products/riscv/metal",
+        "src/products/riscv/shared",
+        "src/products/riscv/tools",
     },
     .required_dynamic_dependencies = &.{
         "Metal.framework",
@@ -217,7 +218,7 @@ pub fn addProduct(context: Context) void {
 
     const csp_benchmark = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/riscv_csp_benchmark.py",
+        "scripts/riscv/riscv_csp_benchmark.py",
         "--backend",
         "metal",
     });
@@ -235,7 +236,7 @@ pub fn addProduct(context: Context) void {
             context,
             product,
             benchmark_product,
-            "src/riscv_metal_bench_cli.zig",
+            "src/products/riscv/tools/bench/metal_main.zig",
         ),
         descriptor.benchmark_step.?,
         "Build the compatible RV32IM Metal benchmark",
@@ -246,7 +247,7 @@ pub fn addProduct(context: Context) void {
         context,
         product,
         riscv_metal_modules.roleProduct(product, .@"test"),
-        "src/tests/riscv/recursive_framework_aot_test.zig",
+        "src/products/riscv/cpu/tests/recursive_framework_aot_test.zig",
     );
     const recursive_aot_tests = context.b.addTest(.{
         .root_module = recursive_aot_module,
@@ -259,7 +260,7 @@ pub fn addProduct(context: Context) void {
         context,
         product,
         riscv_metal_modules.roleProduct(product, .@"test"),
-        "src/tests/riscv/recursive_framework_resident_test.zig",
+        "src/products/riscv/cpu/tests/recursive_framework_resident_test.zig",
     );
     const recursive_resident_tests = context.b.addTest(.{
         .root_module = recursive_resident_module,
@@ -282,7 +283,7 @@ pub fn addProduct(context: Context) void {
         context,
         product,
         riscv_metal_modules.roleProduct(product, .@"test"),
-        "src/tests/riscv/metal_backend_test.zig",
+        "src/products/riscv/cpu/tests/metal_backend_test.zig",
     );
     proof_test_module.addOptions(
         "metal_aot_config",
@@ -290,7 +291,7 @@ pub fn addProduct(context: Context) void {
     );
     const lookup_v2_test_backend = context.b.createModule(.{
         .root_source_file = context.b.path(
-            "src/integrations/riscv_metal/lookup_v2_test_backend.zig",
+            "src/integrations/riscv_metal/lookup_test_backend.zig",
         ),
         .target = context.target,
         .optimize = context.optimize,
@@ -310,7 +311,7 @@ pub fn addProduct(context: Context) void {
     );
     const lookup_v2_proof_test = context.b.createModule(.{
         .root_source_file = context.b.path(
-            "src/integrations/riscv_cpu/lookup_v2_native_proof_test.zig",
+            "src/integrations/riscv_cpu/lookup_native_proof_test.zig",
         ),
         .target = context.target,
         .optimize = context.optimize,
@@ -448,13 +449,13 @@ test "descriptor requires Metal and explicitly excludes CUDA" {
 
 test "the installed CLI is the production shell and the bench keeps its own name" {
     try std.testing.expectEqualStrings(
-        "src/products/riscv_metal/main.zig",
+        "src/products/riscv/metal/main.zig",
         source_closure.entry_roots[0],
     );
     try std.testing.expectEqualStrings("riscv-metal-bench", descriptor.benchmark_step.?);
     var bench_cli_declared = false;
     for (source_closure.entry_roots) |root| {
-        if (std.mem.eql(u8, root, "src/riscv_metal_bench_cli.zig")) bench_cli_declared = true;
+        if (std.mem.eql(u8, root, "src/products/riscv/tools/bench/metal_main.zig")) bench_cli_declared = true;
     }
     try std.testing.expect(bench_cli_declared);
 }
@@ -462,10 +463,10 @@ test "the installed CLI is the production shell and the bench keeps its own name
 test "the shared adapter and shell arrive under the CPU product's module names" {
     const expected = [_]product_policy.NamedImport{
         .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
-        .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_metal/capabilities.zig" },
-        .{ .name = "riscv_shared_app", .source = "src/products/riscv_shared/app.zig" },
-        .{ .name = "riscv_shared_cli", .source = "src/products/riscv_shared/cli.zig" },
-        .{ .name = "riscv_shared_registry", .source = "src/products/riscv_shared/registry.zig" },
+        .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv/metal/capabilities.zig" },
+        .{ .name = "riscv_shared_app", .source = "src/products/riscv/shared/app.zig" },
+        .{ .name = "riscv_shared_cli", .source = "src/products/riscv/shared/cli.zig" },
+        .{ .name = "riscv_shared_registry", .source = "src/products/riscv/shared/registry.zig" },
     };
     for (expected) |want| {
         var found = false;

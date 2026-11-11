@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from opstack.cpu import measured
-from scripts.riscv64_csp_compare import elf_info
+from scripts.rv64.riscv64_csp_compare import elf_info
 
 MODULUS = int("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", 16)
 N = 4096

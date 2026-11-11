@@ -21,7 +21,7 @@ fn size(memories: usize, programs: usize, limits: Limits) !usize {
 }
 pub fn encode(a: std.mem.Allocator, plan: *const plans.Plan, expected: [32]u8, limits: Limits) ![]u8 {
     if (plan.program_schedule == .sparse_active)
-        return @import("blake3_sparse_commitment_plan_codec_v2.zig").encode(a, plan, expected, limits);
+        return @import("blake3_sparse_commitment_plan_codec.zig").encode(a, plan, expected, limits);
     _ = try plans.Admission.init(plan, expected);
     const raw = try a.alloc(u8, try size(plan.memories.len, plan.programs.len, limits));
     errdefer a.free(raw);
@@ -50,8 +50,8 @@ pub fn encode(a: std.mem.Allocator, plan: *const plans.Plan, expected: [32]u8, l
     return raw;
 }
 pub fn decode(a: std.mem.Allocator, raw: []const u8, expected: [32]u8, limits: Limits) !plans.Plan {
-    if (raw.len >= 8 and std.mem.eql(u8, raw[0..8], @import("blake3_sparse_commitment_plan_codec_v2.zig").MAGIC))
-        return @import("blake3_sparse_commitment_plan_codec_v2.zig").decode(a, raw, expected, limits);
+    if (raw.len >= 8 and std.mem.eql(u8, raw[0..8], @import("blake3_sparse_commitment_plan_codec.zig").MAGIC))
+        return @import("blake3_sparse_commitment_plan_codec.zig").decode(a, raw, expected, limits);
     if (raw.len > limits.max_bytes) return error.CommitmentPlanResourceLimit;
     if (raw.len < HEADER_BYTES) return error.TruncatedCommitmentPlan;
     if (!std.mem.eql(u8, raw[0..8], MAGIC) or std.mem.readInt(u32, raw[8..12], .little) != plans.VERSION) return error.InvalidCommitmentPlanVersion;

@@ -1,5 +1,5 @@
 const std = @import("std");
-const core = @import("core");
+const core = @import("stwo_core");
 const M = core.fields.m31.M31;
 const H = core.vcs_lifted.poseidon2_profile.Om31V2.MerkleHasher;
 const B = core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;

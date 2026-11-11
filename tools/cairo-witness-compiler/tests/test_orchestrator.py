@@ -4,6 +4,7 @@ import hashlib
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import sys
 
@@ -42,6 +43,59 @@ class OrchestratorTests(unittest.TestCase):
             1_600_000_000
             + int.from_bytes(bytes.fromhex(identity)[:4], "little") % 300_000_000,
         )
+
+    def test_export_overlay_preserves_modules_and_non_registry_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            staged = Path(raw)
+            root = staged / "crates/prover/src"
+            (root / "witness").mkdir(parents=True)
+            lib = root / "lib.rs"
+            registry = root / "witness/mod.rs"
+            lib.write_text(
+                "#![feature(portable_simd)]\npub use stwo;\n"
+                "pub mod prover;\npub mod witness;\n"
+            )
+            registry.write_text(
+                "pub mod components;\nmod jit_flat_macros;\npub mod recording_export;\n"
+            )
+            sentinel = root / "witness/retained_test.rs"
+            sentinel.write_bytes(b"#[test] fn retained() {}\n")
+            originals = {p: p.read_bytes() for p in (lib, registry)}
+            with patch.multiple(
+                orchestrator,
+                OFFICIAL_LIB_SHA256=hashlib.sha256(originals[lib]).hexdigest(),
+                INSTALLED_WITNESS_MOD_SHA256=hashlib.sha256(originals[registry]).hexdigest(),
+            ):
+                orchestrator._isolate_recording_export(staged)
+            for path, original in originals.items():
+                self.assertEqual(
+                    original.replace(b"pub mod ", b"mod "),
+                    path.read_bytes().replace(b"pub mod ", b"mod ").replace(
+                        b"pub(crate) mod ", b"mod "
+                    ),
+                )
+            self.assertIn("pub mod witness;\n", lib.read_text())
+            self.assertNotIn("pub mod prover;\n", lib.read_text())
+            self.assertEqual(
+                registry.read_text().splitlines(),
+                ["pub(crate) mod components;", "mod jit_flat_macros;", "pub mod recording_export;"],
+            )
+            self.assertEqual(sentinel.read_bytes(), b"#[test] fn retained() {}\n")
+
+    def test_export_overlay_rejects_either_registry_before_any_write(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            staged = Path(raw)
+            root = staged / "crates/prover/src"
+            (root / "witness").mkdir(parents=True)
+            lib, registry = root / "lib.rs", root / "witness/mod.rs"
+            lib.write_bytes(b"pub mod witness;\n")
+            registry.write_bytes(b"pub mod unexpected;\n")
+            originals = {p: p.read_bytes() for p in (lib, registry)}
+            for lib_hash in ("wrong", hashlib.sha256(originals[lib]).hexdigest()):
+                with patch.object(orchestrator, "OFFICIAL_LIB_SHA256", lib_hash):
+                    with self.assertRaisesRegex(RuntimeError, "registry hash mismatch"):
+                        orchestrator._isolate_recording_export(staged)
+                self.assertEqual(originals, {p: p.read_bytes() for p in originals})
 
     def test_publish_is_atomic_and_never_replaces(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

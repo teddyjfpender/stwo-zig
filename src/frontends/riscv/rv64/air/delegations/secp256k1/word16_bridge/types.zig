@@ -1,7 +1,7 @@
 const std = @import("std");
 const E = @import("../../../evaluation.zig");
 const R = @import("../../../memory/closed_ram/mod.zig");
-const Owner = @import("../../../memory/load_store_v2/types.zig");
+const Owner = @import("../../../memory/load_store/types.zig");
 const S = @import("../../../providers/scalar_range.zig");
 const P = @import("../program.zig");
 const L = @import("layout.zig");
@@ -97,7 +97,7 @@ pub fn outputWire(kind: Kind, coord: usize) u32 {
     };
 }
 pub fn validateGeometry(kind: Kind, calls: usize, first_id: u32, log: u32) !usize {
-    const n = try @import("../../../memory/load_store_v2/source.zig").sizeForLog(log);
+    const n = try @import("../../../memory/load_store/source.zig").sizeForLog(log);
     if (calls > (n - 1) / coordinates(kind) or first_id == 0 or first_id >= @import("stwo_core").fields.m31.Modulus or calls > @import("stwo_core").fields.m31.Modulus - first_id) return error.InvalidWord16SecpGeometry;
     if (L.U16.len * @as(u64, n) >= @import("stwo_core").fields.m31.Modulus or L.U8.len * @as(u64, n) >= @import("stwo_core").fields.m31.Modulus) return error.Word16SecpMassBound;
     return n;

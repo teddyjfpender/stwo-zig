@@ -12,7 +12,7 @@ const secp_trace = @import("../../air/guest_precompile/secp256k1_component_trace
 const component_order = @import("../../air/component_order.zig");
 const merkle_node = @import("../../air/memory_commitment/merkle_node.zig");
 const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest_v2.zig");
+const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
 const program_commitment = @import("../../air/program/commitment.zig");
 const base_statement = @import("../../air/statement.zig");
 const statement_v2 = @import("../../air/statement_v2.zig");
@@ -22,7 +22,7 @@ const trace_mod = @import("../../runner/trace.zig");
 const proof_workspace = @import("../proof_workspace.zig");
 const relations_mod = @import("ethereum_transcript.zig");
 const types = @import("ethereum_types.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit_v1.zig");
+const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
 
 pub const Direction = enum { prover, verifier };
 pub const extension_component_count: usize = statement_mod.component_count;
@@ -103,7 +103,7 @@ pub fn Assembly(comptime direction: Direction) type {
             claim: *const types.ExtensionClaim,
             manifest: *const lookup_physical_v2.Manifest,
             authenticated: *const lookup_physical_v2.AuthenticatedStatement,
-            circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+            circuit_profile: @import("../ethereum_circuit_profile.zig").CircuitProfileV1,
         ) !*Self {
             try extension.validateV2WithCircuitProfileV1(native, circuit_profile);
             const core = &native.core;
@@ -161,7 +161,7 @@ pub fn Assembly(comptime direction: Direction) type {
             base: []const Handle,
             claim: *const types.ExtensionClaim,
             base_interaction_columns: usize,
-            circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+            circuit_profile: @import("../ethereum_circuit_profile.zig").CircuitProfileV1,
         ) !*Self {
             try extension.validateStructure(core);
             try claim.validate(extension);
@@ -226,7 +226,7 @@ pub fn Assembly(comptime direction: Direction) type {
         /// occupy these roots; program/memory/machine requests remain open for
         /// the common B5SS global providers. No native or custody offset enters
         /// this component placement.
-        fn createPlaced(allocator: std.mem.Allocator, extension: *const statement_mod.Statement, relations: *const relations_mod.Relations, base: []const Handle, claim: *const types.ExtensionClaim, placements: Placements, circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1) !*Self {
+        fn createPlaced(allocator: std.mem.Allocator, extension: *const statement_mod.Statement, relations: *const relations_mod.Relations, base: []const Handle, claim: *const types.ExtensionClaim, placements: Placements, circuit_profile: @import("../ethereum_circuit_profile.zig").CircuitProfileV1) !*Self {
             try claim.validate(extension);
             if (base.len > proof_workspace.MAX_COMPONENT_HANDLES) return error.TooManyComponentHandles;
             const self = try allocator.create(Self);

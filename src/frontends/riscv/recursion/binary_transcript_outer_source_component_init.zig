@@ -1,32 +1,31 @@
 //! Typed component construction for binary transcript rows.
 
-const air = @import("air/mod.zig");
-const adapter = air.universal_typed_component;
-const binding = air.universal_relation_binding;
-const manifest_mod = air.universal_adapter_manifest;
-const universal = air.universal_challenges;
+const adapter = @import("air/universal_typed_component.zig");
+const binding = @import("air/universal_relation_binding.zig");
+const manifest_mod = @import("air/universal_adapter_manifest.zig");
+const universal = @import("air/universal_challenges.zig");
 
-const ControlRelation = binding.Binding(air.control);
-const TranscriptAirRelation = binding.Binding(air.transcript_air);
-const TranscriptBindingRelation = binding.Binding(air.transcript_binding);
-const TranscriptStateRelation = binding.Binding(air.transcript_state);
-const TranscriptWordRelation = binding.Binding(air.transcript_word);
-const TranscriptPayloadRelation = binding.Binding(air.transcript_payload);
-const PowCheckRelation = binding.Binding(air.pow_check);
-const PowFrameRelation = binding.Binding(air.pow_frame);
-const RelationChallengeRelation = binding.Binding(air.relation_challenge);
-const VerifierRandomnessRelation = binding.Binding(air.verifier_randomness);
+const ControlRelation = binding.Binding(@import("air/control.zig"));
+const TranscriptAirRelation = binding.Binding(@import("air/transcript_air.zig"));
+const TranscriptBindingRelation = binding.Binding(@import("air/transcript_binding.zig"));
+const TranscriptStateRelation = binding.Binding(@import("air/transcript_state.zig"));
+const TranscriptWordRelation = binding.Binding(@import("air/transcript_word.zig"));
+const TranscriptPayloadRelation = binding.Binding(@import("air/transcript_payload.zig"));
+const PowCheckRelation = binding.Binding(@import("air/pow_check.zig"));
+const PowFrameRelation = binding.Binding(@import("air/pow_frame.zig"));
+const RelationChallengeRelation = binding.Binding(@import("air/relation_challenge.zig"));
+const VerifierRandomnessRelation = binding.Binding(@import("air/verifier_randomness.zig"));
 
-const ControlAdapter = adapter.Component(air.control, ControlRelation);
-const TranscriptAirAdapter = adapter.Component(air.transcript_air, TranscriptAirRelation);
-const TranscriptBindingAdapter = adapter.Component(air.transcript_binding, TranscriptBindingRelation);
-const TranscriptStateAdapter = adapter.Component(air.transcript_state, TranscriptStateRelation);
-const TranscriptWordAdapter = adapter.Component(air.transcript_word, TranscriptWordRelation);
-const TranscriptPayloadAdapter = adapter.Component(air.transcript_payload, TranscriptPayloadRelation);
-const PowCheckAdapter = adapter.Component(air.pow_check, PowCheckRelation);
-const PowFrameAdapter = adapter.Component(air.pow_frame, PowFrameRelation);
-const RelationChallengeAdapter = adapter.Component(air.relation_challenge, RelationChallengeRelation);
-const VerifierRandomnessAdapter = adapter.Component(air.verifier_randomness, VerifierRandomnessRelation);
+const ControlAdapter = adapter.Component(@import("air/control.zig"), ControlRelation);
+const TranscriptAirAdapter = adapter.Component(@import("air/transcript_air.zig"), TranscriptAirRelation);
+const TranscriptBindingAdapter = adapter.Component(@import("air/transcript_binding.zig"), TranscriptBindingRelation);
+const TranscriptStateAdapter = adapter.Component(@import("air/transcript_state.zig"), TranscriptStateRelation);
+const TranscriptWordAdapter = adapter.Component(@import("air/transcript_word.zig"), TranscriptWordRelation);
+const TranscriptPayloadAdapter = adapter.Component(@import("air/transcript_payload.zig"), TranscriptPayloadRelation);
+const PowCheckAdapter = adapter.Component(@import("air/pow_check.zig"), PowCheckRelation);
+const PowFrameAdapter = adapter.Component(@import("air/pow_frame.zig"), PowFrameRelation);
+const RelationChallengeAdapter = adapter.Component(@import("air/relation_challenge.zig"), RelationChallengeRelation);
+const VerifierRandomnessAdapter = adapter.Component(@import("air/verifier_randomness.zig"), VerifierRandomnessRelation);
 
 pub fn init(
     self: anytype,

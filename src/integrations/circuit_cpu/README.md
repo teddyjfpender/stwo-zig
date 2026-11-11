@@ -4,7 +4,7 @@
 stage on the CPU backend: the Zig port of `crates/circuit_prover` of
 [starkware-libs/proving](https://github.com/starkware-libs/proving) at
 commit `5a7c5ede4299c91a61df19a07cba4f7502c14230` (milestone M7 of the
-[recursion design](../../../design/starknet-proving-pipeline/recursion/02-design.md),
+[recursion design](../../../design/starknet/recursion/02-design.md),
 §4). Given a finalized circuit's value table and its preprocessed circuit, it
 produces the same proof bytes as upstream `prove_circuit_assignment`, on
 either channel profile, and converts the proof into the in-circuit verifier's
@@ -15,7 +15,7 @@ prover, `recursion` folds leaf proofs into a root exactly as
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `integration` |
 | Owner | `circuit-cpu-integration` |
 | Public Zig module | `stwo_circuit_cpu_integration` |
@@ -67,6 +67,8 @@ The integration owns only composition:
 
 ## Public API
 
+- `om31`: existing native OM31 program, proof, transcript and bounded wire authorities.
+
 ```zig
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
 
@@ -113,11 +115,13 @@ reduced to its value table (`Context.intoValues`), and the prover frees the
 base columns once the interaction trace is written.
 
 The product `stwo-circuit-recursion-cpu leaf-wrap`
-([README](../../products/circuit_recursion_cpu/README.md)) drives it; its
+([README](../../products/cairo/recursion/cpu/README.md)) drives it; its
 `circuit-parity-r8` rung requires the output file to equal upstream
 `leaf-prover`'s `expected_output.json` byte for byte.
 
 ## Dependencies
+
+- `stwo_proof_wire`: owned field-specific proof codecs used by OM31 transport.
 
 - `stwo_cairo_frontend`: the captured-AIR component and `STWZEVA/1` bundle
   reader (`proving.air.component`, `witness.composition_bundle`).
@@ -215,7 +219,7 @@ their upstream definitions (`vectors/circuit/official/registry_definitions`)
 with `recursion.circuit_params.generate` and compares them with the committed
 registries byte for byte, trailing newline included.
 
-The product `stwo-circuit-recursion-cpu` (`src/products/circuit_recursion_cpu`,
+The product `stwo-circuit-recursion-cpu` (`src/products/cairo/recursion/cpu`,
 `zig build stwo-circuit-recursion-cpu`) runs the leaf wrap and both of these
 from the command line, the last two with upstream's flags
 (`fold-tree --program_input ... --circuit_registry_json ...`,
@@ -298,7 +302,15 @@ milestone M11 work (design §9), not parity issues.
 
 ## Related documentation
 
-- [Recursion design](../../../design/starknet-proving-pipeline/recursion/02-design.md)
-- [Rust porting map](../../../design/starknet-proving-pipeline/recursion/01-rust-map.md)
+- [Recursion design](../../../design/starknet/recursion/02-design.md)
+- [Rust porting map](../../../design/starknet/recursion/01-rust-map.md)
 - [Circuit frontend](../../frontends/circuit/README.md)
 - [Circuit oracle](../../../tools/stwo-circuit-oracle-rs/README.md)
+
+RFC [#324](https://github.com/teddyjfpender/stwo-zig/issues/324) declares the
+existing OM31 CPU collaboration boundary. The circuit provider owns program,
+proof, wire and allocation teardown; the RISC-V consumer owns receiver policy,
+tree coverage and publication. Canonical package modules share field and engine
+identity. OM31 retains its existing **prefixed** Blake2s Merkle hasher and raw-mod
+transcript; the older circuit profiles retain their existing plain family.
+No hash family, wire bytes, profile admission or device qualification changes.

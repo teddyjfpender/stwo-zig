@@ -51,7 +51,7 @@ reasoning without making physical columns the source language.
 | Witness writers | [`runner/witness/`](../../src/frontends/riscv/runner/witness) | Equivalence oracle and retirement target |
 | Poseidon2 specialized AIR | [`poseidon2_air.zig`](../../src/frontends/riscv/air/memory_commitment/poseidon2_air.zig) | Pure materialization and component pilot |
 | Poseidon call collection | [`commitment_witness.zig`](../../src/frontends/riscv/prover/commitment_witness.zig) | Existing call-list pattern |
-| Component scheduling | [`component_parallel.zig`](../../src/prover/air/component_parallel.zig) | Existing heterogeneous quotient parallelism |
+| Component scheduling | [`component_parallel.zig`](../../src/engine/prover/air/component_parallel.zig) | Existing heterogeneous quotient parallelism |
 | Statement geometry | [`statement_geometry.zig`](../../src/frontends/riscv/prover/statement_geometry.zig) | Protocol layout integration point |
 | Component ordering | [`component_order.zig`](../../src/frontends/riscv/air/component_order.zig) | Canonical placement authority |
 

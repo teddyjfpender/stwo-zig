@@ -195,11 +195,11 @@ test "target support is compatibility policy, not product selection" {
         .executable = "stwo-zig-native-metal",
         .installed_artifacts = &.{"stwo-zig-native-metal"},
         .dependencies = .{
-            .module_roots = &.{"src/products/native_metal/main.zig"},
+            .module_roots = &.{"src/products/native/metal/main.zig"},
         },
         .source_closure = .{
-            .entry_roots = &.{"src/products/native_metal/main.zig"},
-            .allowed_prefixes = &.{"src/products/native_metal"},
+            .entry_roots = &.{"src/products/native/metal/main.zig"},
+            .allowed_prefixes = &.{"src/products/native/metal"},
         },
     };
     try descriptor.validate();

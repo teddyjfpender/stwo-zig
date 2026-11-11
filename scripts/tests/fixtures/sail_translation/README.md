@@ -11,7 +11,7 @@ theorem-backend file
 
 so there was nothing to capture. `execute_UTYPE.lean` and `execute_ITYPE.lean`
 are *reconstructions*: hand-written Lean text pinned to the literal strings that
-`scripts/riscv_refinement_lib/sail.py::_validate_semantic_shapes` already
+`scripts/riscv/riscv_refinement_lib/sail.py::_validate_semantic_shapes` already
 asserts must appear in the real generated definitions, plus the surrounding
 syntax those strings imply (a `def` header with binders, a monadic `do` body, a
 pure `let`, a monadic `let ... ←` holding the selector `match`, a `wX_bits`
@@ -39,7 +39,7 @@ operator spelling, or in how `zero_extend`/`bool_to_bits` are emitted.
 
 ## What the fixtures are therefore evidence for
 
-They exercise `scripts/riscv_refinement_lib/sail_translation.py`: that the
+They exercise `scripts/riscv/riscv_refinement_lib/sail_translation.py`: that the
 parser, the normalization pass, and the receipt are total on this syntax, that
 they extract the right observable effects, and above all that they **fail
 closed** on drift. They are evidence about the receipt machinery.

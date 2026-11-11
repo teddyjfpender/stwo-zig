@@ -68,7 +68,7 @@ jobs:
           test "$(jq -r .repository.id <<<"$run")" = "$GITHUB_REPOSITORY_ID"
           test "$(jq -r .actor.id <<<"$run")" = "$GITHUB_REPOSITORY_OWNER_ID"
           test "$(jq -r .triggering_actor.id <<<"$run")" = "$GITHUB_REPOSITORY_OWNER_ID"
-          python3 authority/scripts/architecture_external_authority.py validate-contract \
+          python3 authority/scripts/architecture/architecture_external_authority.py validate-contract \
             --candidate-root candidate \
             --candidate "$CANDIDATE_SHA" \
             --expected-job architecture-authority-session
@@ -120,7 +120,7 @@ jobs:
           attempt=$(jq -r .run_attempt "$RUNNER_TEMP/native-run.json")
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_ORACLE_RUN_ID/attempts/$attempt/jobs?per_page=100" > "$RUNNER_TEMP/native-jobs.json"
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_ORACLE_RUN_ID/artifacts?per_page=100" > "$RUNNER_TEMP/native-artifacts.json"
-          python3 authority/scripts/architecture_native_oracle_selection.py \
+          python3 authority/scripts/architecture/architecture_native_oracle_selection.py \
             --role linux \
             --run "$RUNNER_TEMP/native-run.json" \
             --jobs "$RUNNER_TEMP/native-jobs.json" \
@@ -132,12 +132,12 @@ jobs:
           artifact_id=$(jq -r .artifact_id "$RUNNER_TEMP/native-selection.json")
           digest=$(jq -r .artifact_digest "$RUNNER_TEMP/native-selection.json")
           gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$RUNNER_TEMP/native.zip"
-          python3 authority/scripts/architecture_ci_artifact.py extract-oracle-tar \
+          python3 authority/scripts/architecture/architecture_ci_artifact.py extract-oracle-tar \
             --archive "$RUNNER_TEMP/native.zip" \
             --output-dir "$RUNNER_TEMP/native-transport" \
             --member native-oracle-linux.tar \
             --digest "$digest"
-          python3 authority/scripts/architecture_native_oracle_transport.py extract \
+          python3 authority/scripts/architecture/architecture_native_oracle_transport.py extract \
             --archive "$RUNNER_TEMP/native-transport/native-oracle-linux.tar" \
             --output "$RUNNER_TEMP/native-oracle"
 
@@ -146,7 +146,7 @@ jobs:
         run: |
           evidence="$GITHUB_WORKSPACE/candidate/zig-out/release-evidence/architecture-authority/linux-$GITHUB_RUN_ID"
           receipts="$RUNNER_TEMP/receipts"
-          python3 authority/scripts/architecture_external_authority.py run-host \
+          python3 authority/scripts/architecture/architecture_external_authority.py run-host \
             --role linux \
             --candidate-root candidate \
             --candidate "$CANDIDATE_SHA" \
@@ -219,7 +219,7 @@ jobs:
           attempt=$(jq -r .run_attempt "$RUNNER_TEMP/native-run.json")
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_ORACLE_RUN_ID/attempts/$attempt/jobs?per_page=100" > "$RUNNER_TEMP/native-jobs.json"
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_ORACLE_RUN_ID/artifacts?per_page=100" > "$RUNNER_TEMP/native-artifacts.json"
-          python3 authority/scripts/architecture_native_oracle_selection.py \
+          python3 authority/scripts/architecture/architecture_native_oracle_selection.py \
             --role macos \
             --run "$RUNNER_TEMP/native-run.json" \
             --jobs "$RUNNER_TEMP/native-jobs.json" \
@@ -231,12 +231,12 @@ jobs:
           artifact_id=$(jq -r .artifact_id "$RUNNER_TEMP/native-selection.json")
           digest=$(jq -r .artifact_digest "$RUNNER_TEMP/native-selection.json")
           gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$RUNNER_TEMP/native.zip"
-          python3 authority/scripts/architecture_ci_artifact.py extract-oracle-tar \
+          python3 authority/scripts/architecture/architecture_ci_artifact.py extract-oracle-tar \
             --archive "$RUNNER_TEMP/native.zip" \
             --output-dir "$RUNNER_TEMP/native-transport" \
             --member native-oracle-macos.tar \
             --digest "$digest"
-          python3 authority/scripts/architecture_native_oracle_transport.py extract \
+          python3 authority/scripts/architecture/architecture_native_oracle_transport.py extract \
             --archive "$RUNNER_TEMP/native-transport/native-oracle-macos.tar" \
             --output "$RUNNER_TEMP/native-oracle"
 
@@ -245,7 +245,7 @@ jobs:
         run: |
           evidence="$GITHUB_WORKSPACE/candidate/zig-out/release-evidence/architecture-authority/macos-$GITHUB_RUN_ID"
           receipts="$RUNNER_TEMP/receipts"
-          python3 authority/scripts/architecture_external_authority.py run-host \
+          python3 authority/scripts/architecture/architecture_external_authority.py run-host \
             --role macos \
             --candidate-root candidate \
             --candidate "$CANDIDATE_SHA" \
@@ -309,14 +309,14 @@ jobs:
             eval "name=\${${upper}_NAME}"
             eval "digest=\${${upper}_DIGEST}"
             [[ "$digest" == sha256:* ]] || digest="sha256:$digest"
-            python3 authority/scripts/architecture_ci_artifact.py select \
+            python3 authority/scripts/architecture/architecture_ci_artifact.py select \
               --metadata "$RUNNER_TEMP/artifacts.json" \
               --name "$name" \
               --run-id "$GITHUB_RUN_ID" \
               --digest "$digest" > "$RUNNER_TEMP/$role-selection.json"
             artifact_id=$(jq -r .artifact_id "$RUNNER_TEMP/$role-selection.json")
             gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$RUNNER_TEMP/$role.zip"
-            python3 authority/scripts/architecture_ci_artifact.py extract-host \
+            python3 authority/scripts/architecture/architecture_ci_artifact.py extract-host \
               --archive "$RUNNER_TEMP/$role.zip" \
               --output-dir "$RUNNER_TEMP/$role" \
               --digest "$digest"
@@ -326,7 +326,7 @@ jobs:
 
       - name: Derive sole BG-15 authority verdict
         run: |
-          python3 authority/scripts/architecture_external_authority.py verify \
+          python3 authority/scripts/architecture/architecture_external_authority.py verify \
             --candidate-root candidate \
             --candidate "$CANDIDATE_SHA" \
             --session-nonce "$STWO_ARCHITECTURE_SESSION_NONCE" \

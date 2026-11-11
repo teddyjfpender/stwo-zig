@@ -1,1 +1,0 @@
-PASS truth_ops_parity cases=48

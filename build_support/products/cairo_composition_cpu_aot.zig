@@ -4,7 +4,7 @@ pub fn createModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: s
     const generator = b.addExecutable(.{
         .name = "cairo-composition-cpu-codegen",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/tools/cairo_composition_cpu_codegen/main.zig"),
+            .root_source_file = b.path("src/products/cairo/tools/composition_cpu_codegen/main.zig"),
             .target = b.graph.host,
             .optimize = .ReleaseFast,
         }),

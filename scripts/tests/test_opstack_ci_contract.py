@@ -2,7 +2,7 @@
 
 import unittest
 
-from scripts import ci_scope_plan
+from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import ROOT, catalog_fixture
 
 
@@ -47,12 +47,12 @@ class OpStackScopeTests(unittest.TestCase):
         self.assertIn(
             "opstack_kona",
             self.lanes(
-                "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/lib.rs"
+                "guests/ethereum/rv64/vendor/k256/src/lib.rs"
             ),
         )
 
     def test_shared_engine_and_unknown_paths_keep_their_broad_coverage(self):
-        shared = self.lanes("src/core/fields/m31.zig")
+        shared = self.lanes("src/waist/core/fields/m31.zig")
         self.assertTrue(
             {"core", "prover", "cpu_backend", "riscv_cpu_integration"} <= shared
         )

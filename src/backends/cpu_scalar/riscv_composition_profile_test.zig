@@ -9,6 +9,18 @@ const Component = prover.air.component_prover.ComponentProver;
 const Trace = prover.air.component_prover.Trace;
 const SecureColumn = prover.secure_column.SecureColumnByCoords;
 
+test "composition telemetry retains absolute high-water marks across counter reset" {
+    const Snapshot = composition.TelemetrySnapshot;
+    const before = Snapshot{ .attempts = 10, .admissions = 20, .row_tiles = 4, .max_graph_peak_active = 3, .max_scratch_bytes_per_worker = 4096 };
+    const after = Snapshot{ .attempts = 2, .admissions = 23, .row_tiles = 7, .max_graph_peak_active = 4, .max_scratch_bytes_per_worker = 8192 };
+    const delta = Snapshot.delta(after, before);
+    try std.testing.expectEqual(@as(u64, 0), delta.attempts);
+    try std.testing.expectEqual(@as(u64, 3), delta.admissions);
+    try std.testing.expectEqual(@as(u64, 3), delta.row_tiles);
+    try std.testing.expectEqual(@as(u64, 4), delta.max_graph_peak_active);
+    try std.testing.expectEqual(@as(u64, 8192), delta.max_scratch_bytes_per_worker);
+}
+
 pub fn serialEvaluation(
     allocator: std.mem.Allocator,
     components: []const Component,

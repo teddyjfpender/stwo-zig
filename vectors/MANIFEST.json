@@ -1,0 +1,4056 @@
+{
+  "schema": "stwo-zig-vectors-manifest-v1",
+  "description": "Golden vectors and fixtures tracked under vectors/. consumers lists live files that name the group path (git grep), not a proof of reachability. Historical receipts live at archive/pre-restructure-20261108.",
+  "archive": "https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors",
+  "groups": {
+    "vectors/air_derive.json": {
+      "files": 1,
+      "consumers": [
+        "scripts/repo/parity_air_derive.py",
+        "src/waist/core/air/derive.zig",
+        "tools/stwo-air-derive-vector-gen/src/main.rs"
+      ]
+    },
+    "vectors/cairo": {
+      "files": 122,
+      "consumers": [
+        ".github/workflows/ci.yml",
+        "build_support/backends/cuda_aot.zig",
+        "build_support/products/cairo/oracle_corpus.zig",
+        "build_support/products/cairo_composition_cpu_aot.zig",
+        "build_support/products/cairo_cpu/csp_fixtures.zig",
+        "build_support/products/cairo_cpu/oracle_gate.zig",
+        "build_support/products/cairo_cpu/zkvm_fixtures.zig",
+        "build_support/products/cairo_metal.zig",
+        "build_support/products/cairo_metal/oracle_commands.zig",
+        "build_support/products/cairo_support.zig",
+        "build_support/products/cairo_witness_cpu_aot.zig",
+        "conformance/upstream.md",
+        "scripts/cairo/cairo_csp_fixtures.py",
+        "scripts/cairo/cairo_four_pie_source_coverage_lib/identity.py",
+        "scripts/cuda/cuda_device_smoke.py",
+        "scripts/cuda/cuda_recorded_witness_product.py",
+        "scripts/repo/upstream_pins_lib/cairo_vm_adapter.py",
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_air_templates.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_topology.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_vectors.py",
+        "scripts/tests/cuda_native_aot_fixture.py",
+        "scripts/tests/test_cairo_csp_fixtures.py",
+        "scripts/tests/test_cuda_build.py",
+        "scripts/tests/test_cuda_build_cache.py",
+        "scripts/tests/test_sn_pie_composition_bundle.py",
+        "scripts/tests/test_upstream_pins.py",
+        "src/backends/cuda/README.md",
+        "src/backends/cuda/UPSTREAM.md",
+        "src/backends/metal/tests/system/arena_plan_test.zig",
+        "src/backends/metal/tests/system/backend/resident_data_test.zig",
+        "src/backends/metal/tests/system/composition_binding_test.zig",
+        "src/backends/metal/tests/system/composition_fusion_test.zig",
+        "src/backends/metal/tests/system/composition_library_parity_test.zig",
+        "src/backends/metal/tests/system/composition_lift_bridge_test.zig",
+        "src/backends/metal/tests/system/composition_option_b_test.zig",
+        "src/backends/metal/tools/prover_session/verification.zig",
+        "src/frontends/cairo/adapter/compact_input_v1.md",
+        "src/frontends/cairo/adapter/compact_writer.zig",
+        "src/frontends/cairo/air/template_binding.zig",
+        "src/frontends/cairo/air/template_library.zig",
+        "src/frontends/cairo/conformance/interaction_receipt.zig",
+        "src/frontends/cairo/proof_plan/semantic_authority.zig",
+        "src/frontends/cairo/prove_trace.zig",
+        "src/frontends/cairo/tests/circuit_leaf_statement.zig",
+        "src/frontends/cairo/tests/compact_input.zig",
+        "src/frontends/cairo/tests/feed_geometry_oracle.zig",
+        "src/frontends/cairo/tests/official_base_checkpoint.zig",
+        "src/frontends/cairo/tests/official_claim.zig",
+        "src/frontends/cairo/tests/official_input.zig",
+        "src/frontends/cairo/tests/official_interaction_checkpoint.zig",
+        "src/frontends/cairo/tests/official_live_geometry.zig",
+        "src/frontends/cairo/witness/bundle.zig",
+        "src/frontends/cairo/witness/composition_bundle.zig",
+        "src/frontends/cairo/witness/eval_program.zig",
+        "src/frontends/cairo/witness/feed_bundle.zig",
+        "src/frontends/cairo/witness/feed_topology.zig",
+        "src/frontends/cairo/witness/fixed_table_bundle.zig",
+        "src/frontends/cairo/witness/interaction_topology.zig",
+        "src/frontends/cairo/witness/interaction_trace.zig",
+        "src/frontends/cairo/witness/quotient_geometry.zig",
+        "src/frontends/cairo/witness/relation_bundle.zig",
+        "src/frontends/cairo/witness/relation_cuda_fixture_test.zig",
+        "src/frontends/cairo/witness/resident_geometry.zig",
+        "src/frontends/cairo/witness/source_semantic_pack.zig",
+        "src/integrations/cairo_cuda/base_writer_plan/catalog.zig",
+        "src/integrations/cairo_cuda/base_writer_plan/fixed_tables.zig",
+        "src/integrations/cairo_cuda/base_writer_plan/memory.zig",
+        "src/integrations/cairo_cuda/canonical_eval_aot.zig",
+        "src/integrations/cairo_cuda/canonical_feeds.zig",
+        "src/integrations/cairo_cuda/canonical_geometry.zig",
+        "src/integrations/cairo_cuda/canonical_input.zig",
+        "src/integrations/cairo_cuda/canonical_source.zig",
+        "src/integrations/cairo_cuda/eval_aot.zig",
+        "src/integrations/cairo_cuda/eval_product_registry.zig",
+        "src/integrations/cairo_cuda/executor/eval/topology_test.zig",
+        "src/integrations/cairo_cuda/executor/pcs_controller_test_fixture.zig",
+        "src/integrations/cairo_cuda/executor/quotient/controller_test.zig",
+        "src/integrations/cairo_cuda/executor/quotient/topology_test.zig",
+        "src/integrations/cairo_cuda/executor/tests/pcs_decommit_topology_test.zig",
+        "src/integrations/cairo_cuda/executor/tests/pcs_oods_topology_test.zig",
+        "src/integrations/cairo_cuda/executor/tests/resident_plan_test.zig",
+        "src/integrations/cairo_cuda/executor/tests/trace_commit_test.zig",
+        "src/integrations/cairo_cuda/executor/tests/trace_schedule_test.zig",
+        "src/integrations/cairo_cuda/parametric_eval.zig",
+        "src/integrations/cairo_cuda/recorded_witness.zig",
+        "src/integrations/cairo_cuda/request_compiler.zig",
+        "src/integrations/cairo_cuda/request_compiler/interaction_admission.zig",
+        "src/integrations/cairo_cuda/request_compiler/sn2_test_support.zig",
+        "src/integrations/cairo_cuda/tests/eval_aot_test.zig",
+        "src/integrations/cairo_cuda/tests/eval_parity_fixture_test.zig",
+        "src/integrations/cairo_cuda/tests/eval_slices_test.zig",
+        "src/integrations/cairo_cuda/tests/product_registry_test.zig",
+        "src/integrations/cairo_cuda/tests/program_test.zig",
+        "src/integrations/cairo_cuda/tests/recorded_witness_fixture_test.zig",
+        "src/integrations/cairo_cuda/tests/relation_adapter_layout_test.zig",
+        "src/integrations/cairo_cuda/tests/relation_adapter_test.zig",
+        "src/integrations/cairo_cuda/tests/relation_sn2_parity_fixture_test.zig",
+        "src/integrations/cairo_metal/arena_binding.zig",
+        "src/integrations/cairo_metal/composition_aot.zig",
+        "src/integrations/cairo_metal/composition_stage.zig",
+        "src/integrations/cairo_metal/oods.zig",
+        "src/integrations/cairo_metal/process/backend.zig",
+        "src/integrations/cairo_metal/resident/interaction/diagnostics.zig",
+        "src/integrations/cairo_metal/resident/relations/claims.zig",
+        "src/integrations/cairo_metal/resident/witness/prepare.zig",
+        "src/integrations/cairo_metal/witness_aot.zig",
+        "src/products/cairo/cpu/app.zig",
+        "src/products/cairo/cpu/native_composition_test.zig",
+        "src/products/cairo/cpu/tests/claim_generator_test.zig",
+        "src/products/cairo/cpu/tests/cpu_air_test.zig",
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/products/cairo/cpu/tests/cpu_proof_test.zig",
+        "src/products/cairo/cpu/tests/prove_trace_test.zig",
+        "src/products/cairo/cpu/tests/statement_bootstrap_test.zig",
+        "src/products/cairo/cuda/canonical_paths.zig",
+        "src/products/cairo/metal/app.zig",
+        "src/products/cairo/recursion/cpu/README.md",
+        "src/products/cairo/recursion/cpu/app.zig",
+        "src/products/cairo/shared/profile.zig",
+        "src/products/cairo/tools/metal_codegen/eval_codegen_test.zig",
+        "src/products/cairo/tools/metal_codegen/eval_prepare.zig",
+        "src/products/native/tools/cuda_ec_composite_oracle/oracle.zig",
+        "tools/cairo-witness-compiler/README.md",
+        "tools/cairo-witness-compiler/tests/test_orchestrator.py",
+        "tools/stwo-cairo-air-compiler/README.md",
+        "tools/stwo-cairo-official-verifier-rs/tests/claim_vector.rs",
+        "tools/stwo-cairo-official-verifier-rs/tests/cli.rs",
+        "tools/stwo-cairo-official-verifier-rs/tests/input_vector.rs",
+        "tools/stwo-cairo-official-verifier-rs/tests/official_vector.rs",
+        "tools/stwo-cairo-trace-oracle/README.md",
+        "tools/stwo-cairo-vm-adapter-rs/src/execution/legacy_json.rs",
+        "tools/stwo-cairo-vm-adapter-rs/tests/cli.rs",
+        "tools/stwo-eval-program-abi/README.md"
+      ]
+    },
+    "vectors/cairo/checkpoints": {
+      "files": 3,
+      "consumers": [
+        "src/frontends/cairo/conformance/interaction_receipt.zig"
+      ]
+    },
+    "vectors/cairo/csp": {
+      "files": 6,
+      "consumers": [
+        "build_support/products/cairo_cpu/csp_fixtures.zig",
+        "scripts/cairo/cairo_csp_fixtures.py",
+        "scripts/tests/test_cairo_csp_fixtures.py"
+      ]
+    },
+    "vectors/cairo/official": {
+      "files": 27,
+      "consumers": [
+        "build_support/backends/cuda_aot.zig",
+        "build_support/products/cairo/oracle_corpus.zig",
+        "build_support/products/cairo_composition_cpu_aot.zig",
+        "build_support/products/cairo_cpu/oracle_gate.zig",
+        "build_support/products/cairo_metal.zig",
+        "build_support/products/cairo_metal/oracle_commands.zig",
+        "build_support/products/cairo_support.zig",
+        "build_support/products/cairo_witness_cpu_aot.zig",
+        "conformance/upstream.md",
+        "scripts/repo/upstream_pins_lib/cairo_vm_adapter.py",
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_air_templates.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_topology.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_vectors.py",
+        "scripts/tests/test_upstream_pins.py",
+        "src/frontends/cairo/adapter/compact_input_v1.md",
+        "src/frontends/cairo/adapter/compact_writer.zig",
+        "src/frontends/cairo/air/template_binding.zig",
+        "src/frontends/cairo/air/template_library.zig",
+        "src/frontends/cairo/conformance/interaction_receipt.zig",
+        "src/frontends/cairo/tests/circuit_leaf_statement.zig",
+        "src/frontends/cairo/tests/compact_input.zig",
+        "src/frontends/cairo/tests/feed_geometry_oracle.zig",
+        "src/frontends/cairo/tests/official_base_checkpoint.zig",
+        "src/frontends/cairo/tests/official_claim.zig",
+        "src/frontends/cairo/tests/official_input.zig",
+        "src/frontends/cairo/tests/official_interaction_checkpoint.zig",
+        "src/frontends/cairo/tests/official_live_geometry.zig",
+        "src/frontends/cairo/witness/eval_program.zig",
+        "src/frontends/cairo/witness/feed_topology.zig",
+        "src/frontends/cairo/witness/interaction_topology.zig",
+        "src/integrations/cairo_cuda/canonical_eval_aot.zig",
+        "src/integrations/cairo_cuda/canonical_feeds.zig",
+        "src/integrations/cairo_cuda/canonical_geometry.zig",
+        "src/integrations/cairo_cuda/canonical_input.zig",
+        "src/integrations/cairo_cuda/canonical_source.zig",
+        "src/integrations/cairo_cuda/eval_aot.zig",
+        "src/integrations/cairo_cuda/parametric_eval.zig",
+        "src/integrations/cairo_cuda/recorded_witness.zig",
+        "src/integrations/cairo_cuda/tests/eval_slices_test.zig",
+        "src/integrations/cairo_cuda/tests/relation_adapter_test.zig",
+        "src/integrations/cairo_metal/composition_aot.zig",
+        "src/integrations/cairo_metal/composition_stage.zig",
+        "src/products/cairo/cpu/app.zig",
+        "src/products/cairo/cpu/native_composition_test.zig",
+        "src/products/cairo/cpu/tests/cpu_air_test.zig",
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/products/cairo/cpu/tests/cpu_proof_test.zig",
+        "src/products/cairo/metal/app.zig",
+        "src/products/cairo/recursion/cpu/app.zig",
+        "src/products/cairo/shared/profile.zig",
+        "tools/cairo-witness-compiler/README.md",
+        "tools/cairo-witness-compiler/tests/test_orchestrator.py",
+        "tools/stwo-cairo-air-compiler/README.md",
+        "tools/stwo-cairo-official-verifier-rs/tests/claim_vector.rs",
+        "tools/stwo-cairo-official-verifier-rs/tests/cli.rs",
+        "tools/stwo-cairo-official-verifier-rs/tests/input_vector.rs",
+        "tools/stwo-cairo-official-verifier-rs/tests/official_vector.rs",
+        "tools/stwo-cairo-trace-oracle/README.md",
+        "tools/stwo-cairo-vm-adapter-rs/tests/cli.rs",
+        "tools/stwo-eval-program-abi/README.md"
+      ]
+    },
+    "vectors/cairo/programs": {
+      "files": 13,
+      "consumers": [
+        "build_support/products/cairo/oracle_corpus.zig",
+        "scripts/repo/upstream_pins_lib/cairo_vm_adapter.py",
+        "scripts/tests/test_upstream_pins.py",
+        "tools/stwo-cairo-vm-adapter-rs/tests/cli.rs"
+      ]
+    },
+    "vectors/cairo/source_semantics": {
+      "files": 38,
+      "consumers": [
+        "scripts/cairo/cairo_four_pie_source_coverage_lib/identity.py",
+        "src/frontends/cairo/witness/source_semantic_pack.zig",
+        "src/integrations/cairo_cuda/tests/program_test.zig"
+      ]
+    },
+    "vectors/cairo/zkvm": {
+      "files": 24,
+      "consumers": [
+        "build_support/products/cairo_cpu/zkvm_fixtures.zig",
+        "scripts/tests/test_cairo_csp_fixtures.py"
+      ]
+    },
+    "vectors/cairo_traces": {
+      "files": 6,
+      "consumers": [
+        "src/frontends/cairo/prove_trace.zig",
+        "src/products/cairo/cpu/tests/prove_trace_test.zig"
+      ]
+    },
+    "vectors/circuit": {
+      "files": 83,
+      "consumers": [
+        "build_support/products/cairo_cuda.zig",
+        "build_support/products/circuit_recursion_cpu.zig",
+        "build_support/products/product_specs.zig",
+        "conformance/ci-touchpoints-v1.json",
+        "conformance/circuit_slot_order/circuit_cairo_slot_order_test_root.zig",
+        "conformance/upstream.md",
+        "scripts/interop/generate_circuit_oracle_vectors.py",
+        "scripts/repo/upstream_pins_lib/circuit_projection.py",
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py",
+        "scripts/tests/test_upstream_pins_circuit_recursion.py",
+        "src/frontends/cairo/README.md",
+        "src/frontends/cairo/applicative/README.md",
+        "src/frontends/cairo/applicative/registry.cairo",
+        "src/frontends/cairo/statement/circuit_leaf.zig",
+        "src/frontends/cairo/tests/circuit_leaf_statement.zig",
+        "src/frontends/circuit/README.md",
+        "src/frontends/circuit/air_eval/mod.zig",
+        "src/frontends/circuit/air_eval/projection_check.zig",
+        "src/frontends/circuit/air_eval/tests/projection_test.zig",
+        "src/frontends/circuit/air_eval/tests/r3_components.zig",
+        "src/frontends/circuit/air_eval/tests/statement_trace.zig",
+        "src/frontends/circuit/build.zig",
+        "src/frontends/circuit/builder/tests/r0_fri_test.zig",
+        "src/frontends/circuit/builder/tests/r2_gadgets_test.zig",
+        "src/frontends/circuit/common/component_list.zig",
+        "src/frontends/circuit/common/tests/r5_finalize_test.zig",
+        "src/frontends/circuit/conformance/fold_rebuild_test.zig",
+        "src/frontends/circuit/conformance/fold_topology_test.zig",
+        "src/frontends/circuit/starkware_surface_pin_test_root.zig",
+        "src/frontends/circuit/statements/cairo_leaf_config_test.zig",
+        "src/frontends/circuit/statements/cairo_statement_test.zig",
+        "src/frontends/circuit/testing/circuit_summary.zig",
+        "src/frontends/circuit/testing/fixture_json.zig",
+        "src/frontends/circuit/testing/fold_registry.zig",
+        "src/frontends/circuit/testing/verifier_stages.zig",
+        "src/integrations/cairo_cuda/README.md",
+        "src/integrations/cairo_metal/composition_aot.zig",
+        "src/integrations/circuit_cpu/README.md",
+        "src/integrations/circuit_cpu/air.zig",
+        "src/integrations/circuit_cpu/build.zig",
+        "src/integrations/circuit_cpu/composition_aot_build.zig",
+        "src/integrations/circuit_cpu/om31/program_test.zig",
+        "src/integrations/circuit_cpu/tests/bench_witness_test.zig",
+        "src/integrations/circuit_cpu/tests/multiverifier_proof_test.zig",
+        "src/integrations/circuit_cpu/tests/r11_circuit_params_test.zig",
+        "src/integrations/circuit_cpu/tests/r11_verify_test.zig",
+        "src/integrations/circuit_cpu/tests/r4_verifier_values_test.zig",
+        "src/integrations/circuit_cpu/tests/r6_leaf_topology_test.zig",
+        "src/integrations/circuit_cpu/tests/r7_prove_small_test.zig",
+        "src/integrations/circuit_cpu/tests/r9_fold_tree_test.zig",
+        "src/integrations/circuit_cpu/tests/rust_verifier.zig",
+        "src/integrations/circuit_cuda/README.md",
+        "src/integrations/circuit_cuda/build.zig",
+        "src/integrations/circuit_cuda/geometry.zig",
+        "src/integrations/circuit_cuda/tests/resident_bench.zig",
+        "src/integrations/circuit_cuda/transcript_prefix.zig",
+        "src/integrations/circuit_metal/README.md",
+        "src/integrations/circuit_metal/build.zig",
+        "src/integrations/riscv_cpu/rv64_recursion/fold_root.zig",
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/products/cairo/recursion/cpu/README.md",
+        "src/products/cairo/recursion/cpu/tests/r8_leaf_wrap_test.zig",
+        "src/products/cairo/recursion/cpu/tests/r8b_leaf_chain_test.zig",
+        "src/waist/core/cairo_air_layout.zig",
+        "src/waist/recursion_wire/README.md",
+        "src/waist/recursion_wire/build.zig",
+        "src/waist/recursion_wire/vectors_test.zig",
+        "tools/starknet-block-collector/benchmark_circuit_cuda_hybrid.py",
+        "tools/starknet-block-collector/circuit_pipeline.py",
+        "tools/stwo-circuit-oracle-rs/README.md",
+        "tools/stwo-eval-program-abi/README.md"
+      ]
+    },
+    "vectors/circuit/official": {
+      "files": 28,
+      "consumers": [
+        "build_support/products/cairo_cuda.zig",
+        "build_support/products/circuit_recursion_cpu.zig",
+        "build_support/products/product_specs.zig",
+        "conformance/circuit_slot_order/circuit_cairo_slot_order_test_root.zig",
+        "scripts/repo/upstream_pins_lib/circuit_projection.py",
+        "src/frontends/cairo/applicative/README.md",
+        "src/frontends/cairo/applicative/registry.cairo",
+        "src/frontends/cairo/tests/circuit_leaf_statement.zig",
+        "src/frontends/circuit/air_eval/mod.zig",
+        "src/frontends/circuit/air_eval/projection_check.zig",
+        "src/frontends/circuit/air_eval/tests/projection_test.zig",
+        "src/frontends/circuit/air_eval/tests/r3_components.zig",
+        "src/frontends/circuit/build.zig",
+        "src/frontends/circuit/conformance/fold_rebuild_test.zig",
+        "src/frontends/circuit/conformance/fold_topology_test.zig",
+        "src/frontends/circuit/starkware_surface_pin_test_root.zig",
+        "src/frontends/circuit/statements/cairo_leaf_config_test.zig",
+        "src/frontends/circuit/statements/cairo_statement_test.zig",
+        "src/frontends/circuit/testing/fold_registry.zig",
+        "src/frontends/circuit/testing/verifier_stages.zig",
+        "src/integrations/cairo_cuda/README.md",
+        "src/integrations/cairo_metal/composition_aot.zig",
+        "src/integrations/circuit_cpu/README.md",
+        "src/integrations/circuit_cpu/air.zig",
+        "src/integrations/circuit_cpu/composition_aot_build.zig",
+        "src/integrations/circuit_cpu/om31/program_test.zig",
+        "src/integrations/circuit_cpu/tests/bench_witness_test.zig",
+        "src/integrations/circuit_cpu/tests/multiverifier_proof_test.zig",
+        "src/integrations/circuit_cpu/tests/r11_circuit_params_test.zig",
+        "src/integrations/circuit_cpu/tests/r11_verify_test.zig",
+        "src/integrations/circuit_cpu/tests/r4_verifier_values_test.zig",
+        "src/integrations/circuit_cpu/tests/r6_leaf_topology_test.zig",
+        "src/integrations/circuit_cpu/tests/r9_fold_tree_test.zig",
+        "src/integrations/circuit_cuda/build.zig",
+        "src/integrations/circuit_metal/README.md",
+        "src/integrations/circuit_metal/build.zig",
+        "src/integrations/riscv_cpu/rv64_recursion/fold_root.zig",
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/products/cairo/recursion/cpu/README.md",
+        "src/products/cairo/recursion/cpu/tests/r8_leaf_wrap_test.zig",
+        "src/products/cairo/recursion/cpu/tests/r8b_leaf_chain_test.zig",
+        "src/waist/recursion_wire/README.md",
+        "tools/starknet-block-collector/benchmark_circuit_cuda_hybrid.py",
+        "tools/starknet-block-collector/circuit_pipeline.py",
+        "tools/stwo-eval-program-abi/README.md"
+      ]
+    },
+    "vectors/circuit/r0": {
+      "files": 1,
+      "consumers": [
+        "scripts/tests/test_upstream_pins_circuit_recursion.py",
+        "src/frontends/circuit/builder/tests/r0_fri_test.zig",
+        "src/frontends/circuit/conformance/fold_topology_test.zig"
+      ]
+    },
+    "vectors/circuit/r10": {
+      "files": 7,
+      "consumers": [
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/products/cairo/recursion/cpu/README.md",
+        "src/products/cairo/recursion/cpu/tests/r8_leaf_wrap_test.zig",
+        "src/products/cairo/recursion/cpu/tests/r8b_leaf_chain_test.zig"
+      ]
+    },
+    "vectors/circuit/r11": {
+      "files": 27,
+      "consumers": [
+        "src/integrations/circuit_cpu/README.md",
+        "src/integrations/circuit_cpu/tests/r11_verify_test.zig"
+      ]
+    },
+    "vectors/circuit/r2": {
+      "files": 1,
+      "consumers": [
+        "src/frontends/circuit/README.md",
+        "src/frontends/circuit/build.zig",
+        "src/frontends/circuit/builder/tests/r2_gadgets_test.zig"
+      ]
+    },
+    "vectors/circuit/r3": {
+      "files": 2,
+      "consumers": [
+        "scripts/tests/test_upstream_pins_circuit_recursion.py",
+        "src/frontends/cairo/tests/circuit_leaf_statement.zig",
+        "src/frontends/circuit/README.md",
+        "src/frontends/circuit/air_eval/tests/r3_components.zig",
+        "src/frontends/circuit/air_eval/tests/statement_trace.zig",
+        "src/frontends/circuit/common/component_list.zig",
+        "src/frontends/circuit/conformance/fold_topology_test.zig"
+      ]
+    },
+    "vectors/circuit/r4": {
+      "files": 1,
+      "consumers": [
+        "src/frontends/circuit/README.md",
+        "src/frontends/circuit/testing/verifier_stages.zig",
+        "src/integrations/circuit_cpu/README.md"
+      ]
+    },
+    "vectors/circuit/r5": {
+      "files": 1,
+      "consumers": [
+        "src/frontends/circuit/README.md",
+        "src/frontends/circuit/common/tests/r5_finalize_test.zig"
+      ]
+    },
+    "vectors/circuit/r6": {
+      "files": 2,
+      "consumers": [
+        "src/frontends/cairo/README.md",
+        "src/frontends/cairo/statement/circuit_leaf.zig",
+        "src/frontends/cairo/tests/circuit_leaf_statement.zig",
+        "src/frontends/circuit/README.md",
+        "src/frontends/circuit/conformance/fold_rebuild_test.zig",
+        "src/frontends/circuit/statements/cairo_leaf_config_test.zig",
+        "src/frontends/circuit/statements/cairo_statement_test.zig",
+        "src/integrations/circuit_cpu/README.md",
+        "src/integrations/circuit_cpu/tests/r6_leaf_topology_test.zig",
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/waist/core/cairo_air_layout.zig"
+      ]
+    },
+    "vectors/circuit/r7": {
+      "files": 10,
+      "consumers": [
+        "src/integrations/circuit_cpu/README.md",
+        "src/integrations/circuit_cpu/tests/multiverifier_proof_test.zig",
+        "src/integrations/circuit_cpu/tests/r11_verify_test.zig",
+        "src/integrations/circuit_cpu/tests/r4_verifier_values_test.zig",
+        "src/integrations/circuit_cpu/tests/r7_prove_small_test.zig",
+        "src/integrations/circuit_cpu/tests/rust_verifier.zig",
+        "src/integrations/circuit_cuda/README.md",
+        "src/integrations/circuit_cuda/geometry.zig",
+        "src/integrations/circuit_cuda/tests/resident_bench.zig",
+        "src/integrations/circuit_cuda/transcript_prefix.zig"
+      ]
+    },
+    "vectors/circuit/r9": {
+      "files": 1,
+      "consumers": [
+        "src/integrations/circuit_cpu/README.md",
+        "src/integrations/circuit_cpu/tests/r9_fold_tree_test.zig"
+      ]
+    },
+    "vectors/constraint_expr.json": {
+      "files": 1,
+      "consumers": [
+        "scripts/repo/parity_constraint_expr.py",
+        "src/waist/core/constraint_framework/evaluator.zig",
+        "src/waist/core/constraint_framework/expr.zig",
+        "tools/stwo-cf-vector-gen/src/main.rs"
+      ]
+    },
+    "vectors/fields.json": {
+      "files": 1,
+      "consumers": [
+        "scripts/repo/parity_fields.py",
+        "src/products/native/tests/parity/vectors/fixtures.zig",
+        "tools/stwo-vector-gen/src/main.rs"
+      ]
+    },
+    "vectors/reports": {
+      "files": 3,
+      "consumers": [
+        ".github/workflows/ci.yml",
+        "build_support/benchmarks/native.zig",
+        "build_support/gates/release_evidence.zig",
+        "conformance/rv64-flags.json",
+        "conformance/rv64-productionisation-budget.json",
+        "conformance/rv64/presets/default-runtime.json",
+        "conformance/rv64im-foundations-v1.json",
+        "guests/ethereum/client_evmone/README.md",
+        "guests/ethereum/rv64/README.md",
+        "scripts/interop/e2e_interop_lib/controller.py",
+        "scripts/interop/prove_checkpoints.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_resident.py",
+        "scripts/rv64/rv64_m8_jobs_addon_build.py",
+        "scripts/rv64_m8_bench15.py",
+        "scripts/tests/test_rv64_validation.py",
+        "src/backends/cuda/native/commitment/merkle.cu",
+        "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
+        "src/backends/cuda/native/rv64/batch.cu",
+        "src/backends/cuda/native/rv64/logup_t8.h",
+        "src/backends/cuda/native/rv64/m9_class_unpack.cu",
+        "src/frontends/riscv/rv64/README.md",
+        "src/integrations/circuit_cuda/README.md",
+        "src/integrations/riscv_cpu/README.md",
+        "src/integrations/riscv_cpu/rv64_recursion/om31_native/fold_tape.zig",
+        "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig",
+        "src/integrations/riscv_cpu/word16_global_execution/soundness_review.md",
+        "src/integrations/riscv_cuda/README.md",
+        "src/integrations/riscv_cuda/TODO_ROADMAP.md",
+        "src/integrations/riscv_cuda/rv64/jobs/README.md",
+        "src/integrations/riscv_cuda/rv64/jobs/plan.zig",
+        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+      ]
+    },
+    "vectors/riscv/csp": {
+      "files": 1,
+      "consumers": []
+    },
+    "vectors/riscv/fixtures": {
+      "files": 177,
+      "consumers": [
+        "scripts/rv64/rv64_m7_integration_stack.py",
+        "scripts/rv64/rv64_validation.py",
+        "scripts/tests/test_rv64_validation.py",
+        "src/integrations/riscv_cuda/rv64/jobs/plan_test.zig"
+      ]
+    },
+    "vectors/riscv/recursion-admissions": {
+      "files": 26,
+      "consumers": [
+        "scripts/riscv/riscv_recursive_product.py",
+        "src/frontends/riscv/leaf_manifest_contract_test_root.zig"
+      ]
+    },
+    "vectors/riscv/rv64": {
+      "files": 20,
+      "consumers": [
+        "conformance/rv64im-foundations-v1.json",
+        "scripts/rv64/riscv64_foundations_benchmark.py",
+        "scripts/rv64/rv64_m4_arena_job.sh",
+        "scripts/rv64_m8_bench15.py"
+      ]
+    },
+    "vectors/riscv_csp": {
+      "files": 25,
+      "consumers": [
+        "scripts/riscv/build_csp_ecdsa_precompile.py",
+        "scripts/riscv/riscv_csp_ab_benchmark_lib/workspace.py",
+        "scripts/riscv/riscv_csp_benchmark.py",
+        "scripts/riscv/riscv_csp_benchmark_lib/precompile.py",
+        "scripts/riscv/riscv_recursion_csp_benchmark.py",
+        "scripts/riscv/riscv_recursion_csp_benchmark_lib/shape_coverage.py",
+        "scripts/rv64/riscv64_csp_compare.py",
+        "scripts/rv64/riscv64_csp_full_proofs.py",
+        "scripts/tests/test_cairo_csp_fixtures.py",
+        "scripts/tests/test_riscv64_csp_full_proofs.py",
+        "scripts/tests/test_riscv64_tools.py",
+        "scripts/tests/test_riscv_recursion_csp_benchmark.py",
+        "src/frontends/riscv/runner/guest_precompile/tests/c011_semantic_equivalence_test.zig",
+        "src/integrations/riscv_cpu/README.md",
+        "src/integrations/riscv_metal/README.md",
+        "src/products/riscv/tools/recursive_csp_producer/contract.zig"
+      ]
+    },
+    "vectors/riscv_elfs": {
+      "files": 41,
+      "consumers": [
+        "build_support/products/riscv_poseidon2_pair.zig",
+        "conformance/build-monorepo-baseline-v1.json",
+        "conformance/performance-authority/epoch-3/MANIFEST.json",
+        "conformance/typed-air/m5-m9-protocol-v1.json",
+        "scripts/repo/check_upstream_pins.py",
+        "scripts/riscv/riscv_csp_ab_benchmark_lib/workspace.py",
+        "scripts/riscv/riscv_operand_classes_lib/audit.py",
+        "scripts/riscv/riscv_pr_proof_smoke.py",
+        "scripts/riscv/riscv_sail_gate.py",
+        "scripts/riscv/riscv_staged_smoke.py",
+        "scripts/riscv/riscv_trace_vectors.py",
+        "scripts/tests/test_independent_proof_system_validation_contract.py",
+        "scripts/tests/test_riscv_sail_gate.py",
+        "scripts/tests/test_riscv_sail_oracle.py",
+        "scripts/tests/test_riscv_staged_smoke.py",
+        "scripts/tests/test_upstream_pins.py",
+        "scripts/typed_air/typed_air_c013_capture_lib/plan.py",
+        "scripts/typed_air/typed_air_performance_protocol_lib/contract.py",
+        "scripts/typed_air/typed_air_r006_capture.py",
+        "src/frontends/riscv/README.md",
+        "src/products/riscv/cpu/tests/mulh_soundness_test.zig",
+        "src/products/riscv/cpu/tests/rigidity_corpus.zig"
+      ]
+    },
+    "vectors/riscv_guests": {
+      "files": 28,
+      "consumers": [
+        "build_support/products/riscv_metal_tests.zig",
+        "build_support/products/riscv_poseidon2_pair.zig",
+        "scripts/riscv/build_csp_ecdsa_precompile.py",
+        "scripts/riscv/riscv_csp_ab_benchmark_lib/workspace.py",
+        "scripts/rv64/riscv64_csp_compare.py",
+        "scripts/typed_air/typed_air_c013_capture_lib/plan.py",
+        "scripts/typed_air/typed_air_r006_capture.py"
+      ]
+    },
+    "vectors/starknet/cuda-resident-pipeline-h100-20261001": {
+      "files": 2,
+      "consumers": [
+        "src/integrations/circuit_cuda/README.md",
+        "tools/starknet-block-collector/run_cuda_resident_paired.sh"
+      ]
+    },
+    "vectors/starknet/mainnet": {
+      "files": 31,
+      "consumers": [
+        "src/frontends/cairo/applicative/README.md",
+        "tools/starknet-block-collector/README.md",
+        "tools/starknet-block-collector/circuit_pipeline.py"
+      ]
+    }
+  },
+  "files": [
+    {
+      "path": "vectors/air_derive.json",
+      "sha256": "9fb133e22a7b514628a45d81c2a083147f0a3921b6dd4ec54051db7bc212f787",
+      "bytes": 55601,
+      "group": "vectors/air_derive.json"
+    },
+    {
+      "path": "vectors/cairo/cairo_fib25k_claim_geometry.json",
+      "sha256": "20014cbc5a1188b3d1e7d11a1634ec64348e82f972714f36a585908d30379d9e",
+      "bytes": 3364,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/cairo_fixed_tables.bin",
+      "sha256": "ed8dd7b470d1837bd2db254f08ee30f3ed180099f8ed78653db008f195713890",
+      "bytes": 15743,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/cairo_program_matrix.json",
+      "sha256": "4a639d0b3254be24bdc106d22dc07fa76afdb9e9251ae319d60060b8300e876a",
+      "bytes": 8728,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/cairo_relation_templates.bin",
+      "sha256": "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f",
+      "bytes": 54544,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/ec_op_parity.bin",
+      "sha256": "dd3e2354adee6779e68b19cd46314e9da54f53ec5ad232948623add38282e53b",
+      "bytes": 8580284,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_arena_schedule.json.gz",
+      "sha256": "60c895e5d9de62b017abc71df65faf55d684d4121d6c792b31fe589bef241e73",
+      "bytes": 138083,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_composition.bin",
+      "sha256": "fdb84be46893a8bb6eb8eeac19bc8746d064a04c3700accca367911a921a47e9",
+      "bytes": 2312299,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_composition.metallib",
+      "sha256": "85db09e024a661d78e34e53ed2ae36c150567977223f34bba88f119b3c7b21ab",
+      "bytes": 7740844,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_multiplicity_feeds.bin",
+      "sha256": "2f4c16e659b9098e573280bcabc52702d9dd848eefc4997b8cd7a3ae738eff2e",
+      "bytes": 8446456,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_witness.metallib",
+      "sha256": "054426fc7107a841345398428275a9b448b319c3c409b9d56388489cb168ab3a",
+      "bytes": 2987517,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_witness_programs.bin",
+      "sha256": "c6ba38c81159d1caac17d94ff5b0ebf50bf407d76eaaf7f3aa644630f904b25c",
+      "bytes": 1036444,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/checkpoints/fib_25000_base_trace.json",
+      "sha256": "fca68639b3c8a5c7b498f1961118f4ea8c7af157a65267a3d00adbeef2ef9972",
+      "bytes": 70405,
+      "group": "vectors/cairo/checkpoints"
+    },
+    {
+      "path": "vectors/cairo/checkpoints/fib_25000_interaction_trace.json",
+      "sha256": "12ef00fea1055d746f0d22bc61e15307829c808066da378e31d024632c47124a",
+      "bytes": 74434,
+      "group": "vectors/cairo/checkpoints"
+    },
+    {
+      "path": "vectors/cairo/checkpoints/fib_25000_stwzcpi.json",
+      "sha256": "d6bff2c141d101018c98f31ef83c58880ad0b6034923d2f3e658de3b3e8baf41",
+      "bytes": 5526,
+      "group": "vectors/cairo/checkpoints"
+    },
+    {
+      "path": "vectors/cairo/csp/README.md",
+      "sha256": "be368bc0aa45b7cc14cee2da5da7ade71838984120d51648b104926446d99edc",
+      "bytes": 4678,
+      "group": "vectors/cairo/csp"
+    },
+    {
+      "path": "vectors/cairo/csp/comparison-manifest-v1.json",
+      "sha256": "8deb4c9ac684e24d2f4005bb4ef7559493c7bbd00b5c5e995afd1064a424cfd8",
+      "bytes": 21448,
+      "group": "vectors/cairo/csp"
+    },
+    {
+      "path": "vectors/cairo/csp/empty.arguments.json",
+      "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+      "bytes": 3,
+      "group": "vectors/cairo/csp"
+    },
+    {
+      "path": "vectors/cairo/csp/fixture-provenance-v1.json",
+      "sha256": "f5bd908791bd168b4475aaece0e5403b7a4ce338c57b3d21643dd50615d3d668",
+      "bytes": 6728,
+      "group": "vectors/cairo/csp"
+    },
+    {
+      "path": "vectors/cairo/csp/sources/keccak256_2048_bytes.cairo",
+      "sha256": "fa21eab532ae33b249ba849dc28b858d67ca792d743d693cb3cef4b0f62aaf87",
+      "bytes": 12740,
+      "group": "vectors/cairo/csp"
+    },
+    {
+      "path": "vectors/cairo/csp/sources/sha256_2048_bytes.cairo",
+      "sha256": "e66a6aa1e12edba098d50d10b296b46960b81c5b421be3989ea63a8a3b4aec49",
+      "bytes": 34859,
+      "group": "vectors/cairo/csp"
+    },
+    {
+      "path": "vectors/cairo/official/air_template_composition_bounded.metallib",
+      "sha256": "a11c91fc929fc1cf978e7b3ce5db03cdb5ce11cc88fa1fcf1d46df4f87cab9d1",
+      "bytes": 10121115,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/air_template_composition_eval_domain.metallib",
+      "sha256": "06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb",
+      "bytes": 5933764,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/air_template_composition_stored_domain.metallib",
+      "sha256": "6a71c368c4d974c4f665a7124a17836ffc894dcb6829b869531fbc22d62ee329",
+      "bytes": 6335107,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/air_template_library_v1.json",
+      "sha256": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+      "bytes": 2028,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/air_template_library_v1.provenance.json",
+      "sha256": "897b5c544b1c6d9dd2586ed4518ae3c0cadf8bfb4e505f17b978f741869d7c06",
+      "bytes": 3178,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_builtins.base_trace_checkpoint.json",
+      "sha256": "ef50c874b8160ed3d3a41cdbb2c03bed813e2bdf6195c7bbb18e1b8fd38bdd44",
+      "bytes": 547663,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_builtins.input_summary.json",
+      "sha256": "915ca96c79158d8616ecd685ab14c1a1fe78a5e310981f7f140daa82e25f2461",
+      "bytes": 5130,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_builtins.interaction_trace_checkpoint.json",
+      "sha256": "8c3cc3b600968e2d8142ed0ad5b07624d7b4d430f01440dbf34e9e018b928839",
+      "bytes": 387115,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_builtins.params.json",
+      "sha256": "bcdb2f7be67b815413c566619fdf7632974cf1fe8b9f61fd07e93aa20348309e",
+      "bytes": 979,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_builtins.provenance.json",
+      "sha256": "eb5afb17f6370b82a45b3163ace55537c1f80fbbabcefa816be259e96a72b38a",
+      "bytes": 2051,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_builtins.prover_input.json",
+      "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
+      "bytes": 921299,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_builtins_canonical.air_programs_v1.bin",
+      "sha256": "2572dea6e6d3faf6dc91931f298116e3dc33a0cdda68d013913e0790f22f3b66",
+      "bytes": 1176050,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_builtins_canonical_small.air_programs_v1.bin",
+      "sha256": "55a0e17c348e5a3d92fad35cd4d80260927ed73ab556a87b02085f562886d026",
+      "bytes": 1183006,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_opcodes.air_programs_v1.bin",
+      "sha256": "73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c",
+      "bytes": 490417,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_opcodes.base_trace_checkpoint.json",
+      "sha256": "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7",
+      "bytes": 243996,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_opcodes.claim_summary.json",
+      "sha256": "ea73df8c55e7b25067a262a59f2f500d319756ffa230121c89c95d86602bc391",
+      "bytes": 8315,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_opcodes.input_summary.json",
+      "sha256": "e07ea85938c5c67ead38b97982f72dd3e7f069a0992f8104c9fe185fa112a464",
+      "bytes": 4871,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_opcodes.interaction_trace_checkpoint.json",
+      "sha256": "7bba89c0d37a7d5dcd7540f3e183966cd43d72d7199ac8ef45c3c70dfd4a59ca",
+      "bytes": 192643,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_opcodes.params.json",
+      "sha256": "4febd104be00159e8cab001f6492aaf824feb7e32216911f6bfe1979aa1faea4",
+      "bytes": 991,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_opcodes.prover_input.cpi",
+      "sha256": "5aff4ac407cf729309c52b685ab5cc80d8106599d36bfe5e9f886ec206430b69",
+      "bytes": 42540,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_opcodes.prover_input.json",
+      "sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
+      "bytes": 181534,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_opcodes_blake2s.proof.bz2",
+      "sha256": "2d7acaabc6ac00afd1a840aaa1527c4a73a4807a9153dc3fe1d4fdefa86104f1",
+      "bytes": 875491,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/all_opcodes_blake2s.provenance.json",
+      "sha256": "c35ddb629b5ccdf9c56c29513abd717a70a36407f6aea61787ac9e9770a07385",
+      "bytes": 3455,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/witness_feed_topology_v1.json",
+      "sha256": "763e2ad61cd1d0824c240b8af481efb23b01c327058ae9131ee868ab8f1a5361",
+      "bytes": 444944,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/witness_programs_v1.bin",
+      "sha256": "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6",
+      "bytes": 2527495,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/witness_programs_v1.compiler-receipt.json",
+      "sha256": "7ec0e31d7622ac86caa6a2e9786c895fb1261b0665191d289d3e6b3dca6ae035",
+      "bytes": 2431,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/official/witness_programs_v1.provenance.json",
+      "sha256": "43e84ded74d9e8c61fed0807dfeac0b03271a50075ed13940f62bc06fb3c79b8",
+      "bytes": 6425,
+      "group": "vectors/cairo/official"
+    },
+    {
+      "path": "vectors/cairo/programs/all_opcodes.compiled.json",
+      "sha256": "727c4f6aa68b17d70098e50fcbe39619d07a1dc0b1966fd55dd127006e8a3e95",
+      "bytes": 3347296,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/all_opcodes.provenance.json",
+      "sha256": "d7245d24c5f445ce5116d99f8e47fcd445f2b6689c99d588d28a7aef467463f0",
+      "bytes": 914,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/executable/add_one.arguments.json",
+      "sha256": "06cf6beb6e226f69df36ef04e4b8c27ddd113aa28f585e6043ea897dea4a8734",
+      "bytes": 9,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/executable/add_one.cairo",
+      "sha256": "ded46e3773dfeb3ff9aa27c7f82842e45ab9408b34c3f64c1b16944f331c19c5",
+      "bytes": 59,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/executable/add_one.executable.json",
+      "sha256": "5e3e01819c1078a2768715b0e63be7ade9c6a8ea149ee0bc8b325cb013a1e23a",
+      "bytes": 3348,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/executable/add_one.provenance.json",
+      "sha256": "4420d9a7abfbe9e5227a80d06a7041a2488391590044f5d602918bde52a29494",
+      "bytes": 1319,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/official_corpus.provenance.json",
+      "sha256": "5184522d6852595ce3efb27517ab81ccfca52d4d3bb0fe6818d553bafb0f6586",
+      "bytes": 2356,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/test_prove_verify_bitwise_builtin/compiled.json",
+      "sha256": "92049e724dc0d5578bb036d55261c45a801f7b53754a02af3f3e464824251eff",
+      "bytes": 97842,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/test_prove_verify_pedersen_builtin/compiled.json",
+      "sha256": "02eee8181d7daa5148344d1b2faeb83505a6de955fb224cb0a6d05ae4591c071",
+      "bytes": 115599,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/test_prove_verify_poseidon_builtin/compiled.json",
+      "sha256": "e10c31f78bf2fcbd24e80af1acb51bff2d6a270a939c4f3485df1f84df4c4d23",
+      "bytes": 135709,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/test_prove_verify_range_check_bits_128_builtin/compiled.json",
+      "sha256": "f14e91e258c25a9ebd780e0070a06b78d8b8715c1b1f6f81f374d89457387850",
+      "bytes": 77784,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/test_prove_verify_range_check_bits_96_builtin/compiled.json",
+      "sha256": "86cdb3ce554996099490ce28001e5f6bd33bc63d13c6512f6f5dc28f333ed9da",
+      "bytes": 77859,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/programs/test_prove_verify_ret_opcode/compiled.json",
+      "sha256": "d4381c90ee04f717aeb6c5ead5a599c4029b8a38faf56d066c865ffe89273d57",
+      "bytes": 43604,
+      "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/four_pie_coverage_v1.json",
+      "sha256": "0f8d22a3f69ec27aa4ae8a107f15ff6509b52e943701bd50d7f3befaf838b322",
+      "bytes": 104598,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/add_ap_opcode.rs",
+      "sha256": "1fb4b6a66d11483369af43afa8bbf16652340e450ea920ba7368f373a5fa74e3",
+      "bytes": 50283,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/add_opcode.rs",
+      "sha256": "c49da98e43ddc8351f9199900962c2dc5176ef0cb14f6122ee5dad8d0c40aded",
+      "bytes": 98638,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/add_opcode_small.rs",
+      "sha256": "58c5a7742cbe7dfe72e889de3034fa7adf0a2696376b241eca4d1ea4885024a7",
+      "bytes": 79013,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/assert_eq_opcode.rs",
+      "sha256": "6fe55c7c05c7a3d246b3f6dc4d664414f89d0c3c847e2aa007362c10f29be42d",
+      "bytes": 38103,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/assert_eq_opcode_double_deref.rs",
+      "sha256": "38763f6d45ac89ab640138926399fa09db80d8cbb692fc9082fb6158207d2299",
+      "bytes": 51381,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/assert_eq_opcode_imm.rs",
+      "sha256": "3ebd767f52204ecd15a5eaeeab4a44bc02979ee0961389e7f29663eb5f6e150f",
+      "bytes": 33596,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/bitwise_builtin.rs",
+      "sha256": "7f5119222444d5e599243169297aadce40574dc043b0f86a0a0651103718c01c",
+      "bytes": 153360,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/blake_compress_opcode.rs",
+      "sha256": "972530c513468480ec4999de78b46b21b688a045618bbdf6631ff11ddc5351f6",
+      "bytes": 444990,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/blake_g.rs",
+      "sha256": "7cf146e29e57fdc599547bdb31373bca13b7fe793b66e67bd345163c32ee1dc2",
+      "bytes": 96981,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/blake_round.rs",
+      "sha256": "37e0efc3d51f0171ff4b0a418b776b13c180b87e800b461673ac96f137076848",
+      "bytes": 334842,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/call_opcode_abs.rs",
+      "sha256": "aae7c2509ee1d88796f80f6d910dc1ba4d9606cb2dbb1837a4fbe6f10eed5f87",
+      "bytes": 60271,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/call_opcode_rel_imm.rs",
+      "sha256": "93fe8738d588d61ae842b8b0c56e1e50f9f4a5797ba3b13ded3fd661901c3fbd",
+      "bytes": 58379,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/cube_252.rs",
+      "sha256": "1408bd471260042a854a441a428b4003759b5739809f48e4629f8f81654f50c0",
+      "bytes": 583927,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/jnz_opcode_non_taken.rs",
+      "sha256": "7e96237b54be05b58e477c6448a36346a905f9681a328df0a3dcefda072124b5",
+      "bytes": 35768,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/jnz_opcode_taken.rs",
+      "sha256": "c7a670d56c7854e8329204c2d2e71e8669c907d07e621da8c57e0ffc19a55e94",
+      "bytes": 64743,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/jump_opcode_abs.rs",
+      "sha256": "5fa10df701d304c8b5890f5c10a824a18a6df188972d3a2f39ec6dc8629cacac",
+      "bytes": 41846,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/jump_opcode_double_deref.rs",
+      "sha256": "1133bb42879bb5f4c3c3144df18751616dc3726f0f4a2bccaa927a9788cd4da7",
+      "bytes": 55207,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/jump_opcode_rel.rs",
+      "sha256": "a1eeb40114751e32d17cfe3e373944e616ae03c113e1705deba2b690489116d6",
+      "bytes": 44517,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/jump_opcode_rel_imm.rs",
+      "sha256": "0eda223dd8938667bea5ce46c9b7690bfa7cca682c0d74d3a74bad1f37bcce65",
+      "bytes": 39459,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/mul_opcode.rs",
+      "sha256": "c4af0e0fa97c8b87088321e92ce932fee45f4b895bb6c18d6d009011265f6976",
+      "bytes": 308646,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/mul_opcode_small.rs",
+      "sha256": "59cbf045a4d9b321705936b455ba005c7d533eaa35065ed5935eb0e7e028d0ed",
+      "bytes": 78303,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/partial_ec_mul_generic.rs",
+      "sha256": "def2a253c4486f970b0fc9a3169bb65c9bdaa737a35c00ea2d60d5757f4ab098",
+      "bytes": 2025381,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/partial_ec_mul_window_bits_18.rs",
+      "sha256": "625d85d9c5761727d37eb0c869a32b6ff1777bed4f285dbacc7a0d0d8a3874de",
+      "bytes": 1046573,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/pedersen_aggregator_window_bits_18.rs",
+      "sha256": "7929cca04d8b00802296c09389b9090bab813bf8f7f52c261e2e716b4000c930",
+      "bytes": 830730,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/pedersen_builtin.rs",
+      "sha256": "c664696ab7b448cf67c3ea7e16bbf45dfbab7a092259fc37498b123bd66ea36c",
+      "bytes": 24049,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/poseidon_3_partial_rounds_chain.rs",
+      "sha256": "bd242d14d8ca3e1c111f23211b48f6e4e76fccd7b67e8fcbcbe9da578bd2c561",
+      "bytes": 270038,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/poseidon_aggregator.rs",
+      "sha256": "2771263205ca22d57948310849492b94709b0ef5fda01d4033410c29c157b70b",
+      "bytes": 761681,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/poseidon_builtin.rs",
+      "sha256": "c3a60aa2e213d11014f8814acbb2950804ba1d8445dede755a48460dc2c18580",
+      "bytes": 31975,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/poseidon_full_round_chain.rs",
+      "sha256": "a280b4e7412e5fa38a6fcfb93a3cc9abc4353259ece85ab567ba23221422af88",
+      "bytes": 176857,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/qm_31_add_mul_opcode.rs",
+      "sha256": "96ae72635bc6d135206cd680a9c0b58d2e43feb80096f64b389df4241e4076f2",
+      "bytes": 104585,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/range_check_252_width_27.rs",
+      "sha256": "8fa7314c66aba2ea3044502d3c0c6947e4a1a69d1bb09e5f780c317a67289f66",
+      "bytes": 54991,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/range_check_builtin.rs",
+      "sha256": "e867822bc5f95fd0b0ed50d9da236977cf0ebb91d1c5edca1d8fa7ab5dce5f61",
+      "bytes": 27107,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/ret_opcode.rs",
+      "sha256": "1a226ef8fa3bb90d8447ef8696dc8e957e9e107f2aa299ddcd8852dfeb207658",
+      "bytes": 45125,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/triple_xor_32.rs",
+      "sha256": "fabecbb6aa6b90c7d02ab48826b54e4bd78883877d715369d59a71e244505958",
+      "bytes": 46937,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/components/verify_instruction.rs",
+      "sha256": "673c611dadcd3b50ed4f1f60e1b652bdf0aefc0cd5d1cb2c0106c7ca064126e3",
+      "bytes": 37883,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/manifest.json",
+      "sha256": "cfbeff3da13461d0d9cf2df2a215d951df713698db18036f4882ddf1f857bd3a",
+      "bytes": 1142,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/source_semantics/v3/registry.json",
+      "sha256": "ecbd345baf46ba271b91dccf0f3422340f1fa5779ee0ac9e91abda67691d4db8",
+      "bytes": 18227,
+      "group": "vectors/cairo/source_semantics"
+    },
+    {
+      "path": "vectors/cairo/zkvm/blake-chain-precompile.compiled.json.gz",
+      "sha256": "c6455f7f8c5c7021d20d491cb367738f2ad5347593cf46f2ae21de58ad8552c0",
+      "bytes": 11892,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/blake-precompile.compiled.json.gz",
+      "sha256": "f43fd99a5687cc991a83828cd1f423353d206df1c43e63de1c652277aa0de508",
+      "bytes": 11059,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/blake_chain_precompile_medium.arguments.json",
+      "sha256": "b28d78ee3447071bb59ef5b2909a93da939630204a718f18fb9d55be5d9d44a5",
+      "bytes": 20,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/blake_precompile_medium.arguments.json",
+      "sha256": "eea2fb3865ca9f5db0d573d890954e119e44ecbb3b11e3421a066a3a0a6de844",
+      "bytes": 21,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/corpus.provenance.json",
+      "sha256": "867a19f84d1883889a98ad43f66b18a01db485e67f85c399a3a36747a720974e",
+      "bytes": 11680,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/ec.compiled.json.gz",
+      "sha256": "2c63fbfcdb1ac0730296a112cf03cad3bf4878e659b615741b2e4f0918d7a2cc",
+      "bytes": 15219,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/ec_large.arguments.json",
+      "sha256": "08b251ff5aba6d81c543ccfb5af8a095ae32d47a209fe1ea277e6a79bb5076c1",
+      "bytes": 20,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/ec_medium.arguments.json",
+      "sha256": "b28d78ee3447071bb59ef5b2909a93da939630204a718f18fb9d55be5d9d44a5",
+      "bytes": 20,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/fib.compiled.json.gz",
+      "sha256": "b16dcaef0ec063049de282a66cea2cb5e4bd7159e379d7183fb63fb83ff42bbf",
+      "bytes": 2897,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/fib_large.arguments.json",
+      "sha256": "d1f04f05fe49d774c75c054bfe56596001fe342e67e98113c6e757e57884b73b",
+      "bytes": 22,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/fib_medium.arguments.json",
+      "sha256": "ac6404b835e321f7a177220066fc7c4d09853116d84b272a5cb2192876387e23",
+      "bytes": 21,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/mat_mul.compiled.json.gz",
+      "sha256": "feb0852d9c658219c59cd63d0cda9a50da23fcb363c244b124e1a98f8f26df22",
+      "bytes": 8034,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/mat_mul_large.arguments.json",
+      "sha256": "f71c0f9c8578bab097a137f52e884f1ae5d8c776ab0271c01db09f91e66c0fe6",
+      "bytes": 18,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/mat_mul_medium.arguments.json",
+      "sha256": "25a1266502dc321f609c1d3be21e725ae2bdc366f9eaee096e99485d398fba60",
+      "bytes": 18,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/sha2-chain.compiled.json.gz",
+      "sha256": "15e3e4a0a91f569b5097b2709f48386cbec51c69b542487b47824734b2bed906",
+      "bytes": 78764,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/sha2.compiled.json.gz",
+      "sha256": "770db921fe038acbc08a209ab2e98f7075d41be186a6c5dfa2a20fc268006f53",
+      "bytes": 77612,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/sha2_chain_medium.arguments.json",
+      "sha256": "4dff84d4a35a3e75db7230c8a74a08d3b1a5c4967fa5aa54f421eade67ff5554",
+      "bytes": 19,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/sha2_large.arguments.json",
+      "sha256": "a5dd14c3b11fdd908e2cb1d424c46be0bf5eed5aa6a702137f0819a9d7050de9",
+      "bytes": 21,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/sha2_medium.arguments.json",
+      "sha256": "08b251ff5aba6d81c543ccfb5af8a095ae32d47a209fe1ea277e6a79bb5076c1",
+      "bytes": 20,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/sha3-chain.compiled.json.gz",
+      "sha256": "936428d3ec41b939e701e4a6da92d6199b116427c470ba4d36d5ef753d547c45",
+      "bytes": 499528,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/sha3.compiled.json.gz",
+      "sha256": "281c1f3a382a85f9f0bad8e2fdea2d8ba8df2d58ccafd1b94f62054c9a85aaf8",
+      "bytes": 498158,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/sha3_chain_medium.arguments.json",
+      "sha256": "f71c0f9c8578bab097a137f52e884f1ae5d8c776ab0271c01db09f91e66c0fe6",
+      "bytes": 18,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/sha3_large.arguments.json",
+      "sha256": "a5dd14c3b11fdd908e2cb1d424c46be0bf5eed5aa6a702137f0819a9d7050de9",
+      "bytes": 21,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo/zkvm/sha3_medium.arguments.json",
+      "sha256": "08b251ff5aba6d81c543ccfb5af8a095ae32d47a209fe1ea277e6a79bb5076c1",
+      "bytes": 20,
+      "group": "vectors/cairo/zkvm"
+    },
+    {
+      "path": "vectors/cairo_traces/fib.memory",
+      "sha256": "6a0f00b8b001336bff83eff1b9a4d5b536800ab9eaf947ac1b01b6705935e716",
+      "bytes": 5520,
+      "group": "vectors/cairo_traces"
+    },
+    {
+      "path": "vectors/cairo_traces/fib.trace",
+      "sha256": "5a3edc047111f5f9513480dbeddffaff268382e2761004feffb8f6355f28232d",
+      "bytes": 786432,
+      "group": "vectors/cairo_traces"
+    },
+    {
+      "path": "vectors/cairo_traces/fib100.memory",
+      "sha256": "f133d70d8bdf4f2fd04258074599146a85af4a426358c70a04f51db6a268e36f",
+      "bytes": 23520,
+      "group": "vectors/cairo_traces"
+    },
+    {
+      "path": "vectors/cairo_traces/fib100.trace",
+      "sha256": "b4ebec61b61b8fe61db2da61767b62891e7dd59ae9ab1256c88018995336027d",
+      "bytes": 786432,
+      "group": "vectors/cairo_traces"
+    },
+    {
+      "path": "vectors/cairo_traces/fib500.memory",
+      "sha256": "88fab4aa4b5100097b7b146d1876b13ffd5cabfbc1d2951ede6a0284027926b9",
+      "bytes": 103520,
+      "group": "vectors/cairo_traces"
+    },
+    {
+      "path": "vectors/cairo_traces/fib500.trace",
+      "sha256": "7c5d0ba0ba653f30fff634390e3379b2d344b6895cf7e9ffb01d9a90f7f3236f",
+      "bytes": 786432,
+      "group": "vectors/cairo_traces"
+    },
+    {
+      "path": "vectors/circuit/README.md",
+      "sha256": "cf1715ebb7e918d54446d2fdf40556fbd57d95cfeff9c200233f9376073b373b",
+      "bytes": 20147,
+      "group": "vectors/circuit"
+    },
+    {
+      "path": "vectors/circuit/provenance.json",
+      "sha256": "0a0aed9f5c86032b938ff20f33119c4d7232f18935badfdc98314f9b86f12aa0",
+      "bytes": 40382,
+      "group": "vectors/circuit"
+    },
+    {
+      "path": "vectors/circuit/official/circuit_air.air_programs_v1.bin",
+      "sha256": "7b8022b09d84db371cc433aa0fcf132f7687f2720e05e4dc9a7650c575dc02c2",
+      "bytes": 47875,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/circuit_air_composition_bounded.metallib",
+      "sha256": "bbcfb8879ae76b0c9cb771cd70fe335abaa9ee319cbf30491d161b2dc2090473",
+      "bytes": 367765,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/circuit_air_composition_bounded.provenance.json",
+      "sha256": "f7cfb28b988526c059580f4eae78e1db4ae9eff8760ff3b86b12f7603d2cc36f",
+      "bytes": 1519,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/circuit_multiverifier/backward_compatibility_cairo_proof.bin",
+      "sha256": "4fd195c8bc96f3d2ff5d26f98ca2c0d67827529a3a9e7ec0e2a81ce306e9feac",
+      "bytes": 182884,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/circuit_multiverifier/proof.bin",
+      "sha256": "458eaa893dee79b8e5bb572d20e445a6d2164cb2d464e5967f1fa9e4156b38df",
+      "bytes": 182884,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/circuit_multiverifier/proof_cairo.bin",
+      "sha256": "536c8bd7a231a4d7e66763866066f6d72097d902b7c5f839515d65c8c0fbf5b6",
+      "bytes": 182884,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/compiled_air_constraints_v1.bin",
+      "sha256": "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09",
+      "bytes": 476520,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/compiled_casm_air.sample_evaluations.json",
+      "sha256": "40e7db64636a51cff9dbb9be3174f6d42cad4379ef7cbf071c9461c3165aede9",
+      "bytes": 1076126,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/compiled_circuit_air.sample_evaluations.json",
+      "sha256": "3a6ccb1f9ebc4fb0e3bf95c8e67b38c1ced5e84981bdbc9f3204eda21b9c7844",
+      "bytes": 43759,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/leaf_prover/expected_output.json",
+      "sha256": "18c3e1dd245e93f0e08831291b4e5cc3374d47d10517a216def6b25683376d29",
+      "bytes": 368522,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json",
+      "sha256": "5e2befae48dcdea8d19dc655e40ac236285d049d12573bfb341bec9ce39182f5",
+      "bytes": 1563071,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/programs/simple_output_compiled.json",
+      "sha256": "cfba8d3f1d3323ea64713ab703b8a40f3e788d91100ab4d58667ae170a541d69",
+      "bytes": 16374,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/programs/use_all_opcodes_and_builtins_compiled.json",
+      "sha256": "00561f8214e85ae213095327015f269cd7d4a9e53b5ae26954e1a76eb8c56f41",
+      "bytes": 585859,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/recursive_tree/four_leaves/leaf.json",
+      "sha256": "199e8414eb27a71e119494afe63d447eedd4fd5fb7ee874b12a0c43cc6258f40",
+      "bytes": 728371,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/recursive_tree/four_leaves/leaf_preimage.json",
+      "sha256": "7b1c4719eb1432a0c8923eaf18883d95028ee4da82e86ebf22be34db68d84d01",
+      "bytes": 101,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/recursive_tree/four_leaves/root.proof",
+      "sha256": "51073022d8e9b5df905be950c8c359ca836ea4c24a59c4079b0b839139a58571",
+      "bytes": 1504230,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/recursive_tree/four_leaves/root_outputs.json",
+      "sha256": "2b037e5ca376a6c04eb2ea3ed9bac74153b1826810919fbf5c2ac7fc09e97d82",
+      "bytes": 87,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/recursive_tree/four_leaves/root_packed.json",
+      "sha256": "30d31062de48795a127128e421a02ae24c69b7b5d96b9e078d0dc86411f44495",
+      "bytes": 1426,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/registries/leaf_prover_canonical_small.json",
+      "sha256": "85126ed2333fb9a3c25585b518d547b7b80902355c0afd028be1be7b111df87d",
+      "bytes": 1970,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/registries/privacy_large_proofs.json",
+      "sha256": "7e0a8a8bfa636d5e15bd7df2d0b29ee03f3e8a4dab09d39d7a180a8ad1e614b2",
+      "bytes": 4023,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/registries/production.json",
+      "sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
+      "bytes": 4028,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/registries/recursive_tree_test.json",
+      "sha256": "438ad2b5f9324306d20d3cc0297d1574d34a46d776f9cf884d99715245c74ab2",
+      "bytes": 1970,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/canonical_small/cairo_prover_params.json",
+      "sha256": "bc01843047672cf162e92fcbb3ed7f64c9d4d3132c39e0d7b6394971f012b69e",
+      "bytes": 455,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/canonical_small/circuit_fri_config.json",
+      "sha256": "f16869efc3316afc71f14e99b5732c8d99a6afeb981b918e318b9dcf05a4cd04",
+      "bytes": 130,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/canonical_small/definition.json",
+      "sha256": "c60f28c16ee64ca97ac4029906c4c0be455e70313c36db63e6b56cc98fbf0c0c",
+      "bytes": 583,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/leaf_prover_canonical_small/cairo_prover_params.json",
+      "sha256": "bc01843047672cf162e92fcbb3ed7f64c9d4d3132c39e0d7b6394971f012b69e",
+      "bytes": 455,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/leaf_prover_canonical_small/circuit_fri_config.json",
+      "sha256": "cb2763874bd586c8082b20a2bdbf53141239e5879befec56be340f5b09968050",
+      "bytes": 130,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/leaf_prover_canonical_small/definition.json",
+      "sha256": "f1bc1655685f17352d762637841b07f7bcf9dd640eb051850cbc702a5bd5c3e1",
+      "bytes": 394,
+      "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/r0/primitives.json",
+      "sha256": "49629f70d6109c6fa2c7a0cb96b75e1db2d22152411d44700542cd7c3c70faa6",
+      "bytes": 139904,
+      "group": "vectors/circuit/r0"
+    },
+    {
+      "path": "vectors/circuit/r10/all_builtins.prove_cairo.json",
+      "sha256": "3bc500067bcc4464439f2d1dcbbe3388f25ca2db06bedfb5e2bf91dfc8d52741",
+      "bytes": 4783,
+      "group": "vectors/circuit/r10"
+    },
+    {
+      "path": "vectors/circuit/r10/all_opcodes.fixed_22.prove_cairo.json",
+      "sha256": "d57ead99b2d715a72e543233c8bd610bfb23f242465710353d097b2b6631cdaf",
+      "bytes": 4860,
+      "group": "vectors/circuit/r10"
+    },
+    {
+      "path": "vectors/circuit/r10/all_opcodes.prove_cairo.json",
+      "sha256": "90c8ebeb6c73a3d608c7c4bbb9652ee5b224ec37961794fa19a8d1aa8ff6b118",
+      "bytes": 4782,
+      "group": "vectors/circuit/r10"
+    },
+    {
+      "path": "vectors/circuit/r10/leaf_simple_bootloader.prover_input.json",
+      "sha256": "a1b88fed21834b007b159d78d509b75bc6ec463972d0723315b0cf2a2b4506bb",
+      "bytes": 166845,
+      "group": "vectors/circuit/r10"
+    },
+    {
+      "path": "vectors/circuit/r10/prove_lifted_example.json",
+      "sha256": "a02cc6a5e703c0a7a1adac322c42632abff6a69de6752b18724518c7ad79ff66",
+      "bytes": 4037,
+      "group": "vectors/circuit/r10"
+    },
+    {
+      "path": "vectors/circuit/r10/use_all_opcodes_and_builtins.prove_cairo.json",
+      "sha256": "26875208e12480f1d9bd8892cc4d089b1cb3e7d4fa2716b12ac657d0b76e9b88",
+      "bytes": 4800,
+      "group": "vectors/circuit/r10"
+    },
+    {
+      "path": "vectors/circuit/r10/use_all_opcodes_and_builtins.prover_input.json",
+      "sha256": "c62fe9088e243667bf4b8badc92c9aaae4f61fee2a3c61029095862e33792567",
+      "bytes": 400073,
+      "group": "vectors/circuit/r10"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-channel_salt.json",
+      "sha256": "8f3e0978e94a9d306150a5f70de5dc9317a6368b8c336feef0ec2ae332a2465d",
+      "bytes": 4251,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-circuit_hash.json",
+      "sha256": "161d83015e502e77163dcc24401bf189856b286c68da50922d6b65a7d05f3705",
+      "bytes": 4251,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-claimed_sum.json",
+      "sha256": "83957e697ca77c64280c80b8b74ab2ec2937dafd30e9a9dc830c74842a6dd265",
+      "bytes": 4251,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-fri_witness.json",
+      "sha256": "0751340fa78c1a1126578f1709f618311204815d07b8f43e94ddd5d6ee98fd6c",
+      "bytes": 4251,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-interaction_pow_nonce.json",
+      "sha256": "1a031e58bc5198055ed9eb11952789bf797042b5f6d0b58eea9c37fab8bbed7d",
+      "bytes": 4251,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-none.json",
+      "sha256": "e27aacd2f1a4b64540f5de683e9ec10aee923db8c992cb1e8f1a17fcbc2b50f5",
+      "bytes": 4210,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-output_digest.json",
+      "sha256": "8e1499ddbd248d7914a64c5afc3d92d344bb8ac236e9dba8849ee1eeab83b15f",
+      "bytes": 4251,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-pow_nonce.json",
+      "sha256": "f327f5d3959957bf01048b0ab5b44b99eab92f88835d8aa67cdb45b5476da00a",
+      "bytes": 4251,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-preprocessed_root.json",
+      "sha256": "0d2fae7e6c021d627e6e39f936fb7710ab872d9bb4b037b68a4bf73f573d7b32",
+      "bytes": 4251,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-channel_salt.json",
+      "sha256": "62ec0f20684d68254671289d095921cb844478011d9ebb5dc0314b9c9f376434",
+      "bytes": 4252,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-circuit_hash.json",
+      "sha256": "be61e646bc6c27a3a9569ece7a60ca7871cdbb9a01c4bc3ec34603dd7e1d0e79",
+      "bytes": 4252,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-claimed_sum.json",
+      "sha256": "254ebb8ee8732ac728cce748420a68f73d5b0245fe8ae8788eb20ad142059841",
+      "bytes": 4252,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-fri_witness.json",
+      "sha256": "be4f7b10106eeada70850608713ac9109755090c543cc1c10d32237eff54b726",
+      "bytes": 4252,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-interaction_pow_nonce.json",
+      "sha256": "bfd9effe46b0eef8638fe618219febdeceda5a6afb3ccdfb7916403214a1b7a5",
+      "bytes": 4252,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-none.json",
+      "sha256": "f1f25a8e30287cc72491d905bcd4cedc31a2d50af87cde1744d370e2d9872384",
+      "bytes": 4211,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-output_digest.json",
+      "sha256": "7023d2ea28fcf97bd42576d306d1db8f68c109d000681b291741e1ab5c00dc5b",
+      "bytes": 4252,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-pow_nonce.json",
+      "sha256": "931538726efa1ced256b3ed898b6dc5e9ae0580b9210ac115c19e3f7d11e4542",
+      "bytes": 4252,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-preprocessed_root.json",
+      "sha256": "d70f68ee72b91513447ba96d67d1b29940f000ace7efdb6b6d6496d53da776c5",
+      "bytes": 4252,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-channel_salt.json",
+      "sha256": "a42894c7b2fe4539b52bb41526e154beda2529a720c970eb7b5bb5a60845335d",
+      "bytes": 4221,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-circuit_hash.json",
+      "sha256": "2b87ced72344e90226c7fe7539bc916094bcdcc679f5de69739f64580086f6e7",
+      "bytes": 4221,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-claimed_sum.json",
+      "sha256": "f33d087640a883351a4e4f08a1b9d30bcb3bbd28472303c0ac4bfd7a9f5b2cd6",
+      "bytes": 4221,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-fri_witness.json",
+      "sha256": "552c0cb1c145d2b133ebbec819827ca2cf647924edc6413c3638776640394fd0",
+      "bytes": 4221,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-interaction_pow_nonce.json",
+      "sha256": "7837ab50fe0a7f4fe0d0e712c80ce6cdfcbedb3c39bba9c44a760e38379d905c",
+      "bytes": 4221,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-none.json",
+      "sha256": "b9da11e867bd9de6cbf58729bb031b44c8743aa1f75ce1d36ec81a598d65dc26",
+      "bytes": 4180,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-output_digest.json",
+      "sha256": "a0d2527a99bfcdf8ef4a617150ce6366e1370ace95156c8c68b574219e8d55ef",
+      "bytes": 4221,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-pow_nonce.json",
+      "sha256": "da907951162b8f81d76cae12343a468bdc01ea77f90bf870672691ab9d0368d7",
+      "bytes": 4221,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-preprocessed_root.json",
+      "sha256": "0a1ac10d06dcc0b47396c983543a401ec21410f8cfc7c6a27a74e9045e40b71c",
+      "bytes": 4221,
+      "group": "vectors/circuit/r11"
+    },
+    {
+      "path": "vectors/circuit/r2/gadgets.json",
+      "sha256": "040f5d12134b3f1129f3d05b27e8d018b3e8f3dcf7965c0292bf43b6e970aef7",
+      "bytes": 437550,
+      "group": "vectors/circuit/r2"
+    },
+    {
+      "path": "vectors/circuit/r3/components.json",
+      "sha256": "ff20308779cfe90a1bfafcb5e4df80f36faa5febf9107d9d18e8e62829cdf8f9",
+      "bytes": 382364,
+      "group": "vectors/circuit/r3"
+    },
+    {
+      "path": "vectors/circuit/r3/statement_trace.json",
+      "sha256": "a599b2c71e1aa24659440cc4603a9b06f797989eb5957411c3adbd9ee1df6302",
+      "bytes": 346181,
+      "group": "vectors/circuit/r3"
+    },
+    {
+      "path": "vectors/circuit/r4/verifier_stages.json",
+      "sha256": "1ac8840112ed1ba3253b6aeda8c4002819420922bf2946ead675d90b87ff379d",
+      "bytes": 109841,
+      "group": "vectors/circuit/r4"
+    },
+    {
+      "path": "vectors/circuit/r5/finalize.json",
+      "sha256": "50ec9754d633de82740819de990924c352e4224e88372ef784d1c09dd4acdd44",
+      "bytes": 152402,
+      "group": "vectors/circuit/r5"
+    },
+    {
+      "path": "vectors/circuit/r6/cairo_statement.json",
+      "sha256": "18f99d475360f95f4abb7cfa4bac508ea5afc86205309027f79d33c513b99c26",
+      "bytes": 39151,
+      "group": "vectors/circuit/r6"
+    },
+    {
+      "path": "vectors/circuit/r6/topology.json",
+      "sha256": "0bee955ffbd11d01474b5e4b0d9d4aabf87680249a90756c49891a59814fba19",
+      "bytes": 39729,
+      "group": "vectors/circuit/r6"
+    },
+    {
+      "path": "vectors/circuit/r7/multiverifier_inputs.json",
+      "sha256": "dfec625586f516f91eae990862087aaf9ea706ed1e91d907e6facb8acc7bd7b6",
+      "bytes": 3452,
+      "group": "vectors/circuit/r7"
+    },
+    {
+      "path": "vectors/circuit/r7/prove_profiles.json",
+      "sha256": "d6e5b992ea04878ec56837cc81999f4df8fe7a6b70efb4af0fd7d7ddcf1fe881",
+      "bytes": 330748,
+      "group": "vectors/circuit/r7"
+    },
+    {
+      "path": "vectors/circuit/r7/prove_small.json",
+      "sha256": "08e4ab360d384e7b9957a65c819b611a5fe929c4ab733280e007a3e13e181e11",
+      "bytes": 450878,
+      "group": "vectors/circuit/r7"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/internal-blake_g_gate.json",
+      "sha256": "a1f019a30e719dca09e680efda9c6721d38a3356ada8f41282baefda1dd7e102",
+      "bytes": 4182,
+      "group": "vectors/circuit/r7"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/internal-fibonacci.json",
+      "sha256": "3a60218c66ec880bdccb546254ece853c9627559c092410214faf16820afd8af",
+      "bytes": 4182,
+      "group": "vectors/circuit/r7"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/multiverifier.json",
+      "sha256": "f1f25a8e30287cc72491d905bcd4cedc31a2d50af87cde1744d370e2d9872384",
+      "bytes": 4211,
+      "group": "vectors/circuit/r7"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/small-blake_g_gate.json",
+      "sha256": "00f6fa16ca2d42782b5bfba25ea99cdb3369e735d9b877bf20a5c777d70a6cef",
+      "bytes": 4180,
+      "group": "vectors/circuit/r7"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/small-fibonacci.json",
+      "sha256": "b9da11e867bd9de6cbf58729bb031b44c8743aa1f75ce1d36ec81a598d65dc26",
+      "bytes": 4180,
+      "group": "vectors/circuit/r7"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/small-m31_to_u32.json",
+      "sha256": "b1857b196e428e8144ec88ff0a483603238b290bf83e07cdfc7a6b0994b1a9a3",
+      "bytes": 4138,
+      "group": "vectors/circuit/r7"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/small-triple_xor.json",
+      "sha256": "490dfdc5f130ce0a4218a98348fafa9eede4c5636763a8c77be89525e2777f33",
+      "bytes": 4146,
+      "group": "vectors/circuit/r7"
+    },
+    {
+      "path": "vectors/circuit/r9/fold_tree.json",
+      "sha256": "7e0691d1bc3865554ea7cec4019a3b610017146bd0bf0e13c4d2597dc0cbdb2f",
+      "bytes": 9152,
+      "group": "vectors/circuit/r9"
+    },
+    {
+      "path": "vectors/constraint_expr.json",
+      "sha256": "706acd51e9cff0348856f0b46aee3034e46ba0f7e529671ccd96887492454635",
+      "bytes": 4728,
+      "group": "vectors/constraint_expr.json"
+    },
+    {
+      "path": "vectors/fields.json",
+      "sha256": "1f25c17270d8c11b5b65ca0005e96e67591a5f0097ed3e14d9ac8c992ae30748",
+      "bytes": 4602433,
+      "group": "vectors/fields.json"
+    },
+    {
+      "path": "vectors/reports/rv64-productionisation/current.json",
+      "sha256": "0384f9e0f21cf7c6284e86beae5f880b9b0ac44cd777b926fbd02d6c37859f27",
+      "bytes": 178912,
+      "group": "vectors/reports"
+    },
+    {
+      "path": "vectors/reports/rv64-productionisation/merge-validation-51897.json",
+      "sha256": "9766bb12620d9448d9f205cf6f975a3b3a97cd6e8023af1de08bb383ceea2683",
+      "bytes": 7152,
+      "group": "vectors/reports"
+    },
+    {
+      "path": "vectors/reports/rv64-productionisation/poseidon-table-audit-current.json",
+      "sha256": "b6a5bd26374ffe52492a062a4be4711c72b107c3a59230ddd0b98a060fdb75c5",
+      "bytes": 8044,
+      "group": "vectors/reports"
+    },
+    {
+      "path": "vectors/riscv/csp/historical-benchmark-report.json",
+      "sha256": "b1c9c5673f315cf4a9e8abd3da617fb3ab47342961b2672f68364fbed357e655",
+      "bytes": 62843,
+      "group": "vectors/riscv/csp"
+    },
+    {
+      "path": "vectors/riscv/fixtures/README.md",
+      "sha256": "2f8f4068ef04be458b70432a09893819937edc230532da6a8c44140ff452624d",
+      "bytes": 1008,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/after-native.json",
+      "sha256": "01f336577f41f16d06e74672e91461ce1c12224fc60634394dc0acb2aed5a0e1",
+      "bytes": 83921,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/gpu-seconds.json",
+      "sha256": "22338dff050149ee379c97047a12f5c7683f0f3f8e5b07508f9d93f60a4102e1",
+      "bytes": 3613,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/plan.json",
+      "sha256": "c83077c8bd053ff0758cf81b255532c625b5bb3f2c96008c218550756e47fab8",
+      "bytes": 7658,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/producer.stderr",
+      "sha256": "591394b4772527b61102f69d6bbe10e26fc513696e86532a225229a3878049be",
+      "bytes": 429846,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/receipt.json",
+      "sha256": "1b8bb6e038bdca7cc3581cc02bcda04aadc79c962ff20c9e8ba101959f011959",
+      "bytes": 12655,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/request-timeline.json",
+      "sha256": "0125774eacd739d2b1e362e9eb0564093ab44844f6f64ea330162966177a6e99",
+      "bytes": 670,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/artifact-fingerprints.json",
+      "sha256": "5fa77d459b71ba67e2431c017db05ea303e144952042c2d9ce260ffdfd9c5229",
+      "bytes": 8366,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/bundle.json",
+      "sha256": "28e62f48acd7e6c1df6e3a06735632fee1d310f0e965cf641ac4e7dbc8f74706",
+      "bytes": 72474,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/candidate-fixed-setup.json",
+      "sha256": "d5f4848a9def460793944122ecf63c64cf2bfe6fc4f51a0f5c89c1b80102e0a7",
+      "bytes": 959,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/candidate-source-bounds.json",
+      "sha256": "2505a11ef0a7ef5c86295e591cc8d80e1dbb704e59206f59c926292894d5c687",
+      "bytes": 33718,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/combined-entry.json",
+      "sha256": "9aa141349e492a116d6e582f14715dbbd1fdbf44d1f3e2bbdb6f2d1c33ba9779",
+      "bytes": 1643,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/combined-report.json",
+      "sha256": "24d1e215cd433f297659c80684eb56cd96c0233c0f473bd62b6b82dc3770cbc9",
+      "bytes": 3694,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/recursion-om31/pipeline.json",
+      "sha256": "2830b626173f0681c81baa8416e478cae41d36040cf5c03f081f48d2b5ce09fd",
+      "bytes": 13141,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/recursion-om31/report.json",
+      "sha256": "e78934b988b89941ddd525acaecec401619549277a89ee256dc93fd3c63a4fb8",
+      "bytes": 1540,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/recursion-om31/scheduler.json",
+      "sha256": "b2bebfb96ed5c80de7069a60da551c1eaac1e9b6918886318926c25f5550881d",
+      "bytes": 448,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/recursion-om31/tree.json",
+      "sha256": "b4bf2a794ea95048c96ef12fa1b025cee339aa496186bb4be461a73cc6f1ece5",
+      "bytes": 610476,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/report.json",
+      "sha256": "e7b39a417bf8c66a393f561a6fa6b170287ef0cb81a7c5885d5fc10050a27562",
+      "bytes": 25703,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-0/root.proof",
+      "sha256": "7ff7230162510c0df6bcde3d616cc5e2d4bbe0441beba025ff04e51d85b8ced9",
+      "bytes": 749688,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/artifact-fingerprints.json",
+      "sha256": "bd6bc79381f1c0c801d1db3814d2483b0a32295730bdb19a84360196d999dc29",
+      "bytes": 8366,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/bundle.json",
+      "sha256": "28e62f48acd7e6c1df6e3a06735632fee1d310f0e965cf641ac4e7dbc8f74706",
+      "bytes": 72474,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/candidate-fixed-setup.json",
+      "sha256": "3e62c53c312632b8b61e18c34c147f2b64ed2cfa6bf1c395a12e84957d48ab24",
+      "bytes": 950,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/candidate-source-bounds.json",
+      "sha256": "2505a11ef0a7ef5c86295e591cc8d80e1dbb704e59206f59c926292894d5c687",
+      "bytes": 33718,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/combined-entry.json",
+      "sha256": "e67949b2992d6ef8a963dbddd444db87a7b440191dc741bd744afdc356cb736e",
+      "bytes": 1644,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/combined-report.json",
+      "sha256": "31c908573dc9f22a3e666ea2b6ea7c1030b776da49dbfcb6068611098e3866a1",
+      "bytes": 3676,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/recursion-om31/pipeline.json",
+      "sha256": "3ec3e3104573ab6794886d7e042f4c7061401279ac49985b153212dd041210db",
+      "bytes": 12770,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/recursion-om31/report.json",
+      "sha256": "142919420353fe9dcc25129f2e30209aba75cf2bc2b6684d4be0168ee0cca20f",
+      "bytes": 1538,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/recursion-om31/scheduler.json",
+      "sha256": "f0530ad84293f69833ce3ed8faf6e1eacb83b5c56bfd0f5721f7e2997575721b",
+      "bytes": 448,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/recursion-om31/tree.json",
+      "sha256": "b4bf2a794ea95048c96ef12fa1b025cee339aa496186bb4be461a73cc6f1ece5",
+      "bytes": 610476,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/trial-1/report.json",
+      "sha256": "ea9ef5d8751f5b10b3c8aac389951e2c6328315ca1f5348e59e05a25998db23b",
+      "bytes": 25593,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/after-native.json",
+      "sha256": "ed87624286d4fe6f6f09526c96812429eac4221357f1f98dbefea4a8ee6a6be1",
+      "bytes": 84240,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/gpu-seconds.json",
+      "sha256": "9ad229fd315dfd89b3670ef8bd9614bba0b7681723422bd80ddee10d76da9855",
+      "bytes": 3617,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/plan.json",
+      "sha256": "9099d339c2e297376e330d4c57be42197c5d2006694acf07352532dd1b6ec47d",
+      "bytes": 7619,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/producer.stderr",
+      "sha256": "37bdd9bf908ee3ad13e5a9dd3de1119d69df529aa7c7dd19365ab07657150f1e",
+      "bytes": 508420,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/receipt.json",
+      "sha256": "cf21d0c37c0eb700fd559264f08403d883d1b2056a720e2f9f160dd4a40ce9e4",
+      "bytes": 12909,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/request-timeline.json",
+      "sha256": "8368cf20cd3772d573fa2f59be299ad8d1434eb18b0f4f9166b5070e002f7202",
+      "bytes": 670,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/artifact-fingerprints.json",
+      "sha256": "233cb282dbd6d42fcc1cb6ea10fc87531bc0b053a2f1b08801db44e5b3b6637b",
+      "bytes": 9749,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/bundle.json",
+      "sha256": "018f7b68e02c29b8983c746d821c7beab8db81e752cd4480fc62f7ce0dd5eafd",
+      "bytes": 75251,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/candidate-fixed-setup.json",
+      "sha256": "7f847d816fa7e251d584305ea75501f496639f490a8e7e768d575ce1b0d1c418",
+      "bytes": 959,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/candidate-source-bounds.json",
+      "sha256": "768d788b16c35294280ba127940917df4f7d26b586c98c60476ea246ea40d4bc",
+      "bytes": 36680,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/combined-entry.json",
+      "sha256": "cd3f76c3a2e3499b4e5c673c3f24f45fcea19b8b2abc8b4a48b01bca9b423ce9",
+      "bytes": 1639,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/combined-report.json",
+      "sha256": "02b52c27a5a19846f3f0ad9a44fe57e77f2375a554dfc92d7d0e9c135c3a6b1d",
+      "bytes": 3691,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/recursion-om31/pipeline.json",
+      "sha256": "25a7bd715dcbafdaf5806aa7c0e1574addeb79a6b52d14b5ee02bbad1d2c95aa",
+      "bytes": 15715,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/recursion-om31/report.json",
+      "sha256": "09c3d8e6e41430a278439f80266d30aeb44f1217ee97f7b2a3ec9fe4f1295ca6",
+      "bytes": 1539,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/recursion-om31/scheduler.json",
+      "sha256": "28809e63006da24de5e6b1081fc3078df90467bc998b7932679079ec402a47c9",
+      "bytes": 448,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/recursion-om31/tree.json",
+      "sha256": "553092c05e8b4421a16a04c9cb92636e508620fbc184365306958cd883d85f79",
+      "bytes": 616121,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/report.json",
+      "sha256": "479c8d7d1a86281dbe7c1ec2c331a5bd01f3707940097652b50bd85c8c1d34ac",
+      "bytes": 29618,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-0/root.proof",
+      "sha256": "dee09aaae2d2437d4070093eb716e21d068ec64b9ae89b8112757be793b768b4",
+      "bytes": 705144,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/artifact-fingerprints.json",
+      "sha256": "e441e66fbfccdc7960bcc2c3af2552ccc387364fc007e752dc7a017c600d62e6",
+      "bytes": 9749,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/bundle.json",
+      "sha256": "018f7b68e02c29b8983c746d821c7beab8db81e752cd4480fc62f7ce0dd5eafd",
+      "bytes": 75251,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/candidate-fixed-setup.json",
+      "sha256": "04349b56ca945de038d06bb9c9466ad667475ccb2cb6a6455a953652b05f8a8d",
+      "bytes": 950,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/candidate-source-bounds.json",
+      "sha256": "768d788b16c35294280ba127940917df4f7d26b586c98c60476ea246ea40d4bc",
+      "bytes": 36680,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/combined-entry.json",
+      "sha256": "65f54e844cf33037f712942acfd20771e113cf2bc607f03bbb8badb597ba94b7",
+      "bytes": 1640,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/combined-report.json",
+      "sha256": "16a8c149389ebf852e01890763115e29123e6b67d57f2021f7b5738c87de4349",
+      "bytes": 3674,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/recursion-om31/pipeline.json",
+      "sha256": "2110106de73cb842f38d843febb0e5dc850648b9d75c334563d96cceebaa87ac",
+      "bytes": 15273,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/recursion-om31/report.json",
+      "sha256": "7c2d61d059f3ad0d2c9bcec96835d6528fcfb5258452e0fea27faaa61c72dc12",
+      "bytes": 1538,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/recursion-om31/scheduler.json",
+      "sha256": "c028bb7c6058b11205f97e677f5a46dd05cd5b03cebfc27b1e3111a788eb721f",
+      "bytes": 448,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/recursion-om31/tree.json",
+      "sha256": "553092c05e8b4421a16a04c9cb92636e508620fbc184365306958cd883d85f79",
+      "bytes": 616121,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-d2-only-head-v1/trial-1/report.json",
+      "sha256": "f2f387d917db4a5fbe892a1f8ac8ef999417e794c4323eb25812ff497468283c",
+      "bytes": 29482,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/after-native.json",
+      "sha256": "af9a9cda76fcab76862b4e83a31234859bd2cef3e762dd8994493fd43905dd80",
+      "bytes": 83781,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/gpu-seconds.json",
+      "sha256": "d01aff77f82499f615af852c7059bd4a859d7a3c73c780c867c1e92c728f685a",
+      "bytes": 3609,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/plan.json",
+      "sha256": "dfa2ae0532975a63f886060a5394db4c283fb8c0c3405086308c0308f5bd86cb",
+      "bytes": 7589,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/producer.stderr",
+      "sha256": "c01f6bcd5577f88716b699fa17d757fe1598c9b6da66a8fb7bbbd3833c4439a6",
+      "bytes": 530713,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/receipt.json",
+      "sha256": "d939a45925e11d72a479a5303d9433bbd9d98a56e3c3ae2da16937d5ff417abf",
+      "bytes": 11979,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/request-timeline.json",
+      "sha256": "28dc37914ec10ee1758ff19dd4bb36f97c49f43fceefc999a24ecde2b3ef7c73",
+      "bytes": 669,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/artifact-fingerprints.json",
+      "sha256": "62f4318f8a5f6b6efd2a76986bc84e6da43936adb37fbc42bd85c29c5026408b",
+      "bytes": 9750,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/bundle.json",
+      "sha256": "eed289d3d554135c1b01d6bcb4a6e093907f4a4e737a203c1e8f6b9fc0259edf",
+      "bytes": 75236,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/candidate-fixed-setup.json",
+      "sha256": "67f7ed30efd7edde8a5ede4ece5a0e5f102bb28ce31ad318782923a3b82ef83b",
+      "bytes": 973,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/candidate-source-bounds.json",
+      "sha256": "4083e1f715886e362f49ac1a2c45d6307b6e17f49f26838d7316ac9874195161",
+      "bytes": 36693,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/combined-entry.json",
+      "sha256": "3984b322333eb1ead6976a70ee556c569ca292f07de854a26bb7cc3349db2a53",
+      "bytes": 1635,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/combined-report.json",
+      "sha256": "7ce333d6fc193f7ba59285984d90b7c8dabdd2e8731bc8a94c049b67f52e2276",
+      "bytes": 3699,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/recursion-om31/pipeline.json",
+      "sha256": "bf69c0fb14f1d17944423c1e10193abe16d1e87ad30acd9d358750db34420e36",
+      "bytes": 15766,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/recursion-om31/report.json",
+      "sha256": "009a0521615f1422f4440adb63e142aab1d53e4083d1e962b74bad1f2a20a1e2",
+      "bytes": 1537,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/recursion-om31/scheduler.json",
+      "sha256": "7e5e216452ead86c88143e9cdd76137ed66bf4036a54ded7215870ec92b1db6f",
+      "bytes": 448,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/recursion-om31/tree.json",
+      "sha256": "4679ec5f9d3dbbce23eceaecb586bb4502b49be62a4c7d938d0af93071d81b00",
+      "bytes": 616151,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/report.json",
+      "sha256": "ffc37057db68cd24a07485698cf5953b731f56c67735e4f2e7073c64188afa5a",
+      "bytes": 29617,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-0/root.proof",
+      "sha256": "b3eb90e35187f0157b96be1407e2ca2c1c15fb71c40fb2a933ec404acafd2507",
+      "bytes": 708696,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/artifact-fingerprints.json",
+      "sha256": "9f5da5d8d2bab5c24ee0fdec266dc0938cf6ed915fdae74a9a7910c13fc31159",
+      "bytes": 9750,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/bundle.json",
+      "sha256": "eed289d3d554135c1b01d6bcb4a6e093907f4a4e737a203c1e8f6b9fc0259edf",
+      "bytes": 75236,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/candidate-fixed-setup.json",
+      "sha256": "35ebd19b6110af01cd75de5641c6fa4f470ae4ff411511af2c090bf16b7473e2",
+      "bytes": 964,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/candidate-source-bounds.json",
+      "sha256": "4083e1f715886e362f49ac1a2c45d6307b6e17f49f26838d7316ac9874195161",
+      "bytes": 36693,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/combined-entry.json",
+      "sha256": "1722bee268dde18debb0b4ceccbb94a09f999d27fba2361d4db57c5c5f7f0752",
+      "bytes": 1636,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/combined-report.json",
+      "sha256": "e9cf82aa6cb0acf32341fbf43df3675c3ecdd1ff598d14bca3a54ee8423e4205",
+      "bytes": 3684,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/recursion-om31/pipeline.json",
+      "sha256": "de6911f5121d147cc211e2775174fb37e0c7e74ec91b8d5984d17204eb9dbb8d",
+      "bytes": 15297,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/recursion-om31/report.json",
+      "sha256": "9b33365ae0d2c11a779625bf5529fff90516b1296a9a5f377be8244b74652d6d",
+      "bytes": 1535,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/recursion-om31/scheduler.json",
+      "sha256": "4abcc0ba97b1cb0f51093682ad42a7771e15d1db09cafe8ad02f04c55a8e98ed",
+      "bytes": 448,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/recursion-om31/tree.json",
+      "sha256": "4679ec5f9d3dbbce23eceaecb586bb4502b49be62a4c7d938d0af93071d81b00",
+      "bytes": 616151,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/24628607-combined-m6-v3/trial-1/report.json",
+      "sha256": "936d66427d05dfe74a059c8b8c8f5cda89a0deafef95c6dcd8ecf038ed8da934",
+      "bytes": 29512,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/after-native.json",
+      "sha256": "7785d5a4b81105022c87e5f5427846f9972813e4f82d48a9a5031d68a2adc5d8",
+      "bytes": 83780,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/gpu-seconds.json",
+      "sha256": "5ac07fe1a22b25b896137495e3091de13c067812c8a36f6d88beae6668c131b8",
+      "bytes": 3610,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/plan.json",
+      "sha256": "4faa5e40e69b7d274f7ae4a441eefeaa5bb31edba0659d5688be77516b234cb9",
+      "bytes": 7658,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/producer.stderr",
+      "sha256": "1972a393c9c3fa34b522751ee0681b83056e583c81a2396da2fb1a2d9a27ffdf",
+      "bytes": 331747,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/receipt.json",
+      "sha256": "79380c78c313b661dd1eff730b1394938962e46338533a4f844a1f4c37c86581",
+      "bytes": 12101,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/request-timeline.json",
+      "sha256": "1c3f7fbbd8d7cacd1c211137deb247cf9c454e22d817c2354fedde7ec4765916",
+      "bytes": 669,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/artifact-fingerprints.json",
+      "sha256": "9179d3bb937eb42bee74913895afa767dcaf5e04eec78006650689e562b0f33b",
+      "bytes": 6990,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/bundle.json",
+      "sha256": "d963f186710b88e816feec2e805d0974664db4dd8b6b05a55d2509ae5dbce61b",
+      "bytes": 46859,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/candidate-fixed-setup.json",
+      "sha256": "2aa52ea85d21fc149cf5ead2a8f2bb5e6c83f33961b41dd5fa4239057ae7c76b",
+      "bytes": 956,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/candidate-source-bounds.json",
+      "sha256": "9c37068aba32150f34f7a733817e1616fa0f497e0633a0da7d2a8609598983e8",
+      "bytes": 22793,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/combined-entry.json",
+      "sha256": "cf7b4d6c6d08f875597d546663551036536f1e04d20fd5933e288cf6e896756d",
+      "bytes": 1645,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/combined-report.json",
+      "sha256": "8d5ec098cdd551cfccdc456080fbf48549aa7d71126e7921d01c2925ef9bdafc",
+      "bytes": 3700,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/recursion-om31/pipeline.json",
+      "sha256": "e71ada9116d9c6cf46da2f6d6b0ada6285ccc27c653b5928a6b76409af71f24e",
+      "bytes": 10543,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/recursion-om31/report.json",
+      "sha256": "6f6bd3d9d6ccfd1a8040af30659fd22e0eceadf498c1d6a1b4b9d64bfd907a7b",
+      "bytes": 1548,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/recursion-om31/scheduler.json",
+      "sha256": "e29b874c54987d5ccb8dcb51a976e6c37633f76140a45b707d1fcb1c1bbdf964",
+      "bytes": 448,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/recursion-om31/tree.json",
+      "sha256": "fb6a02012f06b5845663c3d600b4893d9afdf5dd79c558057bfc2c9cffd14a8d",
+      "bytes": 366603,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/report.json",
+      "sha256": "208c64c1e6eafc778902dd1cbcaa51d89379831c999a96e4f8b4182c6ecfe479",
+      "bytes": 21168,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-0/root.proof",
+      "sha256": "3fdc7dd740729bb2619565399796db5c7ecbd378184aacf007f5b283652bf4a8",
+      "bytes": 749464,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/artifact-fingerprints.json",
+      "sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95",
+      "bytes": 6990,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/bundle.json",
+      "sha256": "d963f186710b88e816feec2e805d0974664db4dd8b6b05a55d2509ae5dbce61b",
+      "bytes": 46859,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/candidate-fixed-setup.json",
+      "sha256": "8a1e7fb7b63f3ab9a3cc489a8855c59e46a3920baa8fd7bbca67529168b40d04",
+      "bytes": 947,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/candidate-source-bounds.json",
+      "sha256": "9c37068aba32150f34f7a733817e1616fa0f497e0633a0da7d2a8609598983e8",
+      "bytes": 22793,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/combined-entry.json",
+      "sha256": "d693d85250d3054d9f84a0706b28450e87483563bfff87f9619364376c4bf27d",
+      "bytes": 1646,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/combined-report.json",
+      "sha256": "f960f347cf84be8ef3847bb642e038c6f95b0788c179e2e2b9165f8ad91946e0",
+      "bytes": 3683,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/recursion-om31/pipeline.json",
+      "sha256": "6c7879acd8228503db854820c5c719e4af4776f377b30998f8c519b17c77865c",
+      "bytes": 10272,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/recursion-om31/report.json",
+      "sha256": "806ccf38bc3c52f9f93ae2b19d0feca2b7771bbf93a8bbf588f35ed0eb3dcd4b",
+      "bytes": 1545,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/recursion-om31/scheduler.json",
+      "sha256": "c6f7b5290a684e15c379820fdf9c3ee89820cca89077d4e20f63d503869fe186",
+      "bytes": 448,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/recursion-om31/tree.json",
+      "sha256": "fb6a02012f06b5845663c3d600b4893d9afdf5dd79c558057bfc2c9cffd14a8d",
+      "bytes": 366603,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-d2-coalesce-v1/trial-1/report.json",
+      "sha256": "8afd1d74049d071cb4e6eaed10a3665a39648b0c005475d64e931aaf42e469a8",
+      "bytes": 21092,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/after-native.json",
+      "sha256": "a82733533c9d3690b9b83a9298ad52ce97db1259bd984654faf332f9375cd657",
+      "bytes": 84252,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/gpu-seconds.json",
+      "sha256": "53a4c0a8b6b1de7acad63c62d71c04cb74917dc245134bfd08084dc9e90c3651",
+      "bytes": 3599,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/plan.json",
+      "sha256": "cb330ab3a371d0e205c83aa2f59d12200b47dc8faabb4dab09028592d4a9b530",
+      "bytes": 7589,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/producer.stderr",
+      "sha256": "0235609fb6144946b1dfa743f472dfeab80b5a9df40bd0b940c4a47fec319bb0",
+      "bytes": 345768,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/receipt.json",
+      "sha256": "132ebc2d465d3ca0c880f23d10a6e24e71c9b74e7f08fcee06d6b085a2a85c9b",
+      "bytes": 11488,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/request-timeline.json",
+      "sha256": "e64e0d8cc4c7f2bba5bb19aab6ed7d001bc36b0d09a0e2503272f1f17fa3d16f",
+      "bytes": 670,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/artifact-fingerprints.json",
+      "sha256": "7f26afc725f4bdbf3a1efc21f4a5c59cad9b07f0ae21f49362dfb9b0f29fc818",
+      "bytes": 6990,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/bundle.json",
+      "sha256": "8a391ea6e155f4eed8026682bf4a0de4106252582b39900a09d63b993a8ecbd9",
+      "bytes": 46802,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/candidate-fixed-setup.json",
+      "sha256": "3e456fbb4e52de1a5e339d951002b92f92863e778dfd30a308349ff11038c50c",
+      "bytes": 970,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/candidate-source-bounds.json",
+      "sha256": "b3d3e8274b174a7d3d4f7b1e2f6014a1e297ffea4847e544318e38f9f618222b",
+      "bytes": 22806,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/combined-entry.json",
+      "sha256": "6a70815b7e781b9b18dda3266d9e534c4e79a6c290bf43f85d16118e9f0fea03",
+      "bytes": 1631,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/combined-report.json",
+      "sha256": "3472c3e7d3b2e623b6acc3349e5e88cf41e07b219817eb1bea802801ae2dfaf8",
+      "bytes": 3694,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/recursion-om31/pipeline.json",
+      "sha256": "6329a9d5e3df0f92ac5c9f7213324d1d2e827520c985853ef81a3b9a43b1b1e8",
+      "bytes": 10571,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/recursion-om31/report.json",
+      "sha256": "37e8896f7dafa3e62b0d3ed6075b886071a4174cb5d067e84f1e91e018cf91b4",
+      "bytes": 1536,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/recursion-om31/scheduler.json",
+      "sha256": "520969ed6f7931c7703fa2da74e2450a5d6d2601ca9bdb5884a35cd8591c7178",
+      "bytes": 448,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/recursion-om31/tree.json",
+      "sha256": "f9e5899eb20361cb2651ed6262681bc0e683390c1b5393f6bac7794f1b1ef0de",
+      "bytes": 366570,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/report.json",
+      "sha256": "90e60134d17783ee00ed98425e56f467b6f8e5865af8194dc32ae9ec38fe3929",
+      "bytes": 21126,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-0/root.proof",
+      "sha256": "747196e699d75cd54a0e33104cbce56e030b22800c321dbaf20200b0e0e3abbe",
+      "bytes": 750136,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/artifact-fingerprints.json",
+      "sha256": "13f5f34028d7729e931d3f6624115d4e804387d713162fde85730cb970de2eb0",
+      "bytes": 6990,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/bundle.json",
+      "sha256": "8a391ea6e155f4eed8026682bf4a0de4106252582b39900a09d63b993a8ecbd9",
+      "bytes": 46802,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/candidate-fixed-setup.json",
+      "sha256": "815943e6c58403051abe488de3873b1de700cdbe9fa83b744826e0be1d59c297",
+      "bytes": 961,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/candidate-source-bounds.json",
+      "sha256": "b3d3e8274b174a7d3d4f7b1e2f6014a1e297ffea4847e544318e38f9f618222b",
+      "bytes": 22806,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/combined-entry.json",
+      "sha256": "2a0853451371c0142ed744381dfa4e31f69072614e9a7447d6c33a8f25b75bbe",
+      "bytes": 1632,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/combined-report.json",
+      "sha256": "024dee0be9d0620a60dff4f696a17d38c90589f93623d1eafb2a6634d56b99b4",
+      "bytes": 3679,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/recursion-om31/pipeline.json",
+      "sha256": "68aee81d5269371892d08dec520fe6236f4cb6359c2cbdad322e08d1eff30939",
+      "bytes": 10279,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/recursion-om31/report.json",
+      "sha256": "44eb98195318b75495edb279bacd18a1a00c3591657f8fca37d5fcdf4559f0b9",
+      "bytes": 1534,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/recursion-om31/scheduler.json",
+      "sha256": "9dc016872f56580414e47adb19cfa1e78edc0c9763b17fb251de7c53cbb5515f",
+      "bytes": 448,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/recursion-om31/tree.json",
+      "sha256": "f9e5899eb20361cb2651ed6262681bc0e683390c1b5393f6bac7794f1b1ef0de",
+      "bytes": 366570,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/26235156-combined-m6-v3/trial-1/report.json",
+      "sha256": "e5831b9f026d90f2629f16742144428508429dd066a3c6e0a42dde3711657e00",
+      "bytes": 21089,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/cells-qualification.json",
+      "sha256": "5320c446abeccb71f134cb10d0360c638ff9fcbd920ef3ac365ddbadde771a87",
+      "bytes": 831,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-coalesce/24628607-command.json",
+      "sha256": "ace6dcd43bac4ddafafcb23958b8f65a6456526293bbe5056a04bb4deeec55d3",
+      "bytes": 1267,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-coalesce/24628607-gpu-seconds.log",
+      "sha256": "3dc6732304726a437ffe70eb8f2e856eb1327a1fcedfadbe1f0bd66188340d66",
+      "bytes": 438,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-coalesce/24628607.log",
+      "sha256": "83ac8eff53aab7d4c46ffc537f3ffad06726e61a9f2d68739c68215bcd0a7a3e",
+      "bytes": 951,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-coalesce/26235156-command.json",
+      "sha256": "c6829f2d924f0d3d7f9c1897645727509c2b213784687fc6ea0b20130dfd182e",
+      "bytes": 1267,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-coalesce/26235156-gpu-seconds.log",
+      "sha256": "387998ecaf94dde4aaa7ecceb19533b4edd2cc7a737e09021c1b8f1809c5a419",
+      "bytes": 435,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-coalesce/26235156.log",
+      "sha256": "ddcd4aa98507c7c78a7a17d57ab516609140ab883531e1abca1da91308199717",
+      "bytes": 947,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-coalesce/gate.json",
+      "sha256": "7e083d62f7f0c959ae24bec8f5775937c0e871908fe5264e55cd97cd8fb19e81",
+      "bytes": 1490,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-coalesce/master.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "bytes": 2,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-coalesce/master.log",
+      "sha256": "984deec21028e8b72e71c5e0c03c5baed17669cb1483954b3f45a8e010913026",
+      "bytes": 1404,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-only-head/24628607-command.json",
+      "sha256": "c3826e07b7ef074eecbca7de1b9ce9dadf4d9b2fd184a7500cd48943a2f870e6",
+      "bytes": 1237,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-only-head/24628607-gpu-seconds.log",
+      "sha256": "96c68e7e38095c7a6fde5be0f038db202825038d4ac8c3710f7664c2923a3088",
+      "bytes": 439,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-only-head/24628607.log",
+      "sha256": "d9f72f023e0b91a4f06459a045ef7e0ac803c288313bd4f02b3c5e7e02a34b22",
+      "bytes": 950,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-only-head/gate.json",
+      "sha256": "e6e501ef846780dd7b9b38ab5fb3c2a5065145f4d2f4263a29aa6407332fd9d9",
+      "bytes": 1232,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-only-head/master.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "bytes": 2,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/combined-d2-only-head/master.log",
+      "sha256": "3bac7f84e2274acf7bb90951f76c1dbe123ddd720857599fc11854538b03a9c5",
+      "bytes": 1168,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/derived-recursive-cells.json",
+      "sha256": "cea2592f45fafff9a6bd5915f374fa327d35c66054c9446aadeb23d17be6bb7c",
+      "bytes": 42028,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/m6-v3-gate-provenance.json",
+      "sha256": "39a304a548e7c78f4b900ca21d35be6eaa65648b7f162ed489bc3a65a1e00e94",
+      "bytes": 2384,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/receiver-provenance.json",
+      "sha256": "f79cddc9025c752758731fa94435d462bf986e48c991143d7c79bff340448190",
+      "bytes": 1256,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/summary.json",
+      "sha256": "e7830dd188ac0ead2d26073134b1ef050a7df165d5f071436a5a999599b14f7d",
+      "bytes": 20499,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/supplemental-m6/master.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "bytes": 2,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/supplemental-m6/master.log",
+      "sha256": "5aa3ff29329734eaf205e6fbb3b46be5563ee54359f9a9140fe8d889206bbf7b",
+      "bytes": 4613,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/supplemental-m6/receipt.json",
+      "sha256": "5aa3ff29329734eaf205e6fbb3b46be5563ee54359f9a9140fe8d889206bbf7b",
+      "bytes": 4613,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/supplemental-m6/receiver-24628607-0000-24628607-20261105T103017/receiver-request.json",
+      "sha256": "32bc2f284f35a86aff0a30958a8082dda87a47859c89c672e72d611de994e4f6",
+      "bytes": 1205,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/supplemental-m6/receiver-24628607-0000-24628607-20261105T103017/strict-receiver.stderr",
+      "sha256": "9133ebdeccdb3a15a378f58f97a06d873dbe1fdebca0aa786c2d02d86e689494",
+      "bytes": 1254,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/supplemental-m6/receiver-24628607-0000-24628607-20261105T103017/strict-receiver.stdout",
+      "sha256": "9a56bd9d0ca4186f63b850fdf5159bb4bfb9a2ec071f25edf7932e47ff230da0",
+      "bytes": 3765,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/supplemental-m6/receiver-26235156-0000-26235156-20261105T102942/receiver-request.json",
+      "sha256": "c20cbda695ab34224eee96076af4ad7353ca413bfb160b3ff60ef1d415c43d79",
+      "bytes": 1205,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/supplemental-m6/receiver-26235156-0000-26235156-20261105T102942/strict-receiver.stderr",
+      "sha256": "02d782ab76e76b7535df54561b8db7cd9b7847eca1ff4a69b67a24677c61a423",
+      "bytes": 861,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-d2-composed-v1/supplemental-m6/receiver-26235156-0000-26235156-20261105T102942/strict-receiver.stdout",
+      "sha256": "a858e6d9fa501c2f9faffc82b9c8cc71ca77f7fda4557370ff1ca244e10b9048",
+      "bytes": 3782,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-jobs-memory-policy-v1.json",
+      "sha256": "ef6986ec09bb2af3d2785dbe89afe9137d36d26e7befe5f80a9493b7b8a646b1",
+      "bytes": 2663,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/rv64-validation-fixtures.json",
+      "sha256": "eee035e9af58f8bb0060ef8ba290c02e12f092287588e3f409b3ee9a29adde7e",
+      "bytes": 92911,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/recursive-product-20260917/canonical-admission-v2/admission.json",
+      "sha256": "1fe20e6c7ee8daec966ccf2aa601e9e417d1aa37e9e96e8d9290c8ae18d90a89",
+      "bytes": 3449,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/recursive-product-20260917/canonical-admission-v2/parent-1-0-key.json",
+      "sha256": "2a3e57c7d8e2feb846aff4ace4bd89ba094b10bc2f2e49560c9ae3b13300af63",
+      "bytes": 16559,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/recursive-product-20260917/canonical-admission-v2/parent-1-1-key.json",
+      "sha256": "f53e3cbbc813f1379f4a760210ab7b2a197d4721cc2f0e0409a6f06693b948df",
+      "bytes": 16565,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/recursive-product-20260917/canonical-admission-v2/parent-2-0-key.json",
+      "sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "bytes": 16552,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/pair-0-key.json",
+      "sha256": "a6699c0eebc189ec372e8df780558a72761b2587404b9d345792d66cae19f603",
+      "bytes": 16544,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/pair-1-key.json",
+      "sha256": "274fd7b2b8d9f55fedf272d17389dd86f333fb14875ffa7dc058d3fa29a65d54",
+      "bytes": 16550,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/root-key.json",
+      "sha256": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+      "bytes": 16552,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-expected-wire.json",
+      "sha256": "e01923264a3f39fd78a049e52365e26f7e4999a306703f67a4eda4f1403545f8",
+      "bytes": 3016,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-key.json",
+      "sha256": "e5fb45e1b74c32219af17cda598e1fbd56ed61055be19dde260a03d2d0b015a2",
+      "bytes": 2808542,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-1-expected-wire.json",
+      "sha256": "d7bc8ae71ed948a1bd8ae193fcd5427baefa2ef074fb0da742ede1fcfcfc3ca1",
+      "bytes": 2964,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-1-key.json",
+      "sha256": "0723005d48d350f3719a61e384df4e3ad7b06550e1ffaa9a6a0f66da3a694fab",
+      "bytes": 2807948,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-2-expected-wire.json",
+      "sha256": "0b647a13c24bf4e4150e593b11c4615bb23317d86c1578daa696b29eb70cfdd0",
+      "bytes": 2968,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-2-key.json",
+      "sha256": "bf5cb7e0102a36053e53e20097ee12dc2f35cdcf23ee5105f1a7134594eb2dd2",
+      "bytes": 2807955,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-3-expected-wire.json",
+      "sha256": "41f7917bb78ee298b4f536d4f768073abe6a72e84e24438bb284cdd1a852d758",
+      "bytes": 3036,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-3-key.json",
+      "sha256": "45aec7e8e4757f900a72a2bbad40bfb68269f09c6899c163afb1240e8df4dfd3",
+      "bytes": 2807234,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/pair-0-expected-span.json",
+      "sha256": "cf7aaf183469c5e3b284dea942b9bd73a3b4e05e93fc71130972efa88697ebbd",
+      "bytes": 1948,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/pair-1-expected-span.json",
+      "sha256": "945567ac338e266c19d137d3e5dd16e3dc031955727737d79e117c8332f09cd9",
+      "bytes": 1956,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json",
+      "sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "bytes": 2018,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-0-expected-wire.json",
+      "sha256": "c3094ad30f7b676681e7e20dfde9fd776d6d35215b236bdce29683143acc281d",
+      "bytes": 3024,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-1-expected-wire.json",
+      "sha256": "9b0081c3b08b2e9726f07576fb609209276044b42bb8ad4bbe17c0e9f9d1044b",
+      "bytes": 2980,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-2-expected-wire.json",
+      "sha256": "49715b12871d19586cac55e24549a22cedca495b8b227d10c0bf44885db9e536",
+      "bytes": 2976,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-3-expected-wire.json",
+      "sha256": "68613dd5e675da92e53145bac00ed0e3cc674ebe44f93e76df6746d5b955b4a9",
+      "bytes": 3042,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/pair-0-expected-span.json",
+      "sha256": "a1c189ba621fbb9f2ebc485a2f0efe399dba2638f4001f39204b3846e08f3538",
+      "bytes": 1969,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/pair-1-expected-span.json",
+      "sha256": "1e58e5e61945316125c2c92d1003970e1bcaf09b80127c1c1696f9a7a4093dc5",
+      "bytes": 1966,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/root-expected-span.json",
+      "sha256": "92379368ba11a77b5db4677407281a68aa62896f1227fcdcc75e09e590d1b452",
+      "bytes": 2030,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/tree-admissions/air-fusion-q193-4-seed14.json",
+      "sha256": "c7b278867cee07a660be4e2ec16f71db78f1bb7dd51ed74cf26e2c683dea4b07",
+      "bytes": 2844,
+      "group": "vectors/riscv/recursion-admissions"
+    },
+    {
+      "path": "vectors/riscv/rv64/foundations-baseline-source.json",
+      "sha256": "74c54928aab20ce55612cbe7c4f262fca258cce8bf4c696ebf9c67936928b42b",
+      "bytes": 50686,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/24626900.json",
+      "sha256": "e3fd880f21e145e4fb30a3c063853bb18e8874d24dd45660923d68d8e2715725",
+      "bytes": 110552,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/24628590.json",
+      "sha256": "4a6bf1564076c0e1a29b1d244bb738e8420ceb8575f1d67c60b40a7f4c77b712",
+      "bytes": 300984,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/24628595.json",
+      "sha256": "d528d4ac9e2ffd964c61a7424aa2dd0fc783c81ce4b1a23bf1d795fe3fa67519",
+      "bytes": 349524,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/24628607.json",
+      "sha256": "fd739325e491d43a2209a8bc769b8694d66eb463daef36d2b7729d759825c281",
+      "bytes": 90924,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/24628608.json",
+      "sha256": "c709ff0f2ed9f539fc9cc5ccef4c54d8bcfd3ea13605684738531249555184a1",
+      "bytes": 107917,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/24628611.json",
+      "sha256": "b24e76566b1200cb7058e2a4c91aa0566ffb1bebd4ba7653d5cb3681c5238289",
+      "bytes": 357771,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/24647140.json",
+      "sha256": "f4a9090d0283edc273358a43a945b351f6a6b4584fefde88e683a8a4a3e76067",
+      "bytes": 80968,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/24697070.json",
+      "sha256": "8bd7a00145e5a6cef8c041e7f608c7ddaf34f1669e429c31dfc1c4f4091d91be",
+      "bytes": 161055,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/24697073.json",
+      "sha256": "90d378c44a58905b7f0a44f314cfd614418474408f42810906f81a61c84ad95e",
+      "bytes": 149295,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/25229951.json",
+      "sha256": "7c9237af52b19fa5e1353e6d3ffb173f55f60b9f76e4e701671c23b5b5ba311b",
+      "bytes": 312081,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/25229955.json",
+      "sha256": "90fdac69293f0e500ba8c0e0836c1809e1ba4a84d8209ae12bd0dff20b964da7",
+      "bytes": 260071,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/25229957.json",
+      "sha256": "73274b2aae039ccfd480f4494fbd377d6b7b380c6751f4f8e70f679f92621251",
+      "bytes": 90989,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/26235156.json",
+      "sha256": "83ee1d5978506ed4297b52cca12fbe1c0ea719deb2848a52a32bef1c778ec1ae",
+      "bytes": 60909,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/26235159.json",
+      "sha256": "ce3ae63126c91c39b64e0ab011cb28f737f9f7504d5dfbbab11eb41ac0a317d3",
+      "bytes": 397666,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/26235168.json",
+      "sha256": "187b6adb25dd37521edae8f3d0d78e336ba8f85caab55b6606f10c8c7a864a0d",
+      "bytes": 257431,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/scale-part1.log",
+      "sha256": "0a84d229f32f136b8ec57c33db6e9ffe9a9bfe12b18903ef0fe2f14ebf2d2f79",
+      "bytes": 1618,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/scale-part2.log",
+      "sha256": "ae089951563e871824af87478187645f5767bc8323d114d5f17232283cacda2d",
+      "bytes": 1051,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/scale/scale.log",
+      "sha256": "afe375535824c8f585abf58802d11a576ae3438c07550bbfbcccff57034f32a8",
+      "bytes": 240,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/m3-basket/summary.json",
+      "sha256": "3d724044839c7caca66935d879354f21be0dda2828fb92c4d815061e8d0b1845",
+      "bytes": 19861,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv_csp/README.md",
+      "sha256": "43890904843a7bf65f4488a92e1c92144ecea0bf821cb14cf51b4f6d5c3dc63b",
+      "bytes": 73844,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/ecdsa-precompile-v1.json",
+      "sha256": "72b79c6aa5455542fcef9b2709d8a1d6682c9362a9b253d895c5cef46977cb67",
+      "bytes": 1711,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/guests/ecdsa_secp256k1.elf",
+      "sha256": "2442039f6437e58b9367dd75d0e6f43435eb9a1698b18f81c53104d8c6ad5189",
+      "bytes": 75528,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/guests/ecdsa_secp256k1_precompile_even.elf",
+      "sha256": "9f3fe75f68d57efa13b9e58c9957a8da5fbde6d20eeda299277a7ebeb2bcc38f",
+      "bytes": 9300,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/guests/ecdsa_secp256k1_precompile_odd.elf",
+      "sha256": "3bd286d0d5b11d1419d3cadad5e33a2fa0d88184998d19c5484f2bcc9c419060",
+      "bytes": 9300,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/guests/keccak.elf",
+      "sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+      "bytes": 76628,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+      "bytes": 14408,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/guests/sha256.elf",
+      "sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+      "bytes": 76016,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/ecdsa_secp256k1.bin",
+      "sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+      "bytes": 161,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/ecdsa_secp256k1_bad_signature.bin",
+      "sha256": "75bd5fd25b8a514a8a891502fb32105d1dca26cdaf1d8fd2cc4cba5737806181",
+      "bytes": 161,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/field_m31_12.bin",
+      "sha256": "2d9e23bba1320ab0a43c5886d6027463b5a60af4aaf13fd35a5bfcacda5d2e65",
+      "bytes": 52,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/field_m31_16.bin",
+      "sha256": "5cf6b1945ad9c287e4adbf60f9a8a526864a1ae0062387244ea93fca7ca7268e",
+      "bytes": 68,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/field_m31_2.bin",
+      "sha256": "36561ae6b6f918ce2d847d5cd6d703f74d56d06e718d3f49704abae56334bbae",
+      "bytes": 12,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/field_m31_4.bin",
+      "sha256": "5ed2b6cb824d90221b830649aed0f260d6c1d1fff6f62f34945e0fca074cc5e3",
+      "bytes": 20,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/field_m31_8.bin",
+      "sha256": "0ed2711e85a858614f8c1d74c4914f472f33576e3a4917b874c8fd0794880b33",
+      "bytes": 36,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/msg_1024.bin",
+      "sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+      "bytes": 1028,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/msg_128.bin",
+      "sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+      "bytes": 132,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/msg_2048.bin",
+      "sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+      "bytes": 2052,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/msg_256.bin",
+      "sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+      "bytes": 260,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/inputs/msg_512.bin",
+      "sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+      "bytes": 516,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/manifest-v1.json",
+      "sha256": "6e9249c399f7c8186d36760fb1dc5a85e963c2c79bc042156efb54538182081b",
+      "bytes": 6080,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/manifest-v2.json",
+      "sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+      "bytes": 12939,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/recursion-shape-audit-v1.json",
+      "sha256": "1b7db1fe3ab8afffe69a94b1058eb250fc3e525244db8ec26428493805bcc224",
+      "bytes": 14499,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/recursion-shape-audit-v2.json",
+      "sha256": "daad8c1693db7c49f1f4e781022c973ae793eb70ac07853716b0195e20d9892c",
+      "bytes": 24048,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_csp/upstream_fixture_dump.rs",
+      "sha256": "32fd265cc990a80167bbd1428cc1a24df2ee264616264b46f002707b93e23801",
+      "bytes": 2142,
+      "group": "vectors/riscv_csp"
+    },
+    {
+      "path": "vectors/riscv_elfs/alu_test.elf",
+      "sha256": "734a06a5fc76833a79620e628f8f8bd47d0e325153b81ccd99ee1d149f9a64ea",
+      "bytes": 699,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/branch_fib.elf",
+      "sha256": "7ff124d1aea7433225b018c7f4dbcae7f693506c0ac34d6790c60cd50c7b2c3f",
+      "bytes": 799,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/bubble_sort.elf",
+      "sha256": "ada1f4f99eefd727be458206742694b8d5a873c3a78f021acbfd2357433ac7d3",
+      "bytes": 775,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/collatz.elf",
+      "sha256": "5e57a9b3d77dc9a32fd27d4abe6a44d8b7dcfd49793ef64bdef3a214e91398d6",
+      "bytes": 751,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/ecdsa.elf",
+      "sha256": "ec727a2b32e7fafcdce84dd1f41722b230ad90c083fbde882060a7087aa88f24",
+      "bytes": 194164,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/inputs/field_12.bin",
+      "sha256": "7d4d6117f0421532a825f8d3e0af1d7038bc66ce40675b654b9d8b17dd7e6e80",
+      "bytes": 52,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/inputs/field_16.bin",
+      "sha256": "d5d53b2f7f631e0b556a8f625ff6c6f460bed9c7d737bd323c4feb28b37c833b",
+      "bytes": 68,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/inputs/field_2.bin",
+      "sha256": "8bfc7bb69716f2434126543ea4cde2616e2614e4b68f7f856521ea2dfcf5bc82",
+      "bytes": 12,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/inputs/field_4.bin",
+      "sha256": "c6f7736f0d60d746def31a472438860149db4f5662c97baaaddb24eec1e4824e",
+      "bytes": 20,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/inputs/field_8.bin",
+      "sha256": "80603b95d1022de609c687b6f105c4ab12b6393b3b6712c1f676872e5a68d0cd",
+      "bytes": 36,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/inputs/msg_1024.bin",
+      "sha256": "b80a026e8360691bb0d7fe80a87464dc3dfd1a7ac4a70f5459b047e1740ad86d",
+      "bytes": 1028,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/inputs/msg_128.bin",
+      "sha256": "a19cc887a9270596073ff708bfb7a90da64b3d30333fdf26e299a53af96f45f2",
+      "bytes": 132,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/inputs/msg_2048.bin",
+      "sha256": "db70594051838ddbcb709fdd4db439519a712c9ddc08b8de928a19fbe89d9bf6",
+      "bytes": 2052,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/inputs/msg_256.bin",
+      "sha256": "4ef323664fece1da7c4a34ec9e72ea5734abd89d5cfd392162a992131e9161ae",
+      "bytes": 260,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/inputs/msg_512.bin",
+      "sha256": "102a6ed667c65cd2a662b0a0fc1fcae4e564bf6e66204b3d96e26fbf72eddbf5",
+      "bytes": 516,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/keccak_input.elf",
+      "sha256": "21a7df6645e6b92dd29574fd073980875adc0010686555c0efefbb1616b6ee70",
+      "bytes": 69924,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/poseidon2_m31.elf",
+      "sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+      "bytes": 14408,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/provenance.json",
+      "sha256": "c2a86cf401284f155270a45d303cb9951fe65932dec1ace79a279490df53274d",
+      "bytes": 3095,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/crypto/sha2_input.elf",
+      "sha256": "4ea1c5ba5b9567d4c88d8ed1f74126b4d9813fb6887099db4f0ddaf23897c23f",
+      "bytes": 81000,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/declared_region.elf",
+      "sha256": "734a06a5fc76833a79620e628f8f8bd47d0e325153b81ccd99ee1d149f9a64ea",
+      "bytes": 699,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/fence.elf",
+      "sha256": "c81071965bf7d36977cc511b666124a7ecf46a7fa440d9f3af7e0fded2726bc3",
+      "bytes": 699,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/fib_iter.elf",
+      "sha256": "42c7de1d3f1c87224e37406383c29fbd4a3d8084e428564bac78a871cb5aacf3",
+      "bytes": 719,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/gcd_euclid.elf",
+      "sha256": "18c69c1f235919dd322863d1e367fed4477d0a8c27dad8f4c661554307daa298",
+      "bytes": 715,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/jal_jalr.elf",
+      "sha256": "bdd0f3d005aa9d0b49d69ec56a9290ce301317492673ae2a7fb58632c4e9be96",
+      "bytes": 711,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/mem_ls.elf",
+      "sha256": "e9e828a54ee59376f2c027769910e09e3dbe69580831e544e38b213ae6dfc214",
+      "bytes": 739,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/memcpy_loop.elf",
+      "sha256": "a3502eba17d7fc0290c898290722b6be649a82f4b68b65216f197015b8dcfe64",
+      "bytes": 767,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/mul_div.elf",
+      "sha256": "5a211eb73c1de22578b58989e2ede83a2650f9b810b42cb12005c4bd89ac3d56",
+      "bytes": 751,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/mulhu_only.elf",
+      "sha256": "c8508fdaefc78897cca1ddfa5d7af1d933c1784d2083a4b5be6ab57f4b6f8713",
+      "bytes": 699,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/multi_shard_addi.elf",
+      "sha256": "c93d9a3dd6104ae0f76a4297f3800ab70e5e59984187b1357e7619a0a0004adb",
+      "bytes": 699,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/negative/fence_i_outside_profile.elf",
+      "sha256": "a18d8ec830ac209153b29fadc22cff1dc0ec14f2e98cdf42a63d4c79ba64578c",
+      "bytes": 671,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/negative/illegal_opcode.elf",
+      "sha256": "0dff0f282585020ec3450b6409e61152b837bd79d5ef0752e5b6aefafeb78f2b",
+      "bytes": 671,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/negative/misaligned_jump_target.elf",
+      "sha256": "aa9e0f9eec46929159b66e67c0aa5c12eea803b86ac4f9b0efbd74676d92d409",
+      "bytes": 671,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/negative/misaligned_word_load.elf",
+      "sha256": "3c73da6766d86cb0a639cfd0e95414a5ed372e6efca801c8d9096627d2db4ac4",
+      "bytes": 671,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/negative/reserved_op_funct7.elf",
+      "sha256": "92c2126452079c46162d3e5b21173e7b7e20239c163ca9aa53e2ecece2a30604",
+      "bytes": 671,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/negative/self_loop_sentinel.elf",
+      "sha256": "57617eed3526b2dfc6796f2dc5ec87c2a379a0fb341b6b9a1ff0124975be2481",
+      "bytes": 695,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/negative/system_ecall.elf",
+      "sha256": "a9bc3d13544ef925bfcec75fe3fdf0cdc35e17dc72a3f3eebc47b3f68ac9a238",
+      "bytes": 671,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/negative/undeclared_program.elf",
+      "sha256": "49f9e8f3d1ec4f4243a6c7eaad31d8c48a52c08e32c82b242af29f076d2d5415",
+      "bytes": 116,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/shift_logic.elf",
+      "sha256": "5616b93315b84b74b65c131bbb35c7936f3104354792f0ab8b1a6cc799b887c7",
+      "bytes": 759,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/sieve_primes.elf",
+      "sha256": "a1c8e2524554cdcff772e0fa931965ee71554a2a494912a0c4090678fbef8328",
+      "bytes": 771,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/trace_vectors.json",
+      "sha256": "0c0cddc58a38c9533a0a8581d253dcf2b6e604292aeb30b54348f897e2b508b1",
+      "bytes": 11834,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_elfs/xorshift_prng.elf",
+      "sha256": "eeceec1a36cf32abb12e4f06661d639b4621cdf9d22a8a659a6e0341be857c0c",
+      "bytes": 731,
+      "group": "vectors/riscv_elfs"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1/.cargo/config.toml",
+      "sha256": "46fc9e17033132a0b114940301c796c8dee212f3e2de4e448efa0d1de417bcd6",
+      "bytes": 126,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1/Cargo.lock",
+      "sha256": "bcc93ef93750564b9ceb1b4f78773de8cb1fb3f6d184fcaae162632086cb65b7",
+      "bytes": 6202,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1/Cargo.toml",
+      "sha256": "6fec37242b95effac8b18f2c5de027a639afa1698e28c111551be90dffb857fc",
+      "bytes": 317,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1/linker.ld",
+      "sha256": "297f2e4d221565cde8c913daf8da59765cbe785db87442f9641d24a15838f86c",
+      "bytes": 1421,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1/rust-toolchain.toml",
+      "sha256": "1553745dccdeca9f2b9daa90c98574067fef94e9aec73a348cfd2fe669934700",
+      "bytes": 84,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1/src/main.rs",
+      "sha256": "e79c7e52985880de310534087494bec786cd0a53d77b0b20551ed026edd2c0a8",
+      "bytes": 2826,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/.cargo/config.toml",
+      "sha256": "46fc9e17033132a0b114940301c796c8dee212f3e2de4e448efa0d1de417bcd6",
+      "bytes": 126,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/Cargo.lock",
+      "sha256": "7e0af0014233580da8a93ab9c4f8c2026d0721eb1e5a255eab49e96505844d1a",
+      "bytes": 176,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/Cargo.toml",
+      "sha256": "f47a167655f79f30236afc6ffaaf1b800aeab3a062aba01b7f2603a746efac58",
+      "bytes": 274,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/README.md",
+      "sha256": "5dda49007336e1d1cb95dda2dea6470710a7d10f131f1226ae694ceb904bc052",
+      "bytes": 1594,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/linker.ld",
+      "sha256": "9b76db4ce15314d4b32afd7d454998947f6aa4a2acc9af9807d1a7e527e73ba1",
+      "bytes": 1484,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/rust-toolchain.toml",
+      "sha256": "1553745dccdeca9f2b9daa90c98574067fef94e9aec73a348cfd2fe669934700",
+      "bytes": 84,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/src/main.rs",
+      "sha256": "60b5cb0ac4e64af4457283be94e2b487b3a7fbe63e105baf7c7ac538a84070b0",
+      "bytes": 2807,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31/.cargo/config.toml",
+      "sha256": "46fc9e17033132a0b114940301c796c8dee212f3e2de4e448efa0d1de417bcd6",
+      "bytes": 126,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31/Cargo.lock",
+      "sha256": "2c55babf6ef5c6812c0e3a8b3c0a8746fd0465b9da14c3857884958ee193ede0",
+      "bytes": 163,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31/Cargo.toml",
+      "sha256": "f2765c6603c8d623796e29897c974728890f45f70c8f74ffc2c5199b803ffd2f",
+      "bytes": 356,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31/linker.ld",
+      "sha256": "3f86ae3d5a74b8b3cddf589c50b027ca6f5985f9ca7539c5007141f6d847dcb0",
+      "bytes": 1564,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31/rust-toolchain.toml",
+      "sha256": "fd9f85e06f2cf5e5884bdcb5102f2d0ae281670e47d943381414840086ab4e69",
+      "bytes": 232,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31/src/main.rs",
+      "sha256": "4382737040a0b25c66f774ec104b6e74e86674fd4876d5352768453e5a9ccb9e",
+      "bytes": 7434,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31_permute_v1/.cargo/config.toml",
+      "sha256": "46fc9e17033132a0b114940301c796c8dee212f3e2de4e448efa0d1de417bcd6",
+      "bytes": 126,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31_permute_v1/.gitignore",
+      "sha256": "b7c419deb7c522dcf3bcedd8e0db452868f446ef3975b50d0626e190e32efa26",
+      "bytes": 125,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31_permute_v1/Cargo.lock",
+      "sha256": "ccbf7e45df1a57f223769a83233bb9090d8038fc21bbff5b775a9550b865941d",
+      "bytes": 174,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31_permute_v1/Cargo.toml",
+      "sha256": "d95aeed867cbc14aefcec1aa4afb406de6d472e7ab1c931a620e4b3a6083bb50",
+      "bytes": 659,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31_permute_v1/README.md",
+      "sha256": "0520b26d8e76a300cf9060d2c3cbbd6d209fd0f1907b73be73be27e19ea9241c",
+      "bytes": 2556,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31_permute_v1/linker.ld",
+      "sha256": "f1d728821414b8915053397cc5a531ce6387b91df2c22a5a56c66ebc7e39de40",
+      "bytes": 1556,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31_permute_v1/rust-toolchain.toml",
+      "sha256": "3515e85abca2e7d142aaa106fbc058bb6fb3ee641ebc2d882b0f41a1ffcf01c0",
+      "bytes": 84,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/poseidon2_m31_permute_v1/src/main.rs",
+      "sha256": "a733a34fb025089f3c5744810fc44e68c087687738895510a05080a88d6230ca",
+      "bytes": 11713,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/riscv_guests/riscv_program_matrix.json",
+      "sha256": "1216a645ae84c29e0ec3235d1dc89b104d37c8e0f5370eb0ef002bdf51d64080",
+      "bytes": 19150,
+      "group": "vectors/riscv_guests"
+    },
+    {
+      "path": "vectors/starknet/cuda-resident-pipeline-h100-20261001/pinned-cairo-reference.json",
+      "sha256": "8aa53c85a03bff8eec77f50d127d0e2a5c20c1caf50fe462d2f1fc6c25ce7d63",
+      "bytes": 1880,
+      "group": "vectors/starknet/cuda-resident-pipeline-h100-20261001"
+    },
+    {
+      "path": "vectors/starknet/cuda-resident-pipeline-h100-20261001/receipt.json",
+      "sha256": "15a965e6768aa9f50b271dd60fa26ed302db7a3aa45f6c7f3732863a1c27a28a",
+      "bytes": 4161,
+      "group": "vectors/starknet/cuda-resident-pipeline-h100-20261001"
+    },
+    {
+      "path": "vectors/starknet/mainnet/README.md",
+      "sha256": "cb7c6d33ce229072b3f8cdd98cf333e3a0f6a5f7b9f08ce1f8e8b283f405610b",
+      "bytes": 2850,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/blocks.jsonl",
+      "sha256": "59ec12f0272fa6d8fdefaba7f388ddeb4147bb84dd1a2e1c6f8189882fdb34bd",
+      "bytes": 138166,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/manifest.json",
+      "sha256": "143ed8e0fdf6f455565d0dc3b7b0b40ea22c4049de86c0935fe1c8dedc9a513f",
+      "bytes": 4352,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pies/aggregator/aggregator-15627902-15627907_x1.zip",
+      "sha256": "b60d137c4c87cf3b1a7a16690fc0239286b60bae6a785bd4e71991c09a9e379d",
+      "bytes": 114915,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pies/leaves/15627902-15627904.zip",
+      "sha256": "91df995bc7f9950a52a2deccff84e5a65aa5b56be5eae9ed5abec0d5ba11e21e",
+      "bytes": 7612934,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pies/leaves/15627902-15627907.zip",
+      "sha256": "0550d445d6262b6b976ab6b4a19151e31a31c7a58170fbc59b8fa5f1ef1ffd46",
+      "bytes": 9739933,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pies/leaves/15627905-15627907.zip",
+      "sha256": "e7e76d57001b6b05eac0024d8b8262a85ce496c95e96c9f22f4f6e71079f22f6",
+      "bytes": 5204748,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pies/leaves/15630654-15630683.zip",
+      "sha256": "8391e1f1770dc295d9aecb1df6811d16cdcd7d903801f8f88417a7829f70938f",
+      "bytes": 79122114,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/15627902-15627904.official-verdict.json",
+      "sha256": "ae4156637a3373a2a7f651ae074ff6bc915966d50fe3e5837716626f2300d338",
+      "bytes": 375,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/15627902-15627904.proof",
+      "sha256": "5beb8730081cce9bd09201a70b68113ca0c1859d5826a2f9047b1902dad8eaa4",
+      "bytes": 2070761,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/15627902-15627904.report.json",
+      "sha256": "5e7845280c7ecdac3c231ce8b2a1e7de80c1dc6914eb5da4fa827e2296cc9723",
+      "bytes": 3000,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/15627905-15627907.official-verdict.json",
+      "sha256": "ccdfe94f898724f04026609b12e03fc6b7b4c00e654cf04004aafc8f9e2f76bd",
+      "bytes": 375,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/15627905-15627907.proof",
+      "sha256": "f0c995d5979a7e3e8c5d8c0206c14812070f72c394f168d8ae040f00c2b15e8d",
+      "bytes": 2057671,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/15627905-15627907.report.json",
+      "sha256": "e8f4b33d01bb96a9539dc2333989e25b6d8446d18605f6c856c3217869b534cf",
+      "bytes": 3000,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/aggregator-15627902-15627907.official-verdict.json",
+      "sha256": "63eb279c3e2c5d2eeeaae2770ef51de27f2bff203e405672ac8c428906850c1f",
+      "bytes": 375,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/aggregator-15627902-15627907.output.json",
+      "sha256": "ba90e76f2f054496d69a07eac7c3f888bd7e587929c2e87f40793a1596881e8e",
+      "bytes": 14787,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/aggregator-15627902-15627907.proof",
+      "sha256": "8537ce06b43b39231c08e84b3611653444100c80be1e1bb2be65d407b71b8aff",
+      "bytes": 968689,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/aggregator-15627902-15627907.report.json",
+      "sha256": "a46bbb0cbd1210d7a7a57e15da10e4e9a81fabc85315f42a570f70bcbb31f0d8",
+      "bytes": 2995,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/aggregator-15627902-15627907.zip",
+      "sha256": "e391308abff8fed025eec3990c0509982d583f4bc3a8cd7ed037536bf25b9c15",
+      "bytes": 124242,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/applicative.proof.json",
+      "sha256": "5acbd231d6c53ac9961722f63c71be1154dffebafb5b3aef54cdfaf766653eda",
+      "bytes": 3189201,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/applicative_metal_report.json",
+      "sha256": "ccccf44296b38a9346f4a2f5b3c38f7e15618efaa5604ac9876854a575f7a37a",
+      "bytes": 4240,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/applicative_metal_rust_verdict.json",
+      "sha256": "95e817cbdbdd377961c6552ed4751f311e6af4db685efad2edf71523e4125c51",
+      "bytes": 374,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/applicative_outputs.json",
+      "sha256": "e4777209ed6442748681fa6dbf0e5d8471ca6665173ef8fc77cfb153c24c2a78",
+      "bytes": 3509,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/applicative_program.json",
+      "sha256": "7abe1d0f6ac73996d29ae07fc4f4938b1d43e6f028f10c6ae73f842cbf44fca6",
+      "bytes": 3791697,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/applicative_proving_report.json",
+      "sha256": "c219f4c50fd9e42ca2eede877f4ba4c4916db242eba9c72af5b5eb7d80dde61f",
+      "bytes": 2720,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/applicative_rust_verdict.json",
+      "sha256": "f2ab2044b48dc382e34a504a2fdcf0f6491248a35077f856a1b4a29b8535765e",
+      "bytes": 374,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/results.json",
+      "sha256": "0d0e7e1f801700eceed45aae09d7417214621e6c4f696caec3c7cabd3407c270",
+      "bytes": 2951,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/root.proof",
+      "sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+      "bytes": 1508773,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/root_outputs.json",
+      "sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+      "bytes": 88,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/root_packed.json",
+      "sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2",
+      "bytes": 13231,
+      "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/starknet/mainnet/pipeline/15627902-15627907_x2/root_verification.json",
+      "sha256": "b63d60ace04c665c73a24336da84ba24a6c6c591be89d48df02b46dde1bc12a0",
+      "bytes": 779,
+      "group": "vectors/starknet/mainnet"
+    }
+  ]
+}

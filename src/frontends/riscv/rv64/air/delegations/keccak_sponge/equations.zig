@@ -4,7 +4,7 @@
 //! order; consecutive pairs share one inverse group `inv * d1 * d2 = 1`, and
 //! each relation (RAM14, OWNER19, IO11, AND3, U16, U8) keeps one centered
 //! prefix column. Soundness argument:
-//! design/riscv-proving-stack/rv64-keccak-sponge-service.md.
+//! design/riscv/rv64-keccak-sponge-service.md.
 const std = @import("std");
 const E = @import("../../evaluation.zig");
 const S = @import("../../providers/scalar_range.zig");
@@ -56,11 +56,6 @@ pub fn limbsOfBytes(comptime F: type, bytes: []const F) [4]F {
 fn limbs(comptime F: type, m: []const F, start: usize) [4]F {
     return m[start..][0..4].*;
 }
-fn shiftValue(comptime F: type, sigma: []const F) F {
-    var s = F.zero();
-    for (sigma[1..8], 1..) |v, j| s = s.add(v.mul(q(F, @intCast(j))));
-    return s;
-}
 pub fn ioTuple(comptime F: type, id: F, direction: F, lane: usize, bytes: [8]F) [11]F {
     var out: [11]F = undefined;
     out[0] = id;
@@ -102,7 +97,7 @@ pub fn callPacket(comptime F: type, m: []const F, k: usize) [4]F {
     const C = L.call;
     return switch (k) {
         0 => limbs(F, m, C.state),
-        1 => .{ shiftValue(F, m[C.shift..][0..8]).add(m[C.in_q0].mul(q(F, 8))), m[C.in_hi], m[C.in_hi + 1], m[C.in_hi + 2] },
+        1 => .{ E.addByteShiftFor(F, F.zero(), m[C.shift + 1 ..][0..7]).add(m[C.in_q0].mul(q(F, 8))), m[C.in_hi], m[C.in_hi + 1], m[C.in_hi + 2] },
         2 => .{ m[C.len0], m[C.len1], F.zero(), F.zero() },
         else => .{ m[C.fin].add(m[C.fresh].mul(q(F, 2))), F.zero(), F.zero(), F.zero() },
     };
@@ -199,7 +194,7 @@ pub fn emitRawWithFirstFor(comptime F: type, comptime kind: L.Kind, f: []const F
             const a = m[C.active];
             const base = [4]F{ m[C.in_q0].mul(q(F, 8)), m[C.in_hi], m[C.in_hi + 1], m[C.in_hi + 2] };
             sink.emit(OWNER, ecallTuple(F, m), a.neg());
-            sink.emit(OWNER, tokenTuple(F, after, base, callLen(F, m), m[C.words], m[C.fin], m[C.fresh], shiftValue(F, m[C.shift..][0..8]), m[C.id]), a);
+            sink.emit(OWNER, tokenTuple(F, after, base, callLen(F, m), m[C.words], m[C.fin], m[C.fresh], E.addByteShiftFor(F, F.zero(), m[C.shift + 1 ..][0..7]), m[C.id]), a);
             for (0..4) |k| {
                 const v = callPacket(F, m, k);
                 emitRamPairRaw(F, sink, callPacketAddress(F, m, k), m[C.pclock + L.CLOCK * k ..][0..L.CLOCK], after, v, v, one, m[C.pwritable + k], a);
@@ -238,7 +233,7 @@ pub fn emitRawWithFirstFor(comptime F: type, comptime kind: L.Kind, f: []const F
             const a = m[P.active];
             const first = m[P.first];
             const id = first_id.add(f[0]);
-            sink.emit(OWNER, tokenTuple(F, after, limbs(F, m, P.base), m[P.rb], m[P.wr], m[P.fin], m[P.freshfirst], shiftValue(F, m[P.shift..][0..8]), id), first.neg());
+            sink.emit(OWNER, tokenTuple(F, after, limbs(F, m, P.base), m[P.rb], m[P.wr], m[P.fin], m[P.freshfirst], E.addByteShiftFor(F, F.zero(), m[P.shift + 1 ..][0..7]), id), first.neg());
             for (0..T.LANES) |l| {
                 sink.emit(IO, ioTuple(F, id, F.zero(), l, inputBytes(F, m, l)), a.neg());
             }
@@ -330,7 +325,7 @@ fn emitCall(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: T
     out.emit(m[C.zero].mul(len));
     out.emit(a.mul(len.mul(m[C.zinv]).sub(one).add(m[C.zero])));
     // words = (shift + len + 7 - e) / 8 with e < 8, or 0 for an empty message.
-    const span = shiftValue(F, m[C.shift..][0..8]).add(len).add(q(F, 7)).sub(m[C.e]);
+    const span = E.addByteShiftFor(F, F.zero(), m[C.shift + 1 ..][0..7]).add(len).add(q(F, 7)).sub(m[C.e]);
     out.emit(a.mul(m[C.words].mul(q(F, 8)).sub(one.sub(m[C.zero]).mul(span))));
 }
 fn emitPerm(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {

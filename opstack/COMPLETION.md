@@ -1,9 +1,27 @@
 # OP Stack CPU delivery gates
 
-Updated 2026-11-10. This is the completion checklist for PR #322, not a claim
+Updated 2026-11-11. This is the completion checklist for PR #372 (continuing
+closed PR #322), not a claim
 that the unchecked gates already work. Receipts, source and fresh receivers
 are the authority. Historical plans in `DESIGN.md` and the feasibility study
 predate the anchored transition implementation.
+
+## Canonical main integration
+
+The port follows main's package ownership, developer entrypoints and complexity
+budget. RFC [#374](https://github.com/teddyjfpender/stwo-zig/issues/374) approves
+the explicit Cairo dependency and existing generated-module aliases for OP
+recursion. Package validation passes for 27 packages and 108 dependency edges;
+the OP tooling suite passes 114 tests and the affected package/CI/developer
+contract suite passes 140 tests. All 35 audited embedded authority blobs remain
+byte-identical to the qualified OP head `cbccb102b`.
+
+These are static and tooling gates. Merged-source compilation, frozen-proof
+replay and fresh CPU receivers remain required. The broader fast gate still
+reports upstream circuit provenance failures; its 51 oracle pin inputs are
+unchanged from the imported main. Source-conformance size failures remain
+visible and are not waived. No new block timing or Ethereum non-regression
+claim follows from this port. New gate logs remain outside the source tree.
 
 The functional comparison is ZisK's OP flow: execution ranges, authenticated
 L1 derivation, execution/derivation binding, an accumulating recursive proof,
@@ -157,7 +175,7 @@ The matched CPU recursion fanout experiment is removed after no heavy-block
 gain and higher memory. Its patch and refusal selector remain documented in
 [CPU tuning](CPU_TUNING.md).
 
-The [fixed-source repair](../design/riscv-proving-stack/rv64-fixed-source-geometry.md)
+The [fixed-source repair](../design/riscv/rv64-fixed-source-geometry.md)
 checks ordered native column geometry as well as the lifted source root before
 reusing a fixed binding. Complete heavy native acceptance works with both
 committed-source and identity-only independently derived setup. This closes a
@@ -312,7 +330,7 @@ count alone is insufficient. Square+multiply drops 19,344 to 8,988 instructions
 with independent native/VM/Unicorn agreement, but active field cells rise
 53,220 to 88,632. Conditional heavy padding saves only about 10.3% field cells
 and doubles Miller leaf count. It stays opt-in; a dedicated fused tower provider
-is the next experiment. See the [full cost review](../design/riscv-proving-stack/op-bn254-dense-reuse-cost.md).
+is the next experiment. See the [full cost review](../design/riscv/op-bn254-dense-reuse-cost.md).
 
 
 ## Fused pairing foundation

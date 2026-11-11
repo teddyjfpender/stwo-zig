@@ -6,7 +6,7 @@ const rows_mod = @import("blake3_scalar_payload_rows.zig");
 const lower = @import("verifier_arithmetic_lowering.zig");
 const t = @import("blake3_transcript_witness.zig");
 pub const PACK_CIRCUIT: u32 = 5_000_011;
-pub const Columns = @import("blake3_upstream_source_columns_v1.zig").ForSlots(.{ 12, 11, 10 });
+pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{ 12, 11, 10 });
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     rows: []rows_mod.Rows,

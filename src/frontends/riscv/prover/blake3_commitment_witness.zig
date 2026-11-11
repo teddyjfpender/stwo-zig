@@ -55,7 +55,12 @@ pub const Witness = struct {
     /// Prepare the public-I/O root conversion for a caller-admitted span endpoint.
     pub fn prepareContinuation(self: *const Witness, a: std.mem.Allocator, side: source.Side, data: *const public.Blake3PublicData, admission: @import("blake3_commitment_plan.zig").Admission, full_root: @import("../air/memory_commitment/blake3_state_tree.zig").Digest, namespace: u32, source_circuit: u32) !@import("../recursion/air/blake3_memory_custody.zig").Prepared {
         const snapshot = if (side == .entry) &self.initial else &self.final;
-        return @import("../recursion/air/blake3_memory_custody.zig").prepare(a, side, data, admission, snapshot.leaves, full_root, namespace, source_circuit);
+        return @import("../recursion/air/blake3_memory_custody.zig").prepare(a, side, data, admission, snapshot.leaves, full_root, namespace, source_circuit) catch |err| return switch (err) {
+            // Keep this boundary's endpoint rejection stable when its internal
+            // witness uses the shared public-subtree representation.
+            error.UntrustedPublicSubtreeChain => error.UntrustedMemoryUpdateChain,
+            else => err,
+        };
     }
     /// Materialize only the scheduled word needed by the current work item.
     pub fn prepareBoundary(self: *const Witness, a: std.mem.Allocator, index: usize) !word.Prepared {

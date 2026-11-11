@@ -2,6 +2,7 @@
     .fingerprint = 0x30cc732fa7b3ee79,
     .name = .circuit_slot_order_conformance,
     .version = "0.1.0",
+    .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{
         .stwo_circuit_frontend = .{ .path = "../../src/frontends/circuit" },

@@ -1,7 +1,7 @@
 //! The circuit builder: a call-order-exact port of `crates/circuits`
 //! (https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230), design §3 of
-//! `design/starknet-proving-pipeline/recursion/02-design.md`.
+//! `design/starknet/recursion/02-design.md`.
 //!
 //! Invariants every module keeps (each has a test):
 //! - variables are numbered in call order; 0, 1, 2 are zero, one and `u`;

@@ -103,3 +103,19 @@ test "load store native opcode projection agrees with integer modular reference"
     const tuple = LS.equations.ownerTuple(M, &main);
     try std.testing.expectEqual(@as(u32, @intCast(expected)), tuple[0].v);
 }
+
+test "byte shift address projections agree with independent integer modular reference" {
+    const A = @import("stwo_riscv_frontend").rv64_air;
+    const B = A.crypto.bulk_memory;
+    const K = A.crypto.keccak_sponge;
+    var selectors: [7]M = undefined;
+    for ([_]u32{ 1280130139, 658457521, 2039696468, 2002804288, 1117755473, 1311423401, 260321919 }, &selectors) |v, *s| s.* = M.fromCanonical(v);
+    try std.testing.expectEqual(@as(u32, 971785791), A.evaluation.addByteShiftFor(M, M.fromCanonical(1177117555), &selectors).v);
+    var bulk: [B.layout.ucopy.MAIN]M = @splat(M.zero());
+    bulk[B.layout.ucopy.src] = M.fromCanonical(1177117555);
+    @memcpy(bulk[B.layout.ucopy.sel..][0..7], &selectors);
+    try std.testing.expectEqual(@as(u32, 971785791), B.equations.ucopySource(M, &bulk)[0].v);
+    var sponge: [K.layout.call.MAIN]M = @splat(M.zero());
+    @memcpy(sponge[K.layout.call.shift + 1 ..][0..7], &selectors);
+    try std.testing.expectEqual(@as(u32, 1942151883), K.equations.callPacket(M, &sponge, 1)[0].v);
+}

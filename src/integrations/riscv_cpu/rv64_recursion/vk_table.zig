@@ -1,4 +1,4 @@
-//! M5 verification-key tables (stream canon-vk; design/riscv-proving-stack/
+//! M5 verification-key tables (stream canon-vk; design/riscv/
 //! rv64-m5-binding.md §1-§4, plan §4.3): the recursion-VK table `T_rec` and
 //! the native-VK table `T_nat`, each a fixed-depth Blake2s Merkle tree whose
 //! root a fold or leaf circuit takes as a PUBLIC input. A child (or native)

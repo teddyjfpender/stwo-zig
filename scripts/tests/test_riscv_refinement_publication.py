@@ -4,9 +4,9 @@ import json
 import unittest
 from unittest import mock
 
-from scripts import riscv_refinement_publication as publication
-from scripts.riscv_refinement_lib import air_program_contract
-from scripts.riscv_refinement_lib.model import (
+from scripts.riscv import riscv_refinement_publication as publication
+from scripts.riscv.riscv_refinement_lib import air_program_contract
+from scripts.riscv.riscv_refinement_lib.model import (
     Paths,
     RefinementError,
     repository_root,

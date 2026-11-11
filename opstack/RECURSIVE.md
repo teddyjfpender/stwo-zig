@@ -111,7 +111,7 @@ live production admission and 24 GiB reception, with 39.16 GiB measured RSS.
 This is not a universal memory budget. Larger rosters fail explicitly, with no
 partial-execution acceptance. Run `zig build test-riscv64-native-group
 -Doptimize=ReleaseFast` for focused graph, physical proof and admission checks.
-The [bounded review](../design/riscv-proving-stack/rv64-native-verifier-groups.md)
+The [bounded review](../design/riscv/rv64-native-verifier-groups.md)
 explains computed-wire digest binding, native closure and remaining limitations.
 
 `STWO_RV64_GROUP_ARITHMETIC=structural-v1` separately opts into GROUP2

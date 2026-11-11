@@ -18,7 +18,7 @@ COMPILE_SUFFIXES = {
 
 
 def compile_sources(root):
-    runtime = root / "autoresearch/benchmarks/guest_runtime"
+    runtime = root / "guests"
     rv64 = runtime / "ethereum/rv64"
     roots = [
         root / "opstack/kona",

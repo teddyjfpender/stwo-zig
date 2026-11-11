@@ -15,7 +15,7 @@ constructive proof that the deleted constraint cannot be dropped: with it, the
 conclusion follows; without it, here is the counterexample.
 
 This is stronger than the Level-1 validator-sensitivity controls in
-`scripts/riscv_refinement_lib/negative.py`, which only prove the AIR *schema
+`scripts/riscv/riscv_refinement_lib/negative.py`, which only prove the AIR *schema
 validator* rejects a mutated payload. Those check the tooling. These check the
 theorem.
 

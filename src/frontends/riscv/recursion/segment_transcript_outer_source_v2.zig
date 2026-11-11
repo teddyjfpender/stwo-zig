@@ -13,10 +13,10 @@
 //! identities are custody seals, not MACs; the 36-row integration must still
 //! constrain the authority words and close every emitted relation.  Until that
 //! bundle independently proves and verifies, `productionReady` is false.
-const shard_0 = @import("segment_transcript_outer_source_v2_contract.zig");
-const shard_1 = @import("segment_transcript_outer_source_v2_prepared_v2.zig");
-const shard_2 = @import("segment_transcript_outer_source_v2_write_rows_assume_valid.zig");
-const shard_3 = @import("segment_transcript_outer_source_v2_write_into.zig");
+const shard_0 = @import("segment_transcript_outer_source_contract.zig");
+const shard_1 = @import("segment_transcript_outer_source_prepared.zig");
+const shard_2 = @import("segment_transcript_outer_source_write_rows_assume_valid.zig");
+const shard_3 = @import("segment_transcript_outer_source_write_into.zig");
 
 pub const FORMAT_VERSION = shard_0.FORMAT_VERSION;
 pub const SCHEMA_VERSION = shard_0.SCHEMA_VERSION;

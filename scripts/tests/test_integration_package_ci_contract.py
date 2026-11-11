@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import unittest
+import re
 
-from scripts import ci_scope_plan
+from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import ROOT, catalog_fixture
 
 
@@ -43,7 +44,45 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             lane="riscv_cpu_integration",
             build_file="src/integrations/riscv_cpu/build.zig",
             consumers={"riscv_cpu", "aggregate_cpu", "aggregate_metal"},
+            steps=("test-blake3-proof-contracts", "test"),
         )
+        package = ROOT / "src/integrations/riscv_cpu"
+        self.assertIn('_ = @import("recursive_segment_detached_child_transcript.zig");', (package / "mod.zig").read_text())
+        self.assertIn('.{ .step = "test-detached-child-capture", .root = "recursive_segment_detached_child_transcript.zig", .minimum = 1 }', (package / "build.zig").read_text())
+
+    def test_circuit_provider_runs_existing_cpu_receiver_contracts_first(self):
+        commands = self.policy["lanes"]["circuit_cpu_integration"]["commands"]
+        expected = [["zig", "build", step, "-Doptimize=" + mode, "-j2"] for mode in ("Debug", "ReleaseFast") for step in ("test-riscv64-m5-vk-table", "test-riscv64-m5-rootverify")]
+        self.assertEqual(expected, commands[:4])
+        self.assertEqual(["test-circuit-om31", "test"], [command[2] for command in commands[4:]])
+        self.assertTrue(all("src/integrations/circuit_cpu/build.zig" in command for command in commands[4:]))
+
+    def test_cpu_blake3_corpus_has_exact_named_discovery_and_no_frontend_backend(self):
+        integration = ROOT / "src/integrations/riscv_cpu"
+        corpus = integration / "blake3_proof_contract_test_root.zig"
+        source = corpus.read_text()
+        leaves = re.findall(r'@import\("(blake3_proof_tests/[^"\n]+)"\)', source)
+        self.assertEqual(14, len(leaves))
+        declared = []
+        for leaf in leaves:
+            text = (integration / leaf).read_text()
+            declared.extend(re.findall(r'\btest\s+"([^"\n]+)"', text))
+            self.assertNotIn('@import("..', text)
+        required = re.findall(r'^        "([^"\n]+)",$', source, re.M)
+        self.assertEqual(21, len(declared))
+        self.assertEqual(sorted(declared), sorted(required))
+        self.assertIn('@import("builtin").test_functions', source)
+        self.assertIn('expectEqual(@as(usize, 1), found)', source)
+        self.assertIn('@import("blake3_proof_contract_test_root.zig")', (integration / "mod.zig").read_text())
+        frontend = ROOT / "src/frontends/riscv"
+        for name in ("blake3_proof_fixture", "blake3_proof_gate_test_support"):
+            text = (frontend / "recursion/air" / (name + ".zig")).read_text()
+            self.assertNotIn('"stwo_cpu_backend"', text)
+            self.assertNotIn('.Cpu)', text)
+            self.assertIn('pub fn ForBackend(', text)
+        inventory = (frontend / "test_inventory.zig").read_text()
+        for leaf in leaves:
+            self.assertNotIn('recursion/air/tests/' + leaf.split('/')[-1], inventory)
 
     def test_cairo_cpu_integration_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(
@@ -104,9 +143,9 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
 
     def test_metal_session_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(
-            path="src/tools/metal_session/mod.zig",
+            path="src/backends/metal/session/mod.zig",
             lane="metal_session",
-            build_file="src/tools/metal_session/build.zig",
+            build_file="src/backends/metal/session/build.zig",
             consumers={
                 "cairo_metal",
                 "metal_compile",
@@ -115,9 +154,10 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
 
     def test_proof_wire_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(
-            path="src/interop/proof_wire/mod.zig",
+            path="src/waist/proof_wire/mod.zig",
             lane="proof_wire",
-            build_file="src/interop/proof_wire/build.zig",
+            steps=("test", "test"),
+            build_file="src/waist/proof_wire/build.zig",
             consumers={
                 "aggregate_cpu",
                 "aggregate_metal",
@@ -131,11 +171,13 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             },
         )
 
+        self.assertEqual(["-Doptimize=Debug", "-Doptimize=ReleaseFast"], [command[-2] for command in self.policy["lanes"]["proof_wire"]["commands"]])
+
     def test_native_examples_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(
-            path="src/examples/poseidon.zig",
+            path="src/products/native/examples/poseidon.zig",
             lane="native_examples",
-            build_file="src/examples/build.zig",
+            build_file="src/products/native/examples/build.zig",
             consumers={
                 "aggregate_cpu",
                 "aggregate_metal",
@@ -171,18 +213,12 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             self.policy["lanes"]["cairo_cuda_integration"]["host"],
         )
 
-    def test_submission_diff_selects_only_the_link_reach(self) -> None:
-        # Submission metadata is externally validated; only the prover edits
-        # should expand this diff beyond the always-on lane. The circuit
-        # frontend commits preprocessed roots through the prover's PCS path,
-        # and the circuit CPU integration proves through it, so prover edits
-        # reach both lanes too.
+    def test_prover_diff_selects_only_the_link_reach(self) -> None:
+        # The circuit frontend and both CPU/Metal integrations declare prover
+        # engine dependencies, so its link reach retains all three lanes.
         changed = [
-            "autoresearch/submissions/2026-07-20-x/delta.json",
-            "autoresearch/submissions/2026-07-20-x/note.md",
-            "autoresearch/submissions/2026-07-20-x/verdict.json",
-            "src/prover/pcs/quotient_tile_executor.zig",
-            "src/prover/vcs_lifted/prover.zig",
+            "src/engine/prover/pcs/quotient_tile_executor.zig",
+            "src/engine/prover/vcs_lifted/prover.zig",
         ]
         lanes, _ = ci_scope_plan.select_lanes(
             changed,
@@ -196,14 +232,15 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
                 "cairo_cpu_integration", "cairo_cuda_integration",
                 "cairo_frontend", "cairo_metal",
                 "cairo_metal_integration", "circuit_cpu_integration",
-                "circuit_frontend", "cpu_backend",
+                "circuit_frontend", "circuit_metal_integration", "cpu_backend",
+                "cuda_backend",
                 "metal_backend", "native_cpu",
                 "native_cuda_device", "native_cuda_integration", "native_cuda_static",
                 "native_examples", "native_metal",
                 "native_oracle", "package", "prover", "riscv_cpu",
                 "riscv_cpu_integration", "riscv_cuda_integration",
-                "riscv_frontend", "riscv_metal",
-                "riscv_metal_integration", "sm83_cpu_integration",
+                "riscv_frontend", "riscv_frontend_acceptance", "riscv_frontend_releasefast", "riscv_metal",
+                "riscv_metal_integration", "riscv_witness_benchmarks", "sm83_cpu_integration",
                 "sm83_frontend", "sm83_metal_integration", "static",
             ],
         )

@@ -7,7 +7,7 @@ const m31 = stwo_core.fields.m31;
 const public_data_v2 = @import("../../air/public_data_v2.zig");
 const statement = @import("../../air/statement.zig");
 const statement_v2 = @import("../../air/statement_v2.zig");
-const segment_v2 = @import("../../recursion/segment_statement_v2.zig");
+const segment_v2 = @import("../../recursion/segment_statement.zig");
 const base_wire = @import("proof_artifact_wire.zig");
 
 pub const schema_version: u16 = 1;

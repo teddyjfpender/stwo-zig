@@ -58,7 +58,7 @@ transition tuple, [`state_chain.zig`](../../../src/frontends/riscv/runner/state_
 per-address tracker, and
 [`statement_validation.zig`](../../../src/frontends/riscv/prover/statement_validation.zig)
 coefficient guards. The conditional graph argument remains scoped by
-[`SAIL_AIR_COMPOSITION.md`](../../../soundness/SAIL_AIR_COMPOSITION.md); this
+[`SAIL_AIR_COMPOSITION.md`](../../../design/soundness/SAIL_AIR_COMPOSITION.md); this
 ADR does not turn its randomized-LogUp or proof-system premises into theorems.
 
 ## Decision

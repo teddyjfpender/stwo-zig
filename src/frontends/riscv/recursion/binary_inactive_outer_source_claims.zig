@@ -12,49 +12,47 @@ pub const leaf_authority = @import("segment_leaf_authority.zig");
 
 pub const segment_source = @import("segment_public_outer_source.zig");
 
-pub const air = @import("air/mod.zig");
+pub const adapter = @import("air/universal_typed_component.zig");
 
-pub const adapter = air.universal_typed_component;
+pub const binding = @import("air/universal_relation_binding.zig");
 
-pub const binding = air.universal_relation_binding;
+pub const framework = @import("air/framework_interaction.zig");
 
-pub const framework = air.framework_interaction;
+pub const manifest_mod = @import("air/universal_adapter_manifest.zig");
 
-pub const manifest_mod = air.universal_adapter_manifest;
+pub const relation_interaction = @import("air/relation_interaction.zig");
 
-pub const relation_interaction = air.relation_interaction;
+pub const roster = @import("air/universal_roster.zig");
 
-pub const roster = air.universal_roster;
+pub const schedule = @import("air/verifier_schedule.zig");
 
-pub const schedule = air.verifier_schedule;
+pub const universal = @import("air/universal_challenges.zig");
 
-pub const universal = air.universal_challenges;
+pub const universal_manifest = @import("air/universal_manifest.zig");
 
-pub const universal_manifest = air.universal_manifest;
+pub const claim_input_air = @import("air/vm_public_claim_input.zig");
 
-pub const claim_input_air = air.vm_public_claim_input;
+pub const claim_input_witness = @import("air/vm_public_claim_input_witness.zig");
 
-pub const claim_input_witness = air.vm_public_claim_input_witness;
+pub const claim_hash_air = @import("air/vm_public_claim_hash.zig");
 
-pub const claim_hash_air = air.vm_public_claim_hash;
+pub const claim_hash_witness = @import("air/vm_public_claim_hash_witness.zig");
 
-pub const claim_hash_witness = air.vm_public_claim_hash_witness;
+pub const io_hash_air = @import("air/vm_public_io_hash.zig");
 
-pub const io_hash_air = air.vm_public_io_hash;
+pub const io_hash_witness = @import("air/vm_public_io_hash_witness.zig");
 
-pub const io_hash_witness = air.vm_public_io_hash_witness;
+pub const claim_semantics_air = @import("air/vm_public_claim_semantics_input.zig");
 
-pub const claim_semantics_air = air.vm_public_claim_semantics_input;
+pub const claim_semantics_witness = @import("air/vm_public_claim_semantics_input_witness.zig");
 
-pub const claim_semantics_witness = air.vm_public_claim_semantics_input_witness;
+pub const public_logup_air = @import("air/vm_public_logup_input.zig");
 
-pub const public_logup_air = air.vm_public_logup_input;
+pub const public_logup_witness = @import("air/vm_public_logup_input_witness.zig");
 
-pub const public_logup_witness = air.vm_public_logup_input_witness;
+pub const public_logup_control_air = @import("air/vm_public_logup_control.zig").Air;
 
-pub const public_logup_control_air = air.vm_public_logup_control.Air;
-
-pub const control_witness = air.control_slice_witness;
+pub const control_witness = @import("air/control_slice_witness.zig");
 
 pub const prepared_init = @import("binary_inactive_outer_source_prepared_init.zig");
 

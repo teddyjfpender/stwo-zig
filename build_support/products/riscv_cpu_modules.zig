@@ -28,7 +28,7 @@ pub fn capabilities(
     optimize: std.builtin.OptimizeMode,
 ) *std.Build.Module {
     return binding(b, product, target, optimize).leafModule(
-        "src/products/riscv_cpu/capabilities.zig",
+        "src/products/riscv/cpu/capabilities.zig",
     );
 }
 
@@ -39,6 +39,6 @@ pub fn outputTransaction(
     optimize: std.builtin.OptimizeMode,
 ) *std.Build.Module {
     return binding(b, product, target, optimize).leafModule(
-        "src/interop/output_transaction.zig",
+        "src/support/io/output_transaction.zig",
     );
 }

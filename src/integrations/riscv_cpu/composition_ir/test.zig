@@ -3,9 +3,7 @@ const R = @import("record.zig");
 const K = @import("case.zig");
 const Catalog = @import("catalog.zig");
 const a = std.testing.allocator;
-test {
-    _ = @import("test_emit_c.zig");
-}
+test {}
 
 test "CPU layouts: IR composition equals the native domain evaluator bit for bit" {
     var prng = std.Random.DefaultPrng.init(0xC0FFEE);

@@ -1,8 +1,8 @@
 //! Shared provider geometry and deliberate identity compatibility, without witnesses.
 const std = @import("std");
 const wide = @import("../../air/memory_commitment/poseidon2_layout.zig");
-const compact_air = @import("../../air/memory_commitment/poseidon2_universal_equations_v1.zig");
-const compact_identity = @import("../../air/memory_commitment/poseidon2_universal_identity_v2.zig");
+const compact_air = @import("../../air/memory_commitment/poseidon2_universal_equations.zig");
+const compact_identity = @import("../../air/memory_commitment/poseidon2_universal_identity.zig");
 const range = @import("range_check_8_8_contract.zig");
 const roster = @import("universal_roster.zig");
 

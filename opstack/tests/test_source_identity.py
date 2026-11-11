@@ -13,7 +13,7 @@ class SourceIdentity(unittest.TestCase):
             root = Path(directory)
             patch = (
                 root
-                / "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/legacy.rs"
+                / "guests/ethereum/rv64/vendor/revm-bytecode/src/legacy.rs"
             )
             patch.parent.mkdir(parents=True)
             patch.write_text("before")
@@ -29,14 +29,14 @@ class SourceIdentity(unittest.TestCase):
             baseline = compile_sources(root)
             shared = (
                 root
-                / "autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/keccak_service.rs"
+                / "guests/ethereum/rv64/src/keccak_service.rs"
             )
             shared.parent.mkdir(parents=True)
             shared.write_text("service wrapper")
             with self.assertRaisesRegex(ValueError, "keccak_service.rs"):
                 require_unchanged(baseline, compile_sources(root))
             baseline = compile_sources(root)
-            shared_core = root / "src/core/fields/m31.zig"
+            shared_core = root / "src/waist/core/fields/m31.zig"
             shared_core.parent.mkdir(parents=True)
             shared_core.write_text("runner dependency")
             with self.assertRaisesRegex(ValueError, "m31.zig"):

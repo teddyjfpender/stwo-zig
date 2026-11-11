@@ -3,7 +3,7 @@
 //! Measured 2026-07-29 on this branch: those two tests — the oracle
 //! self-check and the forged-trace rejection — executed in NO build step.
 //! `zig test` collects tests only from the files of its ROOT module, and
-//! every existing RISC-V test step roots at `src/tests.zig`, which reaches
+//! every existing RISC-V test step roots at `src/products/riscv/cpu/test_root.zig`, which reaches
 //! `sail_oracle.zig` through the `stwo_riscv_frontend` *module* dependency.
 //! Dependency modules contribute no tests, so
 //! `-Driscv-test-filter="runner agrees with pinned Sail"` matched no name in
@@ -44,7 +44,7 @@
 //! opcode-coverage, AIR-extract and semantic-eval suites (317 tests total),
 //! none of which this fix is about.
 //!
-//! Both tests spawn `scripts/riscv_sail_oracle.py`. Without the pinned Sail
+//! Both tests spawn `scripts/riscv/riscv_sail_oracle.py`. Without the pinned Sail
 //! workspace each spawn takes the visible-skip path in ~0.08 s (measured),
 //! so the step is affordable in the PR-blocking `test-riscv-cpu-product`
 //! lane, which is what makes a compile break in these tests a PR failure

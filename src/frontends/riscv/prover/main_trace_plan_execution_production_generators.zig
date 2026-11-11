@@ -229,14 +229,14 @@ pub fn fillPoseidonRange(
 /// Profile-selected narrow rows, including a valid inactive permutation on
 /// every padding row. The same traversal reports actual active materializations.
 pub fn fillNarrowPoseidonRange(
-    columns: *[@import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig").N_MAIN_COLUMNS][]M31,
+    columns: *[@import("../air/memory_commitment/poseidon2_narrow_degree3.zig").N_MAIN_COLUMNS][]M31,
     calls: []const poseidon2_air.Call,
     inverse_placement: []const usize,
     rows: plan_mod.RowRange,
     authority: ?*const poseidon_witness_work.Authority,
     context: *task_graph.TaskContext,
 ) !PoseidonRangeWorkResult {
-    const narrow = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
+    const narrow = @import("../air/memory_commitment/poseidon2_narrow_degree3.zig");
     if (authority) |value| try value.validate();
     const start: usize = @intCast(rows.start);
     const end: usize = @intCast(try rows.end());

@@ -133,27 +133,17 @@ pub const Plan = struct {
     }
 };
 pub const LaneIdentity = struct { device: u32, factory: usize, pool: usize, workers: usize };
-/// sched M6: concurrent outer proofs per physical device (distinct factory and pool each).
-pub const max_lanes_per_device = 2;
 pub fn validateLanes(lanes: []const LaneIdentity, pool_worker_budget: usize, limit: usize) !void {
     if (lanes.len == 0 or lanes.len > 4 or limit < 9 + 2 * lanes.len) return error.InvalidRecursionAdmission;
     var workers: usize = 0;
     for (lanes, 0..) |lane, i| {
         if (lane.workers == 0) return error.InvalidRecursionPoolBudget;
         workers = try std.math.add(usize, workers, lane.workers);
-        var same_device: usize = 1;
         for (lanes[0..i]) |other| {
-            if (lane.factory == other.factory or lane.pool == other.pool) return error.DuplicateRecursionDeviceLane;
-            same_device += @intFromBool(lane.device == other.device);
+            if (lane.device == other.device or lane.factory == other.factory or lane.pool == other.pool) return error.DuplicateRecursionDeviceLane;
         }
-        if (same_device > lanesPerDeviceLimit()) return error.DuplicateRecursionDeviceLane;
     }
     if (workers > pool_worker_budget) return error.InvalidRecursionPoolBudget;
-}
-fn lanesPerDeviceLimit() usize {
-    const text = std.posix.getenv("STWO_RV64_RECURSION_LANES_PER_DEVICE") orelse return 1;
-    const value = std.fmt.parseUnsigned(usize, text, 10) catch return 1;
-    return @min(@max(value, 1), max_lanes_per_device);
 }
 pub const Status = enum { pending, running, done, retired, failed };
 /// Operational scramble test: only ready device work is reordered. The carry

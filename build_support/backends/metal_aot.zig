@@ -133,7 +133,7 @@ pub fn loadExternalBundle(
 pub fn addProducts(context: Context) void {
     const b = context.b;
     const tool_module = b.createModule(.{
-        .root_source_file = b.path("src/tools/metal_core_aot/main.zig"),
+        .root_source_file = b.path("src/backends/metal/tools/core_aot/main.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -160,7 +160,7 @@ pub fn addProducts(context: Context) void {
     tool_step.dependOn(&install_tool.step);
 
     const test_module = b.createModule(.{
-        .root_source_file = b.path("src/tools/metal_core_aot/main.zig"),
+        .root_source_file = b.path("src/backends/metal/tools/core_aot/main.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -225,12 +225,12 @@ fn addUnavailableAcceptance(b: *std.Build) void {
 fn addHostedAcceptance(context: Context, tool: *std.Build.Step.Compile) void {
     const b = context.b;
     const host_transcript_module = b.createModule(.{
-        .root_source_file = b.path("src/tools/metal_core_aot/host_transcript.zig"),
+        .root_source_file = b.path("src/backends/metal/tools/core_aot/host_transcript.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
     const probe_module = b.createModule(.{
-        .root_source_file = b.path("src/tools/metal_core_aot/probe.zig"),
+        .root_source_file = b.path("src/backends/metal/tools/core_aot/probe.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -249,7 +249,7 @@ fn addHostedAcceptance(context: Context, tool: *std.Build.Step.Compile) void {
     probe_step.dependOn(&install_probe.step);
 
     const probe_test_module = b.createModule(.{
-        .root_source_file = b.path("src/tools/metal_core_aot/probe.zig"),
+        .root_source_file = b.path("src/backends/metal/tools/core_aot/probe.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -289,7 +289,7 @@ fn addHostedAcceptance(context: Context, tool: *std.Build.Step.Compile) void {
 
 fn linkProbe(b: *std.Build, artifact: *std.Build.Step.Compile) void {
     artifact.addCSourceFile(.{
-        .file = b.path("src/tools/metal_core_aot/probe.m"),
+        .file = b.path("src/backends/metal/tools/core_aot/probe.m"),
         .flags = &.{ "-fobjc-arc", "-fblocks" },
     });
     artifact.linkLibC();

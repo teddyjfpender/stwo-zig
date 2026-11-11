@@ -18,7 +18,7 @@ pub const CLAIM_ALU_TAIL = CLAIM_LS_TAIL + 5;
 pub const CLAIM_BINARY_TAIL = CLAIM_ALU_TAIL + 2;
 pub const CLAIM_SHIFT_TAIL = CLAIM_BINARY_TAIL + 2;
 pub const CLAIM_COUNT: usize = CLAIM_SHIFT_TAIL + 3;
-pub const T = @import("../rv64_distributed_v1/manifest.zig").T;
+pub const T = @import("../rv64_distributed/manifest.zig").T;
 pub const Request = struct {
     cpu: X.types.Boundary,
     epoch: u16 = 1,

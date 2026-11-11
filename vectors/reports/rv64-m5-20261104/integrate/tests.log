@@ -1,8 +1,0 @@
-test-riscv64-m5-rootverify exit=0 93s Build Summary: 2/2 steps succeeded
-test-riscv64-m5-vk-table exit=0 11s Build Summary: 2/2 steps succeeded
-test-riscv64-outer-gkr exit=0 65s Build Summary: 2/2 steps succeeded
-test-riscv64-word16-execution-source exit=0 22s Build Summary: 2/2 steps succeeded
-test-riscv64-word16-execution-prepared exit=0 166s Build Summary: 2/2 steps succeeded
-fused-blake exit=0 8s 24 passed; 1 skipped; 0 failed.
-TESTS_DONE
-security-candidate (zig test -OReleaseSafe --dep stwo_core -Mroot=...security_candidate_test_root.zig -Mstwo_core=src/core/mod.zig) exit=1 23 passed; 0 skipped; 1 failed (pre-existing: 'candidate local relation roster matches production raw fraction authority' expected 9, found 10 -- LOCAL_RELATIONS bump owed by profiles at promotion)

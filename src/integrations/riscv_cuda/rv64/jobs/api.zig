@@ -1,4 +1,4 @@
-//! M8 job contract (design/riscv-proving-stack/rv64-m8-job-architecture.md §3.1).
+//! M8 job contract (design/riscv/rv64-m8-job-architecture.md §3.1).
 //!
 //! A proof is a `Job`. A per-GPU `DeviceWorker` runs it in three phases:
 //!   1. `stage`   — preflight and inputs for job k+1 on the h2d stream (`Stager`);
@@ -20,17 +20,7 @@ pub const gpu_native = @import("gpu_native.zig");
 
 pub const Placement = @import("resources.zig").Placement;
 
-pub const DeviceBuffer = struct {
-    ptr: [*]u32,
-    words: usize,
-    pub fn slice(self: DeviceBuffer, first: usize, words: usize) !DeviceBuffer {
-        if (first > self.words or words > self.words - first) return error.DeviceBufferOutOfRange;
-        return .{ .ptr = self.ptr + first, .words = words };
-    }
-    pub fn bytes(self: DeviceBuffer) usize {
-        return self.words * @sizeOf(u32);
-    }
-};
+pub const DeviceBuffer = @import("resources.zig").DeviceBuffer;
 
 /// Static per-job memory plan (spec §3.7 hook). `device_words` is the class
 /// plan's static peak of `Enqueue.alloc` + `Stager.alloc`; `staged_words` the

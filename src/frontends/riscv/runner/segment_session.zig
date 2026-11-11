@@ -10,11 +10,11 @@
 
 const std = @import("std");
 const ethereum_candidate_combined_authority =
-    @import("../isa/ethereum_candidate_combined_authority_v1.zig");
+    @import("../isa/ethereum_candidate_combined_authority.zig");
 const ethereum_bulk_memcpy_authority =
-    @import("../isa/ethereum_bulk_memcpy_candidate_v1.zig");
+    @import("../isa/ethereum_bulk_memcpy_candidate.zig");
 const ethereum_stack_swap_authority =
-    @import("../isa/ethereum_stack_swap_candidate_v1.zig");
+    @import("../isa/ethereum_stack_swap_candidate.zig");
 const execution_profile = @import("../isa/execution_profile.zig");
 const access_clock = @import("../access_clock.zig");
 const Cpu = @import("cpu.zig").Cpu;
@@ -22,11 +22,11 @@ const Memory = @import("memory.zig").Memory;
 const decode_cache = @import("decode_cache.zig");
 const elf_loader = @import("elf_loader.zig");
 const ethereum_candidate_combined_state =
-    @import("guest_precompile/ethereum_candidate_combined_v1.zig");
+    @import("guest_precompile/ethereum_candidate_combined.zig");
 const ethereum_bulk_memcpy_state =
-    @import("guest_precompile/ethereum_bulk_memcpy_candidate_v1.zig");
+    @import("guest_precompile/ethereum_bulk_memcpy_candidate.zig");
 const ethereum_stack_swap_state =
-    @import("guest_precompile/ethereum_stack_swap_candidate_v1.zig");
+    @import("guest_precompile/ethereum_stack_swap_candidate.zig");
 const extension_state = @import("guest_precompile/session_state.zig");
 const host_mod = @import("../host/interface.zig");
 const trace = @import("trace.zig");
@@ -35,11 +35,11 @@ const segment_capacity = @import("segment_capacity.zig");
 const memory_state = @import("memory_state.zig");
 const result_mod = @import("result.zig");
 const ethereum_candidate_combined_result =
-    @import("ethereum_candidate_combined_result_v1.zig");
+    @import("ethereum_candidate_combined_result.zig");
 const ethereum_bulk_memcpy_result =
-    @import("ethereum_bulk_memcpy_candidate_result_v1.zig");
+    @import("ethereum_bulk_memcpy_candidate_result.zig");
 const ethereum_stack_swap_result =
-    @import("ethereum_stack_swap_candidate_result_v1.zig");
+    @import("ethereum_stack_swap_candidate_result.zig");
 const session_support = @import("segment_session_support.zig");
 const session_contract = @import("segment_session_contract.zig");
 const session_retirement = @import("segment_session_retirement.zig");

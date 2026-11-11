@@ -18,15 +18,12 @@
 //! present for both children.
 
 const shard_0 = @import("binary_fri_outer_source_claims.zig");
-const shard_1 = @import("binary_fri_outer_source_trusted_composition_profile_v1.zig");
+const shard_1 = @import("binary_fri_outer_source_trusted_composition_profile.zig");
 const shard_2 = @import("binary_fri_outer_source_composition_rows_authority.zig");
 const shard_3 = @import("binary_fri_outer_source_fri_rows_authority.zig");
 const shard_4 = @import("binary_fri_outer_source_arithmetic_rows_authority.zig");
 const shard_5 = @import("binary_fri_outer_source_source_for_boundary.zig");
 const shard_6 = @import("binary_fri_outer_source_retain_non_path_poseidon_calls.zig");
-const shard_7 = @import("binary_fri_outer_source_materialize_child_paths.zig");
-const shard_8 = @import("binary_fri_outer_source_composition_source_value.zig");
-const shard_9 = @import("binary_fri_outer_source_validate_captured_against_wire.zig");
 
 pub const FORMAT_VERSION = shard_0.FORMAT_VERSION;
 pub const FIRST_ROW = shard_0.FIRST_ROW;

@@ -72,7 +72,7 @@ stage, and can compare the three root files with the pinned Rust reducer.
 their digests. The default driver launches a process per leaf;
 `--cuda-batch` uses one runtime for distinct leaves. The optional
 `--cuda-static-image` retains authenticated fixed Cairo coefficients between
-batch leaves. The [H200 pipeline report](../../../vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h200-20261001/README.md)
+batch leaves. The [H200 pipeline report](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h200-20261001/README.md)
 qualifies the combined shared-process canonical path against the pinned Rust
 proof digests. Its runs do not isolate the effect of each option, and most do
 not include sampled whole-device memory.
@@ -102,7 +102,7 @@ read, and decoding; native verification is separate. These are not medians.
 
 All four passed independent native verification and matched the pinned Rust
 serialized length (474,184 bytes) and digest. The retained
-[qualification receipt](../../../vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h100-20261001/receipt.json)
+[qualification receipt](../../../vectors/starknet/cuda-resident-pipeline-h100-20261001/receipt.json)
 records source and proof identities. The approximately 50–60 ms device-stage
 sum leaves host preparation and launch overhead as a significant measured
 cost. Arena sizes are planned allocations, not sampled whole-device peaks.
@@ -134,7 +134,7 @@ passed the pinned Rust verifier; see the
 Future complete runs should retain both Cairo JSON files, require their pinned
 Rust verification, and record sampled whole-device memory alongside the
 planned arenas. The
-[benchmark receipt](../../../vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h100-20261001/receipt.json)
+[benchmark receipt](../../../vectors/starknet/cuda-resident-pipeline-h100-20261001/receipt.json)
 contains exact input, registry, leaf, and root digests and stage timings.
 
 ## Retained H200 pipeline qualification (1 October 2026)
@@ -157,5 +157,5 @@ terminal-root trial reached 13.363 s process wall (14.143 s adapted input to
 root), but changes the outer circuit: its root proof and packed-root digests
 therefore differ. It requires a versioned registry and external verifier
 acceptance before it can replace the canonical path. The complete
-[H200 report](../../../vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h200-20261001/README.md)
+[H200 report](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h200-20261001/README.md)
 records the phases, comparison limits, and proof identities.

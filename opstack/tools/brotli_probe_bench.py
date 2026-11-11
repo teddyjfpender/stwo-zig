@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT))
 from opstack.cpu import measured
 from opstack.oracle import execute
-from scripts.riscv64_csp_compare import elf_info
+from scripts.rv64.riscv64_csp_compare import elf_info
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)

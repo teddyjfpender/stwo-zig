@@ -12,7 +12,7 @@ const source_ingest = @import("../air/lookups/tables/source_ingest.zig");
 const semantic_eval = @import("../air/semantic_eval.zig");
 const statement_mod = @import("../air/statement.zig");
 const trace = @import("../runner/trace.zig");
-const local_zero = @import("../air/x0_native_envelope_v1.zig");
+const local_zero = @import("../air/x0_native_envelope.zig");
 const runtime_program = @import("../air/extract/runtime_program.zig");
 const LookupProgram = @import("stwo_prover_engine").air.component_prover.OwnedLookupPolynomialProgram;
 
@@ -219,7 +219,7 @@ pub fn generate(
             const old_width = trace.nColumnsForFamily(family);
             var cells: [trace.MAX_FAMILY_COLUMNS]M31 = undefined;
             for (columns.columns[0..old_width], cells[0..old_width]) |column, *cell| cell.* = column[physical];
-            try local_zero.normalizePredecessors(family, cells[0..old_width], &work.old_programs[@intFromEnum(family)].?);
+            try runtime_program.normalizeX0Predecessors(family, cells[0..old_width], &work.old_programs[@intFromEnum(family)].?);
             try local_zero.fillHints(family, cells[0..old_width], cells[old_width..columns.n_columns]);
             var lifted: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
             for (columns.columns[0..columns.n_columns], cells[0..columns.n_columns], lifted[0..columns.n_columns]) |column, cell, *value| {

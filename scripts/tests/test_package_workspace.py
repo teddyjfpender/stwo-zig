@@ -1,18 +1,48 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 from tempfile import TemporaryDirectory
 from pathlib import Path
 
-from scripts import check_package_workspace as subject
-
-
+from scripts.repo import check_package_workspace as subject
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class PackageWorkspaceTests(unittest.TestCase):
     def test_repository_contracts_pass(self) -> None:
         self.assertEqual([], subject.check_repository(ROOT))
+
+    def test_exact_owner_roles_reject_missing_unknown_or_overriding_routes(self):
+        graph = subject.ci_package_graph
+        expected = {"protocol-core": {"/src/waist/core/package.contract.json", "/src/waist/core/build.zig.zon"}}
+        valid = "# owner-role: protocol-core\n/src/waist/core/package.contract.json @owner\n/src/waist/core/build.zig.zon @owner\n"
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            self.assertTrue(graph.check_owner_roles(root, expected))
+            path = root / ".github/CODEOWNERS"
+            path.parent.mkdir()
+            path.write_text(valid)
+            self.assertEqual([], graph.check_owner_roles(root, expected))
+            for candidate in (valid.replace("protocol-core", "unassigned"),
+                              valid.splitlines()[0] + "\n",
+                              valid + "/src/waist/core/package.contract.json @other\n",
+                              valid + "* @other\n",
+                              valid.replace("@owner", "not-an-account"),
+                              valid.replace("build.zig.zon @owner", "build.zig.zon @other"),
+                              valid + "# owner-role: protocol-core\n"):
+                with self.subTest(candidate=candidate):
+                    path.write_text(candidate)
+                    self.assertTrue(graph.check_owner_roles(root, expected))
+
+    def test_shared_ownership_projection_retains_duplicate_and_exact_scope_rejection(self):
+        graph = subject.ci_package_graph
+        source = '.{ .prefix = "src/waist/core/", .package = .core, .dependency_name = "stwo_core" }'
+        expected = {"src/waist/core/": "stwo_core"}
+        self.assertEqual([], graph.check_ownership_projection(expected, source))
+        self.assertTrue(graph.check_ownership_projection(expected, source + source))
+        self.assertTrue(graph.check_ownership_projection(expected, ""))
+        self.assertTrue(graph.check_ownership_projection({}, source))
 
     def test_dependency_cycles_are_reported(self) -> None:
         self.assertEqual(
@@ -200,6 +230,37 @@ const owned = @import(
             subject._validate_imports(contract, {}, failures)
             self.assertEqual(1, len(failures))
             self.assertIn("embedded file escapes owner", failures[0])
+
+    def test_generated_embeds_require_declaration_and_unambiguous_owned_asset(self):
+        with TemporaryDirectory() as raw:
+            root = Path(raw).resolve()
+            owner = root / "src/owned"
+            owner.mkdir(parents=True)
+            (root / "build_support").mkdir()
+            (root / "vectors").mkdir()
+            asset = root / "vectors/air.bin"
+            asset.write_bytes(b"pinned AIR fixture")
+            producer = root / "build_support/producer.zig"
+            binding = '.{ .name = "generated_air", .path = "vectors/air.bin" },'
+            producer.write_text("const embedded_assets = [_]struct { name: []const u8, path: []const u8 }{\n" + binding + "\n};\n")
+            (owner / "mod.zig").write_text('pub const air = @embedFile("generated_air");\n')
+            contract = replace(subject.load_contract(ROOT / "src/backends/cuda/package.contract.json"), directory=owner, injected_modules=frozenset({"generated_air"}))
+            assets = subject.ci_package_graph.generated_embedded_assets(root)
+            self.assertEqual({"generated_air": asset}, assets)
+            failures = []
+            subject._validate_imports(contract, {}, failures, assets)
+            self.assertEqual([], failures)
+            for candidate, sources in ((replace(contract, injected_modules=frozenset()), assets), (contract, {})):
+                failures = []
+                subject._validate_imports(candidate, {}, failures, sources)
+                self.assertIn("embedded file is missing", failures[0])
+            other = root / "vectors/other.bin"
+            other.write_bytes(b"other")
+            producer.write_text("const embedded_assets = [_]struct { name: []const u8, path: []const u8 }{\n" + binding + '\n.{ .name = "generated_air", .path = "vectors/other.bin" },\n};\n')
+            self.assertEqual({}, subject.ci_package_graph.generated_embedded_assets(root))
+            producer.write_text("const embedded_assets = [_]struct { name: []const u8, path: []const u8 }{\n" + binding + "\n};\n")
+            asset.unlink()
+            self.assertEqual({}, subject.ci_package_graph.generated_embedded_assets(root))
 
     def test_package_readme_is_required(self) -> None:
         with TemporaryDirectory() as directory:

@@ -1,10 +1,10 @@
 //! M8 GPU-native request driver (stream: driver). Contract: gpu_native.zig;
-//! design: design/riscv-proving-stack/rv64-m8-gpu-native.md §3, §6.
+//! design: design/riscv/rv64-m8-gpu-native.md §3, §6.
 //!
 //! Selection (`STWO_RV64_M8_GPU_NATIVE=1`, requires `STWO_RV64_M8_JOBS=1`)
 //! and the pieces of the JOBS=1 GPU-native request driver:
-//!   driver_request.zig  install (class cache, memory plan, slabs, events) and
-//!                       the request: DAG batches per GPU, ONE host wait, one
+//!   driver_install.zig  installed class cache, memory plans, slabs and events
+//!   driver_request.zig  request: DAG batches per GPU, ONE host wait, one
 //!                       slab D2H per GPU, publication from status words
 //!   driver_dag.zig      request DAG + static placement (+ two-phase marks)
 //!   driver_memory.zig   one two-phase memory plan per GPU

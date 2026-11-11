@@ -8,20 +8,26 @@
     "stwo_cairo_cuda_integration": "mod.zig"
   },
   "dependencies": {
-    "stwo_backend_contracts": "../../backend",
+    "stwo_backend_contracts": "../../waist/backend",
     "stwo_cairo_frontend": "../../frontends/cairo",
-    "stwo_core": "../../core",
+    "stwo_core": "../../waist/core",
     "stwo_cuda_backend": "../../backends/cuda",
     "stwo_native_cuda_integration": "../native_cuda",
-    "stwo_prover_engine": "../../prover"
+    "stwo_prover_engine": "../../engine/prover"
   },
   "injected_modules": [],
   "api_surface": [
     "base_writer_plan",
+    "canonical_eval_aot",
+    "canonical_feeds",
+    "canonical_protocol",
+    "canonical_source",
+    "canonical_verify",
     "casm_input",
     "diagnostic_sn2",
     "eval_aot",
     "eval_codegen",
+    "eval_codegen_parity",
     "eval_parity_fixture",
     "eval_product_registry",
     "eval_simd_oracle",
@@ -29,6 +35,7 @@
     "identity",
     "lowering_map",
     "native_ec",
+    "parametric_eval",
     "program",
     "recorded_witness",
     "recorded_witness_oracle",
@@ -41,7 +48,7 @@
       "mod.zig::api signature: Cairo CUDA keeps its emitter explicitly development-only"
     ],
     "invariant_tests": [
-      "program_test.zig::Cairo production admission uses configured source authority and exact proof plan"
+      "tests/program_test.zig::Cairo production admission uses configured source authority and exact proof plan"
     ]
   },
   "ci": {

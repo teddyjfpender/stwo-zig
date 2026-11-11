@@ -27,6 +27,8 @@ pub fn build(b: *std.Build) void {
     // These two concrete native families share the package-owned wire module;
     // Zig must not instantiate the same proof-wire source twice in one binary.
     circuit_cpu.addImport("stwo_proof_wire", cpu_integration.import_table.get("stwo_proof_wire") orelse @panic("native CPU module is missing proof wire"));
+    // Declare API ownership while retaining CPU's canonical module below.
+    _ = b.dependency("stwo_prover_api", options);
     const integration = b.addModule("stwo_riscv_cuda_integration", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -45,7 +47,7 @@ pub fn build(b: *std.Build) void {
     for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_frontend" }) |name| native_gkr_root.addImport(name, integration.import_table.get(name) orelse @panic("missing native GKR codegen dependency"));
     const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root });
     native_gkr_tests.linkLibC();
-    b.step("test-native-gkr-codegen", "Check native raw source and reduced AIR against source authority").dependOn(&b.addRunArtifact(native_gkr_tests).step);
+    b.step("test-native-gkr-codegen", "Check native raw source and reduced AIR against source authority").dependOn(jobTestStep(b, native_gkr_tests, check_only));
 
     const router_root = b.createModule(.{ .root_source_file = b.path("rv64_router_test_root.zig"), .target = target, .optimize = optimize });
     router_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
@@ -76,6 +78,9 @@ pub fn build(b: *std.Build) void {
     const jobs_step = b.step("test-rv64-jobs", "Test the M8 job runtime contract, worker pipeline, channel parity model, slab, scheduler and sync lint without a GPU");
     jobs_step.dependOn(jobs_run);
     b.step("test-rv64-jobs-runtime", "Test job resources, worker, driver and lifecycle without the native/truth binaries").dependOn(jobs_run);
+    const recursion_jobs_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_recursion_test_root.zig"), .target = target, .optimize = optimize });
+    recursion_jobs_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    b.step("test-rv64-jobs-recursion", "Test installed recursion classes and request job custody without a GPU").dependOn(jobTestStep(b, b.addTest(.{ .root_module = recursion_jobs_root }), check_only));
     const resource_root = b.createModule(.{ .root_source_file = b.path("rv64_resources_test_root.zig"), .target = target, .optimize = optimize });
     b.step("test-rv64-resources", "Test checked job resources and the two-sided arena without a prover or GPU").dependOn(jobTestStep(b, b.addTest(.{ .root_module = resource_root }), check_only));
     // native-job: rv64/jobs/native_*.zig tests in their own binary (they reuse the legacy PCS framing and
@@ -142,7 +147,11 @@ pub fn build(b: *std.Build) void {
     const batch_tests = b.addTest(.{ .root_module = batch_test_root });
     batch_tests.linkLibC();
     b.step("test-rv64-batch-plan", "Test mixed-height batch enqueue control without CUDA or a full prover build").dependOn(&b.addRunArtifact(batch_tests).step);
-    const tests = b.addRunArtifact(b.addTest(.{ .root_module = integration }));
+    const tests = b.addTest(.{ .root_module = integration });
+    const class_root = b.createModule(.{ .root_source_file = b.path("rv64/jobs/gpu_native_classes.zig"), .target = target, .optimize = optimize });
+    const class_tests = b.addTest(.{ .root_module = class_root });
+    const class_step = b.step("test-rv64-class-cache", "Test sealed class ownership and failure cleanup without CUDA or a prover");
+    class_step.dependOn(jobTestStep(b, class_tests, check_only));
     const prestage_root = b.createModule(.{ .root_source_file = b.path("rv64_cpu_prestage_test_root.zig"), .target = target, .optimize = optimize, .strip = true });
     for ([_][]const u8{ "stwo_core", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_prover_api", "stwo_prover_engine" }) |name| prestage_root.addImport(name, integration.import_table.get(name) orelse @panic("missing CPU prestage dependency"));
     const prestage_tests = b.addTest(.{ .root_module = prestage_root });
@@ -152,12 +161,14 @@ pub fn build(b: *std.Build) void {
         "test",
         "Run host-independent RISC-V CUDA integration contract tests",
     );
-    test_step.dependOn(&tests.step);
+    test_step.dependOn(jobTestStep(b, tests, check_only));
+    test_step.dependOn(class_step);
     const prefix_tests = b.addExecutable(.{
         .name = "rv64-prefix-bank-tests",
         .root_module = b.createModule(.{ .target = b.graph.host, .optimize = optimize }),
     });
-    prefix_tests.addCSourceFile(.{ .file = b.path("../../backends/cuda/native/rv64/prefix_banks_test.cpp"), .flags = &.{"-std=c++17"} });
+    prefix_tests.addCSourceFile(.{ .file = b.path("../../../tests/cuda/rv64/native/rv64/prefix_banks_test.cpp"), .flags = &.{"-std=c++17"} });
+    prefix_tests.addIncludePath(b.path("../../backends/cuda/native/rv64"));
     prefix_tests.linkLibC();
     prefix_tests.linkLibCpp();
     const run_prefix_tests = b.addRunArtifact(prefix_tests);
@@ -172,7 +183,8 @@ pub fn build(b: *std.Build) void {
         .name = "rv64-pcs-idle-cache-tests",
         .root_module = b.createModule(.{ .target = b.graph.host, .optimize = optimize }),
     });
-    idle_cache_tests.addCSourceFile(.{ .file = b.path("../../backends/cuda/native/rv64/pcs_idle_cache_test.cpp"), .flags = &.{ "-std=c++17", "-Wall", "-Wextra", "-Werror" } });
+    idle_cache_tests.addCSourceFile(.{ .file = b.path("../../../tests/cuda/rv64/native/rv64/pcs_idle_cache_test.cpp"), .flags = &.{ "-std=c++17", "-Wall", "-Wextra", "-Werror" } });
+    idle_cache_tests.addIncludePath(b.path("../../backends/cuda/native/rv64"));
     idle_cache_tests.linkLibC();
     idle_cache_tests.linkLibCpp();
     b.step("test-pcs-idle-cache", "Check optional upper PCS cache parsing, scoped phase custody and failure ledgers without CUDA").dependOn(&b.addRunArtifact(idle_cache_tests).step);

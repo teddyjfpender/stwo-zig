@@ -12,13 +12,13 @@ pub const GeneratedSet = struct {
 fn witnessGenerator(b: *std.Build, name: []const u8) *std.Build.Step.Compile {
     const root = b.createModule(.{
         .root_source_file = b.path(
-            "src/tools/cairo_cuda_witness_aot/main.zig",
+            "src/products/cairo/tools/cuda_witness_aot/main.zig",
         ),
         .target = b.graph.host,
         .optimize = .ReleaseFast,
     });
     const model = b.createModule(.{
-        .root_source_file = b.path("src/tools/cairo_witness_cpu_codegen/model.zig"),
+        .root_source_file = b.path("src/products/cairo/tools/witness_cpu_codegen/model.zig"),
         .target = b.graph.host,
         .optimize = .ReleaseFast,
     });
@@ -64,7 +64,7 @@ pub fn addCairoEval(
 ) GeneratedSet {
     const root = b.createModule(.{
         .root_source_file = b.path(
-            "src/tools/cairo_cuda_eval_aot/main.zig",
+            "src/products/cairo/tools/cuda_eval_aot/main.zig",
         ),
         .target = target,
         .optimize = .ReleaseFast,
@@ -105,7 +105,7 @@ pub fn addCairoEvalToolStep(
     generated.canonical_witness.?.addStepDependencies(step);
     // Register local tools once in the tools product. Production construction
     // requests multiple canonical source sets when CUDA is enabled.
-    const parity_root = b.createModule(.{ .root_source_file = b.path("src/tools/cairo_cuda_eval_aot/main.zig"), .target = target, .optimize = .ReleaseFast });
+    const parity_root = b.createModule(.{ .root_source_file = b.path("src/products/cairo/tools/cuda_eval_aot/main.zig"), .target = target, .optimize = .ReleaseFast });
     parity_root.addImport("stwo", stwo);
     const parity_executable = b.addExecutable(.{ .name = "cairo-cuda-parametric-parity-aot", .root_module = parity_root });
     const parity = b.addRunArtifact(parity_executable);
@@ -115,7 +115,7 @@ pub fn addCairoEvalToolStep(
 }
 
 pub fn addCanonicalCairoEval(b: *std.Build, target: std.Build.ResolvedTarget, stwo: *std.Build.Module) GeneratedSet {
-    const root = b.createModule(.{ .root_source_file = b.path("src/tools/cairo_cuda_eval_aot/main.zig"), .target = target, .optimize = .ReleaseFast });
+    const root = b.createModule(.{ .root_source_file = b.path("src/products/cairo/tools/cuda_eval_aot/main.zig"), .target = target, .optimize = .ReleaseFast });
     root.addImport("stwo", stwo);
     const executable = b.addExecutable(.{ .name = "cairo-cuda-canonical-eval-aot", .root_module = root });
     const run = b.addRunArtifact(executable);

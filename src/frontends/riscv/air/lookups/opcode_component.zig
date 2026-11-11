@@ -29,11 +29,11 @@ const entry = @import("entry.zig");
 const opcode_entries = @import("opcode_entries.zig");
 const opcode_interaction = @import("opcode_interaction.zig");
 const runtime_program = @import("../extract/runtime_program.zig");
-const local_zero = @import("../x0_native_envelope_v1.zig");
+const local_zero = @import("../x0_native_envelope.zig");
 const selected_batching = @import("../lang/lookup_batch_execution.zig");
 const batch_planner = @import("../lang/lookup_batch_planner.zig");
-const physical_v2 = @import("../lang/lookup_physical_manifest_v2.zig");
-const polynomial_v2 = @import("../lang/lookup_polynomial_program_v2.zig");
+const physical_v2 = @import("../lang/lookup_physical_manifest.zig");
+const polynomial_v2 = @import("../lang/lookup_polynomial_program.zig");
 const composition_manifest = @import("../lang/opcode_composition_manifest.zig");
 const row_window = @import("../lang/row_window.zig");
 const mask_points = @import("opcode_component_mask_points.zig");
@@ -415,7 +415,7 @@ pub const OpcodeLookupComponent = struct {
         const self: *const OpcodeLookupComponent = @ptrCast(@alignCast(ctx));
         return switch (self.batching) {
             .compatibility => blk: {
-                var program = if (self.mask_binding.local_zero) try local_zero.lookupProgram(allocator, self.family) else try runtime_program.buildLookups(allocator, self.family);
+                var program = if (self.mask_binding.local_zero) try runtime_program.buildLocalZeroLookups(allocator, self.family) else try runtime_program.buildLookups(allocator, self.family);
                 defer program.deinit();
                 break :blk try composition_work_support.lookupProgramProfile(
                     allocator,
@@ -452,7 +452,7 @@ pub const OpcodeLookupComponent = struct {
         allocator: std.mem.Allocator,
     ) !prover_component.OwnedLookupPolynomialProgram {
         const self: *const OpcodeLookupComponent = @ptrCast(@alignCast(ctx));
-        return if (self.mask_binding.local_zero) local_zero.lookupProgram(allocator, self.family) else runtime_program.buildLookups(allocator, self.family);
+        return if (self.mask_binding.local_zero) runtime_program.buildLocalZeroLookups(allocator, self.family) else runtime_program.buildLookups(allocator, self.family);
     }
 
     fn exportRuntimeProgramV2(

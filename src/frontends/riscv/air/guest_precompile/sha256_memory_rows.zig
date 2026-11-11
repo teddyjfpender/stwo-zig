@@ -5,8 +5,8 @@ const M = @import("stwo_core").fields.m31.M31;
 const provider = @import("sha256_compression_rows.zig");
 const caller = @import("sha256_memory_caller.zig");
 const profile = @import("sha256_component_profile.zig");
-const native = @import("../../runner/guest_precompile/sha256_compression_v1.zig");
-const contract = @import("../../isa/sha256_compression_v1.zig");
+const native = @import("../../runner/guest_precompile/sha256_compression.zig");
+const contract = @import("../../isa/sha256_compression.zig");
 
 pub const Airs = profile.Airs;
 pub const names = profile.names;
@@ -16,7 +16,7 @@ pub const Geometry = profile.Geometry;
 pub const Rows = RowsForRecipe(false);
 pub const LocalZeroRows = RowsForRecipe(true);
 pub fn RowsForRecipe(comptime local_zero: bool) type {
-    const Caller = if (local_zero) @import("sha256_caller_local_zero_v1.zig") else caller;
+    const Caller = if (local_zero) @import("sha256_caller_local_zero.zig") else caller;
     return struct {
         pub const local_zero_custody = local_zero;
         allocator: std.mem.Allocator,
@@ -63,7 +63,7 @@ pub fn prepare(a: std.mem.Allocator, entries: []const native.Entry, total_steps:
 }
 
 pub fn prepareForRecipe(comptime local_zero: bool, a: std.mem.Allocator, entries: []const native.Entry, total_steps: u32) !RowsForRecipe(local_zero) {
-    const Caller = if (local_zero) @import("sha256_caller_local_zero_v1.zig") else caller;
+    const Caller = if (local_zero) @import("sha256_caller_local_zero.zig") else caller;
     const geometry = try Geometry.init(entries.len);
     try preflight(entries, total_steps);
     var compression = try provider.prepareView(a, TapeView{ .entries = entries });

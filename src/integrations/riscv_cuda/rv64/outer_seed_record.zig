@@ -8,7 +8,7 @@
 //!                    (pcs_native.zig, one call per native segment, truth
 //!                    and outer node proof) with its PCS shape;
 //!   node-<ord>-<sha8>.gnr  every OuterNodeJob node (outer_job_factory.zig,
-//!                    STWO_RV64_M8_OUTER_JOBS=1): host seeds, host transcript
+//!                    GPU-native class install): host seeds, host transcript
 //!                    checkpoint, expected outputs, own PCS image + shape,
 //!                    claims and the om31 wire bytes.
 //!

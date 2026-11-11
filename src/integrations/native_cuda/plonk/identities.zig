@@ -19,7 +19,7 @@ pub const Artifact = struct {
 
 pub const zig_artifact = Artifact{
     .authority = "stwo-zig repository source closure",
-    .revision = "src/examples/plonk.zig+src/examples/plonk/input.zig",
+    .revision = "src/products/native/examples/plonk.zig+src/products/native/examples/plonk/input.zig",
     .trace_recipe = digest("stwo-zig/src/examples/plonk/input.zig:prepare:v1"),
     .air_recipe = digest("stwo-zig/src/examples/plonk.zig:PlonkComponent:v1"),
 };

@@ -1,4 +1,0 @@
-1/3 m7_capture_test_root.test_0...OK
-2/3 vcs_lifted.verifier.test.vcs_lifted verifier: empty tree publishes owned destructible capture...OK
-3/3 crypto.blake2s_backend.test_0...OK
-All 3 tests passed.

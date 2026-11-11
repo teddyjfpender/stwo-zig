@@ -7,7 +7,7 @@ const L = @import("layout.zig");
 const P = @import("public.zig");
 const Lookup = @import("lookup.zig");
 const Profile = @import("profile.zig");
-const Function = @import("../word16_v1/function_bus.zig");
+const Function = @import("../word16/function_bus.zig");
 pub fn functionTuple(comptime F: type, main: []const F) [13]F {
     var tuple: [13]F = undefined;
     tuple[0] = main[L.main.opcode];

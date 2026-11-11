@@ -8,14 +8,15 @@
     "stwo_riscv_metal_integration": "mod.zig"
   },
   "dependencies": {
-    "stwo_core": "../../core",
+    "stwo_core": "../../waist/core",
     "stwo_metal_backend": "../../backends/metal",
-    "stwo_prover_api": "../../prover_api",
-    "stwo_prover_engine": "../../prover",
+    "stwo_prover_api": "../../waist/prover_api",
+    "stwo_prover_engine": "../../engine/prover",
     "stwo_riscv_frontend": "../../frontends/riscv",
     "stwo_riscv_cpu_integration": "../riscv_cpu"
   },
   "injected_modules": [
+    "blake3_runtime",
     "keccakf_proof_harness",
     "metal_aot_config",
     "secp256k1_proof_harness",

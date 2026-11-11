@@ -3,7 +3,7 @@ import sys
 import tempfile
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import rv64_cuda_partition_instruction_slices as S
+from scripts.rv64 import rv64_cuda_partition_instruction_slices as S
 
 
 class InstructionModules(unittest.TestCase):

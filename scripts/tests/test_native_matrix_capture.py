@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from scripts.tests.native_proof_matrix_support import MODULE, args, make_report
-import native_proof_matrix_lib.artifacts as matrix_artifacts
+import scripts.native.native_proof_matrix_lib.artifacts as matrix_artifacts
 
 
 class NativeMatrixCaptureTests(unittest.TestCase):

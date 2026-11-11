@@ -2,7 +2,7 @@
 //!
 //! Promotes the execution-only candidate (`candidate_curves.zig`) with the
 //! restrictions the Word16 sponge bridge proves (see
-//! design/riscv-proving-stack/rv64-keccak-sponge-service.md):
+//! design/riscv/rv64-keccak-sponge-service.md):
 //! - packet {state, in, len, flags} at an 8-aligned `a0`;
 //! - `state` 8-aligned, all 25 words readable and writable (rights 3), also
 //!   for fresh calls (the bridge performs one atomic read+write per word);

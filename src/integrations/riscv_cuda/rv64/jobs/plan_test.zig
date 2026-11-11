@@ -223,11 +223,8 @@ test "layout: a generated policy's concurrency claims hold for every class pair 
 
 test "layout: the committed memory policy passes the pairwise check" {
     // Runs with cwd = src/integrations/riscv_cuda (build.zig setCwd for test-rv64-jobs).
-    const path = "../../../vectors/reports/rv64-m8-20261106/memory-plan/policy.json";
-    const p = P.Policy.load(std.testing.allocator, path) catch |err| switch (err) {
-        error.FileNotFound => return error.SkipZigTest,
-        else => return err,
-    };
+    const path = "../../../vectors/riscv/fixtures/rv64-jobs-memory-policy-v1.json";
+    const p = try P.Policy.load(std.testing.allocator, path);
     defer p.deinit();
     _ = try P.checkPolicyLayout(p);
     try std.testing.expect(p.classes().len != 0);

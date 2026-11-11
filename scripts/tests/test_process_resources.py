@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.process_resources_lib import (
+from scripts.repo.process_resources_lib import (
     DARWIN_MEASUREMENT,
     GNU_LINUX_MEASUREMENT,
     WALL_CLOCK_MEASUREMENT,

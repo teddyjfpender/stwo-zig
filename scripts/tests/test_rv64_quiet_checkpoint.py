@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import rv64_m4_resident as resident
+from scripts.rv64 import rv64_m4_resident as resident
 
 
 def snapshot(pressure=0, throttled=0):

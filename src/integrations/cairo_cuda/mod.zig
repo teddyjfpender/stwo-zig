@@ -5,7 +5,6 @@
 //! proof-derived emitter remains an explicit development diagnostic.
 
 pub const identity = @import("identity.zig");
-pub const canonical_geometry = @import("canonical_geometry.zig");
 pub const canonical_source = @import("canonical_source.zig");
 pub const canonical_protocol = @import("canonical_protocol.zig");
 pub const canonical_verify = @import("canonical_verify.zig");

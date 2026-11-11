@@ -33,14 +33,13 @@ pub fn main() !void {
     }
     if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], "combined-serve")) {
         if (arguments.len != 4) return error.ExpectedCombinedServeManifestAndSpool;
-        // M8 request feeder (STWO_RV64_M8_JOBS=1): the resident service with
-        // every proof a job (rv64/m8_feeder.zig). Unset keeps today's path.
-        _ = try @import("rv64/jobs/mod.zig").selected();
         // M8 GPU-native (STWO_RV64_M8_GPU_NATIVE=1, requires JOBS=1): the
         // jobs/driver_ge.zig service (streamed GE capture -> driver, one host
-        // wait per request). Missing class/factory hooks fail closed;
-        // unset keeps the feeder/legacy path.
+        // wait per request). Missing class/factory hooks fail closed; unset
+        // keeps the legacy reference path. JOBS=1 alone no longer selects
+        // anything (the feeder is retired) and fails closed.
         if (try @import("rv64/jobs/driver.zig").selected(posixEnv)) return @import("rv64/jobs/driver_ge.zig").serve(a, library, arguments[2], arguments[3], @import("rv64/m8_class_build_composition.zig"));
+        if (try @import("rv64/jobs/mod.zig").selected()) return error.M8JobsRequireGpuNative;
         return @import("rv64/resident_batch.zig").runServe(a, library, arguments[2], arguments[3]);
     }
     const planned_text = (try env(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS")) orelse return error.CombinedRequiresResidentPlan;

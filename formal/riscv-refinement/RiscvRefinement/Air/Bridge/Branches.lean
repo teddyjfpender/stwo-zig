@@ -182,8 +182,8 @@ def Kind.manifestId : Kind → Nat
   | .bne => 28
 
 def Kind.contentDigest : Kind → String
-  | .beq => "5b9e82a390c085b12da6f74358b52d23207f2cbb748d59a570c2ad59d203feb0"
-  | .bne => "c2c479c664d8469a51c6349fbdbd26114c487929ad319c494bee5bd566a4f4e3"
+  | .beq => "ddf4c4a0002601c6a1b5f824d5926494e983f3b1a52cf95cd495b3971795e9fc"
+  | .bne => "59f964af02d827005c7507ac6a8d2ace33f19cd8d49ab89d391bb2bf39d8f58a"
 
 structure Row where
   kind : Kind
@@ -1300,10 +1300,10 @@ def Kind.manifestId : Kind → Nat
   | .bgeu => 32
 
 def Kind.contentDigest : Kind → String
-  | .blt => "b6479529fcc68e894e2515f1c87cc98b68d673ab9754610d1e0b91fec14f2757"
-  | .bge => "7e26fc55b2a269042f36dd53df00a0b2832e954e1721fcfe34b0e93ce7831310"
-  | .bltu => "85e5b0c3004190b70251c11968c6652acfebc12bf8f18814444f875982e0a755"
-  | .bgeu => "d146d618010d31c4c541660089ff7fdc22d5f01f333f81ff2f427ee0c5c361fc"
+  | .blt => "8e95a46f53998f887b6e5ace225c2ebdca91f13a61a64eb3d8e20ca8aa046aef"
+  | .bge => "0023ecf42505c4a76e3f51a1bb84735c6ac4cdb5284f64f8c66e6399177224c5"
+  | .bltu => "b2d29fc948adc820f5b67562e748c5501f64082019a49735a76d96197b5a732a"
+  | .bgeu => "dcec35bdf0074d4bf0f649c0ec0b46b1ba89f62518bda4df6da6a8fbbb0c6dae"
 
 def Kind.signed : Kind → Bool
   | .blt | .bge => true

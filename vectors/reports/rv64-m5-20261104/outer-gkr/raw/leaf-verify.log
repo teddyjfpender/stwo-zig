@@ -1,5 +1,0 @@
-{"accepted":true,"class":"leaf-cpu-24628607","profile":"outer_gkr_om31_strict_v1","draws":432,"closure_checked":false,"terminal_checked":true,"verify_ns":3332993,"terminal_ns":53439219905,"section_bytes":69812}
-{"cmd": ["/workspace/m3/src/m5-outer-gkr/zig-out/bin/rv64-outer-gkr-tool", "verify"], "rc": 0, "wall_s": 54.352, "maxrss_gib": 12.65}
-{"class":"leaf-cpu-24628607","layers":27,"instances":8,"rounds":351,"draws":432,"blake_g_gate":195200,"qm31_ops":223203,"m31_to_u32":20360,"triple_xor":19520,"eq":1581,"variables":1043883,"valid":true,"terminal_from_inputs":false,"build_ns":41768999}
-{"cmd": ["/workspace/m3/src/m5-outer-gkr/zig-out/bin/rv64-outer-gkr-tool", "cost"], "rc": 0, "wall_s": 0.048, "maxrss_gib": 12.65}
-EXIT=0

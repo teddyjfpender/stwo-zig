@@ -4,7 +4,7 @@ import copy
 import hashlib
 import unittest
 
-from scripts.benchmark_product_contract_lib import (
+from scripts.bench.benchmark_product_contract_lib import (
     ProductEvidenceError,
     build_receipt,
     validate_receipt,

@@ -10,7 +10,7 @@ import time
 from functools import lru_cache
 from pathlib import Path
 
-from scripts.riscv64_csp_compare import elf_info
+from scripts.rv64.riscv64_csp_compare import elf_info
 
 
 @lru_cache(maxsize=16)
@@ -296,7 +296,7 @@ def execute(config, expected_steps, timeout=600, *, output_kind="op", entry_prob
     if config.get("execution_profile") == "ethereum_services_op_v1":
         service_counts["op_sparse034_calls"] = 0
     if config.get("execution_profile", "software") in ("ethereum_services_v3", "ethereum_services_op_v1"):
-        from scripts.riscv64_ethereum_services_oracle import (
+        from opstack.service_math import (
             keccak_f1600,
             reduce_once,
             secp_add,

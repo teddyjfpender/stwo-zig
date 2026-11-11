@@ -27,11 +27,11 @@
         ],
         [
           "python3",
-          "scripts/check_build_monorepo_baseline.py"
+          "scripts/repo/check_build_monorepo_baseline.py"
         ],
         [
           "python3",
-          "scripts/check_package_workspace.py"
+          "scripts/repo/check_package_workspace.py"
         ]
       ]
     },
@@ -58,7 +58,7 @@
       "commands": [
         [
           "python3",
-          "scripts/check_build_configure_closure.py"
+          "scripts/repo/check_build_configure_closure.py"
         ],
         [
           "zig",
@@ -80,6 +80,31 @@
       "commands": [
         [
           "zig",
+          "test",
+          "src/waist/core/fields/tests/cm31_fri_case.zig",
+          "-ODebug",
+          "-femit-bin={output_dir}/cm31-fri-case-Debug",
+          "-femit-llvm-ir={output_dir}/cm31-fri-case-Debug.ll"
+        ],
+        [
+          "zig",
+          "test",
+          "src/waist/core/fields/tests/cm31_fri_case.zig",
+          "-OReleaseFast",
+          "-femit-bin={output_dir}/cm31-fri-case-ReleaseFast",
+          "-femit-llvm-ir={output_dir}/cm31-fri-case-ReleaseFast.ll"
+        ],
+        [
+          "zig",
+          "build",
+          "test-fields",
+          "--build-file",
+          "src/waist/core/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
           "build",
           "test-stwo-core",
           "identity-stwo-core",
@@ -91,7 +116,7 @@
           "build",
           "test",
           "--build-file",
-          "src/core/build.zig",
+          "src/waist/core/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -106,7 +131,7 @@
           "build",
           "test",
           "--build-file",
-          "src/backend/build.zig",
+          "src/waist/backend/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -129,7 +154,7 @@
           "build",
           "test",
           "--build-file",
-          "src/prover/build.zig",
+          "src/engine/prover/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -144,7 +169,7 @@
           "build",
           "test",
           "--build-file",
-          "src/prover_api/build.zig",
+          "src/waist/prover_api/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -157,11 +182,32 @@
         [
           "zig",
           "build",
-          "test",
+          "test-air-runtime-profile",
           "--build-file",
           "src/frontends/riscv/build.zig",
           "-Doptimize=Debug",
           "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-air-runtime-profile",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
         ]
       ]
     },
@@ -169,10 +215,29 @@
       "host": "linux",
       "description": "Independent ROM-agnostic SM83 frontend package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/frontends/sm83/build.zig", "-Doptimize=ReleaseFast", "-j2"],
-        ["python3", "scripts/sm83_frontend_gate.py"],
-        ["python3", "scripts/sm83_frontend_gate.py", "--mooneye-ppu-live"],
-        ["python3", "scripts/sm83_frontend_gate.py", "--mooneye-dma-live"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/sm83/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "python3",
+          "scripts/sm83/sm83_frontend_gate.py"
+        ],
+        [
+          "python3",
+          "scripts/sm83/sm83_frontend_gate.py",
+          "--mooneye-ppu-live"
+        ],
+        [
+          "python3",
+          "scripts/sm83/sm83_frontend_gate.py",
+          "--mooneye-dma-live"
+        ]
       ]
     },
     "riscv_cpu_integration": {
@@ -182,11 +247,23 @@
         [
           "zig",
           "build",
-          "test",
+          "test-blake3-proof-contracts",
           "--build-file",
           "src/integrations/riscv_cpu/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/riscv_cpu/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
         ]
       ]
     },
@@ -194,8 +271,24 @@
       "host": "linux",
       "description": "Independent SM83 frontend and CPU backend proof composition package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/integrations/sm83_cpu/build.zig", "-Doptimize=ReleaseFast", "-j2"],
-        ["zig", "build", "test-machine-environment", "--build-file", "src/integrations/sm83_cpu/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/sm83_cpu/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-machine-environment",
+          "--build-file",
+          "src/integrations/sm83_cpu/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "cairo_cpu_integration": {
@@ -217,6 +310,43 @@
       "host": "linux",
       "description": "Circuit prover on the CPU backend (recursion R7: prove-small, both channel profiles, Rust verifier verdicts)",
       "commands": [
+        [
+          "zig",
+          "build",
+          "test-riscv64-m5-vk-table",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-riscv64-m5-rootverify",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-riscv64-m5-vk-table",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-riscv64-m5-rootverify",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-circuit-om31",
+          "--build-file",
+          "src/integrations/circuit_cpu/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ],
         [
           "zig",
           "build",
@@ -353,8 +483,24 @@
       "hosted": false,
       "description": "Independent SM83 frontend and Metal backend composition package on a real Metal device",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/integrations/sm83_metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"],
-        ["zig", "build", "test-machine-environment", "--build-file", "src/integrations/sm83_metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/sm83_metal/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-machine-environment",
+          "--build-file",
+          "src/integrations/sm83_metal/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
       ]
     },
     "cairo_metal_integration": {
@@ -381,7 +527,7 @@
           "build",
           "test",
           "--build-file",
-          "src/tools/metal_session/build.zig",
+          "src/backends/metal/session/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -396,7 +542,7 @@
           "build",
           "test",
           "--build-file",
-          "src/artifact_store/build.zig",
+          "src/engine/artifact_store/build.zig",
           "-Doptimize=Debug",
           "-j2"
         ]
@@ -411,7 +557,16 @@
           "build",
           "test",
           "--build-file",
-          "src/interop/proof_wire/build.zig",
+          "src/waist/proof_wire/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/waist/proof_wire/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -426,7 +581,7 @@
           "build",
           "test",
           "--build-file",
-          "src/interop/circuit_recursion/build.zig",
+          "src/waist/recursion_wire/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -441,7 +596,7 @@
           "build",
           "test",
           "--build-file",
-          "src/examples/build.zig",
+          "src/products/native/examples/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -483,7 +638,7 @@
       "commands": [
         [
           "python3",
-          "scripts/check_package_workspace.py"
+          "scripts/repo/check_package_workspace.py"
         ],
         [
           "zig",
@@ -514,7 +669,7 @@
       "commands": [
         [
           "python3",
-          "scripts/e2e_interop.py",
+          "scripts/interop/e2e_interop.py",
           "--report-out",
           "{output_dir}/native-oracle.json",
           "--artifact-dir",
@@ -531,14 +686,28 @@
         [
           "zig",
           "build",
-          "test-riscv-profile-partition",
+          "test-riscv64-parallel",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose"
+        ],
+        [
+          "zig",
+          "build",
           "stwo-zig-riscv-cpu",
+          "test-riscv64-parallel",
+          "test-riscv-observation-contracts",
+          "riscv-pc-hotspot-observer",
+          "riscv-memcpy-hotspot-observer",
+          "riscv-function-value-observer",
+          "riscv-memcpy-admission-observer",
+          "riscv-analyze-legacy-semantic-observer",
           "-Doptimize=ReleaseFast",
           "-j2"
         ],
         [
           "python3",
-          "scripts/riscv_pr_proof_smoke.py",
+          "scripts/riscv/riscv_pr_proof_smoke.py",
           "--cli",
           "zig-out/bin/stwo-zig-riscv-cpu",
           "--artifact-dir",
@@ -548,9 +717,26 @@
         ],
         [
           "python3",
-          "scripts/riscv_trace_vectors.py"
+          "scripts/riscv/riscv_trace_vectors.py"
+        ],
+        [
+          "zig",
+          "build",
+          "test-riscv-observation-contracts",
+          "test-riscv64-parallel",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-riscv-profile-partition",
+          "stwo-zig-riscv-cpu",
+          "-Doptimize=ReleaseFast",
+          "-j2"
         ]
-      ]
+      ],
+      "local": "hosted"
     },
     "cairo_cpu": {
       "host": "linux",
@@ -626,7 +812,7 @@
         ],
         [
           "python3",
-          "scripts/check_registry_parity.py"
+          "scripts/repo/check_registry_parity.py"
         ]
       ]
     },
@@ -649,11 +835,19 @@
         [
           "zig",
           "build",
+          "test-cuda-runtime-contract",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
           "cuda-source-closure",
           "cuda-cumetal-ledger",
           "cuda-build-plan",
           "test-cuda-build-plan",
-          "test-cuda-runtime-contract",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -668,7 +862,7 @@
         [
           "bash",
           "-ceu",
-          ": \"${STWO_CUDA_NVCC:?explicit STWO_CUDA_NVCC is required}\"\n: \"${STWO_CUDA_HOST_CXX:?explicit STWO_CUDA_HOST_CXX is required}\"\n: \"${STWO_CUDA_HOST_RUNTIME:?explicit STWO_CUDA_HOST_RUNTIME is required}\"\n: \"${STWO_CUDA_HOST_UNWIND_RUNTIME:?explicit STWO_CUDA_HOST_UNWIND_RUNTIME is required}\"\n: \"${STWO_CUDA_AR:?explicit STWO_CUDA_AR is required}\"\n: \"${STWO_CUDA_HOME:?explicit STWO_CUDA_HOME is required}\"\n: \"${STWO_CUDA_LIBRARY_DIR:?explicit STWO_CUDA_LIBRARY_DIR is required}\"\n: \"${STWO_CUDA_ARCH:?explicit STWO_CUDA_ARCH is required}\"\ntest -x \"$STWO_CUDA_NVCC\"\ntest -x \"$STWO_CUDA_HOST_CXX\"\ntest -x \"$STWO_CUDA_AR\"\ntest -f \"$STWO_CUDA_HOST_RUNTIME\"\ntest -f \"$STWO_CUDA_HOST_UNWIND_RUNTIME\"\ntest -d \"$STWO_CUDA_HOME\"\ntest -d \"$STWO_CUDA_LIBRARY_DIR\"\ntest \"$(nvidia-smi --query-gpu=uuid --format=csv,noheader | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')\" = 1\nnvidia-smi --query-gpu=name,uuid,compute_cap,driver_version --format=csv,noheader | tee /dev/stderr\nzig build stwo-native-cuda -Doptimize=ReleaseFast -j2 \"-Dcuda-nvcc=$STWO_CUDA_NVCC\" \"-Dcuda-host-cxx=$STWO_CUDA_HOST_CXX\" \"-Dcuda-host-runtime=$STWO_CUDA_HOST_RUNTIME\" \"-Dcuda-host-unwind-runtime=$STWO_CUDA_HOST_UNWIND_RUNTIME\" \"-Dcuda-ar=$STWO_CUDA_AR\" \"-Dcuda-home=$STWO_CUDA_HOME\" \"-Dcuda-library-dir=$STWO_CUDA_LIBRARY_DIR\" \"-Dcuda-arch=$STWO_CUDA_ARCH\"\npython3 scripts/cuda_device_smoke.py --archive zig-out/lib/libstwo_cuda_kernels.a --cuda-home \"$STWO_CUDA_HOME\" --compiler \"$STWO_CUDA_HOST_CXX\" --out-dir \"{output_dir}/native-cuda-device-smoke\"\npython3 -c 'import json,sys; receipt=json.load(open(sys.argv[1], encoding=\"utf-8\")); assert receipt[\"schema\"] == \"stwo-zig-cuda-device-smoke-v1\" and len(receipt[\"tests\"]) == 12' \"{output_dir}/native-cuda-device-smoke/cuda_device_smoke_receipt.json\"\nzig build stwo-native-cpu -Doptimize=ReleaseFast -j2\ncargo +nightly-2025-07-14 build --release --locked --manifest-path tools/stwo-interop-rs/Cargo.toml\nrust_target=\"${CARGO_TARGET_DIR:-tools/stwo-interop-rs/target}\"\nrust_verifier=\"$rust_target/release/stwo-interop-rs\"\ntest -x \"$rust_verifier\"\n# Source, Cargo.lock, and the named Rust toolchain are the oracle pin. This digest binds that built executable into the parity receipt.\nrust_sha256=\"$(sha256sum \"$rust_verifier\" | awk '{print $1}')\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --log-n-rows 5 --sequence-len 8 --repeat 3 --out-dir \"{output_dir}/native-cuda-parity\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode graphs --out-dir \"{output_dir}/native-cuda-poseidon-graphs\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode direct --out-dir \"{output_dir}/native-cuda-poseidon-direct\"\npython3 -c 'import json,sys; a=json.load(open(sys.argv[1], encoding=\"utf-8\")); b=json.load(open(sys.argv[2], encoding=\"utf-8\")); assert a[\"proofs\"][\"cuda\"][\"proof_sha256\"] == b[\"proofs\"][\"cuda\"][\"proof_sha256\"] and a[\"cuda_residency\"][\"aot_build_sha256\"] == b[\"cuda_residency\"][\"aot_build_sha256\"]' \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\" \"{output_dir}/native-cuda-poseidon-direct/receipt.json\"\ntest -s \"{output_dir}/native-cuda-parity/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-direct/receipt.json\""
+          ": \"${STWO_CUDA_NVCC:?explicit STWO_CUDA_NVCC is required}\"\n: \"${STWO_CUDA_HOST_CXX:?explicit STWO_CUDA_HOST_CXX is required}\"\n: \"${STWO_CUDA_HOST_RUNTIME:?explicit STWO_CUDA_HOST_RUNTIME is required}\"\n: \"${STWO_CUDA_HOST_UNWIND_RUNTIME:?explicit STWO_CUDA_HOST_UNWIND_RUNTIME is required}\"\n: \"${STWO_CUDA_AR:?explicit STWO_CUDA_AR is required}\"\n: \"${STWO_CUDA_HOME:?explicit STWO_CUDA_HOME is required}\"\n: \"${STWO_CUDA_LIBRARY_DIR:?explicit STWO_CUDA_LIBRARY_DIR is required}\"\n: \"${STWO_CUDA_ARCH:?explicit STWO_CUDA_ARCH is required}\"\ntest -x \"$STWO_CUDA_NVCC\"\ntest -x \"$STWO_CUDA_HOST_CXX\"\ntest -x \"$STWO_CUDA_AR\"\ntest -f \"$STWO_CUDA_HOST_RUNTIME\"\ntest -f \"$STWO_CUDA_HOST_UNWIND_RUNTIME\"\ntest -d \"$STWO_CUDA_HOME\"\ntest -d \"$STWO_CUDA_LIBRARY_DIR\"\ntest \"$(nvidia-smi --query-gpu=uuid --format=csv,noheader | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')\" = 1\nnvidia-smi --query-gpu=name,uuid,compute_cap,driver_version --format=csv,noheader | tee /dev/stderr\nzig build stwo-native-cuda -Doptimize=ReleaseFast -j2 \"-Dcuda-nvcc=$STWO_CUDA_NVCC\" \"-Dcuda-host-cxx=$STWO_CUDA_HOST_CXX\" \"-Dcuda-host-runtime=$STWO_CUDA_HOST_RUNTIME\" \"-Dcuda-host-unwind-runtime=$STWO_CUDA_HOST_UNWIND_RUNTIME\" \"-Dcuda-ar=$STWO_CUDA_AR\" \"-Dcuda-home=$STWO_CUDA_HOME\" \"-Dcuda-library-dir=$STWO_CUDA_LIBRARY_DIR\" \"-Dcuda-arch=$STWO_CUDA_ARCH\"\npython3 scripts/cuda/cuda_device_smoke.py --archive zig-out/lib/libstwo_cuda_kernels.a --cuda-home \"$STWO_CUDA_HOME\" --compiler \"$STWO_CUDA_HOST_CXX\" --out-dir \"{output_dir}/native-cuda-device-smoke\"\npython3 -c 'import json,sys; receipt=json.load(open(sys.argv[1], encoding=\"utf-8\")); assert receipt[\"schema\"] == \"stwo-zig-cuda-device-smoke-v1\" and len(receipt[\"tests\"]) == 12' \"{output_dir}/native-cuda-device-smoke/cuda_device_smoke_receipt.json\"\nzig build stwo-native-cpu -Doptimize=ReleaseFast -j2\ncargo +nightly-2025-07-14 build --release --locked --manifest-path tools/stwo-interop-rs/Cargo.toml\nrust_target=\"${CARGO_TARGET_DIR:-tools/stwo-interop-rs/target}\"\nrust_verifier=\"$rust_target/release/stwo-interop-rs\"\ntest -x \"$rust_verifier\"\n# Source, Cargo.lock, and the named Rust toolchain are the oracle pin. This digest binds that built executable into the parity receipt.\nrust_sha256=\"$(sha256sum \"$rust_verifier\" | awk '{print $1}')\"\npython3 scripts/cuda/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --log-n-rows 5 --sequence-len 8 --repeat 3 --out-dir \"{output_dir}/native-cuda-parity\"\npython3 scripts/cuda/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode graphs --out-dir \"{output_dir}/native-cuda-poseidon-graphs\"\npython3 scripts/cuda/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode direct --out-dir \"{output_dir}/native-cuda-poseidon-direct\"\npython3 -c 'import json,sys; a=json.load(open(sys.argv[1], encoding=\"utf-8\")); b=json.load(open(sys.argv[2], encoding=\"utf-8\")); assert a[\"proofs\"][\"cuda\"][\"proof_sha256\"] == b[\"proofs\"][\"cuda\"][\"proof_sha256\"] and a[\"cuda_residency\"][\"aot_build_sha256\"] == b[\"cuda_residency\"][\"aot_build_sha256\"]' \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\" \"{output_dir}/native-cuda-poseidon-direct/receipt.json\"\ntest -s \"{output_dir}/native-cuda-parity/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-direct/receipt.json\""
         ]
       ]
     },
@@ -747,12 +941,144 @@
         ],
         [
           "python3",
-          "scripts/metal_core_aot_receipt.py",
+          "scripts/metal/metal_core_aot_receipt.py",
           "reproduce",
           "--builder",
           "zig-out/bin/metal-core-aot",
           "--output-dir",
           "{output_dir}/metal-aot"
+        ]
+      ]
+    },
+    "riscv_runtime_profile": {
+      "host": "linux",
+      "description": "Bounded runtime-profile contract diagnostic; full frontend package lane remains mandatory",
+      "commands": [
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-air-runtime-profile",
+          "-Doptimize=Debug",
+          "-j2",
+          "--summary",
+          "all"
+        ],
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-air-runtime-profile",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--summary",
+          "all"
+        ]
+      ]
+    },
+    "riscv_retained_contracts": {
+      "host": "linux",
+      "description": "Retained native projection, transcript and VM composition contract diagnostic; full frontend remains mandatory",
+      "commands": [
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-retained-transcript-contracts",
+          "test-retained-typed-components",
+          "-Doptimize=Debug",
+          "-j1",
+          "--summary",
+          "all",
+          "--verbose"
+        ]
+      ]
+    },
+    "riscv_frontend_releasefast": {
+      "host": "linux",
+      "description": "Mandatory independent ReleaseFast companion to riscv_frontend; unchanged commands and discovery floors",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
+    },
+    "riscv_retained_contracts_releasefast": {
+      "host": "linux",
+      "description": "Mandatory independent ReleaseFast companion to riscv_retained_contracts; unchanged commands and discovery floors",
+      "commands": [
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-retained-transcript-contracts",
+          "test-retained-typed-components",
+          "-Doptimize=ReleaseFast",
+          "-j1",
+          "--summary",
+          "all",
+          "--verbose"
+        ]
+      ]
+    },
+    "riscv_frontend_acceptance": {
+      "host": "linux",
+      "description": "Four correctness/contract regressions from #330; timing benchmarks have a separate non-blocking lane",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-releasefast-acceptance",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
+    },
+    "riscv_witness_benchmarks": {
+      "host": "linux",
+      "description": "Owner-directed non-blocking typed/legacy throughput and scaling benchmarks; original tests and thresholds, not merge acceptance",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-typed-witness-benchmarks",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test-typed-witness-benchmarks",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
         ]
       ]
     },
@@ -829,6 +1155,9 @@
     ],
     "riscv_cpu": [
       "riscv_frontend",
+      "riscv_witness_benchmarks",
+      "riscv_frontend_acceptance",
+      "riscv_frontend_releasefast",
       "riscv_cpu"
     ],
     "cairo_cpu": [
@@ -866,9 +1195,11 @@
         "build.zig.zon",
         "build_support/graph",
         "build_support/products/catalog.zig",
+        "build_support/products/step_catalog.zig",
         "build_support/products/catalog_manifest.zig",
         "build_support/products/matrix.zig",
         "build_support/products/product_specs.zig",
+        "build_support/products/riscv_cpu_dependencies.zig",
         "build_support/internal_build.zig",
         "build_support/root_dispatcher.zig"
       ],
@@ -879,6 +1210,9 @@
         "prover_api",
         "prover",
         "riscv_frontend",
+        "riscv_witness_benchmarks",
+        "riscv_frontend_acceptance",
+        "riscv_frontend_releasefast",
         "sm83_frontend",
         "riscv_cpu_integration",
         "sm83_cpu_integration",
@@ -972,8 +1306,38 @@
       ]
     },
     {
-      "prefixes": ["build_support/products/riscv_cpu.zig", "build_support/products/riscv_refinement.zig", "build_support/products/riscv_sail_oracle_tests.zig"],
-      "lanes": ["build_graph", "riscv_cpu", "aggregate_cpu", "aggregate_metal"]
+      "prefixes": [
+        "src/products/native/cpu"
+      ],
+      "lanes": [
+        "native_cpu"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/products/native/cpu/capabilities.zig"
+      ],
+      "lanes": [
+        "native_cpu",
+        "native_metal",
+        "aggregate_cpu",
+        "aggregate_metal"
+      ]
+    },
+    {
+      "prefixes": [
+        "build_support/products/riscv_cpu.zig",
+        "build_support/products/riscv_refinement.zig",
+        "build_support/products/riscv_sail_oracle_tests.zig",
+        "build_support/products/riscv_cpu_executables.zig",
+        "build_support/products/riscv_cpu_tests.zig"
+      ],
+      "lanes": [
+        "build_graph",
+        "riscv_cpu",
+        "aggregate_cpu",
+        "aggregate_metal"
+      ]
     },
     {
       "prefixes": [
@@ -990,7 +1354,7 @@
     },
     {
       "prefixes": [
-        "scripts/sm83_frontend_gate.py"
+        "scripts/sm83/sm83_frontend_gate.py"
       ],
       "lanes": [
         "script_contracts",
@@ -1021,10 +1385,10 @@
     },
     {
       "prefixes": [
-        "src/tools/metal_core_aot",
+        "src/backends/metal/tools/core_aot",
         "build_support/backends/metal_aot.zig",
-        "scripts/metal_core_aot_receipt.py",
-        "scripts/metal_core_aot_receipt_lib"
+        "scripts/metal/metal_core_aot_receipt.py",
+        "scripts/metal/metal_core_aot_receipt_lib"
       ],
       "lanes": [
         "script_contracts",
@@ -1088,10 +1452,9 @@
     },
     {
       "prefixes": [
-        "src/interop/felt_json.zig"
+        "src/frontends/cairo/interop/felt_json.zig"
       ],
       "lanes": [
-        "cairo_frontend",
         "circuit_recursion_wire"
       ]
     },
@@ -1105,13 +1468,13 @@
     },
     {
       "prefixes": [
-        "src/core",
-        "src/prover",
-        "src/prover_api",
-        "src/backend",
+        "src/waist/core",
+        "src/engine/prover",
+        "src/waist/prover_api",
+        "src/waist/backend",
         "src/backends/cpu_scalar",
-        "src/examples",
-        "src/interop/proof_wire"
+        "src/products/native/examples",
+        "src/waist/proof_wire"
       ],
       "lanes": [
         "native_oracle"
@@ -1119,7 +1482,7 @@
     },
     {
       "prefixes": [
-        "src/core"
+        "src/waist/core"
       ],
       "lanes": [
         "package",
@@ -1128,7 +1491,7 @@
     },
     {
       "prefixes": [
-        "src/backend"
+        "src/waist/backend"
       ],
       "lanes": [
         "package",
@@ -1137,7 +1500,7 @@
     },
     {
       "prefixes": [
-        "src/prover"
+        "src/engine/prover"
       ],
       "lanes": [
         "package",
@@ -1146,7 +1509,7 @@
     },
     {
       "prefixes": [
-        "src/prover_api"
+        "src/waist/prover_api"
       ],
       "lanes": [
         "package",
@@ -1213,7 +1576,7 @@
     {
       "prefixes": [
         "build_support/products/circuit_recursion_cpu.zig",
-        "src/products/circuit_recursion_cpu"
+        "src/products/cairo/recursion/cpu"
       ],
       "lanes": [
         "circuit_recursion_cpu"
@@ -1230,8 +1593,8 @@
     {
       "prefixes": [
         "src/products/cairo",
-        "src/products/cairo_cpu",
-        "src/stwo_cairo_cpu.zig",
+        "src/products/cairo/cpu",
+        "src/products/cairo/cpu/root.zig",
         "build_support/products/cairo_cpu.zig",
         "build_support/products/cairo_cpu",
         "build_support/products/cairo_support.zig"
@@ -1253,8 +1616,8 @@
     },
     {
       "prefixes": [
-        "src/products/cairo_metal",
-        "src/stwo_cairo_metal.zig",
+        "src/products/cairo/metal",
+        "src/products/cairo/metal/root.zig",
         "build_support/products/cairo_metal.zig",
         "build_support/products/cairo_metal"
       ],
@@ -1302,7 +1665,7 @@
     },
     {
       "prefixes": [
-        "src/artifact_store"
+        "src/engine/artifact_store"
       ],
       "lanes": [
         "package",
@@ -1312,7 +1675,7 @@
     },
     {
       "prefixes": [
-        "src/tools/metal_session"
+        "src/backends/metal/session"
       ],
       "lanes": [
         "package",
@@ -1322,7 +1685,7 @@
     },
     {
       "prefixes": [
-        "src/interop/proof_wire"
+        "src/waist/proof_wire"
       ],
       "lanes": [
         "package",
@@ -1339,7 +1702,7 @@
     },
     {
       "prefixes": [
-        "src/examples"
+        "src/products/native/examples"
       ],
       "lanes": [
         "package",
@@ -1376,15 +1739,15 @@
         "build_support/products/native_cuda.zig",
         "build_support/backends/cuda.zig",
         "build_support/backends/cuda_tools.zig",
-        "src/products/native_cuda",
-        "scripts/cuda_activation.py",
-        "scripts/cuda_build.py",
-        "scripts/cuda_build_lib",
-        "scripts/cuda_device_smoke.py",
-        "scripts/cuda_product_closure.py",
-        "scripts/cuda_proof_parity_gate.py",
-        "scripts/cuda_recorded_witness_product.py",
-        "scripts/cuda_source_closure.py",
+        "src/products/native/cuda",
+        "scripts/cuda/cuda_activation.py",
+        "scripts/cuda/cuda_build.py",
+        "scripts/cuda/cuda_build_lib",
+        "scripts/cuda/cuda_device_smoke.py",
+        "scripts/cuda/cuda_product_closure.py",
+        "scripts/cuda/cuda_proof_parity_gate.py",
+        "scripts/cuda/cuda_recorded_witness_product.py",
+        "scripts/cuda/cuda_source_closure.py",
         "tests/cuda"
       ],
       "lanes": [
@@ -1418,9 +1781,9 @@
     {
       "prefixes": [
         "build_support/products/cairo_cuda.zig",
-        "src/cairo_cuda.zig",
-        "src/products/cairo_cuda",
-        "src/tools/cuda_native_ec_composite_oracle"
+        "src/products/cairo/cuda/root.zig",
+        "src/products/cairo/cuda",
+        "src/products/native/tools/cuda_ec_composite_oracle"
       ],
       "lanes": [
         "cairo_cuda_integration",
@@ -1435,6 +1798,41 @@
       "lanes": [
         "package",
         "native_cuda_static"
+      ]
+    },
+    {
+      "prefixes": [
+        "guests"
+      ],
+      "lanes": [
+        "script_contracts",
+        "riscv_cuda_integration"
+      ]
+    },
+    {
+      "prefixes": [
+        "tests/fixtures/ethereum"
+      ],
+      "lanes": [
+        "script_contracts",
+        "riscv_cuda_integration"
+      ]
+    },
+    {
+      "prefixes": [
+        "bench/cairo"
+      ],
+      "lanes": [
+        "script_contracts",
+        "cairo_cpu"
+      ]
+    },
+    {
+      "prefixes": [
+        "tools/perf"
+      ],
+      "lanes": [
+        "script_contracts"
       ]
     },
     {
@@ -1464,7 +1862,7 @@
     },
     {
       "prefixes": [
-        "soundness"
+        "design/soundness"
       ],
       "lanes": [
         "script_contracts"
@@ -1493,14 +1891,81 @@
     {
       "prefixes": [
         ".github/workflows/ci.yml",
-        "scripts/ci_scope_plan.py",
-        "scripts/ci_scope_run.py",
-        "scripts/ci_scope_push.py",
+        "scripts/repo/ci_scope_plan.py",
+        "scripts/repo/ci_scope_run.py",
+        "scripts/repo/ci_scope_push.py",
         "conformance/ci-touchpoints-v1.json"
       ],
       "lanes": [
         "script_contracts",
         "build_graph"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/riscv"
+      ],
+      "lanes": [
+        "script_contracts",
+        "riscv_frontend",
+        "riscv_witness_benchmarks",
+        "riscv_frontend_acceptance",
+        "riscv_frontend_releasefast",
+        "riscv_cuda_integration",
+        "static"
+      ],
+      "validate_documentation": true
+    },
+    {
+      "prefixes": [
+        "vectors/reports"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
+        "conformance"
+      ],
+      "lanes": [
+        "static",
+        "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/products/riscv/tools/pc_hotspot",
+        "src/products/riscv/tools/memcpy_hotspot",
+        "src/products/riscv/tools/function_value",
+        "src/products/riscv/tools/memcpy_admission",
+        "src/products/riscv/tools/observations",
+        "src/products/riscv/tools/observation_contracts.zig",
+        "src/products/riscv/tools/analyze_legacy_semantics"
+      ],
+      "lanes": [
+        "riscv_cpu"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/frontends/riscv/air/lang/tests/runtime_profile_test.zig",
+        "src/frontends/riscv/air_runtime_profile_test_root.zig"
+      ],
+      "lanes": [
+        "riscv_runtime_profile"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/frontends/riscv/recursion/tests/segment_leaf_local_projection_test.zig",
+        "src/frontends/riscv/recursion/tests/vm_composition_program_test.zig",
+        "src/frontends/riscv/retained_transcript_contract_test_root.zig",
+        "src/frontends/riscv/retained_typed_component_test_root.zig"
+      ],
+      "lanes": [
+        "riscv_retained_contracts",
+        "riscv_retained_contracts_releasefast"
       ]
     },
     {
@@ -1514,9 +1979,9 @@
     {
       "prefixes": [
         "opstack/kona",
-        "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256",
-        "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa",
-        "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64"
+        "guests/ethereum/rv64/vendor/k256",
+        "guests/ethereum/rv64/vendor/ecdsa",
+        "guests/ethereum/rv64/vendor/sha2-rv64"
       ],
       "lanes": [
         "opstack_kona"
@@ -1529,9 +1994,13 @@
     "LICENSE",
     "docs",
     "archive",
-    "conformance"
+    "ENGINEERING_STANDARDS.md",
+    ".github/ISSUE_TEMPLATE",
+    ".github/pull_request_template.md",
+    ".github/gitleaks.toml",
+    ".claude"
   ],
-  "externally_validated_prefixes": [
-    "autoresearch"
+  "documentation_suffixes": [
+    ".md"
   ]
 }

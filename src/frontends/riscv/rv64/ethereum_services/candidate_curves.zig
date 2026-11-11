@@ -4,7 +4,7 @@
 //! The pointer-packet dispatch below is execution-only. Its pure arithmetic
 //! helpers are also reused by the separately admitted inline-packet v3 roster
 //! in curves.zig; that admission never enables this candidate dispatch.
-//! ABI: autoresearch/guest_efficiency/notes/candidate-curves-abi.md. Granularity
+//! ABI: guests/ethereum/abi/candidate-curves-abi.md. Granularity
 //! mirrors ZisK's precompiles (Bn254CurveAdd/Dbl, Bn254ComplexMul,
 //! Bls12_381CurveAdd/Dbl, Bls12_381ComplexMul, Arith384Mod) plus a Montgomery
 //! variant of Arith384Mod and a Keccak-256 sponge.

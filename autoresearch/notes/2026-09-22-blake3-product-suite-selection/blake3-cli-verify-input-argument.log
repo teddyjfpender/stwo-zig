@@ -1,6 +1,0 @@
-error: IrrelevantInputBinding
-
-
-Traceback (most recent call last):
-  File "<stdin>", line 7, in <module>
-AssertionError

@@ -24,11 +24,11 @@ test {
     _ = @import("runner/guest_precompile/call_buffer.zig");
     _ = @import("runner/guest_precompile/tests/ethereum_runner_test.zig");
     _ = @import("runner/guest_precompile/mod.zig");
-    _ = @import("runner/guest_precompile/poseidon2_v1.zig");
+    _ = @import("runner/guest_precompile/poseidon2.zig");
     _ = @import("runner/guest_precompile/tests/poseidon2_clock_authority_test.zig");
     _ = @import("runner/guest_precompile/tests/runner_test.zig");
     _ = @import("runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-    _ = @import("runner/guest_precompile/tests/secp256k1_recover_v1_test.zig");
+    _ = @import("runner/guest_precompile/tests/secp256k1_recover_test.zig");
     _ = @import("runner/tests/host_integration_test.zig");
     _ = @import("runner/tests/fence_retirement_test.zig");
     _ = @import("runner/generated_retirement.zig");

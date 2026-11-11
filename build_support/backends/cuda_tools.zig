@@ -88,7 +88,7 @@ pub fn addProducts(
         b.createModule(.{
             .root_source_file = graph.source(
                 b,
-                "src/backend/mod.zig",
+                "src/waist/backend/mod.zig",
                 target,
                 optimize,
             ),
@@ -101,10 +101,23 @@ pub fn addProducts(
         .flags = &.{ "-std=c11", "-Wno-strict-prototypes" },
     });
     runtime_tests.linkLibC();
-    b.step(
+    const runtime_contract = b.step(
         "test-cuda-runtime-contract",
         "Test proof-owned CUDA context, residency, and strict-AOT contracts",
-    ).dependOn(&b.addRunArtifact(runtime_tests).step);
+    );
+    runtime_contract.dependOn(&b.addRunArtifact(runtime_tests).step);
+    inline for (.{
+        "runtime/device_arena_test.cpp",
+        "rv64/pcs_idle_cache_test.cpp",
+        "rv64/prefix_banks_test.cpp",
+        "rv64/pcs_oom_diagnostics_test.cpp",
+    }) |host_source| {
+        const host_module = b.createModule(.{ .target = b.graph.host, .optimize = optimize, .link_libc = true, .link_libcpp = true });
+        host_module.addCSourceFile(.{ .file = b.path("tests/cuda/rv64/native/" ++ host_source), .flags = &.{ "-std=c++17", "-UNDEBUG" } });
+        inline for (.{ "", "/runtime", "/rv64" }) |suffix| host_module.addIncludePath(b.path("src/backends/cuda/native" ++ suffix));
+        const host_test = b.addExecutable(.{ .name = std.fs.path.stem(host_source), .root_module = host_module });
+        runtime_contract.dependOn(&b.addRunArtifact(host_test).step);
+    }
 
     const protocol = graph.createPrivateProtocolModules(
         b,
@@ -118,7 +131,7 @@ pub fn addProducts(
         .role = .library,
     };
     const stwo = b.createModule(.{
-        .root_source_file = b.path("src/stwo.zig"),
+        .root_source_file = b.path("src/products/stwo/root.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -222,7 +235,7 @@ pub fn addProducts(
         stwo,
     );
     const eval_facade = b.createModule(.{
-        .root_source_file = b.path("src/tools/cairo_cuda_eval_aot/facade.zig"),
+        .root_source_file = b.path("src/products/cairo/tools/cuda_eval_aot/facade.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -252,7 +265,7 @@ pub fn addProducts(
     );
     const ec_oracle_root = b.createModule(.{
         .root_source_file = b.path(
-            "src/tools/cuda_native_ec_composite_oracle/main.zig",
+            "src/products/native/tools/cuda_ec_composite_oracle/main.zig",
         ),
         .target = target,
         .optimize = .ReleaseFast,
@@ -344,7 +357,7 @@ pub fn addProducts(
 
     const blake_route_root = b.createModule(.{
         .root_source_file = b.path(
-            "src/products/native_cuda/blake_route.zig",
+            "src/products/native/cuda/blake_route.zig",
         ),
         .target = target,
         .optimize = optimize,

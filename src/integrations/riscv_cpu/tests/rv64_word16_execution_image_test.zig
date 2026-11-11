@@ -179,7 +179,7 @@ test "full execution mixed native program closes seventeen physical chips and ve
         const draw = Protocol.draw(&channel);
         const claims = try source.generate(draw);
         var components = try Components.init(&setup.materials, source.request(), draw, claims);
-        if (try @import("../word16_execution/native_diagnostic.zig").inspect(a, &components, &source)) |failure| {
+        if (try @import("../word16_execution/native_diagnostic_test_support.zig").inspect(a, &components, &source)) |failure| {
             std.debug.print("NATIVE_FAIL role={s} row={d} constraint={d} value={any}\n", .{ @tagName(failure.role), failure.row, failure.constraint, failure.value });
             return error.NativeExecutionConstraintFailure;
         }
@@ -216,7 +216,7 @@ test "full execution mixed native program closes seventeen physical chips and ve
     var receiver = try Setup.Setup.initWithAuthority(a, &fixture.image.authority, geometry);
     defer receiver.deinit();
     try Execution.verify(a, &receiver, admission, encoded);
-    const FalseProver = @import("rv64_word16_execution_false_prover.zig");
+    const FalseProver = @import("rv64_word16_execution_false_prover_test_support.zig");
     const fields = front.rv64_air.word16_execution.layout.main;
     try FalseProver.reject(a, &setup, admission, fixture.boundary, &fixture.tape, fields.a, 2);
     try FalseProver.reject(a, &setup, admission, fixture.boundary, &fixture.tape, fields.c + 3, 3);

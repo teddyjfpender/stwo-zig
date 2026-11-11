@@ -57,11 +57,11 @@ pub fn request(r: P.Request) !void {
 pub fn calls(_: [T.FAMILIES]u32, _: T.BulkCounts, _: T.SpongeCounts, _: u32) !void {}
 pub fn truth(t: R.Truth) !void {
     if (t == .keccak or t == .secp) return @import("truth_profile.zig").validate(t);
-    return @import("truth_v3_catalog.zig").validate(t);
+    return @import("truth_catalog.zig").validate(t);
 }
 pub fn truthDeclaration(d: @import("../wire.zig").TruthDeclaration) !void {
     if (d.family == .keccak or ((d.family == .add or d.family == .double) and d.logs[1] != 0)) return @import("truth_profile.zig").validateDeclaration(d);
-    _ = try @import("truth_v3_catalog.zig").descriptorForDeclaration(d);
+    _ = try @import("truth_catalog.zig").descriptorForDeclaration(d);
 }
 
 pub fn advice(a: *const @import("../collector.zig").Advice) !void {

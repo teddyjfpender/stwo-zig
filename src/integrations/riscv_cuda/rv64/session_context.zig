@@ -5,7 +5,6 @@ const std = @import("std");
 const Runtime = @import("stwo_cuda_backend").runtime;
 const Native = @import("pcs_native_abi.zig");
 pub const Api = struct {
-    allocation_guard: ?*@import("native_stage1_allocations.zig").Guard = null,
     allocate: Native.LeaseAllocate,
     release: Native.LeaseRelease,
     validate_range: Native.LeaseValidateRange,
@@ -46,7 +45,6 @@ pub const Context = struct {
     pub fn allocate(self: *Context, words: usize, kind: u32) !Native.Lease {
         try self.prepareKernelEnqueue();
         if (words == 0 or kind > 3) return error.InvalidDeviceAddress;
-        if (self.api.allocation_guard) |guard| try guard.allocate(self.scope, words, kind);
         var lease = Native.Lease{};
         if (self.api.allocate(self.session, words, kind, &self.scope, &lease) != 0) return error.CudaAllocationFailed;
         errdefer _ = self.api.release(self.session, &lease);

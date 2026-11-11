@@ -14,11 +14,9 @@ import tempfile
 import unittest
 from unittest import mock
 
-from scripts import typed_air_zig_gate_cache as cache
-from scripts import typed_air_zig_gate_execution as execution
-from scripts import typed_air_zig_lane as lane
-
-
+from scripts.typed_air import typed_air_zig_gate_cache as cache
+from scripts.typed_air import typed_air_zig_gate_execution as execution
+from scripts.typed_air import typed_air_zig_lane as lane
 def _git(repository: Path, *arguments: str) -> None:
     subprocess.run(
         ["git", *arguments],

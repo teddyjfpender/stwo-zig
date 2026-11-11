@@ -40,16 +40,16 @@ revm-bytecode = { version = "=42.0.0", default-features = false, optional = true
 ark-bn254 = { version = "=0.6.0", default-features = false, optional = true }
 revm-interpreter = { version = "=42.0.0", default-features = false, optional = true }
 stwo-kona-execution = { path = ".." }
-stwo-rv64-mem = { path = "../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/mem" }
+stwo-rv64-mem = { path = "../../../guests/ethereum/rv64/mem" }
 critical-section = { version = "1.2", features = ["restore-state-bool"] }
 
 [patch.crates-io]
 ark-ff = { path = "../vendor/ark-ff" }
 ark-bn254 = { path = "../vendor/ark-bn254" }
-k256 = { path = "../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256" }
-ecdsa = { path = "../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa" }
-revm-interpreter = { path = "../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter" }
-revm-bytecode = { path = "../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode" }
+k256 = { path = "../../../guests/ethereum/rv64/vendor/k256" }
+ecdsa = { path = "../../../guests/ethereum/rv64/vendor/ecdsa" }
+revm-interpreter = { path = "../../../guests/ethereum/rv64/vendor/revm-interpreter" }
+revm-bytecode = { path = "../../../guests/ethereum/rv64/vendor/revm-bytecode" }
 
 [profile.release]
 panic = "abort"

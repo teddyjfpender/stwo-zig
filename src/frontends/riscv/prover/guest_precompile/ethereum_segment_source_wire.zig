@@ -7,8 +7,8 @@
 
 const std = @import("std");
 const execution_profile = @import("../../isa/execution_profile.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest_v2.zig");
-const global_v3 = @import("../../recursion/segment_leaf_local_authority_v3.zig");
+const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
+const global_v3 = @import("../../recursion/segment_leaf_local_authority.zig");
 const base_wire = @import("proof_artifact_wire.zig");
 const metadata_wire = @import("ethereum_segment_artifact_metadata_wire.zig");
 

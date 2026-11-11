@@ -10,7 +10,7 @@ test "BLAKE3 counter step pins checked u64 byte carries" {
     defer d.deinit();
     const binding = try @import("../universal_relation_binding.zig").Binding(counter).authenticate(&d);
     const direct = try @import("../direct_constraint_program.zig").authenticate(&d.arena, counter.SEMANTIC_DIGEST, counter.LOGICAL_INPUT_COUNT);
-    var exported = try @import("../framework_polynomial_export_v1.zig").exportLocalPrepared(counter, a, &direct, &binding);
+    var exported = try @import("../framework_polynomial_export.zig").exportLocalPrepared(counter, a, &direct, &binding);
     defer exported.deinit();
     const s = counter.Schedule{ .source = .{ .circuit = 1, .first_wire = 0 }, .increment = .{ .circuit = 2, .wire = 0 }, .destination = .{ .circuit = 1, .first_wire = 2 }, .uses = .{ 2, 3 } };
     const fixed = try counter.fixedRow(s);

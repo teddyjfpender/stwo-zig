@@ -2,7 +2,7 @@ import importlib.util
 from pathlib import Path
 import unittest
 
-spec = importlib.util.spec_from_file_location("partition", Path(__file__).parents[1] / "rv64_cuda_partition_grouped.py")
+spec = importlib.util.spec_from_file_location("partition", Path(__file__).parents[1] / "rv64/rv64_cuda_partition_grouped.py")
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 

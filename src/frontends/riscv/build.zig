@@ -13,7 +13,7 @@ const std = @import("std");
 /// `test_inventory_test.zig` fails when a file is missing from that list. This
 /// floor is the backstop for the wiring itself. Raise it deliberately as the
 /// suite grows; never lower it to make a build pass.
-const test_floor = 1084;
+const test_floor = 1103;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -35,13 +35,13 @@ pub fn build(b: *std.Build) void {
         dependency_options,
     ).module("stwo_prover_api");
     const proof_wire = b.createModule(.{
-        .root_source_file = b.path("../../interop/proof_wire/mod.zig"),
+        .root_source_file = b.path("../../waist/proof_wire/mod.zig"),
         .target = target,
         .optimize = optimize,
     });
     proof_wire.addImport("stwo_core", core);
     const postcard = b.createModule(.{
-        .root_source_file = b.path("../../interop/postcard.zig"),
+        .root_source_file = b.path("../../waist/recursion_wire/postcard/mod.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -49,21 +49,21 @@ pub fn build(b: *std.Build) void {
     postcard.addImport("stwo_proof_wire", proof_wire);
     const typed_air_artifacts = b.createModule(.{
         .root_source_file = b.path(
-            "../../../design/typed-air/artifacts/embedded.zig",
+            "air/lang/artifacts/embedded.zig",
         ),
         .target = target,
         .optimize = optimize,
     });
     const typed_air_h009_artifacts = b.createModule(.{
         .root_source_file = b.path(
-            "../../../design/typed-air/artifacts/h009_embedded.zig",
+            "air/lang/artifacts/h009_embedded.zig",
         ),
         .target = target,
         .optimize = optimize,
     });
     const typed_air_h010_artifacts = b.createModule(.{
         .root_source_file = b.path(
-            "../../../design/typed-air/artifacts/h010_embedded.zig",
+            "air/lang/artifacts/h010_embedded.zig",
         ),
         .target = target,
         .optimize = optimize,
@@ -126,7 +126,7 @@ pub fn build(b: *std.Build) void {
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-vm-leaf-context-v2",
         .description = "Test SegmentV2 verifier-instance and capture authority",
-        .root = "vm_leaf_context_v2_test_root.zig",
+        .root = "vm_leaf_context_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{ "SegmentV2 VM leaf ContextV2", "Ethereum selected base claim admission" },
         .minimum = 4,
@@ -172,7 +172,7 @@ pub fn build(b: *std.Build) void {
     run_manifest_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     run_manifest_tool.addArgs(&.{
         manifest_mode,
-        "design/typed-air/artifacts/m3-compat-v1",
+        "src/frontends/riscv/air/lang/artifacts/m3-compat-v1",
     });
     b.step(
         "typed-air-manifest",
@@ -198,7 +198,7 @@ pub fn build(b: *std.Build) void {
     run_frontier_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     run_frontier_tool.addArgs(&.{
         frontier_mode,
-        "design/typed-air/artifacts/h009-poseidon2-cost-v1",
+        "src/frontends/riscv/air/lang/artifacts/h009-poseidon2-cost-v1",
     });
     b.step(
         "typed-air-frontier",
@@ -226,7 +226,7 @@ pub fn build(b: *std.Build) void {
     run_static_profile_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     run_static_profile_tool.addArgs(&.{
         static_profile_mode,
-        "design/typed-air/artifacts/p002-native-family-static-profile-v1",
+        "src/frontends/riscv/air/lang/artifacts/p002-native-family-static-profile-v1",
     });
     b.step(
         "typed-air-static-profile",
@@ -310,30 +310,36 @@ fn addFocusedTests(
     check_only: bool,
     spec: FocusedTest,
 ) void {
-    const root = b.createModule(.{
-        .root_source_file = b.path(spec.root),
-        .target = target,
-        .optimize = optimize,
-        .strip = spec.strip,
-    });
-    root.addImport("stwo_core", core);
-    root.addImport("stwo_prover_api", prover_api);
-    root.addImport("interop_postcard", postcard);
-    if (spec.imports_prover_engine)
-        root.addImport("stwo_prover_engine", prover);
-    if (spec.imports_typed_air_artifacts)
-        root.addImport("typed_air_artifacts", typed_air_artifacts);
-    const tests = b.addTest(.{ .root_module = root, .filters = spec.filters });
-    const dependency = if (check_only)
-        &tests.step
-    else blk: {
-        const run = b.addRunArtifact(tests);
-        break :blk if (spec.minimum == 0)
-            &run.step
-        else
-            TestCountFloor.add(b, run, spec.minimum);
-    };
-    b.step(spec.step, spec.description).dependOn(dependency);
+    const roots = if (spec.partition_roots.len == 0) &.{spec.root} else spec.partition_roots;
+    const runs = b.allocator.alloc(*std.Build.Step.Run, roots.len) catch @panic("out of memory");
+    const owner = b.step(spec.step, spec.description);
+    for (roots, 0..) |source, i| {
+        const root = b.createModule(.{
+            .root_source_file = b.path(source),
+            .target = target,
+            .optimize = optimize,
+            .strip = spec.strip,
+            .error_tracing = spec.error_tracing,
+        });
+        root.addImport("stwo_core", core);
+        root.addImport("stwo_prover_api", prover_api);
+        root.addImport("interop_postcard", postcard);
+        if (spec.imports_prover_engine)
+            root.addImport("stwo_prover_engine", prover);
+        if (spec.imports_typed_air_artifacts)
+            root.addImport("typed_air_artifacts", typed_air_artifacts);
+        const tests = b.addTest(.{ .root_module = root, .filters = spec.filters });
+        if (check_only) {
+            owner.dependOn(&tests.step);
+        } else {
+            const run = b.addRunArtifact(tests);
+            run.has_side_effects = true;
+            runs[i] = run;
+            owner.dependOn(&run.step);
+        }
+    }
+    if (!check_only and spec.minimum != 0)
+        owner.dependOn(TestCountFloor.addMany(b, runs, spec.minimum));
 }
 
 /// Turns "the binary lost its tests" from a zero exit into a named failure.
@@ -344,10 +350,14 @@ fn addFocusedTests(
 /// product gate's floor cannot cover a lane this build file owns.
 const TestCountFloor = struct {
     step: std.Build.Step,
-    run: *std.Build.Step.Run,
+    runs: []const *std.Build.Step.Run,
     minimum: usize,
 
     fn add(b: *std.Build, run: *std.Build.Step.Run, minimum: usize) *std.Build.Step {
+        return addMany(b, &.{run}, minimum);
+    }
+
+    fn addMany(b: *std.Build, runs: []const *std.Build.Step.Run, minimum: usize) *std.Build.Step {
         const floor = b.allocator.create(TestCountFloor) catch @panic("out of memory");
         floor.* = .{
             .step = std.Build.Step.init(.{
@@ -356,25 +366,39 @@ const TestCountFloor = struct {
                 .owner = b,
                 .makeFn = make,
             }),
-            .run = run,
+            .runs = b.allocator.dupe(*std.Build.Step.Run, runs) catch @panic("out of memory"),
             .minimum = minimum,
         };
-        floor.step.dependOn(&run.step);
+        for (runs) |run| floor.step.dependOn(&run.step);
         return &floor.step;
     }
 
     fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) anyerror!void {
         const floor: *TestCountFloor = @fieldParentPtr("step", step);
-        const metadata = floor.run.cached_test_metadata orelse return step.fail(
-            "the run reported no test names, so the package's test count could not be verified",
-            .{},
-        );
-        if (metadata.names.len >= floor.minimum) return;
+        var names = std.StringHashMap(void).init(step.owner.allocator);
+        defer names.deinit();
+        var count: usize = 0;
+        for (floor.runs) |run| {
+            const metadata = run.cached_test_metadata orelse return step.fail(
+                "the run reported no test names, so the package's test count could not be verified",
+                .{},
+            );
+            if (floor.runs.len == 1) {
+                count = metadata.names.len;
+            } else {
+                // Shared dependencies run in each image, but cannot compensate
+                // for a missing partition in the complete target's floor.
+                for (0..metadata.names.len) |i|
+                    try names.put(metadata.testName(@intCast(i)), {});
+                count = names.count();
+            }
+        }
+        if (count >= floor.minimum) return;
         return step.fail(
             \\this package compiled {d} tests; its own step requires at least {d}.
             \\  Zig collects a test only from a file it analysed, so a file that fell out of
             \\  test_inventory.zig is compiled by nothing and still reports green. Restore the
             \\  import, or move `test_floor` in this build file deliberately.
-        , .{ metadata.names.len, floor.minimum });
+        , .{ count, floor.minimum });
     }
 };

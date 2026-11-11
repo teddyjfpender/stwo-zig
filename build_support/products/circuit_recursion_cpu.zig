@@ -19,38 +19,43 @@ const embedded_assets = [_]struct { name: []const u8, path: []const u8 }{
 };
 
 const source_closure = product_policy.SourceClosure{
-    .entry_roots = &.{"src/products/circuit_recursion_cpu/main.zig"},
+    .entry_roots = &.{"src/products/cairo/recursion/cpu/main.zig"},
     .named_imports = &.{
-        .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
-        .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
+        .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },
+        .{ .name = "stwo_proof_wire", .source = "src/waist/proof_wire/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
         .{ .name = "stwo_cairo_cpu_integration", .source = "src/integrations/cairo_cpu/mod.zig" },
         .{ .name = "stwo_circuit_frontend", .source = "src/frontends/circuit/mod.zig" },
         .{ .name = "stwo_circuit_cpu_integration", .source = "src/integrations/circuit_cpu/mod.zig" },
-        .{ .name = "stwo_circuit_recursion_wire", .source = "src/interop/circuit_recursion/mod.zig" },
-        .{ .name = "interop_felt_json", .source = "src/interop/felt_json.zig" },
-        .{ .name = "interop_cairo_prover_parameters", .source = "src/interop/cairo_prover_parameters.zig" },
+        .{ .name = "stwo_circuit_recursion_wire", .source = "src/waist/recursion_wire/mod.zig" },
+        .{ .name = "interop_felt_json", .source = "src/frontends/cairo/interop/felt_json.zig" },
+        .{ .name = "interop_cairo_prover_parameters", .source = "src/frontends/cairo/interop/cairo_prover_parameters.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
-        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
-        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/waist/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/engine/prover/mod.zig" },
     },
     .generated_imports = &.{ "circuit_air_projection", "circuit_air_programs", "circuit_composition_cpu_aot" },
     .allowed_files = &.{
-        "src/interop/felt_json.zig",
-        "src/interop/cairo_prover_parameters.zig",
+        "src/frontends/cairo/interop/felt_json.zig",
+        "src/frontends/cairo/interop/cairo_prover_parameters.zig",
+        "src/waist/proof_wire/family.zig",
+        "src/waist/proof_wire/bounded_count_test.zig",
+        "src/waist/proof_wire/hash_family_test.zig",
+        "src/waist/proof_wire/wide_test.zig",
     },
     .allowed_prefixes = &.{
-        "src/backend",
+        "src/waist/backend",
         "src/backends/cpu_scalar",
-        "src/core",
+        "src/waist/core",
         "src/frontends/cairo",
         "src/frontends/circuit",
         "src/integrations/cairo_cpu",
         "src/integrations/circuit_cpu",
-        "src/interop/circuit_recursion",
-        "src/products/circuit_recursion_cpu",
-        "src/prover",
-        "src/prover_api",
+        "src/waist/recursion_wire",
+        "src/products/cairo/recursion/cpu",
+        "src/engine/prover",
+        "src/waist/prover_api",
     },
     .forbidden_dynamic_dependencies = &.{
         "Metal.framework",
@@ -128,15 +133,15 @@ pub fn addProduct(context: Context) void {
     // R8 and R8b: large (a 2^23-row circuit proof, about 11 GB, and for R8b
     // a four-leaf tree after it); not part of the product test step. The
     // tests read `vectors/` from the repository root.
-    const app = createProductModuleAt(context, product(.@"test"), "src/products/circuit_recursion_cpu/app.zig");
+    const app = createProductModuleAt(context, product(.@"test"), "src/products/cairo/recursion/cpu/app.zig");
     context.b.step(
         "circuit-parity-r8",
         "Rung R8: leaf-wrap of the leaf prover's test program equals leaf-prover's expected_output.json",
-    ).dependOn(addAppTest(context, app, "src/products/circuit_recursion_cpu/tests/r8_leaf_wrap_test.zig"));
+    ).dependOn(addAppTest(context, app, "src/products/cairo/recursion/cpu/tests/r8_leaf_wrap_test.zig"));
     context.b.step(
         "circuit-parity-r8b",
         "Rung R8b: the Zig leaf of the leaf simple bootloader equals four_leaves/leaf.json, and four of them fold to the root goldens",
-    ).dependOn(addAppTest(context, app, "src/products/circuit_recursion_cpu/tests/r8b_leaf_chain_test.zig"));
+    ).dependOn(addAppTest(context, app, "src/products/cairo/recursion/cpu/tests/r8b_leaf_chain_test.zig"));
     addParityLanes(context.b);
 }
 
@@ -157,7 +162,7 @@ const local_rungs = [_]Rung{
     // unchanged, or the change is deliberate and re-pinned.
     .{ .build_file = frontend_build, .step = "circuit-starkware-pin" },
     // R0: the wire formats' vectors (felt252, base64, leaf JSON, serializers).
-    .{ .build_file = "src/interop/circuit_recursion/build.zig", .step = "test" },
+    .{ .build_file = "src/waist/recursion_wire/build.zig", .step = "test" },
     // R0 (FRI), R1, R2, R3 and R5: the frontend's unit and fixture tests.
     .{ .build_file = frontend_build, .step = "circuit-parity-r1" },
     .{ .build_file = frontend_build, .step = "circuit-parity-r4" },
@@ -241,7 +246,7 @@ fn addAppTest(context: Context, app: *std.Build.Module, root_source_file: []cons
 }
 
 fn createProductModule(context: Context, product_descriptor: graph.Product) *std.Build.Module {
-    return createProductModuleAt(context, product_descriptor, "src/products/circuit_recursion_cpu/main.zig");
+    return createProductModuleAt(context, product_descriptor, "src/products/cairo/recursion/cpu/main.zig");
 }
 
 fn createProductModuleAt(context: Context, product_descriptor: graph.Product, root_source_file: []const u8) *std.Build.Module {
@@ -311,7 +316,7 @@ fn createCompositionModule(
     const generator = b.addExecutable(.{
         .name = "circuit-composition-cpu-codegen",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/tools/cairo_composition_cpu_codegen/bundle_main.zig"),
+            .root_source_file = b.path("src/products/cairo/tools/composition_cpu_codegen/bundle_main.zig"),
             .target = b.graph.host,
             .optimize = .ReleaseFast,
         }),

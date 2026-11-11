@@ -4,8 +4,6 @@ const core = @import("stwo_core");
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const Abi = @import("pcs_native_abi.zig");
 const Export = @import("pcs_request_export.zig");
-const Admission = @import("global_admission.zig");
-const AdmissionRuntime = @import("admission_runtime.zig");
 const AllocationCost = @import("pcs_allocation_cost.zig");
 const Decode = @import("hybrid_pcs.zig");
 const GnRecord = @import("outer_seed_record.zig");
@@ -25,19 +23,6 @@ fn hostGeometryBytes() usize {
     const text = std.posix.getenv("STWO_RV64_PCS_HOST_GEOMETRY_BYTES") orelse return resident_host_geometry_bytes;
     const bytes = std.fmt.parseInt(usize, text, 10) catch return resident_host_geometry_bytes;
     return if (bytes == 0) Export.GeometryCache.default_bytes else bytes;
-}
-/// Geometry-only source class plan; no transcript, coefficient data, GPU work
-/// or context/cache locks. Roots and channel bytes do not affect allocations.
-pub fn classAllocationPlan(a: std.mem.Allocator, request: D.Request, wide: bool, options: AllocationCost.Options) !AllocationCost.Plan {
-    return Export.allocationPlan(a, request, wide, options);
-}
-/// Pass zero only for an independently resolved/pinned device FIXED forest.
-/// A geometry-only request does not itself prove such a cache hit.
-pub fn classAllocationPlanWithFixed(a: std.mem.Allocator, request: D.Request, wide: bool, options: AllocationCost.Options, fixed_cold_words: u64) !AllocationCost.Plan {
-    var plan = try classAllocationPlan(a, request, wide, options);
-    errdefer plan.deinit(a);
-    try plan.includeFixedCold(a, fixed_cold_words);
-    return plan;
 }
 pub fn allocationOptions() !AllocationCost.Options {
     var result: AllocationCost.Options = .{};
@@ -59,15 +44,6 @@ pub fn allocationOptions() !AllocationCost.Options {
     return result;
 }
 pub const Context = struct {
-    early_allocations: @import("native_stage1_allocations.zig").Guard = .{},
-    admission_progress: @import("admission_progress.zig").Registry = .{},
-    /// Sibling lane sessions share the loaded module and physical arena, but
-    /// own their service lock, streams, scope registry and retained cache.
-    library_owner: bool = true,
-    parent: ?*Context = null,
-    siblings: std.atomic.Value(u32) = std.atomic.Value(u32).init(0),
-    admission: ?@import("admission_runtime.zig").Endpoint = null,
-    admission_retention: @import("admission_retention.zig").Registry = .{},
     pcs_options: AllocationCost.Options = .{},
     /// Canonical domains never evict in the frozen C owner; a successful PCS
     /// publishes this fact and session destruction is the sole invalidation.
@@ -94,78 +70,6 @@ pub const Context = struct {
     lease_validate: Abi.LeaseValidate,
     lease_validate_range: Abi.LeaseValidateRange,
     lease_release: Abi.LeaseRelease,
-    pub fn classAllocationOptions(self: *const Context, lifting_log: u32) !AllocationCost.Options {
-        if (lifting_log > 28) return error.InvalidPcsCostGeometry;
-        var result = self.pcs_options;
-        result.domain_cached = (self.pcs_domain_logs.load(.acquire) & (@as(u32, 1) << @intCast(lifting_log))) != 0;
-        if (self.admission != null) result.borrowed_trees = .{ false, true, true, true };
-        return result;
-    }
-    pub fn registerAdmissionProgress(self: *Context, scope: D.Scope, plan: @import("admission_progress.zig").Plan) !void {
-        return self.admission_progress.put(std.heap.page_allocator, .{ .statement = scope.statement, .fixed = scope.fixed, .ordinal = scope.ordinal }, plan);
-    }
-    pub fn admissionSuccessor(self: *Context, scope: D.Scope, step: @import("admission_progress.zig").Step) !@import("global_admission.zig").Footprint {
-        return self.admission_progress.get(.{ .statement = scope.statement, .fixed = scope.fixed, .ordinal = scope.ordinal }, step);
-    }
-    pub fn admissionRetirementSuccessor(self: *Context, scope: D.Scope, step: @import("admission_progress.zig").Step) !?@import("global_admission.zig").Footprint {
-        return self.admission_progress.retirement(@import("global_admission.zig").progressKey(scope), step);
-    }
-    pub fn armGlobalAdmission(self: *Context, scope: D.Scope) !bool {
-        if (self.admission == null) return false;
-        return self.admission_progress.armGlobal(@import("global_admission.zig").progressKey(scope));
-    }
-    pub fn admissionPreGlobal(self: *Context, scope: D.Scope) !bool {
-        if (self.admission == null) return false;
-        return (try self.admission_progress.phase(@import("global_admission.zig").progressKey(scope))) == .pre_global;
-    }
-    pub fn takeGlobalAdmissionDrain(self: *Context, scope: D.Scope) !bool {
-        if (self.admission == null) return false;
-        return self.admission_progress.takeGlobalDrain(@import("global_admission.zig").progressKey(scope));
-    }
-    pub fn attachGlobalAdmission(self: *Context, planner: *@import("global_admission.zig").Planner, physical: u32) !void {
-        var endpoint = try @import("admission_runtime.zig").Endpoint.init(planner, physical, &self.library, self.session, self.submit);
-        try endpoint.configure();
-        self.admission = endpoint;
-        try planner.registerCoverage(physical, .native_pcs);
-        try planner.registerCoverage(physical, .recursion_pcs);
-        // All GPU immutable misses run inside the same bounded source/TC/RC/
-        // PCS tickets; unpermitted public uploads fail in the C guard. Scope
-        // retirement uses checked joined callbacks and poisons on any failure.
-        try planner.registerCoverage(physical, .immutable);
-        try planner.registerCoverage(physical, .retirement);
-    }
-    pub fn inheritGlobalAdmission(self: *Context, parent: *const Context) !void {
-        if (parent.admission) |endpoint| try self.attachGlobalAdmission(endpoint.planner, endpoint.physical);
-    }
-
-    /// Host caller completes an admitted stage and transfers future headroom
-    /// to the final allocation scope (after any MAIN-root rebind).
-    pub fn completeAdmission(self: *Context, permit: *@import("admission_runtime.zig").Permit, scope: D.Scope, successor: @import("global_admission.zig").Footprint) !void {
-        const endpoint = self.admission orelse return error.MissingGlobalAdmissionEndpoint;
-        if (permit.endpoint.session != self.session or permit.endpoint.planner != endpoint.planner or permit.endpoint.physical != endpoint.physical) return error.ForeignAdmissionOwner;
-        const identity = @import("pcs_scope.zig").identity(scope);
-        self.cache_mutex.lock();
-        defer self.cache_mutex.unlock();
-        if (successor.large != 0 or successor.small != 0) {
-            var found = false;
-            for (self.cache.items) |entry| if (std.mem.eql(u32, &entry.scope, &identity) and entry.lease.words != null) {
-                found = true;
-                break;
-            };
-            if (!found) {
-                endpoint.planner.poisonPhysical(endpoint.physical);
-                return error.MissingPhysicalRetentionOwner;
-            }
-        }
-        try self.admission_retention.complete(std.heap.page_allocator, permit, identity, successor);
-    }
-    fn retireAdmissionScope(self: *Context, scope: [8]u32) !void {
-        if (self.admission) |endpoint| self.admission_retention.retireAfterDestruction(endpoint.planner, scope) catch |err| {
-            endpoint.planner.poisonPhysical(endpoint.physical);
-            return err;
-        };
-    }
-
     /// Failure-only owner-thread diagnostics. Optional runtime exports keep
     /// older images usable; query failures must never replace the stage error.
     pub fn logMemoryFailure(self: *Context, native_context: *anyopaque, operation_label: []const u8) void {
@@ -222,112 +126,23 @@ pub const Context = struct {
         if (self.immutable_setup == null) try self.enableImmutableSetup(@min(self.byte_cap, 512 << 20));
         return self.immutable_setup.?.fixed(native_context, scope, columns);
     }
-    /// Free-only owner callback. Call outside physical transaction/stage/cache
-    /// locks. Borrowed immutable entries remain pinned; no allocation or fake
-    /// ledger credit is issued. The next V2 HOST snapshot observes stable frees.
-    pub fn trimUnborrowedJoined(self: *Context, reason: []const u8) !u64 {
-        const endpoint = self.admission orelse return 0;
-        if (!endpoint.planner.healthy(endpoint.physical)) return error.PhysicalAdmissionPoisoned;
-        const sync = self.library.lookup(Abi.Sync, "stwo_exec_context_sync") orelse return error.MissingGlobalAdmissionRuntime;
-        const Job = struct {
-            service: *Context,
-            sync: Abi.Sync,
-            reason: []const u8,
-            freed: u64 = 0,
-            failure: ?anyerror = null,
-            fn run(raw: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
-                const job: *@This() = @ptrCast(@alignCast(data.?));
-                if (job.sync(raw) != 0) {
-                    job.failure = error.ImmutablePressureTrimJoinFailed;
-                    return 1;
-                }
-                var before: u64 = 0;
-                var after: u64 = 0;
-                var before_entries: usize = 0;
-                var after_entries: usize = 0;
-                var before_users: u64 = 0;
-                var after_users: u64 = 0;
-                var borrowed_bytes: u64 = 0;
-                if (job.service.immutable_setup) |cache| {
-                    before = cache.bytes;
-                    before_entries = cache.entries.items.len;
-                    for (cache.entries.items) |entry| before_users += entry.users;
-                    job.freed = cache.trimUnborrowed() catch |err| {
-                        job.failure = err;
-                        return 1;
-                    };
-                    after = cache.bytes;
-                    after_entries = cache.entries.items.len;
-                    for (cache.entries.items) |entry| {
-                        after_users += entry.users;
-                        if (entry.users != 0) borrowed_bytes += entry.lease.count * 4;
-                    }
-                }
-                if (job.sync(raw) != 0) {
-                    job.failure = error.ImmutablePressureTrimJoinFailed;
-                    return 1;
-                }
-                if (before_users != after_users or before < after or before - after != job.freed) {
-                    job.failure = error.ImmutablePressureTrimAccounting;
-                    return 1;
-                }
-                std.debug.print("GPU_ADMISSION_CACHE_RECLAIM reason={s} owner={} logical_released_bytes={} before_bytes={} after_bytes={} before_entries={} after_entries={} before_users={} after_users={} remaining_borrowed_bytes={} joined=true\n", .{ job.reason, job.service.admission.?.owner_identity, job.freed, before, after, before_entries, after_entries, before_users, after_users, borrowed_bytes });
-                return 0;
-            }
-        };
-        var job = Job{ .service = self, .sync = sync, .reason = reason };
-        if (self.submit(self.session, Job.run, &job) != 0) {
-            endpoint.planner.poisonPhysical(endpoint.physical);
-            return job.failure orelse error.ImmutablePressureTrimFailed;
-        }
-        if (job.freed != 0) endpoint.planner.notifyResourceRelease();
-        return job.freed;
-    }
-    /// Current sibling executes inline under its controller. The native parent
-    /// has no recursion controller waiting on this child's handoff condition.
-    /// Do not synchronously submit to other sibling controllers: they can be
-    /// asleep on admission/handoff and unable to run a queued trim callback.
-    pub fn trimSourcePressure(self: *Context) !u64 {
-        var freed = try self.trimUnborrowedJoined("source_pressure_self");
-        if (self.parent) |parent| freed = try std.math.add(u64, freed, try parent.trimUnborrowedJoined("source_pressure_native_parent"));
-        return freed;
-    }
     pub fn beginBlock(self: *Context, identity: [32]u8, budget: BlockBudget) !void {
-        var gate: ?*std.Thread.Mutex = null;
-        if (self.admission) |endpoint| {
-            if (!endpoint.planner.healthy(endpoint.physical)) return error.PhysicalAdmissionPoisoned;
-            gate = try endpoint.planner.stageGate(endpoint.physical);
-            gate.?.lock();
-        }
-        defer if (gate) |locked| {
-            locked.unlock();
-            self.admission.?.planner.notifyResourceRelease();
-        };
-        if (self.active_block != null or self.cache.items.len != 0 or self.admission_retention.claims.items.len != 0) return error.ResidentBlockStillActive;
+        if (self.active_block != null or self.cache.items.len != 0) return error.ResidentBlockStillActive;
         if (budget.device_bytes != self.byte_cap) return error.ResidentDeviceBudgetChanged;
         try self.enableImmutableSetup(budget.immutable_bytes);
         try self.configureRetention(budget.max_scopes);
         try self.requireNoRequestLeases();
         if (try phaseCacheTrimEnabled()) {
             var trim = PhaseTrim{ .self = self };
-            if (self.submit(self.session, PhaseTrim.run, &trim) != 0) {
-                if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
-                return trim.failure orelse error.ResidentPhaseTrimFailed;
-            }
+            if (self.submit(self.session, PhaseTrim.run, &trim) != 0) return trim.failure orelse error.ResidentPhaseTrimFailed;
             try self.requireNoRequestLeases();
-            if (self.admission) |endpoint| {
-                const actual = trim.after orelse return error.MissingPhaseTrimSnapshot;
-                try actual.validate(endpoint);
-                try endpoint.planner.observeIdle(endpoint.physical, actual.footprint());
-            }
         }
         self.active_block = identity;
     }
     const PhaseTrim = struct {
         self: *Context,
-        after: ?AdmissionRuntime.Snapshot = null,
         failure: ?anyerror = null,
-        fn run(native_context: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
+        fn run(_: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
             const job: *@This() = @ptrCast(@alignCast(raw.?));
             const cache = job.self.immutable_setup orelse return 1;
             if (cache.borrows.items.len != 0) {
@@ -345,25 +160,15 @@ pub const Context = struct {
                 job.failure = error.ResidentPhaseTrimFailed;
                 return 1;
             };
-            if (job.self.admission) |endpoint| {
-                var after: AdmissionRuntime.Snapshot = .{};
-                if (endpoint.api.snapshot(native_context, &after) != 0) {
-                    job.failure = error.GlobalAdmissionSnapshotFailed;
-                    return 1;
-                }
-                job.after = after;
-            }
             std.debug.print("GPU_RESIDENT_PHASE_TRIM immutable_bytes={} pcs_idle_bytes={} pcs_trim_api={} graph_metadata_retained=true\n", .{ immutable, pcs, trim != null });
             return 0;
         }
     };
     pub fn endBlock(self: *Context, identity: [32]u8) !void {
-        if (self.admission) |endpoint| if (!endpoint.planner.healthy(endpoint.physical)) return error.PhysicalAdmissionPoisoned;
         if (self.active_block == null or !std.mem.eql(u8, &self.active_block.?, &identity)) return error.ResidentBlockIdentityMismatch;
-        if (self.cache.items.len != 0 or self.admission_retention.claims.items.len != 0) return error.ResidentBlockStillActive;
+        if (self.cache.items.len != 0) return error.ResidentBlockStillActive;
         try self.requireNoRequestLeases();
         self.active_block = null;
-        self.admission_progress.clear();
         if (self.immutable_setup) |cache| std.debug.print("GPU_RESIDENT_SETUP device_bytes={} limit_bytes={} entries={} hits={} uploads={} evictions={} outstanding_aliases={}\n", .{ cache.bytes, cache.limit, cache.entries.items.len, cache.hits, cache.uploads, cache.evictions, cache.borrows.items.len });
     }
     const Audit = struct {
@@ -435,7 +240,6 @@ pub const Context = struct {
             for (retired.extra.items) |*extra| if (self.lease_release(self.session, extra) != 0) return error.InvalidRetainedCoefficientLease;
             retired.extra.deinit(a);
             a.free(retired.columns);
-            try self.retireAdmissionScope(retired.scope);
         }
         try self.cache.append(a, .{ .scope = scope, .lease = lease, .columns = mapped });
     }
@@ -456,7 +260,7 @@ pub const Context = struct {
     }
     /// Adopt a complete set of already-owned INTER leases. Reserve all host
     /// metadata before moving claims or leases; failure preserves source custody.
-    pub fn adoptInterLeases(self: *Context, scope: [8]u32, leases: []const Abi.Lease, claims: *@import("admission_retention.zig").Registry) !void {
+    pub fn adoptInterLeases(self: *Context, scope: [8]u32, leases: []const Abi.Lease) !void {
         if (leases.len == 0) return error.InvalidRetainedCoefficientLease;
         for (leases, 0..) |lease, i| {
             if (lease.kind != 2 or self.lease_validate(self.session, &lease, &scope) != 0) return error.InvalidRetainedCoefficientLease;
@@ -471,7 +275,6 @@ pub const Context = struct {
                 for (entry.extra.items) |previous| if (previous.generation == lease.generation) return error.DuplicateRetainedCoefficientLease;
             }
             try entry.extra.ensureUnusedCapacity(a, leases.len);
-            try claims.transferScopeTo(a, &self.admission_retention, scope);
             for (leases) |lease| entry.extra.appendAssumeCapacity(lease);
             entry.in_use = true;
             return;
@@ -481,7 +284,6 @@ pub const Context = struct {
         errdefer extra.deinit(a);
         try extra.appendSlice(a, leases[1..]);
         try self.cache.ensureUnusedCapacity(a, 1);
-        try claims.transferScopeTo(a, &self.admission_retention, scope);
         self.cache.appendAssumeCapacity(.{ .scope = scope, .lease = leases[0], .extra = extra, .columns = &.{}, .in_use = true });
     }
     /// Owner-thread only. Move one exact fixed coefficient lease into an
@@ -509,7 +311,6 @@ pub const Context = struct {
         var removed = self.cache.swapRemove(from);
         removed.extra.deinit(std.heap.page_allocator);
         std.heap.page_allocator.free(removed.columns);
-        self.admission_retention.promoted(old, next);
     }
     /// Stable original tree/column identity survives retained MAIN remapping.
     pub fn retainedColumn(self: *Context, scope: [8]u32, tree: u32, index: usize, column: D.Column) ?D.DeviceCoefficients {
@@ -558,12 +359,7 @@ pub const Context = struct {
         var extra = cached.extra;
         extra.deinit(std.heap.page_allocator);
         std.heap.page_allocator.free(cached.columns);
-        if (status != 0) {
-            if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
-            return error.DeviceMainReplayReleaseFailed;
-        }
-        try self.retireAdmissionScope(identity);
-        if (self.admission) |endpoint| endpoint.planner.notifyResourceRelease();
+        if (status != 0) return error.DeviceMainReplayReleaseFailed;
     }
 
     /// Terminal local proof cleanup, including failure before PCS submission.
@@ -576,12 +372,9 @@ pub const Context = struct {
         return self.releaseScopeChecked(@import("pcs_scope.zig").identity(scope));
     }
     fn releaseScope(self: *Context, scope: [8]u32) void {
-        self.releaseScopeChecked(scope) catch {
-            if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
-        };
+        self.releaseScopeChecked(scope) catch {};
     }
     fn releaseScopeChecked(self: *Context, scope: [8]u32) !void {
-        defer if (self.admission) |endpoint| endpoint.planner.notifyResourceRelease();
         self.cache_mutex.lock();
         var index: ?usize = null;
         for (self.cache.items, 0..) |entry, i| if (std.mem.eql(u32, &entry.scope, &scope)) {
@@ -598,17 +391,10 @@ pub const Context = struct {
             var extra = cached.extra;
             extra.deinit(std.heap.page_allocator);
             std.heap.page_allocator.free(cached.columns);
-            if (release_status != 0) {
-                if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
-                return error.DeviceScopeReleaseFailed;
-            }
-            try self.retireAdmissionScope(scope);
+            if (release_status != 0) return error.DeviceScopeReleaseFailed;
         } else if (self.immutable_setup != null) {
             var release_job = ReleaseJob{ .self = self, .scope = scope, .lease = null, .extra = &.{} };
-            if (self.submit(self.session, ReleaseJob.run, &release_job) != 0) {
-                if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
-                return error.DeviceScopeReleaseFailed;
-            }
+            if (self.submit(self.session, ReleaseJob.run, &release_job) != 0) return error.DeviceScopeReleaseFailed;
         }
     }
     const ReleaseJob = struct {
@@ -657,20 +443,8 @@ pub const Context = struct {
         const wide = if (library.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
         return .{ .pcs_options = pcs_options, .byte_cap = capacity, .wide_pcs_framing = wide, .host_geometry = Export.GeometryCache.init(std.heap.page_allocator, hostGeometryBytes()), .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
     }
-    pub fn createSibling(self: *Context, a: std.mem.Allocator, device: u32) !Context {
-        const create = self.library.lookup(Abi.Create, "stwo_rv64_pcs_native_create") orelse return error.MissingGpuPcsSymbol;
-        var session: ?*anyopaque = null;
-        if (create(device, self.byte_cap, &session) != 0 or session == null) return error.GpuPcsInitializationFailed;
-        var sibling = Context{ .pcs_options = self.pcs_options, .byte_cap = self.byte_cap, .wide_pcs_framing = self.wide_pcs_framing, .library_owner = false, .parent = self, .host_geometry = Export.GeometryCache.init(a, hostGeometryBytes()), .library = self.library, .session = session.?, .native_prove = self.native_prove, .release = self.release, .destroy = self.destroy, .last_error = self.last_error, .submit = self.submit, .lease_allocate = self.lease_allocate, .lease_validate = self.lease_validate, .lease_validate_range = self.lease_validate_range, .lease_release = self.lease_release };
-        _ = self.siblings.fetchAdd(1, .monotonic);
-        errdefer sibling.deinit();
-        try sibling.inheritGlobalAdmission(self);
-        return sibling;
-    }
     pub fn deinit(self: *Context) void {
-        std.debug.assert(self.siblings.load(.acquire) == 0);
         self.host_geometry.deinit();
-        self.admission_progress.deinit(std.heap.page_allocator);
         while (self.cache.items.len != 0) self.releaseScope(self.cache.items[self.cache.items.len - 1].scope);
         self.cache.deinit(std.heap.page_allocator);
         if (self.immutable_setup) |cache| {
@@ -680,13 +454,7 @@ pub const Context = struct {
             std.heap.page_allocator.destroy(cache);
         }
         if (self.destroy(self.session) != 0) @panic("GPU context failed to join before library close");
-        self.admission_retention.contextDestroyed(if (self.admission) |endpoint| endpoint.planner else null) catch @panic("GPU retention claims failed to retire after context destruction");
-        self.admission_retention.deinit(std.heap.page_allocator);
-        if (self.library_owner) self.library.close();
-        if (self.parent) |parent| {
-            const previous = parent.siblings.fetchSub(1, .release);
-            std.debug.assert(previous != 0);
-        }
+        self.library.close();
         self.* = undefined;
     }
     const SetupCleanup = struct {
@@ -743,112 +511,11 @@ pub const Context = struct {
             return 0;
         }
     };
-    const PcsBoundary = struct {
-        permit: *AdmissionRuntime.Permit,
-        ending: bool = false,
-        context: ?*Context = null,
-        request: ?*const D.Request = null,
-        failure: ?anyerror = null,
-        fn run(raw: *anyopaque, _: u64, user: ?*anyopaque) callconv(.c) c_int {
-            const job: *@This() = @ptrCast(@alignCast(user orelse return 1));
-            (if (job.ending) job.permit.leaveOwner(raw) else job.permit.enterOwner(raw)) catch |err| {
-                job.failure = err;
-                return 1;
-            };
-            if (!job.ending) if (job.request) |request| {
-                const context = job.context orelse return 1;
-                const scope = @import("pcs_scope.zig").identity(request.scope orelse return 1);
-                for (request.trees) |tree| for (tree.columns) |column| if (column.device) |device| {
-                    if (context.lease_validate_range(context.session, device.words, device.count, device.context_token, device.generation, &scope) != 0) {
-                        job.failure = error.InvalidDevicePcsColumn;
-                        return 1;
-                    }
-                };
-            };
-            return 0;
-        }
-    };
-    fn closePcsPermit(self: *Context, permit: *AdmissionRuntime.Permit) !void {
-        if (permit.entered and permit.after == null) {
-            var boundary = PcsBoundary{ .permit = permit, .ending = true };
-            if (self.submit(self.session, PcsBoundary.run, &boundary) != 0) return boundary.failure orelse error.GlobalPcsBoundaryFailed;
-        }
-        try permit.finish(.{});
-    }
-    fn validateSortedTree(a: std.mem.Allocator, tree: D.Tree, context_token: u64) !void {
-        if (tree.columns.len == 0) return error.InvalidPcsBorrowPromise;
-        const order = try a.alloc(usize, tree.columns.len);
-        defer a.free(order);
-        for (order, 0..) |*index, i| index.* = i;
-        std.mem.sort(usize, order, tree.columns, struct {
-            fn less(columns: []const D.Column, x: usize, y: usize) bool {
-                return columns[x].log_size < columns[y].log_size or (columns[x].log_size == columns[y].log_size and x < y);
-            }
-        }.less);
-        var next: usize = 0;
-        var generation: u64 = 0;
-        for (order, 0..) |index, i| {
-            const device = tree.columns[index].device orelse return error.AdmissionRequiresSortedResidentCoefficients;
-            if (device.context_token != context_token or device.generation == 0) return error.InvalidPcsBorrowPromise;
-            const address = @intFromPtr(device.words);
-            if (i != 0 and (address != next or device.generation != generation)) return error.InvalidPcsBorrowPromise;
-            next = try std.math.add(usize, address, try std.math.mul(usize, @intCast(device.count), 4));
-            generation = device.generation;
-        }
-    }
     fn prove(raw: *anyopaque, a: std.mem.Allocator, request: D.Request, channel: *D.Channel) !D.P.ExtendedCommitmentSchemeProof(D.H) {
         const self: *Context = @ptrCast(@alignCast(raw));
         var timer = try std.time.Timer.start();
         const scope = if (request.scope) |value| @import("pcs_scope.zig").identity(value) else [_]u32{0} ** 8;
         defer self.releaseScope(scope);
-        var permit: ?AdmissionRuntime.Permit = null;
-        if (self.admission) |*endpoint| {
-            const own_scope = request.scope orelse return error.MissingResidentScope;
-            // Validate live input shape on the host, independently of the
-            // geometry-only class planner used before the first source stage.
-            for (request.trees) |tree| for (tree.columns) |column| {
-                if (column.log_size > 28) return error.InvalidDevicePcsColumn;
-                const count = @as(u64, 1) << @intCast(column.log_size);
-                if (column.device) |device| {
-                    if (device.count != count or device.context_token == 0 or device.generation == 0) return error.InvalidDevicePcsColumn;
-                } else if (column.coefficients.len != count) return error.InvalidDevicePcsColumn;
-            };
-            if (!std.meta.eql(self.pcs_options, try allocationOptions())) return error.PcsAllocationPolicyChanged;
-            const options = try self.classAllocationOptions(request.lifting_log_size);
-            for (request.trees, 0..) |tree, i| if (options.borrowed_trees[i]) try validateSortedTree(a, tree, endpoint.owner_identity);
-            var fixed_cold_words: u64 = 0;
-            if (self.immutable_setup != null and request.trees.len != 0) {
-                var words: u64 = 0;
-                var host = false;
-                for (request.trees[0].columns) |column| {
-                    words = try std.math.add(u64, words, @as(u64, 1) << @intCast(column.log_size));
-                    host = host or column.device == null;
-                }
-                if (host) fixed_cold_words = words;
-            }
-            var cost = try classAllocationPlanWithFixed(a, request, self.wide_pcs_framing, options, fixed_cold_words);
-            defer cost.deinit(a);
-            if (cost.phase_retirement) std.debug.print("GPU_PCS_ALLOCATION_BOUND ordinal={} phased=true before_late_large={} survivors_large={} late_large={} selected_large={} before_late_small={} survivors_small={} late_small={} selected_small={} requested_sum_bytes={}\n", .{ own_scope.ordinal, cost.before_late_upper.large, cost.late_survivors_upper.large, cost.late_scratch_upper.large, cost.additional_upper.large, cost.before_late_upper.small, cost.late_survivors_upper.small, cost.late_scratch_upper.small, cost.additional_upper.small, cost.requested_upper_bytes });
-            const envelope = cost.additional_upper;
-            const retained_upper = cost.retained_after_upper;
-            const successor = try self.admissionSuccessor(own_scope, .pcs);
-            if (successor.large != 0 or successor.small != 0) return error.UnexpectedPcsSuccessor;
-            @import("allocation_observer.zig").model(own_scope, @intFromEnum(request.allocation_observer_domain), .pcs_metadata, envelope, retained_upper, successor);
-            permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, own_scope.statement[0..8], .little), .domain = if (self.parent != null) .recursion_node else .native_packet, .ordinal = own_scope.ordinal }, .progress_key = Admission.progressKey(own_scope), .stage = .pcs, .stage_retained_upper = retained_upper, .temporary = envelope, .successor = successor, .known = true, .host_known = false });
-            // The C admission guard deliberately spans several synchronous
-            // owner jobs, including FIXED misses and the complete native PCS.
-            // Host geometry work takes its locks only AFTER this reservation.
-            var boundary = PcsBoundary{ .permit = &permit.?, .context = self, .request = &request };
-            if (self.submit(self.session, PcsBoundary.run, &boundary) != 0) {
-                permit.?.endpoint.planner.poisonPhysical(permit.?.endpoint.physical);
-                return boundary.failure orelse error.GlobalPcsBoundaryFailed;
-            }
-        }
-        errdefer if (permit) |*claim| if (!claim.closed) {
-            self.closePcsPermit(claim) catch {
-                claim.endpoint.planner.poisonPhysical(claim.endpoint.physical);
-            };
-        };
         var observed: ?ObserverBoundary = null;
         if (@import("allocation_observer.zig").enabled()) {
             observed = .{ .context = self, .scope = request.scope orelse return error.MissingResidentScope, .domain = request.allocation_observer_domain };
@@ -887,10 +554,6 @@ pub const Context = struct {
         defer prepared.deinit(a);
         const prepare_ns = timer.read();
         const descriptor = prepared.descriptor();
-        if (permit != null) {
-            var strict = try AllocationCost.init(a, &descriptor, try self.classAllocationOptions(request.lifting_log_size));
-            defer strict.deinit(a);
-        }
         var result: Abi.Result = .{};
         if (self.native_prove(self.session, &descriptor, &result) != 0) {
             std.debug.print("GPU_PCS_NATIVE error={s}\n", .{self.last_error(self.session)});
@@ -898,12 +561,6 @@ pub const Context = struct {
         }
         defer self.release(&result);
         _ = self.pcs_domain_logs.fetchOr(@as(u32, 1) << @intCast(request.lifting_log_size), .release);
-        if (permit) |*claim| {
-            // C runProve returned only after joined proof readback/reset. Its
-            // result is host-owned; no GPU coefficient is read by decode.
-            try self.releaseScopeChecked(scope);
-            try self.closePcsPermit(claim);
-        }
         if (result.words == null or result.count > (1 << 28)) return error.InvalidGpuPcsProof;
         // gn-node piece-harness recorder (default off; proof-neutral).
         if (GnRecord.dir() != null) GnRecord.pcsImage(prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);

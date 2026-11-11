@@ -7,7 +7,7 @@ const core = @import("stwo_core");
 const vm = @import("vm_air_composition_circuit.zig");
 const graph_mod = @import("air/composition_circuit.zig");
 const rows = @import("air/vm_air_composition_input_witness.zig");
-const ethereum = @import("incremental_ethereum_vm_composition_program_v4.zig");
+const ethereum = @import("incremental_ethereum_vm_composition_program.zig");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 
@@ -33,7 +33,7 @@ pub const ProgramView = struct {
     outputs: []const u32,
     bindings: []const graph_mod.VmInputBinding,
     input_profile: graph_mod.InputProfile,
-    claim_routing: ?@import("incremental_ethereum_composition_profile_v4.zig").ClaimRoutingPlan = null,
+    claim_routing: ?@import("incremental_ethereum_composition_profile.zig").ClaimRoutingPlan = null,
     air_program_identity: [32]u8,
     verifier_program_authority: [32]u8,
     graph_sha256: [32]u8,
@@ -128,7 +128,7 @@ pub const Compiled = struct {
         const handle = self.handle;
         self.* = undefined;
         errdefer backing.deinit();
-        if (worker_count == 0 or worker_count > @import("vm_air_composition_circuit_parallel_v4.zig").MAX_WORKER_COUNT)
+        if (worker_count == 0 or worker_count > @import("vm_air_composition_circuit_parallel.zig").MAX_WORKER_COUNT)
             return error.InvalidWorkerCount;
         var schedule = backing.schedule.?;
         backing.schedule = null;

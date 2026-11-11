@@ -49,14 +49,24 @@ pub fn terms(v: E.View, index: Q, challenges: Challenges) [CONSTRAINTS]Term {
     return termsFor(Q, v, index, challenges);
 }
 pub fn termsFor(comptime F: type, v: E.ViewFor(F), index: F, challenges: ChallengesFor(E.ConstFor(F))) [CONSTRAINTS]TermFor(F) {
+    comptime if (CONSTRAINTS != 3) @compileError("cyclic state requires exactly three grouped terms");
     const denominators = @import("state_cyclic_denominators.zig").evaluateFor(F, v, index, challenges);
     const pair0 = denominators[0].mul(denominators[1]);
     const pair2 = denominators[4].mul(denominators[5]);
     const active = v.f[L.fixed.slot_start..][0..4];
-    return .{
-        .{ .denominator = pair0.mul(denominators[2]), .numerator = E.mulBaseFor(F, denominators[1].sub(denominators[0]), active[0]).mul(denominators[2]).add(E.mulBaseFor(F, pair0, active[1])) },
-        .{ .denominator = denominators[3].mul(pair2), .numerator = E.mulBaseFor(F, denominators[3], active[2]).mul(denominators[5].sub(denominators[4])).sub(E.mulBaseFor(F, pair2, active[1])) },
-        .{ .denominator = denominators[6].mul(denominators[7]), .numerator = E.mulBaseFor(F, denominators[7].sub(denominators[6]), active[3]) },
+    var result: [CONSTRAINTS]TermFor(F) = undefined;
+    inline for (0..CONSTRAINTS) |group| result[group] = @call(if (@import("builtin").mode == .Debug) .never_inline else .always_inline, termFor, .{ F, group, &denominators, pair0, pair2, active });
+    return result;
+}
+
+// Each Debug group owns its packed products instead of retaining all three.
+// Optimized builds inline the original expressions in their original order.
+fn termFor(comptime F: type, comptime group: usize, denominators: *const [8]E.SecureFor(F), pair0: E.SecureFor(F), pair2: E.SecureFor(F), active: []const F) TermFor(F) {
+    return switch (group) {
+        0 => .{ .denominator = pair0.mul(denominators[2]), .numerator = E.mulBaseFor(F, denominators[1].sub(denominators[0]), active[0]).mul(denominators[2]).add(E.mulBaseFor(F, pair0, active[1])) },
+        1 => .{ .denominator = denominators[3].mul(pair2), .numerator = E.mulBaseFor(F, denominators[3], active[2]).mul(denominators[5].sub(denominators[4])).sub(E.mulBaseFor(F, pair2, active[1])) },
+        2 => .{ .denominator = denominators[6].mul(denominators[7]), .numerator = E.mulBaseFor(F, denominators[7].sub(denominators[6]), active[3]) },
+        else => unreachable,
     };
 }
 

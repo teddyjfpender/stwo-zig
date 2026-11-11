@@ -72,6 +72,7 @@ fn productScopeManifest(b: *std.Build, scope: Scope, aggregate_metal: bool) Scop
         allowed_file_count += spec.configure_allowed_files.len;
         allowed_prefix_count += spec.configure_allowed_prefixes.len;
         if (spec.descriptor.source_closure) |closure| {
+            allowed_file_count += closure.named_imports.len;
             allowed_file_count += closure.allowed_files.len;
             allowed_prefix_count += closure.allowed_prefixes.len;
         }
@@ -99,6 +100,10 @@ fn productScopeManifest(b: *std.Build, scope: Scope, aggregate_metal: bool) Scop
         appendStrings(dependencies, &indices[4], spec.dependency_module_roots);
         appendStrings(allowed_files, &indices[5], spec.descriptor.dependencies.module_roots);
         if (spec.descriptor.source_closure) |closure| {
+            for (closure.named_imports) |named| {
+                allowed_files[indices[5]] = named.source;
+                indices[5] += 1;
+            }
             appendStrings(allowed_files, &indices[5], closure.allowed_files);
             appendStrings(allowed_prefixes, &indices[6], closure.allowed_prefixes);
         }

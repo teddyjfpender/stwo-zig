@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import rv64_cuda_private_host_symbols as S
+from scripts.rv64 import rv64_cuda_private_host_symbols as S
 
 
 @unittest.skipUnless(sys.platform.startswith('linux') and all(shutil.which(p) for p in ('g++', 'objcopy', 'nm', 'c++filt')), 'requires Linux ELF/binutils')

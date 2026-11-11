@@ -10,12 +10,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.benchmark_pages_lib.catalog import CatalogError, build_catalog
-from scripts.benchmark_pages_lib.controller import encoded_json, run
+from scripts.bench.benchmark_pages_lib.catalog import CatalogError, build_catalog
+from scripts.bench.benchmark_pages_lib.controller import encoded_json, run
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HISTORY = ROOT / "vectors" / "reports" / "benchmark_history"
+HISTORY = ROOT / "bench" / "history"
 LATEST = (
     HISTORY
     / "runs"
@@ -344,24 +344,6 @@ class BenchmarkPagesTests(unittest.TestCase):
         self.assertIn("height: 100dvh", css)
         self.assertIn("overflow: hidden", css)
         self.assertNotIn("innerHTML", app)
-
-    def test_pages_workflow_template_validates_prs_and_publishes_changed_nightlies(self) -> None:
-        workflow = (ROOT / "autoresearch" / "workflows" / "benchmark-pages.yml").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn('cron: "17 03 * * *"', workflow)
-        self.assertIn("pull_request:", workflow)
-        self.assertIn("vectors/reports/benchmark_history/**", workflow)
-        self.assertIn("python3 scripts/benchmark_pages.py --validate", workflow)
-        self.assertIn("event=schedule&per_page=1", workflow)
-        self.assertIn('git diff --quiet "$previous_sha" HEAD', workflow)
-        self.assertIn("needs.validate.outputs.publish == 'true'", workflow)
-        self.assertIn("actions/upload-artifact@", workflow)
-        self.assertIn("name: benchmark-site-${{ github.sha }}", workflow)
-        self.assertIn("retention-days: 30", workflow)
-        self.assertIn("vars.BENCHMARK_PAGES_ENABLED == 'true'", workflow)
-        self.assertIn("path: bench/site", workflow)
-        self.assertNotIn("bench/dev/bench", workflow)
 
     def test_pages_build_target_does_not_run_benchmarks(self) -> None:
         build = (ROOT / "build_support" / "benchmarks" / "native.zig").read_text(

@@ -613,7 +613,7 @@ fn deriveMode(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         try Scope.truthDeclaration(declaration);
         if (declaration.calls == 0) return error.InvalidCombinedTruthSpan;
         if (declaration.family != .keccak and (@intFromEnum(declaration.family) >= 3 or declaration.logs[1] == 0)) {
-            const Cat = @import("truth_v3_catalog.zig");
+            const Cat = @import("truth_catalog.zig");
             const descriptor = try Cat.descriptorForDeclaration(declaration);
             const counts = try Cat.lookupCountsForDeclaration(declaration);
             try shape.includeCells(descriptor.log_size, descriptor.widths());

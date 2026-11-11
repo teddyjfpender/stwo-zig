@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 from opstack.cpu import measured
 from opstack.oracle import execute
-from scripts.riscv64_csp_compare import elf_info
+from scripts.rv64.riscv64_csp_compare import elf_info
 from Crypto.Hash import keccak
 P=21888242871839275222246405745257275088696311157297823662689037894645226208583
 

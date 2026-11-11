@@ -25,7 +25,7 @@ pub fn productionRootModule(
         context,
         product,
         product,
-        "src/products/riscv_metal/main.zig",
+        "src/products/riscv/metal/main.zig",
         aot_bundle,
     );
 }
@@ -62,7 +62,7 @@ pub fn rootModule(
     root.addImport("riscv_cpu_capabilities", capabilities);
     binding(context, product).addShellImports(root);
     root.addImport("output_transaction", binding(context, product).leafModule(
-        "src/interop/output_transaction.zig",
+        "src/support/io/output_transaction.zig",
     ));
     root.addOptions("metal_aot_config", aot_bundle.addOptions(b));
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
@@ -93,7 +93,7 @@ pub fn productIdentityOptions(
 
 pub fn capabilitiesModule(context: Context, product: graph.Product) *std.Build.Module {
     return binding(context, product).leafModule(
-        "src/products/riscv_metal/capabilities.zig",
+        "src/products/riscv/metal/capabilities.zig",
     );
 }
 
@@ -143,7 +143,7 @@ pub fn createFacadeModule(
     const dependencies = createDependencies(context, logical_product, null);
     const facade = graph.create(context.b, .{
         .product = logical_product,
-        .root_source_file = "src/products/riscv_metal/root.zig",
+        .root_source_file = "src/products/riscv/metal/root.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -164,9 +164,15 @@ fn addInteropImports(
         @panic("canonical RISC-V frontend is missing interop_postcard");
 
     facade.addImport("interop_postcard", postcard);
-    facade.addImport("interop_riscv_artifact", binding(context, product).leafModule(
-        "src/interop/riscv_artifact.zig",
-    ));
+    const artifact = binding(context, product).leafModule(
+        "src/products/riscv/artifact/mod.zig",
+    );
+    artifact.addImport(
+        "atomic_file",
+        facade.import_table.get("atomic_file") orelse
+            binding(context, product).leafModule("src/support/io/atomic_file.zig"),
+    );
+    facade.addImport("interop_riscv_artifact", artifact);
 }
 
 const Dependencies = struct {

@@ -218,7 +218,7 @@ there is no OP-specific implementation of the VM or crypto executor.
 
 Run the build, fixture import and execution benchmark above with
 `--profile ethereum_services_v3 --oracle`. On a Linux CUDA host with a matching
-[resident native CUDA runtime](../design/riscv-proving-stack/rv64-gpu-handoff-20261104.md),
+[resident native CUDA runtime](../design/riscv/rv64-gpu-handoff-20261104.md),
 build the producer and independent CPU receiver from the same checkout:
 
 ```sh

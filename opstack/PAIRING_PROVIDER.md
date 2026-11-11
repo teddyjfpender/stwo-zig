@@ -61,7 +61,7 @@ model versus 1,008 for six. These are column counts, not OODS sample counts or
 recursive gates. A native cell saving does not establish a root-prover saving.
 The experiment requires independently bounded 22-bit carries, signed quotient
 handling, complete canonical-input inheritance and physical terminal bindings.
-See the [coupled cost review](../design/riscv-proving-stack/op-bn254-universal-mac-source-cost-20261110.md).
+See the [coupled cost review](../design/riscv/op-bn254-universal-mac-source-cost-20261110.md).
 
 A follow-up [independent-geometry model](../vectors/reports/rv64-opstack-cpu-20261110/pairing-independent-geometry-model-v1.json)
 also records the competing design rather than assuming one universal bank is
@@ -169,18 +169,18 @@ before freeing. Parallel/scalar full native proof and GKR child match exactly.
 Two isolated source gates prepare the real R7 integration, without changing
 its current authority or claiming recursive proof timings.
 
-- [Typed terminal parameters](../design/riscv-proving-stack/rv64-whole-pairing-r7-typed-projection.md)
+- [Typed terminal parameters](../design/riscv/rv64-whole-pairing-r7-typed-projection.md)
   carry dynamic beta, SSA coefficients, weights, eta and targets in external
   lanes. All six native projections and packed16 cases agree. Circuit-verified
   GKR outputs still need to supply those parameters; caller values alone do not
   prove that provenance.
-- [Same-residual convolution factorization](../design/riscv-proving-stack/rv64-mac12-horner-convolution-prototype.md)
+- [Same-residual convolution factorization](../design/riscv/rv64-mac12-horner-convolution-prototype.md)
   evaluates the unchanged65-convolution block with1,099generic multiplications
   rather than14,871, including arbitrary full-extension masks andalpha0/1.
   This is an algebraic operation count, not lowered IR or proving speed. It has
   not changed the live evaluator, sink or protocol.
 
-The [exact OP/P2/R7 integration checklist](../design/riscv-proving-stack/rv64-whole-pairing-op-p2-r7-integration.md)
+The [exact OP/P2/R7 integration checklist](../design/riscv/rv64-whole-pairing-op-p2-r7-integration.md)
 identifies the VM/session/tape, global Wire/RAM, immutable input authority and
 source-emission work. Moving24input fields into canonical writers fits existing
 heights, but global I/O authority and actual circuit transcript provenance must

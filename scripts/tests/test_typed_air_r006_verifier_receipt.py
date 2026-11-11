@@ -3,12 +3,12 @@ from __future__ import annotations
 import hashlib
 import json
 
-from scripts.typed_air_r006_capture_lib.base_artifact import (
+from scripts.typed_air.typed_air_r006_capture_lib.base_artifact import (
     verifier_payload_identity,
 )
-from scripts.typed_air_r006_capture_lib.codec import canonical_bytes
-from scripts.typed_air_r006_capture_lib.model import CaptureError
-from scripts.typed_air_r006_capture_lib.verifier_receipt import (
+from scripts.typed_air.typed_air_r006_capture_lib.codec import canonical_bytes
+from scripts.typed_air.typed_air_r006_capture_lib.model import CaptureError
+from scripts.typed_air.typed_air_r006_capture_lib.verifier_receipt import (
     MAX_RECEIPT_BYTES,
     validate_verifier_receipt,
 )

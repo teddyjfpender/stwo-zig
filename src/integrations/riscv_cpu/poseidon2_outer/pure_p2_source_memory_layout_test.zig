@@ -54,11 +54,11 @@ test "OP retained source layout manifest uses compiled owner ABI sizes only" {
 }
 
 fn catalogBound(comptime T: type, calls: u32) !usize {
-    const bytes = if (T == @import("../word16_global_execution/services/gkr_local/truth_v3_catalog.zig").Sha() or T == @import("../word16_global_execution/services/gkr_local/truth_v3_catalog.zig").Arith()) @sizeOf(T.N.Input) else @sizeOf(T.N.Packet);
+    const bytes = if (T == @import("../word16_global_execution/services/gkr_local/truth_catalog.zig").Sha() or T == @import("../word16_global_execution/services/gkr_local/truth_catalog.zig").Arith()) @sizeOf(T.N.Input) else @sizeOf(T.N.Packet);
     return try std.math.add(usize, try std.math.mul(usize, calls, bytes), @sizeOf(@import("../word16_global_execution/services/roster.zig").TruthSource) + (if (T.bytes == 0) @as(usize, 0) else 256 * @sizeOf(u64)));
 }
 fn catalogDeclarationBound(d: @import("../word16_global_execution/services/wire.zig").TruthDeclaration) !usize {
-    const C = @import("../word16_global_execution/services/gkr_local/truth_v3_catalog.zig");
+    const C = @import("../word16_global_execution/services/gkr_local/truth_catalog.zig");
     _ = try C.descriptorForDeclaration(d);
     return switch (d.family) {
         .sha256 => catalogBound(C.Sha(), d.calls),

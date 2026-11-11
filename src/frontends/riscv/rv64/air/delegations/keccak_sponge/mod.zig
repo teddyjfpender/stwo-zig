@@ -10,7 +10,7 @@
 //!   block into the rate lanes (byte AND table), and consumes the permutation's
 //!   IO11 input and the previous output (or the call's link).
 //! The permutations themselves are proven by the unchanged Keccak-f truth AIR.
-//! Soundness argument: design/riscv-proving-stack/rv64-keccak-sponge-service.md.
+//! Soundness argument: design/riscv/rv64-keccak-sponge-service.md.
 pub const types = @import("types.zig");
 pub const layout = @import("layout.zig");
 pub const equations = @import("equations.zig");

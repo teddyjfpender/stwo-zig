@@ -9,8 +9,8 @@ runs the pinned upstream Rust, or an upstream file copied verbatim.
 `provenance.json` binds every file to its bytes, SHA-256, generating command,
 the oracle's `Cargo.lock` digest, and the digest of the oracle source (including
 the shared `tools/stwo-eval-program-abi` and `tools/stwo-trace-digest` sources); it records nothing
-host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regenerate only with
-`python3 scripts/generate_circuit_oracle_vectors.py`.
+host-specific. `python3 scripts/repo/check_upstream_pins.py` rejects any drift. Regenerate only with
+`python3 scripts/interop/generate_circuit_oracle_vectors.py`.
 
 | File | Rung | Content |
 |---|---|---|
@@ -104,7 +104,7 @@ diagnostics.
   `alpha_0^4`, `alpha_0^8`; layer 1 is four `fold_line`s with `alpha_1`,
   `alpha_1^2`, `alpha_1^4`, `alpha_1^8`. Each fold records `values_sha256` and
   its leading values. `src/frontends/circuit/builder/tests/r0_fri_test.zig` inlines this vector, and
-  `scripts/check_upstream_pins.py` requires its inlined digests, alphas, log size
+  `scripts/repo/check_upstream_pins.py` requires its inlined digests, alphas, log size
   and last layer to equal this fixture.
 
 ## R3 harness

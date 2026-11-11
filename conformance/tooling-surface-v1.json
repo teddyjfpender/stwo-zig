@@ -1,14 +1,25 @@
 {
   "schema": "stwo-zig-tooling-surface-v1",
-  "policy": "Only correctness, soundness, interoperability, and reproducible fixture authorities may live under tools/. Research and profiling helpers belong under autoresearch/. Every retained root has a bounded PR lane and an extraction condition.",
+  "policy": "Only correctness, soundness, interoperability, and reproducible fixture authorities may live under tools/. Retained profiling and paired-statistics helpers live under tools/perf/; one-off research helpers are not retained. Every retained root has a bounded PR lane and an extraction condition.",
   "roots": {
+    "perf": {
+      "owner": "performance",
+      "role": "performance-tooling",
+      "required_for": "Frozen paired-ratio statistics for the Native CUDA benchmark runner and the stwo-prof Zig/Metal/CUDA isolation and profiling CLI",
+      "live_callers": [
+        "scripts/native/native_cuda_benchmark_lib/runner.py",
+        "scripts/tests/test_stwo_prof_cuda.py"
+      ],
+      "pr_lanes": ["static", "script_contracts"],
+      "extraction": "publish as a standalone Python package once no repository script imports stwo_perf.stats"
+    },
     "cairo-witness-compiler": {
       "owner": "cairo-frontend",
       "role": "fixture-generator",
       "required_for": "Reproducible official Cairo witness topology",
       "live_callers": [
-        "scripts/generate_cairo_witness_topology.py",
-        "scripts/upstream_pins_lib/official_cairo_topology.py"
+        "scripts/cairo/generate_cairo_witness_topology.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_topology.py"
       ],
       "pr_lanes": ["static", "script_contracts", "cairo_frontend"],
       "extraction": "externalize after an authenticated generator release reproduces the committed topology"
@@ -17,15 +28,15 @@
       "owner": "native-parity",
       "role": "independent-vector-generator",
       "required_for": "Independent upstream AIR derive parity vectors",
-      "live_callers": ["scripts/parity_air_derive.py"],
-      "pr_lanes": ["static", "script_contracts"],
+      "live_callers": ["scripts/repo/parity_air_derive.py"],
+      "pr_lanes": ["static", "script_contracts", "circuit_recursion_wire"],
       "extraction": "replace with committed Zig cases or an immutable native-oracle bundle"
     },
     "stwo-cairo-air-compiler": {
       "owner": "cairo-frontend",
       "role": "fixture-generator",
       "required_for": "Reproducible official Cairo AIR templates",
-      "live_callers": ["scripts/upstream_pins_lib/official_cairo_air.py"],
+      "live_callers": ["scripts/repo/upstream_pins_lib/official_cairo_air.py"],
       "pr_lanes": ["static", "script_contracts", "cairo_frontend"],
       "extraction": "externalize after authenticated artifacts reproduce every committed AIR template"
     },
@@ -41,7 +52,7 @@
       "owner": "cairo-frontend",
       "role": "fixture-generator",
       "required_for": "Authenticated official Cairo trace checkpoints",
-      "live_callers": ["scripts/check_upstream_pins.py"],
+      "live_callers": ["scripts/repo/check_upstream_pins.py"],
       "pr_lanes": ["static", "script_contracts", "cairo_frontend"],
       "extraction": "externalize once checkpoint regeneration is authenticated and clean-room reproducible"
     },
@@ -65,8 +76,8 @@
       "owner": "native-parity",
       "role": "independent-vector-generator",
       "required_for": "Independent constraint-framework expression parity",
-      "live_callers": ["scripts/parity_constraint_expr.py"],
-      "pr_lanes": ["static", "script_contracts"],
+      "live_callers": ["scripts/repo/parity_constraint_expr.py"],
+      "pr_lanes": ["static", "script_contracts", "circuit_recursion_wire"],
       "extraction": "consolidate into the external native-oracle workspace"
     },
     "stwo-circuit-oracle-rs": {
@@ -74,10 +85,10 @@
       "role": "fixture-generator",
       "required_for": "Authenticated circuit recursion parity checkpoints and the compiled-AIR projection",
       "live_callers": [
-        "scripts/generate_circuit_oracle_vectors.py",
-        "scripts/upstream_pins_lib/circuit_recursion.py"
+        "scripts/interop/generate_circuit_oracle_vectors.py",
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py"
       ],
-      "pr_lanes": ["static", "script_contracts"],
+      "pr_lanes": ["static", "script_contracts", "circuit_recursion_wire"],
       "extraction": "externalize once checkpoint regeneration is authenticated and clean-room reproducible"
     },
     "stwo-cuda-adapter-rs": {
@@ -93,8 +104,8 @@
       "role": "fixture-generator",
       "required_for": "The evaluation-program recorder and STWZEVA bundle encoder shared by the official Cairo AIR compiler and the circuit recursion oracle",
       "live_callers": [
-        "scripts/upstream_pins_lib/official_cairo_air.py",
-        "scripts/upstream_pins_lib/circuit_recursion.py"
+        "scripts/repo/upstream_pins_lib/official_cairo_air.py",
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py"
       ],
       "pr_lanes": ["static", "script_contracts", "cairo_frontend"],
       "extraction": "externalize together with its last consumer, tools/stwo-cairo-air-compiler or tools/stwo-circuit-oracle-rs"
@@ -103,7 +114,7 @@
       "owner": "native-oracle",
       "role": "independent-proof-oracle",
       "required_for": "Cross-language Native proof compatibility and independent verification",
-      "live_callers": ["scripts/e2e_interop.py"],
+      "live_callers": ["scripts/interop/e2e_interop.py"],
       "pr_lanes": ["static", "script_contracts", "native_oracle"],
       "extraction": "consume a permanent content-addressed oracle binary from a companion authority repository"
     },
@@ -113,7 +124,7 @@
       "required_for": "The domain-separated trace column and accumulator digests shared by the Cairo trace oracle and the circuit recursion oracle",
       "live_callers": [
         "tools/stwo-cairo-trace-oracle/src/main.rs",
-        "scripts/upstream_pins_lib/circuit_recursion.py"
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py"
       ],
       "pr_lanes": ["static", "script_contracts", "cairo_frontend"],
       "extraction": "externalize together with its last consumer, tools/stwo-cairo-trace-oracle or tools/stwo-circuit-oracle-rs"
@@ -122,9 +133,62 @@
       "owner": "native-parity",
       "role": "independent-vector-generator",
       "required_for": "Independent upstream field parity vectors",
-      "live_callers": ["scripts/parity_fields.py"],
-      "pr_lanes": ["static", "script_contracts"],
+      "live_callers": ["scripts/repo/parity_fields.py"],
+      "pr_lanes": ["static", "script_contracts", "circuit_recursion_wire"],
       "extraction": "consolidate into the external native-oracle workspace"
+    },
+    "rv64-cuda-callsites": {
+      "owner": "rv64-performance",
+      "role": "performance-tooling",
+      "required_for": "Retained driver-callsite attribution for the ordered RV64 resource census; inventory declaration does not qualify hardware measurements",
+      "live_callers": [
+        "tools/rv64-cuda-callsites/rv64_cuda_callsites.c"
+      ],
+      "pr_lanes": [
+        "static",
+        "script_contracts"
+      ],
+      "extraction": "Consolidate under the existing tools/perf owner with the retained counter shim; preserve source and external measurement build references during that move"
+    },
+    "rv64-cuda-counters": {
+      "owner": "rv64-performance",
+      "role": "performance-tooling",
+      "required_for": "Retained driver-call counts consumed by the RV64 measurement owner",
+      "live_callers": [
+        "scripts/rv64/rv64_measure.py"
+      ],
+      "pr_lanes": [
+        "static",
+        "script_contracts"
+      ],
+      "extraction": "Consolidate under tools/perf after the measurement owner verifies its source/build references; no hardware qualification follows from this inventory"
+    },
+    "starknet-aggregator-rs": {
+      "owner": "starknet-execution",
+      "role": "execution-sidecar",
+      "required_for": "Build the pinned Starknet aggregator CairoPie from ordered public preimages for the existing fixture pipeline",
+      "live_callers": [
+        "tools/starknet-block-collector/prove_pipeline.py"
+      ],
+      "pr_lanes": [
+        "static",
+        "script_contracts"
+      ],
+      "extraction": "Publish as a pinned optional execution sidecar when the Starknet product owns authenticated aggregator fixtures"
+    },
+    "starknet-block-collector": {
+      "owner": "starknet-execution",
+      "role": "fixture-generator",
+      "required_for": "Collect and assemble replayable Starknet OS inputs and drive the existing leaf/aggregator fixture pipeline",
+      "live_callers": [
+        "tools/starknet-block-collector/prove_pipeline.py",
+        "tools/starknet-block-collector/collector.py"
+      ],
+      "pr_lanes": [
+        "static",
+        "script_contracts"
+      ],
+      "extraction": "Externalize network collection behind immutable fixtures once the Starknet product has an authenticated offline regeneration owner"
     }
   }
 }

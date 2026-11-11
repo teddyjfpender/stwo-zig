@@ -8,9 +8,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "scripts"))
-import rv64_ethereum_basket as basket
-import rv64_resident_basket as resident
+from scripts.rv64 import rv64_ethereum_basket as basket
+from scripts.rv64 import rv64_resident_basket as resident
 
 from opstack.cpu import PROFILE, accept, batch_steps, measured
 

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import io
+from contextlib import redirect_stdout
+from unittest.mock import patch
 import subprocess
 import tarfile
 import unittest
@@ -8,9 +12,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
-from scripts import package_release as subject
-
-
+from scripts.repo import check_downstream_package as downstream
+from scripts.release import package_release as subject
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -35,6 +38,7 @@ class PackageReleaseTests(unittest.TestCase):
             name for name, entry in self.policy.items() if entry["status"] == "published"
         }
         self.assertEqual(17, len(published))
+        self.assertEqual("internal", self.policy["stwo_circuit_metal_integration"]["status"])
 
     def test_every_published_dependency_closure_is_publishable(self) -> None:
         for package, entry in self.policy.items():
@@ -72,9 +76,9 @@ class PackageReleaseTests(unittest.TestCase):
             with tarfile.open(archive, mode="r") as bundle:
                 names = bundle.getnames()
             self.assertIn("stwo_core-0.1.0/PACKAGE-RELEASE.json", names)
-            self.assertIn("stwo_core-0.1.0/src/core/build.zig.zon", names)
+            self.assertIn("stwo_core-0.1.0/src/waist/core/build.zig.zon", names)
             self.assertFalse(any(name.endswith(".rs") for name in names))
-            self.assertFalse(any("/autoresearch/" in name for name in names))
+            self.assertFalse(any("/guests/" in name for name in names))
             self.assertFalse(any("/formal/" in name for name in names))
             self.assertFalse(any("/vectors/" in name for name in names))
 
@@ -87,6 +91,42 @@ class PackageReleaseTests(unittest.TestCase):
                     ["stwo_cuda_backend"],
                     allow_dirty=True,
                 )
+
+    def test_downstream_receipt_owns_installed_binary_with_external_cache(self) -> None:
+        with TemporaryDirectory() as raw:
+            root = Path(raw) / "repo"
+            fixture = root / "src/products/stwo/tests/public_modules.zig"
+            fixture.parent.mkdir(parents=True)
+            fixture.write_bytes(b"fixture")
+            cache = Path(raw) / "external-cache"
+            def build(argv, cwd):
+                prefix = Path(argv[argv.index("--prefix") + 1])
+                self.assertEqual(cwd / "zig-out", prefix)
+                installed = prefix / "bin/consumer-smoke"
+                installed.parent.mkdir(parents=True)
+                if produce:
+                    installed.write_bytes(b"owned executable")
+                cached = cache / "o/stale/consumer-smoke"
+                cached.parent.mkdir(parents=True, exist_ok=True)
+                cached.write_bytes(b"unrelated cached executable")
+            for produce in (True, False):
+                with (
+                    self.subTest(installed=produce),
+                    patch.dict("os.environ", {"ZIG_LOCAL_CACHE_DIR": str(cache)}),
+                    patch("sys.argv", ["check_downstream_package.py", "--repo", str(root)]),
+                    patch.object(downstream, "run", side_effect=build),
+                    redirect_stdout(io.StringIO()) as output,
+                ):
+                    if produce:
+                        self.assertEqual(0, downstream.main())
+                        receipt = json.loads(output.getvalue())
+                        self.assertEqual(
+                            hashlib.sha256(b"owned executable").hexdigest(),
+                            receipt["external_consumer_binary_sha256"],
+                        )
+                    else:
+                        with self.assertRaisesRegex(RuntimeError, "did not install"):
+                            downstream.main()
 
     def test_untracked_files_mark_source_identity_dirty(self) -> None:
         with TemporaryDirectory() as directory:

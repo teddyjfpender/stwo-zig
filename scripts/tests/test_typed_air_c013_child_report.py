@@ -4,7 +4,7 @@ import copy
 import json
 import unittest
 
-from scripts.typed_air_c013_capture_lib.child_report import (
+from scripts.typed_air.typed_air_c013_capture_lib.child_report import (
     CALIBRATION_SCHEMA,
     POSEIDON_SCHEMA,
     RESOURCE_SCOPE,
@@ -12,7 +12,7 @@ from scripts.typed_air_c013_capture_lib.child_report import (
     command_for_attempt,
     validate_child_report,
 )
-from scripts.typed_air_c013_capture_lib.model import CaptureError, SCHEDULE_SHA256
+from scripts.typed_air.typed_air_c013_capture_lib.model import CaptureError, SCHEDULE_SHA256
 
 
 DIGEST = "ab" * 32

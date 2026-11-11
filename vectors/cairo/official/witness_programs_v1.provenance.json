@@ -18,15 +18,15 @@
   "compiler": {
     "classification": "repository_owned_source_compiler",
     "repository": "https://github.com/teddyjfpender/stwo-zig",
-    "revision": "9e0b829f1fcee2d2ef1b8ad4ddfd8d67cea446ba",
-    "tree": "d395450a54507e502e39daf99402b68cc14447e5",
+    "revision": "8f4ffc56c2aef048d3ef8503bb613a7632207dd1",
+    "tree": "6393f70c6c226b95d0dff61e24fe1bcec9bc4e6f",
     "path": "tools/cairo-witness-compiler",
     "receipt": {
       "path": "vectors/cairo/official/witness_programs_v1.compiler-receipt.json",
       "bytes": 2431,
-      "sha256": "76d414e061bf5eae7b44c96c5254128a89090738ae0f5df8520b537d2fd10db1"
+      "sha256": "7ec0e31d7622ac86caa6a2e9786c895fb1261b0665191d289d3e6b3dca6ae035"
     },
-    "orchestrator_sha256": "0cd8def1afd45353fe4a7051113665275f3c30f166acc99c62fb85184dacbdb2",
+    "orchestrator_sha256": "544952e78bcdaff213cde2dae769b1e065e2dffa24d70ee3e89de955ff343f16",
     "rewriter_closure_sha256": "df7e29795fcc4f44492cbdc026306f4b83ac7c1789a71acb8f762d53017dee18",
     "support_closure_sha256": "f6084fac1a9c0add5b026672d30793e61ec4c31cf8065c7a2d74784418aa58cd",
     "rustc": "rustc 1.94.0-nightly (86a49fd71 2026-01-14)",

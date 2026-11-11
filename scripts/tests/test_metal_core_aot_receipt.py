@@ -1,4 +1,5 @@
 import hashlib
+import re
 import json
 import shutil
 import tempfile
@@ -6,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.metal_core_aot_receipt_lib import (
+from scripts.metal.metal_core_aot_receipt_lib import (
     ANCHOR,
     BUILD_CHECKS,
     BUILD_SCHEMA,
@@ -137,6 +138,13 @@ def admission_argv(
 
 
 class MetalCoreAotReceiptTests(unittest.TestCase):
+    def test_probe_local_headers_resolve_from_the_moved_tool_owner(self):
+        probe = Path(__file__).resolve().parents[2] / "src/backends/metal/tools/core_aot/probe.m"
+        headers = re.findall(r'^#(?:import|include) "([^"\n]+)"', probe.read_text(), re.M)
+        self.assertTrue(headers)
+        for header in headers:
+            self.assertTrue((probe.parent / header).resolve().is_file(), header)
+
     def test_bundle_validation_and_reproducibility_bind_every_file(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -199,11 +207,11 @@ class MetalCoreAotReceiptTests(unittest.TestCase):
 
             with (
                 mock.patch(
-                    "scripts.metal_core_aot_receipt_lib.controller.run",
+                    "scripts.metal.metal_core_aot_receipt_lib.controller.run",
                     side_effect=fake_run,
                 ),
                 mock.patch(
-                    "scripts.metal_core_aot_receipt_lib.environment.command_output",
+                    "scripts.metal.metal_core_aot_receipt_lib.environment.command_output",
                     return_value="host",
                 ),
                 mock.patch.dict(
@@ -284,11 +292,11 @@ class MetalCoreAotReceiptTests(unittest.TestCase):
 
             with (
                 mock.patch(
-                    "scripts.metal_core_aot_receipt_lib.controller.run",
+                    "scripts.metal.metal_core_aot_receipt_lib.controller.run",
                     side_effect=fake_run,
                 ),
                 mock.patch(
-                    "scripts.metal_core_aot_receipt_lib.environment.command_output",
+                    "scripts.metal.metal_core_aot_receipt_lib.environment.command_output",
                     return_value="device",
                 ),
             ):
@@ -391,7 +399,7 @@ class MetalCoreAotReceiptTests(unittest.TestCase):
             output = root / "failed-probe.json"
             successful = command_evidence(["probe-a"])
             with mock.patch(
-                "scripts.metal_core_aot_receipt_lib.controller.run",
+                "scripts.metal.metal_core_aot_receipt_lib.controller.run",
                 side_effect=[successful, ReceiptError("second probe failed")],
             ) as run_probe:
                 with self.assertRaisesRegex(ReceiptError, "second probe failed"):

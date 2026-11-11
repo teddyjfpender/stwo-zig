@@ -4,6 +4,7 @@ pub const runtime_source = @import("build_runtime_source.zig");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const check_only = b.option(bool, "check-only", "Compile focused host contracts without running") orelse false;
     const dependency_options = .{ .target = target, .optimize = optimize };
 
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
@@ -72,8 +73,25 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step(
         "test",
-        "Compile the stwo_metal_backend package tests",
+        "Compile package tests and run device-free resource contracts",
     );
+    const resource_step = b.step("test-resource-contracts", "Run device-free Metal resource ownership and budget contracts");
+    for ([_]std.Build.LazyPath{
+        b.path("composition_pool_test_root.zig"),
+        b.path("external_allocation_admission_test_root.zig"),
+        b.path("fri_budget_test_root.zig"),
+        b.path("fri_inverse_lease_test_root.zig"),
+        b.path("quotient_allocation_budget_test_root.zig"),
+        b.path("quotient_result_ownership_test_root.zig"),
+        b.path("resident_budget_test_root.zig"),
+        b.path("sampled_budget_test_root.zig"),
+    }) |source| {
+        const root = b.createModule(.{ .root_source_file = source, .target = target, .optimize = optimize });
+        addImports(root, core, backend_contracts, prover_api, prover);
+        const resource_tests = b.addTest(.{ .root_module = root });
+        resource_step.dependOn(if (check_only) &resource_tests.step else &b.addRunArtifact(resource_tests).step);
+    }
+    test_step.dependOn(resource_step);
     const lookup_v2_step = b.step(
         "test-lookup-polynomial-v2-owner",
         "Run device-free Metal lookup-polynomial V2 ownership tests",
@@ -472,7 +490,7 @@ pub fn build(b: *std.Build) void {
     );
 
     const lookup_v2_root = b.createModule(.{
-        .root_source_file = b.path("runtime/lookup_polynomial_v2_owner.zig"),
+        .root_source_file = b.path("runtime/lookup_polynomial_owner.zig"),
         .target = target,
         .optimize = optimize,
     });

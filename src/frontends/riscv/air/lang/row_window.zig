@@ -196,7 +196,7 @@ pub const ComponentMaskBinding = struct {
     pub fn initLocalZero(family: trace.OpcodeFamily) Error!ComponentMaskBinding {
         var result = try initCompatibility(family);
         result.local_zero = true;
-        result.borrowed_main_current_columns = @intCast(@import("../x0_native_envelope_v1.zig").mainColumnCount(family) catch return error.InvalidWindowDigest);
+        result.borrowed_main_current_columns = @intCast(@import("../x0_native_envelope.zig").mainColumnCount(family) catch return error.InvalidWindowDigest);
         result.binding_digest = result.identityDigest();
         try result.validate();
         return result;
@@ -222,7 +222,7 @@ pub const ComponentMaskBinding = struct {
             ) or
             self.preprocessed_current_columns != 1 or
             self.borrowed_main_current_columns !=
-                (if (self.local_zero) @import("../x0_native_envelope_v1.zig").mainColumnCount(self.family) catch return error.InvalidWindowDigest else trace.nColumnsForFamily(self.family)) or
+                (if (self.local_zero) @import("../x0_native_envelope.zig").mainColumnCount(self.family) catch return error.InvalidWindowDigest else trace.nColumnsForFamily(self.family)) or
             self.owned_interaction_current_previous_columns == 0 or
             self.owned_interaction_current_previous_columns %
                 qm31.SECURE_EXTENSION_DEGREE != 0 or
@@ -259,7 +259,7 @@ pub const ComponentMaskBinding = struct {
     pub fn identityDigest(self: *const ComponentMaskBinding) Digest {
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update(component_binding_domain);
-        if (self.local_zero) hash.update(&@import("../x0_local_custody_v1.zig").abiId());
+        if (self.local_zero) hash.update(&@import("../x0_local_custody.zig").abiId());
         runtime.hashInteger(&hash, u16, self.schema_version);
         runtime.hashInteger(&hash, u8, @intFromEnum(self.family));
         runtime.hashInteger(&hash, u8, @intFromEnum(self.mode));
@@ -321,7 +321,7 @@ pub const SemanticMaskBinding = struct {
     pub fn initLocalZero(family: trace.OpcodeFamily) Error!SemanticMaskBinding {
         var result = try init(family);
         result.local_zero = true;
-        result.owned_main_current_columns = @intCast(@import("../x0_native_envelope_v1.zig").mainColumnCount(family) catch return error.InvalidWindowDigest);
+        result.owned_main_current_columns = @intCast(@import("../x0_native_envelope.zig").mainColumnCount(family) catch return error.InvalidWindowDigest);
         result.binding_digest = result.identityDigest();
         try result.validate();
         return result;
@@ -355,7 +355,7 @@ pub const SemanticMaskBinding = struct {
             ) or
             self.preprocessed_current_columns != 1 or
             self.owned_main_current_columns !=
-                (if (self.local_zero) @import("../x0_native_envelope_v1.zig").mainColumnCount(self.family) catch return error.InvalidWindowDigest else trace.nColumnsForFamily(self.family)) or
+                (if (self.local_zero) @import("../x0_native_envelope.zig").mainColumnCount(self.family) catch return error.InvalidWindowDigest else trace.nColumnsForFamily(self.family)) or
             self.owned_interaction_columns != 0)
         {
             return error.InvalidWindowDigest;
@@ -368,7 +368,7 @@ pub const SemanticMaskBinding = struct {
     pub fn identityDigest(self: *const SemanticMaskBinding) Digest {
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update(semantic_component_binding_domain);
-        if (self.local_zero) hash.update(&@import("../x0_local_custody_v1.zig").abiId());
+        if (self.local_zero) hash.update(&@import("../x0_local_custody.zig").abiId());
         runtime.hashInteger(&hash, u16, self.schema_version);
         runtime.hashInteger(&hash, u8, @intFromEnum(self.family));
         hash.update(&self.semantic_program_digest);

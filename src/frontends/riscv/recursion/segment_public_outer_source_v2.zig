@@ -24,9 +24,9 @@
 //! source contract, not a proof receipt: the capability ledger names every
 //! missing V2 AIR/tree/component/global-proof integration and production stays
 //! false until an independent complete outer STARK consumes it.
-const shard_0 = @import("segment_public_outer_source_v2_contract.zig");
-const shard_1 = @import("segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig");
-const shard_2 = @import("segment_public_outer_source_v2_write_into_bound.zig");
+const shard_0 = @import("segment_public_outer_source_contract.zig");
+const shard_1 = @import("segment_public_outer_source_arithmetic_graph_binding.zig");
+const shard_2 = @import("segment_public_outer_source_write_into_bound.zig");
 
 pub const FORMAT_VERSION = shard_0.FORMAT_VERSION;
 pub const SCHEMA_VERSION = shard_0.SCHEMA_VERSION;
@@ -106,7 +106,7 @@ pub const PreparedV2 = shard_1.PreparedV2;
 /// caller-owned proof-byte storage.
 pub const InputsV2 = shard_1.InputsV2;
 pub const RelaySourceKindV2 = shard_1.RelaySourceKindV2;
-/// Physical row contract shared with `air/segment_public_outer_air_v2.zig`.
+/// Physical row contract shared with `air/segment_public_outer_air.zig`.
 /// `source_fields` excludes `value`; its first `source_arity - 1` entries are
 /// inserted around the value at the source ABI's fixed value coordinate.
 pub const RelayRowV2 = shard_1.RelayRowV2;

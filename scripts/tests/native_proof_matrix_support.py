@@ -11,13 +11,13 @@ import statistics
 import sys
 from pathlib import Path
 
-from scripts.benchmark_product_contract_lib.identity import (
+from scripts.bench.benchmark_product_contract_lib.identity import (
     PRODUCT_SPECS,
     canonical_identity_sha256,
 )
 
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "native_proof_matrix.py"
+MODULE_PATH = Path(__file__).resolve().parents[1] / "native/native_proof_matrix.py"
 SPEC = importlib.util.spec_from_file_location("native_proof_matrix", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

@@ -2,6 +2,18 @@
 //! Device scratch exists independently of whether a host mirror is needed.
 const std = @import("std");
 
+pub const DeviceBuffer = struct {
+    ptr: [*]u32,
+    words: usize,
+    pub fn slice(self: DeviceBuffer, first: usize, words: usize) !DeviceBuffer {
+        if (first > self.words or words > self.words - first) return error.DeviceBufferOutOfRange;
+        return .{ .ptr = self.ptr + first, .words = words };
+    }
+    pub fn bytes(self: DeviceBuffer) usize {
+        return self.words * @sizeOf(u32);
+    }
+};
+
 pub const granule_words: usize = 64;
 pub const channel_words: usize = 32;
 

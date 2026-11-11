@@ -1,8 +1,8 @@
 //! A prover-backed native proof for the verifier tests: the wide-Fibonacci
-//! AIR of `src/examples/wide_fibonacci` (columns `c_j = c_{j-2}^2 + c_{j-1}^2`
+//! AIR of `src/products/native/examples/wide_fibonacci` (columns `c_j = c_{j-2}^2 + c_{j-1}^2`
 //! per row, no preprocessed or interaction tree) proved with the generic
 //! prover engine over a minimal host backend (the one of
-//! `src/prover/pcs/owned_source_admission_test.zig`), then verified natively
+//! `src/engine/prover/pcs/owned_source_admission_test.zig`), then verified natively
 //! with `verifyBorrowedExWithProofCapture`. The package cannot depend on the
 //! example or CPU-backend packages (layer rules), so the AIR is restated
 //! here; its transcript is the example's `verify`: `PcsConfig.mixInto`, the

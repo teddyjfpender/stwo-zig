@@ -485,7 +485,16 @@ test "range framework admission rejects selector claim shape identity and malfor
     program.layout = .same_row_prefix_v1;
     program.is_first_input = null;
     program.identity = program.identityDigest();
-    try std.testing.expectError(error.InvalidBasePolynomialProgram, program.validate(&framework_tree_counts));
+    // Relation-only programs admit either layout. An out-of-bounds direct
+    // root is malformed independently of layout and identity metadata.
+    try program.validate(&framework_tree_counts);
+    {
+        const roots = program.direct.roots;
+        defer program.direct.roots = roots;
+        var invalid_roots = [_]u32{0};
+        program.direct.roots = &invalid_roots;
+        try std.testing.expectError(error.InvalidBasePolynomialProgram, program.validate(&framework_tree_counts));
+    }
     program.layout = .independent_prefix_v1;
     program.is_first_input = selector;
     program.identity = program.identityDigest();

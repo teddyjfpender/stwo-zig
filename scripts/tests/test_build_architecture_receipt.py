@@ -8,8 +8,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.build_architecture_receipt_lib import codec, producer, receipt, verifier
-from scripts.build_architecture_receipt_lib.model import (
+from scripts.architecture.build_architecture_receipt_lib import codec, producer, receipt, verifier
+from scripts.architecture.build_architecture_receipt_lib.model import (
     EVIDENCE_NAMES,
     HOST_SCHEMA,
     STATUS_NO_GO,
@@ -17,8 +17,8 @@ from scripts.build_architecture_receipt_lib.model import (
     STATUS_PASS,
     ReceiptError,
 )
-from scripts.build_architecture_receipt_lib.protocol import load_protocol
-from scripts.build_architecture_receipt_lib.trust import canonical_artifact_name
+from scripts.architecture.build_architecture_receipt_lib.protocol import load_protocol
+from scripts.architecture.build_architecture_receipt_lib.trust import canonical_artifact_name
 
 
 COMMIT = "1" * 40
@@ -212,10 +212,10 @@ class ReceiptFixture:
     def verify(self, linux: Path, macos: Path, output: Path | None = None):
         with (
             mock.patch(
-                "scripts.build_architecture_receipt_lib.verifier.source_identity",
+                "scripts.architecture.build_architecture_receipt_lib.verifier.source_identity",
                 return_value=self.source,
             ),
-            mock.patch("scripts.architecture_host_gate_lib.preimages.verify"),
+            mock.patch("scripts.architecture.architecture_host_gate_lib.preimages.verify"),
         ):
             return verifier.verify(
                 root=self.root,
@@ -449,7 +449,7 @@ class BuildArchitectureReceiptTest(unittest.TestCase):
             with self.subTest(field=field):
                 environment = {**self.fixture.environment, field: changed}
                 with mock.patch(
-                    "scripts.build_architecture_receipt_lib.verifier.source_identity",
+                    "scripts.architecture.build_architecture_receipt_lib.verifier.source_identity",
                     return_value=self.fixture.source,
                 ):
                     with self.assertRaisesRegex(ReceiptError, message):
@@ -563,7 +563,7 @@ class BuildArchitectureReceiptTest(unittest.TestCase):
     def test_protocol_manifest_rejects_duplicate_allocations_and_unknown_products(self) -> None:
         changed = copy.deepcopy(self.fixture.protocol)
         changed["host_roles"]["linux"]["required_products"].append("stwo-core")
-        from scripts.build_architecture_receipt_lib.protocol import validate_protocol
+        from scripts.architecture.build_architecture_receipt_lib.protocol import validate_protocol
 
         with self.assertRaisesRegex(ReceiptError, "contains duplicates"):
             validate_protocol(changed)

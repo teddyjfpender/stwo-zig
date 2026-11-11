@@ -6,9 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_cli_admission as admission
-
-
+from scripts.riscv import riscv_cli_admission as admission
 def registry(*, promoted: bool, focused: bool = False) -> dict[str, object]:
     released = {
         "adapter": admission.ADAPTER,

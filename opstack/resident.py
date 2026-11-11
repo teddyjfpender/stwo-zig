@@ -16,8 +16,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "scripts"))
-import rv64_resident_basket as resident_policy
+sys.path.insert(0, str(ROOT))
+from scripts.rv64 import rv64_resident_basket as resident_policy
 
 
 def sha(path):

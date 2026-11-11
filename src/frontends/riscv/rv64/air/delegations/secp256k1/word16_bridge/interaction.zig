@@ -2,7 +2,7 @@
 //! metadata after MAIN release. Scalar recipe is the initial exact authority.
 const core = @import("stwo_core");
 const R = @import("../../../memory/closed_ram/mod.zig");
-const LS = @import("../../../memory/load_store_v2/mod.zig");
+const LS = @import("../../../memory/load_store/mod.zig");
 const L = @import("layout.zig");
 const T = @import("types.zig");
 const Eq = @import("equations.zig");

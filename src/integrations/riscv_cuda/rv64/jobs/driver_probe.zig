@@ -273,7 +273,7 @@ pub fn run(a: std.mem.Allocator, libs: *O.Libraries, requests: usize, segments: 
         }
     }
     const rt = try peerRoundTrip(a, libs, &peer, workers);
-    try std.json.Stringify.value(.{ .schema = "rv64-m8-gpu-native-probe/v1", .segments = segments, .truths = truths, .nodes = topo.len, .requests = rows_out.items, .failures = failures, .peer_round_trip = rt, .install_allocations = drv.install_allocations, .peer_direct = drv.peer_direct }, .{ .whitespace = .indent_1 }, &out.writer);
+    try std.json.Stringify.value(.{ .schema = "rv64-m8-gpu-native-probe/v1", .segments = segments, .truths = truths, .nodes = topo.len, .requests = rows_out.items, .failures = failures, .peer_round_trip = rt, .install_allocations = drv.resources.install_allocations, .peer_direct = drv.resources.peer_direct }, .{ .whitespace = .indent_1 }, &out.writer);
     std.debug.print("{s}\n", .{out.written()});
     if (failures != 0) return error.GpuNativeProbeFailed;
 }

@@ -7,9 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_formal_tools as formal
-
-
+from scripts.riscv import riscv_formal_tools as formal
 class RiscvFormalToolsTests(unittest.TestCase):
     def test_machine_profile_owns_all_external_authorities(self) -> None:
         profile = formal.load_profile()

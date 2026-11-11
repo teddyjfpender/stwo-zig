@@ -1,7 +1,7 @@
 // Device Check.oods_constraint of a native segment (M8 GPU-native, design
 // rv64-m8-gpu-native.md §3.5, inventory H11; stream native, piece gn-s2).
 //
-// Host reference: native_hybrid.zig stageTwoInner's last check,
+// Host reference: the retired native hybrid stageTwoInner's last check,
 //   evalCompositionPolynomialAtPoint(oods, sampled_values, alpha, mask_log)
 //     == extractCompositionOodsEvalWithSplit(oods, mask_log + split, split)
 // over every role of the segment (gkr_local role_oods.zig and the other roles:

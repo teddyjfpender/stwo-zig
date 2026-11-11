@@ -47,10 +47,10 @@ const Owner = struct {
 };
 
 const owners = [_]Owner{
-    .{ .prefix = "src/core/", .package = .core, .dependency_name = "stwo_core" },
-    .{ .prefix = "src/backend/", .package = .backend_contracts, .dependency_name = "stwo_backend_contracts" },
-    .{ .prefix = "src/prover_api/", .package = .prover_api, .dependency_name = "stwo_prover_api" },
-    .{ .prefix = "src/prover/", .package = .prover, .dependency_name = "stwo_prover_engine" },
+    .{ .prefix = "src/waist/core/", .package = .core, .dependency_name = "stwo_core" },
+    .{ .prefix = "src/waist/backend/", .package = .backend_contracts, .dependency_name = "stwo_backend_contracts" },
+    .{ .prefix = "src/waist/prover_api/", .package = .prover_api, .dependency_name = "stwo_prover_api" },
+    .{ .prefix = "src/engine/prover/", .package = .prover, .dependency_name = "stwo_prover_engine" },
     .{ .prefix = "src/frontends/cairo/", .package = .cairo_frontend, .dependency_name = "stwo_cairo_frontend" },
     .{ .prefix = "src/frontends/circuit/", .package = .circuit_frontend, .dependency_name = "stwo_circuit_frontend" },
     .{ .prefix = "src/backends/cpu_scalar/", .package = .cpu_backend, .dependency_name = "stwo_cpu_backend" },
@@ -67,23 +67,28 @@ const owners = [_]Owner{
     .{ .prefix = "src/integrations/sm83_metal/", .package = .sm83_metal_integration, .dependency_name = "stwo_sm83_metal_integration" },
     .{ .prefix = "src/integrations/cairo_metal/", .package = .cairo_metal_integration, .dependency_name = "stwo_cairo_metal_integration" },
     .{ .prefix = "src/integrations/circuit_metal/", .package = .circuit_metal_integration, .dependency_name = "stwo_circuit_metal_integration" },
-    .{ .prefix = "src/artifact_store/", .package = .artifact_store, .dependency_name = "stwo_artifact_store" },
-    .{ .prefix = "src/tools/metal_session/", .package = .metal_session, .dependency_name = "stwo_metal_session" },
-    .{ .prefix = "src/interop/proof_wire/", .package = .proof_wire, .dependency_name = "stwo_proof_wire" },
-    .{ .prefix = "src/interop/circuit_recursion/", .package = .circuit_recursion_wire, .dependency_name = "stwo_circuit_recursion_wire" },
-    .{ .prefix = "src/examples/", .package = .native_examples, .dependency_name = "stwo_native_examples" },
+    .{ .prefix = "src/engine/artifact_store/", .package = .artifact_store, .dependency_name = "stwo_artifact_store" },
+    .{ .prefix = "src/backends/metal/session/", .package = .metal_session, .dependency_name = "stwo_metal_session" },
+    .{ .prefix = "src/waist/proof_wire/", .package = .proof_wire, .dependency_name = "stwo_proof_wire" },
+    .{ .prefix = "src/waist/recursion_wire/", .package = .circuit_recursion_wire, .dependency_name = "stwo_circuit_recursion_wire" },
+    .{ .prefix = "src/products/native/examples/", .package = .native_examples, .dependency_name = "stwo_native_examples" },
     .{ .prefix = "src/integrations/native_cuda/", .package = .native_cuda_integration, .dependency_name = "stwo_native_cuda_integration" },
     .{ .prefix = "src/integrations/cairo_cuda/", .package = .cairo_cuda_integration, .dependency_name = "stwo_cairo_cuda_integration" },
 };
 
+/// Longest prefix wins: packages nest (`backends/metal/session` inside
+/// `backends/metal`).
 pub fn resolve(root_source_file: []const u8) ?Source {
+    var best: ?Owner = null;
     for (owners) |owner| {
-        if (std.mem.startsWith(u8, root_source_file, owner.prefix)) return .{
-            .package = owner.package,
-            .sub_path = root_source_file[owner.prefix.len..],
-        };
+        if (!std.mem.startsWith(u8, root_source_file, owner.prefix)) continue;
+        if (best == null or owner.prefix.len > best.?.prefix.len) best = owner;
     }
-    return null;
+    const owner = best orelse return null;
+    return .{
+        .package = owner.package,
+        .sub_path = root_source_file[owner.prefix.len..],
+    };
 }
 
 pub fn dependencyName(package: Package) []const u8 {
@@ -94,22 +99,22 @@ pub fn dependencyName(package: Package) []const u8 {
 }
 
 test "canonical owner roots resolve to package dependencies" {
-    try std.testing.expectEqual(Package.core, resolve("src/core/mod.zig").?.package);
+    try std.testing.expectEqual(Package.core, resolve("src/waist/core/mod.zig").?.package);
     try std.testing.expectEqual(
         Package.backend_contracts,
-        resolve("src/backend/mod.zig").?.package,
+        resolve("src/waist/backend/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.prover_api,
-        resolve("src/prover_api/mod.zig").?.package,
+        resolve("src/waist/prover_api/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.prover,
-        resolve("src/prover/mod.zig").?.package,
+        resolve("src/engine/prover/mod.zig").?.package,
     );
     try std.testing.expectEqualStrings(
         "native/runner.zig",
-        resolve("src/prover/native/runner.zig").?.sub_path,
+        resolve("src/engine/prover/native/runner.zig").?.sub_path,
     );
     try std.testing.expectEqual(
         Package.cairo_frontend,
@@ -165,19 +170,19 @@ test "canonical owner roots resolve to package dependencies" {
     );
     try std.testing.expectEqual(
         Package.artifact_store,
-        resolve("src/artifact_store/mod.zig").?.package,
+        resolve("src/engine/artifact_store/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.metal_session,
-        resolve("src/tools/metal_session/mod.zig").?.package,
+        resolve("src/backends/metal/session/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.proof_wire,
-        resolve("src/interop/proof_wire/mod.zig").?.package,
+        resolve("src/waist/proof_wire/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.native_examples,
-        resolve("src/examples/mod.zig").?.package,
+        resolve("src/products/native/examples/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.native_cuda_integration,
@@ -187,5 +192,5 @@ test "canonical owner roots resolve to package dependencies" {
         Package.cairo_cuda_integration,
         resolve("src/integrations/cairo_cuda/mod.zig").?.package,
     );
-    try std.testing.expect(resolve("src/products/prover/root.zig") == null);
+    try std.testing.expect(resolve("src/products/stwo/prover/root.zig") == null);
 }

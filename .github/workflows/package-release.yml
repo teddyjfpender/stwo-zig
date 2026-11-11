@@ -41,10 +41,10 @@ jobs:
           python-version: "3.13"
       - name: Validate package contracts and release tooling
         run: |
-          python3 scripts/check_package_workspace.py
+          python3 scripts/repo/check_package_workspace.py
           python3 -m unittest scripts.tests.test_package_release -v
       - name: Build deterministic Zig source archives
-        run: python3 scripts/package_release.py --output zig-out/packages
+        run: python3 scripts/release/package_release.py --output zig-out/packages
       - name: Upload immutable package set
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

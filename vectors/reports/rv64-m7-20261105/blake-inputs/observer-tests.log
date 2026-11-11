@@ -1,4 +1,0 @@
-1/3 blake2s_observer_test.test.sampled Blake observer records pre-compression words counters and final flags without changing the digest...OK
-2/3 blake2s_observer_test.test.sampled Blake observer ignores other phases and stays isolated between host threads...OK
-3/3 blake2s_backend.test_0...OK
-All 3 tests passed.

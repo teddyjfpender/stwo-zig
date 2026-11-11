@@ -24,5 +24,5 @@ sha-service = ["stwo-kona-execution/sha-service"]
 
 [dependencies]
 stwo-kona-execution = { path = ".." }
-stwo-rv64-mem = { path = "../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/mem" }
+stwo-rv64-mem = { path = "../../../guests/ethereum/rv64/mem" }
 critical-section = { version = "1.2", features = ["restore-state-bool"] }

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.install_hooks import HOOK_NAMES, install
+from scripts.repo.install_hooks import HOOK_NAMES, install
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -72,10 +72,10 @@ class InstallHooksTests(unittest.TestCase):
         pre_commit = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
         self.assertIn("git diff --cached --check", pre_commit)
         self.assertIn("zig fmt --check build.zig src tools", pre_commit)
-        self.assertIn("python3 scripts/check_source_conformance.py", pre_commit)
+        self.assertIn("python3 scripts/repo/check_source_conformance.py", pre_commit)
 
         pre_push = (ROOT / ".githooks/pre-push").read_text(encoding="utf-8")
-        self.assertIn("exec python3 scripts/ci_scope_push.py", pre_push)
+        self.assertIn("exec python3 scripts/repo/ci_scope_push.py", pre_push)
         self.assertNotIn("zig build", pre_push)
 
         policy = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")

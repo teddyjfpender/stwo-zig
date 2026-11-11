@@ -64,7 +64,7 @@ To audit fixture derivation, first build the locked CSP utility in a clean
 checkout at the pinned commit, then pass that checkout to:
 
 ```sh
-python3 scripts/riscv_csp_benchmark.py \
+python3 scripts/riscv/riscv_csp_benchmark.py \
   --audit-csp-source /path/to/csp-benchmarks \
   --targets ecdsa_secp256k1 --sizes 32 --warmups 0 --samples 1
 ```
@@ -130,7 +130,7 @@ workload. Each backend also proved and independently verified the bad-signature
 fixture's software rejection. ECDSA is 1,828 guest instructions, with a 3,748,143-byte
 proof; the timings include caller/memory composition and guest checks.
 
-[Detailed results, memory, proof sizes, raw evidence and reproduction](../reports/recursive-product-20260921/csp-accelerated-suite-v1/README.md).
+[Detailed results, memory, proof sizes, raw evidence and reproduction](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/README.md).
 Use `--execution-mode precompile` for these results; software remains an explicit
 comparison mode and the default for historical runner consumers.
 
@@ -139,7 +139,7 @@ comparison mode and the default for historical runner consumers.
 Measured on Apple M5 Max, ReleaseFast, 70 queries / 26 PoW bits, one warmup
 and ten measured verified samples per row. Values are mean execution + witness
 + proving seconds; verification is separate. This table is the software baseline,
-not the accelerated ECDSA result. [Raw CPU/Metal reports and provenance](../reports/recursive-product-20260921/csp-current-suite-v1/README.md).
+not the accelerated ECDSA result. [Raw CPU/Metal reports and provenance](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260921/csp-current-suite-v1/README.md).
 
 | Workload | Size | CPU prove (s) | Metal prove (s) |
 | :--- | ---: | ---: | ---: |
@@ -168,9 +168,9 @@ unchanged.
 ## Accelerated ECDSA execution
 
 ```sh
-python3 scripts/riscv_csp_benchmark.py --backend cpu --execution-mode precompile \
+python3 scripts/riscv/riscv_csp_benchmark.py --backend cpu --execution-mode precompile \
   --targets ecdsa_secp256k1 --sizes 32 --workers 16 --report-out /tmp/csp/cpu.json
-python3 scripts/riscv_csp_benchmark.py --backend metal --execution-mode precompile \
+python3 scripts/riscv/riscv_csp_benchmark.py --backend metal --execution-mode precompile \
   --targets ecdsa_secp256k1 --sizes 32 --workers 16 --report-out /tmp/csp/metal.json
 ```
 
@@ -178,7 +178,7 @@ Omit `--targets` and `--sizes` to run the complete mixed suite. This mode proves
 the RISC-V caller, memory bindings, recovery computation, low-S/key checks and
 public output. Host parity selection is not a trusted verdict. Unsupported inputs
 receive full software proofs. See the [guest contract](../riscv_guests/ecdsa_secp256k1_precompile/README.md)
-and [runner documentation](../../design/riscv-proving-stack/csp-benchmarks.md).
+and [runner documentation](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/csp-benchmarks.md).
 The earlier 228/165 ms figures measured an isolated provider and are not full
 CSP guest results.
 
@@ -197,7 +197,7 @@ or an A/B speedup result. Serialization/startup are outside proving time. Curren
 product defaults and existing suite tables remain unchanged; Metal is pending.
 Input/ELF/proof substitution and low-S routing checks pass, and fixture pins were
 verified. Raw logs, host details, sample JSON and sources are retained in the
-[BLAKE3 qualification evidence](../../autoresearch/notes/2026-09-22-blake3-canonical-csp-ecdsa/README.md).
+[BLAKE3 qualification evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-blake3-canonical-csp-ecdsa/README.md).
 
 ### Transcript receipt qualification — 2026-09-22
 
@@ -213,13 +213,13 @@ Protocol plus both suite gates pass 8/8 tests at ReleaseFast; ECDSA retains
 
 Single qualification samples; PoW variation prevents a controlled speedup claim.
 Production defaults, Metal and full-suite BLAKE3 results remain pending.
-[Logs, independent vectors and source pins](../../autoresearch/notes/2026-09-22-suite-transcript-receipts/README.md).
+[Logs, independent vectors and source pins](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-suite-transcript-receipts/README.md).
 
 CSP benchmark/verification report schema v2 now records the suite and transcript
 receipt, checked against the artifact and fresh verifier. CPU CLI qualification
 with the unchanged BLAKE2s default measured 0.798874 s proving, 0.001829 s execution
 and 0.146700 s verification at canonical parameters (one sample, 16 workers).
-[Report admission evidence](../../autoresearch/notes/2026-09-22-csp-report-suite-admission/README.md).
+[Report admission evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-csp-report-suite-admission/README.md).
 
 ### BLAKE3 slowdown attribution — 2026-09-22
 
@@ -230,7 +230,7 @@ reference grinder while BLAKE2s uses pooled batched search. Excluding PoW leaves
 0.882397 s versus 0.733245 s; this subtraction is not a canonical total or a speedup.
 Both proof/verification gates pass. Fix BLAKE3 PoW before promotion, then investigate
 the remaining commitment costs. These are single stage-attribution samples.
-[Stage profiles and source evidence](../../autoresearch/notes/2026-09-22-csp-blake3-slowdown-profile/README.md).
+[Stage profiles and source evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-csp-blake3-slowdown-profile/README.md).
 
 ### Pooled BLAKE3 PoW — 2026-09-22
 
@@ -241,7 +241,7 @@ the previous BLAKE3 2.523295 s proving/1.640898 s PoW. Eight focused tests pass,
 including worker-count parity and independent full-proof verification. These are
 single before/after samples; no statistical verdict, subsecond canonical total,
 or improvement over the historical ~0.882 s result is claimed. Defaults and Metal
-are unchanged. [Pooled search evidence](../../autoresearch/notes/2026-09-22-blake3-pooled-pow/README.md).
+are unchanged. [Pooled search evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-blake3-pooled-pow/README.md).
 
 ### Bulk BLAKE3 leaf integration — 2026-09-22
 
@@ -252,7 +252,7 @@ passed at 0.994176 s proving, 0.123395 s PoW, 0.188772 s verification and
 0.001713 s execution (70 queries/26 bits, 1,828 cycles, 3,748,258 proof bytes).
 This is neutral against the previous 1.000019 s sample; local leaf-probe gains
 do not demonstrate a CSP end-to-end improvement. Defaults/Metal remain pending.
-[Source, counters and qualification logs](../../autoresearch/notes/2026-09-22-blake3-leaf-bulk/README.md).
+[Source, counters and qualification logs](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-blake3-leaf-bulk/README.md).
 
 ### Metal BLAKE3 migration coverage — 2026-09-22
 
@@ -260,7 +260,7 @@ Actual Metal BLAKE3 PoW now matches the CPU's lowest nonce at 26 bits (63,024,44
 61 bounded dispatches, zero CPU fallback). This is a PoW parity test, **not a new
 CSP benchmark result**. BLAKE3 Merkle/FRI/resident-transcript support and full
 canonical Metal CSP runs remain pending.
-[Device qualification](../../autoresearch/notes/2026-09-22-metal-blake3-pow/README.md).
+[Device qualification](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-metal-blake3-pow/README.md).
 
 ### Canonical BLAKE3 ECDSA on Metal source JIT — 2026-09-22
 
@@ -273,7 +273,7 @@ selected; authenticated AOT remains pending. Whole-test telemetry reports 128
 Metal dispatches and 5 CPU fallbacks (including negative-check activity).
 This is a single qualification sample, not a demonstrated speedup over the
 historical 0.882 s baseline or a controlled CPU/Metal comparison.
-[Logs and source snapshots](../../autoresearch/notes/2026-09-22-metal-blake3-csp-ecdsa/README.md).
+[Logs and source snapshots](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-metal-blake3-csp-ecdsa/README.md).
 
 ### Canonical BLAKE3 ECDSA on authenticated Metal AOT — 2026-09-22
 
@@ -286,7 +286,7 @@ no statistical speedup claim is made. Runtime setup is outside proof timing.
 Whole-test telemetry has 128 Metal dispatches, 5 small circle LDE fallbacks,
 and 25 CPU composition component placements (separate from fallback totals).
 This is hybrid CPU/Metal execution. Full BLAKE3 CSP suite results remain pending.
-[Authenticated manifest, logs and source snapshots](../../autoresearch/notes/2026-09-22-metal-blake3-csp-aot/README.md).
+[Authenticated manifest, logs and source snapshots](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-metal-blake3-csp-aot/README.md).
 
 ### Ordinary SHA-256 BLAKE3 product qualification — 2026-09-22
 
@@ -297,7 +297,7 @@ match the CPU product exactly. Explicit wrong-suite verification is rejected.
 One diagnostic prove command measured 0.366627334 s proving and 0.0976185 s
 verification; these dirty-development products are not a clean full-suite cohort
 or repeated speedup study. Full BLAKE3 suite results remain pending.
-[Retained proof, receipts and build evidence](../../autoresearch/notes/2026-09-22-blake3-metal-product-proof/README.md).
+[Retained proof, receipts and build evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-blake3-metal-product-proof/README.md).
 
 ## Full BLAKE3 CSP matrix — 2026-09-22
 
@@ -343,7 +343,7 @@ wall time. Single samples cannot establish a residual regression or its cause.
 This qualifies explicit BLAKE3 suite selection; it does not promote defaults or
 complete the remaining Poseidon statement-identity and recursion migration.
 
-[Raw reports and evidence](../../autoresearch/notes/2026-09-22-blake3-full-csp-matrix/README.md).
+[Raw reports and evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-22-blake3-full-csp-matrix/README.md).
 
 
 ### Full-width BLAKE3 ECDSA migration — qualification pending (2026-09-23)
@@ -366,7 +366,7 @@ CPU ECDSA ReleaseSafe run was stopped at a measured 81.2 GiB footprint; it did
 not publish a verified artifact or timing result. A follow-up removes retained
 coefficient duplicates and bounds borrowed-column preparation to eight columns.
 Complete PCS proof parity and failure-ownership checks pass; ECDSA memory/runtime
-qualification remains outstanding. See `autoresearch/notes/2026-09-23-blake3-csp-shared-route`.
+qualification remains outstanding. See [the shared-route note](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-csp-shared-route).
 
 
 Bounded follow-up: `ecdsa-csp-bench --host-byte-budget BYTES` optionally caps host
@@ -393,7 +393,7 @@ dispatches and 233 CPU fallbacks. Shared Merkle paths reduced G rows from
 9,660,448 to 489,328; this is not an E2E speedup claim. Previous sub-second results
 still describe the old memory commitment route.
 
-[Reports, artifact, receipts and source snapshots](../../autoresearch/notes/2026-09-23-blake3-shared-path-ecdsa/README.md).
+[Reports, artifact, receipts and source snapshots](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-shared-path-ecdsa/README.md).
 
 Measured process-lifetime physical peaks for these qualification runs were **3.340 GiB CPU / 5.018 GiB Metal**. These include more than the tracked host-allocation table above.
 
@@ -410,9 +410,9 @@ claim. Full-width BLAKE3 uses a different execution-commitment contract from the
 historical 0.882-second ECDSA measurement.
 
 Both extension profiles have now qualified canonical recursion on CPU and Metal;
-see [extension recursion evidence](../../autoresearch/notes/2026-09-23-blake3-extension-recursion/README.md).
+see [extension recursion evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-extension-recursion/README.md).
 The new default's product build/runtime receipts will be recorded in
-[default promotion evidence](../../autoresearch/notes/2026-09-23-blake3-default-promotion/README.md).
+[default promotion evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-default-promotion/README.md).
 
 
 The current products now generate BLAKE3 proofs exclusively. Explicit BLAKE2s
@@ -435,7 +435,7 @@ This source-pinned dirty-tree diagnostic is not a clean-source suite result and
 execution-memory commitments and a different timing boundary. The 19.74x
 reduction in full-width BLAKE3 hash rows is not an E2E comparison against it.
 
-[Raw reports, source snapshot, artifact and reproduction](../../autoresearch/notes/2026-09-23-blake3-releasefast-e2e/README.md).
+[Raw reports, source snapshot, artifact and reproduction](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-releasefast-e2e/README.md).
 
 Metal follow-up under the same settings: **11.100503 s median complete
 transaction**, range 11.048685–11.163159 s. It produced exactly the same artifact
@@ -458,7 +458,7 @@ the separate canonical parent fixture from **55.068716 s to 42.495006 s median**
 in a same-binary comparison (two cold samples per arm, identical verified proof
 hashes). This is **1.296x faster / 22.83% less time** within the BLAKE3 path,
 not a BLAKE3-versus-Poseidon comparison or a new ECDSA result.
-[Profile, paired samples and source](../../autoresearch/notes/2026-09-23-blake3-parent-stage-profile/README.md).
+[Profile, paired samples and source](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-parent-stage-profile/README.md).
 
 
 ### CSP regression recovery — in progress (2026-09-23)
@@ -474,7 +474,7 @@ The full diagnostic suite is running. Its first SHA-256/128 CPU case verified at
 **85.044773 s**, reaching 36.620 GiB physical memory—substantially worse than the
 historical approximately 2.07 s proving result. Do not generalize the ECDSA gain
 to recovery of the suite. Full reports and incremental results are retained in
-[the CSP regression investigation](../../autoresearch/notes/2026-09-23-blake3-csp-regression/README.md).
+[the CSP regression investigation](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-csp-regression/README.md).
 
 
 ### Complete full-width BLAKE3 baseline (2026-09-23)
@@ -506,7 +506,7 @@ but precede public-program preprocessing and word-memory commitments.
 
 ECDSA uses the pinned odd-parity precompile ELF, with 1,828 execution steps.
 Raw reports and retained proofs are in the
-[complete baseline evidence](../../autoresearch/notes/2026-09-23-blake3-csp-regression/BASELINE_RESULTS.md).
+[complete baseline evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-csp-regression/BASELINE_RESULTS.md).
 The public-program and word-memory changes are undergoing separate qualification;
 this table must not be presented as their performance results.
 
@@ -558,7 +558,7 @@ used an earlier execution-memory contract; these results do not redefine that
 historical measurement. Recursive qualification is recorded separately and must
 not be presented as a matched recursion speedup.
 
-[Source, qualification and raw benchmark evidence](../../autoresearch/notes/2026-09-23-blake3-word-memory/README.md).
+[Source, qualification and raw benchmark evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-word-memory/README.md).
 
 ## Shared CPU PoW batching checkpoint (2026-09-23)
 
@@ -579,7 +579,7 @@ change applies to the shared CPU pool, not just ECDSA. Metal uses its existing
 GPU search and was not remeasured for this CPU-only change. The historical
 0.881876-second CPU result has not been recovered.
 
-[Source, tests and raw paired results](../../autoresearch/notes/2026-09-23-blake3-pow-batch/README.md).
+[Source, tests and raw paired results](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-pow-batch/README.md).
 
 ## Compact-provider CSP results (2026-09-23)
 
@@ -627,7 +627,7 @@ The current CPU result has not recovered that historical latency.
 Compact-child recursion is separately qualified at 70 queries / 26 PoW bits
 for base RISC-V, Ethereum and guest Poseidon; those tests are not CSP timings.
 
-[Source, qualification and all raw reports/proofs](../../autoresearch/notes/2026-09-23-compact-range-provider/README.md).
+[Source, qualification and all raw reports/proofs](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-compact-range-provider/README.md).
 
 ### Comparison with the original CSP qualification
 
@@ -638,7 +638,7 @@ now takes approximately 3.495 s / 3.423 s (CPU / Metal) for SHA-256/128,
 Original corresponding results were 0.776 s / 0.442 s, 0.541 s / 0.415 s, and
 0.882 s / 0.864 s. Original means and current medians use different sampling
 protocols; these are retained-evidence comparisons, not a new controlled A/B.
-See [the regression assessment](../../autoresearch/notes/2026-09-23-compact-range-provider/REGRESSION.md)
+See [the regression assessment](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-compact-range-provider/REGRESSION.md)
 for scope, implementation costs and attribution limits.
 
 ### Shared parallel hash-interaction follow-up (2026-09-23)
@@ -656,7 +656,7 @@ including admission, encoding and fresh verification; this is not a new full sui
 All 36 measured proofs verified; every retained arm artifact independently verified
 and matched the preceding suite's proof bytes. The shared hash-interaction stage
 improved approximately 4.7–6.1×. Original CSP performance remains unrecovered.
-[Source, commands, stage profiles and qualification](../../autoresearch/notes/2026-09-23-parallel-hash-interactions/README.md).
+[Source, commands, stage profiles and qualification](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-parallel-hash-interactions/README.md).
 
 ### Shared sampled-value follow-up (2026-09-23)
 
@@ -678,7 +678,7 @@ and matched the preceding suite proof hashes. The large-domain sampled-value sta
 fell by approximately 2.2×. Small-case differences are not established gains or
 regressions by this three-sample comparison. This is a targeted qualification,
 not a replacement full suite; original CSP performance remains unrecovered.
-[Evidence and source provenance](../../autoresearch/notes/2026-09-23-barycentric-parity/README.md).
+[Evidence and source provenance](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-barycentric-parity/README.md).
 
 ### Bounded sampled-value scheduling follow-up (2026-09-23)
 
@@ -699,7 +699,7 @@ verified with unchanged proof bytes. The large-domain sampled-value stage is
 approximately 6x faster. Small-case differences are not established performance
 changes by this sampling protocol. This targeted comparison does not replace the
 full suite; original performance remains unrecovered.
-[Evidence, scheduling contract and source](../../autoresearch/notes/2026-09-23-sampled-scheduling/README.md).
+[Evidence, scheduling contract and source](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-sampled-scheduling/README.md).
 
 ### Shared hash-plan reuse and census follow-up (2026-09-23)
 
@@ -718,7 +718,7 @@ precompile; complete-transaction medians in seconds.
 All 48 measured proofs verified; every retained arm artifact freshly verified and
 matched preceding proof bytes. This is a modest setup improvement and a targeted
 comparison, not a new full suite or a recovery of original CSP performance.
-[Evidence and source](../../autoresearch/notes/2026-09-23-hash-plan-reuse/README.md).
+[Evidence and source](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-hash-plan-reuse/README.md).
 
 ### Memory-bounded commitment batching follow-up (2026-09-23)
 
@@ -742,7 +742,7 @@ events 232 → 35; main commitment median fell 0.252 → 0.126 s, interaction
 commitment 0.299 → 0.156 s. Other small timing differences are not established
 gains. Memory footprints were approximately stable. This targeted experiment
 does not replace the full suite; original CSP performance remains unrecovered.
-[Evidence, source and qualification](../../autoresearch/notes/2026-09-23-bounded-commit-batches/README.md).
+[Evidence, source and qualification](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-bounded-commit-batches/README.md).
 
 Canonical base child/parent qualification also passed after this change, both at
 70 queries / 26 PoW bits with independent verification and transcript replay.
@@ -769,7 +769,7 @@ fell 10.4%. Other small, mixed differences do not establish performance changes.
 Eleven focused ownership tests passed, including allocation-failure cleanup.
 This targeted experiment does not replace the full suite; original performance
 remains unrecovered.
-[Evidence, frozen binaries and source](../../autoresearch/notes/2026-09-23-streaming-coefficient-arenas/README.md).
+[Evidence, frozen binaries and source](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-streaming-coefficient-arenas/README.md).
 
 ### Streaming LDE arena follow-up (2026-09-23)
 
@@ -794,7 +794,7 @@ establish a reliable CPU change or replace the full suite.
 A separate diagnostic reduced ECDSA quotient source runs 1,305 → 279 while its
 quotient time stayed near 245 ms, ruling out fragmentation as the main remaining
 cost in that stage. Original CSP performance remains unrecovered.
-[Evidence and source](../../autoresearch/notes/2026-09-23-streaming-lde-arenas/README.md).
+[Evidence and source](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-streaming-lde-arenas/README.md).
 
 Canonical base child/parent qualification also passed after this layout change,
 both at 70 queries / 26 PoW bits with independent verification and replay.
@@ -824,7 +824,7 @@ Process footprints rose approximately 37 MB for ECDSA and 124 MB for the larger
 cases because grouping retains a bounded temporary. CPU is unchanged.
 This targeted experiment does not replace the full suite; original performance
 remains unrecovered.
-[Evidence, source and qualification](../../autoresearch/notes/2026-09-23-flat-quotient-groups/README.md).
+[Evidence, source and qualification](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-flat-quotient-groups/README.md).
 
 ### Tiled witness projection follow-up (2026-09-23)
 
@@ -847,7 +847,7 @@ wide rows, tile boundaries and untouched padding. ECDSA witness time fell roughl
 mixed. Original-scope ECDSA is now 0.950 s CPU / 0.948 s Metal, still above original
 0.882 / 0.864 s. Historical means and current three-sample medians differ in
 sampling. This targeted result does not replace the full suite.
-[Evidence, source and sampling basis](../../autoresearch/notes/2026-09-23-tiled-witness-copy/README.md).
+[Evidence, source and sampling basis](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-tiled-witness-copy/README.md).
 
 
 ### Native BLAKE3 four-message experiment — not promoted (2026-09-23)
@@ -865,7 +865,7 @@ Results are mixed and do not establish an E2E benefit. The candidate was removed
 from the production path; the preceding implementation remains in place. No Metal
 or recursion speedup is claimed. The original CSP suite remains the target.
 
-[Candidate source, binaries, tests, rejected initial experiment and measurements](../../autoresearch/notes/2026-09-23-blake3-stream4/README.md).
+[Candidate source, binaries, tests, rejected initial experiment and measurements](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-stream4/README.md).
 
 
 ### Shared BLAKE3 bounded-tail prefix reuse — 2026-09-23
@@ -898,8 +898,8 @@ this is around the original ECDSA performance range, not evidence that the whole
 migration is faster. Large SHA/Keccak cases still regress substantially against
 the original suite. No new recursion speedup or full-suite qualification is claimed.
 
-[Source-pinned comparison and verification evidence](../../autoresearch/notes/2026-09-23-blake3-prefix-reuse/README.md).
-[Native throughput and commitment geometry investigation](../../autoresearch/notes/2026-09-23-blake3-throughput/README.md).
+[Source-pinned comparison and verification evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-prefix-reuse/README.md).
+[Native throughput and commitment geometry investigation](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-throughput/README.md).
 
 
 ### Bulk updates in the shared Merkle tail — 2026-09-23
@@ -930,7 +930,7 @@ ECDSA differences are not an isolated measure of this change. Supplemental
 previous/bulk/scalar/previous runs and all primary data are preserved. No new
 recursion speedup or full-suite qualification is claimed.
 
-[Source, verification and timing evidence](../../autoresearch/notes/2026-09-23-bulk-tail-updates/README.md).
+[Source, verification and timing evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-bulk-tail-updates/README.md).
 
 
 ### Bounded parallel witness-column projection — 2026-09-23
@@ -960,8 +960,8 @@ The focused canonical base-parent test independently verifies child and parent,
 replays the transcript and confirms fixed-plan reuse, worker rekey, and output
 lifetime. The wider performance goal remains open.
 
-[Source, timings, tests and parent qualification](../../autoresearch/notes/2026-09-23-parallel-column-projection/README.md).
-[Refreshed diagnostic CPU profile](../../autoresearch/notes/2026-09-23-post-tail-profile/README.md).
+[Source, timings, tests and parent qualification](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-parallel-column-projection/README.md).
+[Refreshed diagnostic CPU profile](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-post-tail-profile/README.md).
 
 
 ### Admitted witness-emission plan reuse — 2026-09-23
@@ -973,7 +973,7 @@ passes column/interaction parity, changed-plan rejection, stale-view invalidatio
 and successful buffer-reusing retry. No new E2E result is claimed; preceding
 benchmark artifacts remain tied to their frozen source snapshots.
 
-[Source and focused validation](../../autoresearch/notes/2026-09-23-admitted-emission-plan/README.md).
+[Source and focused validation](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-admitted-emission-plan/README.md).
 
 
 ### Batched memory-frontier extraction — 2026-09-23
@@ -997,7 +997,7 @@ differences do not demonstrate a CSP performance win. Original Poseidon baseline
 recovery and full-suite qualification remain unfinished. The separate synthetic
 frontier diagnostic must not be presented as a prover speedup.
 
-[Implementation, measurements and scaling diagnostic](../../autoresearch/notes/2026-09-23-batched-memory-frontier/README.md).
+[Implementation, measurements and scaling diagnostic](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-batched-memory-frontier/README.md).
 
 
 ### Authenticated GPU BLAKE3 interactions — 2026-09-23
@@ -1023,7 +1023,7 @@ Hash-interaction time falls from 0.532 to 0.145 s for SHA256/2048 and from 0.544
 are about 9–12%; this is not a full-suite qualification or recovery of the original
 Poseidon SHA/Keccak baseline. No new CPU or recursion timing is claimed.
 
-[Source, AOT authority, safety checks and measured evidence](../../autoresearch/notes/2026-09-23-blake3-device-interactions/README.md).
+[Source, AOT authority, safety checks and measured evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-device-interactions/README.md).
 
 
 ### Authenticated GPU BLAKE3 composition — 2026-09-23
@@ -1049,7 +1049,7 @@ with unchanged full-suite proof hashes. The focused safety suite passes 21 tests
 Staging adds about 0.22 GiB; this is not a memory-saving result. Larger SHA/Keccak
 baseline recovery, the complete CSP basket and recursion qualification remain open.
 
-[Implementation, scope-aligned proving means and evidence](../../autoresearch/notes/2026-09-23-blake3-device-composition/README.md).
+[Implementation, scope-aligned proving means and evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-23-blake3-device-composition/README.md).
 
 
 ### Bounded GPU streaming leaves — 2026-09-24
@@ -1078,7 +1078,7 @@ timing. Peak process footprint is effectively unchanged. Larger-case speedups ar
 4–5%; ECDSA is flat overall and its commitment stages regress, so this is not an
 ECDSA speedup. Full Poseidon-basket recovery and recursion qualification remain open.
 
-[Source, tests, narrower proving metric and complete evidence](../../autoresearch/notes/2026-09-24-bounded-metal-stream-leaves/README.md).
+[Source, tests, narrower proving metric and complete evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-24-bounded-metal-stream-leaves/README.md).
 
 
 ### Overlapped Metal streaming leaves — 2026-09-24
@@ -1111,7 +1111,7 @@ Full Poseidon-basket recovery and recursion qualification remain open. The next
 substantial target is the shared G witness and interaction width: the largest SHA
 case has a million-row G domain with 124 main and 132 interaction columns.
 
-[Implementation, comparison receipts and rejected-policy evidence](../../autoresearch/notes/2026-09-24-overlapped-metal-stream-leaves/README.md).
+[Implementation, comparison receipts and rejected-policy evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-24-overlapped-metal-stream-leaves/README.md).
 
 The retained default product additionally passes all 16 positive CSP workloads,
 with one proof and independent artifact verification per case and unchanged proof
@@ -1147,7 +1147,7 @@ CPU/Metal Poseidon suite or establish recursive latency. Six focused arithmetic/
 wire tests and eight shader-authority tests pass, including independent arithmetic
 comparison and malformed-witness rejection.
 
-[Design reasoning, source pins and raw results](../../autoresearch/notes/2026-09-24-blake3-g-width/README.md).
+[Design reasoning, source pins and raw results](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-24-blake3-g-width/README.md).
 
 The retained narrower layout also passes all 16 positive Metal CSP cases with
 fresh artifact verification. A canonical CPU child/parent fixture passes at
@@ -1177,7 +1177,7 @@ verification; the last column matches the historical timing scope. This subset
 is not the final one-warmup/ten-sample CPU/Metal basket and does not supersede the
 original Poseidon results. The broader baseline gap remains open.
 
-[Source snapshots, raw reports and reproduction scripts](../../autoresearch/notes/2026-09-24-base-lookup-visitation/README.md).
+[Source snapshots, raw reports and reproduction scripts](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-24-base-lookup-visitation/README.md).
 
 ### Bounded and mixed GPU sampling — 2026-09-24
 
@@ -1204,7 +1204,7 @@ CPU/Metal basket. Final full-basket qualification, recursive scheduling overlap,
 deeper PCS/DEEP fusion, remaining intermediate witness storage and the separately
 reviewed recursion-parameter experiment remain open.
 
-[Implementation, memory measurements and raw evidence](../../autoresearch/notes/2026-09-24-host-barycentric-staging/README.md).
+[Implementation, memory measurements and raw evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-24-host-barycentric-staging/README.md).
 
 ### Default bounded-limb BLAKE3 precompile — 2026-09-24
 
@@ -1251,4 +1251,4 @@ A separate matched canonical four-leaf recursion-tree comparison improves
 That is two samples per arm and a tiny six-cycle workload, not a CSP or Ethereum
 block timing. The broader performance goal remains open.
 
-[Full timings, raw proofs, provenance, source snapshots and reproduction scripts](../../autoresearch/notes/2026-09-24-blake3-rotate7-limbs/README.md).
+[Full timings, raw proofs, provenance, source snapshots and reproduction scripts](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/README.md).

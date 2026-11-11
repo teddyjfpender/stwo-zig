@@ -1,9 +1,9 @@
 -- GENERATED FILE. DO NOT EDIT.
--- Generator: scripts/riscv_refinement.py
+-- Generator: scripts/riscv/riscv_refinement.py
 -- Source: generated/air/lb.air-ir-v2.json
 import RiscvRefinement.Air.Bridge.MulhProgram
 namespace RiscvRefinement.Air.Bridge
-def loadStoreProgramIrDigest : String := "bea45e36b04fbef09cb567851a344ef5ec11bd4917bcf71c2333b094141a4e2e"
+def loadStoreProgramIrDigest : String := "492a2db13150924c9cdf8593cf9902c88e7f9334215020e9ad970c603041af7e"
 def loadStoreCircuit : MulhCircuit where
   family := "load_store"
   modulus := 2147483647

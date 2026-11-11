@@ -1,8 +1,0 @@
-1/7 m7_poseidon2_test_root.test_0...OK
-2/7 crypto.poseidon2_m31_w24.test.Poseidon2 M31 width24 matches pinned Plonky3 known answer...OK
-3/7 crypto.poseidon2_m31_w24.test.Poseidon2 width24 independent dense-matrix vectors and parameter identity...OK
-4/7 fields.m31.test.m31: bounded product reduction matches generic reduction...OK
-5/7 fields.m31.test.m31: generic reduction canonicalizes the full u64 range...OK
-6/7 fields.m31.test.m31: packed four-term dot product matches scalar accumulation...OK
-7/7 fields.m31.test.m31: packed reduction edge cases...OK
-All 7 tests passed.

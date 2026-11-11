@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from opstack.source_identity import compile_sources, require_unchanged
-from scripts.riscv64_csp_compare import elf_info
+from scripts.rv64.riscv64_csp_compare import elf_info
 
 TOOLCHAIN = "nightly-2026-08-08"
 VARIANTS = {

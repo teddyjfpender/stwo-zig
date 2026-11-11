@@ -60,6 +60,8 @@ The transaction exposes runtime initialization, telemetry/lifecycle snapshots,
 fixture proving, verification/consumption, and shutdown. Production callers
 must retain telemetry evidence proving that no fallback path completed.
 
+The current primary module also exports `eval_abi`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
+
 ## Dependencies
 
 - `stwo_backend_contracts`
@@ -113,6 +115,6 @@ session safety, bounded residency, allocation rollback, and zero fallback.
 
 - [Cairo frontend](../../frontends/cairo/README.md)
 - [Metal backend](../../backends/metal/README.md)
-- [Metal session service](../../tools/metal_session/README.md)
-- [Cairo production-port goal](../../../conformance/2026-07-26-stwo-cairo-production-port-goal.md)
+- [Metal session service](../../backends/metal/session/README.md)
+- [Cairo production-port goal](../../../design/decisions/2026-07-26-stwo-cairo-production-port-goal.md)
 - [Repository AOT instructions](../../../README.md#cairo-frontend)

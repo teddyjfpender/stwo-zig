@@ -20,6 +20,6 @@ pub fn identity(profile: Profile) [32]u8 {
         .binary_v1 => "stwo-rv64/word16-cpu/binary-v1/REG6-reset0-clocks24/FUNCTION13-global-ids",
         .alu_binary_v2 => "stwo-rv64/word16-cpu/alu-binary-v2/REG6-reset0-clocks24/ROM23-two-branch-edges/FUNCTION13-global-ids/U16-canonical",
     });
-    if (profile == .alu_binary_v2) hash.update(&@import("../word16_v1/alu_encoding.zig").identity());
+    if (profile == .alu_binary_v2) hash.update(&@import("../word16/alu_encoding.zig").identity());
     return hash.finalResult();
 }

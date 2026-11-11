@@ -14,8 +14,7 @@ import json
 import unittest
 from pathlib import Path
 
-from scripts import riscv_team_b_inventory as inventory_tool
-
+from scripts.riscv import riscv_team_b_inventory as inventory_tool
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "inventory"
 
 

@@ -11,8 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from cuda_build_lib.aot_identity import source_closure_identity  # noqa: E402
-from cuda_build_lib.builder import BuildError, validate_aot_manifest  # noqa: E402
+from scripts.cuda.cuda_build_lib.aot_identity import source_closure_identity  # noqa: E402
+from scripts.cuda.cuda_build_lib.builder import BuildError, validate_aot_manifest  # noqa: E402
 from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
 
 

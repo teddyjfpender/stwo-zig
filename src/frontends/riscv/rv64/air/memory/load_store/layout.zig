@@ -1,0 +1,136 @@
+//! Shared checked LS arithmetic, separate RAM and merged local lookup debt.
+const V1 = @import("../load_store_v1/layout.zig");
+const R = @import("../closed_ram/layout.zig");
+pub const Kind = enum { ls, initial, terminal, range16, range8, selection };
+pub const projection = @import("projection.zig");
+pub const MAIN = projection.MAIN;
+pub const LOCAL_INVERSES = 8;
+pub const LOCAL_PREFIX = LOCAL_INVERSES + 4 * LOCAL_PAIRS;
+pub const INTERACTION = LOCAL_PREFIX + 4;
+// INIT/TEARDOWN keep only the canonical RAM14 tuple prefix of the closed
+// boundary row (active, address4, value4, epoch, tick lo/hi, R, W). Sorted,
+// unique, aligned addresses are NOT re-proved in-chip: every accepting
+// receiver validates them natively on the public cell list and compares the
+// chip's RAM debt exactly against expectedClaim (see
+// design/riscv/rv64-boundary-public-sortedness-v1.md).
+pub const BOUND_MAIN = 14;
+pub const BOUND_INTERACTION = 8;
+// A/I/B come from the closed CPU REG/ROM/OWNER relations. RAM before
+// coordinates inherit canonical produced states; addresses additionally use
+// strict RAM chronology and canonical aligned INIT coverage. RAM after values
+// and load results inherit canonicality by the joint REG/RAM write induction.
+// OWNER and RAM use the same Boolean activity; REG/OWNER close per CPU proof.
+// Keep after clocks, strict gaps, address quotient and the byte split queries.
+pub const LOGICAL_U16 = [_]usize{ 12, 24, 25, 68 };
+pub const LOGICAL_U8 = [_]usize{ 13, 26, 73, 74 };
+pub const U16 = projection.columns(&LOGICAL_U16);
+/// U8 queries include the retired affine b_low (logical 73), so they have no
+/// physical-column map; evaluate them on projection.expandFor rows.
+pub const U8_QUERIES = LOGICAL_U8.len;
+pub const LOCAL_FRACTIONS = 2 + U16.len + U8_QUERIES;
+pub const LOCAL_PAIRS = (LOCAL_FRACTIONS + 1) / 2;
+// Narrow native caches still retain every RAM/OWNER coordinate. Removing a
+// lookup must never remove the metadata needed after MAIN ownership transfer.
+pub const RELATION_U16 = V1.U16;
+pub const RELATION_U8 = V1.U8;
+pub const U16_CACHE = cacheIndices(&LOGICAL_U16, &RELATION_U16);
+pub const U8_CACHE = cacheIndices(&LOGICAL_U8, &RELATION_U8);
+fn cacheIndices(comptime queries: []const usize, comptime cached: []const usize) [queries.len]usize {
+    var result: [queries.len]usize = undefined;
+    for (queries, 0..) |column, at| {
+        result[at] = for (cached, 0..) |c, i| {
+            if (c == column) break i;
+        } else @compileError("missing retained LS relation coordinate");
+    }
+    return result;
+}
+/// Opt-in fused-tail + byte-pair LS layout (Geometry.ls_fused_pairs).
+/// LS: the RAM fraction is fused into the RAM prefix (no RAM inverse); the
+/// eight local fractions (OWNER, U16 x4, two tagged AND-relation byte pairs
+/// (b13,b26),(b73,b74), SELECTION) are three degree-one fraction witnesses
+/// K0=(OWNER,U16_0) K1=(U16_1,U16_2) K2=(U16_3,SELECTION) and the byte-pair
+/// tail fused into the local prefix. INIT/TEARDOWN: the single RAM fraction
+/// is fused into its prefix (no inverse column).
+pub const fused = struct {
+    pub const RAM_PREFIX = 0;
+    pub const WITNESS = 4;
+    pub const WITNESSES = 3;
+    pub const LOCAL_PREFIX = WITNESS + 4 * WITNESSES;
+    pub const INTERACTION = WITNESS + 4 * WITNESSES + 4;
+    pub const BOUND_INTERACTION = 4;
+    /// LS: RAM inverse residual and two local pair inverses disappear.
+    pub const LS_CONSTRAINTS = 257 - 3;
+    /// INIT/TEARDOWN: the single's inverse residual disappears.
+    pub const BOUND_CONSTRAINTS = 25 - 1;
+    /// Two pair queries per LS row (padding included).
+    pub const PAIR_QUERIES = U8_QUERIES / 2;
+};
+pub fn widthsFor(kind: Kind, fused_pairs: bool) [3]usize {
+    if (!fused_pairs) return widths(kind);
+    return switch (kind) {
+        .ls => .{ 3, MAIN, fused.INTERACTION },
+        .initial, .terminal => .{ 3, BOUND_MAIN, fused.BOUND_INTERACTION },
+        else => widths(kind),
+    };
+}
+pub fn constraintsFor(kind: Kind, fused_pairs: bool) usize {
+    if (!fused_pairs) return constraints(kind);
+    return switch (kind) {
+        .ls => fused.LS_CONSTRAINTS,
+        .initial, .terminal => fused.BOUND_CONSTRAINTS,
+        else => constraints(kind),
+    };
+}
+pub fn previousInterForLayout(kind: Kind, fused_pairs: bool, c: usize) bool {
+    if (!fused_pairs) return previousInterFor(kind, c);
+    return switch (kind) {
+        .ls => c < 4 or c >= fused.LOCAL_PREFIX,
+        .initial, .terminal => c < 4,
+        else => previousInterFor(kind, c),
+    };
+}
+/// Separate transcript domain, mixed ONLY when Geometry.ls_fused_pairs is set.
+pub fn fusedPairsIdentity() [32]u8 {
+    const std = @import("std");
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("rv64.load-store-v2.fused-pairs.v1:LS inter20 (RAM fused (S-S'+claim*first)*b*a-active*(a-b); K0*a*b=b*active+a (OWNER,U16_0); K_j*a*b=a+b (U16_1,U16_2),(U16_3,SELECTION); AND-relation tagged pairs (b13,b26),(b73,b74) fused (S-S'+claim*first-K)*p0*p1-(p0+p1)); INIT/TEARDOWN inter4 fused single (S-S'+claim*first)*d-w");
+    return hash.finalResult();
+}
+comptime {
+    if (fused.INTERACTION != 20 or fused.PAIR_QUERIES != 2) @compileError("LS fused-pair ledger mismatch");
+}
+pub fn widths(kind: Kind) [3]usize {
+    return switch (kind) {
+        .ls => .{ 3, MAIN, INTERACTION },
+        .selection => V1.widths(.selection),
+        .initial, .terminal => .{ 3, BOUND_MAIN, BOUND_INTERACTION },
+        .range16 => R.widths(.range16),
+        .range8 => R.widths(.range8),
+    };
+}
+pub fn constraints(kind: Kind) usize {
+    return switch (kind) {
+        .ls => 257,
+        .initial, .terminal => 25,
+        .selection => 3,
+        .range16, .range8 => 3,
+    };
+}
+pub fn previousMainFor(kind: Kind, c: usize) bool {
+    return switch (kind) {
+        .ls => V1.previousMainFor(.ls, c),
+        .initial, .terminal => c == 0,
+        else => false,
+    };
+}
+pub fn previousInterFor(kind: Kind, c: usize) bool {
+    return switch (kind) {
+        .ls => (c >= 4 and c < 8) or c >= LOCAL_PREFIX,
+        .initial, .terminal => c >= 4 and c < 8,
+        else => c >= 4,
+    };
+}
+
+comptime {
+    if (LOCAL_FRACTIONS != 10 or LOCAL_PAIRS != 5 or INTERACTION != 32) @compileError("LS32 query/interaction ledger mismatch");
+}

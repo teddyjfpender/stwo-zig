@@ -1,0 +1,4599 @@
+{
+  "schema": "rv64-productionisation-current/v1",
+  "status": "IN_PROGRESS_CPU_COMPONENT_ACCEPTANCE_FULL_SUITE_OPEN_GPU_EXCLUDED",
+  "updated_utc": "2026-11-09T07:31:39.279196+00:00",
+  "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
+  "branch": "codex/rv64-post-merge-hygiene",
+  "contract": "design/riscv/rv64-gpu-hygiene.md",
+  "budgets": "conformance/rv64-productionisation-budget.json",
+  "consolidation": {
+    "status": "ONE_CANONICAL_WORKTREE_PUBLISHED_ARCHIVE_AND_REMOTE_RETIREMENT_VERIFIED",
+    "canonical": "/Users/theodorepender/Coding/stwo-zig",
+    "worktrees_before": 163,
+    "worktrees_after": 1,
+    "retired_working_copies": 162,
+    "local_m8_m9_branches_archived": 69,
+    "inventory_tag": "archive/consolidation-20261108/inventory",
+    "inventory_commit": "f062114ac634eb0f4a93c1a4f69c4366873c0203",
+    "remote_archive_and_branch_retirement": "VERIFIED_72_LITERAL_BRANCHES_RETIRED",
+    "raw_archive_bytes": 20871331,
+    "origin_distinct_archive_tags": 241,
+    "origin_tag_objects_and_peeled_commits_verified": true,
+    "remote_branches_retired": 72,
+    "recovery_index_tag": "archive/consolidation-20261108/recovery-index-v1",
+    "off_laptop_recovery": {
+      "pod": "cps13bvat3xhdo",
+      "persistent_path": "/workspace/m3/archives/rv64-consolidation-20261108/recovery-bundle-v1",
+      "payload_bytes": 21557449,
+      "manifest_sha256": "8e6a206805e9b9281663368a5c240e95cd5e109e9c0b6f2b0575e903ad4994d7",
+      "status": "EXACT_FILE_SET_AND_HASHES_VERIFIED",
+      "payload_files": 338,
+      "total_files_including_manifest": 339
+    }
+  },
+  "consolidation_inventory_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/retirement-ledger.json",
+  "consolidation_inventory_sha256": "337fcbb5b8079e2673bc283a6cddfdf400d91b79a3d6d88dbec11e38c72d371a",
+  "code_change_costs": {
+    "recursion_custody": {
+      "added": 390,
+      "removed": 264,
+      "net": 126,
+      "flags_added": 0,
+      "scripts_added": 0
+    },
+    "ci_failure_repair": {
+      "added": 10,
+      "removed": 5,
+      "net": 5,
+      "flags_added": 0,
+      "scripts_added": 0
+    },
+    "policy_identity": {
+      "added": 6,
+      "removed": 2,
+      "net": 4,
+      "flags_added": 0,
+      "scripts_added": 0
+    },
+    "python_inner_loop_ownership": {
+      "added": 31,
+      "removed": 1,
+      "net": 30,
+      "flags_added": 0,
+      "scripts_added": 0
+    },
+    "reachability_in_commit_gate": {
+      "added": 1,
+      "removed": 0,
+      "net": 1,
+      "flags_added": 0,
+      "scripts_added": 0
+    },
+    "gate_service_namespace": {
+      "added": 15,
+      "removed": 1,
+      "net": 14,
+      "flags_added": 0,
+      "scripts_added": 0
+    }
+  },
+  "subtraction_baseline": {
+    "code_lines": 2158099,
+    "unique_rv64_flag_tokens_in_code": 294,
+    "m7_m8_flag_tokens": 103,
+    "tracked_receipt_files": 14945,
+    "local_m8_m9_branches": 69
+  },
+  "current_followup_scope": "Post-merge repository hygiene on main-derived branch: explicit installation lifetime owner, package-owned Metal tests, authoritative CI/developer routing, source-bound readers and archived-evidence retirement. No later experimental GPU algorithms/default candidate applied. Remaining static, flag, full-suite, promotion, physical-memory and legacy-sweep gates stay open.",
+  "host_ci_repair": {
+    "native_cuda": "PASS 281/281 ReleaseFast after invalid-free test cleanup",
+    "component_geometry": "PASS exact 2/2 named tests after test-owner discovery fix",
+    "fri": "WORKING_TREE HOST PASS: shared functional pair arithmetic matches independent first-pair oracle; ReleaseFast and ReleaseSafe focused tests and complete optimized core target pass. Hardware follow-up pending.",
+    "full_python_suite": "OPEN: initial 2135-test run has 47 failures/49 errors/61 skipped; four retired-subject discovery errors repaired. 43 selected current source-contract tests also reproduce 11 failures with real Git metadata, so pod prerequisites are not the whole explanation.",
+    "native_source_closure": "OPEN: strict code-only closure encounters three tracked symbol JSON manifests and ADMISSION-V2.md; checker and files are unchanged from baseline; no check suppression",
+    "tooling_inventory": "OPEN: six existing tools roots absent from closed inventory; audit consumers before repair/retirement",
+    "fri_independent_oracle": "First-pair integer modular arithmetic agrees with allocating result and disagrees with optimized in-place result; diagnostic only, production fix pending"
+  },
+  "production_gates": {
+    "canonical_3_plus_3_24628607": "NOT_RUN_FOR_FINAL_SOURCE",
+    "canonical_3_plus_3_26235168": "NOT_RUN",
+    "new_block_setup_miss": "NOT_LANDED",
+    "gpu_native_full_15_basket": "NOT_RUN_FOR_FINAL_SOURCE",
+    "default_flip": "NOT_ELIGIBLE",
+    "legacy_sweep": "WAITING_FOR_PROMOTION",
+    "live_flag_registry_under_60": "REGISTRY_PASS_TARGET_NOT_MET_260_LIVE",
+    "static_gate": "FAIL_121_DIAGNOSTICS_120_PATHS_NO_NEW_BASELINES",
+    "old_receipt_retirement": "PENDING_DEPENDENCY_AUDIT",
+    "remote_branch_archive_retirement": "PASS_72_LITERAL_REFS_AFTER_PUBLISHED_TAGS_AND_OFFHOST_RECOVERY"
+  },
+  "caveats": {
+    "V04": "Closed in checkpoint-7 semantic rejection gates on both development blocks and both paths",
+    "physical_memory_peaks": "OPEN",
+    "production_new_block_latency": "OPEN",
+    "whole_node_graph_replay": "OPEN",
+    "qualified_speedup": "NOT_CLAIMED"
+  },
+  "next_required_work": [
+    "Resolve optimized FRI correctness and remaining CI/static failures without pin, ceiling or baseline suppression",
+    "Dependency-audit and retire frozen admission/two-lane in measured batches with dev_test.py and a default gate",
+    "Archive historical report roots after preserving exact live fixtures; keep current receipts only",
+    "Generate flag owner/default/status/date authority and reject undeclared flags in CI; reach fewer than 60 live flags",
+    "Correct the canonical native comparison preset/addon pin surface, then execute the exact promotion order before held legacy deletion",
+    "After default promotion, measure late feeding and pursue handoff section 5 architectural steps"
+  ],
+  "archive_index": "design/riscv/rv64-archive-index.md",
+  "first_subtractive_batch": {
+    "status": "PASS_REQUIRED_BATCH_GATES_INCLUDED_IN_THIS_DELIVERY_COMMIT",
+    "top_level_scripts_removed": 150,
+    "historical_research_consumers_removed": 63,
+    "exclusive_test_or_fixture_files_removed": 59,
+    "support_package_files_removed": 4,
+    "pure_deleted_code_files": 276,
+    "pure_deleted_code_lines": 67765,
+    "mixed_live_test_lines_removed": 33,
+    "gates": {
+      "focused_python": "PASS actual dev_test.py invocation: 45 tests including service namespace regression",
+      "full_python_via_dev_test": "FAIL initial post-deletion snapshot: 2135 tests, 47 failures, 49 errors, 61 skipped, 533.245s. Four retired-subject discovery errors repaired; fresh focused and 184-test gate suites pass. Repository-wide suite remains unresolved; not all failures are pod prerequisites.",
+      "default_hardware_gate": "PASS corrected namespace: frozen cold/warm parity 39/39 each, 2 fresh CPU accepts, complete selected 19-case semantic corpus; source matches canonical",
+      "test_module_discovery": "PASS 2257 discovered cases, zero module import errors after retiring exclusively historical dynamic-import test owners",
+      "native_custody_gate": "PASS same source: frozen cold/warm parity 39/39 each, 2 fresh CPU accepts, complete selected 19-case semantic corpus"
+    },
+    "live_flags_added": 0,
+    "live_flags_removed": 0,
+    "flag_token_census": {
+      "before": 294,
+      "after": 293,
+      "qualification": "Literal references only; not a live flag registry"
+    },
+    "held_runtime_paths": [
+      "both hybrids",
+      "feeder/provider",
+      "legacy owner-callback"
+    ],
+    "source_conformance": {
+      "status": "FAIL",
+      "distinct_paths": 138,
+      "diagnostics": 139,
+      "baseline_or_ceiling_changes": 0,
+      "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-source-conformance-final.log",
+      "sha256": "a47aa6d4fc8f78a357c77641c0fab94118d1eb019e6d3ef01fee91888182c5e1"
+    },
+    "full_python_initial_log": {
+      "local": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-full-python-initial.log",
+      "sha256": "67b3985e44230b572023d7ed82c07fbcc2ab0a00a7fd151816cb52e0e68cb6d0"
+    },
+    "service_collision_repair": {
+      "cause": "Output basename alone selected an existing historical service directory",
+      "change": "Deterministic absolute output-path identity in service label; no old run deleted",
+      "regression": "Different parents with equal output basenames produce distinct service labels; canonical path aliases are stable",
+      "positive_budget": 15
+    },
+    "subtraction_ledger": {
+      "pure_file_code_lines_removed": 67765,
+      "retired_parts_of_mixed_live_test_files_removed": 33,
+      "retirement_total": 67798,
+      "justified_net_code_growth_including_regressions": 180,
+      "combined_net": -67618,
+      "moves_counted_as_deletions": false
+    },
+    "default_gate_first_attempt": {
+      "status": "FAIL_BEFORE_PROVING",
+      "cause": "Existing service directory selected by basename-only label",
+      "receipt": "/workspace/m3/runs/m8-gn-bind/subtract-batch1-17/default-24628607/gate.json",
+      "preserved": true
+    },
+    "focused_python_log": {
+      "local": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-dev-focused-final.log",
+      "sha256": "f2a98a6ef7c0cd86b2135eb84450a3f57ad88835285ec2478006032da72017ef"
+    },
+    "residual_contract_repro_log": {
+      "local": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-residual-contract-repro.log",
+      "sha256": "02764951c54bfebda8ecb8b8d36e6273a241882bac87753e8c305a301e80f648"
+    },
+    "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+    "delivered_code_cost": {
+      "production_code": {
+        "added": 453,
+        "removed": 42415,
+        "net": -41962
+      },
+      "historical_research_code": {
+        "added": 0,
+        "removed": 25656,
+        "net": -25656
+      },
+      "combined_net": -67618,
+      "scope": "Code extensions in src/scripts/build_support/tools plus separately counted autoresearch; includes untracked code and previous positive custody/CI repairs; excludes documentation/configuration/evidence"
+    }
+  },
+  "hardware_followup": {
+    "scope": "Post-deletion/custody source: block 24628607 only; not a canonical timing run, basket or default promotion",
+    "default_24628607": {
+      "path": "/workspace/m3/runs/m8-gn-bind/subtract-batch1-17/retry-1-default-24628607/gate.json",
+      "sha256": "a168c31a4f32fe62171d2ab2a0b6c9465ad41370cb017612410335ff1e555946",
+      "status": "PASS",
+      "source_manifest_sha256": "98c7eb343ff8756e181b560704660354c94a384b13e3b8303c74d2128740ae3c",
+      "source_files": 8590,
+      "asset_sha256": {
+        "library": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+        "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
+        "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
+        "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139",
+        "driver": "8d8cdd3371cd3c39a56054740258e355475e55abad7ca0a006b7abbd960d7490",
+        "receiver": "6cf5e5e24c2dd9a214a4f9399c8e3ccd498390c38a613f6184ff34756bff7470"
+      },
+      "parity": [
+        {
+          "byte_identical": true,
+          "artifact_count": 39
+        },
+        {
+          "byte_identical": true,
+          "artifact_count": 39
+        }
+      ],
+      "receiver_acceptance": {
+        "status": "FRESH_ISOLATED_CPU_ACCEPTED",
+        "proofs": 2,
+        "receiver_sha256": "6cf5e5e24c2dd9a214a4f9399c8e3ccd498390c38a613f6184ff34756bff7470"
+      },
+      "corpus_acceptance": {
+        "status": "PASS",
+        "receiver_sha256": "6cf5e5e24c2dd9a214a4f9399c8e3ccd498390c38a613f6184ff34756bff7470",
+        "cpu_isolation_checked": true,
+        "required_cases": 19,
+        "completed_cases": 19,
+        "out_of_scope_pending_cases": 105,
+        "semantic_rejection_complete": true,
+        "nonsemantic_rejects": {}
+      },
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ],
+      "source_matches_delivery_commit": true
+    },
+    "native_24628607": {
+      "path": "/workspace/m3/runs/m8-gn-bind/subtract-batch1-17/native-24628607/gate.json",
+      "sha256": "30c412d4fe2285a2b79047b924115bea6dccc02e9ed2928446e41348f3faea1c",
+      "status": "PASS",
+      "source_manifest_sha256": "98c7eb343ff8756e181b560704660354c94a384b13e3b8303c74d2128740ae3c",
+      "source_files": 8590,
+      "asset_sha256": {
+        "library": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+        "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
+        "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
+        "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139",
+        "driver": "8d8cdd3371cd3c39a56054740258e355475e55abad7ca0a006b7abbd960d7490",
+        "receiver": "6cf5e5e24c2dd9a214a4f9399c8e3ccd498390c38a613f6184ff34756bff7470"
+      },
+      "extra_env": {
+        "STWO_RV64_M8_GPU_NATIVE": "1",
+        "STWO_RV64_M8_GPU_NATIVE_REUSE": "1",
+        "STWO_RV64_M8_JOBS": "1",
+        "STWO_RV64_M9_CLASS_PACKED_INGRESS": "1",
+        "STWO_RV64_NVTX": "1"
+      },
+      "jobs_env": {
+        "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-gn-codec/addon-5/libstwo-rv64-jobs.so",
+        "STWO_RV64_M8_OUTER_FS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-4/libstwo-rv64-outer-fs-ops.so",
+        "STWO_RV64_M8_JOBS_PINNED_BYTES": "2365587456",
+        "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": "2147483648"
+      },
+      "jobs_env_sha256": {
+        "STWO_RV64_M8_JOBS_LIBRARY": "a8691a96b4192036147e9810e0ab4a5ada929cb55726d2d876a047774c9cfebb",
+        "STWO_RV64_M8_OUTER_FS_LIBRARY": "ba6ffb21ab246b72ab3d23950d20c24f14039cc9d3f54d07ed6e3129cc5f4677"
+      },
+      "parity": [
+        {
+          "byte_identical": true,
+          "artifact_count": 39
+        },
+        {
+          "byte_identical": true,
+          "artifact_count": 39
+        }
+      ],
+      "receiver_acceptance": {
+        "status": "FRESH_ISOLATED_CPU_ACCEPTED",
+        "proofs": 2,
+        "receiver_sha256": "6cf5e5e24c2dd9a214a4f9399c8e3ccd498390c38a613f6184ff34756bff7470"
+      },
+      "corpus_acceptance": {
+        "status": "PASS",
+        "receiver_sha256": "6cf5e5e24c2dd9a214a4f9399c8e3ccd498390c38a613f6184ff34756bff7470",
+        "cpu_isolation_checked": true,
+        "required_cases": 19,
+        "completed_cases": 19,
+        "out_of_scope_pending_cases": 105,
+        "semantic_rejection_complete": true,
+        "nonsemantic_rejects": {}
+      },
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ],
+      "source_matches_delivery_commit": true
+    },
+    "status": "PASS_DEFAULT_AND_NATIVE_24628607_ONLY",
+    "runtime": {
+      "path": "/workspace/m3/build/m8-gn-codec/addon-5/runtime.json",
+      "sha256": "6552d5be19a07efc442e227610ce6010260dfd3b232dd55bdd7629c1e3ff9e47"
+    },
+    "unit_results": {
+      "zig_passed": 1398,
+      "zig_skipped": 16,
+      "python_passed": 184,
+      "counts_repeat_between_gates": true
+    },
+    "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713"
+  },
+  "initial_four_gate_qualified_commit": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
+  "initial_four_gate_receipt": "vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-7.json",
+  "named_edits_delivery": {
+    "paths": [
+      "design/riscv/rv64-gpu-hygiene.md",
+      "design/riscv/rv64-m8-handoff.md",
+      "scripts/dev_test.py"
+    ],
+    "status": "COMMITTED_AND_PUSHED",
+    "preservation": "Pre-deletion snapshot in verified off-laptop recovery bundle; subsequent work in canonical checkout",
+    "commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713"
+  },
+  "working_tree_followup": {
+    "status": "CANDIDATE_COMPONENTS_PASS_FULL_PROOF_GATES_PENDING",
+    "base_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+    "measured_code": {
+      "added": 559,
+      "removed": 1101,
+      "net": -542
+    },
+    "per_change": {
+      "fri": {
+        "net": 0,
+        "focused_optimized": "PASS 20/20 after independently demonstrated 19/20 baseline failure",
+        "focused_safe": "PASS",
+        "complete_optimized_core_target": "PASS via dev_test.py"
+      },
+      "optimized_developer_route": {
+        "net": 28
+      },
+      "two_lane": {
+        "net": -85,
+        "runtime_flags_removed": [
+          "STWO_RV64_RECURSION_SESSIONS",
+          "STWO_RV64_RECURSION_LANES_PER_DEVICE"
+        ],
+        "remaining_runtime_readers": 0,
+        "component": "PASS: package-owned std-only CPU DAG tests via dev_test.py --optimize ReleaseFast on pod",
+        "default_gate": "PENDING"
+      },
+      "native_comparison_authority": {
+        "net": 37,
+        "retired_cli_modes": 6,
+        "host_contracts": "PASS 72 selected tests; counts overlap with other suites"
+      },
+      "projection_investigation": {
+        "status": "PASS_SHARED_BYTE_SHIFT_OWNER_FOCUSED_AND_COMPLETE_OPTIMIZED_PACKAGE",
+        "complete_optimized_cuda_package": "PASS via dev_test.py after mandatory fixture cwd correction",
+        "focused_native_gkr_target": "PASS all descriptor/parameter modes plus independent integer byte-shift regression",
+        "failure": "ucopy descriptor 37 random-challenge denominator disagrees between scalar source and recorded projection IR",
+        "focused_log": "/workspace/m3/runs/m8-gn-bind/production-18/projection-focused-fast.log",
+        "oracle_probe": "/workspace/m3/runs/m8-gn-bind/production-18/projection-oracle-fast.log",
+        "oracle_probe_status": "FAIL_REPRODUCED_SCALAR_SOURCE_LOW_LIMB_MATCHES_INDEPENDENT_INTEGER_ORACLE",
+        "baseline_attribution": "NOT_YET_ESTABLISHED",
+        "ucopy_low_limb_oracle": 971785791,
+        "ucopy_low_limb_scalar": 971785791,
+        "projection_program_identity": "42da75cc7c3db6ae87c93c0f617b906fa0e42411efef6a029515010fcdc6331e",
+        "code_net": 24,
+        "initial_fault": "Scalar emitted byte-shift tuple differs from independent integer polynomial; recorder and interpreter agree with their inputs",
+        "independent_oracles": [
+          "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/projection-independent-denominator-oracle.json",
+          "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/projection-sponge-independent-oracle.json"
+        ],
+        "post_repair_hardware": "NOT_YET_RUN"
+      },
+      "recursion_dag_build_owner": {
+        "net": 3,
+        "status": "PASS_VIA_DEV_TEST_RELEASEFAST",
+        "log": "/workspace/m3/runs/m8-gn-bind/production-18/recursion-dag-focused-fast.log",
+        "log_sha256": "619887d4192b4011e59eda18f8bd7aa1b8c4a5c8886bd90ac917f4a6c9365117",
+        "source_files_sha256": {
+          "src/integrations/riscv_cpu/build.zig": "5adab57910bbb04598befe236256f0fddc31a0ada33c4f179fb42d2ceea72123",
+          "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig": "fb1269eae4d04b4d36be313d4ff2f7e30a5e221d0aec5487718d8554631beaa1",
+          "scripts/dev_test.py": "46c6ed008d58663b72e072784c895bb4c4a702d8bb4e278f566ec56ea1e6be2e"
+        }
+      },
+      "flag_registry": {
+        "code": {
+          "added": 259,
+          "removed": 1,
+          "net": 258
+        },
+        "path": "conformance/rv64-flags.json",
+        "status": "PASS_DECLARATIONS_REFERENCES_AND_HOST_TESTS",
+        "live_controls": 260,
+        "counts_include_qualification_controls": true,
+        "declared_names": 297,
+        "constants": 34,
+        "reference_only_names": 3,
+        "strict_release_target": "FAIL_EXPECTED: live target and remaining M7/M8 switches",
+        "new_runtime_flags": 0,
+        "new_cli_modes": 3,
+        "new_top_level_scripts": 0,
+        "new_library_files": 1,
+        "new_test_files": 1,
+        "generated_metadata_lines": 4042,
+        "baseline_or_ceiling_changes": 0
+      },
+      "native_closure_metadata": {
+        "net_code": 0,
+        "status": "PASS_STRICT_CLOSURE",
+        "files": 224,
+        "implementation_files": 112,
+        "closure_sha256": "9f291ec9c9db1bf0d14f2d5bc90cb66d8fb18d418cbd0424f120a199ff27283c",
+        "moves_byte_identical": 4,
+        "moves_counted_as_deletions": false,
+        "required_exports": {
+          "rv64": 124,
+          "circuit_om31": 37,
+          "circuit_om31_trace": 40
+        },
+        "move_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/native-closure-metadata-moves.json"
+      },
+      "live_validation_fixtures": {
+        "status": "BYTE_IDENTICAL_MIGRATION_AND_HOST_AND_OPTIMIZED_RUNTIME_TESTS_PASS",
+        "files_moved": 175,
+        "bytes": 13094934,
+        "manifest": "vectors/riscv/fixtures/rv64-validation-fixtures.json",
+        "code_net": -4,
+        "moves_counted_as_deletions": false,
+        "missing_committed_policy_fixture_skips_removed": 1,
+        "fixture_inputs_are_source_pinned": true
+      },
+      "retired_probe_tools": {
+        "status": "ARCHIVE_PRESERVED_AND_DELETED_FULL_PROOF_GATE_PENDING",
+        "files_removed": 7,
+        "code_net": -801,
+        "python_utilities_removed": 4,
+        "native_probe_sources_removed": 3,
+        "top_level_scripts_removed": 0,
+        "runtime_stwo_flags_removed": 0,
+        "historical_non_stwo_flags_removed": 3,
+        "active_measurement_counters_and_callsites_preserved": true
+      },
+      "policy_evidence_ownership": {
+        "status": "PASS_SOURCE_FREEZE_REGRESSION",
+        "code_net": -2,
+        "immutable_owners": [
+          "budget policy",
+          "maintained validation fixtures",
+          "workflow and project policy"
+        ],
+        "observed_results_owner": "current.json#budget_results",
+        "new_source_hash_exclusions": 0
+      },
+      "package_fixture_cwd": {
+        "status": "PASS_COMPLETE_OPTIMIZED_CUDA_PACKAGE",
+        "code_net": 0,
+        "shared_runner": "jobTestStep",
+        "initial_full_package_failure_preserved": "/workspace/m3/runs/m8-gn-bind/production-18/full-cuda-after-byte-shift-fast.log"
+      }
+    },
+    "scripts_added": 0,
+    "scripts_removed": 0,
+    "runtime_flags_added": 0,
+    "runtime_flags_removed": 2,
+    "hardware_gate": "PENDING_FOR_CURRENT_SOURCE",
+    "component_session": "rv64-production-18-components",
+    "component_run_root": "/workspace/m3/runs/m8-gn-bind/production-18",
+    "comparison_scope": "Six strict quiet services alternating default/native; all cold/warm proofs freshly verified after timing. Physical guard remains mandatory on native. No timing run or speedup is claimed.",
+    "source_conformance": {
+      "status": "FAIL",
+      "distinct_paths": 138,
+      "diagnostics": 139,
+      "sha256": "7efebd1148a06c8b69b5e7b08b070486fab1daaa8c3119da9200014c363b08c3",
+      "baseline_or_ceiling_changes": 0
+    },
+    "measurement_note": "Complete pending code diff against 7c0686ae7 including both new Python library/test files. Every line is charged once; four non-code moves are not deletions. Registry +258 code lines is within its predeclared +350 invariant budget.",
+    "host_contracts": {
+      "status": "PASS",
+      "tests": 118,
+      "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch3-host-contracts-final.log",
+      "sha256": "ac096924ac114c8fa5613072df0c2d32db154c1b1b61cfa5000831bdcaced417",
+      "scope": "No hardware or full proof qualification; distinct focused Python tests, not the complete surviving Python suite"
+    },
+    "cli_modes_added": 4,
+    "cli_modes_removed": 6,
+    "code_cost_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch3-code-costs.json",
+    "intentionally_pending": "The candidate is component-tested. Its exact local commit and subsequent full-proof results will be recorded in the evidence receipt; push remains pending those proof regressions.",
+    "complete_optimized_cuda_package": {
+      "status": "PASS",
+      "log": "/workspace/m3/runs/m8-gn-bind/production-18/full-cuda-fixture-cwd-fast.log",
+      "local_log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/full-cuda-fixture-cwd-fast.log",
+      "sha256": "e4a44888f377d306b755afb8dd91ec6d23e1379946e2b2ff0734e726cf7fb619",
+      "scope": "Host integration tests; no hardware or speedup qualification"
+    },
+    "qualification_not_inherited_from_previous_commit": true
+  },
+  "running_subtraction_total": {
+    "baseline": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
+    "delivered_code_net": -68160,
+    "pending_code_net": 234,
+    "combined_code_net": -67926,
+    "production_code_net": -42270,
+    "historical_research_code_net": -25656,
+    "top_level_scripts_removed": 150,
+    "runtime_flags_removed": 2,
+    "runtime_flags_added": 0,
+    "live_flag_registry": "IMPLEMENTED260live; strictunder60andM7/M8retirement OPEN",
+    "historical_tool_python_utilities_removed": 4,
+    "historical_non_stwo_flags_removed": 3
+  },
+  "latest_goal_turn": {
+    "classification": "PROGRESS_CPU_ONLY_COMPLETE_FOCUSED_DISCOVERY",
+    "evidence": "All 79 focused targets now have positive measured floors. Seventeen clean target owners pass; both semantic modes and inventory/legacy checks pass. All eight direct partition images compile under unchanged guards; complete warm guest owner passes while AIR retains six throughput failures. Two first aggregate commands hit the unchanged time guard. Runtime-profile pin cause is established without changing its golden or source admission. Global findings remain 103/393, no GPU work."
+  },
+  "budget_results": {
+    "worktree_consolidation": {
+      "actual_worktrees_before": 163,
+      "actual_worktrees_after": 1,
+      "retired_working_copies": 162,
+      "status": "VERIFIED_LOCAL"
+    },
+    "recursion_custody": {
+      "actual": {
+        "added": 390,
+        "removed": 264,
+        "net": 126,
+        "flags_added": 0,
+        "scripts_added": 0
+      },
+      "validation": "105 focused and 305 broader host tests pass; counts overlap; full-proof follow-up remains pending"
+    },
+    "ci_failure_repair": {
+      "actual": {
+        "added": 10,
+        "removed": 5,
+        "net": 5,
+        "flags_added": 0,
+        "scripts_added": 0
+      },
+      "status": "PARTIAL_281_NATIVE_AND_2_GEOMETRY_PASS_FRI_OPEN"
+    },
+    "policy_identity": {
+      "actual": {
+        "added": 6,
+        "removed": 2,
+        "net": 4,
+        "flags_added": 0,
+        "scripts_added": 0
+      }
+    },
+    "unreachable_script_retirement": {
+      "status": "DELIVERED_DEFAULT_AND_NATIVE_24628607_GATES_PASS",
+      "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+      "evidence": "vectors/reports/rv64-productionisation/current.json#hardware_followup",
+      "scope_note": "Delivered first batch only; subsequent working-tree changes have no full-proof gate result yet."
+    },
+    "flag_registry": {
+      "status": "DECLARATION_AND_CI_AUTHORITY_PASS_LIVE_TARGET_OPEN",
+      "scope_note": "The initial registry must expose all remaining flags and source-defined defaults; it must not claim the under-60 target before ordered native promotion and legacy retirement. Existing source-conformance entrypoint owns checking and reference regeneration; no new top-level launcher.",
+      "actual": {
+        "added": 259,
+        "removed": 1,
+        "net": 258,
+        "runtime_flags_added": 0,
+        "top_level_scripts_added": 0,
+        "cli_modes_added": 3
+      },
+      "live_controls": 260,
+      "declared_names": 297,
+      "constants": 34,
+      "reference_only_names": 3,
+      "generated_metadata": {
+        "path": "conformance/rv64-flags.json",
+        "lines": 4042,
+        "counted_as_code": false
+      },
+      "strict_release_enforced": true,
+      "validation": "116 distinct focused host tests pass across registry, CI, routing, source conformance and shared validators; strict promotion check correctly fails 260 >= 60 and pending M7/M8 switches. No baseline or ceiling change."
+    },
+    "new_block_setup_miss": {
+      "status": "NOT_LANDED"
+    },
+    "legacy_retirement_after_default_flip": {
+      "status": "NOT_ELIGIBLE_YET"
+    },
+    "historical_receipt_archive": {
+      "status": "TAGGED_BASELINE_ACTIVE_TREE_RETIREMENT_PENDING"
+    },
+    "retired_script_closure_batch_1": {
+      "status": "DELIVERED_DEFAULT_AND_NATIVE_24628607_GATES_PASS",
+      "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+      "evidence": "vectors/reports/rv64-productionisation/current.json#hardware_followup",
+      "scope_note": "Delivered first batch only; subsequent working-tree changes have no full-proof gate result yet."
+    },
+    "python_inner_loop_ownership": {
+      "status": "PASS_FOCUSED_FULL_SUITE_REVEALED_OPEN_FAILURES"
+    },
+    "retired_script_support_closure_1": {
+      "status": "DELIVERED_DEFAULT_AND_NATIVE_24628607_GATES_PASS",
+      "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+      "evidence": "vectors/reports/rv64-productionisation/current.json#hardware_followup",
+      "scope_note": "Delivered first batch only; subsequent working-tree changes have no full-proof gate result yet."
+    },
+    "frozen_admission_two_lane_retirement": {
+      "status": "TWO_LANE_IMPLEMENTED_DEFAULT_GATE_PENDING_ADMISSION_DEPENDENCY_AUDIT_OPEN"
+    },
+    "retired_dynamic_import_test_closure_1": {
+      "status": "PASS_44_FOCUSED_TESTS_AND_ZERO_DISCOVERY_IMPORT_ERRORS"
+    },
+    "gate_service_namespace_collision": {
+      "status": "DELIVERED_DEFAULT_AND_NATIVE_24628607_GATES_PASS",
+      "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+      "evidence": "vectors/reports/rv64-productionisation/current.json#hardware_followup",
+      "scope_note": "Delivered first batch only; subsequent working-tree changes have no full-proof gate result yet."
+    },
+    "fri_in_place_correctness_and_shared_pair_arithmetic": {
+      "status": "IMPLEMENTED_VALIDATION_IN_CURRENT_RECEIPT",
+      "actual": {
+        "added": 13,
+        "removed": 13,
+        "net": 0,
+        "flags_added": 0,
+        "scripts_added": 0
+      }
+    },
+    "developer_optimized_reproduction": {
+      "status": "IMPLEMENTED_VALIDATION_IN_CURRENT_RECEIPT",
+      "actual": {
+        "added": 35,
+        "removed": 7,
+        "net": 28,
+        "runtime_flags_added": 0,
+        "top_level_scripts_added": 0,
+        "cli_modes_added": 1
+      },
+      "scope_note": "All dev_test.py and test_dev_test.py changes in this wave are charged here, including optimized mode and projection/DAG routing; those lines are not charged again to their component entries."
+    },
+    "frozen_two_lane_retirement": {
+      "status": "IMPLEMENTED_PENDING_COMPONENT_AND_DEFAULT_GATES",
+      "actual": {
+        "added": 15,
+        "removed": 90,
+        "net": -75,
+        "runtime_flags_removed": 1,
+        "top_level_scripts_removed": 0
+      }
+    },
+    "native_canonical_comparison_authority": {
+      "status": "IMPLEMENTED_HOST_CONTRACT_TESTS_PASS_HARDWARE_PENDING",
+      "scope_note": "Canonical comparisons freshly verify every cold/warm proof after all timing services. Retire its reference-only pruning mode and exclusively owned test; the independent basket workflow is preserved.",
+      "actual": {
+        "added": 173,
+        "removed": 136,
+        "net": 37,
+        "runtime_flags_added": 0,
+        "scripts_added": 0,
+        "cli_flags_removed": 6,
+        "flags_added": 0
+      }
+    },
+    "optimized_projection_failure": {
+      "status": "PASS_OPTIMIZED_SOURCE_AND_PACKAGE_TESTS_HARDWARE_PENDING",
+      "actual": {
+        "added": 35,
+        "removed": 11,
+        "net": 24
+      },
+      "scope_note": "One shared byte-shift polynomial owner replaces context-sensitive scalar sums in bulk and sponge source emitters. The complete property test and independent modular-reference regression remain; temporary dumps removed."
+    },
+    "two_lane_remaining_cpu_reader": {
+      "status": "IMPLEMENTED_FOCUSED_RELEASEFAST_PASS_DEFAULT_GATE_PENDING",
+      "actual": {
+        "added": 1,
+        "removed": 11,
+        "net": -10,
+        "runtime_flags_removed": 1,
+        "top_level_scripts_removed": 0
+      }
+    },
+    "native_source_closure_metadata_ownership": {
+      "status": "PASS_STRICT_NATIVE_CLOSURE_AND_BYTE_PRESERVATION",
+      "actual": {
+        "added": 2,
+        "removed": 2,
+        "net": 0,
+        "runtime_flags_added": 0,
+        "top_level_scripts_added": 0
+      },
+      "moves": 4,
+      "moves_counted_as_deletions": false,
+      "closure_files": 224,
+      "implementation_files": 112,
+      "closure_sha256": "9f291ec9c9db1bf0d14f2d5bc90cb66d8fb18d418cbd0424f120a199ff27283c",
+      "move_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/native-closure-metadata-moves.json"
+    },
+    "recursion_dag_inner_loop_owner": {
+      "status": "PASS_VIA_DEV_TEST_RELEASEFAST_ON_POD",
+      "actual": {
+        "added": 3,
+        "removed": 0,
+        "net": 3,
+        "runtime_flags_added": 0,
+        "top_level_scripts_added": 0
+      },
+      "scope_note": "Package build target only; route and its host regression are charged to developer_optimized_reproduction. Existing broad CI coverage is unchanged."
+    },
+    "live_validation_fixture_ownership": {
+      "status": "PASS_PRESERVATION_HOST_AND_OPTIMIZED_RUNTIME_CHECKS",
+      "actual": {
+        "added": 6,
+        "removed": 10,
+        "net": -4
+      },
+      "files_moved": 175,
+      "bytes": 13094934,
+      "moves_counted_as_deletions": false
+    },
+    "retired_rv64_probe_tool_roots": {
+      "status": "PRESERVED_THEN_DELETED_FULL_PROOF_GATES_PENDING",
+      "actual": {
+        "added": 0,
+        "removed": 801,
+        "net": -801
+      },
+      "files_removed": 7
+    },
+    "budget_policy_and_evidence_ownership": {
+      "status": "PASS_IMMUTABLE_POLICY_FIXTURE_AND_MUTABLE_RESULT_BOUNDARY",
+      "actual": {
+        "added": 15,
+        "removed": 17,
+        "net": -2
+      },
+      "new_source_hash_exclusions": 0
+    },
+    "package_test_fixture_working_directory": {
+      "status": "PASS_COMPLETE_OPTIMIZED_PACKAGE",
+      "actual": {
+        "added": 2,
+        "removed": 2,
+        "net": 0
+      }
+    },
+    "post_merge_source_contract_definition_owners": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 58,
+        "removed": 11,
+        "net": 47,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "before": "52tests13failures",
+      "after": "53testsPASS",
+      "claim_scope": "source-reader/canonical-definition binding; no runtime behavior changes"
+    },
+    "post_merge_metal_test_package_owners": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 121,
+        "removed": 34,
+        "net": 87,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "original_named_test_bodies_preserved": 84,
+      "exporter_cli_preserved": true,
+      "lines_moved_zero_deletion_credit": 2093,
+      "mandatory_package_targets": true,
+      "semantic_zig_compile": "PENDING_NOT_CLAIMED"
+    },
+    "post_merge_installation_lifetime_owner": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 434,
+        "removed": 381,
+        "net": 53,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "owner_lines": 372,
+      "request_driver_lines": 747,
+      "bounded_fake_device_entries": 42,
+      "bounded_seconds": 9.730255791975651,
+      "bounded_peak_group_rss_kib": 554928,
+      "warm_census_size_default_algorithms": "PRESERVED",
+      "fix": "partial peer-table allocator rollback",
+      "cache_callback_address_stability": "PASS",
+      "independent_review": "NO_MATERIAL_BLOCKERS"
+    },
+    "post_merge_developer_policy_routing": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 188,
+        "removed": 23,
+        "net": 165,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "host_tests": 143,
+      "existing_owner_reuse": [
+        "ci_scope_push.locally_runnable",
+        "ci_scope_run CLI expansion/receipts"
+      ],
+      "review_findings_closed": [
+        "all input typos fail before planning",
+        "hosted lanes defer explicitly",
+        "raw CI output placeholders delegate to existing runner",
+        "check-only never launches unfocused/full CI build"
+      ],
+      "noarg_plan": "PASS6commands with explicit CI deferrals; not execution/pass of those lanes",
+      "independent_review": "NO_FURTHER_MATERIAL_BLOCKERS"
+    },
+    "post_merge_historical_receipt_retirement": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 8,
+        "removed": 9,
+        "net": -1,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "report_files_retired": 7004,
+      "evidence_bytes_removed": 1570076423,
+      "fixtures_moved_byte_identical": 34,
+      "moved_fixture_bytes": 11551802,
+      "maintained_fixture_pins_verified": 209,
+      "recursive_fixture_edges_verified": 28,
+      "source_snapshots_counted_as_code_removal": 0,
+      "existing_host_tests": 51
+    },
+    "post_merge_unreachable_metal_compile_wrappers": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 0,
+        "removed": 246,
+        "net": -246,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "files_removed": 5,
+      "bytes_removed": 15064,
+      "archive_blob_bytes_verified": true,
+      "host_conformance_tests": 31,
+      "static_before": 128,
+      "static_after": 123,
+      "new_findings": 0
+    },
+    "post_merge_native_class_protocol_owners": {
+      "net": 57,
+      "status": "HOST_LEAF_AND_FAKE_CONSUMERS_PASS_PACKAGE_BUILD_CAP_STOPPED",
+      "owners": {
+        "facade_lines": 790,
+        "class_lines": 186,
+        "protocol_lines": 127
+      },
+      "preserved": "wire/status declarations, field defaults, canonical buffer/public aliases",
+      "fix": "built plan destroyed once on map insertion OOM or forged key",
+      "host_leaf": "PASS4 tests4.263s308656KiB",
+      "fake_consumers": "PASS60entries11.075s611584KiB",
+      "package_target": "NOT_COMPLETED_RSS_CAP789760KiB",
+      "independent_review": "CLEAR",
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "hardware": "PENDING_NOT_CLAIMED"
+    },
+    "post_merge_driver_test_fixture_owners": {
+      "net": 30,
+      "status": "PRESERVATION_AND_HOST_CASES_PASS",
+      "owners": {
+        "request_lines": 599,
+        "fixture_lines": 521,
+        "service_lines": 227
+      },
+      "original_named_tests_preserved": 28,
+      "test_bodies": "identical after fixture namespace qualification only",
+      "mandatory_discovery": true,
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "hardware": "PENDING_NOT_CLAIMED"
+    },
+    "post_merge_x0_runtime_adapter_ownership": {
+      "net": 20,
+      "status": "SOURCE_CLOSURE_PASS_RUNTIME_COMPILE_PENDING",
+      "adapters_moved": 3,
+      "callers_migrated": 6,
+      "runtime_assertions": "preserved in existing extraction inventory owner",
+      "pure_assertions": "preserved",
+      "source_closure_tests": "PASS12",
+      "independent_review": "CLEAR",
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "hardware": "PENDING_NOT_CLAIMED"
+    },
+    "post_merge_closure_definition_refresh": {
+      "net": 14,
+      "status": "TARGETED_CONTRACTS_PASS",
+      "actual_build_owner": "build.zig",
+      "literal_new_dependency": "std-only blake3_identity_digest.zig",
+      "mutation_rejection": [
+        "CPU backend import",
+        "prover engine import"
+      ],
+      "prefix_named_generated_boundaries": "unchanged",
+      "full_original_module": "40PASS/41 tests; one held detached CPU-fixture error",
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "hardware": "PENDING_NOT_CLAIMED"
+    },
+    "post_merge_recursion_contract_test_owner": {
+      "net": 8,
+      "status": "BODY_AND_DISCOVERY_PRESERVED",
+      "case_class_byte_identical": true,
+      "aggregate_owner_lines": 267,
+      "recursion_owner_lines": 619,
+      "original_module_discovery": "retained through concrete imported TestCase; helper not glob-discovered twice",
+      "targeted_tests": "PASS15",
+      "combined_python_check": "144PASS/145tests; one pre-existing CPU-fixture dependency error",
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "hardware": "PENDING_NOT_CLAIMED"
+    },
+    "delivery_restore_live_test_coverage": {
+      "added": 5247,
+      "removed": 6,
+      "net": 5241,
+      "status": "LEXICAL_DISCOVERY_VALIDATED",
+      "restored_test_files": 54,
+      "restored_lexical_test_blocks": 94,
+      "additional_existing_test_owners_collected": 107,
+      "zig_ast_check": "PASS",
+      "frontend_inventory": "PASS_TWO_TESTS_WITH_FLOOR",
+      "semantic_compilation_of_complete_restored_suite": "PENDING",
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false
+    },
+    "delivery_restore_named_authority_and_cpu_tests": {
+      "added": 2299,
+      "removed": 0,
+      "net": 2299,
+      "status": "PARTIAL_CPU_VALIDATION",
+      "restored_test_files": 7,
+      "restored_lexical_test_blocks": 41,
+      "test_only_support_owners": 4,
+      "authority_contracts": "PASS_DEBUG_EXECUTION_FLOOR_12",
+      "services_truth_contracts": "PASS_DEBUG_CPU_EXECUTION_FLOOR_22",
+      "division_contracts": "PASS_RELEASEFAST_EXECUTION_VIA_UNCHANGED_IMAGE_PROGRAM_ROOT; standalone compilation stopped at local 4 GiB process-group RSS guard",
+      "core_fields_fri_pcs": "PASS_DEBUG_AND_RELEASEFAST",
+      "routing_python": "PASS_31",
+      "p003_and_r006_python": "PASS_37",
+      "flags_added": 0,
+      "flags_removed": 0,
+      "live_flags": 249,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "local_log_directory": "/Users/theodorepender/Coding/stwo-zig-evidence/local/delivery-20261108",
+      "gpu_scope": "EXCLUDED_BY_USER; no hardware qualification claimed",
+      "runtime_followup": {
+        "status": "PASS_RELEASEFAST_RESTORED_CPU_RUNTIME",
+        "tested_commit": "8b918a7935bdaf9a79df258ffc381c54149bd731",
+        "tested_tree": "85fb0ced83da2418d233e03ebfa3f79a2c7e8c1f",
+        "suite_cases": {
+          "image_program_including_division": 76,
+          "gkr_services_truth": 90
+        },
+        "counts_may_overlap": true,
+        "retained_floors": {
+          "image_program": 23,
+          "division": 7,
+          "gkr_services_truth": 22
+        },
+        "scope": "Native macOS ReleaseFast execution of restored CPU contract cases and dependency tests. Standalone division compilation remains memory-guard-stopped; the unchanged division root is included in the successful image/program execution. No complete block, full product, security, GPU or performance qualification.",
+        "standalone_division_attempt": {
+          "status": "STOPPED_MEMORY_GUARD",
+          "observed_peak_rss_bytes": 4297687040
+        }
+      }
+    },
+    "delivery_cpu_continuation_20261109": {
+      "baseline_commit": "c022b903bf876bdbaa6dddebf831b399055b1531",
+      "policy_entries": [
+        "delivery_cairo_generator_toolchain_selection",
+        "delivery_core_borrowed_proof_capture_tests",
+        "delivery_bounded_lt_comparator_kernel_proof",
+        "delivery_restore_transcript_parity_contracts",
+        "delivery_restore_typed_component_contracts",
+        "delivery_preserve_carried_sail_artifact_identity",
+        "delivery_bounded_shift_publication_owners",
+        "delivery_source_metadata_formal_guard_rebind",
+        "delivery_restore_image_program_and_binary_tests",
+        "delivery_restore_live_fri_frontier_contracts",
+        "delivery_restore_pruned_discovery_floors",
+        "delivery_refinement_entrypoint_identity_probe_path"
+      ],
+      "net_code_budget_sum": 4840,
+      "metrics": {
+        "code": {
+          "added": 4359,
+          "removed": 241,
+          "net": 4118
+        },
+        "generated_source": {
+          "added": 167,
+          "removed": 160,
+          "net": 7
+        },
+        "documentation": {
+          "added": 455,
+          "removed": 1,
+          "net": 454
+        },
+        "configuration_other": {
+          "added": 299,
+          "removed": 215,
+          "net": 84
+        },
+        "receipts_vectors": {
+          "added": 718,
+          "removed": 932,
+          "net": -214
+        }
+      },
+      "moves_excluded": {
+        "rv64_inventory_imports": 70,
+        "shift_proof_body_lines_before_split": 5113
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "declared": 286,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "positive_growth_owner": "Restored live regression checks and test-only reference owners; bounded kernel proof ownership and strict discovery gates. No production runtime algorithm is added.",
+      "status": "CPU_CONTRACTS_AND_CARRIED_REFINEMENT_VALIDATED; PRODUCTIONISATION_INCOMPLETE",
+      "retained_contracts": {
+        "borrowed_capture": "PASS_DEBUG_AND_RELEASEFAST_EXACT_SIX_IDENTITIES",
+        "typed_components_and_transcript": "PASS_DEBUG_AND_RELEASEFAST",
+        "inventory": "PASS_DEBUG_CURRENT; earlier ReleaseFast checker execution passed",
+        "image_program_division": "PASS_SEMANTIC_ONLY; execution pending",
+        "distributed_binary_manifest": "PASS_DEBUG_PROVIDER_SCOPE; not CPU acceptance",
+        "fri_frontier": "PASS_DEBUG_TWO_LIVE_CASES",
+        "six_restored_original_floors": "PASS_DEBUG"
+      },
+      "formal_kernel": {
+        "serial_modules": 134,
+        "pinned_theorems": 4681,
+        "newly_audited_helper_theorems": 39,
+        "prior_theorems_removed": 0,
+        "exact_axiom_inventory": "PASS",
+        "approved_axioms": [
+          "Classical.choice",
+          "Quot.sound",
+          "propext"
+        ],
+        "forbidden_escape_scan": "PASS",
+        "final_owner_cycle": "PASS_REPIN_REGEN_REPRODUCE_TEAM_B_GATES; kernel-checked Lean source epoch unchanged",
+        "whole_frontend_verified": false,
+        "proof_system_soundness": false,
+        "fresh_live_sail": false,
+        "scope": "RiscvRefinement development; historical generated-Sail bridge is carried and not freshly rebuilt",
+        "team_a": "PASS_24_CURRENT_SOURCE_BOUND_CERTIFICATES_AND_FRESH_DIAGNOSTICS",
+        "aggregate_opcode_index": "PASS_46_WITH_EXISTING_EVIDENCE_GRADES",
+        "aggregate_grade": "24/46 generated-Sail clause bindings and normalized retirements; 0/46 publication-level"
+      },
+      "targeted_python": {
+        "tests": 435,
+        "passed": 433,
+        "failures": 2,
+        "errors": 0,
+        "remaining_failure": "same historical generated-Sail pilot-composition test collected twice"
+      },
+      "open_gates": {
+        "package_workspace_findings": 393,
+        "source_layout_findings": 106,
+        "strict_live_flag_target": "249 live; required <60",
+        "upstream_pin_findings": 6,
+        "native_cpu_product": "UNVERIFIED",
+        "complete_acceptance_and_release": "UNVERIFIED"
+      },
+      "gpu_scope": "EXCLUDED_BY_USER",
+      "phase_complete": false,
+      "pushed": false,
+      "evidence_root": "/Users/theodorepender/Coding/stwo-zig-evidence/local/delivery-20261108"
+    },
+    "delivery_proof_wire_existing_family_checks": {
+      "baseline_commit": "47307c39c782059bfe13418d0b61c13d6a16aba3",
+      "status": "PASS_CPU_PROVIDER_DEBUG_RELEASEFAST_API_DECISION_PENDING",
+      "code": {
+        "added": 132,
+        "removed": 0,
+        "net": 132,
+        "allowance": 150
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "validation": [
+        {
+          "label": "proof-wire-Debug",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "Debug",
+            "src/waist/proof_wire/mod.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 406847488,
+          "wall_seconds": 2.6854497909662314
+        },
+        {
+          "label": "proof-wire-ReleaseFast",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "ReleaseFast",
+            "src/waist/proof_wire/mod.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 597016576,
+          "wall_seconds": 10.474387917027343
+        }
+      ],
+      "claim_boundary": "Provider fixture execution only. No ledger or version change, fresh product acceptance, live Sail, GPU operation or publication."
+    },
+    "delivery_cpu_fixture_entrypoint_routing": {
+      "baseline_commit": "b708fddf7a093060dba05aaf5167bad78206b0b8",
+      "status": "PASS_SMALL_CPU_PROOFS_AND_FRESH_FIXTURE_RECEIVER_SECP_RESOURCE_BLOCKED",
+      "code": {
+        "added": 12,
+        "removed": 5,
+        "net": 7,
+        "allowance": 20
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "typed_adapter": {
+        "cases": 3,
+        "modes": [
+          "Debug",
+          "ReleaseFast"
+        ],
+        "status": "PASS_ACTUAL_EXECUTION",
+        "repair": "remove prior one-case filter, require minimum three, wire already-declared prover API dependency"
+      },
+      "native_fixture": {
+        "status": "PASS_FRESH_PROCESS_FIXTURE_AND_FOUR_EXACT_NEGATIVE_CLASSES",
+        "checks": [
+          {
+            "case": "valid",
+            "expected_error": null,
+            "observed_errors": [],
+            "passed": true
+          },
+          {
+            "case": "queries",
+            "expected_error": "PoseidonNativeProofShape",
+            "observed_errors": [
+              "PoseidonNativeProofShape"
+            ],
+            "passed": true
+          },
+          {
+            "case": "ninth-limb",
+            "expected_error": "GlobalGkrPhysicalRootMismatch",
+            "observed_errors": [
+              "GlobalGkrPhysicalRootMismatch"
+            ],
+            "passed": true
+          },
+          {
+            "case": "nonce",
+            "expected_error": "ProofOfWork",
+            "observed_errors": [
+              "ProofOfWork"
+            ],
+            "passed": true
+          },
+          {
+            "case": "wrong-family",
+            "expected_error": "UnsupportedBinaryVersion",
+            "observed_errors": [
+              "UnsupportedBinaryVersion"
+            ],
+            "passed": true
+          }
+        ],
+        "producer": {
+          "test_binary": "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/22951a1ff0920aab754fd3d504c49dca/test",
+          "bytes": 3689032,
+          "sha256": "f612a17a0210a12bb1bd29c30c9213d722fd73a74d7c60f1d1d693d85f3a0475",
+          "source_commit": "b708fddf7a093060dba05aaf5167bad78206b0b8",
+          "source_diff_sha256": "0d7783d4710dce84eb9553a7a1883ea04a631d5ae1fb3b766146ff0cdf8340de",
+          "fixture_profile": "two physical CPU workers, five steps, P2v2 PCS and raw Blake local GKR/manifest, beta=2 q=54 pow=0, certified=false"
+        },
+        "corpus": {
+          "receiver_binary": {
+            "path": "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+            "bytes": 1720120,
+            "sha256": "39343b77a0d9d470d6f93318feef7bd1f7c6b49c892be42bb99671909420e6ae"
+          },
+          "pow_offset": 461136,
+          "proof_offset_in_container": 216,
+          "cases": [
+            {
+              "name": "queries",
+              "expected_error": "PoseidonNativeProofShape",
+              "proof_offset": 20,
+              "input_sha256": "9b8776cd24f862f684eafba0ab6bfad3a84cc819e625b51c27de08f73f0d419a"
+            },
+            {
+              "name": "ninth-limb",
+              "expected_error": "GlobalGkrPhysicalRootMismatch",
+              "proof_offset": 104,
+              "input_sha256": "847134f01b465583e940522053acfc22a377cca498422ac616f7c7f7659f7efc"
+            },
+            {
+              "name": "nonce",
+              "expected_error": "ProofOfWork",
+              "proof_offset": 461136,
+              "input_sha256": "734105b4c4bd54d4b39c71361e6052b3751771323a0c4991bdb7b5741fde592c"
+            },
+            {
+              "name": "wrong-family",
+              "expected_error": "UnsupportedBinaryVersion",
+              "proof_offset": 0,
+              "input_sha256": "10cf6378a125cd7c2c2d8f1ef785dadac9bcc07585d1707d5b1fa2948bc0945c"
+            }
+          ],
+          "scope": "Selected small fixture cases only; not full product semantic corpus or production security qualification"
+        },
+        "run_results": [
+          {
+            "label": "valid",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/valid"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 161398784,
+            "wall_seconds": 2.6985165419755504
+          },
+          {
+            "label": "queries",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/queries"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 156532736,
+            "wall_seconds": 2.0098201250075363
+          },
+          {
+            "label": "ninth-limb",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/ninth-limb"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 156483584,
+            "wall_seconds": 2.0060020420351066
+          },
+          {
+            "label": "nonce",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/nonce"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 156532736,
+            "wall_seconds": 2.0212115420144983
+          },
+          {
+            "label": "wrong-family",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/wrong-family"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 156434432,
+            "wall_seconds": 2.020110166980885
+          }
+        ],
+        "qualification": "small mixed-suite fixture with zero PoW; no complete-block, 128-bit security, GPU or qualified timing claim"
+      },
+      "local_checks": {
+        "keccakf_proof": "PASS_DEBUG",
+        "secp256k1_proofs": "UNVERIFIED_MEMORY_GUARD",
+        "native_cpu_debug": "TIME_GUARD_180_SECONDS",
+        "dev_test_python": "PASS_31_TESTS",
+        "repository_python": "110_PASS_1_FAILURE_EXISTING_393_WORKSPACE_FINDINGS"
+      },
+      "negative_experiment": "Hash-family compilation split did not fit the unchanged memory guard and was completely reverted; all original secp256k1 test bodies and build remain unchanged.",
+      "claim_boundary": "Small CPU fixtures only, no 128-bit security claim, complete block, full product corpus, GPU operation, promotion, fresh live Sail or publication."
+    },
+    "delivery_restore_secondary_live_contracts": {
+      "baseline_commit": "75813bf158dd580e70d379ea5047894a26ceede1",
+      "status": "PASS_RELEASEFAST_ALL_RESTORED_CASES_DEBUG_RESOURCE_BLOCKED",
+      "code": {
+        "added": 1696,
+        "removed": 2,
+        "net": 1694,
+        "allowance": 1900
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "restoration": {
+        "source_ref": "4e260db96",
+        "files": [
+          {
+            "path": "src/frontends/riscv/air/lang/function_activation_logup_test_support.zig",
+            "lines": 253,
+            "named_tests": [],
+            "allowed_changes": []
+          },
+          {
+            "path": "src/frontends/riscv/air/lang/tests/function_activation_logup_test.zig",
+            "lines": 742,
+            "named_tests": [
+              "F-014 activation LogUp carries the compiler-derived degree-three certificate",
+              "F-014 per-function challenges and descriptors bind the sealed frame plan",
+              "F-014 caller callee and public-root claims balance independently",
+              "F-014 omission duplication ownership and challenge mutations reject",
+              "F-014 row provenance and multiplicity sources fail closed before publication",
+              "F-014 denominator and relation imbalance failures are output atomic",
+              "F-014 transcript drift changes challenges and claim mutations reject atomically",
+              "F-014 legacy relation metadata is a zero-cost zero-byte protocol no-op",
+              "F-014 compile is allocation-failure atomic and prepared API has no allocator",
+              "F-014 degenerate challenge draw is rejected without advancing the channel",
+              "F-014 live activation is the sole function LogUp lowering authority"
+            ],
+            "allowed_changes": []
+          },
+          {
+            "path": "src/frontends/riscv/air/guest_precompile/tests/sha256_memory_caller_test.zig",
+            "lines": 186,
+            "named_tests": [
+              "SHA memory caller binds disjoint pointers and exact bounded access clocks",
+              "SHA memory caller closes the complete compression graph and exact memory tuples",
+              "SHA memory caller uses the full address range and rejects malformed closed access groups",
+              "SHA memory caller compiles and exports exact base and secure machine expressions",
+              "SHA memory caller program PC admission follows derived addresses and rejects invalid policies"
+            ],
+            "allowed_changes": []
+          },
+          {
+            "path": "src/frontends/riscv/recursion/air/tests/blake3_draw_witness_test.zig",
+            "lines": 241,
+            "named_tests": [
+              "BLAKE3 ordered draws match native outputs and independently rebuilt fixed columns",
+              "BLAKE3 ordered draws reject skipped accepted attempts false outputs and counter wrap"
+            ],
+            "allowed_changes": [
+              "repoint rejection fixture to test-only owner"
+            ]
+          },
+          {
+            "path": "src/integrations/riscv_cpu/rv64_distributed_v1/functional_test.zig",
+            "lines": 95,
+            "named_tests": [
+              "distributed facts actual q70 proofs bind stage1 peers and all balanced physical claims",
+              "distributed public roster uses immutable setup and rejects two valid proofs with false global IO",
+              "distributed functional construction fails without changing borrowed public input"
+            ],
+            "allowed_changes": []
+          },
+          {
+            "path": "src/integrations/riscv_cpu/rv64_distributed_v1/unified_v2_test.zig",
+            "lines": 165,
+            "named_tests": [
+              "unifiedV2 one vector derives only after complete actual roots and never through V1",
+              "unifiedV2 policy opmap completeness and peer root are pinned before challenge",
+              "unifiedV2 receiver binds actual observed roots but does not verify an invalid proof shell"
+            ],
+            "allowed_changes": []
+          }
+        ],
+        "test_only_fixture": "src/frontends/riscv/recursion/air/tests/blake3_rejection_fixture_test_support.zig",
+        "named_tests": 24,
+        "retired_subchecks": {
+          "test": "F-014 live activation is the sole function LogUp lowering authority",
+          "archive_ref": "4e260db96",
+          "archived_subjects": [
+            "src/frontends/riscv/air/lang/function_body_lowering.zig",
+            "src/frontends/riscv/air/lang/function_body_lowering_compiler.zig"
+          ],
+          "scope": "Two source-import assertions and three negative-token checks on the retired inline source remain archived with those subjects. Live activation, declaration, frame, authority and facade assertions remain unchanged; all eleven named cases remain."
+        }
+      },
+      "focused_minimums": {
+        "frontend_authority_before": 12,
+        "frontend_authority_after": 30,
+        "distributed_before": 7,
+        "distributed_after": 13
+      },
+      "initial_attempts": [
+        {
+          "label": "authority-rejection-contracts-Debug",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "Debug",
+            "src/frontends/riscv/retained_authority_contract_test_root.zig"
+          ],
+          "exit_code": 1,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 1399488512,
+          "wall_seconds": 8.478010040998925
+        },
+        {
+          "label": "distributed-functional-contracts-Debug",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "Debug",
+            "src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig"
+          ],
+          "exit_code": -15,
+          "stopped_for": "time_guard",
+          "observed_group_peak_rss_bytes": 2298298368,
+          "wall_seconds": 180.2218745839782
+        },
+        {
+          "label": "frontend-current-inventory",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "Debug",
+            "src/frontends/riscv/test_inventory_test.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 262782976,
+          "wall_seconds": 2.4521245830110274
+        }
+      ],
+      "validation": [
+        {
+          "label": "authority-rejection-contracts-Debug",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "Debug",
+            "src/frontends/riscv/retained_authority_contract_test_root.zig"
+          ],
+          "exit_code": -15,
+          "stopped_for": "memory_guard",
+          "observed_group_peak_rss_bytes": 4584833024,
+          "wall_seconds": 25.808071583975106
+        },
+        {
+          "label": "authority-rejection-contracts-ReleaseFast",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "ReleaseFast",
+            "src/frontends/riscv/retained_authority_contract_test_root.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 3620093952,
+          "wall_seconds": 73.31354204198578
+        },
+        {
+          "label": "distributed-functional-contracts-ReleaseFast",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "ReleaseFast",
+            "src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 1702494208,
+          "wall_seconds": 47.03962924994994
+        }
+      ],
+      "forced_fresh_execution": [
+        {
+          "label": "authority-rejection-fresh-ReleaseFast",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "ReleaseFast",
+            "src/frontends/riscv/retained_authority_contract_test_root.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 626933760,
+          "wall_seconds": 5.356390582979657
+        },
+        {
+          "label": "current-inventory-Debug",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "Debug",
+            "src/frontends/riscv/test_inventory_test.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 65110016,
+          "wall_seconds": 1.1128697910462506
+        }
+      ],
+      "claim_boundary": "Twenty-four restored named cases protect live fixture behavior. Distributed functional/projection proof checks are not a full CPU execution or aggregate receiver qualification. Debug resource stops remain negative evidence; no runtime API, GPU, complete-block or publication claim."
+    },
+    "delivery_workspace_path_helper_dedup": {
+      "baseline_commit": "75813bf158dd580e70d379ea5047894a26ceede1",
+      "status": "PASS_EXACT_FINDING_EQUALITY_WITH_REPOSITORY_STILL_RED",
+      "code": {
+        "added": 2,
+        "removed": 10,
+        "net": -8,
+        "allowance": -8
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "validation": {
+        "status": "PASS_EXACT_ORDERED_FINDING_EQUALITY",
+        "findings_before": 393,
+        "findings_after": 393,
+        "source_lines_before": 858,
+        "source_lines_after": 850,
+        "code_added": 2,
+        "code_removed": 10,
+        "code_net": -8
+      },
+      "source_conformance": {
+        "before_errors": 106,
+        "after_errors": 105,
+        "status": "FAIL_REMAINING_105_UNCHANGED_CEILINGS"
+      },
+      "python_tests": {
+        "tests": 49,
+        "passed": 48,
+        "failures": 1,
+        "errors": 0,
+        "remaining_failure": "test_repository_contracts_pass retains its assertion against all 393 findings"
+      },
+      "discarded_invocation": "The first test invocation also named nonexistent scripts.tests.test_ci_scope_plan; its import error was an invocation mistake. The corrected invocation uses the existing test_ci_touchpoint_prefixes suite and preserves the repository assertion."
+    },
+    "delivery_root_recursion_wire_binding": {
+      "baseline_commit": "b3968790ae0d9adbb2fe2602bfc282908f218a77",
+      "status": "PASS_CPU_SDK_CONSUMERS_PACKAGE_CONFIGURE_AUDIT_OPEN",
+      "code": {
+        "added": 69,
+        "removed": 8,
+        "net": 61,
+        "allowance": 100
+      },
+      "moves_excluded": {
+        "consumer_fixture_body_lines": 15
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "validation": {
+        "status": "PASS_CANONICAL_SDK_AND_EXTERNAL_CONSUMERS_CONFIGURATION_AUDIT_OPEN",
+        "baseline_reproduced_missing_named_module": true,
+        "source_base_commit": "b3968790ae0d9adbb2fe2602bfc282908f218a77",
+        "source_files": {
+          "build_support/products/libraries.zig": "7690cb081eaca7fa39ebde57346b08ab68b8576f688af2f9420046ab0e7a277e",
+          "build_support/products/catalog.zig": "fe937c560bc16d92a2321b3b6d3cda561fdd33f15400fbe2c83ae12eab59794e",
+          "src/products/stwo/root.zig": "8f38c528493de44179ceb74c15c65e7380a538f58295aed4a1c7493bfea73b81",
+          "scripts/repo/check_downstream_package.py": "60adc4127bee35f694d166c34e103b3ae330dc26d5e2b52a46eaf77c819bd075",
+          "src/products/stwo/tests/public_modules.zig": "55f3e9f885fbc2b4c97647c861d0ac7f4c436c43e85c68577757760cfc6b53d4"
+        },
+        "runtime": {
+          "sdk_binaries": [
+            {
+              "path": "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/8476f9f140455de5a3019689a2bc3774/sdk-consumer-smoke",
+              "bytes": 115936,
+              "sha256": "f16cb6853396bffc34b6d79176d2a9b801fb63e5b27235f09bf83cabda22f00e"
+            },
+            {
+              "path": "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/9494433fa90052cd1d2a7b965c8eaebc/sdk-consumer-smoke",
+              "bytes": 1374624,
+              "sha256": "9625c277d678cc1f3f8d47a37ab775bbcade943763f7c419947f6f17648b57ce"
+            }
+          ],
+          "fixture_sha256": "55f3e9f885fbc2b4c97647c861d0ac7f4c436c43e85c68577757760cfc6b53d4",
+          "source_base_commit": "b3968790ae0d9adbb2fe2602bfc282908f218a77",
+          "host": "macOS-15.3.1-arm64-arm-64bit-Mach-O",
+          "zig_version": "0.15.2",
+          "optimize_coverage": "SDK builds Debug and ReleaseFast; external dependency smoke ReleaseFast only",
+          "zig_binary_sha256": "bf5faec4444029ddde590f1434255aec6edd8cfef3222707951be495cdb1d2d9"
+        },
+        "external_binary": {
+          "binary_bytes": 115920,
+          "external_consumer_binary_sha256": "61b2370343b676feec1f9b823beb36fb3340f37977df1117dbdbf3d12b96859e",
+          "fixture_sha256": "55f3e9f885fbc2b4c97647c861d0ac7f4c436c43e85c68577757760cfc6b53d4",
+          "optimize": "ReleaseFast"
+        },
+        "old_fixture_body_preserved_exact": true,
+        "fixture_move_lines": 15,
+        "releasefast_build": [
+          {
+            "label": "sdk-and-external-consumers-ReleaseFast",
+            "argv": [
+              "zig",
+              "build",
+              "test-downstream-modules",
+              "-Doptimize=ReleaseFast",
+              "-j1"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 1426423808,
+            "wall_seconds": 6.686135749972891
+          }
+        ],
+        "sdk_debug_build": [
+          {
+            "label": "sdk-Debug-and-external-ReleaseFast",
+            "argv": [
+              "zig",
+              "build",
+              "test-downstream-modules",
+              "-Doptimize=Debug",
+              "-j1"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 1485504512,
+            "wall_seconds": 8.234824042010587
+          }
+        ],
+        "pinned_sdk_execution": [
+          {
+            "label": "sdk-binary-f16cb6853396",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/8476f9f140455de5a3019689a2bc3774/sdk-consumer-smoke"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 32768,
+            "wall_seconds": 0.2233013329678215
+          },
+          {
+            "label": "sdk-binary-9625c277d678",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/9494433fa90052cd1d2a7b965c8eaebc/sdk-consumer-smoke"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 245760,
+            "wall_seconds": 0.23648012499324977
+          }
+        ],
+        "remaining_package_configure": {
+          "status": "FAIL_EXACT_DEPENDENCY_MODULE_ROOTS_MISMATCH",
+          "declared": [
+            "dependency:../src/engine/prover:coefficient_storage_test_root.zig",
+            "dependency:../src/engine/prover:focused_test_root.zig",
+            "dependency:../src/engine/prover:merkle_test_root.zig",
+            "dependency:../src/engine/prover:mod.zig",
+            "dependency:../src/engine/prover:work_pool_test.zig",
+            "dependency:../src/waist/backend:mod.zig",
+            "dependency:../src/waist/core:focused_test_root.zig",
+            "dependency:../src/waist/core:mod.zig",
+            "dependency:../src/waist/core:vcs_lifted/testdata/lifted_height_vectors.zig",
+            "dependency:../src/waist/prover_api:mod.zig"
+          ],
+          "observed": [
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/backends/cuda:mod.zig",
+            "dependency:../src/backends/metal/session:mod.zig",
+            "dependency:../src/backends/metal:mod.zig",
+            "dependency:../src/engine/artifact_store:mod.zig",
+            "dependency:../src/engine/prover:coefficient_storage_test_root.zig",
+            "dependency:../src/engine/prover:focused_test_root.zig",
+            "dependency:../src/engine/prover:gkr_resource_test_root.zig",
+            "dependency:../src/engine/prover:merkle_test_root.zig",
+            "dependency:../src/engine/prover:mod.zig",
+            "dependency:../src/engine/prover:tests/work_pool_test.zig",
+            "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
+            "dependency:../src/frontends/cairo:interop/felt_json.zig",
+            "dependency:../src/frontends/cairo:mod.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/integrations/cairo_cpu:mod.zig",
+            "dependency:../src/integrations/cairo_cuda:mod.zig",
+            "dependency:../src/integrations/cairo_metal:mod.zig",
+            "dependency:../src/integrations/native_cuda:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:mod.zig",
+            "dependency:../src/products/native/examples:mod.zig",
+            "dependency:../src/waist/backend:mod.zig",
+            "dependency:../src/waist/core:fields/om31_test.zig",
+            "dependency:../src/waist/core:focused_test_root.zig",
+            "dependency:../src/waist/core:mod.zig",
+            "dependency:../src/waist/core:om31_deep_test.zig",
+            "dependency:../src/waist/core:om31_fri_test.zig",
+            "dependency:../src/waist/core:om31_pcs_test.zig",
+            "dependency:../src/waist/core:vcs_lifted/testdata/lifted_height_vectors.zig",
+            "dependency:../src/waist/proof_wire:mod.zig",
+            "dependency:../src/waist/prover_api:mod.zig",
+            "dependency:../src/waist/recursion_wire:mod.zig",
+            "dependency:../src/waist/recursion_wire:postcard/mod.zig"
+          ],
+          "undeclared": [
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/backends/cuda:mod.zig",
+            "dependency:../src/backends/metal/session:mod.zig",
+            "dependency:../src/backends/metal:mod.zig",
+            "dependency:../src/engine/artifact_store:mod.zig",
+            "dependency:../src/engine/prover:gkr_resource_test_root.zig",
+            "dependency:../src/engine/prover:tests/work_pool_test.zig",
+            "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
+            "dependency:../src/frontends/cairo:interop/felt_json.zig",
+            "dependency:../src/frontends/cairo:mod.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/integrations/cairo_cpu:mod.zig",
+            "dependency:../src/integrations/cairo_cuda:mod.zig",
+            "dependency:../src/integrations/cairo_metal:mod.zig",
+            "dependency:../src/integrations/native_cuda:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:mod.zig",
+            "dependency:../src/products/native/examples:mod.zig",
+            "dependency:../src/waist/core:fields/om31_test.zig",
+            "dependency:../src/waist/core:om31_deep_test.zig",
+            "dependency:../src/waist/core:om31_fri_test.zig",
+            "dependency:../src/waist/core:om31_pcs_test.zig",
+            "dependency:../src/waist/proof_wire:mod.zig",
+            "dependency:../src/waist/recursion_wire:mod.zig",
+            "dependency:../src/waist/recursion_wire:postcard/mod.zig"
+          ],
+          "unobserved": [
+            "dependency:../src/engine/prover:work_pool_test.zig"
+          ]
+        },
+        "scope": "CPU/macOS consumer behavior only; external build ReleaseFast, SDK Debug and ReleaseFast. Not full product, Linux, GPU, soundness, 128-bit security or performance qualification."
+      },
+      "source_conformance": {
+        "status": "FAIL_REMAINING_105",
+        "errors": 105
+      },
+      "repository_python": {
+        "tests": 45,
+        "passed": 44,
+        "failures": 1,
+        "errors": 0,
+        "remaining_failure": "clean repository assertion retains 393 workspace findings"
+      },
+      "artifact_retention": "SDK binaries retained in external checkpoint; the external temporary consumer image is hash-pinned in its execution log and then removed by its existing temporary-directory lifecycle.",
+      "claim_boundary": "Documented facade binding repaired and CPU consumer executions observed. No ledger/version change, package-configuration green claim, Linux qualification, full proof product, GPU, live Sail or performance qualification."
+    },
+    "delivery_cpu_check_mode_execution_owner": {
+      "baseline_commit": "d903d8d2a91a090ce74b1fce07eff34c2148ea81",
+      "status": "PASS_SEMANTIC_MODE_AND_DEFAULT_PROOF_EXECUTION_SECP_RUNTIME_UNVERIFIED",
+      "code": {
+        "added": 28,
+        "removed": 26,
+        "net": 2,
+        "allowance": 30
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "validation": {
+        "status": "PASS_SEMANTIC_ONLY_AND_DEFAULT_RUNTIME_REGRESSIONS",
+        "baseline_check_mode_executed_proofs": true,
+        "compiler_no_emit_verified_for": [
+          "secp256k1",
+          "typed_adapter",
+          "fixture_receiver"
+        ],
+        "semantic_mode_observed_proof_runs": 0,
+        "default_runtime_typed_floor": 3,
+        "default_runtime_typed_executed": true,
+        "default_runtime_keccak_executed": true,
+        "existing_step_names_preserved": [
+          "build-recursive-segment-v2-detached-leaf-producer",
+          "build-recursive-segment-v2-detached-parent-producer",
+          "build-recursive-segment-v2-detached-parent-verifier",
+          "build-recursive-segment-v2-detached-verifier",
+          "install",
+          "native-layout-census",
+          "poseidon2-native-fixture",
+          "test",
+          "test-d2-circuit-census",
+          "test-d2-native",
+          "test-device-cpu-projection",
+          "test-distributed-binary-contracts",
+          "test-division-contracts",
+          "test-keccakf-precompile-proof",
+          "test-native-gkr",
+          "test-native-gkr-circuit",
+          "test-poseidon2-native-cpu",
+          "test-recursion-dag",
+          "test-recursion-publication",
+          "test-secp256k1-precompile-proof",
+          "test-segment-v2-native-proof",
+          "test-services-truth-contracts",
+          "test-truth-family-plan",
+          "test-universal-typed-proof",
+          "test-word16-image-program-contracts",
+          "uninstall"
+        ],
+        "source_structure": {
+          "module_roots_preserved": true,
+          "filters_preserved": true,
+          "retained_floors_preserved": true,
+          "named_imports_preserved": true,
+          "only_test_run_constructor_is_guarded_helper": true,
+          "old_lines": 325,
+          "new_lines": 326,
+          "runtime_floor_typed_adapter": 3,
+          "retained_runtime_floors": [
+            23,
+            13,
+            7,
+            22
+          ]
+        },
+        "results": [
+          {
+            "label": "secp256k1-semantic-only",
+            "argv": [
+              "zig",
+              "build",
+              "test-secp256k1-precompile-proof",
+              "--build-file",
+              "src/integrations/riscv_cpu/build.zig",
+              "-Doptimize=Debug",
+              "-j1",
+              "-Dcheck-only=true",
+              "-fincremental",
+              "--verbose"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 2170683392,
+            "wall_seconds": 15.078518374997657
+          },
+          {
+            "label": "typed-adapter-semantic-only",
+            "argv": [
+              "zig",
+              "build",
+              "test-universal-typed-proof",
+              "--build-file",
+              "src/integrations/riscv_cpu/build.zig",
+              "-Doptimize=Debug",
+              "-j1",
+              "-Dcheck-only=true",
+              "-fincremental",
+              "--verbose"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 434044928,
+            "wall_seconds": 2.0248450830113143
+          },
+          {
+            "label": "receiver-semantic-only",
+            "argv": [
+              "zig",
+              "build",
+              "poseidon2-native-fixture",
+              "--build-file",
+              "src/integrations/riscv_cpu/build.zig",
+              "-Doptimize=Debug",
+              "-j1",
+              "-Dcheck-only=true",
+              "-fincremental",
+              "--verbose"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 412254208,
+            "wall_seconds": 2.8970921249710955
+          },
+          {
+            "label": "developer-semantic-status",
+            "argv": [
+              "python3",
+              "scripts/dev_test.py",
+              "--check",
+              "--optimize",
+              "Debug",
+              "src/integrations/riscv_cpu/universal_typed_component_proof_test.zig"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 423936000,
+            "wall_seconds": 2.2565246670274064
+          },
+          {
+            "label": "cpu-owner-step-inventory-after",
+            "argv": [
+              "zig",
+              "build",
+              "--help",
+              "--build-file",
+              "src/integrations/riscv_cpu/build.zig",
+              "-j1"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 2998272,
+            "wall_seconds": 0.22727249999297783
+          },
+          {
+            "label": "typed-adapter-runtime-ReleaseFast",
+            "argv": [
+              "python3",
+              "scripts/dev_test.py",
+              "--optimize",
+              "ReleaseFast",
+              "src/integrations/riscv_cpu/universal_typed_component_proof_test.zig"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 1963196416,
+            "wall_seconds": 33.473122583003715
+          },
+          {
+            "label": "keccak-runtime-Debug",
+            "argv": [
+              "python3",
+              "scripts/dev_test.py",
+              "--optimize",
+              "Debug",
+              "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 1247035392,
+            "wall_seconds": 7.808797000034247
+          }
+        ],
+        "python_tests": {
+          "tests": 31,
+          "exit_code": 0
+        },
+        "claim_boundary": "Semantic-only accepts type checking, not proof acceptance. secp256k1 runtime and broader product qualification remain unverified. No new GPU or full-block work."
+      },
+      "baseline": [
+        {
+          "label": "typed-proof-check-mode-reproduction",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--check",
+            "--optimize",
+            "Debug",
+            "src/integrations/riscv_cpu/universal_typed_component_proof_test.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 2171781120,
+          "wall_seconds": 10.441928583022673
+        }
+      ],
+      "claim_boundary": "Semantic checks do not execute tests, emit a binary or qualify proof acceptance. Default typed and Keccak fixture execution is separately verified; secp256k1 runtime, complete product, GPU, Linux and qualified timing remain unverified."
+    },
+    "delivery_blake_arithmetic_consolidation": {
+      "baseline_commit": "e79c85d815ee9903cdcc44fc946d2a324181ff84",
+      "status": "PASS_NATIVE_CRYPTO_BYTE_IDENTITY_FRESH_FIXTURE_ACCEPTANCE",
+      "code": {
+        "added": 35,
+        "removed": 54,
+        "net": -19,
+        "allowance": 0
+      },
+      "raw_code": {
+        "added": 78,
+        "removed": 97,
+        "net": -19
+      },
+      "moves_excluded": 43,
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "validation": {
+        "status": "PASS_CRYPTO_ORACLES_BYTE_IDENTITY_AND_FRESH_RECEIVER",
+        "source_base_commit": "e79c85d815ee9903cdcc44fc946d2a324181ff84",
+        "native_crypto_cases_before": 22,
+        "native_crypto_cases_after": 23,
+        "modes": [
+          "Debug",
+          "ReleaseFast"
+        ],
+        "cross_compilation": [
+          "x86_64-linux semantic-only",
+          "powerpc64-linux semantic-only"
+        ],
+        "literal_byte_equality": {
+          "status": "PASS_EXACT_BEFORE_AFTER_FILE_SET_AND_BYTES",
+          "files": {
+            "cpu-0.p2v2.binary": {
+              "sha256": "1cfd865dfe1b62c7bfe278024874c69f255d428dad7cff2f4e45bae1f60662e3",
+              "bytes": 551776
+            },
+            "cpu-1.worker.binary": {
+              "sha256": "3d024bcced3c4fd16d81648d77973b35e5bc83af5cd37c9c7a7ea3fffba4a302",
+              "bytes": 549424
+            },
+            "cpu-1.p2v2.binary": {
+              "sha256": "fd2d5733330892372b7cc93932971d3ce6e047a851190dc1e2709231898661da",
+              "bytes": 549208
+            },
+            "manifest.raw-blake.binary": {
+              "sha256": "c3e27126329fceb6f0dba6fb39224209a97b19e44b5a65e31f1c1708c5749858",
+              "bytes": 103692
+            },
+            "source-publics.json": {
+              "sha256": "0c9edb77d00f6c086b8303520c05ceb5aa81d0a9b73dd810237fcdfd5996a825",
+              "bytes": 11973
+            },
+            "cpu-0.worker.binary": {
+              "sha256": "76aac560edcf360dbdc13c8dd2696db442524f159f1502f16d26a878d9d88f28",
+              "bytes": 551992
+            }
+          },
+          "prior_fresh_receiver_corpus_matches_baseline": true,
+          "scope": "Small mixed-suite CPU fixture; no complete block, 128-bit-security or performance claim.",
+          "literal_byte_comparison_performed": true
+        },
+        "source_structure": {
+          "baseline": "e79c85d815ee9903cdcc44fc946d2a324181ff84",
+          "moved_bodies": [
+            {
+              "owner": "scalar rotate",
+              "lines": 4,
+              "sha256": "c6b0e911e4bc1b78e8c72a4a461a5ec0858237c4fedc6020560fe8964260ced7"
+            },
+            {
+              "owner": "four-lane rotate",
+              "lines": 24,
+              "sha256": "d55ef77acb38e8b465e2df580450b42960896095c94a52b07a5a44495dc0c770"
+            },
+            {
+              "owner": "eight-lane rotate",
+              "lines": 4,
+              "sha256": "80940004b56f8119905837c67313c1e98ed5915c44d1bdf722e6dc69b5db7a73"
+            },
+            {
+              "owner": "G operation body",
+              "lines": 8,
+              "sha256": "e64516416a7bc392a1b0e69c19e96a4468b5c3ea76b77b54ba2fc0d1d8480879"
+            }
+          ],
+          "interleaved_schedule_preserved_exact": true,
+          "compression_schedule_and_constants_changed": false,
+          "runtime_flags_changed": false,
+          "public_facade_changed": false,
+          "compression_and_terminal_schedules_byte_identical": true,
+          "G_operation_body_preserved_in_order": true,
+          "support_lines_relocated": 3,
+          "total_moved_lines_excluded": 43
+        },
+        "receiver_results": [
+          {
+            "label": "new-crypto-fresh-receiver-build",
+            "argv": [
+              "python3",
+              "scripts/dev_test.py",
+              "--optimize",
+              "ReleaseFast",
+              "src/integrations/riscv_cpu/rv64_poseidon2_native_fixture_main.zig"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 1255079936,
+            "wall_seconds": 23.81510295800399
+          },
+          {
+            "label": "valid",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/valid"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 155549696,
+            "wall_seconds": 2.7137279579765163
+          },
+          {
+            "label": "queries",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/queries"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 154746880,
+            "wall_seconds": 2.024748374999035
+          },
+          {
+            "label": "ninth-limb",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/ninth-limb"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 154288128,
+            "wall_seconds": 1.993814832996577
+          },
+          {
+            "label": "nonce",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/nonce"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 155140096,
+            "wall_seconds": 2.041843709012028
+          },
+          {
+            "label": "wrong-family",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/wrong-family"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 154075136,
+            "wall_seconds": 2.0067004159791395
+          }
+        ],
+        "exact_rejection_classes": {
+          "queries": "PoseidonNativeProofShape",
+          "ninth-limb": "GlobalGkrPhysicalRootMismatch",
+          "nonce": "ProofOfWork",
+          "wrong-family": "UnsupportedBinaryVersion"
+        },
+        "source_conformance_errors_before": 105,
+        "source_conformance_errors_after": 104,
+        "source_sizes": {
+          "backend_before": 885,
+          "backend_after": 838,
+          "terminal_before": 363,
+          "terminal_after": 319,
+          "shared_before": 39,
+          "shared_after": 110
+        },
+        "receiver_binary_sha256": "1b4c465105c4819c7a660edff743c1a30cc39925db21118cbfa2368adc255ee6",
+        "qualification": "CPU/macOS correctness and exact captured fixture bytes only. Cross-target semantic checks are not runtime evidence. No 128-bit-security, full product, GPU or performance claim."
+      },
+      "native_validation_runs": [
+        {
+          "label": "crypto-after-Debug",
+          "argv": [
+            "zig",
+            "build",
+            "test-crypto",
+            "--build-file",
+            "src/waist/core/build.zig",
+            "-Doptimize=Debug",
+            "-j1",
+            "--verbose",
+            "--summary",
+            "all"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 278626304,
+          "wall_seconds": 2.0227920829784125
+        },
+        {
+          "label": "crypto-after-ReleaseFast",
+          "argv": [
+            "zig",
+            "build",
+            "test-crypto",
+            "--build-file",
+            "src/waist/core/build.zig",
+            "-Doptimize=ReleaseFast",
+            "-j1",
+            "--verbose",
+            "--summary",
+            "all"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 420610048,
+          "wall_seconds": 4.9124089580145665
+        },
+        {
+          "label": "semantic-only-x86_64-linux",
+          "argv": [
+            "zig",
+            "build",
+            "test-crypto",
+            "--build-file",
+            "src/waist/core/build.zig",
+            "-Doptimize=Debug",
+            "-Dtarget=x86_64-linux",
+            "-Dcheck-only=true",
+            "-j1",
+            "--verbose"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 2686976,
+          "wall_seconds": 0.4497313750325702
+        },
+        {
+          "label": "semantic-only-powerpc64-linux",
+          "argv": [
+            "zig",
+            "build",
+            "test-crypto",
+            "--build-file",
+            "src/waist/core/build.zig",
+            "-Doptimize=Debug",
+            "-Dtarget=powerpc64-linux",
+            "-Dcheck-only=true",
+            "-j1",
+            "--verbose"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 133840896,
+          "wall_seconds": 0.4502703750040382
+        },
+        {
+          "label": "proof-fixture-bytes-after",
+          "argv": [
+            "env",
+            "STWO_RV64_P2_NATIVE_OUT_DIR=/tmp/stwo-delivery-blake-dedup/after",
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "ReleaseFast",
+            "src/integrations/riscv_cpu/rv64_poseidon2_native_test_root.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 2414624768,
+          "wall_seconds": 56.97077937499853
+        }
+      ],
+      "runtime_identities": {
+        "crypto_test_images": [
+          {
+            "phase": "before",
+            "mode": "Debug",
+            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/a875db3bbc68d2474a20a1a39a8cb607/test",
+            "bytes": 1844728,
+            "sha256": "0397ffc8c29013cad2f91b1c9414b5f61dcb5ee485d0b09aaec28ba9b9cd6a68"
+          },
+          {
+            "phase": "before",
+            "mode": "ReleaseFast",
+            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/3b676816523bb5511177d98efd5acec2/test",
+            "bytes": 413832,
+            "sha256": "2de8eafbc74ec93f44d24a3f43f874c941a981357e88870b427a7fc943b59eb4"
+          },
+          {
+            "phase": "after",
+            "mode": "Debug",
+            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/a5e15914b823ae7bb7ca7cdf76389e64/test",
+            "bytes": 1900264,
+            "sha256": "ed70d80bf46e2db42bdab55fb7bf9745f9674b3dec92d5ee38330afd6ad84142"
+          },
+          {
+            "phase": "after",
+            "mode": "ReleaseFast",
+            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/44ca216e00b0b462207a02d054a2d928/test",
+            "bytes": 414184,
+            "sha256": "c53115581b6f697fba98c490cb18b6df9f5ea995b82a5f01ae7bb1baab021ab2"
+          }
+        ],
+        "host": "macOS-15.3.1-arm64-arm-64bit-Mach-O",
+        "zig_version": "0.15.2",
+        "baseline_commit": "e79c85d815ee9903cdcc44fc946d2a324181ff84"
+      },
+      "claim_boundary": "Host correctness and exact deterministic fixture bytes. Cross-target checks are semantic-only; no Linux/big-endian runtime, complete-product, 128-bit-security, GPU or performance qualification."
+    },
+    "delivery_cpu_telemetry_field_authority": {
+      "baseline_commit": "70d995c64334281e606332470e69981fbebd13e4",
+      "status": "PASS_NATIVE_CPU_COMPOSITION",
+      "code": {
+        "added": 23,
+        "removed": 40,
+        "net": -17,
+        "allowance": 0
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "tests": {
+        "before_Debug": 13,
+        "after_Debug": 14,
+        "after_ReleaseFast": 14,
+        "existing_tests_removed": 0
+      },
+      "source_lines": {
+        "before": 872,
+        "after": 843
+      },
+      "source_conformance": {
+        "before": 104,
+        "after": 103,
+        "ceiling_unchanged": 850
+      },
+      "preserved": [
+        "evaluate",
+        "evaluateWithExecution",
+        "evaluatePlan",
+        "helperResidentBytes",
+        "recordMax",
+        "field layout",
+        "monotonic atomic load order",
+        "absolute high-water marks",
+        "saturating counters"
+      ],
+      "evidence": "external local archive keyed by final commit tree; stwo-delivery-cpu-telemetry-acceptance.json",
+      "qualification": "Native macOS CPU component correctness and telemetry regression. No full CPU product, GPU, complete-block, security or timing qualification."
+    },
+    "delivery_poseidon_table_source_owners": {
+      "baseline_commit": "23785b8dd3f4495b149f1810783855c8ed3e4c59",
+      "status": "PASS_EXHAUSTIVE_ROW_LOCAL_CERTIFICATE_AND_NEGATIVES",
+      "code": {
+        "added": 164,
+        "removed": 49,
+        "net": 115,
+        "allowance": 150
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "retained_source_bindings": 20,
+      "added_source_bindings": 8,
+      "refreshed_source_digests": 12,
+      "enumerated_table_rows": 2981888,
+      "unit_tests": {
+        "before": 10,
+        "after": 12,
+        "removed": 0
+      },
+      "all_constructive_audit_bodies_byte_identical": true,
+      "semantic_mutation_cases": 6,
+      "source_conformance_errors": 103,
+      "tooling_surface_check": "FAIL_5_PREEXISTING_SUBTEST_FINDINGS; separate planning/inventory repair needed",
+      "qualification": "Current-source CPU row-local constructive certificate only. No proof-wire verification, bus closure, cross-row or global LogUp soundness, full product, GPU, security or timing qualification.",
+      "evidence": "External local archive keyed by final commit tree; stwo-delivery-poseidon-acceptance.json and row-local-report.json"
+    },
+    "delivery_native_cpu_product_closure_and_stdout": {
+      "baseline_commit": "1d9d036492cf532628a46968f44f598c4662f3d9",
+      "tested_commit": "f60f24c225cba2589bf785fe6b14978fdd41509c",
+      "tested_tree": "07f752691e0b87e85ac344c24f09d759d9f0a9a2",
+      "status": "PASS_NATIVE_CPU_PRODUCT_BOTH_MODES_AND_SECURE_CLI_SUBSET",
+      "code": {
+        "added": 117,
+        "removed": 9,
+        "net": 108,
+        "budget": 120
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "native_product_tests": {
+        "ReleaseFast": 238,
+        "Debug": 238,
+        "fresh_artifacts_per_mode": 7,
+        "entry_point_tests_before": 0,
+        "entry_point_tests_after": 6,
+        "required_existing_named_entry_point_cases": 5,
+        "existing_poseidon2_suite_added_to_aggregate": 10
+      },
+      "empty_selection_negative": "PASS_EXPECTED_FAILURE_TestUnexpectedResult",
+      "closed_sources": 448,
+      "closed_source_sha256": "55bc8410d43ecacd06575cd65fe4493500a556907ac41c5ba72d0b8a6376e301",
+      "exact_module_bindings_added": 3,
+      "exact_barrel_or_test_files_admitted": 5,
+      "directory_prefixes_and_forbidden_links_unchanged": true,
+      "secure_profile_fresh_cli_examples": [
+        "wide_fibonacci",
+        "xor",
+        "plonk",
+        "state_machine",
+        "poseidon"
+      ],
+      "secure_profile_parameters": {
+        "pow_bits": 26,
+        "n_queries": 70
+      },
+      "proof_rejection_classes": {
+        "root": "OodsNotMatching",
+        "sample": "OodsNotMatching",
+        "nonce": "ProofOfWork",
+        "noncanonical": "NonCanonicalM31",
+        "config": "ProofConfigMismatch",
+        "security": "InsufficientSecurityPolicy",
+        "upstream": "UnsupportedUpstreamCommit"
+      },
+      "publication_rejection_classes": {
+        "duplicate-proof": "OutputAlreadyExists",
+        "duplicate-report": "OutputAlreadyExists"
+      },
+      "untrusted_inputs_and_existing_outputs_unchanged": true,
+      "blake_standard_admission": "EXPECTED_CommittedCellBudgetExceeded; no proof/report published; no larger profile attempted",
+      "related_python": {
+        "tests": 45,
+        "passed": 44,
+        "errors": 1,
+        "remaining_error": "pre-existing detached PCS preparation reaches frontend BLAKE3 fixture with undeclared CPU backend"
+      },
+      "source_conformance_errors": 103,
+      "developer_entrypoint_followup": "--dry-run Native CPU main fails: no Zig package owns changed path; canonical native_cpu CI lane exists but source path rule is missing",
+      "qualification": "Pinned native macOS component/product-gate correctness, exact linker/source closure and small secure-profile CLI fixtures only. Fresh receivers use the same implementation in new processes. No external Rust oracle, 128-bit-security claim, Linux runtime, complete-block, whole-repository release, GPU, physical GPU memory or qualified timing evidence.",
+      "evidence": "External archive keyed by receipt commit tree; complete native-product acceptance, proof files, mutant files, reports, fourteen test images and two CLI images."
+    },
+    "delivery_native_cpu_developer_path_owner": {
+      "baseline_commit": "e31483d40",
+      "tested_execution_commit": "c5330ee1409883f6277e1a5ed9089ee97ad79ac8",
+      "tested_execution_tree": "e52920f9fec64c6ad93f63df4276ab2d0f918901",
+      "status": "PASS_NATIVE_CPU_DEVELOPER_ROUTE_AND_SERIAL_LOCAL_EXECUTION",
+      "code": {
+        "added": 90,
+        "removed": 7,
+        "net": 83,
+        "budget": 90
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "contracts": {
+        "tests": 94,
+        "passed": 94
+      },
+      "private_native_paths": "EXISTING_NATIVE_CPU_LANE_ONLY",
+      "shared_capability_consumers": [
+        "native_cpu",
+        "native_metal",
+        "aggregate_cpu",
+        "aggregate_metal"
+      ],
+      "existing_PR_lane_selection_unchanged_for_native_source_files": 8,
+      "CI_lane_definitions_unchanged": true,
+      "local_direct_zig_build_owner": "scripts/repo/zig_serial_build.py; -j1 with the existing build lock",
+      "optimization_limits_runtime_arguments_and_invalid_job_rejection_preserved": true,
+      "semantic_mode": "DEFERRED_WITHOUT_BUILD_OR_PROOF_EXECUTION",
+      "normal_mode": "PASS_ACTUAL_DEV_TEST_NATIVE_CPU_GATE_AND_INSTALL",
+      "execution_host": "macos",
+      "required_CI_host": "linux",
+      "installed_binary_sha256": "149522c3ea32d9b8c83c01bba227a52372dd638f2f70e4f83b774c34bd9aa74f",
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "qualification": "Native macOS local-compatible routing/execution correctness. CI lane recipes, Linux host requirements and PR selections are preserved; this is not Linux execution, GPU, full release or timing qualification.",
+      "evidence": "External archive keyed by receipt commit tree; native-route acceptance, complete CI receipt, installed binary and contract/audit logs."
+    },
+    "delivery_cairo_recording_export_visibility": {
+      "baseline_commit": "97051eeec",
+      "tested_execution_commit": "8f4ffc56c2aef048d3ef8503bb613a7632207dd1",
+      "tested_execution_tree": "6393f70c6c226b95d0dff61e24fe1bcec9bc4e6f",
+      "status": "PASS_HOST_FULL_WITNESS_BUNDLE_BYTE_IDENTITY",
+      "code": {
+        "added": 91,
+        "removed": 0,
+        "net": 91,
+        "budget": 120
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "moves": 0,
+      "orchestrator_tests": {
+        "tests": 7,
+        "passed": 7
+      },
+      "rewriter_tests": {
+        "tests": 40,
+        "passed": 40,
+        "ignored": 0
+      },
+      "upstream_related_tests": {
+        "tests": 19,
+        "passed": 18,
+        "failed": 1,
+        "remaining_failure": "repository pin carrier assertion retains five existing circuit provenance/artifact-set findings"
+      },
+      "official_regular_files_retained": 700,
+      "all_module_declarations_and_test_sources_retained": true,
+      "full_support_differential_overlay_visibility_unchanged": true,
+      "bundle": {
+        "bytes": 2527495,
+        "sha256": "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6",
+        "programs": 64,
+        "instructions": 157733,
+        "byte_identical_to_checked_in": true
+      },
+      "receipt_provenance": "REFRESHED_FROM_ACTUAL_CLEAN_OWNER_GENERATION",
+      "upstream_pins": {
+        "before": 6,
+        "after": 5,
+        "cairo_errors": 0,
+        "other_ordered_errors_unchanged": true
+      },
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "bounded_generation": {
+        "label": "authenticated-full-witness-generation",
+        "argv": [
+          "uv",
+          "run",
+          "--offline",
+          "--python",
+          "3.13",
+          "--no-project",
+          "python",
+          "tools/cairo-witness-compiler/generate.py",
+          "--source",
+          "/tmp/stwo-delivery-upstream/stwo-cairo",
+          "--output",
+          "/tmp/stwo-delivery-cairo-export-clean.bin",
+          "--receipt",
+          "/tmp/stwo-delivery-cairo-export-clean-compiler.json"
+        ],
+        "exit_code": 0,
+        "stopped_for": null,
+        "observed_group_peak_rss_bytes": 3227844608,
+        "wall_seconds": 100.39587549999123
+      },
+      "retained_negative": "plain-private registry attempt fails E0603 cross-module imports; pub(crate) correction preserves crate imports; prior time/memory stops retained",
+      "qualification": "Authenticated host artifact regeneration only. Exact existing bytes, evaluator, serializer and all release blockers preserved. No full native/SIMD proof, independent official verifier, complete Cairo product, GPU, physical device memory, release or qualified timing claim.",
+      "evidence": "External archive keyed by receipt commit tree; clean source pin, complete generated bundle/receipt, retained exporter binary, rewriter tests, negative attempt and audit logs."
+    },
+    "delivery_detached_preparation_air_imports": {
+      "baseline_commit": "f0acac7ec",
+      "tested_execution_commit": "ade0e3439abac34b94d3cfdf8778972c2273b9f6",
+      "tested_execution_tree": "3d16134066cda068a686dfd1ee7ef324bb16146d",
+      "status": "PASS_DETACHED_SOURCE_CLOSURE_AND_RETAINED_AUTHORITY_CENSUS",
+      "code": {
+        "added": 265,
+        "removed": 269,
+        "net": -4,
+        "budget": 0,
+        "formatter_only_blank_lines_removed": 4
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "moves": 0,
+      "exact_same_owner_substitutions": 245,
+      "direct_barrel_importers_repaired": 14,
+      "unused_internal_forwarders_removed": 4,
+      "public_facades_and_contract_ledgers_unchanged": true,
+      "all_existing_test_names_and_assertions_retained": true,
+      "test_manifest_exact_codec_files_admitted": 4,
+      "directory_prefixes_and_backend_exclusions_unchanged": true,
+      "related_product_closure_tests": {
+        "tests": 45,
+        "passed": 45
+      },
+      "detached_preparation_closure": {
+        "backend_and_integration_sources": 0,
+        "sources": 1743,
+        "source_digest": "57d2ade6b0ba2efc7c31b02a460b822acbcee3d2ac6999ed1ae28e991e0641bf"
+      },
+      "authority_runtime": {
+        "tests": 260,
+        "passed": 260,
+        "discovery_floor_before": 30,
+        "discovery_floor_after": 260,
+        "new_required_case": "segment-leaf claim projection keeps shared provider out of prefix",
+        "binary": "/Users/theodorepender/Coding/stwo-zig/src/frontends/riscv/.zig-cache/o/01786b2b58495cc18521134419fdaac7/test",
+        "binary_sha256": "e07e97529171d695f383bdb2267bca30633b006044de4d36e347f32b1ad9fc9f"
+      },
+      "test_inventory": {
+        "Debug": "PASS",
+        "ReleaseFast": "PASS"
+      },
+      "authority_Debug": "UNQUALIFIED_PRIOR_MEMORY_GUARD_NOT_RETRIED",
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "bounded_clean_full_floor": [
+        {
+          "label": "clean-full-260-discovery-floor",
+          "argv": [
+            "uv",
+            "run",
+            "--offline",
+            "--python",
+            "3.13",
+            "--no-project",
+            "python",
+            "scripts/repo/zig_serial_build.py",
+            "--no-lock",
+            "--cwd",
+            "src/frontends/riscv",
+            "test-retained-authority-contracts",
+            "-Doptimize=ReleaseFast",
+            "--verbose"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 681967616,
+          "wall_seconds": 5.354998875001911
+        }
+      ],
+      "qualification": "Host frontend source-closure correctness, mechanical same-owner substitutions and retained authority runtime/negative cases. No full recursive proof, end-to-end RISC-V product, complete block, GPU, security or timing qualification.",
+      "evidence": "External archive keyed by receipt tree, including exact edit admission, baseline/intermediate negatives, source closure, clean source pins, 260 case names, test image and all gate/audit logs."
+    },
+    "delivery_frontend_focused_discovery_census": {
+      "baseline_commit": "285056bce",
+      "tested_execution_commit": "f7718c69f6f65aab8c2798b62c47c962e329e1c8",
+      "tested_execution_tree": "5e535c46b9e64abaa73d5de179608e0ad64c6afd",
+      "clean": true,
+      "status": "DISCOVERY_STRENGTHENED_TWO_EXISTING_TARGET_FAILURES_RETAINED",
+      "catalog_specs": 79,
+      "unfloored_specs_before": 31,
+      "unfloored_specs_after": 19,
+      "selected_targets": 12,
+      "clean_gate_runs": 24,
+      "gate_passes": 20,
+      "gate_failures": 4,
+      "same_names_counts_and_verdicts_in_both_modes": true,
+      "matrix": [
+        {
+          "step": "test-isa",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 28,
+          "Debug": {
+            "discovered": 28,
+            "passed": 28,
+            "skipped": 0,
+            "failed": 0
+          },
+          "ReleaseFast": {
+            "discovered": 28,
+            "passed": 28,
+            "skipped": 0,
+            "failed": 0
+          }
+        },
+        {
+          "step": "test-air-static-profile",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 6,
+          "Debug": {
+            "discovered": 6,
+            "passed": 6,
+            "skipped": 0,
+            "failed": 0
+          },
+          "ReleaseFast": {
+            "discovered": 6,
+            "passed": 6,
+            "skipped": 0,
+            "failed": 0
+          }
+        },
+        {
+          "step": "test-air-static-profile-registry",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 29,
+          "Debug": {
+            "discovered": 29,
+            "passed": 29,
+            "skipped": 0,
+            "failed": 0
+          },
+          "ReleaseFast": {
+            "discovered": 29,
+            "passed": 29,
+            "skipped": 0,
+            "failed": 0
+          }
+        },
+        {
+          "step": "test-air-runtime-profile",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 8,
+          "Debug": {
+            "discovered": 8,
+            "passed": 7,
+            "skipped": 0,
+            "failed": 1
+          },
+          "ReleaseFast": {
+            "discovered": 8,
+            "passed": 7,
+            "skipped": 0,
+            "failed": 1
+          }
+        },
+        {
+          "step": "test-proof-phase-meter",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 12,
+          "Debug": {
+            "discovered": 12,
+            "passed": 12,
+            "skipped": 0,
+            "failed": 0
+          },
+          "ReleaseFast": {
+            "discovered": 12,
+            "passed": 12,
+            "skipped": 0,
+            "failed": 0
+          }
+        },
+        {
+          "step": "test-air-function-frames",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 7,
+          "Debug": {
+            "discovered": 7,
+            "passed": 7,
+            "skipped": 0,
+            "failed": 0
+          },
+          "ReleaseFast": {
+            "discovered": 7,
+            "passed": 7,
+            "skipped": 0,
+            "failed": 0
+          }
+        },
+        {
+          "step": "test-main-trace-plan-execution",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 340,
+          "Debug": {
+            "discovered": 340,
+            "passed": 339,
+            "skipped": 1,
+            "failed": 0
+          },
+          "ReleaseFast": {
+            "discovered": 340,
+            "passed": 339,
+            "skipped": 1,
+            "failed": 0
+          }
+        },
+        {
+          "step": "test-interaction-trace-plan",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 208,
+          "Debug": {
+            "discovered": 208,
+            "passed": 207,
+            "skipped": 1,
+            "failed": 0
+          },
+          "ReleaseFast": {
+            "discovered": 208,
+            "passed": 207,
+            "skipped": 1,
+            "failed": 0
+          }
+        },
+        {
+          "step": "test-recursion-transcript-v2",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 236,
+          "Debug": {
+            "discovered": 236,
+            "passed": 235,
+            "skipped": 1,
+            "failed": 0
+          },
+          "ReleaseFast": {
+            "discovered": 236,
+            "passed": 235,
+            "skipped": 1,
+            "failed": 0
+          }
+        },
+        {
+          "step": "test-recursion-framework-export",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 151,
+          "Debug": {
+            "discovered": 151,
+            "passed": 150,
+            "skipped": 0,
+            "failed": 1
+          },
+          "ReleaseFast": {
+            "discovered": 151,
+            "passed": 150,
+            "skipped": 0,
+            "failed": 1
+          }
+        },
+        {
+          "step": "test-recursion-arithmetic-fusion",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 16,
+          "Debug": {
+            "discovered": 16,
+            "passed": 16,
+            "skipped": 0,
+            "failed": 0
+          },
+          "ReleaseFast": {
+            "discovered": 16,
+            "passed": 16,
+            "skipped": 0,
+            "failed": 0
+          }
+        },
+        {
+          "step": "test-recursion-opening-accumulation",
+          "before_discovery_floor": 0,
+          "after_discovery_floor": 95,
+          "Debug": {
+            "discovered": 95,
+            "passed": 95,
+            "skipped": 0,
+            "failed": 0
+          },
+          "ReleaseFast": {
+            "discovered": 95,
+            "passed": 95,
+            "skipped": 0,
+            "failed": 0
+          }
+        }
+      ],
+      "required_transcript_cases_restored": 4,
+      "transcript_before_discovered": 1,
+      "transcript_after_discovered": 236,
+      "transcript_after_passed": 235,
+      "transcript_after_existing_opt_in_skip": 1,
+      "unmatched_filter_negative": {
+        "compile_exit": 0,
+        "runtime_exit": 1,
+        "runtime_rejection": "TestUnexpectedResult",
+        "discovered_cases": 1
+      },
+      "runtime_proof_implementations_pins_and_failing_case_bodies_unchanged": true,
+      "existing_failures": {
+        "runtime_profile": {
+          "expected_digest": "427aa2e4f024e7996734808f58255c7a23aba58402b26f218f82398c213db38f",
+          "actual_digest": "f215072722d632f872f3ce0fb3fa123c6160e0e8e80604424aef1faf201f0c60",
+          "status": "UNRESOLVED_PIN_MISMATCH_PRESERVED_IN_BOTH_MODES"
+        },
+        "framework_export": {
+          "expected_error": "InvalidBasePolynomialProgram",
+          "actual": "void",
+          "test_line": 488,
+          "status": "UNRESOLVED_LAYOUT_NEGATIVE_CONTRACT_CONFLICT_PRESERVED",
+          "historical_owner_change": "7e95ce3017: relation-only direct graph allowed in either layout"
+        }
+      },
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "test_inventory": {
+        "Debug": "PASS",
+        "ReleaseFast": "PASS"
+      },
+      "code": {
+        "added": 28,
+        "removed": 0,
+        "net": 28,
+        "budget": 40
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "developer_root_route": "DEFERRED_FULL_PACKAGE; derive exact root routing from the existing catalog as a separate follow-up",
+      "qualification": "Pinned native macOS component/discovery evidence. Passed, skipped and failed cases remain distinct; source cases overlap across targets. No whole CPU CI, full recursive proof, complete block, GPU, physical memory or qualified timing claim. The initial Debug main-trace compile sampled 4293836800 bytes against the unchanged 4294967296-byte guard; this sampling is not a hard physical-memory ceiling.",
+      "evidence": "External archive keyed by receipt tree, retaining twenty-four pinned test images, all named cases in both modes, the filtered rejection image, baseline/clean matrix and audit logs."
+    },
+    "delivery_frontend_catalog_developer_roots": {
+      "baseline_commit": "2eb05eceb",
+      "tested_execution_commit": "9c5f35f13890ec08550eb24923883859f59d056c",
+      "tested_execution_tree": "1db627c80e44f7ad513a81301f128add0925b9ce",
+      "clean": true,
+      "status": "PASS_CATALOG_OWNED_DEVELOPER_ROOTS_AND_BUILD_LOCK_LIFETIME",
+      "code": {
+        "added": 83,
+        "removed": 8,
+        "net": 75,
+        "budget": 80
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "moves": 0,
+      "planning_and_CI_contract_tests": {
+        "tests": 88,
+        "passed": 88
+      },
+      "existing_frontend_explicit_rules_preserved": 28,
+      "new_exact_root_routes": 45,
+      "manual_catalog_root_rows_removed": 6,
+      "canonical_CI_policy_unchanged": true,
+      "qualification_rules": "Exactly one catalog root owner, test-prefixed step and positive discovery floor; prior explicit overrides remain authoritative; other roots retain broad fallback.",
+      "actual_semantic_mode": "PASS_SEMANTIC_ONLY_NO_TEST_EXECUTION",
+      "actual_runtime": {
+        "discovered": 236,
+        "passed": 235,
+        "skipped": 1,
+        "failed": 0,
+        "required_transcript_cases_passed": 4,
+        "same_named_corpus_as_pinned_census": true
+      },
+      "normal_build_lock_owner": "scripts/repo/zig_serial_build.py",
+      "borrowed_canonical_parent_owner": "PRESERVED_AND_OBSERVED_HELD_AFTER_CHILD_EXIT",
+      "shared_lock_after_parent_exit": "AVAILABLE_NONBLOCKING_PROBE_PASSED",
+      "foreign_marker": "DOES_NOT_WAIVE_SHARED_WRAPPER; unit-tested",
+      "runtime_image": {
+        "attribution": "unique new test image in the frozen single-root execution window",
+        "plan_mtime": 1794188990.4335468,
+        "execution_log_mtime": 1794189034.1431956,
+        "image": {
+          "path": "/Users/theodorepender/Coding/stwo-zig/src/frontends/riscv/.zig-cache/o/29738d7b8291162f62148aa30a31ef2f/test",
+          "mtime": 1794189033.6933432,
+          "bytes": 2270168,
+          "sha256": "30f4787535b4b21228510d0a567144b159d4a9b861a489b1e4ba219c7253b7a4"
+        }
+      },
+      "execution": [
+        {
+          "label": "actual-semantic-only-transcript-check",
+          "argv": [
+            "uv",
+            "run",
+            "--offline",
+            "--python",
+            "3.13",
+            "--no-project",
+            "python",
+            "scripts/dev_test.py",
+            "--check",
+            "--optimize",
+            "ReleaseFast",
+            "src/frontends/riscv/transcript_v2_test_root.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 1340325888,
+          "wall_seconds": 7.1275627500144765
+        },
+        {
+          "label": "actual-focused-transcript-runtime",
+          "argv": [
+            "uv",
+            "run",
+            "--offline",
+            "--python",
+            "3.13",
+            "--no-project",
+            "python",
+            "scripts/dev_test.py",
+            "--optimize",
+            "ReleaseFast",
+            "src/frontends/riscv/transcript_v2_test_root.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 2713239552,
+          "wall_seconds": 36.663810374971945
+        }
+      ],
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "existing_profile_digest_and_framework_layout_failures": "UNCHANGED_FROM_FOCUSED_CENSUS; no pin/rejection changes",
+      "qualification": "Native macOS developer routing, semantic/runtime dispatch and shared build-lock ownership only. One unchanged opt-in benchmark skip remains explicit. No whole CPU CI, full recursive proof, complete block, GPU, physical memory or qualified timing claim.",
+      "evidence": "External archive keyed by receipt tree, containing all policy/contract checks, actual semantic/runtime CLI logs, retained runtime image and named corpus, borrowed-owner/teardown probes, clean source pin and ordered audits."
+    },
+    "delivery_complete_frontend_partition_ownership": {
+      "baseline_commit": "36c28dda6fb17610026fda77af5e9cdd6ba7d5c5",
+      "tested_execution_commit": "ced9dfe12b62c8711d9371305d53c5aefabdf26e",
+      "tested_execution_tree": "27c84c966d357198194b13541695549a7e91bdeb",
+      "clean": true,
+      "status": "COMPLETE_FOCUSED_DISCOVERY_GUEST_OWNER_PASS_AIR_THROUGHPUT_FAILURES_RETAINED",
+      "code": {
+        "added": 145,
+        "removed": 38,
+        "net": 107,
+        "budget": 200
+      },
+      "raw_code_text_diff": {
+        "added": 294,
+        "removed": 187,
+        "net": 107
+      },
+      "relocated_import_lines_no_subtraction_credit": 149,
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "file_moves": 0,
+      "catalog_specs": 79,
+      "unfloored_before": 19,
+      "unfloored_after": 0,
+      "mandatory_partition_roots": 8,
+      "original_import_scope": {
+        "air_semantics": {
+          "imports": 125,
+          "exact_ordered_union": true,
+          "distinct": 125
+        },
+        "guest_precompile": {
+          "imports": 24,
+          "exact_ordered_union": true,
+          "distinct": 24
+        }
+      },
+      "global_inventory_floor": {
+        "before": 1084,
+        "after": 1092
+      },
+      "filtered_legacy_floor": {
+        "before": 5,
+        "after": 17,
+        "ReleaseFast": "PASS_17_CASES",
+        "Debug": "PASS"
+      },
+      "developer_routing_unit_tests": {
+        "passed": 37,
+        "new_partition_root_plans_checked": 8
+      },
+      "other_17_targets": {
+        "clean_owner_runs_passed": 17,
+        "same_pinned_images_as_executed_baseline_corpora": true,
+        "matrix": [
+          {
+            "label": "test-runner-ReleaseFast",
+            "discovered": 436,
+            "passed": 429,
+            "skipped": 7
+          },
+          {
+            "label": "test-recursion-pair-node-ReleaseFast",
+            "discovered": 194,
+            "passed": 193,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-temporal-pair-ReleaseFast",
+            "discovered": 325,
+            "passed": 323,
+            "skipped": 2
+          },
+          {
+            "label": "test-recursion-vm-composition-ReleaseFast",
+            "discovered": 228,
+            "passed": 227,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-composition-recorder-ReleaseFast",
+            "discovered": 18,
+            "passed": 18,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-segment-leaf-outer-v2-ReleaseFast",
+            "discovered": 301,
+            "passed": 300,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-segment-transcript-source-v2-ReleaseFast",
+            "discovered": 254,
+            "passed": 253,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-segment-transcript-components-v2-ReleaseFast",
+            "discovered": 264,
+            "passed": 263,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-segment-public-components-v2-ReleaseFast",
+            "discovered": 250,
+            "passed": 249,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-segment-outer-manifest-v2-ReleaseFast",
+            "discovered": 248,
+            "passed": 247,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-segment-outer-cohort-v2-ReleaseFast",
+            "discovered": 204,
+            "passed": 204,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-segment-boundary-components-v2-ReleaseFast",
+            "discovered": 98,
+            "passed": 98,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-fri-profile-measurements-ReleaseFast",
+            "discovered": 51,
+            "passed": 51,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-parent-transcript-source-ReleaseFast",
+            "discovered": 64,
+            "passed": 64,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-parent-statement-source-ReleaseFast",
+            "discovered": 70,
+            "passed": 70,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-binary-closure-ReleaseFast",
+            "discovered": 28,
+            "passed": 28,
+            "skipped": 0
+          },
+          {
+            "label": "test-poseidon-universal-degree3-ReleaseFast",
+            "discovered": 182,
+            "passed": 181,
+            "skipped": 1
+          }
+        ],
+        "skips": "Seven unavailable Sail-oracle cases in runner; remaining skips are existing opt-in measurements. Case totals overlap across targets."
+      },
+      "direct_partition_diagnostics": {
+        "images": 8,
+        "all_compiled_within_guards": true,
+        "AIR_unique_names": 835,
+        "AIR_occurrences": 1165,
+        "AIR_failed_occurrences": 7,
+        "AIR_skipped_occurrences": 1,
+        "guest_unique_names": 466,
+        "guest_occurrences": 1147,
+        "guest_failed_occurrences": 0,
+        "guest_skipped_occurrences": 4,
+        "classification": "ReleaseFast component diagnostics; timing assertions retained, no timing qualification"
+      },
+      "clean_entrypoint_runs": {
+        "jobs": 25,
+        "passed": 23,
+        "time_guard_stops": 2,
+        "semantic_only_both_owners": "PASS_NO_TEST_EXECUTION",
+        "inventory_and_filtered_legacy_both_modes": "PASS",
+        "aggregate_first_commands": "Both hit unchanged 180-second guard while compiling their complete image sets; not passing cold full-target acceptance"
+      },
+      "warm_complete_owner_runs": [
+        {
+          "label": "test-air-semantics-warm-complete-owner-ReleaseFast",
+          "argv": [
+            "uv",
+            "run",
+            "--offline",
+            "--python",
+            "3.13",
+            "--no-project",
+            "python",
+            "scripts/repo/zig_serial_build.py",
+            "--no-lock",
+            "--cwd",
+            ".",
+            "test-air-semantics",
+            "--build-file",
+            "src/frontends/riscv/build.zig",
+            "-Doptimize=ReleaseFast",
+            "--verbose"
+          ],
+          "exit_code": 1,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 3098083328,
+          "wall_seconds": 143.30893233395182
+        },
+        {
+          "label": "test-guest-precompile-warm-complete-owner-ReleaseFast",
+          "argv": [
+            "uv",
+            "run",
+            "--offline",
+            "--python",
+            "3.13",
+            "--no-project",
+            "python",
+            "scripts/repo/zig_serial_build.py",
+            "--no-lock",
+            "--cwd",
+            ".",
+            "test-guest-precompile",
+            "--build-file",
+            "src/frontends/riscv/build.zig",
+            "-Doptimize=ReleaseFast",
+            "--verbose"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 4035313664,
+          "wall_seconds": 81.6554869589745
+        }
+      ],
+      "warm_AIR": {
+        "status": "FAIL_EXISTING_THROUGHPUT_ASSERTIONS",
+        "occurrences": 1165,
+        "passed": 1158,
+        "skipped": 1,
+        "failed": 6,
+        "failed_names": [
+          "air.lang.tests.typed_mul_witness_test.test.typed MUL hot rows retain paired legacy throughput and linear scaling",
+          "air.lang.tests.typed_shifts_reg_witness_performance_test.test.typed SHIFTS_REG hot rows retain paired legacy throughput and scaling",
+          "air.lang.tests.typed_jalr_authority_test.test.JALR production direct and lookup evaluators retain legacy throughput",
+          "air.lang.tests.typed_jalr_witness_test.test.typed JALR authority hot rows retain paired legacy throughput and scaling",
+          "air.lang.tests.typed_jal_authority_test.test.JAL production direct and lookup evaluators retain legacy throughput",
+          "air.lang.tests.typed_jal_witness_test.test.typed JAL hot rows retain paired legacy throughput in every build mode"
+        ],
+        "unique_names": 835,
+        "floor_make": "NOT_EXECUTED_AFTER_CHILD_FAILURE; no green floor claim"
+      },
+      "warm_guest": {
+        "status": "PASS_COMPLETE_UNIQUE_DISCOVERY_FLOOR",
+        "unique_names": 466,
+        "occurrences": 1147,
+        "passed": 1143,
+        "skipped": 4,
+        "failed": 0
+      },
+      "actual_owner_metadata": {
+        "images": 8,
+        "zig": "0.15.2",
+        "names_and_order_equal_direct_executed_corpora": true,
+        "query_executes_tests": false,
+        "protocol": "Pinned Zig client query_test_metadata then exit; no run_test message"
+      },
+      "discovery_negatives": {
+        "complete_union": "PASS",
+        "single_image_behavior": "PASS",
+        "duplicate_image_compensation": "REJECTED",
+        "sum_instead_of_unique_union": "REJECTED",
+        "missing_metadata": "REJECTED",
+        "child_failure": "REJECTED"
+      },
+      "runtime_profile_causality": {
+        "classification": "DIAGNOSTIC_ONLY_NOT_REPAIRED_GATE",
+        "modes": [
+          "Debug",
+          "ReleaseFast"
+        ],
+        "passed_cases_each_mode": 4,
+        "cause_commit": "5b8be3eb11",
+        "cause": "Optional StageNode.process_usage is reflected into the complete typed source hash even when null; historical field projection exactly recovers the old pin",
+        "expected_unchanged": "427aa2e4f024e7996734808f58255c7a23aba58402b26f218f82398c213db38f",
+        "current": "f215072722d632f872f3ce0fb3fa123c6160e0e8e80604424aef1faf201f0c60",
+        "normal_current_admission_rejects_legacy_projection": true,
+        "non_null_usage_binding_mutation_checks": "PASS",
+        "proposal": "design/repository/runtime-profile-pin-rfc.md",
+        "approval": "NONE_NO_ISSUE_NO_PIN_EDIT"
+      },
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "qualification": "macOS CPU component compilation, complete focused discovery and owner execution only. Existing unavailable-Sail and opt-in measurement skips remain explicit. No whole CPU CI, Linux CI, full recursive proof, complete block, GPU, physical-memory certification or qualified timing claim.",
+      "evidence": "External local/delivery-20261108 archive keyed by the receipt tree, with baseline and clean plans/logs, exact ordered case corpora, pinned direct and actual-owner binaries, metadata-only query source/results, controlled floor negatives, cancelled root-selector experiment, and causal profile diagnostic sources/binaries."
+    },
+    "bounded-observer-journal-ownership": {
+      "source_commit": "5fc54e9734f65ac4cbfcbf81e89b5b2594687802",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 1936,
+            "removed": 1981,
+            "net": -45
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 30,
+            "removed": 0,
+            "net": 30
+          },
+          "config": {
+            "added": 28,
+            "removed": 1,
+            "net": 27
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "HOSTED_COMMANDS_0_1_PASS_FULL_LANE_FAIL",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    },
+    "cm31_direct_product_candidate": {
+      "source_commit": "27131545f9a768e7f81a439e50f2f91863f26788",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 19,
+            "removed": 12,
+            "net": 7
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 20,
+            "removed": 0,
+            "net": 20
+          },
+          "config": {
+            "added": 7,
+            "removed": 0,
+            "net": 7
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "REJECTED_UNINSTRUMENTED_FRI_DIGEST",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    },
+    "memcpy_admission_journal_owner": {
+      "source_commit": "5fb2339249ae254c4aa9bd00c8b45497fea4761b",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 646,
+            "removed": 736,
+            "net": -90
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 13,
+            "removed": 0,
+            "net": 13
+          },
+          "config": {
+            "added": 8,
+            "removed": 0,
+            "net": 8
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "HOSTED_COMMANDS_0_1_PASS_FULL_LANE_FAIL",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    },
+    "cm31_call_boundary_candidate": {
+      "source_commit": "8baa745e369568ec32f2212b728822ee18209daa",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 14,
+            "removed": 6,
+            "net": 8
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 18,
+            "removed": 0,
+            "net": 18
+          },
+          "config": {
+            "added": 15,
+            "removed": 8,
+            "net": 7
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "CORE_DEBUG_RELEASEFAST_AND_FULL_FRONTEND_PASS_PERFORMANCE_UNQUALIFIED",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    },
+    "sail_candidate_fresh_air_inputs": {
+      "source_commit": "597d748333419acc52b95ba71804a6f6aae98c0f",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 12,
+            "removed": 0,
+            "net": 12
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 18,
+            "removed": 0,
+            "net": 18
+          },
+          "config": {
+            "added": 22,
+            "removed": 0,
+            "net": 22
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "FRESH_AIR_EXPORT_PASS_LIVE_REGENERATION_PENDING",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    },
+    "bounded_observer_developer_ci_ownership": {
+      "source_commit": "95b7f329ddd79e1c26622b225d5e71a30f4eda88",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 24,
+            "removed": 1,
+            "net": 23
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 9,
+            "removed": 0,
+            "net": 9
+          },
+          "config": {
+            "added": 22,
+            "removed": 1,
+            "net": 21
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "130_LOCAL_PYTHON_CONTRACTS_AND_REAL_DEV_ENTRYPOINT_DEFER_PASS",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    }
+  },
+  "post_merge_hygiene": {
+    "base_merge_commit": "4e260db9605d16fef5d405cc3c280e3042b22e35",
+    "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
+    "worktrees": 7,
+    "gpu_native_default": false,
+    "experimental_candidate_retained_separately": "origin/codex/rv64-gpu-hygiene-local@4892bffa6f77dce3dda68aea0053dfff71e7f0cd",
+    "source_contract_commit": "2b89ae3ec13033ed94ac330c7cabfdb525c8f903",
+    "code_added": 2728,
+    "code_removed": 2494,
+    "code_net": 234,
+    "code_inventory_net_from_original_baseline": -67926,
+    "flags_added": 0,
+    "flags_removed_this_batch": 0,
+    "live_flags": 260,
+    "scripts_added": 0,
+    "scripts_removed_this_batch": 0,
+    "top_level_scripts_removed_cumulative": 150,
+    "static_diagnostics_before": 139,
+    "static_diagnostics_after": 121,
+    "static_paths_after": 120,
+    "new_baselines_or_ceiling_increases": 0,
+    "final_host_command": "227testsPASS",
+    "host_fake_device_command": "PASS60entries11.075s611584KiB",
+    "default_gpu_gate": "PENDING_NO_CREDIT",
+    "full_suite_status": "NOT_CLAIMED_GREEN",
+    "phase_complete": false,
+    "task_worktrees_created": 0,
+    "external_active_worktrees": [
+      {
+        "path": "/private/tmp/claude-501/-Users-theodorepender-Coding-stwo-zig/3268cd4b-cf9c-479c-a67f-1c72486c40d2/scratchpad/autoresearch-retire-base",
+        "head": "51897dc265593df7580c4abf0b232909fc105e34",
+        "worktree_change_records": 0,
+        "dirty": false,
+        "activity": "CURRENT_WORKING_DIRECTORY_USERS_OBSERVED_WITH_LSOF",
+        "retirement": "HELD_ACTIVE_EXTERNAL_WORK_NO_REMOVAL"
+      },
+      {
+        "path": "/Users/theodorepender/Coding/stwo-zig-wt/repo-standards",
+        "head": "51897dc265593df7580c4abf0b232909fc105e34",
+        "worktree_change_records": 17865,
+        "dirty": true,
+        "activity": "CURRENT_WORKING_DIRECTORY_USERS_OBSERVED_WITH_LSOF",
+        "retirement": "HELD_ACTIVE_EXTERNAL_WORK_NO_REMOVAL"
+      }
+    ],
+    "single_checkout_consolidation": "OPEN_EXTERNAL_WORKTREE_PRESERVED",
+    "second_owner_batch_net": 129,
+    "class_leaf_command": "PASS4tests4.263s308656KiB",
+    "package_class_target": "RSS_CAP_STOPPED_NOT_PASSED",
+    "source_closure_scope": "targeted15PASS; combined145tests144PASS/1heldCPUfixtureerror",
+    "test_support_modules_added": 1,
+    "external_registered_worktrees": [
+      "/Users/theodorepender/Coding/stwo-zig-wt/deadcode",
+      "/Users/theodorepender/Coding/stwo-zig-wt/evidence",
+      "/Users/theodorepender/Coding/stwo-zig-wt/legacy-gpu",
+      "/Users/theodorepender/Coding/stwo-zig-wt/repo-standards",
+      "/Users/theodorepender/Coding/stwo-zig-wt/scripts",
+      "/Users/theodorepender/Coding/stwo-zig-wt/src-layout"
+    ],
+    "last_wrap_code_added": 1919,
+    "last_wrap_code_removed": 1790,
+    "last_wrap_code_net": 129
+  },
+  "wrap_handoff": {
+    "user_instruction": "Stop after completing wrap-up",
+    "scope": "Current changes checked, committed and backed up; full hygiene objective remains incomplete",
+    "remaining": [
+      "121 static findings",
+      "260 live flags versus fewer than60",
+      "one detached CPU-fixture closure dependency error and broader CI",
+      "package semantic compile and full GPU gates",
+      "native default promotion and coherent legacy sweep",
+      "raw pod evidence retrieval on next funded start",
+      "external worktree consolidation after its active work is preserved"
+    ],
+    "gpu_native_default": false,
+    "gpu_work_started": false,
+    "goal_complete": false
+  },
+  "hosted_cpu_results_20261109": {
+    "status": "PARTIAL_COMPONENT_ACCEPTANCE_FULL_PRODUCTIONISATION_INCOMPLETE",
+    "recorded_source_commit": "95b7f329ddd79e1c26622b225d5e71a30f4eda88",
+    "gpu_work_authorized": false,
+    "gpu_work_performed": false,
+    "phase_complete": false,
+    "core_call_boundary": {
+      "run": 42578150823,
+      "receipt": {
+        "cache_mode": "warm",
+        "clean": true,
+        "commands": [
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test-fields",
+              "--build-file",
+              "src/waist/core/build.zig",
+              "-Doptimize=Debug",
+              "-j2"
+            ],
+            "duration_ns": 4293587686,
+            "exit_code": 0,
+            "ordinal": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test-stwo-core",
+              "identity-stwo-core",
+              "-Doptimize=ReleaseFast",
+              "-j2"
+            ],
+            "duration_ns": 38247183702,
+            "exit_code": 0,
+            "ordinal": 1,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "39e03b62b21f3e7b9d66fd7493b5481efe3e3476452970e7599fb83dfe560aa0"
+          },
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test",
+              "--build-file",
+              "src/waist/core/build.zig",
+              "-Doptimize=ReleaseFast",
+              "-j2"
+            ],
+            "duration_ns": 60127574248,
+            "exit_code": 0,
+            "ordinal": 2,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "commit": "8baa745e369568ec32f2212b728822ee18209daa",
+        "duration_ns": 103208663312,
+        "host": "linux",
+        "host_machine": "x86_64",
+        "lane": "core",
+        "required_host": "linux",
+        "schema": "stwo-focused-ci-timing-v1",
+        "status": "PASS",
+        "tree": "0c54b6b8b94e4368334964a885b5172fa37d1f07"
+      }
+    },
+    "circuit_frontend_call_boundary": {
+      "run": 42578155076,
+      "receipt": {
+        "cache_mode": "warm",
+        "clean": true,
+        "commands": [
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test",
+              "--build-file",
+              "src/frontends/circuit/build.zig",
+              "-Doptimize=ReleaseFast",
+              "-j2"
+            ],
+            "duration_ns": 137218435004,
+            "exit_code": 0,
+            "ordinal": 0,
+            "stderr_sha256": "ded3053ac42d3f46ac8015586124935d46565764d2c5973d3444cf740d7df761",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "commit": "8baa745e369568ec32f2212b728822ee18209daa",
+        "duration_ns": 137477287524,
+        "host": "linux",
+        "host_machine": "x86_64",
+        "lane": "circuit_frontend",
+        "required_host": "linux",
+        "schema": "stwo-focused-ci-timing-v1",
+        "status": "PASS",
+        "tree": "0c54b6b8b94e4368334964a885b5172fa37d1f07"
+      }
+    },
+    "four_observer_commands": {
+      "run": 42577960769,
+      "receipt": {
+        "cache_mode": "warm",
+        "clean": true,
+        "commands": [
+          {
+            "argv": [
+              "zig",
+              "build",
+              "stwo-zig-riscv-cpu",
+              "test-riscv-observation-contracts",
+              "riscv-pc-hotspot-observer",
+              "riscv-memcpy-hotspot-observer",
+              "riscv-function-value-observer",
+              "riscv-memcpy-admission-observer",
+              "-Doptimize=ReleaseFast",
+              "-j2"
+            ],
+            "duration_ns": 480397461419,
+            "exit_code": 0,
+            "ordinal": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test-riscv-observation-contracts",
+              "-Doptimize=Debug",
+              "-j2"
+            ],
+            "duration_ns": 1519313462,
+            "exit_code": 0,
+            "ordinal": 1,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test-riscv-profile-partition",
+              "stwo-zig-riscv-cpu",
+              "-Doptimize=ReleaseFast",
+              "-j2"
+            ],
+            "duration_ns": 203924284933,
+            "exit_code": 1,
+            "ordinal": 2,
+            "stderr_sha256": "e460f28b138c3df33667a68012f3221c841a9c2b203dc9bde863ece565d8f6b9",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "commit": "5fb2339249ae254c4aa9bd00c8b45497fea4761b",
+        "duration_ns": 686118887258,
+        "host": "linux",
+        "host_machine": "x86_64",
+        "lane": "riscv_cpu",
+        "required_host": "linux",
+        "schema": "stwo-focused-ci-timing-v1",
+        "status": "FAIL",
+        "tree": "231f46b1eddc85eaa42b5149f81d894e7265b2b5"
+      },
+      "named_contract_floor": 13,
+      "scope": "Actual CPU CLI and all four observation commands build; contract root passes ReleaseFast and Debug. Unchanged timing/pool tests fail next; proof-smoke and trace-vector commands after that failure were not reached."
+    },
+    "rejected_schoolbook_candidate": {
+      "source_commit": "27131545f9a768e7f81a439e50f2f91863f26788",
+      "run": 42577304199,
+      "status": "FAIL_426_OF_427_CORE_PACKAGE_TESTS",
+      "expected_first_fold_digest": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+      "observed_first_fold_digest": "8601fda9c9a9dbee57e77e346a193f0b48b9802dd2d12311f1734478ea4ebd62",
+      "production_action": "Restore original three-product expression; retain independent tests and negative receipt."
+    },
+    "sail_regeneration": {
+      "prior_run": 42565644911,
+      "prior_source": "8cd0efadc12104c8675ad4928af8a8630a013135",
+      "prior_status": "BACKEND_GENERATED_CANDIDATE_FAILED_MISSING_AIR_INPUT",
+      "current_run": 42578512273,
+      "current_source": "597d748333419acc52b95ba71804a6f6aae98c0f",
+      "current_status": "FRESH_AIR_EXPORT_PASSED_PROVISIONING_LIVE_AT_OBSERVATION",
+      "accepted_candidate": false,
+      "publication_or_release_receipt_minted": false
+    },
+    "source_audit": {
+      "findings_before_observer_consolidation": 102,
+      "findings_after": 97,
+      "workspace_findings": 392,
+      "new_observer_findings": 0,
+      "zero_finding_target_met": false,
+      "live_flags": 249,
+      "fewer_than_60_target_met": false
+    },
+    "budget_coverage": {
+      "base_commit": "6393b14eb",
+      "recorded_head": "95b7f329ddd79e1c26622b225d5e71a30f4eda88",
+      "delivery_commits": 65,
+      "budget_bearing_commits": 65,
+      "missing": [],
+      "overall": {
+        "lines": {
+          "code": {
+            "added": 29046,
+            "removed": 11440,
+            "net": 17606
+          },
+          "generated": {
+            "added": 143,
+            "removed": 143,
+            "net": 0
+          },
+          "docs": {
+            "added": 1831,
+            "removed": 6,
+            "net": 1825
+          },
+          "config": {
+            "added": 1358,
+            "removed": 320,
+            "net": 1038
+          },
+          "receipts": {
+            "added": 5352,
+            "removed": 1912,
+            "net": 3440
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 2,
+          "removed": 0
+        },
+        "moves": 1
+      }
+    },
+    "remote_raw_evidence": {
+      "ref": "refs/heads/backup/delivery-evidence-cpu-results-20261109",
+      "commit": "54e342793b7f004ebd24fd8d3aa40f08206eb18e",
+      "source_commit": "95b7f329ddd79e1c26622b225d5e71a30f4eda88",
+      "remote_ref_verified": true,
+      "all_LFS_objects_download_hash_verified": true,
+      "parts": [
+        {
+          "name": "delivery-evidence.tar.gz.part000",
+          "bytes": 480235,
+          "sha256": "abc53ed8a5901223911e651406a60bc4b7222e5f3910e31535978aa9bcd63199"
+        }
+      ],
+      "prepush_pod_gate_exit": 2,
+      "created_utc": "2026-11-09T07:30:03.103753+00:00"
+    },
+    "remaining": [
+      "Complete CPU CI acceptance, including original timing/pool contracts and integration dependencies",
+      "Approved owner RFCs for contract transactions; no decisions inferred",
+      "Fresh accepted Sail and circuit-owner regeneration; current pins remain enforced",
+      "Canonical recursion shape reconciliation; all sixteen fresh shapes currently rejected",
+      "Blocking boundary audit with zero findings",
+      "Ethereum statement package and generic RV64 pipeline",
+      "RISC-V subpackage split and version collapse",
+      "Fewer than sixty live flags",
+      "Waist contracts, consumer-driven tests and error model",
+      "Branch-count target and remaining active external ownership",
+      "All ordered GPU comparison/setup-miss/basket/promotion/deletion gates remain unrun under user no-GPU scope",
+      "Qualified performance and physical-memory evidence"
+    ],
+    "claim_limits": [
+      "No compiler-level root cause established for layout-sensitive arithmetic",
+      "Call-boundary CPU cost unmeasured",
+      "No component result proves full-block, security, formal-publication or productionisation completion",
+      "Earlier historical sections retain their original dated scopes and metrics"
+    ]
+  },
+  "cm31_optimizer_diagnosis_20261109": {
+    "status": "REDUCED_LLVM20_SLP_DEFECT_IDENTIFIED_FULL_PROOF_QUALIFICATION_INCOMPLETE",
+    "recorded_source_commit": "2a8d6af4f77fa409211786adb6642365c6fafc0c",
+    "recorded_utc": "2026-11-09T10:29:38.212910+00:00",
+    "classification": "The standalone canonical first-fold failure is an LLVM 20.1.8 SLP optimizer miscompilation. It is consistent with the preserved original full-owner target/inlining failure. This is not a certification that all upstream callers are UB-free.",
+    "proof_policy": {
+      "releasefast_proof_outputs_suspect": true,
+      "frozen_byte_identity_required_before_timing": true,
+      "full_frozen_proof_gate_passed": false,
+      "gpu_work_performed": false,
+      "phase_complete": false,
+      "production_noinline_cm31_mitigation_retained": true,
+      "production_toolchain_pin_changed": false,
+      "production_isa_restriction_added": false
+    },
+    "standalone": {
+      "path": "src/waist/core/fields/tests/cm31_fri_case.zig",
+      "sha256": "afc23056f8e7c54c47eb40b4a74fb94d0002e080f3299be7facaa5fe6d1630db",
+      "generated_control_source_identical": true,
+      "c_entry": "reduced_fri_fold",
+      "alpha": [
+        5,
+        7,
+        11,
+        13
+      ],
+      "first_partner": [
+        1303640556,
+        459797465,
+        1763438021,
+        535549304
+      ],
+      "expected_complex": [
+        1152136878,
+        687052982
+      ],
+      "expected_extension": [
+        1502722113,
+        2034726791,
+        546122166,
+        519690011
+      ],
+      "frozen_fold_sha256": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+      "repository_imports_required": false
+    },
+    "canonical_bounds": {
+      "modulus": 2147483647,
+      "scalar_add_max": 4294967292,
+      "scalar_product_max": 4611686009837453316,
+      "karatsuba_subtraction_owner": "canonical M31.sub, no required modulo-2^64 subtraction",
+      "overflow_control": "Explicit wrapping diagnostic arithmetic preserves the same wrong optimized AVX512 digest; runtime safety instrumentation masks it without a panic."
+    },
+    "optimizer_controls": {
+      "same_unoptimized_input_sha256": "a4cabf87ba5bda4bcaefaa25ad4014bf303c9c2f9214c72d5876af08cca1cbed",
+      "source_compiler": "Zig 0.15.2 / Homebrew LLVM 20.1.8",
+      "comparator": "LLVM 22.1.6; diagnostic only",
+      "portable_execution": "Extract mathematical exports, remove target attributes/debug/unused alias metadata, compile all variants to the same AArch64 target at O0; preserve original complete IR and extraction commands. No x86 target-specific intrinsic is used in extracted math.",
+      "runs": [
+        {
+          "variant": "x86_64_v3",
+          "compile_exit": 0,
+          "fold_sha256": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+          "frozen_digest_matches": true,
+          "optimized_ir_sha256": "96515e2a0ca2a35ab270a5703c5b17313608cfafdff3c08e8c3b91368a63d651",
+          "portable_ir_sha256": "09c34cf29a554ffc3ecb272d64612879dbc690323d12e0921f920350f4388734"
+        },
+        {
+          "variant": "x86_64_v4",
+          "compile_exit": 0,
+          "fold_sha256": "1d02316c6e125d87a600924fd34eebdb0c0e6ab841a08db868d56327d0b08e9c",
+          "frozen_digest_matches": false,
+          "optimized_ir_sha256": "8d3926281a70c98510b115784c1c05a897fee3678da9ed1a9ed7d2a680b0d31e",
+          "portable_ir_sha256": "ae33cf9e9aab8f3d8b72be4d678239ff6a2e1718a38f4418ae74df4de62a6106"
+        },
+        {
+          "variant": "znver4",
+          "compile_exit": 0,
+          "fold_sha256": "1d02316c6e125d87a600924fd34eebdb0c0e6ab841a08db868d56327d0b08e9c",
+          "frozen_digest_matches": false,
+          "optimized_ir_sha256": "a0584192667b0fec1813d24922011906770fab953d0239ae8307fc7fd543c99b",
+          "portable_ir_sha256": "ef91654cc810b2bb632fe41ae1f86dc6403abd0fc152295dedd80ad1f71b6efb"
+        },
+        {
+          "variant": "llvm20-default",
+          "compile_exit": 0,
+          "fold_sha256": "1d02316c6e125d87a600924fd34eebdb0c0e6ab841a08db868d56327d0b08e9c",
+          "frozen_digest_matches": false,
+          "optimized_ir_sha256": "b76a9efb928b5d4befe90adfc05cdad827c94cf6aaec278426f13b6c15accaee",
+          "portable_ir_sha256": "ef91654cc810b2bb632fe41ae1f86dc6403abd0fc152295dedd80ad1f71b6efb"
+        },
+        {
+          "variant": "llvm20-no-slp",
+          "compile_exit": 0,
+          "fold_sha256": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+          "frozen_digest_matches": true,
+          "optimized_ir_sha256": "810192bad4b9f4a8e68b025dd90f5ace86941f42e84183648634ad366063c705",
+          "portable_ir_sha256": "d3696ce679cf789615e00e0d76c76f3cf0af05f984c7e663203b7dded12591a9"
+        },
+        {
+          "variant": "llvm20-no-vector-combine",
+          "compile_exit": 0,
+          "fold_sha256": "1d02316c6e125d87a600924fd34eebdb0c0e6ab841a08db868d56327d0b08e9c",
+          "frozen_digest_matches": false,
+          "optimized_ir_sha256": "e2148861aaf2270c6f9cc0a2490451d3e2ea71fc3fb7a0fc31ef255f0679b07b",
+          "portable_ir_sha256": "151536dbfdecf88821d78c95a2d9885abd668083344352f3d2a288033bf08525"
+        },
+        {
+          "variant": "llvm22-optimized",
+          "compile_exit": 0,
+          "fold_sha256": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+          "frozen_digest_matches": true,
+          "optimized_ir_sha256": "10439e1ca027e609a136ad5abbd5cb280f17d99351481ca1221b1e4de41e7cbb",
+          "portable_ir_sha256": "c6f5ecf1493869b4d6a30ab81864ceab99971a9cc7a213459d7813000b1712e2"
+        },
+        {
+          "variant": "explicit-wrapping",
+          "compile_exit": 0,
+          "fold_sha256": "1d02316c6e125d87a600924fd34eebdb0c0e6ab841a08db868d56327d0b08e9c",
+          "frozen_digest_matches": false,
+          "optimized_ir_sha256": "02fff30c0c81526596e91d7c35fec68472039990370bada553200ff2f133bb0f",
+          "portable_ir_sha256": "50decf9cdbe4596d9a610bf1a3dd6e46bb63a3fe9c3baeb1a46184bb9ad66ff3"
+        }
+      ],
+      "reduced_mismatching_limbs": 468,
+      "reduced_total_limbs": 512,
+      "first_difference": {
+        "output_index": 0,
+        "limb": 2,
+        "expected": 546122179,
+        "observed": 546122187
+      },
+      "runtime_safety_variant": "PASS without panic after preserved diagnostic panic-to-trap adaptation; instrumentation masks the case.",
+      "interpreter": "Original attempt rejected unsupported freeze. Identity handling for freeze on non-poison control agrees with AVX2 pass/AVX512 failure; this transformation is explicit and preserved.",
+      "llvm22_warnings": "Three negative feature names unsupported by LLVM22; stderr retained.",
+      "unsupported_attempts_preserved": [
+        "Zig cc rejects IR input language",
+        "initial portable safety extraction missing panic/alias declarations",
+        "original interpreter unsupported freeze"
+      ]
+    },
+    "hosted_exact_main": {
+      "main_commit": "4e260db9605d16fef5d405cc3c280e3042b22e35",
+      "failure_predates_restructure": true,
+      "failed_run": 42595578418,
+      "failed_source": "71d7a5351110d631bf49389277fd1aa610581f02",
+      "failed_target": "znver4 with AVX512/GFNI enabled",
+      "main_and_restored_inline_releasefast": "FAIL same frozen first-fold digest; direct/seeded/discovery cases pass",
+      "observed_fold_sha256": "3bf571832ee1c5ee23ee00295acb5591cc2cd31dfa82281737e5f2a1bd68dba9",
+      "main_debug_and_releasesafe": "PASS",
+      "current_noinline_all_three_modes": "PASS",
+      "avx2_followups": [
+        {
+          "run": 42596345275,
+          "source": "f64af3531ca33aae5258579dc90d2b2ce9e0c29b",
+          "cases_passed": 12
+        },
+        {
+          "run": 42597987836,
+          "source": "27c6e93880c3a04e03cd54c926914faaca2e4ff5",
+          "cases_passed": 18
+        }
+      ],
+      "avx2_followups_qualification": "PASS on AVX512-disabled runners, no closure of AVX512 failure"
+    },
+    "remote_evidence": {
+      "original_failed_owner": {
+        "ref": "refs/heads/backup/delivery-evidence-cm31-20261109",
+        "commit": "5fb583432ae26114051180b145be68f7d18594fb",
+        "source_commit": "27c6e93880c3a04e03cd54c926914faaca2e4ff5",
+        "remote_ref_verified": true,
+        "all_LFS_objects_download_hash_verified": true,
+        "parts": [
+          {
+            "name": "delivery-evidence.tar.gz.part000",
+            "bytes": 33554432,
+            "sha256": "5c740fa47bd9bbf802bd1455cfb34502b6cbd7d7daafc65a78a5ac1d1bd0b793"
+          },
+          {
+            "name": "delivery-evidence.tar.gz.part001",
+            "bytes": 22162626,
+            "sha256": "0df38f209b52ad31bcf1148410846cf19c22715272faf03394854610ab47ff55"
+          }
+        ],
+        "prepush_pod_gate_exit": 2,
+        "created_utc": "2026-11-09T10:07:45.790691+00:00"
+      },
+      "optimizer_diagnosis": {
+        "ref": "refs/heads/backup/delivery-evidence-cm31-optimizer-20261109",
+        "commit": "bcb3c66d5ad54aef5714bfdabd31d2257699a788",
+        "source_commit": "2a8d6af4f77fa409211786adb6642365c6fafc0c",
+        "remote_ref_verified": true,
+        "all_LFS_objects_download_hash_verified": true,
+        "parts": [
+          {
+            "name": "delivery-evidence.tar.gz.part000",
+            "bytes": 33554432,
+            "sha256": "f6069fe0eee7c8066fb125cf18e102a39b7c1e07c695fbe2e0b66592b4445189"
+          },
+          {
+            "name": "delivery-evidence.tar.gz.part001",
+            "bytes": 10802366,
+            "sha256": "517e74c1157a01c03290869274fedd3f9ada1a3835dc0180c09107528ce164f7"
+          }
+        ],
+        "prepush_pod_gate_exit": 2,
+        "created_utc": "2026-11-09T10:27:40.098695+00:00"
+      }
+    },
+    "static_findings": {
+      "source_commit": "2a8d6af4f77fa409211786adb6642365c6fafc0c",
+      "source_findings": 97,
+      "workspace_findings": 392,
+      "status": "FAIL_OPEN_FINDINGS",
+      "workspace_first": [
+        "stwo_cpu_backend: public API differs: missing=[], added=['CommitmentOptions', 'Om31FriBackend', 'configured']",
+        "stwo_cuda_backend: undeclared named import 'stwo_core' in runtime/secure_polynomial_v1.zig",
+        "stwo_cuda_backend: undeclared named import 'stwo_prover_engine' in runtime/secure_polynomial_v1.zig",
+        "stwo_cuda_backend: undeclared named import 'stwo_prover_engine' in secure_polynomial_codegen_v1.zig",
+        "stwo_cuda_backend: undeclared named import 'stwo_prover_engine' in secure_polynomial_codegen_v1.zig",
+        "stwo_cuda_backend: public API differs: missing=[], added=['rv64_numerical_sources']",
+        "stwo_metal_backend: public API differs: missing=[], added=['secure_polynomial_v1']",
+        "stwo_prover_engine: public API differs: missing=[], added=['chunked_sha256', 'file_backed_allocator', 'shared_external_memory']"
+      ]
+    },
+    "formal_followup": {
+      "run": 42578512273,
+      "source": "597d748333419acc52b95ba71804a6f6aae98c0f",
+      "status": "FAIL",
+      "lean_theorems": "PASS",
+      "exact_sail_backend_generation": "PASS",
+      "refinement_artifacts_generated": 60,
+      "failure": "source-bound generation check failed building generated Sail Lean decoder bridge",
+      "current_source_qualified": false,
+      "other_run": 42590995006,
+      "other_status_at_record": "RUNNING theorem build; older source; not current-source acceptance"
+    },
+    "remaining": [
+      "full frozen proof byte-identity and fresh CPU/negative corpus acceptance",
+      "complete current-source hosted CPU CI",
+      "live source-bound Sail/Lean acceptance",
+      "392 package-workspace and 97 source-conformance findings",
+      "reviewed waist/proof-wire/runtime-profile contract decisions",
+      "249 live flags; fewer-than-60 target remains open",
+      "GPU ordered promotion/deletion gates excluded by user instruction"
+    ],
+    "controlled_hosted_targets": {
+      "run": 42599041368,
+      "source": "3ea2214a6ad66878ea9d861a8a48200dc654a528",
+      "qualification": "native and supported-target tests only; unsupported controls explicitly unrun",
+      "executed_cases": 21,
+      "executed_failed_cases": 0,
+      "unrun_targets": [
+        "main-explicit-x86_64_v4",
+        "main-explicit-znver4"
+      ],
+      "native_safety_subset_cases": 18,
+      "explicit_x86_64_v3_cases": 3,
+      "raw_comparison_sha256": "b205dc5ebbebf13129178f78dc51fb9d8cd097293adbecbc1a5ff31edc8d7683",
+      "artifact_url": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42599041368"
+    },
+    "same_host_target_confirmation": {
+      "run": 42600848507,
+      "source": "2a8d6af4f77fa409211786adb6642365c6fafc0c",
+      "cpu": "AMD EPYC 9V45 96-Core Processor; AVX512 exposed",
+      "original_core_lane": "PASS",
+      "diagnostic_comparison": "FAIL_PRESERVED_EXPECTED_MAIN_REGRESSION",
+      "main_explicit_x86_64_v3": "PASS Debug/ReleaseSafe/ReleaseFast",
+      "main_explicit_x86_64_v4": "PASS Debug/ReleaseSafe; FAIL ReleaseFast",
+      "main_explicit_znver4": "PASS Debug/ReleaseSafe; FAIL ReleaseFast",
+      "current_noinline": "PASS all three modes",
+      "current_inline_checked": "PASS all three modes; instrumentation masks failure",
+      "fold_only_releasefast": "FAIL main/restored-inline/rejected-schoolbook; reduction retains original owner failure",
+      "raw_comparison_sha256": "57727db5da5c216d540d6458406bb5f9d6f31419fe9f6a1a6f0f0688ce967bb6"
+    },
+    "isolated_minimal_repro": {
+      "scope": "isolated two-row optimized-IR repro",
+      "source_sha256": "615f72e52f9d93a1c803a95165a258203ace7cefd984003654aa84be4377dde2",
+      "expected_first": [
+        1502722116,
+        2034726799,
+        546122179,
+        519690040
+      ],
+      "observed_first": [
+        1502722116,
+        2034726799,
+        546122187,
+        519690016
+      ],
+      "lines": 147,
+      "artifact_path": "stwo-cm31-minimal/minimal.zig",
+      "native_mac": "PASS Debug/ReleaseFast",
+      "native_linux_avx512_minimal_test": "UNRUN; optimized IR execution confirms corruption",
+      "qualification": "isolated two-row repro; full-owner same-host failures retained separately",
+      "co_retained_extra_entry": "An additional exported entry outlines shared arithmetic and masks the reduced failure. Preserve that passing control externally; do not add it to the source fixture as a claimed failing repro.",
+      "remote_evidence": {
+        "ref": "refs/heads/backup/delivery-evidence-cm31-minimal-20261109",
+        "commit": "3da377b3a86d0dc5f168d9d80ece4c71b87482b3",
+        "source_commit": "2d8a0c9b563649c7bbd1213ded19add8d78b02c5",
+        "remote_ref_verified": true,
+        "all_LFS_objects_download_hash_verified": true,
+        "parts": [
+          {
+            "name": "delivery-evidence.tar.gz.part000",
+            "bytes": 11344996,
+            "sha256": "39a6fa782eef1f842a5823b9f0bae35aae539f08add8090f79ab6f3169597bc7"
+          }
+        ],
+        "prepush_pod_gate_exit": 2,
+        "created_utc": "2026-11-09T10:39:31.104462+00:00"
+      }
+    },
+    "native_isolated_followup": {
+      "status": "NATIVE_AVX2_PASS_AVX512_EXPLICITLY_UNRUN_FULL_PRODUCTIONISATION_INCOMPLETE",
+      "source_commit": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+      "recorded_utc": "2026-11-09T11:15:02.414412+00:00",
+      "source_sha256": "615f72e52f9d93a1c803a95165a258203ace7cefd984003654aa84be4377dde2",
+      "native_runs": [
+        {
+          "run": 42603424027,
+          "source": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+          "cpu": "AMD EPYC 7763; AVX2, no AVX512",
+          "comparison_sha256": "050406becd92db855799d62cdbd38e861c5741581952b5aa30e618de3d85a3d7",
+          "executed_avx2_modes": {
+            "Debug": 0,
+            "ReleaseSafe": 0,
+            "ReleaseFast": 0
+          },
+          "unrun_isa_targets": [
+            "isolated-minimal-x86_64_v4",
+            "isolated-minimal-znver4"
+          ]
+        },
+        {
+          "run": 42604585782,
+          "source": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+          "cpu": "AMD EPYC 7763; AVX2, no AVX512",
+          "comparison_sha256": "62764a40d8ec986d37b8b119b9dfc278226af76ca58212c1e89d2d9a5c426ea5",
+          "executed_avx2_modes": {
+            "Debug": 0,
+            "ReleaseSafe": 0,
+            "ReleaseFast": 0
+          },
+          "unrun_isa_targets": [
+            "isolated-minimal-x86_64_v4",
+            "isolated-minimal-znver4"
+          ]
+        }
+      ],
+      "qualification": "Two AVX2 allocations validate the immutable isolated repro in all modes. Native AVX512 execution is unrun. Preserve prior same-host full-owner AVX512 failure and optimizer SLP controls; no full-proof or timing qualification.",
+      "remote_native_evidence": {
+        "ref": "refs/heads/backup/delivery-evidence-cm31-native-20261109",
+        "commit": "be37f1dc354ce7a9908a5e5e5002a8d73e011407",
+        "source_commit": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+        "remote_ref_verified": true,
+        "all_LFS_objects_download_hash_verified": true,
+        "parts": [
+          {
+            "name": "delivery-evidence.tar.gz.part000",
+            "bytes": 18797921,
+            "sha256": "21781d3857412602d902e262be34eeb8e57b36df50ed2f6b16f83649f552aec6"
+          }
+        ],
+        "prepush_pod_gate_exit": 2,
+        "created_utc": "2026-11-09T11:06:57.859694+00:00"
+      },
+      "owned_cache_cleanup": {
+        "utc": "2026-11-09T10:50:59.612418+00:00",
+        "scope": "owned rebuildable temporary diagnostic caches only; source, binaries, IR and external evidence backups retained",
+        "local_compilers_running": false,
+        "caches": [
+          {
+            "path": "/tmp/stwo-cm31-standalone-current/cache",
+            "before_allocated_kib": 29736,
+            "removed": true
+          },
+          {
+            "path": "/tmp/stwo-cm31-standalone-current/global",
+            "before_allocated_kib": 39448,
+            "removed": true
+          },
+          {
+            "path": "/tmp/stwo-cm31-reduced-fold/cache",
+            "before_allocated_kib": 5932,
+            "removed": true
+          }
+        ],
+        "reclaimed_allocated_kib": 75116,
+        "tracked_code_change": 0
+      },
+      "frozen_pr_snapshot": {
+        "run": 42603468719,
+        "pr_head": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+        "merge_commit": "8bcbf721e47e96f9f260a9deb41154d7494d1832",
+        "head_and_merge_tree": "2aa679348548ab74ac562726d04b1ace6848810f",
+        "identical_trees_verified": true,
+        "overall_status": "in_progress",
+        "provider_results": {
+          "Focused Linux / circuit_frontend": "success",
+          "Focused Linux / prover": "success",
+          "Focused Linux / circuit_cpu_integration": "success",
+          "Focused Linux / circuit_recursion_cpu": "success",
+          "Focused Linux / core": "success",
+          "Focused Linux / prover_api": "success"
+        },
+        "failed_lanes": [
+          "Focused Linux / build_graph",
+          "Focused Linux / riscv_cpu",
+          "Focused Linux / native_cuda_static",
+          "Focused Linux / riscv_cuda_integration",
+          "Focused Linux / package",
+          "Focused Linux / script_contracts",
+          "Focused Linux / riscv_cpu_integration",
+          "Focused Linux / static"
+        ],
+        "still_active": [
+          "Focused Linux / cairo_cpu",
+          "Focused Linux / riscv_frontend"
+        ],
+        "complete_python_suite": {
+          "tests": 2306,
+          "failures": 8,
+          "errors": 54,
+          "skips": 57,
+          "status": "FAIL"
+        },
+        "read_failures": {
+          "build_graph": "stale Cairo CUDA configure closure and RISC-V Metal protocol identity declarations",
+          "riscv_cpu": "Debug dynamic-row-tiles test terminates with signal 11 after sixteen completed tests",
+          "csp_shape_audit": "eight RISC-V implementation source bindings stale; independent of CM31 field files"
+        }
+      },
+      "next_shape_owner": "existing regenerate-recursion-shapes CPU-only workflow; compare complete candidate before adopting; no expected classification changes",
+      "formal_job": {
+        "run": 42590995006,
+        "observed_status": "RUNNING source-bound regeneration; older source, not qualification of current checkout"
+      },
+      "gpu_work_started": false,
+      "phase_complete": false
+    }
+  }
+}

@@ -12,9 +12,7 @@ from collections.abc import Callable
 from pathlib import Path
 from unittest import mock
 
-from scripts import architecture_native_oracle as oracle
-
-
+from scripts.architecture import architecture_native_oracle as oracle
 def _target_triple() -> str:
     architecture = {
         "arm64": "aarch64",

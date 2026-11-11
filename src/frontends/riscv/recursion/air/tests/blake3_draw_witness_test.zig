@@ -143,7 +143,7 @@ fn privateDraws(base: draw.Statement) !void {
 }
 
 fn realRejection() !void {
-    const fixture = @import("../blake3_rejection_fixture.zig");
+    const fixture = @import("blake3_rejection_fixture_test_support.zig");
     const a = std.testing.allocator;
     var native = core.channel.blake3.Channel{};
     native.mixU64(fixture.SEED);

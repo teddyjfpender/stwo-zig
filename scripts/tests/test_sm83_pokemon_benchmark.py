@@ -3,9 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from scripts import sm83_pokemon_benchmark as benchmark
-
-
+from scripts.sm83 import sm83_pokemon_benchmark as benchmark
 class Sm83PokemonBenchmarkTests(unittest.TestCase):
     def test_power_source_keeps_only_non_sensitive_supply_identity(self) -> None:
         self.assertEqual(

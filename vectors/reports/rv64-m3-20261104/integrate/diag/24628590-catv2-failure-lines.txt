@@ -1,3 +1,0 @@
-GPU_GLOBAL_WITNESS_GEOMETRY log=23 fixed=3 main=14 public_boundary=true groups={ 1, 0 }
-GPU_GLOBAL_WITNESS_FAILED line=304 status=1
-error: CudaGlobalWitnessFailed

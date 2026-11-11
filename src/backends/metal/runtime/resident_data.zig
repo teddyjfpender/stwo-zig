@@ -326,7 +326,7 @@ pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
             log_size: u32,
             pruned_bottom_layers: u32 = 0,
             external_reservation: ExternalReservation = .empty(),
-            shared_external_reservation: @import("fri_reservation_owner_v1.zig").Ref = .{},
+            shared_external_reservation: @import("fri_reservation_owner.zig").Ref = .{},
 
             pub fn deinit(self: *Tree) void {
                 stwo_zig_metal_tree_destroy(self.handle);

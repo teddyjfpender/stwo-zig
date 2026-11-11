@@ -2,6 +2,5 @@
 
 test {
     _ = @import("air/lang/tests/row_window_test.zig");
-    _ = @import("air/lang/tests/row_window_expression_v2_test.zig");
     _ = @import("air/lookups/opcode_component_prepared_test.zig");
 }

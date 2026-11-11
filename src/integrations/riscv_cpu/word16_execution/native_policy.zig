@@ -8,7 +8,7 @@
 //!
 //! Unknown values are a clean error (negative corpus P03 counts an abort as a
 //! FAIL). Spec: /workspace/m3/M6-INTERFACES.md section native-format and
-//! design/riscv-proving-stack/rv64-m6-native-v2.md.
+//! design/riscv/rv64-m6-native-v2.md.
 const std = @import("std");
 
 pub const ENV = "STWO_RV64_NATIVE_VERSION";

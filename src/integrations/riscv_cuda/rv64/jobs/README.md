@@ -1,7 +1,41 @@
 # rv64/jobs — M8 job runtime (as built)
 
-Spec: `design/riscv-proving-stack/rv64-m8-job-architecture.md`. The current
-[resource and development contract](../../../../../design/riscv-proving-stack/rv64-gpu-hygiene.md)
+Work in the single canonical checkout, `/Users/theodorepender/Coding/stwo-zig`.
+These are the three developer entrypoints:
+
+| Purpose | Command |
+|---|---|
+| Inner loop | `python3 scripts/dev_test.py <changed-paths>` |
+| Before every push | `bash scripts/rv64_gate.sh --stream m8-gn-bind --out <new-receipt-dir> --source-commit <sha> --runtime <pinned-runtime.json>` |
+| GPU-native regression set | `python3 scripts/rv64_m8_bench15.py run --assets <pinned-assets.json> --out <regression-dir> --arms gpu-native` |
+
+Use `dev_test.py --optimize ReleaseFast <changed-paths>` to reproduce optimized
+CI failures. Without an override, focused tests use Debug and package fallbacks
+use ReleaseSafe.
+
+`--dry-run` plans the actual worktree changes. Explicit paths must exist or be
+Git-confirmed deletions. CI lanes use their shared host policy and runner;
+`DEFER`/`PASS_LOCAL` leaves hosted work pending. `--check` never substitutes a
+full package or CI build when a focused type-check is unavailable.
+The [roadmap](../../TODO_ROADMAP.md) records the remaining phase gates.
+
+CI checks the [RV64 flag registry](../../../../../conformance/rv64-flags.json)
+before source-layout baselines are considered. Every declaration names its
+source owner, unset default, lifecycle status and review date; references are
+generated. New names and changed default expressions require review. The strict
+release gate also rejects 60 or more live controls and remaining M7/M8 switches.
+Qualification controls count as live; C/CUDA constants do not. Current counts
+and outstanding gates are in the
+[productionisation receipt](../../../../../vectors/reports/rv64-productionisation/current.json).
+
+Large compiles and proof gates run in the corresponding frozen pod source
+snapshot. Transport must preserve the canonical source identity; do not select
+another laptop worktree to build a different component. The gate owns its GPU
+lock. The regression command covers the complete basket unless a diagnostic
+subset is explicitly selected; subset evidence is not a basket pass.
+
+Spec: `design/riscv/rv64-m8-job-architecture.md`. The current
+[resource and development contract](../../../../../design/riscv/rv64-gpu-hygiene.md)
 defines ownership, validation and cleanup acceptance. The native request path
 is selected explicitly with `STWO_RV64_M8_GPU_NATIVE=1`; it remains default-off.
 Legacy construction is still used during installation, and the default path
@@ -14,10 +48,12 @@ Installation warms the known classes and reserves the capture ring, request
 slabs, worker arena, pinned pools and events. `serveSpool` then routes each
 request through `Service.begin` (capture plus driver batches) and `Service.finish`
 (completion, checked publication and capture join). Class misses refuse.
-Without GPU_NATIVE, `resident_batch.runServe` owns the reference/feeder path.
-The unused `jobs.serve` placeholder and its untyped hooks have been removed;
-they never implemented a request. Existing hybrid class construction still
-has an owner and remains until a fully qualified replacement exists.
+Without GPU_NATIVE, `resident_batch.runServe` owns the single-lane reference
+path; `JOBS=1` without `GPU_NATIVE=1` fails closed. The feeder, the native
+hybrid, the `OUTER_JOBS` request mode and the admission/two-lane ledger are
+deleted. The outer node-job hybrid survives only as the class-installation
+harvest (`STWO_RV64_M8_GN_INSTALL=1`, set by `native_recursion_install.zig`)
+until a fully qualified native installer replaces it.
 
 | file | role |
 |---|---|
@@ -36,10 +72,12 @@ has an owner and remains until a fully qualified replacement exists.
 | `mod.zig` | `combined-serve` entry: selection, workers, boot self-test and provider |
 | `lint.zig` | sync lint: no sync/D2H/lease symbol reachable (file level, transitive) from job sources |
 | `fake.zig` | host device model for GPU-free tests (`zig build test-rv64-jobs`) |
-| `gpu_native.zig` | GPU-native request contract (`design/riscv-proving-stack/rv64-m8-gpu-native.md`): status words, request slab, peer exchange, class cache, device checks/encoders, memory plan, capture hand-off, factories, `publish` |
-| `driver.zig` / `native_device.zig` / `outer_device.zig` / `truth_job.zig` | installed GPU-native driver, native segments, device-published recursion and truth jobs |
+| `gpu_native.zig` | GPU-native request contract (`design/riscv/rv64-m8-gpu-native.md`): status words, request slab, peer exchange, class cache, device checks/encoders, memory plan, capture hand-off, factories, `publish` |
+| `driver.zig` / `native_device.zig` / `truth_job.zig` | installed GPU-native driver, native segments and truth jobs |
+| `outer_device.zig` | installed recursion authority registry and counted class-plan pins |
+| `outer_node_job.zig` | per-request node construction, custody, execution and settlement |
 
-CUDA addon: `NAT/rv64/jobs/*.cu` → `libstwo-rv64-jobs.so` (`scripts/rv64_m8_jobs_addon_build.py --base <frozen image>
+CUDA addon: `NAT/rv64/jobs/*.cu` → `libstwo-rv64-jobs.so` (`scripts/rv64/rv64_m8_jobs_addon_build.py --base <frozen image>
 --out <dir>`), loaded with `STWO_RV64_M8_JOBS_LIBRARY`. ABI version in `ops.zig` = `runtime.cu`.
 
 ## Rules a job must follow
@@ -112,7 +150,6 @@ anything else fails `Hybrid.create` with `InvalidM8OuterEnvironment`. None of th
 
 | variable | default | effect |
 |---|---|---|
-| `STWO_RV64_M8_OUTER_JOBS` | `0` | `1` = hybrid recursion (every node an OuterNodeJob); else fails closed |
 | `STWO_RV64_M8_OUTER_PERSIST_WINDOW` | `1` | `0` = start/stop the workers per request instead of park/unpark |
 | `STWO_RV64_M8_OUTER_FIXED_JOB` | `1` | `0` = legacy owner FIXED precommit (node recommits FIXED) |
 | `STWO_RV64_M8_OUTER_FIXED_HANDOFF` | `1` | `0` = node recommits FIXED even after a FixedJob precommit |
@@ -141,15 +178,18 @@ Every `STWO_RV64_M8_OUTER_*` knob is read and parsed once per process (outer_env
 Use `scripts/dev_test.py --dry-run <changed-path>` to see the selected
 package-owned test. Resource/arena edits select `test-rv64-resources`; worker,
 driver and channel edits select `test-rv64-jobs-runtime`; node result/lifetime
-edits select `test-rv64-jobs-node`. These host tests do not require a GPU.
+edits select `test-rv64-jobs-node`. Recursion registry and request-custody edits
+select `test-rv64-jobs-recursion`, which exercises the two in-flight parities,
+peer-child seed construction, request verdicts and pin ordering. These host
+tests do not require a GPU.
 `--check` selects the same roots without executing their tests. Native, truth
 and outer routing follows the imports of their owned component test roots. Unknown
 paths retain the complete package fallback rather than reporting empty success.
 
 Run compiles in the synced pod tree under a build lock. Full-proof regressions
-use `scripts/rv64_gate.py`; matched timing uses
-`scripts/rv64_m7_integration_stack.py`. Both and the basket share
-`scripts/rv64_validation.py` for artifact pins and fresh CPU acceptance.
+use `scripts/rv64/rv64_gate.py`; matched timing uses
+`scripts/rv64/rv64_m7_integration_stack.py`. Both and the basket share
+`scripts/rv64/rv64_validation.py` for artifact pins and fresh CPU acceptance.
 `PASS_WITH_LIMITATIONS` records nonsemantic negative-test rejections explicitly;
 it exits with code 3 and is not a green semantic gate. `PASS` exits with code 0.
 Corpus acceptance requires the exact receiver pin, CPU/cache isolation, complete executable cases, a matching
@@ -169,10 +209,13 @@ through forwarding wrappers. `outer_job.zig` now separates result decoding and
 the heap's execution adapters, and uses one held-buffer schedule for budgeting
 and allocation.
 
-Other inherited oversized owners remain explicit decomposition work: `driver_request.zig` should separate installed
-lane resources from in-flight request state and publication; `gpu_native.zig` should separate class/cache ownership
+`driver_install.zig` now owns the installed cache, peer tables, lanes, slabs and events; `driver_request.zig` drains
+requests before retiring that stable owner. Remaining inherited decomposition work includes `gpu_native.zig` class/cache ownership
 from request slab/layout contracts; native Stage 1 and 2 should separate installed class construction from request
-jobs; `truth_job.zig` has the same class/job boundary; `outer_device.zig` should separate installed factory/cache
-ownership from the device node adapter. This change adds only parity/trace/receipt wiring to those owners, except
+jobs; `truth_job.zig` has the same class/job boundary. Recursion now separates installed
+registry ownership (`outer_device.zig`) from the node construction/custody/execution
+owner (`outer_node_job.zig`). Registration reserves both registry maps before
+publishing either entry, and quiescent teardown destroys request bodies before
+releasing class pins. This change adds only parity/trace/receipt wiring to those owners, except
 for extracting Stage-1 timing ownership. Their small net growth keeps those invariants at the existing owner until
 a complete boundary can move with tests. No source ceiling or conformance baseline is increased.

@@ -4,7 +4,7 @@
 const std = @import("std");
 const C = @import("common.zig");
 const Bridge = @import("../om31_outer.zig");
-const Summary = @import("node_summary_v3.zig");
+const Summary = @import("node_summary.zig");
 const Table = @import("../vk_table.zig");
 pub const Child = struct { proof: Bridge.Child, entry: Table.RecEntry, index: usize };
 pub const Graph = struct {

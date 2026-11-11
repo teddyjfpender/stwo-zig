@@ -12,8 +12,7 @@ test {
     _ = @import("air/guest_precompile/tests/keccakf_component_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_table_component_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_witness_test.zig");
-    _ = @import("air/guest_precompile/tests/keccakf_throughput_candidate_test.zig");
     _ = @import("isa/custom0.zig");
-    _ = @import("runner/guest_precompile/tests/keccakf_v1_test.zig");
+    _ = @import("runner/guest_precompile/tests/keccakf_test.zig");
     _ = @import("runner/guest_precompile/tests/keccakf_runner_test.zig");
 }

@@ -17,6 +17,12 @@ exists.
 See [package.contract.json](package.contract.json) and the
 [public facade](mod.zig) for the authoritative package boundary.
 
+The strict `native/` build closure contains only C/C++ and CUDA source files.
+Export requirements live in `contracts/*required-symbols.json`; the RV64 library
+builder and relinker consume `contracts/rv64-required-symbols.json`.
+The [arena admission owner contract](../../../design/riscv/rv64-arena-admission-v2.md)
+is maintained with the proving-stack design documents.
+
 ## Architecture and status
 
 ```mermaid
@@ -87,6 +93,8 @@ supplies its trace/constraint programs and statement binding through an
 integration package; the backend owns residency, PCS stages, scheduling,
 telemetry, strict-AOT loading, and teardown.
 
+The current primary module also exports `rv64_numerical_sources`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
+
 ## Dependencies
 
 - `stwo_backend_contracts` — architectural capability vocabulary.
@@ -99,6 +107,8 @@ CUDA evidence.
 
 The narrow dependency is deliberate. Protocol/frontends enter only through
 integration packages so the resident runtime can be audited separately.
+
+The existing build also consumes `stwo_core`, `stwo_prover_engine`. Their providers stay explicit in the package manifest; injected aliases do not replace these concrete dependency edges.
 
 ## Build, test, and run
 
@@ -126,7 +136,7 @@ NVIDIA occupancy, memory hierarchy, graphs, or launch behavior.
 
 The checked 2026-08-04 audit pins CuMetal 0.1.3 commit
 `e88dd103bddaff9a134913dec4bd8439817d160c` plus the repository's authenticated
-compatibility patch. All 33 maintained Native runtime translation units meet
+compatibility patch. The 33 historical Native runtime translation units meet
 the recorded translation floor; two use their existing host-parity
 bit-reversal definition. The patch identity is included in every build plan and
 receipt, so an unpatched or differently patched checkout fails closed.
@@ -151,9 +161,13 @@ fallback, then decodes and independently verifies the proof in Zig. This
 qualifies that pinned workload and provider boundary, not every Native AIR and
 not NVIDIA behavior.
 
-CI checks the ledger's exact 33-source coverage without invoking CuMetal. The
-translation and execution lanes remain intentionally opt-in and never enter a
-product closure. On macOS, run them with an explicit CuMetal build:
+CI checks the unchanged 33-probe Native floor and the separately pinned Cairo
+extension against their explicit runtime source owners. The support manifest
+accounts for all 102 CUDA units: 33 Native, one Cairo extension and 68 RISC-V/
+circuit units whose provider remains unavailable. New, absent or multiply owned
+units reject. The Native archive selects only its 33 runtime units; the NVIDIA
+archive still owns the complete source closure. Translation and execution lanes
+remain opt-in; source enrollment does not qualify additional GPU execution. On macOS, run them with an explicit CuMetal build:
 
 ```sh
 zig build cuda-cumetal-portability \
@@ -175,7 +189,8 @@ zig build run-native-cumetal-smoke \
   -Dcuda-air-validate=/absolute/path/to/air_validate
 ```
 
-`cuda-cumetal-ledger` validates the 33-source checked contract without CuMetal.
+`cuda-cumetal-ledger` validates the 33-probe checked contract and complete source
+ownership without CuMetal.
 The portability and audit steps emit machine-readable cache receipts containing
 tool, source, diagnostic, metallib, and execution-provenance hashes. Adding
 translated outputs to source control, accepting a smaller floor, or using
@@ -190,7 +205,7 @@ It is independent of the older Native portability pin and its 33-source floor.
 [The extension contract](../../../conformance/cuda-cumetal-cairo-local-v1.json)
 also authenticates the maintained active-feed kernel without changing that floor.
 
-`scripts/cuda_cairo_local.py` checks all 64 canonical witness and 68 canonical
+`scripts/cuda/cuda_cairo_local.py` checks all 64 canonical witness and 68 canonical
 AIR sources against their manifests before translating them. Numerical harnesses
 execute the actual QM31 powers, active feeds, felt252 cube/inversion helpers and
 generated parametric AIR on the Apple GPU against independent host/Python oracles.
@@ -203,7 +218,7 @@ Receipts record source, patch,
 compiler and runtime identities. Timeouts kill the complete compiler process
 group. Partial retries are explicitly recorded as partial coverage.
 
-`scripts/cuda_aot_local_native.py` can assemble NVIDIA cubins in a local ARM64
+`scripts/cuda/cuda_aot_local_native.py` can assemble NVIDIA cubins in a local ARM64
 Linux CPU container. `STWO_CUDA_AOT_CUBIN_IMPORT_ROOT` feeds its authenticated
 bundle into the regular archive builder. Exact source, ABI, SM, flags, toolchain
 and artifact identities are validated, and the producing compiler stays explicit
@@ -263,10 +278,10 @@ proofs, and independent verification.
 
 ## Related documentation
 
-- [Backend contracts](../../backend/README.md)
+- [Backend contracts](../../waist/backend/README.md)
 - [Native CUDA integration](../../integrations/native_cuda/README.md)
 - [Cairo CUDA integration](../../integrations/cairo_cuda/README.md)
 - [CUDA system architecture goal](../../../conformance/2026-07-24-cuda-system-architecture-goal.md)
-- [CUDA production qualification](../../../conformance/cuda-production-qualification-v1.md)
+- [CUDA production qualification](../../../design/decisions/cuda-production-qualification-v1.md)
 - [CUDA source authority](UPSTREAM.md)
 - [Repository product status](../../../README.md#product-support)

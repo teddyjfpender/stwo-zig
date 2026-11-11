@@ -21,17 +21,17 @@ compile_error!("pairing diagnostics are distinct programs");
 ))]
 compile_error!("diagnostic and transition guest modes are mutually exclusive");
 #[rustfmt::skip]
-#[path = "../../../../autoresearch/benchmarks/guest_runtime/exact_layout_allocator_v2.rs"]
+#[path = "../../../../guests/exact_layout_allocator_v2.rs"]
 mod allocator;
 #[rustfmt::skip]
-#[path = "../../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/single_thread_atomics.rs"]
+#[path = "../../../../guests/ethereum/rv64/src/single_thread_atomics.rs"]
 mod single_thread_atomics;
 extern crate stwo_rv64_mem;
 #[cfg(feature = "allocator-check")]
 mod allocator_checks;
 #[cfg(all(feature = "keccak-service", not(feature = "sponge-service")))]
 #[rustfmt::skip]
-#[path = "../../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/keccak_service.rs"]
+#[path = "../../../../guests/ethereum/rv64/src/keccak_service.rs"]
 mod keccak_service;
 #[cfg(feature = "sponge-service")]
 mod sponge_service;

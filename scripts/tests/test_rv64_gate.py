@@ -5,13 +5,20 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import rv64_gate as gate
-import rv64_m5_negative_corpus as corpus
-import rv64_m4_resident as resident
+from scripts.rv64 import rv64_gate as gate
+from scripts.rv64 import rv64_m5_negative_corpus as corpus
+from scripts.rv64 import rv64_m4_resident as resident
 from types import SimpleNamespace
 
 
 class GateTests(unittest.TestCase):
+    def test_equal_output_basenames_keep_independent_service_receipts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / 'batch-1' / 'default'
+            second = Path(tmp) / 'batch-2' / 'default'
+            self.assertNotEqual(gate.service_label(first), gate.service_label(second))
+            self.assertEqual(gate.service_label(first), gate.service_label(first.resolve()))
+
     def test_nsys_storage_keeps_run_paths_and_refuses_existing_trace_directories(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -76,13 +83,13 @@ class GateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             lib = Path(tmp) / 'libjobs.so'
             lib.write_bytes(b'addon')
-            runtime = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib), 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '1'},
+            runtime = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib), 'STWO_RV64_M8_JOBS_PINNED_BYTES': '1'},
                        'jobs_env_sha256': {'STWO_RV64_M8_JOBS_LIBRARY': gate.stack.sha(lib)}}
             self.assertEqual(gate.jobs_environment(runtime, {}), {})
             self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '0'}), {})
             self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1'}), runtime['jobs_env'])
             # An explicit --env wins over the shipped value.
-            got = gate.jobs_environment(runtime, {'STWO_RV64_M8_OUTER_JOBS': '1', 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '2'})
+            got = gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2'})
             self.assertEqual(got, {'STWO_RV64_M8_JOBS_LIBRARY': str(lib)})
             self.assertEqual(gate.jobs_environment({}, {'STWO_RV64_M8_JOBS': '1'}), {})
             other = Path(tmp) / 'unrecorded.so'
@@ -140,15 +147,6 @@ class GateTests(unittest.TestCase):
         self.assertNotIn('--allow-block', argv)
         self.assertNotIn('--coalesce-truth-families', argv)
 
-    def test_large_block_prune_keeps_reports(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / 'recursion-om31').mkdir()
-            (root / 'recursion-om31/root.proof').write_bytes(b'12345')
-            (root / 'cells.bin').write_bytes(b'123')
-            (root / 'report.json').write_text('{}')
-            self.assertEqual(gate.stack.prune_verified_payload(root), 8)
-            self.assertEqual(sorted(p.name for p in root.rglob('*') if p.is_file()), ['report.json'])
 
     def test_daemon_owner_rule_needs_explicit_block_opt_in(self):
         def args(blocks, repeat=2, allow=(), probe=False):

@@ -1,7 +1,7 @@
 //! Internal segment statement outer source v2 authority shard; use segment_statement_outer_source_v2.zig publicly.
 
 pub const std = @import("std");
-pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
+pub const register_bytes = @import("segment_register_byte_layout.zig");
 pub const stwo_core = @import("stwo_core");
 
 pub const M31 = stwo_core.fields.m31.M31;
@@ -16,9 +16,9 @@ pub const transcript_payload_air = @import("air/transcript_payload.zig");
 pub const universal = @import("air/universal_challenges.zig");
 pub const roster = @import("air/universal_roster.zig");
 pub const span_statement = @import("span_statement.zig");
-pub const segment_statement_v2 = @import("segment_statement_v2.zig");
+pub const segment_statement_v2 = @import("segment_statement.zig");
 pub const source_v2 = @import("segment_leaf_authority_v2.zig");
-pub const air_v2 = @import("segment_leaf_outer_air_v2.zig");
+pub const air_v2 = @import("segment_leaf_outer_air.zig");
 pub const public_source_v2 = @import("segment_public_outer_source_v2.zig");
 pub const transcript_source_v2 = @import("segment_transcript_outer_source_v2.zig");
 pub const channel = @import("poseidon2_channel.zig");
@@ -37,11 +37,11 @@ pub const AirAuthenticationError = @typeInfo(@typeInfo(@TypeOf(
 pub const FORMAT_VERSION: u16 = 5;
 pub const SCHEMA_VERSION: u16 = 4;
 pub const MANIFEST_VERSION: u16 = 5;
-pub const FROZEN_ROW_10 = @import("segment_statement_outer_geometry_v2.zig").FROZEN_ROW_10;
-pub const ROUTING_ROW_11 = @import("segment_statement_outer_geometry_v2.zig").ROUTING_ROW_11;
+pub const FROZEN_ROW_10 = @import("segment_statement_outer_geometry.zig").FROZEN_ROW_10;
+pub const ROUTING_ROW_11 = @import("segment_statement_outer_geometry.zig").ROUTING_ROW_11;
 pub const RANGE_PROVIDER_ROW_35: u8 =
     @intFromEnum(roster.Component.range_check_8_8);
-pub const STATEMENT_SOURCE_COMPONENT_36 = @import("segment_statement_outer_geometry_v2.zig").STATEMENT_SOURCE_COMPONENT_36;
+pub const STATEMENT_SOURCE_COMPONENT_36 = @import("segment_statement_outer_geometry.zig").STATEMENT_SOURCE_COMPONENT_36;
 pub const PUBLIC_LOGUP_SOURCE_COMPONENT_37: u8 = roster.COMPONENT_COUNT + 1;
 pub const VM_PUBLIC_LOGUP_ROW_16: u8 =
     @intFromEnum(roster.Component.vm_public_logup_input);
@@ -68,7 +68,7 @@ pub const WIRE_HASH_AIR_VERIFIED = false;
 pub const AUTHORITY_HASH_AIR_VERIFIED = false;
 pub const PRODUCTION_ACTIVATION = false;
 
-const geometry = @import("segment_statement_outer_geometry_v2.zig");
+const geometry = @import("segment_statement_outer_geometry.zig");
 pub const OverrideActivationV2 = geometry.OverrideActivationV2;
 pub const ComponentOverrideV2 = geometry.ComponentOverrideV2;
 pub const COMPONENT_OVERRIDE_TABLE_V2 = geometry.COMPONENT_OVERRIDE_TABLE_V2;

@@ -1154,7 +1154,7 @@ fn appendTrace(out: []@import("stwo_prover_api").device_pcs.TraceColumn, at: *us
 
 test "OP truth source rejects unsupported trees before allocation or union access" {
     const source: TruthSource = undefined;
-    try std.testing.expectError(error.InvalidTruthTree,source.columns(std.testing.failing_allocator,0));
-    try std.testing.expectError(error.InvalidTruthTree,source.columns(std.testing.failing_allocator,3));
-    try std.testing.expectError(error.InvalidTruthTree,source.columns(std.testing.failing_allocator,std.math.maxInt(usize)));
+    try std.testing.expectError(error.InvalidTruthTree, source.columns(std.testing.failing_allocator, 0));
+    try std.testing.expectError(error.InvalidTruthTree, source.columns(std.testing.failing_allocator, 3));
+    try std.testing.expectError(error.InvalidTruthTree, source.columns(std.testing.failing_allocator, std.math.maxInt(usize)));
 }

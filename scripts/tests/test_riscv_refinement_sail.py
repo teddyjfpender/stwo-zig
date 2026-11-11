@@ -218,15 +218,26 @@ class RefinementSailTest(unittest.TestCase):
             self.assertRaisesRegex(RefinementError, "timed out after 17s"),
         ):
             sail_lean_bridge._run(command, ROOT, timeout=17)
-        with (
-            mock.patch.object(
-                sail_lean_bridge.subprocess,
-                "run",
-                side_effect=subprocess.CalledProcessError(137, command),
-            ),
-            self.assertRaisesRegex(RefinementError, "exited 137"),
+        for stdout, stderr in (
+            (None, None),
+            ("Lean: unresolved bridge theorem", "error: build failed"),
+            ("x" * 10000 + "Lean theorem detail", "y" * 10000 + "stderr build failure"),
         ):
-            sail_lean_bridge._run(command, ROOT)
+            with (
+                mock.patch.object(
+                    sail_lean_bridge.subprocess,
+                    "run",
+                    side_effect=subprocess.CalledProcessError(137, command, output=stdout, stderr=stderr),
+                ),
+                self.assertRaisesRegex(RefinementError, "exited 137") as rejected,
+            ):
+                sail_lean_bridge._run(command, ROOT)
+            message = str(rejected.exception)
+            self.assertLessEqual(len(message), 8192)
+            for label, output in (("stdout", stdout), ("stderr", stderr)):
+                if output:
+                    self.assertIn(label + ":", message)
+                    self.assertIn(output[-18:], message)
 
     def test_live_bridge_scans_every_declared_source_for_escapes(self) -> None:
         sources = (Path("bridge/First.lean"), Path("bridge/Second.lean"))

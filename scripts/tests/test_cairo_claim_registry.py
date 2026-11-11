@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MODULE_PATH = ROOT / "scripts/generate_cairo_claim_registry.py"
+MODULE_PATH = ROOT / "scripts/cairo/generate_cairo_claim_registry.py"
 SPEC = importlib.util.spec_from_file_location("generate_cairo_claim_registry", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

@@ -5,10 +5,10 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 
-from scripts.performance_epoch_gate_lib.codec import atomic_write, canonical_bytes, content_digest, sha256_bytes
-from scripts.performance_epoch_gate_lib.plan import build_plan
-from scripts.performance_epoch_gate_lib.session import attempt_chain_seed
-from scripts.product_identity_lib import canonical_identity_sha256
+from scripts.bench.performance_epoch_gate_lib.codec import atomic_write, canonical_bytes, content_digest, sha256_bytes
+from scripts.bench.performance_epoch_gate_lib.plan import build_plan
+from scripts.bench.performance_epoch_gate_lib.session import attempt_chain_seed
+from scripts.repo.product_identity_lib import canonical_identity_sha256
 
 
 class Fixture:
@@ -192,7 +192,7 @@ class Fixture:
             ("macos", "cpu"): "macos-native-cpu", ("macos", "metal-hybrid"): "macos-native-metal",
             ("linux", "cpu"): "linux-native-cpu",
         }
-        from scripts.performance_epoch_gate_lib.statistics import first_order
+        from scripts.bench.performance_epoch_gate_lib.statistics import first_order
         for lane in self.protocol["performance_lanes"]:
             build = next(item for item in self.builds if item["id"] == build_map[(lane["host_role"], lane["backend"])])
             for workload in self.protocol["workloads"]:

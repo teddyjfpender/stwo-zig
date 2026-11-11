@@ -11,7 +11,7 @@
 // Every wrapped call is attributed to a call site = hash of its backtrace
 // (CALLSITE_DEPTH frames). Per site: calls, bytes, pageable calls/bytes, ns.
 // Dump at exit: $RV64_CUDA_CALLSITES_OUT/cuda-callsites-<pid>.json with raw
-// frame addresses plus /proc/self/maps; scripts/rv64_m5_callsites.py
+// frame addresses plus /proc/self/maps; scripts/rv64/rv64_m5_callsites.py
 // symbolizes them (addr2line) and ranks sites.
 //
 // Build: gcc -O2 -shared -fPIC -I/usr/local/cuda/include -o librv64_cuda_callsites.so rv64_cuda_callsites.c -ldl -lpthread

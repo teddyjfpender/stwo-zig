@@ -43,7 +43,7 @@ fn addPackageDistribution(b: *std.Build) void {
     ) orelse false;
     const command = b.addSystemCommand(&.{
         "python3",
-        "scripts/package_release.py",
+        "scripts/release/package_release.py",
         "--output",
         output,
     });

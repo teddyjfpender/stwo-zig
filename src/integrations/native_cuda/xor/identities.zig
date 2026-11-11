@@ -19,7 +19,7 @@ pub const Artifact = struct {
 
 pub const zig_artifact = Artifact{
     .authority = "stwo-zig repository source closure",
-    .revision = "src/examples/xor/{input,interaction,component}.zig",
+    .revision = "src/products/native/examples/xor/{input,interaction,component}.zig",
     .trace_recipe = digest("stwo-zig/native-xor:preprocessed7+main4:v2"),
     .air_recipe = digest("stwo-zig/native-xor:truth-table-logup14:v2"),
 };

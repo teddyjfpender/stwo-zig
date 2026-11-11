@@ -82,3 +82,27 @@ class ServiceOracles(unittest.TestCase):
             int.from_bytes(jumpdest_bitmap(code), "little"),
             (1 << 63) | (1 << 64) | (1 << 71),
         )
+
+class RetainedServiceMath(unittest.TestCase):
+    def test_keccak_zero_state_known_answer(self):
+        from opstack.service_math import keccak_f1600
+        state = [0] * 25
+        result = keccak_f1600(state)
+        self.assertEqual(result[:3], [0xF1258F7940E1DDE7, 0x84D5CCF933C0478A, 0xD598261EA65AA9EE])
+        self.assertEqual(state, [0] * 25)
+
+    def test_secp_rcb_matches_independent_affine_doubling_and_identity(self):
+        from opstack.service_math import FIELD_MODULUS as p, reduce_once, secp_add, secp_double
+        x = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
+        y = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
+        slope = 3 * x * x * pow(2 * y, -1, p) % p
+        x2 = (slope * slope - 2 * x) % p
+        expected = (x2, (slope * (x - x2) - y) % p)
+        def affine(point):
+            a, b, z = point
+            return a * pow(z, -1, p) % p, b * pow(z, -1, p) % p
+        self.assertEqual(affine(secp_double(x, y, 1)), expected)
+        self.assertEqual(affine(secp_add(x, y, 1, x, y, 1)), expected)
+        self.assertEqual(affine(secp_add(x, y, 1, 0, 1, 0)), (x, y))
+        for n in (0, p-1, p, p+1, (1 << 256)-1):
+            self.assertEqual(reduce_once(n), n % p)

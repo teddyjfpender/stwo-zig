@@ -1,0 +1,117 @@
+# Invariant-owner review routing. Current roles resolve to the repository maintainer.
+# This routes reviews; it grants no RFC decision and does not configure branch protection.
+# Role blocks and exact contract/manifest paths are checked by package-workspace.
+# Delegate by editing the accounts within a role block, with maintainer review.
+
+# owner-role: artifact-store
+/src/engine/artifact_store/build.zig.zon @teddyjfpender
+/src/engine/artifact_store/package.contract.json @teddyjfpender
+
+# owner-role: backend-contracts
+/src/waist/backend/build.zig.zon @teddyjfpender
+/src/waist/backend/package.contract.json @teddyjfpender
+
+# owner-role: cairo-cpu-integration
+/src/integrations/cairo_cpu/build.zig.zon @teddyjfpender
+/src/integrations/cairo_cpu/package.contract.json @teddyjfpender
+
+# owner-role: cairo-cuda-integration
+/src/integrations/cairo_cuda/build.zig.zon @teddyjfpender
+/src/integrations/cairo_cuda/package.contract.json @teddyjfpender
+
+# owner-role: cairo-frontend
+/src/frontends/cairo/build.zig.zon @teddyjfpender
+/src/frontends/cairo/package.contract.json @teddyjfpender
+
+# owner-role: cairo-metal-integration
+/src/integrations/cairo_metal/build.zig.zon @teddyjfpender
+/src/integrations/cairo_metal/package.contract.json @teddyjfpender
+
+# owner-role: circuit-cpu-integration
+/src/integrations/circuit_cpu/build.zig.zon @teddyjfpender
+/src/integrations/circuit_cpu/package.contract.json @teddyjfpender
+
+# owner-role: circuit-frontend
+/src/frontends/circuit/build.zig.zon @teddyjfpender
+/src/frontends/circuit/package.contract.json @teddyjfpender
+
+# owner-role: circuit-metal-integration
+/src/integrations/circuit_metal/build.zig.zon @teddyjfpender
+/src/integrations/circuit_metal/package.contract.json @teddyjfpender
+
+# owner-role: circuit-recursion
+/src/waist/recursion_wire/build.zig.zon @teddyjfpender
+/src/waist/recursion_wire/package.contract.json @teddyjfpender
+
+# owner-role: cpu-backend
+/src/backends/cpu_scalar/build.zig.zon @teddyjfpender
+/src/backends/cpu_scalar/package.contract.json @teddyjfpender
+
+# owner-role: cuda-backend
+/src/backends/cuda/build.zig.zon @teddyjfpender
+/src/backends/cuda/package.contract.json @teddyjfpender
+
+# owner-role: metal-backend
+/src/backends/metal/build.zig.zon @teddyjfpender
+/src/backends/metal/package.contract.json @teddyjfpender
+
+# owner-role: metal-session
+/src/backends/metal/session/build.zig.zon @teddyjfpender
+/src/backends/metal/session/package.contract.json @teddyjfpender
+
+# owner-role: native-cuda-integration
+/src/integrations/native_cuda/build.zig.zon @teddyjfpender
+/src/integrations/native_cuda/package.contract.json @teddyjfpender
+
+# owner-role: native-examples
+/src/products/native/examples/build.zig.zon @teddyjfpender
+/src/products/native/examples/package.contract.json @teddyjfpender
+
+# owner-role: proof-wire
+/src/waist/proof_wire/build.zig.zon @teddyjfpender
+/src/waist/proof_wire/package.contract.json @teddyjfpender
+
+# owner-role: protocol-core
+/src/waist/core/build.zig.zon @teddyjfpender
+/src/waist/core/package.contract.json @teddyjfpender
+
+# owner-role: prover-api
+/src/waist/prover_api/build.zig.zon @teddyjfpender
+/src/waist/prover_api/package.contract.json @teddyjfpender
+
+# owner-role: prover-engine
+/src/engine/prover/build.zig.zon @teddyjfpender
+/src/engine/prover/package.contract.json @teddyjfpender
+
+# owner-role: repository-maintainer
+/.github/CODEOWNERS @teddyjfpender
+/ENGINEERING_STANDARDS.md @teddyjfpender
+/conformance/rv64-productionisation-budget.json @teddyjfpender
+
+# owner-role: riscv-cpu-integration
+/src/integrations/riscv_cpu/build.zig.zon @teddyjfpender
+/src/integrations/riscv_cpu/package.contract.json @teddyjfpender
+
+# owner-role: riscv-cuda-integration
+/src/integrations/riscv_cuda/build.zig.zon @teddyjfpender
+/src/integrations/riscv_cuda/package.contract.json @teddyjfpender
+
+# owner-role: riscv-frontend
+/src/frontends/riscv/build.zig.zon @teddyjfpender
+/src/frontends/riscv/package.contract.json @teddyjfpender
+
+# owner-role: riscv-metal-integration
+/src/integrations/riscv_metal/build.zig.zon @teddyjfpender
+/src/integrations/riscv_metal/package.contract.json @teddyjfpender
+
+# owner-role: sm83-cpu-integration
+/src/integrations/sm83_cpu/build.zig.zon @teddyjfpender
+/src/integrations/sm83_cpu/package.contract.json @teddyjfpender
+
+# owner-role: sm83-frontend
+/src/frontends/sm83/build.zig.zon @teddyjfpender
+/src/frontends/sm83/package.contract.json @teddyjfpender
+
+# owner-role: sm83-metal-integration
+/src/integrations/sm83_metal/build.zig.zon @teddyjfpender
+/src/integrations/sm83_metal/package.contract.json @teddyjfpender

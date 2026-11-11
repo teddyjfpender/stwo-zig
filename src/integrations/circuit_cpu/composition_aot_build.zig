@@ -2,7 +2,7 @@
 //! by this package's `build.zig` and the circuit recursion product.
 //!
 //! The Cairo lane's composition code generator
-//! (`src/tools/cairo_composition_cpu_codegen`) turns every distinct program
+//! (`src/products/cairo/tools/composition_cpu_codegen`) turns every distinct program
 //! of the SHA-authenticated circuit AIR bundle
 //! (`vectors/circuit/official/circuit_air.air_programs_v1.bin`) into a C
 //! kernel. The generated `registry.zig` resolves a program identity to its
@@ -32,7 +32,7 @@ pub fn createModule(
     const generator = b.addExecutable(.{
         .name = "circuit-composition-cpu-codegen",
         .root_module = b.createModule(.{
-            .root_source_file = b.path(b.fmt("{s}src/tools/cairo_composition_cpu_codegen/bundle_main.zig", .{repository_root})),
+            .root_source_file = b.path(b.fmt("{s}src/products/cairo/tools/composition_cpu_codegen/bundle_main.zig", .{repository_root})),
             .target = b.graph.host,
             .optimize = .ReleaseFast,
         }),
