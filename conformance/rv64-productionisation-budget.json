@@ -1009,6 +1009,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue335 / RFC352 decisions6753253656 and6753472871: carve at most400 net lines ONCE from the existing4000 total C3 allowance (later package split allowance excludes this charge). One source-bound VM profile authority/graph implementation separates native proof authority from product selector/routing policy; preserves full original tags, identity bytes, canonical records, validation/error/cleanup and actual test ownership. Closed CircuitLayout prerequisite and exact upper compatibility wrappers are included, not extra allowance. Containment is concrete typed native/product bindings with no runtime registry or copied recorder. Rollback reverts the complete owner/consumer/test transaction together; actual hosted graph byte/negative tests are required, not AST or Native golden alone."
+    },
+    {
+      "id": "csp_protocol_shape_source_contract",
+      "net_code_budget": 5,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue361: pin the exact already-shipped RISC-V Metal protocol manifest including typed ECDSA recovery; retain strict single-registration checks. Regenerate stale proof-independent shape coverage only with the existing pinned CPU inspector/audit entrypoints, complete16-case matrix and source identity; no hand-edited hash or performance/proof/GPU reclassification. Code growth is limited to the existing test contract; metadata/receipts reported separately."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

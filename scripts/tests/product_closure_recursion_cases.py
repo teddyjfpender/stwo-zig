@@ -80,8 +80,8 @@ class RecursionOwnershipTest(unittest.TestCase):
         manifest = Manifest(
             product="shared-publication-validation",
             entry_roots=tuple("src/frontends/riscv/recursion/" + name + ".zig" for name in (
-                "segment_verified_publication_v2", "segment_verified_artifact_v2",
-                "canonical_proof_identity_v1", "engine_protocol", "segment_outer_wire_geometry_v2",
+                "segment_verified_publication", "segment_verified_artifact",
+                "canonical_proof_identity", "engine_protocol", "segment_outer_wire_geometry",
             )),
             named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
@@ -103,7 +103,7 @@ class RecursionOwnershipTest(unittest.TestCase):
             "detached_leaf_runner", "detached_leaf_producer", "native_ingress",
             "detached_leaf_options", "workload", "memory_workload", "leaf_key_setup_runner",
         ):
-            source = (root / f"src/integrations/riscv_cpu/recursive_segment_v2_{name}.zig").read_text()
+            source = (root / f"src/integrations/riscv_cpu/recursive_segment_{name}.zig").read_text()
             self.assertNotIn('recursive_segment_v2_leaf_outer_proof_test.zig', source)
             self.assertNotIn('recursive_segment_v2_concrete_outer_proof_test.zig', source)
             self.assertNotIn('recursive_segment_v2_outer_engine.zig', source)
@@ -189,7 +189,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         "digest", "effects", "expr", "functions", "hint_recipe", "hints", "ir",
         "ir_type_rules", "machine_derived_validation", "memory_access_validation",
         "program", "range_refinement", "range_refinement_runtime", "relation",
-        "source", "types", "validate", "validate_support", "window_ir_v2",
+        "source", "types", "validate", "validate_support", "window_ir",
     )
 
     def test_typed_verifier_component_excludes_prover_and_witness_sources(self) -> None:

@@ -809,7 +809,8 @@ class BuildRegistrationTests(unittest.TestCase):
         self.assertIn(
             '.protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+'
             'metal-runtime-v2+authenticated-core-aot-v2+'
-            'rv32im-zkvm-poseidon2-v1"',
+            'rv32im-zkvm-poseidon2-v1+'
+            'csp-ecdsa-typed-recovery-v1"',
             catalog,
         )
 
