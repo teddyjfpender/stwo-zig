@@ -19,6 +19,7 @@ on:
           - regenerate-circuit-vectors
           - regenerate-recursion-shapes
           - focused-cpu
+          - mantle-cpu-qualification
         default: standard
       cpu_lane:
         description: Existing CPU lane for focused-cpu diagnostics only
@@ -556,6 +557,76 @@ jobs:
             /tmp/stwo-mantle-fixtures/
           if-no-files-found: warn
           retention-days: 7
+
+  mantle-cpu-qualification:
+    name: Mantle CPU execution and proof qualification
+    if: github.event_name == 'workflow_dispatch' && inputs.gate == 'mantle-cpu-qualification'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout frozen source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Setup Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.15.2
+          use-cache: false
+      - name: Build pinned Mantle host and RV64 guest
+        run: |
+          rustup toolchain install nightly-2026-08-08 --profile minimal --component rust-src
+          python3 -m pip install pycryptodome==4.3.0 unicorn==2.1.4
+          python3 opstack/build.py --variant mantle-software --artifacts /tmp/stwo-mantle-build --jobs 2
+      - name: Materialize the authenticated real-block fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from opstack.tests.test_mantle_input import fixture
+          target = Path('/tmp/stwo-mantle-fixtures/block-103132217')
+          target.mkdir(parents=True)
+          (target / 'guest-input.json').write_text(json.dumps(fixture(), sort_keys=True, separators=(',', ':')))
+          PY
+      - name: Match native, RV64 and independent execution
+        run: |
+          python3 opstack/benchmark.py --network mantle --profile ethereum_services_v3 \
+            --fixtures /tmp/stwo-mantle-fixtures --artifacts /tmp/stwo-mantle-execution \
+            --host /tmp/stwo-mantle-build/host --guest /tmp/stwo-mantle-build/guest.elf \
+            --runner /tmp/stwo-mantle-build/rv64-execution --blocks 103132217 --samples 1 --oracle
+      - name: Build the existing CPU native and recursive prover
+        run: zig build rv64-word16-ethereum-gkr-recursion -Doptimize=ReleaseFast -j1 --prefix /tmp/stwo-mantle-prover
+      - name: Prove and freshly verify complete execution and recursion
+        run: |
+          python3 opstack/cpu.py \
+            --request /tmp/stwo-mantle-execution/103132217-proof-config.json \
+            --execution /tmp/stwo-mantle-execution/103132217-rv64.json \
+            --runner /tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion \
+            --recursive-runner /tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion \
+            --native-profile d2_native_b4_q54_p20_fold4 \
+            --recursive-profile m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 \
+            --workers 2 --recursive-workers 2 --batch-steps 262143 --timeout 1800 \
+            --receiver-bytes 12884901888 --recursive-live-bytes 12884901888 \
+            --recursive-receiver-bytes 12884901888 --artifacts /tmp/stwo-mantle-proof
+          git diff --exit-code
+      - name: Retain complete Mantle qualification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mantle-cpu-qualification-${{ github.sha }}
+          path: |
+            /tmp/stwo-mantle-build/
+            /tmp/stwo-mantle-execution/
+            /tmp/stwo-mantle-fixtures/
+            /tmp/stwo-mantle-proof/
+            /tmp/stwo-mantle-prover/bin/
+          if-no-files-found: warn
+          retention-days: 7
+          compression-level: 1
 
   frontend-main-baseline:
     name: Main frontend ReleaseFast baseline

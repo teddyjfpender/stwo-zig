@@ -50,14 +50,20 @@ class OpStackScopeTests(unittest.TestCase):
         self.assertEqual(["opstack_kona"], ci_scope_plan.manual_cpu_selection(
             "opstack_kona", self.policy)[0])
         self.assertTrue(any("mantle-software" in command for command in commands))
-        self.assertTrue(any("--network" in command and "mantle" in command and "--oracle" in command
-                            for command in commands))
+        self.assertFalse(any("opstack/benchmark.py" in command for command in commands))
         self.assertTrue(
             any(
                 "host,transition-program,pairing-hints,bn254-glv" in command
                 for command in commands
             )
         )
+
+    def test_mantle_workload_has_a_separate_manual_qualification_job(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        job = workflow.split("  mantle-cpu-qualification:", 1)[1].split("  frontend-main-baseline:", 1)[0]
+        self.assertIn("inputs.gate == 'mantle-cpu-qualification'", job)
+        for command in ("--network mantle", "--oracle", "opstack/cpu.py", "--recursive-runner"):
+            self.assertIn(command, job)
 
     def test_shared_guest_patches_include_kona_regressions(self):
         self.assertIn(

@@ -1144,14 +1144,6 @@
         ],
         [
           "python3",
-          "-m",
-          "pip",
-          "install",
-          "pycryptodome==4.3.0",
-          "unicorn==2.1.4"
-        ],
-        [
-          "python3",
           "opstack/build.py",
           "--variant",
           "mantle-software",
@@ -1159,34 +1151,6 @@
           "/tmp/stwo-mantle-build",
           "--jobs",
           "2"
-        ],
-        [
-          "python3",
-          "-c",
-          "import json;from pathlib import Path;p=Path('opstack/mantle/tests/fixtures');out=Path('/tmp/stwo-mantle-fixtures/block-103132217');out.mkdir(parents=True);x={'schema':1,'fixture':json.loads((p/'block-103132217.json').read_text()),'expected':{'config_sha256':'0xb9583f9b493763c945cc961535b9298070c92d538be1af77523b27053f4a23de','block_hash':'0xbac88cdc801196ab975bb07717bd964f87b14b093ac94997f47f768ed7ff1fcc'},'preimages':json.loads((p/'block-103132217-preimages.json').read_text())};(out/'guest-input.json').write_text(json.dumps(x,sort_keys=True,separators=(',',':')))"
-        ],
-        [
-          "python3",
-          "opstack/benchmark.py",
-          "--network",
-          "mantle",
-          "--profile",
-          "ethereum_services_v3",
-          "--fixtures",
-          "/tmp/stwo-mantle-fixtures",
-          "--artifacts",
-          "/tmp/stwo-mantle-execution",
-          "--host",
-          "/tmp/stwo-mantle-build/host",
-          "--guest",
-          "/tmp/stwo-mantle-build/guest.elf",
-          "--runner",
-          "/tmp/stwo-mantle-build/rv64-execution",
-          "--blocks",
-          "103132217",
-          "--samples",
-          "1",
-          "--oracle"
         ],
         [
           "cargo",
