@@ -54,6 +54,17 @@ class TouchpointPrefixTests(unittest.TestCase):
             for mode in ("Debug", "ReleaseFast")
         ], self.policy["lanes"][lane]["commands"])
 
+    def test_runtime_selector_diagnostic_preserves_existing_case(self) -> None:
+        lane = "riscv_runtime_selector"
+        selected, _ = ci_scope_plan.manual_cpu_selection(lane, self.policy)
+        self.assertEqual([lane], selected)
+        self.assertEqual([
+            ["python3", "scripts/repo/zig_serial_build.py", "--cwd",
+             "src/frontends/riscv", "test-runtime-selector",
+             f"-Doptimize={mode}", "-j1", "--summary", "all", "--verbose"]
+            for mode in ("Debug", "ReleaseFast")
+        ], self.policy["lanes"][lane]["commands"])
+
     def test_a_relocated_tree_leaves_its_rule_prefix_dead(self) -> None:
         policy = json.loads(json.dumps(self.policy))
         policy["rules"].append(

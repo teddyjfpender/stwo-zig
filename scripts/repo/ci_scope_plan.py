@@ -357,6 +357,7 @@ def emit_github_summary(path: Path, plan: dict[str, Any], policy: dict[str, Any]
 MANUAL_CPU_LANES = frozenset({
     "core", "prover", "cpu_backend", "proof_wire", "prover_api",
     "riscv_runtime_profile",
+    "riscv_runtime_selector",
     "riscv_retained_contracts", "riscv_retained_contracts_releasefast",
     "riscv_native_graph",
     "native_cuda_static",
