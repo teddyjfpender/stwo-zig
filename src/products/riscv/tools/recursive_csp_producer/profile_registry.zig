@@ -76,15 +76,15 @@ pub const Entry = struct {
 /// CSP manifest.  A common SHA-256/Keccak profile covers eight cases; every
 /// other entry covers one.  No maximum-sized universal padding profile exists.
 pub const ENTRIES = [_]Entry{
-    entry(.hash_compact, 12, 11, 54, 916, 444, 20, 8),
-    entry(.sha256_2048, 13, 11, 56, 951, 480, 20, 1),
-    entry(.keccak_2048, 14, 11, 58, 999, 512, 20, 1),
-    entry(.poseidon2_2, 13, 11, 56, 953, 468, 20, 1),
-    entry(.poseidon2_4, 14, 11, 58, 988, 504, 20, 1),
-    entry(.poseidon2_8, 15, 11, 60, 1023, 540, 20, 1),
-    entry(.poseidon2_12, 18, 11, 66, 1144, 644, 20, 1),
-    entry(.poseidon2_16, 21, 11, 72, 1271, 740, 20, 1),
-    entry(.ecdsa_secp256k1_32, 94, 11, 218, 4444, 3624, 20, 1),
+    entry(.hash_compact, 12, 11, 54, 918, 448, 20, 8),
+    entry(.sha256_2048, 13, 11, 56, 953, 484, 20, 1),
+    entry(.keccak_2048, 14, 11, 58, 1003, 520, 20, 1),
+    entry(.poseidon2_2, 13, 11, 56, 955, 472, 20, 1),
+    entry(.poseidon2_4, 14, 11, 58, 990, 508, 20, 1),
+    entry(.poseidon2_8, 15, 11, 60, 1025, 544, 20, 1),
+    entry(.poseidon2_12, 18, 11, 66, 1146, 648, 20, 1),
+    entry(.poseidon2_16, 21, 11, 72, 1275, 748, 20, 1),
+    entry(.ecdsa_secp256k1_32, 94, 11, 218, 4508, 3752, 20, 1),
 };
 
 pub const Error = error{
@@ -195,8 +195,8 @@ test "canonical CSP registry is bounded, exact, and rejects near misses" {
         .component_count = 12,
         .infrastructure_count = 11,
         .preprocessed_column_count = 54,
-        .main_column_count = 916,
-        .interaction_column_count = 444,
+        .main_column_count = 918,
+        .interaction_column_count = 448,
         .maximum_column_log_degree = 20,
     });
     try std.testing.expectEqual(ProfileId.hash_compact, common.id);
