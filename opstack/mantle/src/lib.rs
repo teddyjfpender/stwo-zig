@@ -252,7 +252,7 @@ mod tests {
     fn real_mantle_103132217_and_bad_pins() {
         let r = execute(fixture(), expected(), advice()).unwrap();
         assert_eq!(r.block_number, 103132217);
-        assert_eq!((r.preimage_records, r.preimage_bytes), (42, 17251));
+        assert_eq!((r.preimage_records, r.preimage_bytes), (77, 29248));
         assert!(!r.proof_verified);
         for config in [true, false] {
             let mut wrong = expected();

@@ -45,6 +45,10 @@ Its account/storage proofs and bytecode were authenticated against parent block
 `0xc2ee5cb1429c7044f0ac1d25b743b71a1ed132777ac2a5918d913bb5b06caf32`.
 The fixture retains exact transaction bytes, rather than removing Mantle's
 `ethValue` field. It contains no RPC credentials.
+Its 77 authenticated preimages include the blockhash and beacon-root system
+contracts and the withdrawal-message passer. Transaction-only prestate traces
+omit system calls, so their account/code and required storage proofs are fetched
+separately against the same parent root.
 
 Execution configuration starts from `mantlenetworkio/networks` revision
 `f6e0f07ce813bd2f9965fceb7c32756b2f55d383`, `mainnet/rollup.json`.
