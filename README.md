@@ -310,6 +310,7 @@ python3 scripts/repo/install_hooks.py
 | **[Benchmark history](bench/history/index.json)** | Immutable judged runs, deltas, and bundles under human-readable run ids |
 | **[Performance tooling](tools/perf/stwo-prof)** | `stwo-prof` Zig/Metal/CUDA isolation and profiling CLI plus frozen paired statistics; not installed in production CI |
 | **Design archive** | Prose architecture and history live in the sibling `stwo-zig-og-docs` directory |
+| **[Engineering collaboration and standards](ENGINEERING_STANDARDS.md)** | Binding contracts, invariant ownership, compatibility, complexity budgets, evidence and human/agent collaboration rules |
 | **[Contributing](CONTRIBUTING.md)** | Zig, SIMD, Metal, correctness, and engineering standards |
 | **[Security](SECURITY.md)** | Private reporting scope and supported product surfaces |
 
