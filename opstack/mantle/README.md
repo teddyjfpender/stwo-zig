@@ -65,3 +65,11 @@ Jovian fee parameters/minimum come from its exact 17-byte extraData.
 Capture identity checks already pass for 32 sampled blocks. Native execution,
 guest agreement, proofs and timing-model validation require their own gates;
 none follows from codec or dependency-resolution success.
+
+The native gate passed on source `e0f4ceb5356955fe39cbeb2976728dbbd56f6686`:
+[hosted CPU run 43026706096](https://github.com/teddyjfpender/stwo-zig/actions/runs/43026706096).
+Both Mantle tests passed, including exact real-block replay and wrong-config,
+wrong-block and missing-witness rejection; all 41 existing OP Rust tests also
+passed. This is native correctness evidence, not a proving-time benchmark.
+Mantle RV64 execution, proof/recursive reception and timing-model validation
+remain unqualified; the existing OP chain-10 admission guard remains in force.
