@@ -1,11 +1,26 @@
 """Compile-time threshold identities cannot inherit hidden environment state."""
 
+import contextlib
+import io
+import subprocess
+import sys
 import unittest
 
 from opstack.build import bulk_environment, execution_requirements, LEAN_VARIANTS
 
 
 class BuildEnvironment(unittest.TestCase):
+    def test_execution_failure_preserves_exit_and_bounded_diagnostic(self):
+        from opstack.benchmark import run
+        diagnostic = io.StringIO()
+        with contextlib.redirect_stderr(diagnostic):
+            with self.assertRaises(subprocess.CalledProcessError) as error:
+                run([sys.executable, '-c',
+                     "import sys;sys.stderr.write('x'*9000+'missing preimage');sys.exit(7)"])
+        self.assertEqual(error.exception.returncode, 7)
+        self.assertEqual(len(diagnostic.getvalue()), 8192)
+        self.assertTrue(diagnostic.getvalue().endswith('missing preimage'))
+
     def test_explicit_thresholds_and_ambient_cleanup(self):
         env, thresholds = bulk_environment(
             {

@@ -38,6 +38,7 @@ on:
         options:
           - single
           - five-block
+          - five-block-replay
         default: single
 
 permissions:
@@ -580,7 +581,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        block: ${{ fromJSON(inputs.mantle_suite == 'five-block' && '[103132217,103132921,103133433,103133561,103133753]' || '[103132217]') }}
+        block: ${{ fromJSON(inputs.mantle_suite != 'single' && '[103132217,103132921,103133433,103133561,103133753]' || '[103132217]') }}
     env:
       MANTLE_BLOCK: ${{ matrix.block }}
     steps:
@@ -634,6 +635,7 @@ jobs:
             --host /tmp/stwo-mantle-build/host --guest /tmp/stwo-mantle-build/guest.elf \
             --runner /tmp/stwo-mantle-build/rv64-execution --blocks "$MANTLE_BLOCK" --samples 1 --oracle
       - name: Fetch the frozen CPU prover artifact
+        if: inputs.mantle_suite != 'five-block-replay'
         continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
@@ -642,6 +644,7 @@ jobs:
           name: mantle-cpu-qualification-66f08a7af2e4fe769fcfec7a04ba48c0b2791377
           path: /tmp/mantle-prover-seed
       - name: Verify independent CPU binary and unchanged proof implementation
+        if: inputs.mantle_suite != 'five-block-replay'
         run: |
           python3 - <<'PY'
           import hashlib, json, shutil, subprocess
@@ -677,6 +680,7 @@ jobs:
           }, indent=2))
           PY
       - name: Prove and freshly verify every native execution
+        if: inputs.mantle_suite != 'five-block-replay'
         run: |
           BLOCK="$MANTLE_BLOCK"
           python3 opstack/cpu.py \
@@ -688,7 +692,7 @@ jobs:
           --receiver-bytes 12884901888 --artifacts "/tmp/stwo-mantle-proof/${BLOCK}"
           git diff --exit-code
       - name: Produce and freshly receive the first Mantle execution root
-        if: matrix.block == 103132217
+        if: inputs.mantle_suite != 'five-block-replay' && matrix.block == 103132217
         run: |
           python3 - <<'PYROOT'
           import argparse, json, os

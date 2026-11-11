@@ -22,14 +22,18 @@ def sha(path):
 
 
 def run(args):
-    return subprocess.run(
+    result = subprocess.run(
         [str(x) for x in args],
         cwd=ROOT,
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
         timeout=900,
     )
+    if result.returncode:
+        sys.stderr.write(result.stderr[-8192:])
+    result.check_returncode()
+    return result
 
 
 def main():
