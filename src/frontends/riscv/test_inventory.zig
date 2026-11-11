@@ -689,7 +689,7 @@ test {
     _ = @import("recursion/air/structural_sha256.zig");
     _ = @import("recursion/binary_fri_outer_source_retain_non_path_poseidon_calls.zig");
     _ = @import("recursion/ethereum_leaf_context.zig");
-    _ = @import("recursion/ethereum_vm_composition_graph_base.zig");
+    _ = @import("recursion/vm_composition_graph_base.zig");
     _ = @import("recursion/recursion_air_composition_circuit_program_roster.zig");
     _ = @import("recursion/recursion_air_composition_circuit_write_inputs_from_validated_profile_and_policy.zig");
     _ = @import("recursion/tests/segment_outer_noncore_audits_test.zig");
