@@ -17,6 +17,7 @@ from scripts.rv64.riscv64_csp_compare import elf_info
 
 TOOLCHAIN = "nightly-2026-08-08"
 VARIANTS = {
+    "mantle-software": None,
     "software": None,
     "brotli-probe": "brotli-probe",
     "brotli-lazy": "brotli-probe,lazy-brotli",
@@ -175,6 +176,8 @@ def main():
     parser.add_argument("--native-reference",type=Path,help="explicit trusted native reference binary; reuse/hash instead of rebuilding it")
     parser.add_argument("--runner-reference",type=Path,help="explicit trusted RV64 execution runner; reuse/hash instead of recompiling it")
     args = parser.parse_args()
+    if args.variant == "mantle-software" and (args.eager or args.allocator_check or args.bulk_min is not None):
+        parser.error("Mantle software does not select OP guest features or bulk-service thresholds")
     if (args.variant.startswith("transition") or args.variant.startswith("blob-eval")) and args.eager:
         parser.error("the transition program authenticates preimages on demand")
     if not 1 <= args.jobs <= 8:
@@ -187,13 +190,15 @@ def main():
         if reference is not None and(not reference.is_file()or reference.stat().st_size==0):parser.error("reference binary missing")
     args.artifacts.mkdir(parents=True, exist_ok=False)
     artifacts = args.artifacts.resolve()
-    crate = ROOT / "opstack/kona"
+    mantle = args.variant == "mantle-software"
+    crate_name = "opstack/mantle" if mantle else "opstack/kona"
+    crate = ROOT / crate_name
     env = dict(
         compiler_env,
         CARGO_TARGET_DIR=str(crate / "target"),
         RUSTFLAGS="-C passes=lower-atomic -C opt-level=" + args.guest_opt_level,
     )
-    source_snapshot = compile_sources(ROOT)
+    source_snapshot = compile_sources(ROOT, crate_name)
     source_head = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
     ).strip()
@@ -259,7 +264,7 @@ def main():
             "--profile",
             profile,
             "--target",
-            crate / "guest/riscv64i-stwo.json",
+            ROOT / "opstack/kona/guest/riscv64i-stwo.json",
             "-Z",
             "json-target-spec",
             "-Z",
@@ -270,7 +275,9 @@ def main():
             args.jobs,
         ]
         if not lean:
-            command += ["-p", "stwo-kona-rv64-guest"]
+            command += ["-p", "stwo-mantle-rv64-guest" if mantle else "stwo-kona-rv64-guest"]
+        if mantle:
+            command += ["--no-default-features"]
         features = (
             list(lean_features)
             if lean
@@ -283,11 +290,11 @@ def main():
         if features:
             command += ["--features", ",".join(features)]
         run(command)
-    executable = "stwo-kona-rv64-lean" if lean else "stwo-kona-rv64-guest"
+    executable = "stwo-mantle-rv64-guest" if mantle else "stwo-kona-rv64-lean" if lean else "stwo-kona-rv64-guest"
     guest = artifacts / "guest.elf"
     host = artifacts / "host"
     shutil.copy2(crate / f"target/riscv64i-stwo/{profile}/{executable}", guest)
-    shutil.copy2(args.native_reference.resolve()if args.native_reference else crate / "target/release/stwo-kona-host", host)
+    shutil.copy2(args.native_reference.resolve()if args.native_reference else crate / ("target/release/stwo-mantle-native" if mantle else "target/release/stwo-kona-host"), host)
     zig = (
         [shutil.which("zig")]
         if shutil.which("zig")
@@ -313,7 +320,7 @@ def main():
     else:
         commands.pop()
         shutil.copy2(args.runner_reference.resolve(),runner)
-    require_unchanged(source_snapshot, compile_sources(ROOT))
+    require_unchanged(source_snapshot, compile_sources(ROOT, crate_name))
     _, symbols, segments = elf_info(guest)
     sources = {
         str(p.relative_to(ROOT)): identity(p)
@@ -321,7 +328,7 @@ def main():
         if p.is_file() and "target" not in p.parts and "__pycache__" not in p.parts
     }
     report = {
-        "schema": "stwo.opstack.build.v1",
+        "schema": "stwo.mantle.build.v1" if mantle else "stwo.opstack.build.v1",
         "variant": args.variant,
         **execution_requirements(features),
         "guest_opt_level": args.guest_opt_level,
@@ -336,7 +343,7 @@ def main():
         "executable_load_bytes": sum(
             len(data) for _, _, data, flags in segments if flags & 1
         ),
-        "kona_commit": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+        "kona_commit": "305d78b348748e47bd0fe2d4d95bb29ddb10f9ba" if mantle else "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
         "external_native_reference": identity(args.native_reference.resolve()) if args.native_reference else None,
         "external_runner_reference": identity(args.runner_reference.resolve()) if args.runner_reference else None,
         "cargo_lock_sha256": identity(manifest.parent / "Cargo.lock")["sha256"],

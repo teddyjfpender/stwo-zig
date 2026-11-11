@@ -8,6 +8,22 @@ from opstack.source_identity import compile_sources, require_unchanged
 
 
 class SourceIdentity(unittest.TestCase):
+    def test_mantle_inputs_are_isolated_and_shared_runtime_is_pinned(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "opstack/mantle/src/lib.rs"
+            source.parent.mkdir(parents=True)
+            source.write_text("Mantle executor")
+            linker = root / "opstack/kona/guest/linker.ld"
+            linker.parent.mkdir(parents=True)
+            linker.write_text("shared ABI")
+            before = compile_sources(root, "opstack/mantle")
+            self.assertIn("opstack/mantle/src/lib.rs", before)
+            self.assertNotIn("opstack/mantle/src/lib.rs", compile_sources(root))
+            linker.write_text("changed ABI")
+            with self.assertRaisesRegex(ValueError, "linker.ld"):
+                require_unchanged(before, compile_sources(root, "opstack/mantle"))
+
     def test_shared_patch_changes_and_new_inputs_are_detected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

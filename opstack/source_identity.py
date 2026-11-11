@@ -17,11 +17,11 @@ COMPILE_SUFFIXES = {
 }
 
 
-def compile_sources(root):
+def compile_sources(root, execution_crate="opstack/kona"):
     runtime = root / "guests"
     rv64 = runtime / "ethereum/rv64"
     roots = [
-        root / "opstack/kona",
+        root / execution_crate,
         runtime / "exact_layout_allocator_v2.rs",
         rv64 / "src",
         rv64 / "mem",
@@ -29,6 +29,9 @@ def compile_sources(root):
         root / "opstack/build.py",
         root / "opstack/source_identity.py",
     ]
+    if execution_crate != "opstack/kona":
+        roots += [root / "opstack/kona/guest" / name
+                  for name in ("riscv64i-stwo.json", "linker.ld")]
     roots += [
         rv64 / "vendor" / name
         for name in ["k256", "ecdsa", "revm-interpreter", "revm-bytecode", "sha2-rv64"]

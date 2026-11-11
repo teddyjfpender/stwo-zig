@@ -545,6 +545,18 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Retain Mantle guest and execution qualification
+        if: always() && matrix.lane == 'opstack_kona'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: mantle-rv64-${{ github.sha }}
+          path: |
+            /tmp/stwo-mantle-build/
+            /tmp/stwo-mantle-execution/
+            /tmp/stwo-mantle-fixtures/
+          if-no-files-found: warn
+          retention-days: 7
+
   frontend-main-baseline:
     name: Main frontend ReleaseFast baseline
     if: github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu' && inputs.cpu_lane == 'main_releasefast_baseline'

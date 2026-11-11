@@ -8,6 +8,17 @@ publish = false
 # This is deliberately NOT a member of the ordinary OP guest workspace.
 [workspace]
 resolver = "2"
+members = ["guest"]
+default-members = ["."]
+
+[features]
+default = ["host"]
+host = ["serde/std", "serde_json/std", "sha2/std"]
+
+[[bin]]
+name = "stwo-mantle-native"
+path = "src/main.rs"
+required-features = ["host"]
 
 [dependencies]
 kona-executor = { git = "https://github.com/mantle-xyz/mantle-v2", rev = "305d78b348748e47bd0fe2d4d95bb29ddb10f9ba", default-features = false }
@@ -18,9 +29,9 @@ op-alloy-rpc-types-engine = { git = "https://github.com/mantle-xyz/mantle-v2", r
 alloy-consensus = { version = "=2.0.4", default-features = false, features = ["serde", "k256"] }
 alloy-primitives = { version = "=1.5.6", default-features = false, features = ["serde", "rlp"] }
 alloy-rlp = "=0.3.15"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-sha2 = "=0.10.9"
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+sha2 = { version = "=0.10.9", default-features = false }
 
 # Patches in a git dependency's workspace do NOT apply to this consumer root.
 # Mirror the official coherent Mantle family here; never patch the OP workspace.
@@ -38,3 +49,9 @@ revm-precompile = { git = "https://github.com/mantle-xyz/revm", rev = "835cb4eb7
 revm-primitives = { git = "https://github.com/mantle-xyz/revm", rev = "835cb4eb742698c5884248f546c68c9d716cc995" }
 revm-state = { git = "https://github.com/mantle-xyz/revm", rev = "835cb4eb742698c5884248f546c68c9d716cc995" }
 op-revm = { git = "https://github.com/mantle-xyz/revm", rev = "835cb4eb742698c5884248f546c68c9d716cc995" }
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = "thin"
+codegen-units = 1

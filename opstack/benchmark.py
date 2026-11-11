@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure admitted OP Mainnet or OP-Sepolia execution; never label execution as a STARK proof."""
+"""Measure OP or Mantle execution; never label execution as a STARK proof."""
 
 import argparse
 import hashlib
@@ -37,12 +37,12 @@ def main():
     parser.add_argument("--fixtures", type=Path, required=True)
     parser.add_argument("--artifacts", type=Path, required=True)
     parser.add_argument(
-        "--host", type=Path, default=ROOT / "opstack/kona/target/release/stwo-kona-host"
+        "--host", type=Path, default=None
     )
     parser.add_argument("--guest", type=Path)
     parser.add_argument("--runner", type=Path)
     parser.add_argument("--samples", type=int, default=3)
-    parser.add_argument("--network", choices=("mainnet", "sepolia"), default="mainnet")
+    parser.add_argument("--network", choices=("mainnet", "sepolia", "mantle"), default="mainnet")
     parser.add_argument(
         "--blocks",
         type=int,
@@ -60,14 +60,27 @@ def main():
         "--profile", choices=("software", "ethereum_services_v3", "ethereum_services_op_v1"), default="software"
     )
     args = parser.parse_args()
+    args.host = args.host or ROOT / (
+        "opstack/mantle/target/release/stwo-mantle-native" if args.network == "mantle"
+        else "opstack/kona/target/release/stwo-kona-host"
+    )
+    if args.network == "mantle" and (args.pairing_hints or args.profile != "ethereum_services_v3"):
+        parser.error("Mantle requires v3 execution and no OP pairing hints")
     if args.blocks is None:
         args.blocks = (
             [120794432, 121003241, 121049889, 121057303, 121065789, 121135704]
             if args.network == "mainnet"
-            else [26207960, 26207961, 26207962, 26207963]
+            else ([103132217] if args.network == "mantle" else [26207960, 26207961, 26207962, 26207963])
         )
-    expected_chain = 10 if args.network == "mainnet" else 11155420
+    expected_chain = {"mainnet": 10, "sepolia": 11155420, "mantle": 5000}[args.network]
     for block in args.blocks:
+        if args.network == "mantle":
+            from opstack.mantle.input import read
+            raw, _ = read(args.fixtures / f"block-{block}" / "guest-input.json")
+            parent = json.loads(raw)["fixture"]["parent_header"]
+            if int(parent["number"], 16) + 1 != block:
+                raise ValueError("Mantle fixture block number mismatch")
+            continue
         fixture = json.loads(
             (args.fixtures / f"block-{block}" / "fixture.json").read_text()
         )
@@ -75,7 +88,7 @@ def main():
         chain = {"optimism": 10, "optimism-sepolia": 11155420}.get(str(chain), chain)
         if int(str(chain), 0) != expected_chain:
             parser.error("fixture chain does not match selected network")
-    if args.network == "mainnet":
+    if args.network in ("mainnet", "mantle"):
         args.isolated_only = True  # Historical archive blocks are nonadjacent.
     if not 1 <= args.samples <= 9 or not 1 <= len(args.blocks) <= 32:
         parser.error("samples 1..9; blocks 1..32")
@@ -89,12 +102,25 @@ def main():
         cases.append((f"range-{len(args.blocks)}", args.blocks))
     rows = []
     for name, blocks in cases:
-        path = (args.artifacts / f"{name}.opx").resolve()
-        run([args.host, "pack", path, *[args.fixtures / f"block-{b}" for b in blocks]])
-        for mode in ("eager", "lazy"):
+        path = (args.artifacts / (f"{name}.guest-input.json" if args.network == "mantle" else f"{name}.opx")).resolve()
+        if args.network == "mantle":
+            raw, expected = read(args.fixtures / f"block-{blocks[0]}" / "guest-input.json")
+            path.write_bytes(raw)
+        else:
+            run([args.host, "pack", path, *[args.fixtures / f"block-{b}" for b in blocks]])
+        native_rows = []
+        for mode in (("mantle",) if args.network == "mantle" else ("eager", "lazy")):
             observed = []
             for sample in range(args.samples):
-                record = json.loads(run([args.host, "run", path, mode]).stdout)
+                start = time.monotonic()
+                command = [args.host, "guest-input", path] if mode == "mantle" else [args.host, "run", path, mode]
+                record = json.loads(run(command).stdout)
+                if mode == "mantle":
+                    if record.get("output") != "0x" + expected.hex():
+                        raise ValueError("Mantle native/public mismatch")
+                    if type(record.get("gas_used")) is not int or record["gas_used"] <= 0:
+                        raise ValueError("Mantle native gas counter missing")
+                    record.update(output=expected.hex(), digest=expected[:32].hex(), total_s=time.monotonic()-start)
                 record.update(case=name, sample=sample, input_sha256=sha(path))
                 observed.append(record)
             if len({r["digest"] for r in observed}) != 1:
@@ -107,7 +133,8 @@ def main():
                     "median_s": statistics.median(r["total_s"] for r in observed),
                 }
             )
-        eager, lazy = rows[-2:]
+            native_rows.append(rows[-1])
+        eager, lazy = native_rows[0], native_rows[-1]
         if eager["samples"][0]["digest"] != lazy["samples"][0]["digest"]:
             raise ValueError("eager/lazy mismatch")
         if args.pairing_hints:
@@ -184,7 +211,7 @@ def main():
             record.update(
                 case=name,
                 gas_used=gas,
-                instructions_per_gas=record["instructions"] / gas,
+                instructions_per_gas=record["instructions"] / gas if gas else None,
             )
             (args.artifacts / f"{name}-rv64.json").write_text(
                 json.dumps(record, indent=2) + "\n"
@@ -233,7 +260,10 @@ def main():
         if Path("/sys/fs/cgroup/cpu.max").exists()
         else None,
         "scope": "native execution and optional RV64 instruction counts; no STARK proof or GPU measurement",
-        "native_process_state": "fresh process for every sample; fixture I/O excluded from internal total_s",
+        "native_process_state": (
+            "fresh process; Mantle total_s is subprocess wall time including input I/O"
+            if args.network == "mantle" else "fresh process for every sample; fixture I/O excluded from internal total_s"
+        ),
         "rows": rows,
     }
     (args.artifacts / "summary.json").write_text(

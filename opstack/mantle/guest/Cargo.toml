@@ -1,0 +1,10 @@
+[package]
+name = "stwo-mantle-rv64-guest"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+stwo-mantle-native = { path = "..", default-features = false }
+stwo-rv64-mem = { path = "../../../guests/ethereum/rv64/mem" }
+critical-section = { version = "1.2", features = ["restore-state-bool"] }

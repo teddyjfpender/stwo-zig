@@ -49,6 +49,9 @@ class OpStackScopeTests(unittest.TestCase):
                             for command in commands))
         self.assertEqual(["opstack_kona"], ci_scope_plan.manual_cpu_selection(
             "opstack_kona", self.policy)[0])
+        self.assertTrue(any("mantle-software" in command for command in commands))
+        self.assertTrue(any("--network" in command and "mantle" in command and "--oracle" in command
+                            for command in commands))
         self.assertTrue(
             any(
                 "host,transition-program,pairing-hints,bn254-glv" in command

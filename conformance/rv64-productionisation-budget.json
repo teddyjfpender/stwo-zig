@@ -1055,6 +1055,15 @@
       "positive_growth_justification": "Isolate official Mantle-aware consensus/VM dependency versions in a private host-only Rust replay owner, without changing OP/Ethereum dependencies. Bounded authenticated preimages, pinned chain configuration and exact expected block hash are executable acceptance conditions. Includes provider/admission negative tests; no RV64 or proof admission claim. Existing hosted Kona lane also owns locked Mantle tests and can be selected for CPU-only diagnostics; <=20 net Python test/router lines counted separately from the <=300 Rust/test allowance.",
       "issue": "https://github.com/teddyjfpender/stwo-zig/issues/377",
       "rollback": "Remove private replay owner and its own tests/CI command together; retain the existing OP path and all hash/root checks."
+    },
+    {
+      "id": "mantle_rv64_execution_proof",
+      "net_code_budget": 900,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "issue": "https://github.com/teddyjfpender/stwo-zig/issues/377",
+      "positive_growth_justification": "Pre-edit Mantle guest/proof slice: reuse the independently qualified private execution core as alloc-only Rust, add a bounded versioned guest input and domain-separated 43-byte execution statement, one RV64 guest, and integrate existing build/benchmark entrypoints. Source/input/ELF/output identities are independently pinned, ordinary OP defaults and chain-10 admission remain unchanged. No new AIR, waist interface, service opcode or top-level launcher. Includes negative and parity tests; actual proving/recursion timings require fresh accepted proofs on a frozen build host.",
+      "rollback": "Remove Mantle guest/build selection and its tests together; retain qualified Mantle host replay and all OP/Ethereum admission checks."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

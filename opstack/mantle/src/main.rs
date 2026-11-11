@@ -15,6 +15,22 @@ fn read(path: &Path, limit: u64) -> Result<Vec<u8>, Box<dyn std::error::Error>> 
 }
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args_os().collect();
+    if args.len() == 3 && args[1] == "guest-input" {
+        let raw = read(
+            Path::new(&args[2]),
+            stwo_mantle_native::MAX_GUEST_INPUT as u64,
+        )?;
+        let (output, receipt) = stwo_mantle_native::guest_execute_with_receipt(&raw)?;
+        println!(
+            "{}",
+            serde_json::json!({
+                "output": alloy_primitives::Bytes::copy_from_slice(&output),
+                "gas_used": receipt.gas_used, "transactions": receipt.transactions,
+                "block_hash": receipt.block_hash, "scope": receipt.scope
+            })
+        );
+        return Ok(());
+    }
     if args.len() != 5 {
         return Err("usage: stwo-mantle-native FIXTURE.json PREIMAGES.json EXPECTED_CONFIG_SHA256 EXPECTED_BLOCK_HASH".into());
     }

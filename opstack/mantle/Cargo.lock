@@ -890,6 +890,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "217698eaf96b4a3f0bc4f3662aaa55bdf913cd54d7204591faa790070c6d0853"
 
 [[package]]
+name = "critical-section"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
+
+[[package]]
 name = "crypto-bigint"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2534,6 +2540,19 @@ dependencies = [
  "serde_json",
  "sha2",
 ]
+
+[[package]]
+name = "stwo-mantle-rv64-guest"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "stwo-mantle-native",
+ "stwo-rv64-mem",
+]
+
+[[package]]
+name = "stwo-rv64-mem"
+version = "0.1.0"
 
 [[package]]
 name = "subtle"

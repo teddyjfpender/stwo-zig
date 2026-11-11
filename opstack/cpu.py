@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prove a complete admitted OP execution and freshly receive its durable proof.
+"""Prove admitted OP or Mantle execution and freshly receive its durable proof.
 
 Uses the current service roster on CPU. An explicit recursive runner also
 produces and freshly receives an execution root. No SNARK or whole-protocol
@@ -257,12 +257,17 @@ def main():
         or config["terminal_pc"] != execution["pc"]
     ):
         raise ValueError("request/execution mismatch")
+    public = bytes.fromhex(config["expected_output"])
+    mantle = None
+    if public[41:] == b"ME":
+        from opstack.mantle.input import read
+        mantle = read(config["input"])
     for key in ("elf", "input"):
-        if sha(config[key]) != config[key + "_sha256"]:
+        identity = hashlib.sha256(mantle[0]).hexdigest() if key == "input" and mantle else sha(config[key])
+        if identity != config[key + "_sha256"]:
             raise ValueError(key + " identity mismatch")
     if config["execution_profile"] != "ethereum_services_v3":
         raise ValueError("requires current admitted v3 services")
-    public = bytes.fromhex(config["expected_output"])
     transition_preflight = None
     if args.transition_statement is not None:
         from opstack.recursive_transition import read_object, statement_outputs
@@ -285,6 +290,9 @@ def main():
             "native_proof_cap": 256,
             "blocked": cpu_shards > 256,
         }
+    elif public[41:] == b"ME":
+        if public != mantle[1]:
+            raise ValueError("Mantle input/public statement mismatch")
     elif (
         len(public) != 43
         or public[32] != 1
@@ -461,7 +469,7 @@ def main():
             measured, record_recursive_stage,
         )
         received = recursive["receiver"]["native"]
-        receipt["scope"] = "complete native OP execution bundle and recursive execution root; no L1 derivation"
+        receipt["scope"] = "complete native execution bundle and recursive execution root; no L1 derivation"
         receipt["recursive"] = recursive
         receipt["recursive_runner_sha256"] = sha(args.recursive_runner)
         receipt["recursive_root_verified"] = True
