@@ -14,6 +14,7 @@ default-members = ["."]
 [features]
 default = ["host"]
 host = ["serde/std", "serde_json/std", "sha2/std"]
+crypto-services = ["sha2/stwo-sha256-service"]
 
 [[bin]]
 name = "stwo-mantle-native"
@@ -36,6 +37,7 @@ sha2 = { version = "=0.10.9", default-features = false }
 # Patches in a git dependency's workspace do NOT apply to this consumer root.
 # Mirror the official coherent Mantle family here; never patch the OP workspace.
 [patch.crates-io]
+sha2 = { path = "../../guests/ethereum/rv64/vendor/sha2-rv64" }
 revm = { git = "https://github.com/mantle-xyz/revm", rev = "835cb4eb742698c5884248f546c68c9d716cc995" }
 revm-bytecode = { git = "https://github.com/mantle-xyz/revm", rev = "835cb4eb742698c5884248f546c68c9d716cc995" }
 revm-context = { git = "https://github.com/mantle-xyz/revm", rev = "835cb4eb742698c5884248f546c68c9d716cc995" }

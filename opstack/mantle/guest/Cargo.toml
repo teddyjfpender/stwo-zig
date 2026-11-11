@@ -4,7 +4,12 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+[features]
+default = []
+crypto-services = ["dep:alloy-primitives", "stwo-mantle-native/crypto-services"]
+
 [dependencies]
+alloy-primitives = { version = "=1.5.6", default-features = false, features = ["native-keccak"], optional = true }
 stwo-mantle-native = { path = "..", default-features = false }
 stwo-rv64-mem = { path = "../../../guests/ethereum/rv64/mem" }
 critical-section = { version = "1.2", features = ["restore-state-bool"] }

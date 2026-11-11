@@ -18,6 +18,7 @@ from scripts.rv64.riscv64_csp_compare import elf_info
 TOOLCHAIN = "nightly-2026-08-08"
 VARIANTS = {
     "mantle-software": None,
+    "mantle-services": "crypto-services",
     "software": None,
     "brotli-probe": "brotli-probe",
     "brotli-lazy": "brotli-probe,lazy-brotli",
@@ -113,6 +114,9 @@ LEAN_VARIANTS["dense-probe-candidate"] = ("frontier", [*LEAN_VARIANTS["canonical
 def execution_requirements(features):
     """Bind the guest's selected services, including diagnostic build aliases."""
     selected = set(",".join(features).split(","))
+    if "crypto-services" in selected:
+        return {"required_execution_profile": "ethereum_services_v3",
+                "op_service_abi": None, "extra_service_tags": [0x0003_0010, 0x0003_0130]}
     sparse = bool(selected & {"pairing-sparse-service", "pairing-packet-batching", "pairing-dense-service", "pairing-dense-probe"})
     return {
         "required_execution_profile": "ethereum_services_op_v1" if sparse else None,
@@ -176,8 +180,8 @@ def main():
     parser.add_argument("--native-reference",type=Path,help="explicit trusted native reference binary; reuse/hash instead of rebuilding it")
     parser.add_argument("--runner-reference",type=Path,help="explicit trusted RV64 execution runner; reuse/hash instead of recompiling it")
     args = parser.parse_args()
-    if args.variant == "mantle-software" and (args.eager or args.allocator_check or args.bulk_min is not None):
-        parser.error("Mantle software does not select OP guest features or bulk-service thresholds")
+    if args.variant.startswith("mantle-") and (args.eager or args.allocator_check or args.bulk_min is not None):
+        parser.error("Mantle does not select OP guest features or bulk-service thresholds")
     if (args.variant.startswith("transition") or args.variant.startswith("blob-eval")) and args.eager:
         parser.error("the transition program authenticates preimages on demand")
     if not 1 <= args.jobs <= 8:
@@ -190,7 +194,7 @@ def main():
         if reference is not None and(not reference.is_file()or reference.stat().st_size==0):parser.error("reference binary missing")
     args.artifacts.mkdir(parents=True, exist_ok=False)
     artifacts = args.artifacts.resolve()
-    mantle = args.variant == "mantle-software"
+    mantle = args.variant.startswith("mantle-")
     crate_name = "opstack/mantle" if mantle else "opstack/kona"
     crate = ROOT / crate_name
     env = dict(

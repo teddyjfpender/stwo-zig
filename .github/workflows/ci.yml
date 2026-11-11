@@ -25,13 +25,20 @@ on:
         description: Existing CPU lane for focused-cpu diagnostics only
         type: string
         default: circuit_frontend
+      mantle_variant:
+        description: Explicit guest build for the manual Mantle qualification
+        type: choice
+        options:
+          - mantle-software
+          - mantle-services
+        default: mantle-software
 
 permissions:
   actions: read
   contents: read
 
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}-${{ inputs.mantle_variant }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
 
 jobs:
@@ -582,14 +589,14 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: opstack/mantle/target
-          key: mantle-rust-linux-nightly-2026-08-08-${{ hashFiles('opstack/mantle/Cargo.lock') }}-${{ github.sha }}
+          key: mantle-rust-linux-nightly-2026-08-08-${{ hashFiles('opstack/mantle/Cargo.lock') }}-${{ inputs.mantle_variant }}-${{ github.sha }}
           restore-keys: mantle-rust-linux-nightly-2026-08-08-${{ hashFiles('opstack/mantle/Cargo.lock') }}-
       - name: Build pinned Mantle host and RV64 guest
         id: mantle-build
         run: |
           rustup toolchain install nightly-2026-08-08 --profile minimal --component rust-src
           python3 -m pip install pycryptodome==4.3.0 unicorn==2.1.4
-          python3 opstack/build.py --variant mantle-software --artifacts /tmp/stwo-mantle-build --jobs 2
+          python3 opstack/build.py --variant '${{ inputs.mantle_variant }}' --artifacts /tmp/stwo-mantle-build --jobs 2
       - name: Preserve the bounded Rust compiler cache
         if: always() && steps.mantle-rust-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830

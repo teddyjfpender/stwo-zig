@@ -27,6 +27,9 @@ class BuildEnvironment(unittest.TestCase):
                 bulk_environment({}, value)
 
     def test_service_requirements_follow_features_including_diagnostic_aliases(self):
+        requirement = execution_requirements(["crypto-services"])
+        self.assertEqual(requirement["required_execution_profile"], "ethereum_services_v3")
+        self.assertEqual(requirement["extra_service_tags"], [0x30010, 0x30130])
         for name in ["canonical-glv-hinted-sparse", "canonical-glv-hinted-sparse-dense", "dense-probe-control", "dense-probe-candidate"]:
             requirement = execution_requirements(LEAN_VARIANTS[name][1])
             self.assertEqual(requirement["required_execution_profile"], "ethereum_services_op_v1", name)

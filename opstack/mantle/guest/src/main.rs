@@ -7,6 +7,9 @@ extern crate stwo_rv64_mem;
 mod allocator;
 #[path = "../../../../guests/ethereum/rv64/src/single_thread_atomics.rs"]
 mod single_thread_atomics;
+#[cfg(feature = "crypto-services")]
+#[path = "../../../../guests/ethereum/rv64/src/keccak_sponge_service.rs"]
+mod sponge_service;
 use core::{
     arch::{asm, global_asm},
     ptr,
