@@ -326,20 +326,8 @@ test "runtime polynomial export replays the production active selector" {
                 semantic_eval.BaseScalar.fromBase(inputs[main_column_count]),
             );
             try std.testing.expectEqual(expected.len, direct.len);
-            for (expected.values[0..expected.len], direct.values[0..direct.len], 0..) |want, root, constraint_index| {
-                if (!want.value.eql(replayed[root.id])) {
-                    std.debug.print("runtime selector mismatch family={s} active={d} constraint={d} root={d} expected={d} actual={d}\n", .{ @tagName(family), active, constraint_index, root.id, want.value.toU32(), replayed[root.id].toU32() });
-                    std.debug.print("runtime selector inputs=", .{});
-                    for (inputs) |word| std.debug.print("{d},", .{word.toU32()});
-                    std.debug.print("\n", .{});
-                    if (family == .shifts_imm) {
-                        const parsed = try @import("../lang/typed_shifts_imm_authority.zig").Evaluator(semantic_eval.BaseScalar).Row.fromMainColumns(sampled);
-                        const derived = @import("../lang/fixed_shift_common.zig").Evaluator(semantic_eval.BaseScalar).derive(parsed.semantic);
-                        std.debug.print("runtime shift derived bit={d} limb={d} shift={d} imm={d}\n", .{ derived.bit_shift.value.toU32(), derived.limb_shift.value.toU32(), derived.shift_amount.value.toU32(), parsed.imm_truncated.value.toU32() });
-                    }
-                }
+            for (expected.values[0..expected.len], direct.values[0..direct.len]) |want, root|
                 try std.testing.expect(want.value.eql(replayed[root.id]));
-            }
         }
     }
 }

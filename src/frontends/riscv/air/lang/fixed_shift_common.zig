@@ -54,6 +54,8 @@ pub fn Evaluator(comptime S: type) type {
         };
 
         pub fn derive(row: Row) Derived {
+            // Keep these fixed coefficients comptime: runtime-indexed sums
+            // disagree with symbolic replay in the seeded ReleaseFast regression.
             var bit_multiplier = S.zero();
             var bit_shift = S.zero();
             var bit_marker_sum = S.zero();
