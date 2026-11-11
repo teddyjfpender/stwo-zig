@@ -83,7 +83,7 @@
     "noTxPool": true,
     "gasLimit": "0x3938700",
     "eip1559Params": "0x0000003200000004",
-    "minBaseFee": "0xba43b7400"
+    "minBaseFee": 50000000000
   },
   "expected_parent_hash": "0x8b6591f6540a72c7958e0c7af61f7f320fcee0635349a72c758c54a1246a0165"
 }
