@@ -115,7 +115,7 @@ test "api invariant: native and product VM authority bindings preserve canonical
     const Support = recursion.vm_composition_graph_support_v2;
     try std.testing.expect(Support.ForExtension(null) == Support.ForExtension(null));
     const no_extension = @TypeOf(@as(Support.ForExtension(null).SampleLayoutV2, undefined).extension);
-    try std.testing.expect(no_extension == @TypeOf(null));
+    try std.testing.expect(no_extension == void);
     try std.testing.expect(@import("recursion/ethereum_vm_composition_graph_base.zig").Result == recursion.vm_composition_graph_base_v2.Result);
     const geometry = recursion.vm_composition_base_geometry_v2;
     const compiler = recursion.vm_selected_lookup_compiler_v2;
