@@ -172,6 +172,7 @@ pub const Statement = struct {
                 .bulk => |kind| rows_native = request.bulk.rows(kind),
                 .sponge => |kind| rows_native = request.sponge.rows(kind),
                 .dword => |index| rows_native = dword_counts[index],
+                .tower => return error.UnsupportedTowerCpuRecursion,
             }
             const row_word = try frame.guessU32(rows_native);
             const call_word = try frame.guessU32(calls_native);
@@ -273,6 +274,7 @@ pub fn expectedWords(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.
             .bulk => |kind| rows = request.bulk.rows(kind),
             .sponge => |kind| rows = request.sponge.rows(kind),
             .dword => |index| rows = dword[index],
+            .tower => return error.UnsupportedTowerCpuRecursion,
         }
         try words.appendSlice(a, &.{ rows, calls, first_id });
     }

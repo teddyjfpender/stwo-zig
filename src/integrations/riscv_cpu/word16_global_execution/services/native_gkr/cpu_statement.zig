@@ -164,6 +164,7 @@ pub fn fromRequest(a: std.mem.Allocator, setup: *const Setup, plan: *const Plan,
             .bulk => |kind| row.* = request.bulk.rows(kind),
             .sponge => |kind| row.* = request.sponge.rows(kind),
             .dword => |index| row.* = dw[index],
+            .tower => return error.UnsupportedTowerCpuRecursion,
         }
     }
     return out;

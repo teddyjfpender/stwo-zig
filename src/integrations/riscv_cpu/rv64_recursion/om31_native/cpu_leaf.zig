@@ -169,6 +169,7 @@ pub const Statement = struct {
                 .bulk => |kind| rows_native = request.bulk.rows(kind),
                 .sponge => |kind| rows_native = request.sponge.rows(kind),
                 .dword => |index| rows_native = dword_counts[index],
+                .tower => return error.UnsupportedTowerCpuRecursion,
             }
             const row_word = try frame.guessU32(rows_native);
             const call_word = try frame.guessU32(calls_native);
