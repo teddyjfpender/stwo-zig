@@ -6,6 +6,7 @@ const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
 const direct = @import("../../air/lang/direct_witness_executor.zig");
 const control = @import("control.zig");
+const control_row = @import("control_row.zig");
 const proof_kind_mod = @import("proof_kind.zig");
 const schedule = @import("verifier_schedule.zig");
 
@@ -25,30 +26,7 @@ pub const Error = direct.Error || schedule.Error || std.mem.Allocator.Error || e
     SchemaMismatch,
 };
 
-pub const Row = struct {
-    segment_mask: u32,
-    binary_mask: u32,
-    verifier_id: u32,
-    sequence: u32,
-    tag: u32,
-    args: [4]u32,
-    terminal_mask: u32,
-
-    pub fn values(self: Row) [COLUMN_COUNT]M31 {
-        return .{
-            M31.fromU64(self.segment_mask),
-            M31.fromU64(self.binary_mask),
-            M31.fromU64(self.verifier_id),
-            M31.fromU64(self.sequence),
-            M31.fromU64(self.tag),
-            M31.fromU64(self.args[0]),
-            M31.fromU64(self.args[1]),
-            M31.fromU64(self.args[2]),
-            M31.fromU64(self.args[3]),
-            M31.fromU64(self.terminal_mask),
-        };
-    }
-};
+pub const Row = control_row.Row;
 
 pub const Preprocessed = struct {
     allocator: std.mem.Allocator,
@@ -162,11 +140,7 @@ pub const Preprocessed = struct {
     }
 };
 
-pub fn logicalRow(row: Row, kind: ProofKind) [control.LOGICAL_INPUT_COUNT]M31 {
-    const values = row.values();
-    const selectors = kind.selectors();
-    return values ++ .{ selectors[0], selectors[1] };
-}
+pub const logicalRow = control_row.logicalRow;
 
 fn validateLanePlans(
     vm: *const schedule.Plan,
@@ -308,6 +282,8 @@ fn writeRow(columns: *[COLUMN_COUNT][]M31, logical_row: usize, row: Row) void {
 }
 
 test "R-012 control preprocessing is verifier-owned across all three lanes" {
+    try std.testing.expect(Row == control_row.Row);
+    try std.testing.expect(@TypeOf(logicalRow) == @TypeOf(control_row.logicalRow));
     var fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();
     var preprocessing = try Preprocessed.init(

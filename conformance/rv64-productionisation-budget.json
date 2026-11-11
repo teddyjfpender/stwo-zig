@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "c3_private_control_row_ownership_rfc344",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Private prerequisite within the approved C3 <=4000 total, charged once: canonical control row/encoder below schedule and allocation ownership. Preserve exact old aliases and three existing framework test bodies, add row/selector and nominal identity coverage, retain all discovery and floors. No public API, numerical, wire or protocol change; rollback moves canonical definitions and imports together."
+    },
+    {
       "id": "worktree_consolidation",
       "net_code_budget": 0,
       "flags_added_budget": 0,
