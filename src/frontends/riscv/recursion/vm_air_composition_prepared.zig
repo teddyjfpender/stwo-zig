@@ -68,7 +68,7 @@ pub fn prepare(
     const seed = try support.scalarInput(&builder, .oods_point);
     try transcript_arithmetic.bindBase(&builder, selector, profile, claims, &aggregates);
     const relations = circuit.GraphRelations.init(draws);
-    var layout = try support.SampleLayoutV2.init(allocator, &geometry, null, sampled);
+    var layout = try support.SampleLayoutV2.init(allocator, &geometry, {}, sampled);
     defer layout.deinit();
     const point = support.pointFromSeed(seed);
     var denominators: [31]?Scalar = .{null} ** 31;

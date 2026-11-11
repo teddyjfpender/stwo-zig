@@ -21,7 +21,9 @@ const circuit = @import("vm_air_composition_circuit.zig");
 
 pub fn ForExtension(comptime ExtensionModule: ?type) type {
     return struct {
-        const ExtensionPointer = if (ExtensionModule) |M| ?*const M.GeometryV2 else @TypeOf(null);
+        // The disabled branch has no value, but must remain runtime-storable.
+        // A null-typed field would make the whole sample layout comptime-only.
+        const ExtensionPointer = if (ExtensionModule) |M| ?*const M.GeometryV2 else void;
         const ExtensionColumn = if (ExtensionModule) |M| M.ColumnV2 else base_geometry.ColumnV2;
         pub const Scalar = circuit.Scalar;
         pub const Builder = circuit.Builder;
