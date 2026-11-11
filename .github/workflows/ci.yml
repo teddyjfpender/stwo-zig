@@ -573,12 +573,16 @@ jobs:
           retention-days: 7
 
   mantle-cpu-qualification:
-    name: Mantle CPU execution and proof qualification
+    name: Mantle CPU qualification / ${{ matrix.block }}
     if: github.event_name == 'workflow_dispatch' && inputs.gate == 'mantle-cpu-qualification'
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        block: ${{ fromJSON(inputs.mantle_suite == 'five-block' && '[103132217,103132921,103133433,103133561,103133753]' || '[103132217]') }}
     env:
-      MANTLE_SUITE_CHOICE: ${{ inputs.mantle_suite }}
+      MANTLE_BLOCK: ${{ matrix.block }}
     steps:
       - name: Checkout frozen source
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -625,15 +629,10 @@ jobs:
           PY
       - name: Match native, RV64 and independent execution
         run: |
-          case "$MANTLE_SUITE_CHOICE" in
-            single) BLOCKS=(103132217);;
-            five-block) BLOCKS=(103132217 103132921 103133433 103133561 103133753);;
-            *) exit 2;;
-          esac
           python3 opstack/benchmark.py --network mantle --profile ethereum_services_v3 \
             --fixtures /tmp/stwo-mantle-fixtures --artifacts /tmp/stwo-mantle-execution \
             --host /tmp/stwo-mantle-build/host --guest /tmp/stwo-mantle-build/guest.elf \
-            --runner /tmp/stwo-mantle-build/rv64-execution --blocks "${BLOCKS[@]}" --samples 1 --oracle
+            --runner /tmp/stwo-mantle-build/rv64-execution --blocks "$MANTLE_BLOCK" --samples 1 --oracle
       - name: Fetch the frozen CPU prover artifact
         continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -679,22 +678,17 @@ jobs:
           PY
       - name: Prove and freshly verify every native execution
         run: |
-          case "$MANTLE_SUITE_CHOICE" in
-            single) BLOCKS=(103132217);;
-            five-block) BLOCKS=(103132217 103132921 103133433 103133561 103133753);;
-            *) exit 2;;
-          esac
-          for BLOCK in "${BLOCKS[@]}"; do
-            python3 opstack/cpu.py \
-            --request "/tmp/stwo-mantle-execution/${BLOCK}-proof-config.json" \
-            --execution "/tmp/stwo-mantle-execution/${BLOCK}-rv64.json" \
-            --runner /tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion \
-            --native-profile d2_native_b4_q54_p20_fold4 \
-            --workers 2 --batch-steps 262143 --timeout 1800 \
-            --receiver-bytes 12884901888 --artifacts "/tmp/stwo-mantle-proof/${BLOCK}"
-          done
+          BLOCK="$MANTLE_BLOCK"
+          python3 opstack/cpu.py \
+          --request "/tmp/stwo-mantle-execution/${BLOCK}-proof-config.json" \
+          --execution "/tmp/stwo-mantle-execution/${BLOCK}-rv64.json" \
+          --runner /tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion \
+          --native-profile d2_native_b4_q54_p20_fold4 \
+          --workers 2 --batch-steps 262143 --timeout 1800 \
+          --receiver-bytes 12884901888 --artifacts "/tmp/stwo-mantle-proof/${BLOCK}"
           git diff --exit-code
       - name: Produce and freshly receive the first Mantle execution root
+        if: matrix.block == 103132217
         run: |
           python3 - <<'PYROOT'
           import argparse, json, os
@@ -729,7 +723,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: mantle-cpu-qualification-${{ github.sha }}
+          name: mantle-cpu-qualification-${{ github.sha }}-${{ matrix.block }}
           path: |
             /tmp/stwo-mantle-build/
             /tmp/stwo-mantle-execution/
