@@ -27,6 +27,14 @@ class OpStackScopeTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual({"static", "opstack_python"}, self.lanes(path))
 
+    def test_fresh_tooling_lane_installs_the_pinned_database_and_crypto_dependencies(self):
+        commands = self.policy["lanes"]["opstack_python"]["commands"]
+        install = next(command for command in commands if "pip" in command and "install" in command)
+        requirements = (ROOT / "opstack/requirements-host.txt").read_text().splitlines()
+        for package in ("pycryptodome", "rocksdict"):
+            pin = next(line for line in requirements if line.startswith(package + "=="))
+            self.assertIn(pin, install)
+
     def test_kona_changes_run_tooling_and_pinned_semantic_tests(self):
         for path in ("opstack/kona/Cargo.lock", "opstack/kona/src/transition.rs"):
             with self.subTest(path=path):

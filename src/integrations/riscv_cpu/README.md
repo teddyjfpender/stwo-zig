@@ -28,6 +28,17 @@ The existing build also consumes `stwo_circuit_recursion_wire`. Their providers 
 
 ## Build, test, and run
 
+OP pairing edits use the canonical developer entrypoint. For example,
+`python3 scripts/dev_test.py --check src/integrations/riscv_cpu/delegations/op_pairing_mac12/native.zig`
+selects `test-op-pairing-proof` with semantic checking only. Omitting `--check`
+runs the focused package test; Horner and typed-projection owners select their
+own five-test gates. The pairing gate retains its nine-test discovery floor.
+Actual physical target qualification additionally requires the fixture's
+explicit `STWO_PAIRING_MAC12_TARGET=1` and `STWO_PAIRING_MAC12_P2=1` settings
+and a fresh `STWO_PAIRING_MAC12_OUT` directory. A default or semantic check does
+not establish that physical qualification. Use the qualified build host for
+compiler-heavy runs.
+
 The CPU package also builds four detached SegmentV2 tools. They prove and verify bounded execution leaves and parent nodes; they do not claim whole-block memory/provider closure:
 
 ```sh

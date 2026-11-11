@@ -1098,7 +1098,8 @@
           "pip",
           "install",
           "--disable-pip-version-check",
-          "pycryptodome==4.3.0"
+          "pycryptodome==4.3.0",
+          "rocksdict==0.3.29"
         ],
         [
           "{output_dir}/opstack-python/bin/python",

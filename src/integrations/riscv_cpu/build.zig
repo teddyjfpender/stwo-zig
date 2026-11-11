@@ -69,6 +69,9 @@ pub fn build(b: *std.Build) void {
         .{ .step = "test-distributed-binary-contracts", .root = "distributed_binary_contract_test_root.zig", .minimum = 13 },
         .{ .step = "test-division-contracts", .root = "division_contract_test_root.zig", .minimum = 7 },
         .{ .step = "test-services-truth-contracts", .root = "services_truth_contract_test_root.zig", .minimum = 22 },
+        .{ .step = "test-op-pairing-proof", .root = "rv64_op_pairing_mac12_test_root.zig", .minimum = 9 },
+        .{ .step = "test-op-pairing-horner", .root = "rv64_op_pairing_horner_test_root.zig", .minimum = 5 },
+        .{ .step = "test-op-pairing-r7-projection", .root = "rv64_op_pairing_r7_projection_test_root.zig", .minimum = 5 },
     }) |spec| {
         const root = b.createModule(.{ .root_source_file = b.path(spec.root), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
         var imports = integration.import_table.iterator();

@@ -1019,6 +1019,14 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Pre-edit issue361: pin the exact already-shipped RISC-V Metal protocol manifest including typed ECDSA recovery; retain strict single-registration checks. Regenerate stale proof-independent shape coverage only with the existing pinned CPU inspector/audit entrypoints, complete16-case matrix and source identity; no hand-edited hash or performance/proof/GPU reclassification. Code growth is limited to the existing test contract; metadata/receipts reported separately."
+    },
+    {
+      "id": "op_package_focused_checks",
+      "net_code_budget": 64,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Route existing OP pairing, Horner and typed-projection roots through the canonical package developer entrypoint, preserving exact minimum discovery counts and semantic-check-only behavior. Avoid the full integration build for edits to these owners. No protocol, package contract or fixture is changed.",
+      "rollback": "Revert focused routing and registration together; retain all existing root tests and top-level gates."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

@@ -13,6 +13,25 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_op_pairing_edits_select_existing_bounded_package_gates(self):
+        for source, step in (
+            ("rv64_op_pairing_mac12_test_root.zig", "test-op-pairing-proof"),
+            ("delegations/op_pairing_mac12/native.zig", "test-op-pairing-proof"),
+            ("rv64_op_pairing_horner_test_root.zig", "test-op-pairing-horner"),
+            ("delegations/op_pairing_horner/fold.zig", "test-op-pairing-horner"),
+            ("rv64_op_pairing_r7_projection_test_root.zig", "test-op-pairing-r7-projection"),
+            ("delegations/op_pairing_r7/typed_projection.zig", "test-op-pairing-r7-projection"),
+        ):
+            for check_only in (False, True):
+                with self.subTest(source=source, check_only=check_only):
+                    (command,) = dev_test.commands_for_paths(
+                        ROOT, ["src/integrations/riscv_cpu/" + source],
+                        optimize="ReleaseFast", check_only=check_only,
+                    )
+                    self.assertEqual(step, command[2])
+                    self.assertIn("-Doptimize=ReleaseFast", command)
+                    self.assertEqual(check_only, "-Dcheck-only=true" in command)
+
     def test_cli_preserves_canonical_parent_lock_and_wraps_other_builds(self):
         planned = ["zig", "build", "test-isa", "-j1"]
         for held in ("", dev_test.zig_serial_build.DEFAULT_LOCK, "/tmp/foreign-build.lock"):
