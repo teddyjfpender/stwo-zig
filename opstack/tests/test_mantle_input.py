@@ -18,7 +18,7 @@ def qualification_inputs():
         packed = stream.read((256 << 10) + 1)
     if (
         hashlib.sha256(packed).hexdigest()
-        != "975739424aae3f22b7aae2b3d73cbcdd48752c531f3d00c881c64f2d6175beab"
+        != "1821b2ddb7f774950e76fcbcddc7f5234d1fe0da971ed90c3b2759e7f4c00fb3"
     ):
         raise ValueError("Mantle qualification fixture identity")
     decoder = zlib.decompressobj()
@@ -32,7 +32,7 @@ def qualification_inputs():
         raise ValueError("Mantle qualification decompression bound")
     if (
         hashlib.sha256(raw).hexdigest()
-        != "8ca5e565fc10a1f424e3756c4945a283510315a536735c9e3fe260ab87891615"
+        != "8104c5665d7b232cc31c9b9ace1fc8a2a6bbec122ce45ce0c813f2486971d073"
     ):
         raise ValueError("Mantle qualification decoded identity")
     rows = json.loads(raw)["blocks"]
@@ -71,6 +71,33 @@ def fixture():
 class MantleInputTests(unittest.TestCase):
     def test_five_authenticated_qualification_inputs(self):
         self.assertEqual(len(qualification_inputs()), 5)
+
+    def test_normal_transactions_include_authenticated_intrinsic_fee_reads(self):
+        C = M.C
+        for row in qualification_inputs():
+            if row['block_number'] not in (103133433, 103133753):
+                continue
+            data = json.loads(row['guest_input_utf8'])
+            records = {n['hash']: n['data'] for n in data['preimages']}
+            root = C.unhex(data['fixture']['parent_header']['stateRoot'])
+            proofs = row['intrinsic_fee_account_proofs']
+            self.assertEqual([p['address'].lower() for p in proofs], [
+                '0x420000000000000000000000000000000000000f',
+                '0x4200000000000000000000000000000000000015'])
+            for proof, slots in zip(proofs, ([0], [1, 3, 5, 6, 7, 8])):
+                account = C.decode_rlp(C.verify_trie_value(
+                    root, C.keccak(C.unhex(proof['address'], 20)), proof['accountProof']))
+                self.assertEqual(len(account), 4)
+                self.assertIn('0x' + account[3].hex(), records)
+                self.assertEqual(len(proof['storageProof']), len(slots))
+                for entry, slot in zip(proof['storageProof'], slots):
+                    self.assertEqual(int(entry['key'], 16), slot)
+                    encoded = C.verify_trie_value(account[2], C.keccak(slot.to_bytes(32, 'big')),
+                                                  entry['proof'], allow_absence=True)
+                    value = 0 if encoded is None else int.from_bytes(C.decode_rlp(encoded), 'big')
+                    self.assertEqual(value, int(entry['value'], 16))
+                for node in proof['accountProof'] + [n for e in proof['storageProof'] for n in e['proof']]:
+                    self.assertEqual(records['0x' + C.keccak(C.unhex(node)).hex()], node)
 
     def test_wrong_nested_types_reject_before_execution(self):
         for field in ("fixture", "expected", "preimages"):

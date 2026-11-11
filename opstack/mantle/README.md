@@ -86,7 +86,23 @@ witness completeness; capture authentication alone does not establish it.
 
 The hosted CPU qualification first independently receives each native proof and
 runs corruption trials. Recursion follows as a separate gate, preserving native
-results if folding fails. The initial four-child M7 attempt exhausted its 12 GiB
-live budget; the next root gate uses the existing three-child M6 diet profile
-under the same budget. These outer profiles must be reported separately; this
-is not a security-profile equivalence claim or a raised memory ceiling.
+results if folding fails. Both the four-child M7 and three-child M6 attempts exhausted their 12 GiB
+live budget at the first fold. The native suite remains independent of root
+qualification. Outer profiles are reported separately; a reduced arity is not
+a security-profile equivalence claim or a raised memory ceiling.
+
+Normal (non-deposit) transactions additionally read GasPriceOracle slot 0
+(token ratio), L1Block slots 1/3/5/6/7/8, and fee-recipient accounts through the
+VM's intrinsic fee handler. These reads occur outside opcode tracing. The
+source authority is pinned Mantle revm `835cb4e`,
+`crates/op-revm/src/{l1block,constants}.rs`. The two non-deposit sample inputs
+retain those authenticated parent-state proofs and code; regression tests
+verify their account, storage, bytecode and retained-node identities. Missing
+witnesses remain fatal. The raw-input statement changes with the supplement,
+while the independently expected block header remains unchanged.
+
+The five-block suite now measures native qualification independently. `single`
+also attempts a root; both M7 four-child and M6 three-child attempts exhausted
+their 12 GiB budget at the first fold. A native success therefore does not imply
+a completed root. Prover builds use explicit `x86_64_v3` and record host CPU
+features; a native-target binary hash alone does not establish portability.

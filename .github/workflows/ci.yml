@@ -672,7 +672,7 @@ jobs:
           --receiver-bytes 12884901888 --artifacts "/tmp/stwo-mantle-proof/${BLOCK}"
           git diff --exit-code
       - name: Produce and freshly receive the first Mantle execution root
-        if: inputs.mantle_suite != 'five-block-replay' && matrix.block == 103132217
+        if: inputs.mantle_suite == 'single' && matrix.block == 103132217
         run: |
           python3 - <<'PYROOT'
           import argparse, json, os
