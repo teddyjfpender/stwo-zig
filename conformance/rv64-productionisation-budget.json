@@ -1037,6 +1037,24 @@
       "scope": "Retire rejected diagonal benchmark launcher/helper and frozen-only segmentation/retained-owner model launchers. Their embedded diagnostic tests retire with the scripts; live production parity and physical proof tests remain.",
       "archive_commit": "cbccb102b577bf48debf38bf6559cff80fc874b3",
       "ownership_rule": "No live import/build/test consumers; retain historical receipts byte-for-byte and link fixed archive sources in the existing reviews."
+    },
+    {
+      "id": "mantle_authenticated_capture_codec",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Preserve the original Mantle deposit bytes, EthValue/optional EthTxValue, transaction hashes and block transaction roots in capture-only reconstruction. A caller-owned explicit deposit specification keeps OP default encoding unchanged. Includes real-vector, parity and malformed-input rejection tests; no execution or proof admission.",
+      "issue": "https://github.com/teddyjfpender/stwo-zig/issues/377",
+      "rollback": "Revert the capture-only codec addition with its tests; retain the existing OP codec and all hash/root checks."
+    },
+    {
+      "id": "mantle_isolated_native_replay",
+      "net_code_budget": 300,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Isolate official Mantle-aware consensus/VM dependency versions in a private host-only Rust replay owner, without changing OP/Ethereum dependencies. Bounded authenticated preimages, pinned chain configuration and exact expected block hash are executable acceptance conditions. Includes provider/admission negative tests; no RV64 or proof admission claim. Existing hosted Kona lane also owns locked Mantle tests and can be selected for CPU-only diagnostics; <=20 net Python test/router lines counted separately from the <=300 Rust/test allowance.",
+      "issue": "https://github.com/teddyjfpender/stwo-zig/issues/377",
+      "rollback": "Remove private replay owner and its own tests/CI command together; retain the existing OP path and all hash/root checks."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

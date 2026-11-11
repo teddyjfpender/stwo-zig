@@ -50,6 +50,7 @@ class TransportTests(unittest.TestCase):
         bad=copy.deepcopy(tx);del bad['ethValue']
         with self.assertRaises(ValueError):T.encoded(bad,deposit_spec='mantle')
         with self.assertRaisesRegex(ValueError,'deposit spec'):T.encoded(tx,deposit_spec='auto')
+        with self.assertRaisesRegex(ValueError,'deposit spec'):T.verify_block({},deposit_spec='auto')
         op=json.loads(zlib.decompress((F/'recent-transactions.json.zlib').read_bytes()))['transactions'][0]
         before=T.encoded(op);op['ethValue']='0x123';op['ethTxValue']='0x456'
         self.assertEqual(T.encoded(op),before)
