@@ -332,6 +332,11 @@ test "runtime polynomial export replays the production active selector" {
                     std.debug.print("runtime selector inputs=", .{});
                     for (inputs) |word| std.debug.print("{d},", .{word.toU32()});
                     std.debug.print("\n", .{});
+                    if (family == .shifts_imm) {
+                        const parsed = try @import("../lang/typed_shifts_imm_authority.zig").Evaluator(semantic_eval.BaseScalar).Row.fromMainColumns(sampled);
+                        const derived = @import("../lang/fixed_shift_common.zig").Evaluator(semantic_eval.BaseScalar).derive(parsed.semantic);
+                        std.debug.print("runtime shift derived bit={d} limb={d} shift={d} imm={d}\n", .{ derived.bit_shift.value.toU32(), derived.limb_shift.value.toU32(), derived.shift_amount.value.toU32(), parsed.imm_truncated.value.toU32() });
+                    }
                 }
                 try std.testing.expect(want.value.eql(replayed[root.id]));
             }
