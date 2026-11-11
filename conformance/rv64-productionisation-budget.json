@@ -16,7 +16,7 @@
       "net_code_budget": 40,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Issue330 comment6805045179: isolate the existing seeded runtime polynomial active-selector assertion through the maintained focused catalog, serial build and hosted CPU entrypoint. Preserve the exact assertion, RNG, family coverage and full frontend floors; failure-only output names the mismatched operands. No production implementation/API/protocol change, copied test or launcher. The diagnostic is not full acceptance; rollback removes its root, catalog/lane and logging together."
+      "positive_growth_justification": "Issue330 comments6805045179/6805442223: keep the existing seeded runtime polynomial active-selector assertion reachable through the maintained focused catalog, serial build and hosted CPU entrypoint. Specialize the existing fixed8/4 shift coefficients at compile time, preserving arithmetic/iteration order; the original test file, assertion, RNG, family coverage and full frontend floors stay exact. No field algorithm, public API/protocol change, copied test or launcher. Temporary traces and the ineffective noinline experiment are removed. Full frontend/proof gates remain independent; rollback the focused plumbing and private kernel change together without removing the original regression."
     },
     {
       "id": "worktree_consolidation",
