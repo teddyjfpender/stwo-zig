@@ -685,7 +685,7 @@ jobs:
               raise ValueError('root requires independently admitted native execution')
           args = argparse.Namespace(
               recursive_runner=Path('/tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion'),
-              recursive_profile='m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1',
+              recursive_profile='r1_b2_q108_p20_fold4',
               native_profile='d2_native_b4_q54_p20_fold4',
               workers=2, recursive_workers=2, timeout=1800,
               recursive_live_bytes=12884901888, recursive_receiver_bytes=12884901888,
@@ -699,7 +699,8 @@ jobs:
           path.write_text(json.dumps(report, indent=2) + '\n')
           report['recursive'] = cpu_recursion.run(
               args, json.loads((root / 'request.json').read_text()), root, 1 << 30,
-              dict(os.environ, STWO_ZIG_RV64_SETUP_BUILD_THREADS='1'), measured, record)
+              dict(os.environ, STWO_ZIG_RV64_SETUP_BUILD_THREADS='1',
+                   STWO_CIRCUIT_OM31_PROFILE_DIR=str(root / 'outer-stages')), measured, record)
           report['recursive_root_verified'] = True
           path.write_text(json.dumps(report, indent=2) + '\n')
           PYROOT
