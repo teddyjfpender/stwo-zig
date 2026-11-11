@@ -36,7 +36,8 @@ class OpStackScopeTests(unittest.TestCase):
             self.assertIn(pin, install)
 
     def test_kona_changes_run_tooling_and_pinned_semantic_tests(self):
-        for path in ("opstack/kona/Cargo.lock", "opstack/kona/src/transition.rs"):
+        for path in ("opstack/kona/Cargo.lock", "opstack/kona/src/transition.rs",
+                     "opstack/mantle/Cargo.lock", "opstack/mantle/src/lib.rs"):
             with self.subTest(path=path):
                 self.assertEqual(
                     {"static", "opstack_python", "opstack_kona"},
@@ -44,6 +45,10 @@ class OpStackScopeTests(unittest.TestCase):
                 )
         commands = self.policy["lanes"]["opstack_kona"]["commands"]
         self.assertTrue(any("--locked" in command for command in commands))
+        self.assertTrue(any("opstack/mantle/Cargo.toml" in command and "--locked" in command
+                            for command in commands))
+        self.assertEqual(["opstack_kona"], ci_scope_plan.manual_cpu_selection(
+            "opstack_kona", self.policy)[0])
         self.assertTrue(
             any(
                 "host,transition-program,pairing-hints,bn254-glv" in command

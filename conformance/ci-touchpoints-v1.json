@@ -1131,6 +1131,15 @@
           "test",
           "--locked",
           "--manifest-path",
+          "opstack/mantle/Cargo.toml",
+          "-j2"
+        ],
+        [
+          "cargo",
+          "+nightly-2026-08-08",
+          "test",
+          "--locked",
+          "--manifest-path",
           "opstack/kona/Cargo.toml",
           "--features",
           "host,transition-program,pairing-hints,bn254-glv",
@@ -1982,7 +1991,8 @@
         "opstack/kona",
         "guests/ethereum/rv64/vendor/k256",
         "guests/ethereum/rv64/vendor/ecdsa",
-        "guests/ethereum/rv64/vendor/sha2-rv64"
+        "guests/ethereum/rv64/vendor/sha2-rv64",
+        "opstack/mantle"
       ],
       "lanes": [
         "opstack_kona"
