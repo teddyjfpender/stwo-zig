@@ -612,8 +612,21 @@ jobs:
             --fixtures /tmp/stwo-mantle-fixtures --artifacts /tmp/stwo-mantle-execution \
             --host /tmp/stwo-mantle-build/host --guest /tmp/stwo-mantle-build/guest.elf \
             --runner /tmp/stwo-mantle-build/rv64-execution --blocks 103132217 --samples 1 --oracle
+      - name: Restore the isolated CPU prover compiler cache
+        id: mantle-zig-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .zig-cache
+          key: mantle-zig-linux-0.15.2-${{ hashFiles('build.zig.zon') }}-${{ github.sha }}
+          restore-keys: mantle-zig-linux-0.15.2-${{ hashFiles('build.zig.zon') }}-
       - name: Build the existing CPU native and recursive prover
         run: zig build rv64-word16-ethereum-gkr-recursion -Doptimize=ReleaseFast -j1 --prefix /tmp/stwo-mantle-prover
+      - name: Preserve the CPU prover compiler cache
+        if: always() && steps.mantle-zig-cache.outputs.cache-hit != 'true' && steps.mantle-zig-cache.outputs.cache-primary-key != ''
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .zig-cache
+          key: ${{ steps.mantle-zig-cache.outputs.cache-primary-key }}
       - name: Prove and freshly verify complete execution and recursion
         run: |
           python3 opstack/cpu.py \

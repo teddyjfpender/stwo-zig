@@ -270,6 +270,7 @@ pub fn expectedWords(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.
             .bulk => |kind| rows = request.bulk.rows(kind),
             .sponge => |kind| rows = request.sponge.rows(kind),
             .dword => |index| rows = dword[index],
+            .tower => return error.UnsupportedTowerCpuRecursion,
         }
         try words.appendSlice(a, &.{ rows, calls, first_id });
     }
