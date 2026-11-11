@@ -8,6 +8,16 @@ from scripts.repo.product_closure.model import Manifest, NamedImport
 
 
 class RecursionOwnershipTest(unittest.TestCase):
+    def native_profile_authority(self, root: Path) -> str:
+        base = root / "src/frontends/riscv/recursion"
+        facade = (base / "vm_air_profile_v2.zig").read_text()
+        self.assertIn('const shared = @import("vm_air_profile_v2_authority.zig");', facade)
+        self.assertIn("const Native = shared.ForOwner(NativeOwner);", facade)
+        self.assertNotIn("fn deriveFromSource(", facade)
+        for name in ("ProfileV2", "derive", "deriveAuthority"):
+            self.assertIn(f"pub const {name} = Native.{name};", facade)
+        return (base / "vm_air_profile_v2_authority.zig").read_text()
+
     def test_wide_poseidon_typed_plan_is_independent_and_verifier_safe(self) -> None:
         root = Path(__file__).resolve().parents[2]
         manifest = Manifest(
@@ -30,7 +40,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         self.assertIn("src/frontends/riscv/air/lang/degree3_materializer.zig", sources)
         self.assertIn("src/frontends/riscv/air/lang/typed_poseidon2_bound_program.zig", sources)
         self.assertIn("src/frontends/riscv/air/lang/typed_poseidon2_relation_contract.zig", sources)
-        profile = (root / "src/frontends/riscv/recursion/vm_air_profile_v2.zig").read_text()
+        profile = self.native_profile_authority(root)
         shared = profile[profile.index("fn deriveFromSource("):]
         self.assertIn('native_infrastructure_typed_admission.zig").validateKind(descriptor.kind, allocator)', shared)
         owner = (root / "src/frontends/riscv/air/native_infrastructure_typed_admission.zig").read_text()
@@ -55,7 +65,7 @@ class RecursionOwnershipTest(unittest.TestCase):
             "air/native_boundary_typed_admission.zig",
         ):
             self.assertNotIn("src/frontends/riscv/" + path, sources)
-        profile = (root / "src/frontends/riscv/recursion/vm_air_profile_v2.zig").read_text()
+        profile = self.native_profile_authority(root)
         shared = profile[profile.index("fn deriveFromSource("):]
         for kind in ("program", "memory", "clock_update", "bitwise", "range_check_20",
                      "range_check_8_11", "range_check_8_8_4", "range_check_8_8", "range_check_m31"):
@@ -68,7 +78,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         self.assertNotIn('merkle_node.zig"', definition)
         self.assertNotIn("merkle_typed_admission", definition)
         self.assertIn("a.assertZero", definition)
-        profile = (root / "src/frontends/riscv/recursion/vm_air_profile_v2.zig").read_text()
+        profile = self.native_profile_authority(root)
         shared_derivation = profile[profile.index("fn deriveFromSource("):]
         owner = (root / "src/frontends/riscv/air/native_infrastructure_typed_admission.zig").read_text()
         self.assertIn(".merkle =>", owner)

@@ -19,6 +19,19 @@ RECURSIVE_REPORT_SCHEMA = "stwo.riscv.recursion-csp-producer-report.v2"
 COMPARISON_SCHEMA = "stwo.riscv.recursion-csp-comparison.v2"
 SCHEMA_VERSION = 2
 
+SHAPE_AUDITED_SOURCES = (
+    "src/products/riscv/tools/recursive_csp_shape_inspector/main.zig",
+    "src/products/riscv/tools/recursive_csp_producer/profile_registry.zig",
+    "src/frontends/riscv/prover/statement_shape_inspection.zig",
+    "src/frontends/riscv/prover/commitment_witness.zig",
+    "src/frontends/riscv/prover/statement_geometry.zig",
+    "src/frontends/riscv/prover/statement_validation.zig",
+    "src/frontends/riscv/air/statement.zig",
+    "src/frontends/riscv/recursion/segment_profile.zig",
+    "src/frontends/riscv/air/program/circuit_layout.zig",
+)
+
+
 PLAN_CLASSIFICATION = "measurement_plan_not_performance_evidence"
 REPORT_CLASSIFICATION = "engineering_diagnostic"
 COMPARISON_CLASSIFICATION = "engineering_diagnostic_not_publication_speedup"
