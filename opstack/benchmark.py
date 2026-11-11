@@ -219,7 +219,8 @@ def main():
             if args.oracle:
                 from opstack.oracle import execute
 
-                independent = execute(config, record["instructions"])
+                independent = execute(config, record["instructions"],
+                                      output_kind="mantle" if args.network == "mantle" else "op")
                 if (
                     independent["output"] != record["output"]
                     or independent["final_registers"] != record["final_registers"]

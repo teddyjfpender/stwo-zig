@@ -187,6 +187,10 @@ def execute(config, expected_steps, timeout=600, *, output_kind="op", entry_prob
     if output_kind == "op":
         if expected[32] != 1 or expected[41:43] != b"OP":
             raise ValueError("expected OP output framing")
+    elif output_kind == "mantle":
+        from opstack.mantle.input import statement
+        if expected != statement(payload):
+            raise ValueError("expected input-bound Mantle output")
     elif output_kind == "brotli-probe":
         if payload[:4] != b"BRP1" or expected[32:36] != b"BRP1" or expected[41:43] != b"BP" or expected[36] not in (0,1):
             raise ValueError("expected Brotli probe framing")

@@ -99,7 +99,7 @@ fn exact<T: Decodable + Encodable>(bytes: &[u8]) -> Result<T, Error> {
     }
     Ok(value)
 }
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
 struct Provider<'a>(&'a BTreeMap<B256, Bytes>);
 impl Provider<'_> {
     fn get(&self, hash: B256) -> Result<&[u8], Error> {
@@ -253,6 +253,7 @@ pub fn guest_execute_with_receipt(raw: &[u8]) -> Result<([u8; 43], Receipt), Err
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
     use alloc::vec;
     fn record(data: &'static [u8]) -> Preimage {
         Preimage {
