@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "status": "qualified_complete_finite_positive_source_physical_experiment",
+  "production_admitted": false,
+  "security_qualified": false,
+  "security_claim": "q12/B2 correctness only; no128bit claim",
+  "profile": {
+    "field": "OM31",
+    "pcs": "Blake2s256",
+    "local_transcript": "Poseidon2 M31 V2",
+    "queries": 12,
+    "blowup": 2,
+    "pow_bits": 0
+  },
+  "source": {
+    "original_arithmetic": 31996,
+    "mac12_rows": 32533,
+    "canonical_private_hints": 1438,
+    "immutable_assertions": 1460,
+    "initial_fields": 54,
+    "normalized_value_count": 34025,
+    "ssa_read_assertion_mass": 814785,
+    "no_independent_z": true
+  },
+  "roles": [
+    {
+      "role": "frontier",
+      "log": 11,
+      "fixed": 35,
+      "main": 33,
+      "inter": 16
+    },
+    {
+      "role": "arithmetic",
+      "log": 15,
+      "fixed": 40,
+      "main": 1106,
+      "inter": 32
+    },
+    {
+      "role": "hints",
+      "log": 11,
+      "fixed": 3,
+      "main": 95,
+      "inter": 32
+    },
+    {
+      "role": "table",
+      "log": 8,
+      "fixed": 1,
+      "main": 1,
+      "inter": 16
+    }
+  ],
+  "native_cells": {
+    "fixed": 1388800,
+    "main": 36503808,
+    "inter": 1150976,
+    "total": 39043584
+  },
+  "padded_local_facts": 17961216,
+  "committed_columns": 1410,
+  "tests": {
+    "safe_focused_passed": 4,
+    "degree_le": 3,
+    "fresh_source_fixed_rebuilt": true,
+    "source_mask_adversaries_rejected": 13,
+    "genuine_hint_plus_p_actual_GKR_closes": true,
+    "coherent_arithmetic_q_carry_and_byte_hist_rebuilt": true,
+    "coherent_alias_fresh_error": "OodsNotMatching",
+    "peak_requested_bytes": 995747973,
+    "cap": 2147483648,
+    "budget_destroy_zero_retained": true
+  },
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/pairing-mac12-whole-physical-v1/four-pair",
+  "artifacts": {
+    "coherent-hint-plus-p.unverified.proof.bin": {
+      "bytes": 176920,
+      "sha256": "912e0b8ad8a64f3402272ee535983b7884257022308d04a378346d516bd2e8f7",
+      "accepted": false
+    },
+    "chain.proof.bin": {
+      "bytes": 175544,
+      "sha256": "8b6c2be0d5a904b3b41cd831bfce59d54e22c552665e96225c9824d77ae0d9bd",
+      "accepted": true
+    },
+    "chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "d3525dc9f1588bf42c61615163c9a8e3d43804ac6eb7a20f9f44bfabf30fb236",
+      "accepted": true
+    },
+    "coherent-hint-plus-p.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "76e07a5d882d4471ff46caa48aad62a0595feb47b61e3a7627d3dff49f438460",
+      "accepted": true
+    }
+  },
+  "remaining": [
+    "128target caller-pinned profile qualification",
+    "variable pairing request and infinity/malformed fallback",
+    "VM input/output/global RAM/Wire authority",
+    "recursive opening/root cost and physical integration",
+    "performance qualification on real precompile requests"
+  ],
+  "performance_claim": false
+}

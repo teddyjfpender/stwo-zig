@@ -24,6 +24,12 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_op_pairing_mac12_test_root.zig", "test-op-pairing-proof"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/delegations/op_pairing_mac12", "test-op-pairing-proof"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_op_pairing_horner_test_root.zig", "test-op-pairing-horner"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/delegations/op_pairing_horner", "test-op-pairing-horner"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_op_pairing_r7_projection_test_root.zig", "test-op-pairing-r7-projection"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/delegations/op_pairing_r7", "test-op-pairing-r7-projection"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/vm_composition_program_test.zig", "test-retained-typed-components"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/recursive_segment_detached_child_transcript.zig", "test-detached-child-capture"),

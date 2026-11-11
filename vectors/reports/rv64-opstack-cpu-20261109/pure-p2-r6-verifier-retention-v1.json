@@ -1,0 +1,29 @@
+{
+  "schema": "op-r6-verifier-retention-v1",
+  "scope": "receiver-only independently derived R6 key retention",
+  "changes": [
+    "Release raw FIXED values, FIXED committed tree and use counts after independently constructing each leaf authority",
+    "Retain source identity, full root, bound AIR, complete geometry and output authority",
+    "Apply the same transition to each newly derived receiver parent",
+    "Reject attempts to prove with a retired key before witness generation"
+  ],
+  "qualification": {
+    "semantic": "check-riscv64-op-pure-p2 ReleaseSafe OP R6 passed",
+    "physical": "OP R6 physical six-component proof closes complete Var and range relations passed with verify after retirement and idempotent retirement",
+    "recursive": "OP R6 source exact six-component children fold and trace parity passed with retired child keys",
+    "physical_proof_bytes": 530608,
+    "recursive_qm_rows": 2108321,
+    "recursive_native_mul_calls": 25276,
+    "altered_outputs_and_claims_rejected": true,
+    "allocator_leaks": false
+  },
+  "limitations": [
+    "No cold source commitment work is removed",
+    "No whole-block peak memory multiplier measured",
+    "Complete R6 source-only physical root remains a separate gate"
+  ],
+  "r5_source_changed": false,
+  "ethereum_default_changed": false,
+  "production_admission": false,
+  "security_qualified": false
+}

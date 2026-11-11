@@ -1,0 +1,120 @@
+{
+  "schema": "stwo.opstack.rejected-cpu-commit-experiment.v1",
+  "production_change_landed": false,
+  "reason": "Do not change CPU/Ethereum defaults for a memory tradeoff without a demonstrated throughput gain. Both baseline and bounded path still fail at 24 GiB. Qualification timings are not controlled medians.",
+  "source_patch_sha256": "d59355d575b88e23004898218393e4458acfd4bdb5cdf3316f3d4cae0202d9b7",
+  "candidate_runner_sha256": "d7b645b41358103522a75fc637e46ef7d6d1e5dc41d54309a64ed9ac0b3f9728",
+  "baseline": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "recurse-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-40g-clean",
+      "2147483648",
+      "42949672960"
+    ],
+    "wall_ns": 191121313542,
+    "peak_rss_bytes": 32339066880,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 1333.428139,
+    "system_cpu_s": 21.694796,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "candidate": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "recurse-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-bounded40g",
+      "2147483648",
+      "42949672960"
+    ],
+    "wall_ns": 224141090625,
+    "peak_rss_bytes": 28920070144,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 1288.851645,
+    "system_cpu_s": 19.995493,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "candidate_receiver": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "verify-recursion-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-bounded40g",
+      "2147483648",
+      "25769803776"
+    ],
+    "wall_ns": 9689150916,
+    "peak_rss_bytes": 10801348608,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 23.621638,
+    "system_cpu_s": 2.276044,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "candidate_24g_failure": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "recurse-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-bounded24g",
+      "2147483648",
+      "25769803776"
+    ],
+    "wall_ns": 22540428208,
+    "peak_rss_bytes": 25651789824,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 56.503241,
+    "system_cpu_s": 2.492963,
+    "returncode": 1,
+    "timed_out": false
+  },
+  "parity": {
+    "all_proofs_byte_identical": true,
+    "proofs": [
+      {
+        "path": "fold-000002.proof",
+        "sha256": "3dfe1efe2ff5e263e054f446572ee65fd5a79f1d13907e85308e27c6c53722ed",
+        "bytes": 743384
+      },
+      {
+        "path": "fold-000004.proof",
+        "sha256": "549bb0eb2fcfec5f2a0ca26bdea32f654f63df9194afe5215ae3237f858fcf03",
+        "bytes": 746584
+      },
+      {
+        "path": "leaf-000000.proof",
+        "sha256": "62f25076552699fc22e41266bb82fb037534b65b279461fd3116d5c49ec74646",
+        "bytes": 750104
+      },
+      {
+        "path": "leaf-000001.proof",
+        "sha256": "ff2d9ab33dab452bd03ce03c93ffaf30cb32961c1b05db0cc4552f605d63b64c",
+        "bytes": 741592
+      },
+      {
+        "path": "leaf-000002.proof",
+        "sha256": "79ebdb3b6cee43cbb7969c57f6e5a5295d3d9a00e5a0eb375126fea08f826dbe",
+        "bytes": 750264
+      },
+      {
+        "path": "root.proof",
+        "sha256": "549bb0eb2fcfec5f2a0ca26bdea32f654f63df9194afe5215ae3237f858fcf03",
+        "bytes": 746584
+      }
+    ],
+    "runner_sha256": "d7b645b41358103522a75fc637e46ef7d6d1e5dc41d54309a64ed9ac0b3f9728",
+    "strict_execution_branch_admitted": true
+  }
+}

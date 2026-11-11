@@ -1,0 +1,66 @@
+[package]
+name = "stwo-kona-rv64-lean"
+version = "0.1.0"
+edition = "2024"
+publish = false
+build = "build.rs"
+
+[workspace]
+
+[[bin]]
+name = "stwo-kona-rv64-lean"
+path = "../guest/src/main.rs"
+
+[features]
+default = ["sponge-service"]
+eager-preimages = []
+allocator-check = []
+keccak-service = ["stwo-kona-execution/keccak-service"]
+services-v3 = ["keccak-service", "stwo-kona-execution/secp-lean"]
+sponge-service = ["services-v3"]
+memory-service = ["stwo-rv64-mem/admitted-bulk"]
+sha-service = ["stwo-kona-execution/sha-service"]
+bn254-glv = ["precompile-services", "stwo-kona-execution/bn254-glv"]
+bn254-canonical = ["dep:ark-bn254", "ark-bn254/stwo-canonical-service"]
+bn254-service = ["dep:ark-bn254", "ark-bn254/stwo-montgomery-service"]
+arithmetic-service = ["dep:revm-interpreter", "revm-interpreter/stwo-arith256-service"]
+precompile-services = ["stwo-kona-execution/precompile-services"]
+pairing-cache = ["precompile-services", "stwo-kona-execution/pairing-cache"]
+extension-inline = ["stwo-kona-execution/extension-inline"]
+pairing-hints = ["pairing-cache", "stwo-kona-execution/pairing-hints"]
+pairing-sparse-service = ["pairing-hints", "bn254-canonical", "stwo-kona-execution/pairing-sparse-service"]
+pairing-dense-service = ["pairing-sparse-service", "stwo-kona-execution/pairing-dense-service"]
+pairing-packet-batching = ["pairing-sparse-service", "stwo-kona-execution/pairing-packet-batching"]
+pairing-packet-probe = ["pairing-packet-batching", "stwo-kona-execution/pairing-packet-probe"]
+pairing-dense-probe = ["pairing-sparse-service", "stwo-kona-execution/pairing-dense-probe"]
+jumpdest-service = ["dep:revm-bytecode", "revm-bytecode/stwo-jumpdest-service"]
+
+[dependencies]
+revm-bytecode = { version = "=42.0.0", default-features = false, optional = true }
+ark-bn254 = { version = "=0.6.0", default-features = false, optional = true }
+revm-interpreter = { version = "=42.0.0", default-features = false, optional = true }
+stwo-kona-execution = { path = ".." }
+stwo-rv64-mem = { path = "../../../guests/ethereum/rv64/mem" }
+critical-section = { version = "1.2", features = ["restore-state-bool"] }
+
+[patch.crates-io]
+ark-ff = { path = "../vendor/ark-ff" }
+ark-bn254 = { path = "../vendor/ark-bn254" }
+k256 = { path = "../../../guests/ethereum/rv64/vendor/k256" }
+ecdsa = { path = "../../../guests/ethereum/rv64/vendor/ecdsa" }
+revm-interpreter = { path = "../../../guests/ethereum/rv64/vendor/revm-interpreter" }
+revm-bytecode = { path = "../../../guests/ethereum/rv64/vendor/revm-bytecode" }
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[profile.frontier]
+inherits = "release"
+lto = "fat"
+
+[patch."https://github.com/ethereum-optimism/optimism"]
+kona-mpt = { path = "../vendor/kona-mpt" }
+op-revm = { path = "../vendor/op-revm" }

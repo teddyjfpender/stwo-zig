@@ -52,6 +52,8 @@ pub const Advice = struct {
     arith256_mod: [][]S.types.Call,
     /// Admitted v3 curve/field packets per shard, per op (curves.Op order).
     curves: []CurveCalls,
+    /// Closed OP-only80-word packets, never stored in legacy24-word calls.
+    tower: [][]S.types.TowerCall = &.{},
     bulk: []BulkShard,
     /// Admitted Keccak-sponge calls per shard (empty unless v3).
     sponge: []SpongeShard,
@@ -86,6 +88,8 @@ pub const Advice = struct {
         a.free(self.sha256);
         a.free(self.arith256_mod);
         a.free(self.curves);
+        for (self.tower) |calls| a.free(calls);
+        a.free(self.tower);
         a.free(self.initial);
         a.free(self.terminal);
     }
@@ -139,6 +143,13 @@ pub const Builder = struct {
     pub fn lastShard(self: *const Builder) !Shard {
         if (self.shards.items.len == 0) return error.InvalidServiceCollectorPhase;
         return self.shards.items[self.shards.items.len - 1];
+    }
+    /// Planning retains ordinals and the live RAM ledger, then releases the
+    /// normalized witness once its census has been recorded.
+    pub fn releaseLastShard(self: *Builder) void {
+        const shard = &self.shards.items[self.shards.items.len - 1];
+        shard.deinit(self.allocator);
+        shard.* = .{};
     }
     /// M8 two-phase ledger, phase 2 (ordered thread): merge a segment built
     /// off this thread by `prepareLocal`, touching only its first-touched
@@ -249,15 +260,18 @@ pub const Builder = struct {
         errdefer a.free(arith);
         const curves = try a.alloc(CurveCalls, self.shards.items.len);
         errdefer a.free(curves);
+        const tower = try a.alloc([]S.types.TowerCall, self.shards.items.len);
+        errdefer a.free(tower);
         const bulk = try a.alloc(BulkShard, self.shards.items.len);
         errdefer a.free(bulk);
         const sponge = try a.alloc(SpongeShard, self.shards.items.len);
         errdefer a.free(sponge);
         const boundaries = try self.ledger.boundaries();
-        for (self.shards.items, events, keccak, secp, sha256, arith, curves, bulk, sponge) |shard, *e, *k, *s, *h, *r, *c, *b, *z| {
+        for (self.shards.items, events, keccak, secp, sha256, arith, curves, tower, bulk, sponge) |shard, *e, *k, *s, *h, *r, *c, *t, *b, *z| {
             z.* = shard.sponge;
             r.* = shard.arith256_mod;
             c.* = shard.curves;
+            t.* = shard.tower;
             e.* = shard.events;
             k.* = shard.keccak;
             s.* = shard.secp;
@@ -265,7 +279,7 @@ pub const Builder = struct {
             b.* = shard.bulk;
         }
         self.finished = true;
-        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge = sponge, .initial = boundaries.initial, .terminal = boundaries.terminal };
+        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .tower = tower, .bulk = bulk, .sponge = sponge, .initial = boundaries.initial, .terminal = boundaries.terminal };
     }
 };
 pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *const front.rv64.compact_tape.Tape, image: @import("../../word16_execution/memory/statement.zig").Image) !Advice {
@@ -309,12 +323,13 @@ fn mark(profile: ?*Profile) ?std.time.Instant {
     return std.time.Instant.now() catch null;
 }
 pub const Shard = struct {
-    events: []LS.native.Event,
-    keccak: []K.types.Call,
-    secp: [2][]S.types.Call,
-    sha256: []S.types.Call,
-    arith256_mod: []S.types.Call,
-    curves: CurveCalls,
+    events: []LS.native.Event = &.{},
+    keccak: []K.types.Call = &.{},
+    secp: [2][]S.types.Call = @splat(&.{}),
+    sha256: []S.types.Call = &.{},
+    arith256_mod: []S.types.Call = &.{},
+    curves: CurveCalls = @splat(&.{}),
+    tower: []S.types.TowerCall = &.{},
     bulk: BulkShard = .{},
     sponge: SpongeShard = .{},
     fn deinit(self: Shard, a: std.mem.Allocator) void {
@@ -324,6 +339,7 @@ pub const Shard = struct {
         a.free(self.sha256);
         a.free(self.arith256_mod);
         for (self.curves) |c| a.free(c);
+        a.free(self.tower);
         self.bulk.deinit(a);
         self.sponge.deinit(a);
     }
@@ -338,13 +354,14 @@ pub const OneShardView = struct {
     sha256: [1][]S.types.Call,
     arith256_mod: [1][]S.types.Call,
     curves: [1]CurveCalls,
+    tower: [1][]S.types.TowerCall,
     bulk: [1]BulkShard,
     sponge: [1]SpongeShard,
     pub fn init(shard: Shard) OneShardView {
-        return .{ .events = .{shard.events}, .keccak = .{shard.keccak}, .secp = .{shard.secp}, .sha256 = .{shard.sha256}, .arith256_mod = .{shard.arith256_mod}, .curves = .{shard.curves}, .bulk = .{shard.bulk}, .sponge = .{shard.sponge} };
+        return .{ .events = .{shard.events}, .keccak = .{shard.keccak}, .secp = .{shard.secp}, .sha256 = .{shard.sha256}, .arith256_mod = .{shard.arith256_mod}, .curves = .{shard.curves}, .tower = .{shard.tower}, .bulk = .{shard.bulk}, .sponge = .{shard.sponge} };
     }
     pub fn advice(self: *OneShardView, a: std.mem.Allocator, initial: []Cell, terminal: []Cell) Advice {
-        return .{ .allocator = a, .events = &self.events, .keccak = &self.keccak, .secp = &self.secp, .sha256 = &self.sha256, .arith256_mod = &self.arith256_mod, .curves = &self.curves, .bulk = &self.bulk, .sponge = &self.sponge, .initial = initial, .terminal = terminal };
+        return .{ .allocator = a, .events = &self.events, .keccak = &self.keccak, .secp = &self.secp, .sha256 = &self.sha256, .arith256_mod = &self.arith256_mod, .curves = &self.curves, .tower = &self.tower, .bulk = &self.bulk, .sponge = &self.sponge, .initial = initial, .terminal = terminal };
     }
 };
 /// Allocates the LS event array one CPU proof's shard will fill, already
@@ -423,7 +440,8 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     // v3 is v2 plus SHA-256 and bulk memory; a v2 tape can never carry a v3 record.
     // Bulk calls have no tape payload (the ECALL step is the call), so they are
     // counted from the CPU's own service records.
-    const v3 = front.rv64.execution_profile.isV3(tape.execution_profile);
+    const op = tape.execution_profile == .ethereum_services_op_v1;
+    const v3 = front.rv64.execution_profile.isV3(tape.execution_profile) or op;
     var bulk_records: usize = 0;
     if (v3) for (cpu.services.items) |rec| {
         bulk_records += @intFromBool(isBulkTag(rec.tag) or rec.tag == Sponge.TAG);
@@ -473,6 +491,9 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
         c.* = try a.alloc(S.types.Call, n);
         cc_made += 1;
     }
+    const tower = try a.alloc(S.types.TowerCall, tape.tower_calls.items.len);
+    errdefer a.free(tower);
+    var ti: usize = 0;
     var curve_next: [TT.CURVES]usize = @splat(0);
     var ui: usize = 0;
     var next: [2]usize = @splat(0);
@@ -577,19 +598,34 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 cc[k][curve_next[k]] = call;
                 curve_next[k] += 1;
                 ui += 1;
+            } else if (op and rec.tag == 0x40001) {
+                if (ti >= tower.len) return error.InvalidCombinedServiceOwner;
+                const captured = tape.tower_calls.items[ti];
+                const words = captured.before.len;
+                if (rec.pointer & 31 != 0 or rec.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidCombinedServiceOwner;
+                try owner(rec.pointer, rec.tick, stride, tape, captured.pointer, captured.clock);
+                var call: S.types.TowerCall = .{ .pointer = rec.pointer, .epoch = cpu.epoch, .tick = rec.tick, .before = captured.before, .after = undefined, .predecessors = undefined };
+                for (0..words) |word| {
+                    call.after[word] = captured.wordAfter(word);
+                    call.predecessors[word] = try get(ledger, rec.pointer + 8 * word);
+                }
+                try S.source.validateTower(.bn254_sparse034, call);
+                for (0..words) |word| ledger.states.getPtr(rec.pointer + 8 * word).?.* = .{ .value = call.after[word], .epoch = call.epoch, .tick = call.tick, .rights = call.predecessors[word].rights };
+                tower[ti] = call;
+                ti += 1;
             } else if (v3 and isBulkTag(rec.tag)) {
                 try bulkCall(a, ledger, rec.pointer, rec.tag, cpu.epoch, rec.tick, &bulk_calls, &bulk_words);
             } else return error.UnqualifiedCombinedServiceTag;
             ci += 1;
         }
     }
-    if (ki != kk.len or si != tape.secp_calls.items.len or hi != hh.len or ri != rr.len or ui != tape.curve_calls.items.len) return error.InvalidCombinedServiceRoster;
+    if (ki != kk.len or si != tape.secp_calls.items.len or hi != hh.len or ri != rr.len or ui != tape.curve_calls.items.len or ti != tower.len) return error.InvalidCombinedServiceRoster;
     const owned_words = try bulk_words.toOwnedSlice(a);
     errdefer a.free(owned_words);
     const bulk = BulkShard{ .calls = try bulk_calls.toOwnedSlice(a), .words = owned_words };
     errdefer bulk.deinit(a);
     const sponge_shard = try sponge.finish(a);
-    return .{ .sponge = sponge_shard, .events = ee, .keccak = kk, .secp = ss, .sha256 = hh, .arith256_mod = rr, .curves = cc, .bulk = bulk };
+    return .{ .sponge = sponge_shard, .events = ee, .keccak = kk, .secp = ss, .sha256 = hh, .arith256_mod = rr, .curves = cc, .tower = tower, .bulk = bulk };
 }
 fn serviceKind(v3: bool, tag: u64) usize {
     if (tag == 0x10001) return 0;

@@ -1,0 +1,21 @@
+{
+  "scope": "execution/differential checkpoint, physical proof pending",
+  "physical_proof_verified": false,
+  "mainnet_blocks": [
+    120794432,
+    121003241,
+    121049889,
+    121057303,
+    121135704
+  ],
+  "new_provider_calls_in_these_blocks": {
+    "bn254_g1": 0,
+    "modexp": 0
+  },
+  "guest_opt_level": "3",
+  "guest_elf_sha256": "494cba165acbe12f5416f8bda0567d4de9589e0cbc11ffeddf4621761c3e93ac",
+  "native_provider_tests": 4,
+  "native_total_tests": 18,
+  "default_variant_unchanged": true,
+  "wide_modexp": "pinned software fallback"
+}

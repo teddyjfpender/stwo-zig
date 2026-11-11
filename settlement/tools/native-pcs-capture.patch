@@ -1,0 +1,25 @@
+diff --git a/src/core/pcs/verifier_family.zig b/src/core/pcs/verifier_family.zig
+index 3d07868d6..d9d55f9c7 100644
+--- a/src/core/pcs/verifier_family.zig
++++ b/src/core/pcs/verifier_family.zig
+@@ -270,0 +271,13 @@ pub fn ForField(comptime Secure: type) type {
++                    if (comptime @TypeOf(self.trees.items[0].root) == [32]u8 and @sizeOf(QM31) == 32) {
++                        if (std.process.hasEnvVarConstant("STWO_EXPORT_PCS_SUFFIX")) {
++                            std.debug.print("PCS_PREFIX {x} {d}\n", .{ &channel.digestBytes(), sampled_values_flat.len });
++                            std.debug.print("PCS_SAMPLES ", .{});
++                            for (sampled_values_flat) |value| std.debug.print("{x}", .{&value.toBytesLe()});
++                            std.debug.print("\nPCS_ROOTS {x}", .{&proof.fri_proof.first_layer.commitment});
++                            for (proof.fri_proof.inner_layers) |layer| std.debug.print(" {x}", .{&layer.commitment});
++                            std.debug.print("\nPCS_LAST ", .{});
++                            for (proof.fri_proof.last_layer_poly.coefficients()) |value| std.debug.print("{x}", .{&value.toBytesLe()});
++                            std.debug.print("\n", .{});
++                        }
++                    }
++
+@@ -302,0 +316,6 @@ pub fn ForField(comptime Secure: type) type {
++                    if (comptime @TypeOf(self.trees.items[0].root) == [32]u8 and @sizeOf(QM31) == 32) {
++                        if (std.process.hasEnvVarConstant("STWO_EXPORT_PCS_SUFFIX")) {
++                            std.debug.print("PCS_SUFFIX {x} {d}\n", .{ &channel.digestBytes(), lifting_log_size });
++                        }
++                    }
++

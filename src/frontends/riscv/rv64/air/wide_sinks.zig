@@ -36,6 +36,12 @@ pub fn Sink(comptime C: type, comptime B: type, comptime S: type) type {
                             break :weighting;
                         }
                     }
+                    if (comptime !is_base and C == core.fields.om31.OM31 and @hasDecl(S, "addScaledSecure")) {
+                        if (self.scale == null) {
+                            a.accumulation.addScaledSecure(scalar, &value);
+                            break :weighting;
+                        }
+                    }
                     const power = if (C == S) scalar else S.splat(scalar);
                     const factor = if (self.scale) |scale| power.mul(scale) else power;
                     // Scaled/secure/scalar paths retain their original authority.

@@ -1,0 +1,926 @@
+{
+  "schema": "op-heavy-cpu-source-seal-assessment/v1",
+  "proof_verified": false,
+  "modeled_requested_payload_only": true,
+  "measured_retained_capture_and_setup_baseline": 25516298742,
+  "common_limit": 34359738368,
+  "child_limit": 12884901888,
+  "max_source_checkpoint_peak_bytes": 7801303296,
+  "max_baseline_gkr_main_payload": 35917033298,
+  "all_modeled_payloads_fit32GiB": false,
+  "cpus": [
+    {
+      "ordinal": 0,
+      "padded_facts": 149899584,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 7794778368,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 572119040,
+        "peak_bytes": 7801303296
+      },
+      "main_coefficients": 1391471744,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 33317602038,
+      "retained_baseline_plus_gkr_and_main": 35917033298
+    },
+    {
+      "ordinal": 1,
+      "padded_facts": 122529088,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6371512576,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 531456000,
+        "peak_bytes": 6378148096
+      },
+      "main_coefficients": 1188720256,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31894446838,
+      "retained_baseline_plus_gkr_and_main": 34291126610
+    },
+    {
+      "ordinal": 2,
+      "padded_facts": 121472320,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6316560640,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 529813504,
+        "peak_bytes": 6323085568
+      },
+      "main_coefficients": 1182464128,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31839384310,
+      "retained_baseline_plus_gkr_and_main": 34229807954
+    },
+    {
+      "ordinal": 3,
+      "padded_facts": 120423744,
+      "local_instances": 36,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6262034688,
+        "metadata_bytes": 7077888,
+        "binding_bytes": 581632000,
+        "peak_bytes": 6269112576
+      },
+      "main_coefficients": 1269260160,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31785411318,
+      "retained_baseline_plus_gkr_and_main": 34262630994
+    },
+    {
+      "ordinal": 4,
+      "padded_facts": 114839872,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5971673344,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 569139200,
+        "peak_bytes": 5978198272
+      },
+      "main_coefficients": 1236683264,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31494497014,
+      "retained_baseline_plus_gkr_and_main": 33939139794
+    },
+    {
+      "ordinal": 5,
+      "padded_facts": 118235456,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6148243712,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 578222080,
+        "peak_bytes": 6154768640
+      },
+      "main_coefficients": 1261687296,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31671067382,
+      "retained_baseline_plus_gkr_and_main": 34140714194
+    },
+    {
+      "ordinal": 6,
+      "padded_facts": 116150592,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6039830784,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 575430656,
+        "peak_bytes": 6046466304
+      },
+      "main_coefficients": 1248348672,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31562765046,
+      "retained_baseline_plus_gkr_and_main": 34019073234
+    },
+    {
+      "ordinal": 7,
+      "padded_facts": 110272832,
+      "local_instances": 33,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5734187264,
+        "metadata_bytes": 6746112,
+        "binding_bytes": 534804480,
+        "peak_bytes": 5740933376
+      },
+      "main_coefficients": 1154314752,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31257232118,
+      "retained_baseline_plus_gkr_and_main": 33619506386
+    },
+    {
+      "ordinal": 8,
+      "padded_facts": 122167616,
+      "local_instances": 30,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6352716032,
+        "metadata_bytes": 6414336,
+        "binding_bytes": 592836608,
+        "peak_bytes": 6359130368
+      },
+      "main_coefficients": 1302741504,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31875429110,
+      "retained_baseline_plus_gkr_and_main": 34386130130
+    },
+    {
+      "ordinal": 9,
+      "padded_facts": 114893120,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5974442240,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 569210880,
+        "peak_bytes": 5980967168
+      },
+      "main_coefficients": 1237271040,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31497265910,
+      "retained_baseline_plus_gkr_and_main": 33942496466
+    },
+    {
+      "ordinal": 10,
+      "padded_facts": 117219648,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6095421696,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 579631104,
+        "peak_bytes": 6101946624
+      },
+      "main_coefficients": 1267036672,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31618245366,
+      "retained_baseline_plus_gkr_and_main": 34093241554
+    },
+    {
+      "ordinal": 11,
+      "padded_facts": 115855680,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6024495360,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 575004672,
+        "peak_bytes": 6031020288
+      },
+      "main_coefficients": 1244338688,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31547319030,
+      "retained_baseline_plus_gkr_and_main": 33999617234
+    },
+    {
+      "ordinal": 12,
+      "padded_facts": 109527360,
+      "local_instances": 34,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5695422720,
+        "metadata_bytes": 6856704,
+        "binding_bytes": 531499008,
+        "peak_bytes": 5702279424
+      },
+      "main_coefficients": 1148428800,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31218578166,
+      "retained_baseline_plus_gkr_and_main": 33574966482
+    },
+    {
+      "ordinal": 13,
+      "padded_facts": 122167616,
+      "local_instances": 30,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6352716032,
+        "metadata_bytes": 6414336,
+        "binding_bytes": 592836608,
+        "peak_bytes": 6359130368
+      },
+      "main_coefficients": 1302741504,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31875429110,
+      "retained_baseline_plus_gkr_and_main": 34386130130
+    },
+    {
+      "ordinal": 14,
+      "padded_facts": 114872640,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5973377280,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 569204736,
+        "peak_bytes": 5979902208
+      },
+      "main_coefficients": 1236933120,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31496200950,
+      "retained_baseline_plus_gkr_and_main": 33941093586
+    },
+    {
+      "ordinal": 15,
+      "padded_facts": 115122496,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5986369792,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 571242496,
+        "peak_bytes": 5992894720
+      },
+      "main_coefficients": 1242395136,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31509193462,
+      "retained_baseline_plus_gkr_and_main": 33959548114
+    },
+    {
+      "ordinal": 16,
+      "padded_facts": 117690688,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6119915776,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 575004672,
+        "peak_bytes": 6126440704
+      },
+      "main_coefficients": 1248532992,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31642739446,
+      "retained_baseline_plus_gkr_and_main": 34099231954
+    },
+    {
+      "ordinal": 17,
+      "padded_facts": 109650240,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5701812480,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 531462144,
+        "peak_bytes": 5708448000
+      },
+      "main_coefficients": 1143161344,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31224746742,
+      "retained_baseline_plus_gkr_and_main": 33575867602
+    },
+    {
+      "ordinal": 18,
+      "padded_facts": 119316800,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6204473600,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 580679680,
+        "peak_bytes": 6210998528
+      },
+      "main_coefficients": 1275818496,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31727297270,
+      "retained_baseline_plus_gkr_and_main": 34211075282
+    },
+    {
+      "ordinal": 19,
+      "padded_facts": 116379968,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6051758336,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 577101824,
+        "peak_bytes": 6058283264
+      },
+      "main_coefficients": 1253513728,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31574582006,
+      "retained_baseline_plus_gkr_and_main": 34036055250
+    },
+    {
+      "ordinal": 20,
+      "padded_facts": 109576512,
+      "local_instances": 34,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5697978624,
+        "metadata_bytes": 6856704,
+        "binding_bytes": 532465664,
+        "peak_bytes": 5704835328
+      },
+      "main_coefficients": 1150365184,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31221134070,
+      "retained_baseline_plus_gkr_and_main": 33579458770
+    },
+    {
+      "ordinal": 21,
+      "padded_facts": 121889088,
+      "local_instances": 30,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6338232576,
+        "metadata_bytes": 6414336,
+        "binding_bytes": 591783936,
+        "peak_bytes": 6344646912
+      },
+      "main_coefficients": 1297904896,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31860945654,
+      "retained_baseline_plus_gkr_and_main": 34366810066
+    },
+    {
+      "ordinal": 22,
+      "padded_facts": 114893120,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5974442240,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 569210880,
+        "peak_bytes": 5980967168
+      },
+      "main_coefficients": 1237271040,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31497265910,
+      "retained_baseline_plus_gkr_and_main": 33942496466
+    },
+    {
+      "ordinal": 23,
+      "padded_facts": 117219648,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6095421696,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 579631104,
+        "peak_bytes": 6101946624
+      },
+      "main_coefficients": 1267036672,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31618245366,
+      "retained_baseline_plus_gkr_and_main": 34093241554
+    },
+    {
+      "ordinal": 24,
+      "padded_facts": 115855680,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6024495360,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 575004672,
+        "peak_bytes": 6031020288
+      },
+      "main_coefficients": 1244338688,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31547319030,
+      "retained_baseline_plus_gkr_and_main": 33999617234
+    },
+    {
+      "ordinal": 25,
+      "padded_facts": 109650240,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5701812480,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 531462144,
+        "peak_bytes": 5708448000
+      },
+      "main_coefficients": 1143161344,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31224746742,
+      "retained_baseline_plus_gkr_and_main": 33575867602
+    },
+    {
+      "ordinal": 26,
+      "padded_facts": 119316800,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6204473600,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 580679680,
+        "peak_bytes": 6210998528
+      },
+      "main_coefficients": 1275818496,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31727297270,
+      "retained_baseline_plus_gkr_and_main": 34211075282
+    },
+    {
+      "ordinal": 27,
+      "padded_facts": 116379968,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6051758336,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 577101824,
+        "peak_bytes": 6058283264
+      },
+      "main_coefficients": 1253513728,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31574582006,
+      "retained_baseline_plus_gkr_and_main": 34036055250
+    },
+    {
+      "ordinal": 28,
+      "padded_facts": 109093184,
+      "local_instances": 33,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5672845568,
+        "metadata_bytes": 6746112,
+        "binding_bytes": 529299456,
+        "peak_bytes": 5679591680
+      },
+      "main_coefficients": 1139110400,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31195890422,
+      "retained_baseline_plus_gkr_and_main": 33542960338
+    },
+    {
+      "ordinal": 29,
+      "padded_facts": 122241344,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6356549888,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 593119232,
+        "peak_bytes": 6363074816
+      },
+      "main_coefficients": 1306525184,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31879373558,
+      "retained_baseline_plus_gkr_and_main": 34393858258
+    },
+    {
+      "ordinal": 30,
+      "padded_facts": 109650240,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5701812480,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 531462144,
+        "peak_bytes": 5708448000
+      },
+      "main_coefficients": 1143161344,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31224746742,
+      "retained_baseline_plus_gkr_and_main": 33575867602
+    },
+    {
+      "ordinal": 31,
+      "padded_facts": 119316800,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6204473600,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 580679680,
+        "peak_bytes": 6210998528
+      },
+      "main_coefficients": 1275818496,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31727297270,
+      "retained_baseline_plus_gkr_and_main": 34211075282
+    },
+    {
+      "ordinal": 32,
+      "padded_facts": 115855680,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6024495360,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 575004672,
+        "peak_bytes": 6031020288
+      },
+      "main_coefficients": 1244338688,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31547319030,
+      "retained_baseline_plus_gkr_and_main": 33999617234
+    },
+    {
+      "ordinal": 33,
+      "padded_facts": 109650240,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5701812480,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 531462144,
+        "peak_bytes": 5708448000
+      },
+      "main_coefficients": 1143161344,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31224746742,
+      "retained_baseline_plus_gkr_and_main": 33575867602
+    },
+    {
+      "ordinal": 34,
+      "padded_facts": 118120768,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6142279936,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 576387072,
+        "peak_bytes": 6148915456
+      },
+      "main_coefficients": 1256759808,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31665214198,
+      "retained_baseline_plus_gkr_and_main": 34129933522
+    },
+    {
+      "ordinal": 35,
+      "padded_facts": 116576576,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6061981952,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 577101824,
+        "peak_bytes": 6068506880
+      },
+      "main_coefficients": 1254152704,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31584805622,
+      "retained_baseline_plus_gkr_and_main": 34046917842
+    },
+    {
+      "ordinal": 36,
+      "padded_facts": 108831040,
+      "local_instances": 33,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5659214080,
+        "metadata_bytes": 6746112,
+        "binding_bytes": 528250880,
+        "peak_bytes": 5665960192
+      },
+      "main_coefficients": 1135702528,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31182258934,
+      "retained_baseline_plus_gkr_and_main": 33525920978
+    },
+    {
+      "ordinal": 37,
+      "padded_facts": 118571328,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6165709056,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 578439168,
+        "peak_bytes": 6172233984
+      },
+      "main_coefficients": 1264057856,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31688532726,
+      "retained_baseline_plus_gkr_and_main": 34160550098
+    },
+    {
+      "ordinal": 38,
+      "padded_facts": 109650240,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5701812480,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 531462144,
+        "peak_bytes": 5708448000
+      },
+      "main_coefficients": 1143161344,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31224746742,
+      "retained_baseline_plus_gkr_and_main": 33575867602
+    },
+    {
+      "ordinal": 39,
+      "padded_facts": 119316800,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6204473600,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 580679680,
+        "peak_bytes": 6210998528
+      },
+      "main_coefficients": 1275818496,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31727297270,
+      "retained_baseline_plus_gkr_and_main": 34211075282
+    },
+    {
+      "ordinal": 40,
+      "padded_facts": 115855680,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6024495360,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 575004672,
+        "peak_bytes": 6031020288
+      },
+      "main_coefficients": 1244338688,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31547319030,
+      "retained_baseline_plus_gkr_and_main": 33999617234
+    },
+    {
+      "ordinal": 41,
+      "padded_facts": 109093184,
+      "local_instances": 33,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5672845568,
+        "metadata_bytes": 6746112,
+        "binding_bytes": 529299456,
+        "peak_bytes": 5679591680
+      },
+      "main_coefficients": 1139110400,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31195890422,
+      "retained_baseline_plus_gkr_and_main": 33542960338
+    },
+    {
+      "ordinal": 42,
+      "padded_facts": 118120768,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6142279936,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 576387072,
+        "peak_bytes": 6148915456
+      },
+      "main_coefficients": 1256759808,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31665214198,
+      "retained_baseline_plus_gkr_and_main": 34129933522
+    },
+    {
+      "ordinal": 43,
+      "padded_facts": 116642112,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6065389824,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 577232896,
+        "peak_bytes": 6071914752
+      },
+      "main_coefficients": 1254611456,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31588213494,
+      "retained_baseline_plus_gkr_and_main": 34050784466
+    },
+    {
+      "ordinal": 44,
+      "padded_facts": 108831040,
+      "local_instances": 33,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5659214080,
+        "metadata_bytes": 6746112,
+        "binding_bytes": 528250880,
+        "peak_bytes": 5665960192
+      },
+      "main_coefficients": 1135702528,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31182258934,
+      "retained_baseline_plus_gkr_and_main": 33525920978
+    },
+    {
+      "ordinal": 45,
+      "padded_facts": 117973312,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6134612224,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 576059392,
+        "peak_bytes": 6141137152
+      },
+      "main_coefficients": 1253458432,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31657435894,
+      "retained_baseline_plus_gkr_and_main": 34118853842
+    },
+    {
+      "ordinal": 46,
+      "padded_facts": 110788928,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5761024256,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 536201216,
+        "peak_bytes": 5767659776
+      },
+      "main_coefficients": 1157299712,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31283958518,
+      "retained_baseline_plus_gkr_and_main": 33649217746
+    },
+    {
+      "ordinal": 47,
+      "padded_facts": 119300416,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6203621632,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 580646912,
+        "peak_bytes": 6210146560
+      },
+      "main_coefficients": 1275658752,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31726445302,
+      "retained_baseline_plus_gkr_and_main": 34210063570
+    },
+    {
+      "ordinal": 48,
+      "padded_facts": 116511040,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6058574080,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 577167360,
+        "peak_bytes": 6065099008
+      },
+      "main_coefficients": 1254062592,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31581397750,
+      "retained_baseline_plus_gkr_and_main": 34043419858
+    },
+    {
+      "ordinal": 49,
+      "padded_facts": 109093184,
+      "local_instances": 33,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5672845568,
+        "metadata_bytes": 6746112,
+        "binding_bytes": 529299456,
+        "peak_bytes": 5679591680
+      },
+      "main_coefficients": 1139110400,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31195890422,
+      "retained_baseline_plus_gkr_and_main": 33542960338
+    },
+    {
+      "ordinal": 50,
+      "padded_facts": 117989696,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6135464192,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 576321536,
+        "peak_bytes": 6142099712
+      },
+      "main_coefficients": 1256210944,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31658398454,
+      "retained_baseline_plus_gkr_and_main": 34122568914
+    },
+    {
+      "ordinal": 51,
+      "padded_facts": 116150592,
+      "local_instances": 32,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6039830784,
+        "metadata_bytes": 6635520,
+        "binding_bytes": 575430656,
+        "peak_bytes": 6046466304
+      },
+      "main_coefficients": 1248348672,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31562765046,
+      "retained_baseline_plus_gkr_and_main": 34019073234
+    },
+    {
+      "ordinal": 52,
+      "padded_facts": 109879616,
+      "local_instances": 33,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5713740032,
+        "metadata_bytes": 6746112,
+        "binding_bytes": 532445184,
+        "peak_bytes": 5720486144
+      },
+      "main_coefficients": 1148023296,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31236784886,
+      "retained_baseline_plus_gkr_and_main": 33592767698
+    },
+    {
+      "ordinal": 53,
+      "padded_facts": 117973312,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 6134612224,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 576059392,
+        "peak_bytes": 6141137152
+      },
+      "main_coefficients": 1253458432,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31657435894,
+      "retained_baseline_plus_gkr_and_main": 34118853842
+    },
+    {
+      "ordinal": 54,
+      "padded_facts": 114839872,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5971673344,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 569139200,
+        "peak_bytes": 5978198272
+      },
+      "main_coefficients": 1236683264,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31494497014,
+      "retained_baseline_plus_gkr_and_main": 33939139794
+    },
+    {
+      "ordinal": 55,
+      "padded_facts": 105580864,
+      "local_instances": 31,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 5490204928,
+        "metadata_bytes": 6524928,
+        "binding_bytes": 543594496,
+        "peak_bytes": 5496729856
+      },
+      "main_coefficients": 1138358272,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 31013028598,
+      "retained_baseline_plus_gkr_and_main": 33359346386
+    },
+    {
+      "ordinal": 56,
+      "padded_facts": 95959360,
+      "local_instances": 27,
+      "source_checkpoint_plan": {
+        "input_bytes": 0,
+        "owned_layer_bytes": 4989886720,
+        "metadata_bytes": 6082560,
+        "binding_bytes": 506128384,
+        "peak_bytes": 4995969280
+      },
+      "main_coefficients": 1091637120,
+      "main_merkle_upper": 1207959516,
+      "retained_baseline_plus_gkr": 30512268022,
+      "retained_baseline_plus_gkr_and_main": 32811864658
+    }
+  ],
+  "caveat": "Uses qualified frozen declarations with independent source term-count formulas and existing reviewed52B/fact storage. Baseline is measured schema1 cached prepare; schema2 fixed classes differ. MAIN coefficients/full Merkle upper are not scratch, and source construction, fixed leases, binding metadata, allocator/PCS scratch and evolving advice retirement require separate accounting. This is no whole-worker/RSS guarantee and no proof acceptance."
+}

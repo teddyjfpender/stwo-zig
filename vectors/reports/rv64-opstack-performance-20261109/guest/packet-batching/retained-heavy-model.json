@@ -1,0 +1,14 @@
+{
+  "elf_sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930",
+  "instructions": 238226172,
+  "full_profile_retirements": 238226172,
+  "outside_profile": 0,
+  "line_evaluations": 7395,
+  "primitive_calls": 22185,
+  "wrapper_self_instructions": 7584486,
+  "old_accumulator_copy_instructions": 4259520,
+  "maximum_new_accumulator_copy_instructions": 1419840,
+  "removed_copy_instruction_lower_bound": 2839680,
+  "limit": "Copy-work model only; excludes changed loop codegen, padding and proving cost. No heavy candidate execution.",
+  "execution_sha256": "ae536438c1b053716fdb2f5d89d0d864648a557170b2927726bf7f6dac31dbb5"
+}

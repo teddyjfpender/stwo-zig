@@ -1,0 +1,324 @@
+{
+  "schema": "stwo.opstack.entry-call-census.v1",
+  "elf_sha256": "2b00b4094102e8d72f553debdc1fd688a9b8fa280d526af68d2dde147467b701",
+  "instructions": 253185635,
+  "groups": {
+    "memcmp": {
+      "calls": 224750,
+      "requested_bytes": 7386703,
+      "misaligned_calls": 17809
+    },
+    "memcpy": {
+      "calls": 236222,
+      "requested_bytes": 34558516,
+      "misaligned_calls": 93310
+    },
+    "memset": {
+      "calls": 44144,
+      "requested_bytes": 7225651,
+      "misaligned_calls": 8452
+    }
+  },
+  "callers": [
+    {
+      "callee": "memcpy",
+      "caller": "stwo_kona_execution::precompiles::pairing::miller::run_skipping::{closure#1}",
+      "calls": 22185,
+      "requested_bytes": 14198400,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<ark_ff::fields::models::quadratic_extension::QuadExtField<ark_ff::fields::models::fp12_2over3over2::Fp12ConfigWrapper<ark_bn254::fields::fq12::Fq12Config>> as ark_ff::fields::Field>::square_in_place",
+      "calls": 27195,
+      "requested_bytes": 5221440,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memset",
+      "caller": "<kona_mpt::node::TrieNode as alloy_rlp::encode::Encodable>::encode",
+      "calls": 5926,
+      "requested_bytes": 3156596,
+      "misaligned_calls": 5926
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<alloc::raw_vec::RawVecInner>::finish_grow",
+      "calls": 540,
+      "requested_bytes": 2219576,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcmp",
+      "caller": "stwo_kona_execution::precompiles::pairing::miller::run_skipping::{closure#1}",
+      "calls": 58638,
+      "requested_bytes": 1876416,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<kona_mpt::node::TrieNode as alloy_rlp::decode::Decodable>::decode",
+      "calls": 55881,
+      "requested_bytes": 1840387,
+      "misaligned_calls": 35833
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<op_revm::handler::OpHandler<op_revm::evm::OpEvm<revm_context::context::Context<revm_context::block::BlockEnv, alloy_op_evm::tx::OpTx, revm_context::cfg::CfgEnv<op_revm::spec::OpSpecId>, &mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>, revm_context::journal::Journal<&mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>>, op_revm::l1block::L1BlockInfo>, alloy_op_evm::post_exec::inspector::PostExecCompositeInspector<revm_inspector::noop::NoOpInspector>, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, alloy_op_evm::tx::OpTx, revm_context::cfg::CfgEnv<op_revm::spec::OpSpecId>, &mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>, revm_context::journal::Journal<&mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>>, op_revm::l1block::L1BlockInfo>>, alloy_evm::precompiles::PrecompilesMap>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<kona_executor::errors::TrieDBError>, op_revm::transaction::error::OpTransactionError>, revm_handler::frame::EthFrame> as revm_handler::handler::Handler>::execution",
+      "calls": 20175,
+      "requested_bytes": 1790704,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "stwo_kona_execution::precompiles::pairing::miller::run_skipping",
+      "calls": 8990,
+      "requested_bytes": 1758720,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memset",
+      "caller": "revm_interpreter::interpreter::shared_memory::resize_memory_cold::<revm_interpreter::interpreter::shared_memory::SharedMemory>",
+      "calls": 25531,
+      "requested_bytes": 1433157,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memset",
+      "caller": "<kona_mpt::node::TrieNode>::blind",
+      "calls": 3228,
+      "requested_bytes": 1233096,
+      "misaligned_calls": 1614
+    },
+    {
+      "callee": "memcmp",
+      "caller": "<ark_ec::models::short_weierstrass::group::Projective<ark_bn254::curves::g2::Config> as core::ops::arith::AddAssign<&ark_ec::models::short_weierstrass::affine::Affine<ark_bn254::curves::g2::Config>>>::add_assign",
+      "calls": 36366,
+      "requested_bytes": 1163712,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcmp",
+      "caller": "<ark_ff::fields::models::cubic_extension::CubicExtField<ark_ff::fields::models::fp6_3over2::Fp6ConfigWrapper<ark_bn254::fields::fq6::Fq6Config>> as core::ops::arith::MulAssign<&ark_ff::fields::models::cubic_extension::CubicExtField<ark_ff::fields::models::fp6_3over2::Fp6ConfigWrapper<ark_bn254::fields::fq6::Fq6Config>>>>::mul_assign",
+      "calls": 35352,
+      "requested_bytes": 1131264,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<kona_mpt::node::TrieNode>::encode_bounded",
+      "calls": 32067,
+      "requested_bytes": 987779,
+      "misaligned_calls": 30033
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<stwo_kona_execution::precompiles::Services as revm_precompile::interface::Crypto>::bn254_g1_mul",
+      "calls": 9408,
+      "requested_bytes": 677376,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<stwo_kona_execution::precompiles::pairing::hints::Stream>::check",
+      "calls": 2169,
+      "requested_bytes": 657408,
+      "misaligned_calls": 168
+    },
+    {
+      "callee": "memcmp",
+      "caller": "<stwo_kona_execution::witness::Witness>::get",
+      "calls": 16602,
+      "requested_bytes": 531264,
+      "misaligned_calls": 14857
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<stwo_kona_execution::precompiles::pairing::residue::Hint>::check_tail",
+      "calls": 2184,
+      "requested_bytes": 516096,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<revm_handler::frame::EthFrame>::process_next_action::<revm_context::context::Context<revm_context::block::BlockEnv, alloy_op_evm::tx::OpTx, revm_context::cfg::CfgEnv<op_revm::spec::OpSpecId>, &mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>, revm_context::journal::Journal<&mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>>, op_revm::l1block::L1BlockInfo>, revm_context_interface::context::ContextError<revm_database_interface::bal::EvmDatabaseError<kona_executor::errors::TrieDBError>>>",
+      "calls": 6924,
+      "requested_bytes": 510645,
+      "misaligned_calls": 1731
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<ark_ec::models::bn::g2::G2Prepared<ark_bn254::curves::Config> as core::convert::From<ark_ec::models::short_weierstrass::affine::Affine<ark_bn254::curves::g2::Config>>>::from",
+      "calls": 2175,
+      "requested_bytes": 406464,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memset",
+      "caller": "<alloy_primitives::bits::bloom::Bloom>::accrue_log",
+      "calls": 1840,
+      "requested_bytes": 368000,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcmp",
+      "caller": "<ark_ec::models::bn::g2::G2Prepared<ark_bn254::curves::Config> as core::convert::From<ark_ec::models::short_weierstrass::affine::Affine<ark_bn254::curves::g2::Config>>>::from",
+      "calls": 11484,
+      "requested_bytes": 367488,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcmp",
+      "caller": "<stwo_kona_execution::precompiles::pairing::Cache>::check",
+      "calls": 4574,
+      "requested_bytes": 359008,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcmp",
+      "caller": "<ark_ec::models::short_weierstrass::group::Projective<ark_bn254::curves::g2::Config> as ark_ff::fields::AdditiveGroup>::double_in_place",
+      "calls": 11136,
+      "requested_bytes": 356352,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcmp",
+      "caller": "<ark_ff::fields::models::quadratic_extension::QuadExtField<ark_ff::fields::models::fp12_2over3over2::Fp12ConfigWrapper<ark_bn254::fields::fq12::Fq12Config>> as ark_ff::fields::Field>::square_in_place",
+      "calls": 10878,
+      "requested_bytes": 348096,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memset",
+      "caller": "<stwo_kona_execution::witness::Witness>::get",
+      "calls": 1538,
+      "requested_bytes": 307600,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<k256::arithmetic::mul::WordTable>::select_vartime",
+      "calls": 2758,
+      "requested_bytes": 264768,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memset",
+      "caller": "revm_interpreter::instructions::system::calldatacopy::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, alloy_op_evm::tx::OpTx, revm_context::cfg::CfgEnv<op_revm::spec::OpSpecId>, &mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>, revm_context::journal::Journal<&mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>>, op_revm::l1block::L1BlockInfo>>",
+      "calls": 3163,
+      "requested_bytes": 260736,
+      "misaligned_calls": 389
+    },
+    {
+      "callee": "memset",
+      "caller": "revm_interpreter::instructions::system::keccak256::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, alloy_op_evm::tx::OpTx, revm_context::cfg::CfgEnv<op_revm::spec::OpSpecId>, &mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>, revm_context::journal::Journal<&mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>>, op_revm::l1block::L1BlockInfo>>",
+      "calls": 1210,
+      "requested_bytes": 242000,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "alloy_consensus::crypto::secp256k1::recover_signer",
+      "calls": 216,
+      "requested_bytes": 225888,
+      "misaligned_calls": 48
+    },
+    {
+      "callee": "memcpy",
+      "caller": "revm_precompile::secp256k1::k256::ecrecover",
+      "calls": 190,
+      "requested_bytes": 191070,
+      "misaligned_calls": 30
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<kona_mpt::node::TrieNode>::unblind::<stwo_kona_execution::execution::Provider>",
+      "calls": 4602,
+      "requested_bytes": 181012,
+      "misaligned_calls": 1534
+    },
+    {
+      "callee": "memcmp",
+      "caller": "<stwo_kona_execution::precompiles::pairing::hints::Stream>::check",
+      "calls": 4999,
+      "requested_bytes": 159968,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "stwo_kona_execution::execution::execute",
+      "calls": 431,
+      "requested_bytes": 147287,
+      "misaligned_calls": 223
+    },
+    {
+      "callee": "memcpy",
+      "caller": "revm_interpreter::instructions::system::calldatacopy::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, alloy_op_evm::tx::OpTx, revm_context::cfg::CfgEnv<op_revm::spec::OpSpecId>, &mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>, revm_context::journal::Journal<&mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>>, op_revm::l1block::L1BlockInfo>>",
+      "calls": 475,
+      "requested_bytes": 146521,
+      "misaligned_calls": 295
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<&mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>> as revm_database_interface::Database>::code_by_hash",
+      "calls": 42,
+      "requested_bytes": 138756,
+      "misaligned_calls": 19
+    },
+    {
+      "callee": "memcpy",
+      "caller": "revm_bytecode::legacy::analysis::analyze_legacy",
+      "calls": 20,
+      "requested_bytes": 138323,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcmp",
+      "caller": "revm_interpreter::instructions::contract::call_helpers::load_acc_and_calc_gas::<revm_context::context::Context<revm_context::block::BlockEnv, alloy_op_evm::tx::OpTx, revm_context::cfg::CfgEnv<op_revm::spec::OpSpecId>, &mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>, revm_context::journal::Journal<&mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>>, op_revm::l1block::L1BlockInfo>, revm_interpreter::interpreter::EthInterpreter>",
+      "calls": 4200,
+      "requested_bytes": 134400,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "<stwo_kona_execution::precompiles::pairing::Cache>::check",
+      "calls": 1107,
+      "requested_bytes": 131328,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcmp",
+      "caller": "<ark_ec::models::bn::g2::G2HomProjective<ark_bn254::curves::Config>>::add_in_place",
+      "calls": 4002,
+      "requested_bytes": 128064,
+      "misaligned_calls": 0
+    },
+    {
+      "callee": "memcpy",
+      "caller": "revm_interpreter::instructions::host::sload::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, alloy_op_evm::tx::OpTx, revm_context::cfg::CfgEnv<op_revm::spec::OpSpecId>, &mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>, revm_context::journal::Journal<&mut revm_database::states::state::State<&mut kona_executor::db::TrieDB<stwo_kona_execution::execution::Provider, kona_mpt::noop::NoopTrieHinter>>>, op_revm::l1block::L1BlockInfo>>",
+      "calls": 3560,
+      "requested_bytes": 110360,
+      "misaligned_calls": 3560
+    }
+  ],
+  "limitation": "Return PC minus four attributed through nonempty STT_FUNC; includes tailcall forwarding, not a full call stack. Requested bytes do not determine retired instruction costs. Diagnostic oracle, not proof authority.",
+  "sources": {
+    "op-kona-miller-entry-census.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-miller-entry-census.json",
+      "sha256": "dc69f353fbdc9cb41535912b1236176ab6b9fef3e982f071b101fecaf90bc46c"
+    },
+    "op-kona-miller-entry-summary.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-miller-entry-summary.json",
+      "sha256": "28d84b57c70ba79aebf1b15c6a96042cf0c1a411800af2bbcf078a0c6904be5a"
+    },
+    "op-kona-miller-heavy.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-miller-heavy.native.json",
+      "sha256": "54d9044a861d29fc8cdaa90a2129663bc0064286db37d23ea19b87aba93de75d"
+    },
+    "op-kona-miller-attribution.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-miller-attribution.json",
+      "sha256": "a0e478d7623aba13e4ef1e0efdb4c0aaeeeafb883dd5d0b88d4d3f0353b9463b"
+    }
+  },
+  "retained_callers": "Top40 by requested bytes; complete raw report is hash-pinned in sources."
+}

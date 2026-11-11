@@ -1,0 +1,146 @@
+{
+  "schema": "op-suite3-kona-small-complete/v1",
+  "source_commit": "077950702",
+  "block": 120794432,
+  "scope": "Actual Kona execution-only native bundle and R6 recursive root; small block with zero Miller calls, not anchored validity or a heavy speedup",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admitted": false,
+  "config_sha256": "4fea61d0e5976b78d80d2ffcc92b144bb7cd403c6a169e14d44bf5cb0d07b639",
+  "elf_sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930",
+  "input_sha256": "610ca2169a1f3b8aa25f354a81325f2b448d1644947828bce6c5c3bfd3d42887",
+  "expected_output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+  "terminal_pc": 3600,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "suite": {
+    "version": 1,
+    "cpu": 1,
+    "truth": "local_gkr",
+    "miller": "local_gkr",
+    "sponge": 0
+  },
+  "steps": 796406,
+  "cpu": 1,
+  "truth": 2,
+  "miller": 0,
+  "native": {
+    "bytes": 5553784,
+    "sha256": "9e01d2fda1f6b04a29f05726af543fc2c2d6a3611bf48cd57c258d5437536b86",
+    "capture_ns": 50375542,
+    "seal_and_prove_ns": 12259558541,
+    "total_before_receipt_ns": 15872727709,
+    "peak_requested_bytes": 2962540963,
+    "fresh_complete_receiver": true,
+    "final_heap_external_zero": true
+  },
+  "recursion": {
+    "schema": "op-p2-r6-complete-root/v1",
+    "members": 3,
+    "reductions": 2,
+    "bytes": 683432,
+    "profile": "op_target_b4_q72_p0_fold4_v1",
+    "security_qualified": false,
+    "total_ns": 140854523167,
+    "sha256": "de1ca53bb01adddf9cf63626026ba924a68d94ffbbef98fac4b39ebe63197c91",
+    "peak_requested_bytes": 5991067332,
+    "final_heap_external_zero": true,
+    "native_production_additional": true,
+    "stage_seconds_summed_across_five_serial_nodes": {
+      "op_p2.main_generation": 2.758979,
+      "op_p2.main_commit": 33.749143,
+      "op_p2.interaction_generation": 1.156201,
+      "op_p2.interaction_commit": 31.381665,
+      "draw_random_coeff": 3.7e-05,
+      "composition_trace_extract": 6.7e-05,
+      "composition_evaluation": 4.323146,
+      "composition_interpolate_and_split": 0.138208,
+      "composition_commit": 20.085503,
+      "oods_point_and_mask_points": 0.000282,
+      "sampled_value_evaluation": 0.425316,
+      "sampled_value_channel_mix": 0.003445,
+      "fri_quotient_build_and_commit": 10.57102,
+      "proof_of_work": 3.4e-05,
+      "fri_decommit": 0.445766,
+      "trace_decommit": 2.736582,
+      "constraint_check_and_assembly": 0.000553
+    },
+    "selected_nested_seconds_not_additive_to_parents": {
+      "streaming_commit_prepare": 9.254983,
+      "streaming_transform": 9.023483,
+      "interpolate_columns": 1.651011,
+      "evaluate_extended_domain": 7.371696,
+      "merkle_commit": 55.875517
+    },
+    "stage_profile_scope": "Summed serial proof scopes, not complete process wall. Source-key construction and native receive/collector overhead are additional. Nested timings are not additive to parent scopes."
+  },
+  "fresh_root_receiver": {
+    "separate_process": true,
+    "native_proof_physically_absent": true,
+    "source_files": [
+      "cells.bin",
+      "native-op.json"
+    ],
+    "source_ns": 32019671625,
+    "root_verify_ns": 27056959,
+    "peak_requested_bytes": 3447732091,
+    "final_heap_external_zero": true
+  },
+  "negative_cli_controls": {
+    "native-dropped-policy": "OpSourceSuiteRequiresExplicitReceiver",
+    "root-dropped-policy": "OpSourceSuiteRequiresExplicitReceiver",
+    "root-wrong-output": "EthereumOutputMismatch"
+  },
+  "physical_nodes": [
+    {
+      "name": "node-000000.bin",
+      "bytes": 690152,
+      "sha256": "135b3b94e7383a896bf6abc582f03774e849c95461b6f80b10ae85bd7317c809"
+    },
+    {
+      "name": "node-000001.bin",
+      "bytes": 689060,
+      "sha256": "fe8010810671f39d555a20c9920a78bda02fbe281bbbea056103385a24dae42e"
+    },
+    {
+      "name": "node-000002.bin",
+      "bytes": 683420,
+      "sha256": "e23749d75f81642defcd92c0d55436b9690ecc92b29a3406e5aa54547bae2e6c"
+    },
+    {
+      "name": "node-000003.bin",
+      "bytes": 689456,
+      "sha256": "2fe76fcbaf4c45ef14467323aa294b0f85a5b4ba4f5f605e9a8bdf063de36ab6"
+    },
+    {
+      "name": "node-000004.bin",
+      "bytes": 683432,
+      "sha256": "de1ca53bb01adddf9cf63626026ba924a68d94ffbbef98fac4b39ebe63197c91"
+    }
+  ],
+  "artifacts": {
+    "native": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/suite3-kona-small-native-v1",
+    "source_only": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/suite3-kona-small-source-only-v1",
+    "root": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/suite3-kona-small-root-v1"
+  },
+  "reproduction": {
+    "build": "zig build rv64-op-native rv64-op-root -Doptimize=ReleaseFast -j1",
+    "native": "rv64-op-native prove CONFIG NATIVE --truth-local-gkr --miller-local-gkr",
+    "native_fresh": "rv64-op-native verify CONFIG NATIVE --truth-local-gkr --miller-local-gkr",
+    "root": "rv64-op-root --r6 --truth-local-gkr --miller-local-gkr prove CONFIG NATIVE ROOT",
+    "root_fresh": "rv64-op-root --r6 --truth-local-gkr --miller-local-gkr verify CONFIG SOURCE_ONLY ROOT",
+    "source_only": "copy native-op.json and cells.bin only; no native-op.bin"
+  },
+  "measurement": "Single qualification runs during concurrent engineering, not quiet A/B medians. Timers are named scopes, not additive stage or process-wall claims.",
+  "heavy_execution_or_proof_rerun": false,
+  "remaining": [
+    "Actual full-height heavy Miller local GKR physical/resource qualification",
+    "Native-dot lowering and detached sponge CPU/inventory/root integration",
+    "Heavy tenfold native-plus-root target unproven; heavy rerun not authorized",
+    "Anchored derivation, recursive OD/OP join, checkpoint accumulation and practical full settlement"
+  ],
+  "integrated_python_tests": {
+    "command": "python -m unittest discover -s opstack/tests",
+    "passed": 46,
+    "seconds": 0.237
+  }
+}

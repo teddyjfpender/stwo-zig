@@ -1,0 +1,88 @@
+{
+  "schema": "op-keepalive-qualified-v1",
+  "date": "2026-11-09",
+  "public_probe": {
+    "schema": "op-rpc-keepalive-probe-v1",
+    "scope": "eight public read-only proof fetches; network sample only, no prover-speed claim",
+    "expected_block": "0x3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+    "rows": [
+      {
+        "iteration": 0,
+        "mode": "urllib_close",
+        "seconds": 0.3887479999102652,
+        "storage_value": "0x1",
+        "proof_verified": true
+      },
+      {
+        "iteration": 0,
+        "mode": "keepalive",
+        "seconds": 0.3570602920372039,
+        "storage_value": "0x1",
+        "proof_verified": true
+      },
+      {
+        "iteration": 1,
+        "mode": "urllib_close",
+        "seconds": 0.35746770806144923,
+        "storage_value": "0x1",
+        "proof_verified": true
+      },
+      {
+        "iteration": 1,
+        "mode": "keepalive",
+        "seconds": 0.17365770798642188,
+        "storage_value": "0x1",
+        "proof_verified": true
+      },
+      {
+        "iteration": 2,
+        "mode": "urllib_close",
+        "seconds": 0.3600652919849381,
+        "storage_value": "0x1",
+        "proof_verified": true
+      },
+      {
+        "iteration": 2,
+        "mode": "keepalive",
+        "seconds": 0.16971695807296783,
+        "storage_value": "0x1",
+        "proof_verified": true
+      },
+      {
+        "iteration": 3,
+        "mode": "urllib_close",
+        "seconds": 0.35685804195236415,
+        "storage_value": "0x1",
+        "proof_verified": true
+      },
+      {
+        "iteration": 3,
+        "mode": "keepalive",
+        "seconds": 0.16715729201678187,
+        "storage_value": "0x1",
+        "proof_verified": true
+      }
+    ],
+    "urllib_median": 0.35876650002319366,
+    "keepalive_warm_median": 0.16971695807296783,
+    "pool_requests": 4,
+    "pool_connections_created": 1
+  },
+  "validation": {
+    "focused_python_tests_passed": 45,
+    "local_transport_tests": 4,
+    "covers": [
+      "per-thread ownership",
+      "keepalive reuse",
+      "server-close reconnect",
+      "bounded exact RPC parser",
+      "oversized response rejection",
+      "read timeout on reused socket",
+      "explicit retirement"
+    ]
+  },
+  "policy": "explicit opt-in, owned pool, no global cache; identical RPC/MPT/hash validation; no proving-time gain claimed",
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false
+}

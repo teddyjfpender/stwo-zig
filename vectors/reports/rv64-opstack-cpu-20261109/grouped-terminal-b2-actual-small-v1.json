@@ -1,0 +1,117 @@
+{
+  "schema": "op-grouped-terminal-b2-actual-small-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "native_profile": "op_target_b4_q72_p0_fold4_v1",
+  "terminal_outer_profile": "op_control_b2_q144_p0_fold4_v1",
+  "native_bundle_bytes": 5045776,
+  "native_bundle_sha256": "4e7c5dc1ca425a57754eae3f913932da9e69c8fab7a920dcb08a279b0b00e17f",
+  "native_members": {
+    "CPU": 1,
+    "detached_sponge": 1,
+    "local_GKR_Keccak": 1,
+    "classic_SHA256": 1
+  },
+  "groups": 1,
+  "fold_proofs": 0,
+  "workers": 8,
+  "cap_bytes": 34359738368,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "root_bytes": 1341688,
+  "root_sha256": "81b275c0af48dcfd7be09062c9a5784587c6c36c70386f09cde5d088ee77e1c7",
+  "source_identity": "6d9d9ff0bd4b41e1cfcfa64e0753399601f4f1785f7ed728b09568285d15d000",
+  "canonical_public_root": "1ad68e7f5072665ce26106685b2a8d4af0636f31b1db881bea370918ef0f602b80793f2d",
+  "model": {
+    "raw": [
+      73080,
+      11562353,
+      3451,
+      173939,
+      65536,
+      321145
+    ],
+    "rows": [
+      131072,
+      16777216,
+      4096,
+      262144,
+      65536,
+      524288
+    ],
+    "fixed_cells": 158412800,
+    "main_cells": 339296256,
+    "interaction_cells": 333021184,
+    "total_cells": 830730240
+  },
+  "timing": {
+    "node_prove_persist_verify_ns": 46588560334,
+    "producer_wall_seconds_including_native_reverification_and_cold_source": 62.63,
+    "fresh_source_only_qualifier_wall_seconds": 15.03,
+    "fresh_group_key_ns": 11413162667,
+    "fresh_root_read_verify_ns": 53237250,
+    "native_production_additional_not_rerun": true
+  },
+  "stage_seconds": {
+    "op_p2.main_generation": 1.466697,
+    "op_p2.main_commit": 12.829721,
+    "op_p2.interaction_generation": 0.773021,
+    "op_p2.interaction_commit": 12.710704,
+    "draw_random_coeff": 8e-06,
+    "composition_trace_extract": 1.8e-05,
+    "composition_evaluation": 3.35942,
+    "composition_interpolate_and_split": 0.121616,
+    "composition_commit": 8.202495,
+    "oods_point_and_mask_points": 6.4e-05,
+    "sampled_value_evaluation": 0.307839,
+    "sampled_value_channel_mix": 0.000788,
+    "fri_quotient_build_and_commit": 4.776574,
+    "proof_of_work": 7e-06,
+    "fri_decommit": 0.186733,
+    "trace_decommit": 1.748231,
+    "constraint_check_and_assembly": 0.000108
+  },
+  "memory": {
+    "requested_peak_bytes": 13312794270,
+    "RSS_peak_bytes": 13126434816,
+    "fresh_receiver_requested_peak_bytes": 6578842424,
+    "final_live": 0,
+    "final_external": 0
+  },
+  "qualification": {
+    "Safe_source_policy_all_768_count_and_group_modes": true,
+    "CLI_fast_semantic_check": true,
+    "tiny_B2_compact_fullstorage_exact_proof_parity": true,
+    "default_B4_physical_parity_adversarial_regression": true,
+    "matched_original_4_native_proofs_freshly_reverified": true,
+    "full_RAM_KIO_Wire_and_pinned_terminal43B": true,
+    "same_public_statement_and_canonical_root_as_B4": true,
+    "fresh_source_only_receiver_native_bin_absent": true,
+    "eight_physical_attacks_and_restored_positive": true,
+    "old_B4_default_receiver_same_source_identity": true,
+    "both_receiver_policy_cross_selections_rejected": true,
+    "B2_metadata_forged_to_B4_rejected_physical_key_authority": true
+  },
+  "control": {
+    "B4_root_bytes": 750068,
+    "B4_node_prove_persist_verify_ns": 93372967708,
+    "B4_producer_ns": 121132667625,
+    "B4_requested_peak_bytes": 18884891914,
+    "note": "See direct-native-group-actual-small-v1.json for exact retained original control fields."
+  },
+  "measurement_scope": "Qualification during concurrent light engineering. These are matched workload observations, not a quiet A/B speed claim. No heavy block proof repeated.",
+  "initial_attempt": {
+    "error": "Om31CircuitRequiresHostLde",
+    "wall_seconds": 43.83,
+    "root_published": false,
+    "retained_failure_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-terminal-b2-physical-v1/failure.txt",
+    "fixed_by": "20cea4bd1"
+  },
+  "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-terminal-b2-physical-v2",
+  "remaining": [
+    "Actual multi-group final-fold B2 physical gate",
+    "Resource-derived grouping for heavy classes",
+    "Heavy tenfold goal remains unachieved"
+  ]
+}

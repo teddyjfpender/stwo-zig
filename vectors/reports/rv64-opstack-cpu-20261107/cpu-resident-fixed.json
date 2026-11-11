@@ -1,0 +1,121 @@
+{
+  "schema": "stwo.opstack.resident-mainnet-proof.v1",
+  "source_commit": "210e29910a0799ceae7385cea0ddb0cdf41c2bb8",
+  "gpu_base": "093d738abea7c6dbdc6514f549ee2f1e7ff30427",
+  "block": 120794432,
+  "scope": "three resident requests on one pinned OP Mainnet block",
+  "stage_profiling": false,
+  "runner_sha256": "65284f115b3eca5b7d6b186ed9e429a77efbd74d3d2545a090f006a3a902a3af",
+  "elf_sha256": "84af344e80a36bfb8cdfba3f034d31c086a5383a632a27a3d0a136e0f3063935",
+  "input_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+  "accepted_output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+  "proof_verified": true,
+  "identical_proof_artifacts_each_request": {
+    "cpu-0.bin": "11680ec63acf571755a0f3c2c7bdad108d7eb418998ac30c70ec5ab0752db885",
+    "truth-0.bin": "24fcb1c71fa42d6894d098c50b4b949c93360522710d4664ee002f11980232c0",
+    "stage-one.bin": "557505b1d91a75d69784b17866bf244c0aae413138e49eb8a759e6ed44016a46",
+    "truth-1.bin": "e628857a253b9bb55fec2ecd55c678574716ef9c1f7e7568d0d906ba58bc6634",
+    "cells.bin": "78f84d05baa78007b0ec169d0745a3f46fdde2e00ea019e4f13088c889380ceb"
+  },
+  "resources": {
+    "gkr_bytes": 3221225472,
+    "global_bytes": 1073741824,
+    "retained_frontend_bytes": 5368709120,
+    "disk_bytes": 0,
+    "fixed_setup_bytes": 2147483648,
+    "park_main": false,
+    "recycler_cache_bytes": 67108864,
+    "keccak_max_log": 16,
+    "capture_options": {
+      "execution_workers": 0
+    },
+    "schedule": {
+      "lanes": 2,
+      "workers_per_lane": 4,
+      "memory_cap_bytes": 4294967296,
+      "heaviest_first": true
+    }
+  },
+  "produce": {
+    "wall_ns": 89069229550,
+    "peak_rss_bytes": 4012601344,
+    "user_cpu_s": 302.109418,
+    "system_cpu_s": 51.511449,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "receive_batch": {
+    "wall_ns": 10570589678,
+    "peak_rss_bytes": 2150723584,
+    "user_cpu_s": 11.822078,
+    "system_cpu_s": 4.324369,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "pre_fix_failed_batch_returncode": 1,
+  "rejections": {
+    "tamper": "WideBundleFileChanged",
+    "tamper-rehashed": "RootMismatch"
+  },
+  "requests": [
+    {
+      "ordinal": 0,
+      "producer_wall_ns": 31589870512,
+      "producer_capture_ns": 1886804093,
+      "producer_setup_ns": 5000148606,
+      "native_prove_ns": 24550134725,
+      "receiver_setup_ns": 9719019841,
+      "receiver_verify_ns": 138856042,
+      "receiver_source_validations": 3
+    },
+    {
+      "ordinal": 1,
+      "producer_wall_ns": 27788366157,
+      "producer_capture_ns": 2288365171,
+      "producer_setup_ns": 16859644,
+      "native_prove_ns": 25278417654,
+      "receiver_setup_ns": 38860501,
+      "receiver_verify_ns": 105974442,
+      "receiver_source_validations": 0
+    },
+    {
+      "ordinal": 2,
+      "producer_wall_ns": 29556981678,
+      "producer_capture_ns": 2462627846,
+      "producer_setup_ns": 8714174,
+      "native_prove_ns": 26892130038,
+      "receiver_setup_ns": 25573272,
+      "receiver_verify_ns": 107412535,
+      "receiver_source_validations": 0
+    }
+  ],
+  "merged_recorder_exact_census_parity": {
+    "equal_to_previous_cpu_plan": true,
+    "flags": {
+      "0": {
+        "plan": {
+          "wall_ns": 5970776758,
+          "peak_rss_bytes": 1420292096,
+          "user_cpu_s": 6.371337,
+          "system_cpu_s": 3.641992,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "main_interaction_bits": 32232733600,
+        "total_steps": 5926093
+      },
+      "1": {
+        "plan": {
+          "wall_ns": 3981903393,
+          "peak_rss_bytes": 1411338240,
+          "user_cpu_s": 4.8318259999999995,
+          "system_cpu_s": 1.5824500000000001,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "main_interaction_bits": 32232733600,
+        "total_steps": 5926093
+      }
+    }
+  }
+}

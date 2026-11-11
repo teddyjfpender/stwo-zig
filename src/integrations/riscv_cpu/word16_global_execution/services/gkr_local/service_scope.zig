@@ -14,6 +14,7 @@ pub fn geometry(g: @import("../../../word16_execution/geometry.zig").Geometry) !
     if (g.cpu_log > 22) return error.InvalidLocalGkrGeometry;
 }
 pub fn bridges(logs: T.Logs) !void {
+    if (logs.tower != null) return error.UnqualifiedOpProtocol;
     // The Zbb BINARY component (ethereum_services_v3_zbb) has no GKR role.
     if (logs.zbb != null) return error.UnsupportedGkrLocalZbbComponent;
     for (T.sponge_kinds) |kind| if (logs.sponge.at(kind)) |log| {
@@ -32,8 +33,19 @@ pub fn bridges(logs: T.Logs) !void {
     };
 }
 pub fn setup(s: *const R.CpuSetup) !void {
+    if (s.op_only) return error.UnqualifiedOpProtocol;
     try geometry(s.materials.geometry);
     try bridges(s.bridges);
+}
+/// Explicit OP producer/receiver scope. Legacy setup/declaration entrypoints
+/// remain closed; OP framing must bind the optional span and whole closure.
+pub fn setupForOp(s: *const R.CpuSetup) !void {
+    if (!s.op_only or s.materials.program.profile != .ethereum_services_op_v1) return error.UnqualifiedOpProtocol;
+    try geometry(s.materials.geometry);
+    var old = s.bridges;
+    old.tower = null;
+    try bridges(old);
+    if (s.bridges.tower) |log| _ = try A.crypto.secp256k1.word16_bridge.types.validateGeometry(.bn254_sparse034, 0, 1, log);
 }
 pub fn declaration(d: @import("../wire.zig").CpuDeclaration) !void {
     try geometry(d.geometry);
@@ -53,6 +65,7 @@ pub fn truthDeclaration(d: @import("../wire.zig").TruthDeclaration) !void {
 }
 
 pub fn advice(a: *const @import("../collector.zig").Advice) !void {
+    for (a.tower) |calls_| if (calls_.len != 0) return error.UnqualifiedOpProtocol;
     if (a.events.len != a.keccak.len or a.secp.len != a.keccak.len or a.sha256.len != a.keccak.len or a.arith256_mod.len != a.keccak.len or a.curves.len != a.keccak.len or a.bulk.len != a.keccak.len or a.sponge.len != a.keccak.len) return error.InvalidCombinedInventory;
 }
 
@@ -79,6 +92,7 @@ test "new classic defaults cannot silently enter authenticated GKR query shapes"
 /// The Zbb execution profile (Zbb ROM rows, Zbb BINARY component) has no
 /// authenticated GKR projection; producer and receiver refuse it up front.
 pub fn profile(p: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) !void {
+    if (p == .ethereum_services_op_v1) return error.UnqualifiedOpProtocol;
     if (p == .ethereum_services_v3_zbb) return error.UnsupportedGkrZbbProfile;
 }
 
@@ -97,11 +111,12 @@ test "Zbb profile and component fail closed on the GKR route" {
     try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, @import("v2_scope.zig").geometry(.{ .cpu_log = 23, .cpu_fused_tail = true }));
 }
 
-test "v3 GKR CPU statement bridge projection excludes only the appended Zbb log" {
+test "v3 GKR CPU statement bridge projection excludes appended Zbb and OP logs" {
     const std = @import("std");
     const names = @import("cpu_worker.zig").V3_STATEMENT_BRIDGES;
     const fields = std.meta.fields(T.Logs);
-    try std.testing.expectEqual(fields.len, names.len + 1);
+    try std.testing.expectEqual(fields.len, names.len + 2);
     inline for (names, 0..) |name, i| try std.testing.expectEqualStrings(fields[i].name, name);
     try std.testing.expectEqualStrings("zbb", fields[names.len].name);
+    try std.testing.expectEqualStrings("tower", fields[names.len + 1].name);
 }

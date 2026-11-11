@@ -46,6 +46,7 @@ pub fn isKio(origin: Frame.Origin) bool {
 }
 pub fn layout(origin: Frame.Origin) Layout {
     return switch (origin) {
+        .tower => .{ .ram_queries = 8, .other_queries = 2, .cleared_other = true },
         .dword => .{ .ram_queries = 2 },
         .sponge => |kind| .{ .ram_queries = @import("sponge_projection.zig").ramTerms(kind), .other_queries = @import("sponge_projection.zig").kioTerms(kind) },
         .bulk => |kind| .{ .ram_queries = @import("bulk_projection.zig").ramTerms(kind) },
@@ -61,6 +62,7 @@ pub fn layout(origin: Frame.Origin) Layout {
 /// native metadata generation and authenticated MAIN-mask constraints use it.
 pub fn queriesFor(comptime F: type, origin: Frame.Origin, fixed: []const F, main: []const F, sink: anytype) !void {
     switch (origin) {
+        .tower => @import("op_tower_projection.zig").emitGlobalFor(F, fixed, main, sink),
         .dword => @import("dword_projection.zig").emitGlobalFor(F, main, sink),
         .sponge => return error.MissingSpongeFirstId,
         .bulk => |kind| switch (kind) {

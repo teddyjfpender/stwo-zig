@@ -28,10 +28,16 @@ fn field(out: *std.ArrayList(u8), a: std.mem.Allocator, value: O) !void {
     }
 }
 pub fn encode(a: std.mem.Allocator, instances: []const Instance, proof: *const V.GkrBatchProof) ![]u8 {
+    return encodeFor(a, instances, proof, magic(instances));
+}
+/// Separate typed protocols may reuse the exact bounded payload codec. Their
+/// independently owned instance geometry and eight-byte magic stay mandatory.
+pub fn encodeFor(a: std.mem.Allocator, instances: anytype, proof: *const V.GkrBatchProof, profile_magic: []const u8) ![]u8 {
+    if (profile_magic.len != 8) return error.LocalGkrWireProfile;
     if (instances.len == 0 or instances.len > MAX or proof.output_claims_by_instance.len != instances.len or proof.layer_masks_by_instance.len != instances.len or proof.sumcheck_proofs.len > 30) return error.LocalGkrReceiptShape;
     var out = std.ArrayList(u8).empty;
     errdefer out.deinit(a);
-    try out.appendSlice(a, magic(instances));
+    try out.appendSlice(a, profile_magic);
     try u32_(&out, a, 8);
     try u32_(&out, a, instances.len);
     for (instances, proof.layer_masks_by_instance, proof.output_claims_by_instance) |instance, masks, outputs| {
@@ -92,8 +98,12 @@ pub const Owned = struct {
     }
 };
 pub fn decode(a: std.mem.Allocator, instances: []const Instance, bytes: []const u8) !Owned {
+    return decodeFor(a, instances, bytes, magic(instances));
+}
+pub fn decodeFor(a: std.mem.Allocator, instances: anytype, bytes: []const u8, profile_magic: []const u8) !Owned {
+    if (profile_magic.len != 8) return error.LocalGkrWireProfile;
     if (bytes.len > MAX_BYTES or instances.len == 0 or instances.len > MAX) return error.LocalGkrProofLimit;
-    if (bytes.len < MAGIC.len or !std.mem.eql(u8, bytes[0..MAGIC.len], magic(instances))) return error.LocalGkrWireProfile;
+    if (bytes.len < MAGIC.len or !std.mem.eql(u8, bytes[0..MAGIC.len], profile_magic)) return error.LocalGkrWireProfile;
     var r = Reader{ .bytes = bytes, .at = MAGIC.len };
     if (try r.u32_() != 8) return error.LocalGkrWireProfile;
     const count = try r.bounded(MAX);

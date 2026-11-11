@@ -1,0 +1,192 @@
+[
+  {
+    "ordinal": 3,
+    "observed_qm31_rows": 2259648,
+    "terms": 566208,
+    "cost": {
+      "original": {
+        "raw": [
+          36418,
+          4809612,
+          2522,
+          80066,
+          65536,
+          174158
+        ],
+        "rows": [
+          65536,
+          8388608,
+          4096,
+          131072,
+          65536,
+          262144
+        ],
+        "logs": [
+          16,
+          23,
+          12,
+          17,
+          16,
+          18
+        ],
+        "main_cells": 169689088,
+        "interaction_cells": 166821888,
+        "fixed_cells": 79245312,
+        "total_native_cells": 415756288
+      },
+      "remaining_generic": {
+        "raw": [
+          36418,
+          2549964,
+          2522,
+          80066,
+          65536,
+          174158
+        ],
+        "rows": [
+          65536,
+          4194304,
+          4096,
+          131072,
+          65536,
+          262144
+        ],
+        "logs": [
+          16,
+          22,
+          12,
+          17,
+          16,
+          18
+        ],
+        "main_cells": 119357440,
+        "interaction_cells": 99713024,
+        "fixed_cells": 45690880,
+        "total_native_cells": 264761344
+      },
+      "dot_rows": 1048576,
+      "dot_log": 20,
+      "dot_main_cells": 17825792,
+      "dot_fixed_cells": 10485760,
+      "dot_interaction_cells": 25165824,
+      "candidate_main_cells": 137183232,
+      "candidate_fixed_cells": 56176640,
+      "candidate_interaction_cells": 124878848,
+      "candidate_total_native_cells": 318238720,
+      "native_cells_saved": 97517568,
+      "main_interaction_cells_saved": 74448896,
+      "new_main_opening_masks": 25,
+      "new_interaction_opening_masks": 32,
+      "new_fixed_columns": 10,
+      "new_main_interaction_width": 41,
+      "original_key_tree_widths": [
+        96,
+        521,
+        272
+      ],
+      "candidate_key_tree_widths": [
+        106,
+        538,
+        296
+      ],
+      "original_max_log": 23,
+      "candidate_max_log": 22,
+      "promoted_or_measured_prover_speedup": false
+    }
+  },
+  {
+    "ordinal": 20,
+    "observed_qm31_rows": 2104704,
+    "terms": 527184,
+    "cost": {
+      "original": {
+        "raw": [
+          35736,
+          4554842,
+          2474,
+          76886,
+          65536,
+          167853
+        ],
+        "rows": [
+          65536,
+          8388608,
+          4096,
+          131072,
+          65536,
+          262144
+        ],
+        "logs": [
+          16,
+          23,
+          12,
+          17,
+          16,
+          18
+        ],
+        "main_cells": 169689088,
+        "interaction_cells": 166821888,
+        "fixed_cells": 79245312,
+        "total_native_cells": 415756288
+      },
+      "remaining_generic": {
+        "raw": [
+          35736,
+          2450138,
+          2474,
+          76886,
+          65536,
+          167853
+        ],
+        "rows": [
+          65536,
+          4194304,
+          4096,
+          131072,
+          65536,
+          262144
+        ],
+        "logs": [
+          16,
+          22,
+          12,
+          17,
+          16,
+          18
+        ],
+        "main_cells": 119357440,
+        "interaction_cells": 99713024,
+        "fixed_cells": 45690880,
+        "total_native_cells": 264761344
+      },
+      "dot_rows": 1048576,
+      "dot_log": 20,
+      "dot_main_cells": 17825792,
+      "dot_fixed_cells": 10485760,
+      "dot_interaction_cells": 25165824,
+      "candidate_main_cells": 137183232,
+      "candidate_fixed_cells": 56176640,
+      "candidate_interaction_cells": 124878848,
+      "candidate_total_native_cells": 318238720,
+      "native_cells_saved": 97517568,
+      "main_interaction_cells_saved": 74448896,
+      "new_main_opening_masks": 25,
+      "new_interaction_opening_masks": 32,
+      "new_fixed_columns": 10,
+      "new_main_interaction_width": 41,
+      "original_key_tree_widths": [
+        96,
+        521,
+        272
+      ],
+      "candidate_key_tree_widths": [
+        106,
+        538,
+        296
+      ],
+      "original_max_log": 23,
+      "candidate_max_log": 22,
+      "promoted_or_measured_prover_speedup": false
+    }
+  }
+]

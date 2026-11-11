@@ -13,6 +13,7 @@ const M31 = fields.m31.M31;
 const utils = @import("stwo_core").utils;
 const prover_pcs = @import("../pcs/mod.zig");
 const work_pool = @import("../work_pool.zig");
+const Profile = @import("stwo_prover_api").stage_profile;
 
 /// The numerical algorithm is shared by the two admitted secure fields. The
 /// legacy aliases instantiate the identical degree-four operations/order.
@@ -41,6 +42,18 @@ pub fn ForField(comptime Secure: type) type {
                 []Fraction,
             ) anyerror!void,
         ) !Output {
+            return buildWithRecorder(allocator, log_size, secure_columns, context, fillRow, null);
+        }
+
+        /// Serial-owner timing only; worker callbacks never mutate the recorder.
+        pub fn buildWithRecorder(
+            allocator: std.mem.Allocator,
+            log_size: u32,
+            secure_columns: usize,
+            context: anytype,
+            comptime fillRow: fn (@TypeOf(context), usize, []Fraction) anyerror!void,
+            recorder: ?*Profile.Recorder,
+        ) !Output {
             if (secure_columns == 0 or log_size >= @bitSizeOf(usize))
                 return error.InvalidPreparedGeometry;
             const row_count = @as(usize, 1) << @intCast(log_size);
@@ -56,6 +69,9 @@ pub fn ForField(comptime Secure: type) type {
                 for (columns[0..initialized]) |column| allocator.free(column.values);
                 allocator.free(columns);
             }
+
+            var rows_scope = try Profile.StageScope.begin(recorder, "logup_rows", "LogUp fractions, inverses and scatter");
+            defer rows_scope.end();
             for (columns) |*column| {
                 column.* = .{
                     .log_size = log_size,
@@ -104,15 +120,18 @@ pub fn ForField(comptime Secure: type) type {
 
             var claimed_sum = Secure.zero();
             for (partials) |partial| claimed_sum = claimed_sum.add(partial);
+            rows_scope.end();
 
+            var prefix_scope = try Profile.StageScope.begin(recorder, "logup_prefix", "LogUp shifted coset prefix");
+            defer prefix_scope.end();
             const shift = claimed_sum.mulM31(try M31.fromU64(row_count).inv());
             const shift_coordinates = shift.toM31Array();
             const last_base = DEGREE * (secure_columns - 1);
-            for (0..DEGREE) |coordinate| {
+            if (!try @import("logup_prefix.zig").tryParallel(allocator, columns[last_base..][0..DEGREE], &shift_coordinates)) for (0..DEGREE) |coordinate| {
                 const values = @constCast(columns[last_base + coordinate].values);
                 for (values) |*value| value.* = value.sub(shift_coordinates[coordinate]);
                 try inclusivePrefixSum(allocator, values);
-            }
+            };
             return .{ .columns = columns, .claimed_sum = claimed_sum };
         }
 

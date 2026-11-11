@@ -1,0 +1,38 @@
+{
+  "schema": "op-miller-gkr-source-class-comparison-v1",
+  "scope": "source-only geometry evaluation; no VM execution, field/DAG witness replay or proving",
+  "calls": 1023,
+  "first_id": 1,
+  "frontier_log": 15,
+  "arithmetic_log": 15,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "classic": {
+    "raw": [
+      14834,
+      1084449,
+      255,
+      25992,
+      65536
+    ],
+    "native_om_calls": 15497,
+    "padded_qm_rows": 2097152,
+    "six_component_cells": 101605120
+  },
+  "candidate": {
+    "raw": [
+      16619,
+      974601,
+      288,
+      25432,
+      65536
+    ],
+    "native_om_calls": 23928,
+    "padded_qm_rows": 1048576,
+    "six_component_cells": 65027584
+  },
+  "cell_ratio": 1.5624926185170895,
+  "cells_removed": 36577536,
+  "caveat": "The QM component crosses a power-of-two height boundary; this is an exact source cell model, not a measured wall-time multiplier. Candidate uses more native OM operations.",
+  "security_qualified": false,
+  "production_admission_open": false
+}

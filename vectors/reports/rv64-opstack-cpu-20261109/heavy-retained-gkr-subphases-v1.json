@@ -1,0 +1,117 @@
+{
+  "schema": "op-heavy-retained-local-gkr-subphase-profile/v1",
+  "scope": "ONE localGKR replay only on same real4M source. No new MAIN/INTER commitment or CPU/wholeblock/root acceptance.",
+  "implementation": "bafee7859 coarse default-null profiling; test-only forcedcomptimegkr_only fixture avoids compiling unrelatedfullphysicalAIR/PCSprover.",
+  "artifacts": {
+    "authentic_retained": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-native-tiles-v1",
+    "candidate": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-gkr-profile-v1"
+  },
+  "source_authority": {
+    "pinned_PCS_SHA256": "db731dc7bc725b68eca35ed7462cd3550dc691c42dab73a06ffe76f8301b8a70",
+    "pinned_GKR_SHA256": "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3",
+    "independent_source_image_program_geometry_security": true,
+    "Machine_PC_all32_registers_match_independent_Unicorn": true,
+    "fresh_digest_key_FIXED_matches_retained_PCS_root0": true,
+    "retained_child_freshly_verified_under_source_statement_and_retained_MAIN": true,
+    "source_state": "OriginalPipelinebuild\u2192frontiermergeRanges\u2192Source.takeMain/frontier.takeMain, thenretire rawmatrices. Same retainednarrowprovider state as post-ownedMAINseal. No substituteMAINwascommitted.",
+    "new_GKR_bytes_receipt_eta_exact_retained": true,
+    "local_bytes": 113288,
+    "local_sha256": "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3"
+  },
+  "configuration": {
+    "steps": 4000000,
+    "CPU_log": 22,
+    "padded_lookup_facts": 149605184,
+    "workers": 16,
+    "optimization": "ReleaseFast",
+    "profile": "op_target_b4_q72_p0_fold4_v1",
+    "host_cap_bytes": 34359738368,
+    "GKR_child_cap_bytes": 12884901888,
+    "security": "128-bit security target under documented assumptions; not certified"
+  },
+  "timing": {
+    "local_GKR_seconds": 3.413142167,
+    "source_digestkey_pin_decode_and_retained_childverification_seconds": 1.731111708,
+    "source_build_merge_take_retire_seconds": 0.693317542,
+    "whole_fixture_wall_seconds": 7.36,
+    "whole_process_user_seconds": 71.42,
+    "whole_process_system_seconds": 3.47,
+    "major_faults": 0
+  },
+  "subphases": [
+    {
+      "phase": "gkr_source_tree_construction",
+      "wall_seconds": 0.658667,
+      "share_of_local_gkr": 0.19298136129139623,
+      "user_seconds": 8.747007,
+      "system_seconds": 0.250502,
+      "mean_busy_cores": 13.66017881569898,
+      "minor_faults": 194845,
+      "major_faults": 0
+    },
+    {
+      "phase": "gkr_sumcheck_traversal",
+      "wall_seconds": 2.751065,
+      "share_of_local_gkr": 0.8060283401189297,
+      "user_seconds": 32.996197,
+      "system_seconds": 1.594984,
+      "mean_busy_cores": 12.573741805446254,
+      "minor_faults": 618857,
+      "major_faults": 0
+    },
+    {
+      "phase": "gkr_terminal_artifact",
+      "wall_seconds": 2.1e-05,
+      "share_of_local_gkr": 6.152742716910549e-06,
+      "user_seconds": 3e-06,
+      "system_seconds": 1.5e-05,
+      "mean_busy_cores": 0.8571428571428572,
+      "minor_faults": 1,
+      "major_faults": 0
+    },
+    {
+      "phase": "gkr_terminal_receipt",
+      "wall_seconds": 0.002973,
+      "share_of_local_gkr": 0.0008710525760654793,
+      "user_seconds": 0.00295,
+      "system_seconds": 9e-06,
+      "mean_busy_cores": 0.9952909519004373,
+      "minor_faults": 0,
+      "major_faults": 0
+    },
+    {
+      "phase": "gkr_wire_encoding",
+      "wall_seconds": 9.8e-05,
+      "share_of_local_gkr": null,
+      "user_seconds": 6.6e-05,
+      "system_seconds": 3e-05,
+      "mean_busy_cores": 0.979591836734694,
+      "minor_faults": 27,
+      "major_faults": 0
+    }
+  ],
+  "interpretation": [
+    "Fusedsource fractionprojection+initialcheckpointtree is19.3% (0.6587s). Itis NOT separatelysplit into projection andtree.",
+    "Whole sumchecktraversal is80.6%(2.7511s), INCLUDINGsource/checkpointregeneration andlayertranscript. DoNOTlabel this pure arithmeticor infer omittedregenerationcost.",
+    "Terminalartifactassembly21us, closure/Poseidonreceipt2.973ms, localbinaryencoding98us. These are not material latencybottlenecks here.",
+    "Previous fullnative localGKRstage3.555s held MAIN/PCSstorage alive. This3.413s replay retiresrawMAINbeforechild andhasdifferentmemorylifetime, so doNOTclaim a measured algorithmic speedup."
+  ],
+  "resource": {
+    "live_bytes": 0,
+    "peak_live_bytes": 4869066225,
+    "host_live_bytes": 0,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 4869066225,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "measured_process_RSS_peak_bytes": 5370003456,
+  "limits": [
+    "No completeheavy guest execution or nativeproof rerun. Onlyfirst4M realretirementsrecaptured.",
+    "Outerrequestedpeak4.869GBincludes sourcekey/setup/replayphases; exactchild-onlyrequestedpeaknotseparatelycaptured. Bothouterheap andexternalreservationsendzero.",
+    "INITis prefix-touched67,326words/log17; remainingCPU/truth/detached/TEARDOWN/globaldebtandterminalacceptance areabsent.",
+    "No permutation/hashing/profile/security/protocolconstruction changed.",
+    "No additionalprofile run wasmade toseekfavorabletiming."
+  ]
+}

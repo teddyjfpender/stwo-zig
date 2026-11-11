@@ -1,0 +1,14 @@
+{
+  "status":"closed immutable quadratic source/witness foundation",
+  "production_admitted":false,
+  "security_qualified":false,
+  "scope":"one exact homogeneous G2 double/add transition; no curve/subgroup/infinity proof or VM packet",
+  "program":{"double_writes":24,"add_writes":22,"initial_values_double":9,"initial_values_add":10,"max_values":40,"IDs":"strictly source-topological; no advice IDs or weights","constants":"half and BN254 twist B pinned literals"},
+  "double":{"operand_slots":6,"main":498,"byte_queries":353,"q_bytes":33,"carry_count":64,"carry_bits":17,"carry_offset":67424,"residual_positive":29809248,"residual_negative":29809756},
+  "add":{"operand_slots":10,"main":626,"byte_queries":353,"q_bytes":33,"carry_count":64,"carry_bits":17,"carry_offset":67424,"residual_positive":29809262,"residual_negative":29809501},
+  "line_normalization":{"double":"canonical h,j,i; signed line (-h,3j,i)","add":"canonical lambda,theta,j; signed line (lambda,-theta,j)"},
+  "checks":["20 edge/mixed point cases per class against independent Fq2 formulas","four exact generator/nontrivial homogeneous vectors from existing complete pairing oracle at94d996702","every result/quotient/carry coordinate mutation rejects","every writer coherent result+p passes ranges/integer carries but fails canonical certificate","immutable operand IDs precede writers and exact fanout includes all point/line exports","existing dense source/witness regressions"],
+  "command":"zig test src/frontends/riscv/rv64_bn254_g2_test_root.zig -O ReleaseSafe",
+  "pending":["physical AIR/degree3 qualification","local SSA/BYTE closure and initial/export authority","whole-request program and global VM memory joins","resource/security and recursive receiver qualification"],
+  "performance_claim":"none"
+}

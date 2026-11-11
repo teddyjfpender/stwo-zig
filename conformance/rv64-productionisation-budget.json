@@ -1004,11 +1004,66 @@
       "positive_growth_justification": "Pre-edit issue333 comment6752084383: apply pinned Zig0.15.2 canonical whitespace after path shortening. All changed Zig files are checked; only one declaration-array alignment differs. Preserve line counts, non-whitespace source bytes, literal strings and all protocol/source pins; no implementation or optimization change. Existing13-line P003 facade retains its separate16-line allowance."
     },
     {
+      "id": "op_canonical_main_port",
+      "net_code_budget": 400,
+      "flags_added_budget": 5,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Preserve existing OP test discovery and independent oracle coverage while porting onto canonical main: 50 existing focused steps, exact module-root declarations, bounded package binding and pure math/profile validators formerly imported from retired analysis launchers. No new proof protocol or runtime switch is introduced relative to the qualified OP head. The five pre-existing OP controls are now truthfully declared against main and remain qualification-only; retired lane overrides still reject. Source moves are not deletions.",
+      "scope": "Canonical port mechanics only; does not budget the historical OP implementation or admit a new service.",
+      "contract_decision": "https://github.com/teddyjfpender/stwo-zig/issues/374",
+      "rollback": "Revert the port transaction; never relax package, flag, source-identity, proof or fixture checks."
+    },
+    {
       "id": "csp_protocol_shape_source_contract",
       "net_code_budget": 5,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Pre-edit issue361: pin the exact already-shipped RISC-V Metal protocol manifest including typed ECDSA recovery; retain strict single-registration checks. Regenerate stale proof-independent shape coverage only with the existing pinned CPU inspector/audit entrypoints, complete16-case matrix and source identity; no hand-edited hash or performance/proof/GPU reclassification. Code growth is limited to the existing test contract; metadata/receipts reported separately."
+    },
+    {
+      "id": "op_package_focused_checks",
+      "net_code_budget": 64,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Route existing OP pairing, Horner and typed-projection roots through the canonical package developer entrypoint, preserving exact minimum discovery counts and semantic-check-only behavior. Avoid the full integration build for edits to these owners. No protocol, package contract or fixture is changed.",
+      "rollback": "Revert focused routing and registration together; retain all existing root tests and top-level gates."
+    },
+    {
+      "id": "op_retired_analysis_launchers",
+      "net_code_budget": -659,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "scripts_removed_target": 3,
+      "scope": "Retire rejected diagonal benchmark launcher/helper and frozen-only segmentation/retained-owner model launchers. Their embedded diagnostic tests retire with the scripts; live production parity and physical proof tests remain.",
+      "archive_commit": "cbccb102b577bf48debf38bf6559cff80fc874b3",
+      "ownership_rule": "No live import/build/test consumers; retain historical receipts byte-for-byte and link fixed archive sources in the existing reviews."
+    },
+    {
+      "id": "mantle_authenticated_capture_codec",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Preserve the original Mantle deposit bytes, EthValue/optional EthTxValue, transaction hashes and block transaction roots in capture-only reconstruction. A caller-owned explicit deposit specification keeps OP default encoding unchanged. Includes real-vector, parity and malformed-input rejection tests; no execution or proof admission.",
+      "issue": "https://github.com/teddyjfpender/stwo-zig/issues/377",
+      "rollback": "Revert the capture-only codec addition with its tests; retain the existing OP codec and all hash/root checks."
+    },
+    {
+      "id": "mantle_isolated_native_replay",
+      "net_code_budget": 300,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Isolate official Mantle-aware consensus/VM dependency versions in a private host-only Rust replay owner, without changing OP/Ethereum dependencies. Bounded authenticated preimages, pinned chain configuration and exact expected block hash are executable acceptance conditions. Includes provider/admission negative tests; no RV64 or proof admission claim. Existing hosted Kona lane also owns locked Mantle tests and can be selected for CPU-only diagnostics; <=20 net Python test/router lines counted separately from the <=300 Rust/test allowance.",
+      "issue": "https://github.com/teddyjfpender/stwo-zig/issues/377",
+      "rollback": "Remove private replay owner and its own tests/CI command together; retain the existing OP path and all hash/root checks."
+    },
+    {
+      "id": "mantle_rv64_execution_proof",
+      "net_code_budget": 900,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "issue": "https://github.com/teddyjfpender/stwo-zig/issues/377",
+      "positive_growth_justification": "Pre-edit Mantle guest/proof slice: reuse the independently qualified private execution core as alloc-only Rust, add a bounded versioned guest input and domain-separated 43-byte execution statement, one RV64 guest, and integrate existing build/benchmark entrypoints. Source/input/ELF/output identities are independently pinned, ordinary OP defaults and chain-10 admission remain unchanged. No new AIR, waist interface, service opcode or top-level launcher. Includes negative and parity tests; actual proving/recursion timings require fresh accepted proofs on a frozen build host.",
+      "rollback": "Remove Mantle guest/build selection and its tests together; retain qualified Mantle host replay and all OP/Ethereum admission checks."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

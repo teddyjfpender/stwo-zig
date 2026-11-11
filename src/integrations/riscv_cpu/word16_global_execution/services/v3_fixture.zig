@@ -130,9 +130,20 @@ pub const Captured = struct {
     /// Compact decode changes the AUIPC/JAL FUNCTION facts, so the capture
     /// program owner must already carry the layout.
     pub fn initWithLayout(a: std.mem.Allocator, compact_decode: bool) !Captured {
+        return initMode(a, compact_decode, false);
+    }
+    /// Inherited services under the explicit OP-only execution authority.
+    pub fn initForOp(a: std.mem.Allocator) !Captured {
+        return initMode(a, false, true);
+    }
+    pub fn initForOpWithLayout(a: std.mem.Allocator, compact_decode: bool) !Captured {
+        return initMode(a, compact_decode, true);
+    }
+    fn initMode(a: std.mem.Allocator, compact_decode: bool, op_only: bool) !Captured {
+        const profile: rv.execution_profile.Profile = if (op_only) .ethereum_services_op_v1 else .ethereum_services_v3;
         const program = try a.create(Program);
         errdefer a.destroy(program);
-        program.* = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+        program.* = try Program.initWithProfile(a, .{ .base = 4096, .words = &WORDS }, profile);
         errdefer program.deinit();
         if (compact_decode) try program.makeCompact();
         var memory = rv.memory.Memory.init(a, .{});
@@ -152,7 +163,7 @@ pub const Captured = struct {
         }
         var cpu = rv.machine.Cpu.init(4096, 0);
         cpu.regs = initialRegisters();
-        var session = try rv.ethereum_services.Session.initWithProfile(a, cpu, &memory, .{ .max_retirements = 64 }, .ethereum_services_v3);
+        var session = try rv.ethereum_services.Session.initWithProfile(a, cpu, &memory, .{ .max_retirements = 64 }, profile);
         defer session.deinit();
         const sizes = [2]u32{ SHARD0_STEPS, STEPS - SHARD0_STEPS };
         var tapes: [2]rv.compact_tape.Tape = undefined;
@@ -161,7 +172,7 @@ pub const Captured = struct {
         errdefer for (tapes[0..made]) |*t| t.deinit();
         for (sizes, &tapes, &boundaries) |steps, *tape, *boundary| {
             const c = &session.keccak.base.cpu;
-            tape.* = try rv.compact_tape.Tape.init(a, steps, c.pc, c.retired, .ethereum_services_v3);
+            tape.* = try rv.compact_tape.Tape.init(a, steps, c.pc, c.retired, profile);
             made += 1;
             boundary.* = .{ .steps = steps, .initial_pc = c.pc, .final_pc = undefined, .initial_registers = c.regs, .final_registers = undefined, .register_clocks = @splat(0) };
             for (0..steps) |local| {
@@ -184,9 +195,9 @@ pub const Captured = struct {
             boundary.final_registers = c.regs;
         }
         const loaded = session.keccak.base.cpu.regs[9];
-        var n0 = try Native.captureForCombinedServicesV3(a, program, boundaries[0], 1, CPU_LOG, &tapes[0], .{});
+        var n0 = if (op_only) try Native.captureForOpServices(a, program, boundaries[0], 1, CPU_LOG, &tapes[0], .{}) else try Native.captureForCombinedServicesV3(a, program, boundaries[0], 1, CPU_LOG, &tapes[0], .{});
         errdefer n0.deinit();
-        var n1 = try Native.captureForCombinedServicesV3(a, program, boundaries[1], 2, CPU_LOG, &tapes[1], .{});
+        var n1 = if (op_only) try Native.captureForOpServices(a, program, boundaries[1], 2, CPU_LOG, &tapes[1], .{}) else try Native.captureForCombinedServicesV3(a, program, boundaries[1], 2, CPU_LOG, &tapes[1], .{});
         errdefer n1.deinit();
         var advice = try C.collect(a, &.{ &n0, &n1 }, &.{ &tapes[0], &tapes[1] }, image());
         errdefer advice.deinit();

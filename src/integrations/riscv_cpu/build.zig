@@ -30,6 +30,7 @@ pub fn build(b: *std.Build) void {
         "stwo_cpu_backend",
         dependency_options,
     ).module("stwo_cpu_backend");
+    const cairo_frontend = b.dependency("stwo_cairo_frontend", dependency_options).module("stwo_cairo_frontend");
     const circuit_frontend = b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend");
     const circuit_cpu = b.dependency("stwo_circuit_cpu_integration", dependency_options).module("stwo_circuit_cpu_integration");
     const frontend_dependency = b.dependency(
@@ -55,6 +56,7 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_riscv_frontend", frontend);
+    integration.addImport("stwo_cairo_frontend", cairo_frontend);
     integration.addImport("stwo_circuit_frontend", circuit_frontend);
     integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     integration.addImport("stwo_circuit_recursion_wire", circuit_cpu.import_table.get("stwo_circuit_recursion_wire") orelse @panic("canonical circuit CPU provider is missing recursion wire"));
@@ -67,6 +69,9 @@ pub fn build(b: *std.Build) void {
         .{ .step = "test-distributed-binary-contracts", .root = "distributed_binary_contract_test_root.zig", .minimum = 13 },
         .{ .step = "test-division-contracts", .root = "division_contract_test_root.zig", .minimum = 7 },
         .{ .step = "test-services-truth-contracts", .root = "services_truth_contract_test_root.zig", .minimum = 22 },
+        .{ .step = "test-op-pairing-proof", .root = "rv64_op_pairing_mac12_test_root.zig", .minimum = 9 },
+        .{ .step = "test-op-pairing-horner", .root = "rv64_op_pairing_horner_test_root.zig", .minimum = 5 },
+        .{ .step = "test-op-pairing-r7-projection", .root = "rv64_op_pairing_r7_projection_test_root.zig", .minimum = 5 },
     }) |spec| {
         const root = b.createModule(.{ .root_source_file = b.path(spec.root), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
         var imports = integration.import_table.iterator();

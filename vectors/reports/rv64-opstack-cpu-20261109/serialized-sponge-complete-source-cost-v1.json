@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "status": "complete-serialized-source-admission-closed",
+  "source_class": {
+    "ordinal": 3,
+    "calls": 74,
+    "permutations": 210,
+    "logs": {
+      "descriptor": 7,
+      "state": 11,
+      "header": 8,
+      "word": 12,
+      "lane": 13
+    },
+    "maximum_gkr_layers": 26
+  },
+  "roles": [
+    {
+      "role": "descriptor",
+      "main": 74,
+      "fixed": 3,
+      "modeled_inter": 56,
+      "local": 47,
+      "padded_local": 64
+    },
+    {
+      "role": "state",
+      "main": 46,
+      "fixed": 3,
+      "modeled_inter": 48,
+      "local": 37,
+      "padded_local": 64
+    },
+    {
+      "role": "header",
+      "main": 44,
+      "fixed": 3,
+      "modeled_inter": 16,
+      "local": 28,
+      "padded_local": 32
+    },
+    {
+      "role": "word",
+      "main": 35,
+      "fixed": 3,
+      "modeled_inter": 32,
+      "local": 28,
+      "padded_local": 32
+    },
+    {
+      "role": "lane",
+      "main": 67,
+      "fixed": 3,
+      "modeled_inter": 32,
+      "local": 25,
+      "padded_local": 32
+    }
+  ],
+  "columns": {
+    "old_whole_sponge": 2513,
+    "candidate_whole_sponge": 465,
+    "old_whole_cpu": 5896,
+    "candidate_whole_cpu": 3848
+  },
+  "modeled_native_cells": {
+    "old": 494720,
+    "candidate": 1354112
+  },
+  "padded_local_facts": {
+    "old": 81920,
+    "candidate": 540672
+  },
+  "recursive_gkr_kernel_only": {
+    "scope": "synthetic-dimensions-no-binding-PCS-or-permutation",
+    "old": {
+      "raw": [
+        793,
+        87861,
+        58,
+        3456,
+        65536
+      ],
+      "native_mul": 3044
+    },
+    "candidate": {
+      "raw": [
+        802,
+        102282,
+        58,
+        4010,
+        65536
+      ],
+      "native_mul": 4598
+    }
+  },
+  "source_binding_tuple_coordinates": {
+    "old_call": 105,
+    "old_permutation": 535,
+    "descriptor": 533,
+    "state": 55,
+    "header": 406,
+    "word": 100,
+    "lane": 113
+  },
+  "physical_proof_qualified": false,
+  "security_qualified": false
+}

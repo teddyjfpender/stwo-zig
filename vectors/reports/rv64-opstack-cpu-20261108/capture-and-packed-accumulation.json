@@ -1,0 +1,936 @@
+{
+  "schema": "stwo.opstack.cpu-capture-and-packed-accumulation.v1",
+  "scope": "Complete selected heavy OP native bundle; four capture jobs and packed accumulation; no recursion",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "block": 121065789,
+  "instructions": 380167068,
+  "changed": [
+    "Capture max_inflight_packets 1 to 4 under the existing spill and byte budgets",
+    "Packed constraint accumulation updates native field coordinates in place"
+  ],
+  "control": "conjectured128_b2_q108_p20_fold4",
+  "comparison": {
+    "previous_produce_ns": 1298007255083,
+    "candidate_produce_ns": 1222972153084,
+    "previous_peak_rss_bytes": 51406520320,
+    "candidate_peak_rss_bytes": 53664169984
+  },
+  "qualification": {
+    "scope": "Complete selected heavy OP native bundle; four capture jobs and packed accumulation; no recursion",
+    "all_proof_and_statement_artifacts_identical": true,
+    "compared_artifact_count": 120,
+    "telemetry_exclusions": [
+      "proof/report.json",
+      "proof/schedule.json",
+      "proof/*.stages.json"
+    ],
+    "summary": {
+      "schema": "stwo.opstack.cpu-proof.v1",
+      "security_qualified": false,
+      "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "producer_setup": "ephemeral",
+      "gkr_storage": "default",
+      "setup_build_workers": 2,
+      "native_pool_workers": 16,
+      "batch_steps": 4194303,
+      "batch_steps_source": "explicit override",
+      "guest_instructions": 380167068,
+      "standalone_plan_requested": false,
+      "service_schedule": {
+        "lanes": 2,
+        "workers_per_lane": 8,
+        "memory_cap_bytes": 17179869184,
+        "heaviest_first": true
+      },
+      "receiver_setup": "independently rebuilt; no producer cache",
+      "receiver_source_keys": "identity-only",
+      "receiver_setup_workers": 4,
+      "receiver_requested_live_bytes": 34359738368,
+      "runner_sha256": "4f1cf41e0e4b5b7796ad2558a89dac634f9872532283e8b4ddf1317de7221513",
+      "harness_sha256": "01721cd1806aaf7bb042a3ceb67d915bd292a18f076cbe296b1e50a219188028",
+      "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+      "logical_cpus": 18,
+      "request_sha256": "51ffdef7f2c555160e1d1a268ed640bc3afa2ffe4c09a481e59b604b74432709",
+      "elf_sha256": "5e3a6b7fba09296780c5e4675c37a2f4e43a901a41ff0ea68d94a10996b859f5",
+      "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+      "proof_verified": true,
+      "stages": {
+        "produce": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-cpu-best-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "produce-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-best/request.json",
+            "-",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-best/proof",
+            "0",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-best/resources.json"
+          ],
+          "wall_ns": 1222972153084,
+          "peak_rss_bytes": 53664169984,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 8565.378133,
+          "system_cpu_s": 659.575028,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-cpu-best-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-best/request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-best/proof",
+            "4294967296",
+            "34359738368"
+          ],
+          "wall_ns": 32357880916,
+          "peak_rss_bytes": 7140671488,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 269.794761,
+          "system_cpu_s": 0.9535509999999999,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "tamper": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-cpu-best-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-best/request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-best/proof",
+            "4294967296",
+            "34359738368"
+          ],
+          "wall_ns": 478750667,
+          "peak_rss_bytes": 709066752,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 0.39933199999999996,
+          "system_cpu_s": 0.030629,
+          "returncode": 1,
+          "timed_out": false
+        },
+        "tamper-rehashed": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-cpu-best-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-best/request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-best/proof",
+            "4294967296",
+            "34359738368"
+          ],
+          "wall_ns": 32448430084,
+          "peak_rss_bytes": 7143817216,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 270.352369,
+          "system_cpu_s": 0.9782639999999999,
+          "returncode": 1,
+          "timed_out": false
+        }
+      },
+      "receiver": {
+        "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+        "security_qualified": false,
+        "security_target": {
+          "label": "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
+          "target_bits": 128,
+          "profile": "conjectured128_b2_q108_p20_fold4",
+          "assumption_set": "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v2-boundary23",
+          "conjectured_fri_bits": 128,
+          "scope": "native proof bundle; recursion excluded",
+          "proven_bound": false,
+          "independent_security_audit_complete": false,
+          "whole_protocol_128_certified": false
+        },
+        "security_profile": "conjectured128_b2_q108_p20_fold4",
+        "accepted": true,
+        "completed_ethereum_block": true,
+        "output": [
+          255,
+          190,
+          186,
+          22,
+          117,
+          174,
+          144,
+          200,
+          52,
+          62,
+          75,
+          255,
+          238,
+          225,
+          20,
+          204,
+          4,
+          60,
+          127,
+          109,
+          98,
+          62,
+          43,
+          131,
+          30,
+          24,
+          73,
+          244,
+          222,
+          33,
+          37,
+          70,
+          1,
+          10,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          79,
+          80
+        ],
+        "cpu_proofs": 91,
+        "truth_proofs": 24,
+        "load_and_setup_ns": 31375242959,
+        "setup_breakdown": {
+          "image_ns": 352946542,
+          "program_ns": 52084458,
+          "native_keys_ns": 6531310792,
+          "fixed_authority_ns": 24278830958,
+          "other_ns": 160068459
+        },
+        "verify_ns": 912206333,
+        "physical_verify_workers": 16,
+        "receiver_session_setup": null,
+        "receiver_session_budget": null,
+        "receiver_source_keys": "identity-only",
+        "fixed_setup": {
+          "limit_bytes": 4294967296,
+          "live_bytes": 1853242944,
+          "peak_bytes": 2972155376,
+          "keys": 55,
+          "hits": 0,
+          "seals": 55,
+          "loads": 0,
+          "refused": false,
+          "native_coefficients": {
+            "limit_bytes": 4294967296,
+            "retained_bytes": 261971584,
+            "native_backing_bytes": 261933696,
+            "groups": 295,
+            "hits": 8499,
+            "duplicate_native_bytes_released": 10525992448,
+            "observed_individual_owners": 8794,
+            "observed_backing_owners": 0,
+            "observed_spans": 8794,
+            "owner_leases": 56
+          }
+        },
+        "source_validations": 55,
+        "source_coefficient_cells": 2696981536,
+        "source_accounting_profile": "rv64-source-derived-services-v3-lookup/v1",
+        "source_shape": {
+          "native_proofs": 115,
+          "max_trace_log": 22,
+          "max_public_boundary_log": 20,
+          "max_columns": 7444,
+          "max_constraints": 7751,
+          "max_samples_per_column": 5,
+          "max_air_degree": 5,
+          "max_local_instances": 34,
+          "max_tuple_arity": 35,
+          "max_gkr_variables": 26,
+          "native_trace_cells": [
+            5348663200,
+            29548982720,
+            18508089856
+          ]
+        },
+        "source_lookup_only_conditional_degrees": {
+          "tuple_collision": 1956241001475734576,
+          "rational_identity": 10214655520,
+          "local_rational_identity": 9726463136,
+          "global_rational_identity": 488192384,
+          "poles": 10214655520
+        },
+        "receiver_budget": {
+          "live_bytes": 4157467380,
+          "peak_live_bytes": 5276380028,
+          "host_live_bytes": 4157467380,
+          "external_live_bytes": 0,
+          "peak_host_bytes": 5276380028,
+          "peak_external_bytes": 201326592,
+          "limit": 34359738368,
+          "exceeded": false
+        },
+        "receiver_recycler_cache_cap_bytes": 4294967296,
+        "receiver_worker_stack_upper_bound_bytes": 134217728
+      },
+      "tampered_proof_rejected": true
+    }
+  },
+  "measurement_limitations": [
+    "Single development run; compiler and tests overlapped parts of production. Not a quiet repeated benchmark.",
+    "Native execution/service bundle only; recursion excluded.",
+    "Telemetry report, schedule, and stage files are intentionally excluded from byte parity."
+  ],
+  "prefix_ab": {
+    "scope": "Matched first-segment diagnostic only, not full OP acceptance; cold ABBA with fresh prefix receivers and strict-complete refusal",
+    "records": [
+      {
+        "case": "control",
+        "produce": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-two-lanes-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "produce-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-request.json",
+            "-",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-0-control",
+            "1",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-two-lanes-resources.json"
+          ],
+          "wall_ns": 16935757375,
+          "peak_rss_bytes": 8958820352,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 104.722037,
+          "system_cpu_s": 5.208224,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-two-lanes-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-prefix-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-0-control",
+            "4294967296",
+            "25769803776"
+          ],
+          "wall_ns": 1683986250,
+          "peak_rss_bytes": 2858369024,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 7.933626,
+          "system_cpu_s": 0.17996099999999998,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "all_proofs_byte_identical": true,
+        "complete_block": false
+      },
+      {
+        "case": "pointer",
+        "produce": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "produce-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-request.json",
+            "-",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-1-pointer",
+            "1",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-two-lanes-resources.json"
+          ],
+          "wall_ns": 17535260208,
+          "peak_rss_bytes": 8958410752,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 106.926705,
+          "system_cpu_s": 5.3948,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-prefix-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-1-pointer",
+            "4294967296",
+            "25769803776"
+          ],
+          "wall_ns": 1709799125,
+          "peak_rss_bytes": 2862202880,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 8.087003,
+          "system_cpu_s": 0.18873199999999998,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "all_proofs_byte_identical": true,
+        "complete_block": false
+      },
+      {
+        "case": "pointer",
+        "produce": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "produce-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-request.json",
+            "-",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-2-pointer",
+            "1",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-two-lanes-resources.json"
+          ],
+          "wall_ns": 17411814625,
+          "peak_rss_bytes": 8954789888,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 108.777941,
+          "system_cpu_s": 5.474691,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-prefix-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-2-pointer",
+            "4294967296",
+            "25769803776"
+          ],
+          "wall_ns": 1753349250,
+          "peak_rss_bytes": 2859745280,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 8.193483,
+          "system_cpu_s": 0.18601099999999998,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "all_proofs_byte_identical": true,
+        "complete_block": false
+      },
+      {
+        "case": "control",
+        "produce": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-two-lanes-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "produce-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-request.json",
+            "-",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-3-control",
+            "1",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-two-lanes-resources.json"
+          ],
+          "wall_ns": 17929848917,
+          "peak_rss_bytes": 8955592704,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 112.10064,
+          "system_cpu_s": 5.502971,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/native-two-lanes-prover",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-prefix-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-accumulation-prefix-3-control",
+            "4294967296",
+            "25769803776"
+          ],
+          "wall_ns": 1728420500,
+          "peak_rss_bytes": 2861580288,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 8.295867,
+          "system_cpu_s": 0.191,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "all_proofs_byte_identical": true,
+        "complete_block": false
+      }
+    ]
+  },
+  "proof_manifest": {
+    "proof/cells.bin": {
+      "bytes": 24838636,
+      "sha256": "7cf9d0a1f22b2ac5630e8ce8d7325c89416d33c3aba15e6f4b5d75efc8615303"
+    },
+    "proof/cpu-0.bin": {
+      "bytes": 2998120,
+      "sha256": "282a35ded216c96864ffe682c6337afdc14477cb2ed7e2ebfc5284e398a4482f"
+    },
+    "proof/cpu-1.bin": {
+      "bytes": 3034040,
+      "sha256": "d6aee9e1909fd6e7186158ebbb8ab6c19bc953cdbefea67e0a59547a6bd9daff"
+    },
+    "proof/cpu-10.bin": {
+      "bytes": 2859816,
+      "sha256": "1f59dad8c5c82d9571a04153579e8861b1df8453b067d1de4d3e2912f5b5263a"
+    },
+    "proof/cpu-11.bin": {
+      "bytes": 2854472,
+      "sha256": "70de87c1343a4b1072f15b4522ef9907cd74757d3fb76f71afd9a207a4c9dce9"
+    },
+    "proof/cpu-12.bin": {
+      "bytes": 2860616,
+      "sha256": "e8280d8b902a9c9d9dd9c4371780589dbb77080a874dafcbf409c3276048c83f"
+    },
+    "proof/cpu-13.bin": {
+      "bytes": 2859272,
+      "sha256": "89c234808130c826ba4250e835e7092501e608eedd658f915d95af4215515b58"
+    },
+    "proof/cpu-14.bin": {
+      "bytes": 2849096,
+      "sha256": "cb459c6f85481d48042d4bb725ee4fb204e2d9c2b305c76b0e70cbf14b109ef2"
+    },
+    "proof/cpu-15.bin": {
+      "bytes": 2869648,
+      "sha256": "71032419d55ec3fffb5fd70a0b1b53d3fd6c1d7cbde22be8237a4b358e35c09b"
+    },
+    "proof/cpu-16.bin": {
+      "bytes": 2849704,
+      "sha256": "27d1238f5b2d2bc11212bf3193d568691f71b6805cecefd716d08a23fdd6ee5e"
+    },
+    "proof/cpu-17.bin": {
+      "bytes": 2908872,
+      "sha256": "28336d38187cc4909b84e87c166e0ead70229c328953f722e267e269ecc7087e"
+    },
+    "proof/cpu-18.bin": {
+      "bytes": 2917424,
+      "sha256": "3c65d3c3ec6ccec7fa24118bc87596e7375b8dbbb9f28b6fde6a033fb4062eb3"
+    },
+    "proof/cpu-19.bin": {
+      "bytes": 2888760,
+      "sha256": "dd09d1a4da0bec18679650c0fe3076036104826be1a5bf832e27c9160df9be01"
+    },
+    "proof/cpu-2.bin": {
+      "bytes": 2928584,
+      "sha256": "2bd028399f07989e6d99b50d7c1d56278331786d1f04f3e091559e6e7653a147"
+    },
+    "proof/cpu-20.bin": {
+      "bytes": 1729048,
+      "sha256": "36c4490496fd7e69d698356cf4e8d15fafe32536bfff3bcab2ac139cec0aedba"
+    },
+    "proof/cpu-21.bin": {
+      "bytes": 2846952,
+      "sha256": "e6dc98291fd9dd7d86d126196b308521fd3bfb4d28cac7ccc9033210f7d63833"
+    },
+    "proof/cpu-22.bin": {
+      "bytes": 2855048,
+      "sha256": "2f7d53e907cf55849e96726696ee32e82a1adc6eded259ed23fa662669f739f4"
+    },
+    "proof/cpu-23.bin": {
+      "bytes": 2937680,
+      "sha256": "373674b0c7564081b9bf5d218635f0d8be20986eba22880bb841b708aca0ed50"
+    },
+    "proof/cpu-24.bin": {
+      "bytes": 2901024,
+      "sha256": "e82ccc9f430f159b8adfd8f257a6922725bc2622630004a8e63bc09c591d9cb2"
+    },
+    "proof/cpu-25.bin": {
+      "bytes": 2898464,
+      "sha256": "acae9e3b7f0b83efd0012e9abb3e28c9058b929ce3caae5633668a75929e6c30"
+    },
+    "proof/cpu-26.bin": {
+      "bytes": 2909312,
+      "sha256": "11a50bdb92da8358a1706f91336499ca1bcee2d6ca7bcd7e718207176d8bc5e0"
+    },
+    "proof/cpu-27.bin": {
+      "bytes": 2904288,
+      "sha256": "01a9e88a2d8b290e35c14b1fc0d11ec03c358dfadd1e3574b2b83a6a8890c4bf"
+    },
+    "proof/cpu-28.bin": {
+      "bytes": 2900704,
+      "sha256": "08a8a1ed9b08b04f2ff8075769eb5cb40e1d8e1d9f09e9e863f73533cfe58f6a"
+    },
+    "proof/cpu-29.bin": {
+      "bytes": 2829528,
+      "sha256": "72f6bd7633e5c26b7305df76247daedfe79393effa9b81e7ed0b0aa11594ffae"
+    },
+    "proof/cpu-3.bin": {
+      "bytes": 3176600,
+      "sha256": "df4fc27ce684120b0a4553f0dd999e5ab1d4a5f26c34b51318622de8ffb2a6f7"
+    },
+    "proof/cpu-30.bin": {
+      "bytes": 2844448,
+      "sha256": "30f2dd54ae56ee6acbfa64a0eca94090cce57d8ee0ea6af982e4ef614a1bd49d"
+    },
+    "proof/cpu-31.bin": {
+      "bytes": 2948880,
+      "sha256": "69ec7a48d9a8fb095a584e2e7e25d4ffde845ff81052049abafece2759d6b96b"
+    },
+    "proof/cpu-32.bin": {
+      "bytes": 1437200,
+      "sha256": "01568cd7fb10337d705a952d502fe6f576d4c0b12b5064aac12702f55b6ba1a5"
+    },
+    "proof/cpu-33.bin": {
+      "bytes": 2877232,
+      "sha256": "ecfbd1bd10e37bed89f1dff03001ce9127775cff19e15b5c726937b1a0d91e4e"
+    },
+    "proof/cpu-34.bin": {
+      "bytes": 2805076,
+      "sha256": "a904311b695b858fbb2deec222d0ab3f39713e0e256712769f566df1f72d7a46"
+    },
+    "proof/cpu-35.bin": {
+      "bytes": 2861608,
+      "sha256": "99cff5ce887551eee962a90b5a14ceaaec74e92fb1375495a72e1fd58c04bea8"
+    },
+    "proof/cpu-36.bin": {
+      "bytes": 2862216,
+      "sha256": "694f0d10f5f45bb954fb3b187056e18e2be3db6560adb228ccca3a0d919d01e2"
+    },
+    "proof/cpu-37.bin": {
+      "bytes": 2856680,
+      "sha256": "941d2d47fa5a64302424e0b8f101e72fa669c50961df09e4829b2f4f8b563264"
+    },
+    "proof/cpu-38.bin": {
+      "bytes": 2848616,
+      "sha256": "3b07e1dc67f7c0f58611ab47b7aafaa860146e12314a23c96c875e23709a8224"
+    },
+    "proof/cpu-39.bin": {
+      "bytes": 2850984,
+      "sha256": "f25392dcdcd0b414ca93bfc02a21b45ba4d4abfcd00adbfe15a6b9541ae57c78"
+    },
+    "proof/cpu-4.bin": {
+      "bytes": 2959416,
+      "sha256": "beddc81824d1bc4a7f43eabceb16a1f63b36e2d67775ebf200a5f1537bae6b12"
+    },
+    "proof/cpu-40.bin": {
+      "bytes": 2852520,
+      "sha256": "4b433bcc367a1d243c1a3120bb0ea882d97250e286d95cd254577b9c8fd3a642"
+    },
+    "proof/cpu-41.bin": {
+      "bytes": 2856072,
+      "sha256": "c8ba07fdb6e5d918fcbbddc494262bc6d1e7786a685758be4906718fa6b228da"
+    },
+    "proof/cpu-42.bin": {
+      "bytes": 2852552,
+      "sha256": "907cc88a58fd6eef723a051467b03816ced93b3e8d48ad7c37812d3b98f0e62b"
+    },
+    "proof/cpu-43.bin": {
+      "bytes": 2859720,
+      "sha256": "2c0c80900cdc83d54efc16ce3c5d39881d534a1226e06deddd486b73e2cb908d"
+    },
+    "proof/cpu-44.bin": {
+      "bytes": 2842344,
+      "sha256": "3a04e77392f3922f4c082f34358cb4b295327585fe035ee4981b632377106493"
+    },
+    "proof/cpu-45.bin": {
+      "bytes": 2902336,
+      "sha256": "18cd916e63c9e9de7afd4abc7f75dff12db5b5a1d303e18388a25cc0135d85af"
+    },
+    "proof/cpu-46.bin": {
+      "bytes": 2936720,
+      "sha256": "31394b5a38e55a70dd996d8ff59cce581b9539410ff6c9124e22ede190c2e2e9"
+    },
+    "proof/cpu-47.bin": {
+      "bytes": 2866672,
+      "sha256": "853b8ecb43426bd63aff3dbd183477ad9b35537f0b87ce7ff1daf46fcb42ad87"
+    },
+    "proof/cpu-48.bin": {
+      "bytes": 2881392,
+      "sha256": "70575ee882afdc63a8990bc606557854222fc74fc6f0ee040bcb557ef33390da"
+    },
+    "proof/cpu-49.bin": {
+      "bytes": 2945592,
+      "sha256": "e21c477dc8bd790cf73fdff276e13777fbcb482074e80ad57191d85a48811a46"
+    },
+    "proof/cpu-5.bin": {
+      "bytes": 2867856,
+      "sha256": "5f9bf9b64ac1a49c14bbaca385ef9e631f3501f427c5da2a8623fba848a82e94"
+    },
+    "proof/cpu-50.bin": {
+      "bytes": 2901664,
+      "sha256": "000ed79f72c96bf3b5db7c57e6533016a52f04bf1b058e2ef453a4fe94f87041"
+    },
+    "proof/cpu-51.bin": {
+      "bytes": 2813208,
+      "sha256": "f3e1f58e903a2a4f04b4f4081dd62800e3d04057a885a2ae381d1bc98279f01e"
+    },
+    "proof/cpu-52.bin": {
+      "bytes": 2850848,
+      "sha256": "2ae883a12ceb3422395fdfd8e84b73698dfd19a1cc228d28c541ff06e2ebdd69"
+    },
+    "proof/cpu-53.bin": {
+      "bytes": 2812952,
+      "sha256": "a8a287398f360ae2d7d09b3fece757abcc54327ec8aa8a974fedca99b98a80fa"
+    },
+    "proof/cpu-54.bin": {
+      "bytes": 2870320,
+      "sha256": "720611b0d42a3f12971714896ccfb1fb65e22c5c5ffca9ded99a981de8182aa1"
+    },
+    "proof/cpu-55.bin": {
+      "bytes": 2883664,
+      "sha256": "a162bb8a66528bc04c592894627763e70c48847eb3e46a301ef27fabbb6d64b4"
+    },
+    "proof/cpu-56.bin": {
+      "bytes": 2854824,
+      "sha256": "dd7752bd176c51eeceebe2d5ab38a2c8fc7dbe920e8411dd52fb0a3641a13567"
+    },
+    "proof/cpu-57.bin": {
+      "bytes": 2853096,
+      "sha256": "0d9ca5cb6514543e2143f9ea3272f914a2e6e2e91887f60b44462b44b5eb78d0"
+    },
+    "proof/cpu-58.bin": {
+      "bytes": 2853000,
+      "sha256": "f4649727e32e97c53faf64dc9cb930448c858e8b94b0298da2d07f69e5b4d43a"
+    },
+    "proof/cpu-59.bin": {
+      "bytes": 2850024,
+      "sha256": "5eb4cb2fcf03b1643ddc69a790cad3b7961d49f94be79bce2b249483d34c8ada"
+    },
+    "proof/cpu-6.bin": {
+      "bytes": 2882936,
+      "sha256": "d200d0e4ffc5ebf23abe67b5ed746d70c809aa95173da32fdf8db2e12163529a"
+    },
+    "proof/cpu-60.bin": {
+      "bytes": 2906728,
+      "sha256": "667c1000c792a8653c3911f1b6b6208c1b5a21e30839fcc1179e17c05d41d402"
+    },
+    "proof/cpu-61.bin": {
+      "bytes": 2922256,
+      "sha256": "4481336e9262ab8bd73253c3722f36090d3b53a1172abdc0a3d6b13512700ca7"
+    },
+    "proof/cpu-62.bin": {
+      "bytes": 2898648,
+      "sha256": "e57db7d808d0ced2354ed91b44fcecdea3d9a643fcc3124bcfca5a67aeac18e2"
+    },
+    "proof/cpu-63.bin": {
+      "bytes": 1712352,
+      "sha256": "75443bfcea93d8683bb6f3ba7f6d63af9e05395735091d61f1d64d0bce103ff9"
+    },
+    "proof/cpu-64.bin": {
+      "bytes": 2852872,
+      "sha256": "42a9b5797ba9e5963f8f26ea4862f1f018eab668f3187b5b2b743cfa87ef2581"
+    },
+    "proof/cpu-65.bin": {
+      "bytes": 2856520,
+      "sha256": "7f85389853271ee5e6f71db1d53433f8b43db84ba10bae99f0620dfa7a6db2ae"
+    },
+    "proof/cpu-66.bin": {
+      "bytes": 2851912,
+      "sha256": "faf6afa840c47d289b649ef6ac4d7ad6d7649966ce883c0fc28222025eeefc39"
+    },
+    "proof/cpu-67.bin": {
+      "bytes": 2953904,
+      "sha256": "a1a85db3d21ebb27dafb7dcd5dc78b41afd0b6002773fa7589c427fd340429c1"
+    },
+    "proof/cpu-68.bin": {
+      "bytes": 2911712,
+      "sha256": "3c04c6ba76e585a18b87126c4d88dd399f53322b0b02360f8aef6f9e0e12acd5"
+    },
+    "proof/cpu-69.bin": {
+      "bytes": 2897888,
+      "sha256": "b7f1a218d6f6c1f5b7a996451a2021e1c965f4fcdeef53f97d8aa27b69cceadc"
+    },
+    "proof/cpu-7.bin": {
+      "bytes": 2840256,
+      "sha256": "017836144ba10fdd98cf69cde34ff9e4118e35a694ddb2e71ab9e37747271b04"
+    },
+    "proof/cpu-70.bin": {
+      "bytes": 2920192,
+      "sha256": "b4f4388b8979bae08fb0dc662bf8aa911b030b0f278182c8da791d5c493bf264"
+    },
+    "proof/cpu-71.bin": {
+      "bytes": 2896192,
+      "sha256": "dcc063d0ca33f7f980d0c881df2b5ea693a5a530d581e75c65efe405386c671a"
+    },
+    "proof/cpu-72.bin": {
+      "bytes": 2907840,
+      "sha256": "104280118a1e8fc1dba99499705d7cbec13ff3a4d0381321b451b691045744ae"
+    },
+    "proof/cpu-73.bin": {
+      "bytes": 2814264,
+      "sha256": "34aca15068aa83f58537ca4dd8af981a859149b2fac05039e21a375507743b58"
+    },
+    "proof/cpu-74.bin": {
+      "bytes": 2942192,
+      "sha256": "6112a76f04a84cebef1051244ce2785b3dc91eb44a0dce423d16ff0223f09312"
+    },
+    "proof/cpu-75.bin": {
+      "bytes": 1486200,
+      "sha256": "35ac0a2657427ee10d87aa2ac823aa19b8a3e822df81ac0911ac7421b1bc8654"
+    },
+    "proof/cpu-76.bin": {
+      "bytes": 2864880,
+      "sha256": "f7fa9427b73e54193cae7cfa058acd65dc6efa302246c246d2f1305ff24d684b"
+    },
+    "proof/cpu-77.bin": {
+      "bytes": 2819640,
+      "sha256": "7f90e32d24f3c3670be41760bf37c243573fac1fd18dc399b7c1b239f257b4d2"
+    },
+    "proof/cpu-78.bin": {
+      "bytes": 2858152,
+      "sha256": "8c190dcea2dde35cec2b012dde6451b72464a38e72cd5b911eb261ef13fc8368"
+    },
+    "proof/cpu-79.bin": {
+      "bytes": 2850856,
+      "sha256": "12b8b72b257dfe1de8eb5f12b894deb0c848acc5521afda0f610649ff3671efe"
+    },
+    "proof/cpu-8.bin": {
+      "bytes": 2839008,
+      "sha256": "24d5a08db494e0477bf7c1f541de2a1dbe1a14b402068119768778fe9f9ace3e"
+    },
+    "proof/cpu-80.bin": {
+      "bytes": 2856872,
+      "sha256": "fa7ce2e9b13a427c221e03d981ff3392f624264ab82a55105273f73e4cb61f3a"
+    },
+    "proof/cpu-81.bin": {
+      "bytes": 2856104,
+      "sha256": "1fbc5208f3236122778c874e1005e045b5912b6e44d1916fd8126ac8e1dc1261"
+    },
+    "proof/cpu-82.bin": {
+      "bytes": 2859976,
+      "sha256": "44c3d89de683811a18f57ced3fc6b4d1599968171a2ca39bededf571364c76ca"
+    },
+    "proof/cpu-83.bin": {
+      "bytes": 2857544,
+      "sha256": "9046b2cd178d07b6b7d31bd767a8ffb4a1f88d6df8138cca877c196d450a9295"
+    },
+    "proof/cpu-84.bin": {
+      "bytes": 2852552,
+      "sha256": "e5b09260b1593b5fe46a69eafce76e719b3c954a85f604e7efbab547caf48861"
+    },
+    "proof/cpu-85.bin": {
+      "bytes": 2856104,
+      "sha256": "917e724d9a30d3242f0b5b294488064d8de93d66508986d0bbb4d841ca2c23cb"
+    },
+    "proof/cpu-86.bin": {
+      "bytes": 2856424,
+      "sha256": "10c7551d38c2b764f8dce03505a94bd282bac85f802e528915ae1282e5350aac"
+    },
+    "proof/cpu-87.bin": {
+      "bytes": 2845480,
+      "sha256": "ae57aa159e37f15b994d01732957db0bdcd0d6d0729b76baecddb7f68a1f732a"
+    },
+    "proof/cpu-88.bin": {
+      "bytes": 2857224,
+      "sha256": "2a4a5f140911160258b56c1f692409eb7c5548033cd4a061ec48c31594d29c9b"
+    },
+    "proof/cpu-89.bin": {
+      "bytes": 2566504,
+      "sha256": "12887d900c596f55ac6e67c1e2cecc61235012c436eac38eecd5cb586c4ea220"
+    },
+    "proof/cpu-9.bin": {
+      "bytes": 2877584,
+      "sha256": "0ac264c43603e68d03558b4d333d20a237e0e102aed36adaa39fbb274d0cb198"
+    },
+    "proof/cpu-90.bin": {
+      "bytes": 2616544,
+      "sha256": "2231d0beba4a1d54d5ae96acc1989f8f0544ae92732cc348db56bf13e5294105"
+    },
+    "proof/stage-one.bin": {
+      "bytes": 10157508,
+      "sha256": "82453b53801264f068682d39e9e551e9e806afb597929f4cb41684fcf868d7dc"
+    },
+    "proof/truth-0.bin": {
+      "bytes": 2351272,
+      "sha256": "0c27ebfaa98035472c9e3bc49d6d08a630edff7745b593537a8ef22bd376c4f8"
+    },
+    "proof/truth-1.bin": {
+      "bytes": 2346056,
+      "sha256": "61b6b5242eb9f16c24232a99b815e04231d827cb25b933d21621483882ac8a12"
+    },
+    "proof/truth-10.bin": {
+      "bytes": 921160,
+      "sha256": "b9081278104aeb260bd942b10368052dfee1b2aab6ed258caa1c5eeecfddf6b3"
+    },
+    "proof/truth-11.bin": {
+      "bytes": 1780624,
+      "sha256": "9a59a56ab479df2449bdbedef9926a282b4c2b49e9bf9db29076f225e6560b65"
+    },
+    "proof/truth-12.bin": {
+      "bytes": 1682192,
+      "sha256": "902da8f86272d8aa8665b525e8021ea3d10bfbd6ddda8e0ab57a6c4b63f398c5"
+    },
+    "proof/truth-13.bin": {
+      "bytes": 1108608,
+      "sha256": "b8459e764caa9d364d457c071912c2021f34957cc2bad9e4d455568a03a08632"
+    },
+    "proof/truth-14.bin": {
+      "bytes": 1118176,
+      "sha256": "3f3edff31ab9845ca7b35c4ba4301a95ddfd7fa1e37351e23e985862e4b9f173"
+    },
+    "proof/truth-15.bin": {
+      "bytes": 1117728,
+      "sha256": "64b079f377ba1d849c7697aa8b977b738054e2a5912b1f4a07bc777a0a14fe01"
+    },
+    "proof/truth-16.bin": {
+      "bytes": 1112864,
+      "sha256": "dbb983ded964896e3a40f612d8cec8faf8ca2aad09e787237911cf63e0dd3daf"
+    },
+    "proof/truth-17.bin": {
+      "bytes": 1109152,
+      "sha256": "e7863845f704027fafdb91576916ac013cc397d36e8ee10d4a68bb84e9834391"
+    },
+    "proof/truth-18.bin": {
+      "bytes": 1117696,
+      "sha256": "e57e5c47df8a9573b7fc53b58ae9c3402fe912525ad6063d51cad78a2cd4078f"
+    },
+    "proof/truth-19.bin": {
+      "bytes": 1112224,
+      "sha256": "367b8eddb2a42853038d430230c4fb239f17b3d2f4be18375fb506f47de418df"
+    },
+    "proof/truth-2.bin": {
+      "bytes": 2340232,
+      "sha256": "cab4485f8214ed72c342565b0a22c9ba894ea026ee66a78bcba9f7613f29130a"
+    },
+    "proof/truth-20.bin": {
+      "bytes": 1116352,
+      "sha256": "e40b0b3107e3fc4d4eda62e942f52f4c785b6ee369db9feafcad2517f7cd3143"
+    },
+    "proof/truth-21.bin": {
+      "bytes": 1116800,
+      "sha256": "f046a943ba9453d558cb7ce4b8f8116eef74a6a9b78e2de69cb5f4eee4880119"
+    },
+    "proof/truth-22.bin": {
+      "bytes": 1109440,
+      "sha256": "7030bd4ea9e4123860529e64d400df4a235ecb24a2e715a2262d314088762857"
+    },
+    "proof/truth-23.bin": {
+      "bytes": 1081408,
+      "sha256": "9d752469c0b893c9002cc8b86b0700de0d4a3576a1c078eb894651755f1e43eb"
+    },
+    "proof/truth-3.bin": {
+      "bytes": 2345672,
+      "sha256": "d20223a4348fbea86a518a40aa9045376903ae97332f77591bc9abe948d93e61"
+    },
+    "proof/truth-4.bin": {
+      "bytes": 3460448,
+      "sha256": "d48e5b71ee699084d7342dd8b2b1bd3a7ce2c1226ba19cce48bec7e0c537c108"
+    },
+    "proof/truth-5.bin": {
+      "bytes": 2690948,
+      "sha256": "461e10f1a5c9bfc62c6184b75476a65dc966f71cfb4dfb83b62249cdb27802eb"
+    },
+    "proof/truth-6.bin": {
+      "bytes": 2620856,
+      "sha256": "9030132eb86a7fe5739d098d7f8d743771272cdf73413a622dc361ca95279cc5"
+    },
+    "proof/truth-7.bin": {
+      "bytes": 2329632,
+      "sha256": "3ce81f95dd88efac405aa67e973d2ec1d3b9fe0a448a60a8a799591dd2fc495b"
+    },
+    "proof/truth-8.bin": {
+      "bytes": 3573368,
+      "sha256": "64d191bd2bcb39880678e7c9f4a2b3dadc0d012d226836963a50c6ad5b2a977f"
+    },
+    "proof/truth-9.bin": {
+      "bytes": 918452,
+      "sha256": "d99a581141ec458bf7e61871fb8005926f5516359bd8c35c7e9a1c383710282e"
+    }
+  }
+}

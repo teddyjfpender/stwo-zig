@@ -152,6 +152,7 @@ pub fn cpu(a: std.mem.Allocator, input: anytype, values: *const V.Captured) ![][
             .bulk => |kind| rows = input.request.bulk.rows(kind),
             .sponge => |kind| rows = input.request.sponge.rows(kind),
             .dword => |index| rows = dword[index],
+            .tower => return error.UnsupportedTowerCpuRecursion,
         }
         try emit.word(rows);
         try emit.word(calls);

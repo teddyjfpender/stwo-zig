@@ -1,0 +1,38 @@
+{
+  "schema": "stwo.opstack.heavy-cpu-target.v1",
+  "goal": "At least 10x lower complete CPU execution-proof production time, from execution/capture through the recursive execution root",
+  "case": {
+    "chain_id": 10,
+    "block": 121065789,
+    "expected_output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+    "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+    "upstream_fixture_sha256": "c1fdfe9ff955c6b8efaa23323bfc80247bebb1e0c34da666ff1264e0283eff66"
+  },
+  "baseline": {
+    "hardware": "Apple M5 Max, 64 GiB, 18 cores",
+    "guest_instructions": 380167068,
+    "guest_elf_sha256": "5e3a6b7fba09296780c5e4675c37a2f4e43a901a41ff0ea68d94a10996b859f5",
+    "native_profile": "d2_native_b4_q54_p20_fold4",
+    "outer_profile": "stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1",
+    "native_produce_ns": 1586092292291,
+    "recursive_produce_ns": 1742353364209,
+    "combined_produce_ns": 3328445656500,
+    "native_members": 115,
+    "recursive_nodes": 173,
+    "scope": "Existing complete D2 qualifications: sum of separate native and recursive producer commands, not a controlled median."
+  },
+  "required_speedup": 10,
+  "maximum_combined_produce_ns": 332844565650,
+  "acceptance": [
+    "Same complete fixture and expected public output. Smaller blocks and prefixes do not qualify.",
+    "Count execution, capture, witness construction, setup, native proving and all wrapping/folding through the root. Report fresh reception and corruption controls separately.",
+    "A new guest ELF needs regenerated ABI symbols and native/independent execution agreement.",
+    "CPU only, same hardware and bounded resources. Use repeated quiet runs after correctness gates.",
+    "Keep the 128-bit security target under documented assumptions. New cryptographic suites require explicit review and physical qualification; no whole-protocol certificate is claimed.",
+    "Close authenticated RAM and every service relation. No omitted truth providers or unchecked host answers."
+  ],
+  "not_eligible_as_substitutes": [
+    120794432,
+    121057303
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "schema": "op-p2-diagonal-rejected-v1",
+  "status": "rejected-no-material-steady-state-gain",
+  "candidate": "Rotate canonical 31-bit M31 values for power-of-two Poseidon2 internal diagonal, retaining generic circuit equations",
+  "tests": "87 focused ReleaseSafe field/hash/dense matrix tests passed",
+  "benchmark": "Four-lane whole permutation, 10000 chained permutations per sample, seven balanced paired trials, ReleaseFast M5 Max",
+  "samples": [
+    {
+      "trial": 0,
+      "rotation": true,
+      "ns": 24311083,
+      "checksum": 390562768
+    },
+    {
+      "trial": 0,
+      "rotation": false,
+      "ns": 18728125,
+      "checksum": 390562768
+    },
+    {
+      "trial": 1,
+      "rotation": false,
+      "ns": 16059459,
+      "checksum": 390562768
+    },
+    {
+      "trial": 1,
+      "rotation": true,
+      "ns": 14540000,
+      "checksum": 390562768
+    },
+    {
+      "trial": 2,
+      "rotation": true,
+      "ns": 13803375,
+      "checksum": 390562768
+    },
+    {
+      "trial": 2,
+      "rotation": false,
+      "ns": 12830375,
+      "checksum": 390562768
+    },
+    {
+      "trial": 3,
+      "rotation": false,
+      "ns": 12464375,
+      "checksum": 390562768
+    },
+    {
+      "trial": 3,
+      "rotation": true,
+      "ns": 12232250,
+      "checksum": 390562768
+    },
+    {
+      "trial": 4,
+      "rotation": true,
+      "ns": 12181666,
+      "checksum": 390562768
+    },
+    {
+      "trial": 4,
+      "rotation": false,
+      "ns": 12157625,
+      "checksum": 390562768
+    },
+    {
+      "trial": 5,
+      "rotation": false,
+      "ns": 12091375,
+      "checksum": 390562768
+    },
+    {
+      "trial": 5,
+      "rotation": true,
+      "ns": 12102250,
+      "checksum": 390562768
+    },
+    {
+      "trial": 6,
+      "rotation": true,
+      "ns": 12224792,
+      "checksum": 390562768
+    },
+    {
+      "trial": 6,
+      "rotation": false,
+      "ns": 12211833,
+      "checksum": 390562768
+    }
+  ],
+  "late_trial_medians_ns": {
+    "general_multiply": 12184729.0,
+    "rotation": 12203229.0
+  },
+  "ratio_general_over_rotation": 0.9984840077982639,
+  "scope": "Microbenchmark only. Visible warm-up drift; no full-proof performance claim. Candidate source removed rather than expanding production abstractions without evidence.",
+  "retained_reproduction": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/p2-diagonal-rejected-v1",
+  "production_source_changed": false
+}

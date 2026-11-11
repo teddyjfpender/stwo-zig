@@ -1,0 +1,93 @@
+{
+  "scope": "instruction counts attributed to ELF symbols for exact anchored batch-verified RV64 execution",
+  "input_sha256": "bae3a618357459a8a136b16c300e395841aa7c4f1c061886f71be8812eca4b25",
+  "elf_sha256": "f9a78cf31521797d8206e9b3d5d930e62249f0f73445aebb7b24fe8eadc92953",
+  "instructions": 5185015337,
+  "output": "3c68ba4f99670164c5660cf8b46df57b4c70c5d1335dabdf539f887e0f991040010a000000000000004f44",
+  "verified_output": true,
+  "attributed": 5185015331,
+  "unmapped": 6,
+  "outside": 0,
+  "top_symbols": [
+    {
+      "symbol": "brotli_decompressor::decode::ProcessCommandsInternal::<alloc_no_stdlib::stack_allocator::StackAllocator<u8, kona_protocol::brotli::decompress_brotli::MemPool<u8>>, alloc_no_stdlib::stack_allocator::StackAllocator<u32, kona_protocol::brotli::decompress_brotli::MemPool<u32>>, alloc_no_stdlib::stack_allocator::StackAllocator<brotli_decompressor::huffman::HuffmanCode, kona_protocol::brotli::decompress_brotli::MemPool<brotli_decompressor::huffman::HuffmanCode>>>",
+      "instructions": 786964740
+    },
+    {
+      "symbol": "sha2::sha256::compress256",
+      "instructions": 700979682
+    },
+    {
+      "symbol": "<ark_ff::fields::models::fp::montgomery_backend::MontBackend<ark_bls12_381::fields::fr::FrConfig, 4> as ark_ff::fields::models::fp::FpConfig<4>>::mul_assign",
+      "instructions": 428261094
+    },
+    {
+      "symbol": "memcpy",
+      "instructions": 403573462
+    },
+    {
+      "symbol": "miniz_oxide::inflate::core::decompress_fast",
+      "instructions": 379927191
+    },
+    {
+      "symbol": "stwo_kona_execution::anchored_blobs::evaluate_blob",
+      "instructions": 349325569
+    },
+    {
+      "symbol": "<ark_ff::fields::models::fp::montgomery_backend::MontBackend<ark_bls12_381::fields::fr::FrConfig, 4> as ark_ff::fields::models::fp::FpConfig<4>>::from_bigint",
+      "instructions": 348223367
+    },
+    {
+      "symbol": "kona_protocol::brotli::decompress_brotli",
+      "instructions": 285752613
+    },
+    {
+      "symbol": "<ark_ff::fields::models::fp::montgomery_backend::MontBackend<ark_bls12_381::fields::fq::FqConfig, 6> as ark_ff::fields::models::fp::FpConfig<6>>::mul_assign",
+      "instructions": 170695464
+    },
+    {
+      "symbol": "memset",
+      "instructions": 161663290
+    },
+    {
+      "symbol": "<adler2::Adler32>::write_slice",
+      "instructions": 136321916
+    },
+    {
+      "symbol": "miniz_oxide::inflate::core::transfer",
+      "instructions": 120524226
+    },
+    {
+      "symbol": "<ark_ff::fields::models::fp::montgomery_backend::MontBackend<ark_bls12_381::fields::fq::FqConfig, 6> as ark_ff::fields::models::fp::FpConfig<6>>::square_in_place",
+      "instructions": 109367505
+    },
+    {
+      "symbol": "memcmp",
+      "instructions": 98910138
+    },
+    {
+      "symbol": "<ark_ff::fields::models::fp::Fp<ark_ff::fields::models::fp::montgomery_backend::MontBackend<ark_bls12_381::fields::fr::FrConfig, 4>, 4> as ark_ff::fields::prime::PrimeField>::from_le_bytes_mod_order",
+      "instructions": 97743922
+    },
+    {
+      "symbol": "<kona_protocol::ordered_channel::OrderedChannel>::data",
+      "instructions": 94543440
+    },
+    {
+      "symbol": "brotli_decompressor::decode::ReadCommandInternal::<alloc_no_stdlib::stack_allocator::StackAllocator<u8, kona_protocol::brotli::decompress_brotli::MemPool<u8>>, alloc_no_stdlib::stack_allocator::StackAllocator<u32, kona_protocol::brotli::decompress_brotli::MemPool<u32>>, alloc_no_stdlib::stack_allocator::StackAllocator<brotli_decompressor::huffman::HuffmanCode, kona_protocol::brotli::decompress_brotli::MemPool<brotli_decompressor::huffman::HuffmanCode>>>",
+      "instructions": 45650572
+    },
+    {
+      "symbol": "native_keccak256",
+      "instructions": 34474090
+    },
+    {
+      "symbol": "<ark_ff::fields::models::fp::Fp<ark_ff::fields::models::fp::montgomery_backend::MontBackend<ark_bls12_381::fields::fq::FqConfig, 6>, 6> as ark_ff::fields::Field>::sum_of_products::<2>",
+      "instructions": 32961612
+    },
+    {
+      "symbol": "<alloy_primitives::log::Log as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 26902901
+    }
+  ]
+}

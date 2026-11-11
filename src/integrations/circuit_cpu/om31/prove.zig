@@ -8,6 +8,7 @@ const P = @import("protocol.zig");
 const Air = @import("../air.zig");
 const W = @import("witness.zig");
 const C = @import("component.zig").Component;
+const StageCapture = @import("stage_capture.zig");
 const O = P.O;
 const Q = P.Q;
 const List = circuit.common.component_list;
@@ -39,6 +40,18 @@ pub fn parsePinnedAir(a: std.mem.Allocator, bytes: []const u8) !Air.Bundle {
     if (!std.mem.eql(u8, &actual, Air.bundle_sha256)) return error.InvalidOm31CircuitAirAuthority;
     return Air.parse(a, bytes);
 }
+/// Fail before constructing a recursion graph if its pinned recording is
+/// missing or unreadable from the current working directory.
+pub fn requirePinnedAir(a: std.mem.Allocator) !void {
+    const bytes = std.fs.cwd().readFileAlloc(a, Air.bundle_path, 64 << 20) catch |err| {
+        std.log.err("cannot read pinned circuit AIR at {s}: {s}", .{ Air.bundle_path, @errorName(err) });
+        return err;
+    };
+    defer a.free(bytes);
+    var template = try parsePinnedAir(a, bytes);
+    defer template.deinit();
+}
+
 pub const Authority = struct {
     allocator: std.mem.Allocator,
     pp: *const Preprocessed,
@@ -235,13 +248,30 @@ pub fn bind(a: std.mem.Allocator, key: *const Authority, z: O, alpha: O, claims:
     return out;
 }
 pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Produced {
+    return proveImpl(a, key, values, null);
+}
+/// Consumes the builder assignment on success and failure. After MAIN and its
+/// public outputs own their values, no later stage may read the assignment.
+/// The context remains safe for deinit only; reusable callers use prove().
+pub fn proveDisposableContext(a: std.mem.Allocator, key: *const Authority, ctx: *circuit.builder.Context(Q)) !Produced {
+    defer ctx.value_table.clearAndFree(ctx.gpa);
+    return proveImpl(a, key, ctx.values(), ctx);
+}
+fn proveImpl(a: std.mem.Allocator, key: *const Authority, values: []const Q, owner: ?*circuit.builder.Context(Q)) !Produced {
     try key.requireProverData();
     if (key.fixed == null) return error.Om31CircuitDeviceFixedRequiresDeviceProver;
+    var capture = try StageCapture.Capture.init(a);
+    defer if (capture) |*active| active.deinit();
+    const recorder = if (capture) |*active| &active.recorder else null;
+    var witness_scope = try StageCapture.Scope.begin(recorder, "outer_witness", "Circuit MAIN witness");
+    defer witness_scope.end();
     var base = try circuit.witness.trace.writeTrace(a, values, key.pp);
+    witness_scope.end();
     defer base.deinit();
     if (!std.meta.eql(base.log_sizes, key.logs)) return error.InvalidOm31CircuitGeometry;
     const outputs = try a.dupe(Q, base.output_values);
     errdefer a.free(outputs);
+    if (owner) |ctx| ctx.value_table.clearAndFree(ctx.gpa);
     var channel = try begin(a, key, outputs);
     var scheme = try P.Engine.init(a, try P.targetConfig());
     var owns = true;
@@ -251,19 +281,35 @@ pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Pr
     P.MC.mixRoot(&channel, key.fixedRoot());
     // MAIN is generated and committed exactly once. Lookup arithmetic does not
     // rebuild the builder assignment or its table multiplicities.
+    var main_scope = try StageCapture.Scope.begin(recorder, "outer_main_commit", "Circuit MAIN preparation and commitment");
+    defer main_scope.end();
     try scheme.commit(a, base.columns, &channel);
+    main_scope.end();
     const elements = draw(&channel);
-    var interaction = try W.writeReleasing(a, &base, key.pp, elements.z, elements.alpha);
+    var interaction_scope = try StageCapture.Scope.begin(recorder, "outer_interaction_witness", "Circuit lookup interaction witness");
+    defer interaction_scope.end();
+    var interaction = try W.writeReleasingWithRecorder(a, &base, key.pp, elements.z, elements.alpha, recorder);
+    interaction_scope.end();
     defer interaction.deinit();
     channel.mixFelts(&interaction.claimed_sums.toArray());
-    try scheme.commit(a, interaction.columns, &channel);
+    var inter_commit_scope = try StageCapture.Scope.begin(recorder, "outer_interaction_commit", "Circuit INTER preparation and commitment");
+    defer inter_commit_scope.end();
+    // MAIN is borrowed until lookup construction finishes. INTER has no later
+    // raw reader: transfer it once while retaining the parallel monolithic
+    // commitment. Automatic streaming saves memory but regresses this lane.
+    // The PCS consumes ownership on both success and error; takeColumns leaves
+    // the deferred witness cleanup safe and preserves the authenticated claims.
+    try scheme.commitOwnedMonolithicWithRecorder(a, interaction.takeColumns(), recorder, &channel);
+    inter_commit_scope.end();
     const bound = try bind(a, key, elements.z, elements.alpha, interaction.claimed_sums);
     defer a.free(bound);
     const components = try a.alloc(Components.ComponentProver, bound.len);
     defer a.free(components);
     for (components, bound) |*out, *c| out.* = c.asProverComponent();
     owns = false;
-    const proof = try P.Engine.prove(a, components, &channel, scheme, .{});
+    var proof = try P.Engine.prove(a, components, &channel, scheme, .{ .recorder = recorder });
+    errdefer proof.deinit(a);
+    if (capture) |*active| try active.save(key.identity);
     return .{ .allocator = a, .outputs = outputs, .claims = interaction.claimed_sums, .proof = proof };
 }
 /// Independent fresh verifier state; published capture exists only on complete

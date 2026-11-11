@@ -1,0 +1,91 @@
+diff --git a/opstack/kona/vendor/ark-ff/src/fields/models/cubic_extension.rs b/opstack/kona/vendor/ark-ff/src/fields/models/cubic_extension.rs
+index 58cbf5041..a1f7fbb1c 100644
+--- a/opstack/kona/vendor/ark-ff/src/fields/models/cubic_extension.rs
++++ b/opstack/kona/vendor/ark-ff/src/fields/models/cubic_extension.rs
+@@ -247,6 +247,8 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
+         result
+     }
+ 
++    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
++    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
+     fn square_in_place(&mut self) -> &mut Self {
+         // Devegili OhEig Scott Dahab --- Multiplication and Squaring on
+         // AbstractPairing-Friendly
+@@ -322,6 +324,8 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
+         })
+     }
+ 
++    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
++    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
+     fn frobenius_map_in_place(&mut self, power: usize) {
+         self.c0.frobenius_map_in_place(power);
+         self.c1.frobenius_map_in_place(power);
+@@ -540,7 +544,8 @@ impl<P: CubicExtConfig> AddAssign<&Self> for CubicExtField<P> {
+ }
+ 
+ impl<P: CubicExtConfig> SubAssign<&Self> for CubicExtField<P> {
+-    #[inline]
++    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
++    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
+     fn sub_assign(&mut self, other: &Self) {
+         self.c0 -= &other.c0;
+         self.c1 -= &other.c1;
+diff --git a/opstack/kona/vendor/ark-ff/src/fields/models/fp/montgomery_backend.rs b/opstack/kona/vendor/ark-ff/src/fields/models/fp/montgomery_backend.rs
+index 86c4c18a9..6ca9869a8 100644
+--- a/opstack/kona/vendor/ark-ff/src/fields/models/fp/montgomery_backend.rs
++++ b/opstack/kona/vendor/ark-ff/src/fields/models/fp/montgomery_backend.rs
+@@ -685,18 +685,22 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
+     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = T::LARGE_SUBGROUP_ROOT_OF_UNITY;
+     const SQRT_PRECOMP: Option<crate::SqrtPrecomputation<Fp<Self, N>>> = T::SQRT_PRECOMP;
+ 
++    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
+     fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+         T::add_assign(a, b)
+     }
+ 
++    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
+     fn sub_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+         T::sub_assign(a, b)
+     }
+ 
++    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
+     fn double_in_place(a: &mut Fp<Self, N>) {
+         T::double_in_place(a)
+     }
+ 
++    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
+     fn neg_in_place(a: &mut Fp<Self, N>) {
+         T::neg_in_place(a)
+     }
+diff --git a/opstack/kona/vendor/ark-ff/src/fields/models/quadratic_extension.rs b/opstack/kona/vendor/ark-ff/src/fields/models/quadratic_extension.rs
+index 2afa33213..1fdd1ccb7 100644
+--- a/opstack/kona/vendor/ark-ff/src/fields/models/quadratic_extension.rs
++++ b/opstack/kona/vendor/ark-ff/src/fields/models/quadratic_extension.rs
+@@ -278,6 +278,8 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
+         Self::from_random_bytes_with_flags::<EmptyFlags>(bytes).map(|f| f.0)
+     }
+ 
++    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
++    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
+     fn square_in_place(&mut self) -> &mut Self {
+         if let Some(result) = P::square_specialized(self) {
+             *self = result;
+@@ -362,6 +364,8 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
+         })
+     }
+ 
++    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
++    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
+     fn frobenius_map_in_place(&mut self, power: usize) {
+         self.c0.frobenius_map_in_place(power);
+         self.c1.frobenius_map_in_place(power);
+@@ -649,7 +653,8 @@ impl<P: QuadExtConfig> AddAssign<&Self> for QuadExtField<P> {
+ }
+ 
+ impl<P: QuadExtConfig> SubAssign<&Self> for QuadExtField<P> {
+-    #[inline]
++    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
++    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
+     fn sub_assign(&mut self, other: &Self) {
+         self.c0 -= &other.c0;
+         self.c1 -= &other.c1;

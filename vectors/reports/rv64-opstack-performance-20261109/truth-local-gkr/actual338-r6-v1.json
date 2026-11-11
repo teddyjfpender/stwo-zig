@@ -1,0 +1,489 @@
+{
+  "schema": "op-truth-local-gkr-actual338-r6/v1",
+  "scope": "one actual sponge-derived Keccak family; standalone synthetic manifest, not complete block acceptance",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "optimize": "ReleaseFast",
+  "workers": 8,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission_open": false,
+  "config": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small.config.json",
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/truth-local-gkr-actual-small-r6",
+  "native_context": {
+    "scope": "actual_source_family_only",
+    "complete_execution_accepted": false,
+    "steps": 796406,
+    "direct_keccak_calls": 0,
+    "sponge_permutations": 338,
+    "source_identity": "a986d8c7c6b473d39d25db65663a2819d591e8ba2eda8726332c79a5fff13fc0",
+    "expected": {
+      "kind": "keccak",
+      "ordinal": 0,
+      "global_relations": {
+        "ram": false,
+        "kio": true,
+        "wire": false
+      },
+      "mass": {
+        "ram": 0,
+        "kio": 16900,
+        "wire": 0
+      },
+      "statement": [
+        212,
+        59,
+        137,
+        47,
+        219,
+        94,
+        216,
+        157,
+        74,
+        141,
+        170,
+        134,
+        125,
+        108,
+        62,
+        199,
+        138,
+        158,
+        176,
+        164,
+        204,
+        218,
+        147,
+        234,
+        111,
+        68,
+        193,
+        250,
+        57,
+        230,
+        95,
+        35
+      ],
+      "fixed_identity": [
+        207,
+        204,
+        251,
+        82,
+        38,
+        205,
+        56,
+        101,
+        117,
+        203,
+        137,
+        198,
+        14,
+        228,
+        32,
+        183,
+        118,
+        152,
+        177,
+        32,
+        122,
+        238,
+        110,
+        199,
+        136,
+        211,
+        115,
+        16,
+        241,
+        34,
+        199,
+        97
+      ],
+      "fixed": [
+        125,
+        107,
+        210,
+        106,
+        28,
+        83,
+        228,
+        69,
+        164,
+        154,
+        68,
+        2,
+        187,
+        75,
+        236,
+        5,
+        35,
+        205,
+        30,
+        70,
+        107,
+        75,
+        212,
+        9,
+        175,
+        205,
+        8,
+        106,
+        230,
+        194,
+        53,
+        11,
+        212,
+        237,
+        173,
+        70
+      ],
+      "profile": "op_target_b4_q72_p0_fold4_v1",
+      "local_instances": null
+    },
+    "manifest": [
+      132,
+      187,
+      116,
+      8,
+      80,
+      25,
+      162,
+      97,
+      196,
+      237,
+      3,
+      81,
+      147,
+      8,
+      83,
+      10,
+      251,
+      223,
+      94,
+      127,
+      107,
+      3,
+      141,
+      79,
+      195,
+      107,
+      203,
+      56,
+      186,
+      128,
+      147,
+      52,
+      141,
+      148,
+      135,
+      14
+    ],
+    "main": [
+      87,
+      82,
+      211,
+      50,
+      223,
+      149,
+      164,
+      100,
+      159,
+      13,
+      240,
+      6,
+      118,
+      252,
+      251,
+      78,
+      141,
+      168,
+      182,
+      63,
+      41,
+      235,
+      148,
+      49,
+      117,
+      164,
+      73,
+      67,
+      243,
+      96,
+      10,
+      43,
+      21,
+      183,
+      153,
+      89
+    ],
+    "local_receipt": [
+      221,
+      233,
+      109,
+      116,
+      29,
+      83,
+      48,
+      102,
+      45,
+      78,
+      144,
+      82,
+      86,
+      235,
+      135,
+      66,
+      182,
+      186,
+      151,
+      124,
+      15,
+      73,
+      28,
+      101,
+      1,
+      15,
+      70,
+      79,
+      213,
+      125,
+      203,
+      103,
+      151,
+      59,
+      221,
+      89
+    ],
+    "claims": [
+      {
+        "c0": {
+          "c0": {
+            "a": {
+              "v": 251469846
+            },
+            "b": {
+              "v": 799868283
+            }
+          },
+          "c1": {
+            "a": {
+              "v": 495299405
+            },
+            "b": {
+              "v": 587754498
+            }
+          }
+        },
+        "c1": {
+          "c0": {
+            "a": {
+              "v": 1659577931
+            },
+            "b": {
+              "v": 365842691
+            }
+          },
+          "c1": {
+            "a": {
+              "v": 393418306
+            },
+            "b": {
+              "v": 451590231
+            }
+          }
+        }
+      },
+      {
+        "c0": {
+          "c0": {
+            "a": {
+              "v": 0
+            },
+            "b": {
+              "v": 0
+            }
+          },
+          "c1": {
+            "a": {
+              "v": 0
+            },
+            "b": {
+              "v": 0
+            }
+          }
+        },
+        "c1": {
+          "c0": {
+            "a": {
+              "v": 0
+            },
+            "b": {
+              "v": 0
+            }
+          },
+          "c1": {
+            "a": {
+              "v": 0
+            },
+            "b": {
+              "v": 0
+            }
+          }
+        }
+      }
+    ],
+    "profile": "op_target_b4_q72_p0_fold4_v1",
+    "capture_ns": 686828542,
+    "source_setup_ns": 130918291,
+    "native_ns": 1608795709,
+    "worker_peak": 740597198
+  },
+  "native_receiver": {
+    "fresh_source_receiver": true,
+    "accepted_fragment": true,
+    "complete_execution_accepted": false,
+    "fresh_receiver_ns": 51389083,
+    "native_bytes": 1103232,
+    "local_bytes": 42768,
+    "peak_requested_bytes": 995820053
+  },
+  "outer": {
+    "schema": "op-r6-actual-source-physical-v1",
+    "kind": "keccak",
+    "bytes": 683060,
+    "key_ns": 5374775833,
+    "prove_ns": 22296342750,
+    "fresh_setup_ns": 5404756334,
+    "fresh_verify_ns": 26643625,
+    "sha256": "d669ec1106e97a5c0dacd6ceeafbd19cb33b2b73720b4d5e1f1428a4c7a155e0",
+    "source_identity": "79d38a9ad5e019eecd176cdc2b864030c801e5c34c33a6ce84727f26979d211f",
+    "raw": [
+      15338,
+      3787133,
+      276,
+      38624,
+      65536
+    ],
+    "logs": [
+      14,
+      22,
+      9,
+      16,
+      16
+    ],
+    "mul_log": 17,
+    "native_mul_calls": 97878,
+    "fresh_source": true,
+    "wrong_output_rejected": true,
+    "complete_execution": false,
+    "production_admission": false
+  },
+  "stages": {
+    "native": {
+      "stage_seconds": {
+        "composition_commit": 0.0091,
+        "composition_evaluation": 0.271437,
+        "composition_interpolate_and_split": 0.000144,
+        "composition_trace_extract": 1.8e-05,
+        "constraint_check_and_assembly": 0.001204,
+        "draw_random_coeff": 5e-06,
+        "evaluate_extended_domain": 0.026436000000000005,
+        "fri_decommit": 0.000853,
+        "fri_quotient_build_and_commit": 0.022191,
+        "interaction_generation": 0.387498,
+        "interpolate_columns": 0.006414999999999999,
+        "merkle_commit": 0.28186500000000003,
+        "oods_point_and_mask_points": 0.000862,
+        "proof_of_work": 5e-06,
+        "sampled_value_channel_mix": 0.005434,
+        "sampled_value_evaluation": 0.020157,
+        "streaming_commit_prepare": 0.040299999999999996,
+        "streaming_transform": 0.03297900000000001,
+        "trace_decommit": 0.007209,
+        "truth_local_gkr": 0.557994
+      },
+      "process_peak_resident_bytes_at_stage_end": 978272256,
+      "intervals_nested_and_not_additive": true
+    },
+    "outer": {
+      "stage_seconds": {
+        "composition_commit": 3.775734,
+        "composition_evaluation": 3.106438,
+        "composition_interpolate_and_split": 0.026317,
+        "composition_trace_extract": 1.1e-05,
+        "constraint_check_and_assembly": 0.000107,
+        "draw_random_coeff": 4e-06,
+        "evaluate_extended_domain": 1.3462329999999998,
+        "fri_decommit": 0.088204,
+        "fri_quotient_build_and_commit": 1.994566,
+        "interpolate_columns": 0.30046100000000003,
+        "merkle_commit": 10.238602,
+        "oods_point_and_mask_points": 7e-05,
+        "op_p2.interaction_commit": 5.880285,
+        "op_p2.interaction_generation": 0.235183,
+        "op_p2.main_commit": 6.048369,
+        "op_p2.main_generation": 0.532937,
+        "proof_of_work": 6e-06,
+        "sampled_value_channel_mix": 0.000597,
+        "sampled_value_evaluation": 0.069952,
+        "streaming_commit_prepare": 1.690004,
+        "streaming_transform": 1.646836,
+        "trace_decommit": 0.492127
+      },
+      "process_peak_resident_bytes_at_stage_end": 5192056832,
+      "intervals_nested_and_not_additive": true
+    }
+  },
+  "files": {
+    "native-fragment.bin": {
+      "bytes": 1146124,
+      "sha256": "812754354c6faed45ff45d4a16653e6dce6bdbf0e36ac0021a802fc7baf136e7"
+    },
+    "local-gkr.bin": {
+      "bytes": 42768,
+      "sha256": "19f71063c7c4d2e7bb095f6bb7569f666ee3b86d762e2b6405cf6ce6c46ef074"
+    },
+    "native-context.json": {
+      "bytes": 1741,
+      "sha256": "845491a5b9f4c17950bc7eacbda9046ee846f05b81202f92ed02d7611af7c278"
+    },
+    "native-stages.json": {
+      "bytes": 94914,
+      "sha256": "fcdd3cfde34a588b5f1fd8042d3a7ff7ac5e38415f1e5a388a624b3bc1218c3f"
+    },
+    "native-receiver.json": {
+      "bytes": 196,
+      "sha256": "cfe67283ce9fce12b956b7b921d992dbae2e906bf9b203af45f478744d994b4b"
+    },
+    "wrapper/leaf.bin": {
+      "bytes": 683060,
+      "sha256": "d669ec1106e97a5c0dacd6ceeafbd19cb33b2b73720b4d5e1f1428a4c7a155e0"
+    },
+    "wrapper/stages.json": {
+      "bytes": 65184,
+      "sha256": "96aee8b02b76819e9e2a0820781cbb461fc918aa09ddfebd9c7062d5a27dc881"
+    },
+    "wrapper/leaf.json": {
+      "bytes": 538,
+      "sha256": "f03b2184f7249d31f1a8061175315dd08e5d87475c96eae4a9352782001277f7"
+    }
+  },
+  "raw_counts": [
+    15338,
+    3787133,
+    276,
+    38624,
+    65536
+  ],
+  "native_omul_calls": 97878,
+  "padded_rows": [
+    16384,
+    4194304,
+    512,
+    65536,
+    65536,
+    131072
+  ],
+  "total_trace_cells": 207928832,
+  "before_verify_persistence": true,
+  "fresh_native_and_source_outer_receivers": true,
+  "remaining": "Full schema2 CPU+SHA native reprove under new manifest, exact ordered root and fresh root-only closure; then heavy-block qualification and controlled end-to-end comparisons."
+}

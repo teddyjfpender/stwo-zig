@@ -1,0 +1,45 @@
+{
+  "schema": "op-pure-p2-postseal-source-auxiliary-retirement/v1",
+  "heavy_proof_or_execution_rerun": false,
+  "opt_in_resources_field": "retire_source_auxiliaries",
+  "default": false,
+  "small_block": 120794432,
+  "steps": 796406,
+  "cpu": 1,
+  "truth": 2,
+  "native_bytes": 5317432,
+  "sha256": "c18d85864cead50203bc0354f86c91048ec29dd7750add7d2651fc2d2967abbf",
+  "byte_identical_to_unretired_control": true,
+  "fresh_receiver": true,
+  "global_closure": [
+    "RAM",
+    "KIO",
+    "Wire",
+    "terminal43"
+  ],
+  "final_heap_and_external": 0,
+  "native_prove_ns_qualification_only": 13736034292,
+  "heavy_source_payload_retired_derived_not_rss": {
+    "ls32_and_ls_dword_fixed_bytes": 1443987456,
+    "shift_head_and_tail_histograms": 780140544,
+    "total": 2224128000
+  },
+  "new_witness_or_lookup_tables_allocated": false,
+  "controls": [
+    "packed multiplicity parity mismatch refusal before frees",
+    "head plus tail addition overflow",
+    "postseal CPUmetadata immutability",
+    "wrong schema",
+    "mutated duplicate claim",
+    "local receipt mutation",
+    "old CPU proof swap"
+  ],
+  "consumer_authority": {
+    "LS_RAM": "services/gkr_local/global_metadata.zig Provider uses savedLS.metadata RAM tuples, notSource.fixed",
+    "LS_local": "services/gkr_local/native_provider.zig emitCore(ls/ls_tail) and emit(dword) use82-byteMetadata",
+    "SHIFT": "native_provider.zig emitCore(shift_table) fallsback to retainedshift_table.main onlyafter both head andtail histogramretirement",
+    "retained_MAIN": "word16_execution/main_ownership.zig copied(role) intentionally retainsand_table/shift_table MAIN copies",
+    "immutable_FIXED": "unchanged P2fixedkey Store leases; source rawmasks are separate Source.constructor allocations"
+  },
+  "caveat": "This qualifies exact source payload retirement, not wholeworkerRSS or a heavy throughput forecast."
+}

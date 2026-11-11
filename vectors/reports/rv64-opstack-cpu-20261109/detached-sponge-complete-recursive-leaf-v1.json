@@ -1,0 +1,94 @@
+{
+  "schema": "op-detached-sponge-complete-recursive-leaf-v1",
+  "kind": "detached_sponge",
+  "bytes": 662884,
+  "key_ns": 5768136500,
+  "prove_ns": 19665436834,
+  "fresh_setup_ns": 5928517458,
+  "fresh_verify_ns": 108055750,
+  "sha256": "e381dffb9819db6c4787a6e52ec97a6bd268c071878132d08bb56e0185273eb3",
+  "source_identity": "becaa4299e8a153476c751b688b08aed326dc34c92d784658d2370b856afc083",
+  "raw": [
+    18168,
+    1081888,
+    820,
+    26490,
+    65536
+  ],
+  "logs": [
+    15,
+    21,
+    10,
+    15,
+    16
+  ],
+  "mul_log": 15,
+  "native_mul_calls": 22653,
+  "fresh_source": true,
+  "wrong_output_rejected": true,
+  "complete_execution": false,
+  "production_admission": false,
+  "fixture": {
+    "instructions": 11,
+    "cpu_shards": 2,
+    "detached_calls": 3,
+    "permutations": 5,
+    "scope": "complete detached leaf from joined real CPU/frontier/sponge/Keccak fixture"
+  },
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "outer_budget": {
+    "limit_bytes": 8589934592,
+    "peak_bytes": 2114319031,
+    "combined_limit_bytes": 10737418240,
+    "combined_peak_bytes": 2388227885,
+    "native_fixture_limit_bytes": 4294967296,
+    "final_live_bytes": 0
+  },
+  "qualified": {
+    "typed_native_circuit_point_all_marginals_eta_receipt9_exact": true,
+    "all_eight_original_source_AIRs_and_GKR_terminals": true,
+    "source_derived_geometry_global_mask_offsets": true,
+    "native_PCS_and_FRI_verified_in_circuit": true,
+    "fresh_source_key_and_trace": true,
+    "main_mask_terminal_Wire_ninth_output_mutations_rejected": true,
+    "retained_physical_balanced_Wire_frame_rejected": true,
+    "native_original_fragment_sha256_unchanged": "8be51254f5dc66c7ab29f442b029c005726e96fd9052068c0e9728eb7eaa2023",
+    "absent_global_slots_canonical_zero_native_and_circuit": true,
+    "coherently_reproved_phantom_raw_AIR_PCS_positive_full_worker_negative": true,
+    "two_frontier_CPU_detached_sealed_local_GKR_Keccak_fresh_native_join": true
+  },
+  "policy_audit": {
+    "existing_native_guard": "sponge_local_gkr/component.zig Component.validate already rejects absent-family nonzero claims; no native vulnerability was established",
+    "new_circuit_obligation": "Statement explicitly constrains the same unused claim ports to zero",
+    "strong_control": "Test-only raw receiver masks only absent component fields while transcript retains phantom. Genuine full receiver rejects; present relations and cryptographic verification remain unchanged."
+  },
+  "raw_model": {
+    "raw": [
+      18168,
+      1081888,
+      820,
+      26490,
+      65536
+    ],
+    "QM_padding_log": 21,
+    "QM_rows_above_log20": 33312
+  },
+  "limitations": [
+    "Correctness-only tiny fixture, no heavy block proving or measured heavy speedup",
+    "No production suite/runtime or complete new mixed-root admission",
+    "Hard10x end-to-end goal remains unmet"
+  ],
+  "remaining": [
+    "Complete four-member source-owned pending recursive root",
+    "Production independent typed manifest/inventory/resource and runtime integration",
+    "Whole execution source coverage, global RAM/KIO/Wire and pinned terminal receiver qualification"
+  ],
+  "checks": [
+    "detached sponge typed child: native/circuit parity passed",
+    "detached sponge complete recursive: numeric and persisted physical leaf passed",
+    "detached sponge coherent phantom: raw-AIR/PCS positive with absent-policy removed, actual worker negative passed",
+    "detached sponge joins frontier: all four native proofs under regenerated manifest and fresh source keys passed",
+    "OP truth local GKR sealed worker: old Pending/new sealed exact proof/local/receipt/claims parity passed for Keccak and secp"
+  ]
+}

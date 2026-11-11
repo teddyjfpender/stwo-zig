@@ -1,0 +1,297 @@
+{
+  "schema": "stwo.opstack.blob-evaluation-probe.v1",
+  "scope": "isolated actual RV64 blob evaluation, not OP validity or full transition performance",
+  "elf_sha256": "05bae7265cabf02dc3f571c10b2ac7bbbb60980ec36f39515a05e92d218212c3",
+  "oracle": "independent Python polynomial and single-support Lagrange evaluations; native Arkworks and RV64 both agree",
+  "raw_receipt_sha256": "97e631499d77250446c62b698941469db11b216f114ae2041387ee5f26c5d87a",
+  "records": [
+    {
+      "case": "dense",
+      "algorithm": "fraction",
+      "instructions": 9048344,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "b2e0331e0b6d1d0dc98d796546dcb3af97634779a105edbe11f7fe2c5e34dee5",
+      "expected_output": "000000000000000000000000000000000000000000000000000000013df493a24245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/dense-fraction.config.json"
+        ],
+        "wall_ns": 683034667,
+        "peak_rss_bytes": 4325376,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.017839999999999998,
+        "system_cpu_s": 0.003561,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "5958c44bae2f0e31c7ace21124a97d7eff8c40d12fee5ee540b0180f96d3265a"
+    },
+    {
+      "case": "dense",
+      "algorithm": "adaptive",
+      "instructions": 6608445,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "4314082dc650562bd7da1530ce30d2c6f23e71c74b4c70a0f82cdda114e45169",
+      "expected_output": "000000000000000000000000000000000000000000000000000000013df493a24245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/dense-adaptive.config.json"
+        ],
+        "wall_ns": 59464125,
+        "peak_rss_bytes": 4456448,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.011175,
+        "system_cpu_s": 0.001638,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "b30e82df5f798c8e70fa312fdba6b19937848b9f8744e3733cedff7023089315"
+    },
+    {
+      "case": "dense-hash",
+      "algorithm": "fraction",
+      "instructions": 9048713,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "83e39b61e9be59678e24b3ebb217f2224cddb4778e95678878e3dfd50e735983",
+      "expected_output": "538c2fa46699dec5d0c0eff99a0ddc78bac42aec86b4c5cbc4f234d46514139f4245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/dense-hash-fraction.config.json"
+        ],
+        "wall_ns": 62200500,
+        "peak_rss_bytes": 4325376,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.008728999999999999,
+        "system_cpu_s": 0.001202,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "9ad9690c5edbf17155eb2eae804a95fc0b78c951bcc4966919e754196b3d391a"
+    },
+    {
+      "case": "dense-hash",
+      "algorithm": "adaptive",
+      "instructions": 6929722,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "48de0bee9171afb9dd77ee161c7b1cd326fde09fb562c43f7f6a37e9cba27d7c",
+      "expected_output": "538c2fa46699dec5d0c0eff99a0ddc78bac42aec86b4c5cbc4f234d46514139f4245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/dense-hash-adaptive.config.json"
+        ],
+        "wall_ns": 62114167,
+        "peak_rss_bytes": 4456448,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.008801,
+        "system_cpu_s": 0.0012109999999999998,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "846b84145ccd5a087332f16f2ca4c22f2fb037134e9393db993b5cea4f803abb"
+    },
+    {
+      "case": "half-padded",
+      "algorithm": "fraction",
+      "instructions": 6063883,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "46721bde32efc98954efc83472f7a2bfeaf988a2ab8f6b5d120cb7f7149f9cfd",
+      "expected_output": "1406374561c3aceb910e3d896bb50f0bb6da957df8ebd87d47633fa4837df2e34245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/half-padded-fraction.config.json"
+        ],
+        "wall_ns": 54459125,
+        "peak_rss_bytes": 4325376,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.010716999999999999,
+        "system_cpu_s": 0.001429,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "ce1494698267a2c2b46e29f29c73cf17aba4baea7c6a4a0a514974141459fac4"
+    },
+    {
+      "case": "half-padded",
+      "algorithm": "adaptive",
+      "instructions": 6061715,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "1a1fc54ca67fbe32cef0fa996ca08cf3f6c137453b62773c426d9e902a55321d",
+      "expected_output": "1406374561c3aceb910e3d896bb50f0bb6da957df8ebd87d47633fa4837df2e34245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/half-padded-adaptive.config.json"
+        ],
+        "wall_ns": 62391000,
+        "peak_rss_bytes": 4456448,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.010499999999999999,
+        "system_cpu_s": 0.0017209999999999999,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "66714daae83bea2c3c66ecfbc527dafc917f8c5f1788b46c63900e420d7615ca"
+    },
+    {
+      "case": "sparse",
+      "algorithm": "fraction",
+      "instructions": 3075732,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "4037c6fe708cbf91f0c4305454c1677d648c75b726fa6fdb7cbcb710595be6da",
+      "expected_output": "43e27fcf3f6106de21c79243c9d94e165167ef4dff9d52957a08f1a8fe5e3e814245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/sparse-fraction.config.json"
+        ],
+        "wall_ns": 62063083,
+        "peak_rss_bytes": 4325376,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.006836,
+        "system_cpu_s": 0.001478,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "b1bf65f791362dd038756ac009bab8ccca94cdc4786b3d2b3e56c5c2cbe1d5e0"
+    },
+    {
+      "case": "sparse",
+      "algorithm": "adaptive",
+      "instructions": 2977590,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "91783ad3ba7bf82c7735458a5825a2c8d97446e120191d5a9632a946dbb7f428",
+      "expected_output": "43e27fcf3f6106de21c79243c9d94e165167ef4dff9d52957a08f1a8fe5e3e814245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/sparse-adaptive.config.json"
+        ],
+        "wall_ns": 61910250,
+        "peak_rss_bytes": 4456448,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.007358,
+        "system_cpu_s": 0.001795,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "97ff58143f79f204310c197975ac364264efab47ac371a77d8708f1cbe24a44f"
+    },
+    {
+      "case": "zero",
+      "algorithm": "fraction",
+      "instructions": 3076573,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "1f45fb034068e44c24f88e09decc42a1bfdda080fcdd8efcbcc0286233fe7939",
+      "expected_output": "00000000000000000000000000000000000000000000000000000000000000004245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/zero-fraction.config.json"
+        ],
+        "wall_ns": 63296084,
+        "peak_rss_bytes": 4325376,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.007025,
+        "system_cpu_s": 0.002052,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "831a6d7c9e6b8fd71ee98f0f1a22745b9e294363be96d9c7187b4bab86d6a6ce"
+    },
+    {
+      "case": "zero",
+      "algorithm": "adaptive",
+      "instructions": 2686860,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "43acd2f2c3d5e557dcd2aed1e6e5ad3b946aa1c3a8fb7deb0da2035a835d6a23",
+      "expected_output": "00000000000000000000000000000000000000000000000000000000000000004245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/zero-adaptive.config.json"
+        ],
+        "wall_ns": 63173125,
+        "peak_rss_bytes": 4456448,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.0060349999999999996,
+        "system_cpu_s": 0.001852,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "c956157f040eee7d49c20126a71df4bc20cc8033284facbc501addd35513afcd"
+    },
+    {
+      "case": "domain",
+      "algorithm": "fraction",
+      "instructions": 4156847,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "e934e64ccb495cf97ba99ee56b908b6f57bfaea31a7b175b0a652399a9def626",
+      "expected_output": "17fc5e7c8dda13cc28fa5f1b6622bf8fd97cef1c0a2a27b51cb3c7eb6c4e84fa4245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/domain-fraction.config.json"
+        ],
+        "wall_ns": 62989000,
+        "peak_rss_bytes": 4325376,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.008298999999999999,
+        "system_cpu_s": 0.002312,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "c2fe44025c82ccc17c5bb288e6aff6b0fc18cbe6bf542b8c44fa49c752d8ae5d"
+    },
+    {
+      "case": "domain",
+      "algorithm": "adaptive",
+      "instructions": 3885724,
+      "status": "completed",
+      "verified_output": true,
+      "input_sha256": "0097bbae8e6e8145ba31eb7e453756ab00cd9c6beabb3eb21f3ccadeecfed903",
+      "expected_output": "17fc5e7c8dda13cc28fa5f1b6622bf8fd97cef1c0a2a27b51cb3c7eb6c4e84fa4245563100000000004250",
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-build/rv64-execution",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/blob-eval-probe-v3-run/domain-adaptive.config.json"
+        ],
+        "wall_ns": 62673833,
+        "peak_rss_bytes": 4456448,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 0.007788,
+        "system_cpu_s": 0.001838,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stdout_sha256": "cb48a551a69e2d325cbcbc6ce787a03bf5946fe2fd61a96e0b486a79376138e3"
+    }
+  ],
+  "qualification": {
+    "host_tests_passed": 38,
+    "host_features": "host,transition-program,bn254-glv,pairing-hints,blob-eval-probe",
+    "includes": "c-kzg-derived individual/batch sidecars, blob/commitment/proof mutations, dense/sparse/all-zero/on-domain interpolation, canonical scalars including late invalid values, diagnostic framing, execution/transition/sponge/precompile/witness regression suites"
+  },
+  "caveats": [
+    "Isolated blob evaluation, not full transition execution or proving time. The retained anchored transition input is still missing locally.",
+    "Includes per-case root generation and diagnostic I/O; real batch KZG shares roots across sidecars.",
+    "Dense polynomial is low degree; dense-hash is the full-width random evaluation control.",
+    "No new hint, ECALL, AIR, KZG equation or security assumption; ordinary execution guest and Ethereum guest features unchanged.",
+    "Diagnostic BP output is distinct from OP/OD and is never evidence of OP validity."
+  ]
+}

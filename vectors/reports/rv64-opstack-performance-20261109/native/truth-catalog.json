@@ -1,0 +1,120 @@
+{
+  "schema": "stwo.opstack.pure-p2-native-truth-catalog.v1",
+  "status": "13 source-bound physical fragments qualified; complete inventory admission remains separate",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "cases": [
+    {
+      "family": "sha256",
+      "source": "sha256",
+      "proof_bytes": 1915752,
+      "peak_worker_requested_bytes": 7807016
+    },
+    {
+      "family": "arith256_mod",
+      "source": "arith256_mod",
+      "proof_bytes": 494268,
+      "peak_worker_requested_bytes": 6673364
+    },
+    {
+      "family": "bn254_g1_add",
+      "source": "curve",
+      "proof_bytes": 1091936,
+      "peak_worker_requested_bytes": 16438036
+    },
+    {
+      "family": "bn254_g1_double",
+      "source": "curve",
+      "proof_bytes": 1038960,
+      "peak_worker_requested_bytes": 15532652
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "source": "curve",
+      "proof_bytes": 628028,
+      "peak_worker_requested_bytes": 8794396
+    },
+    {
+      "family": "bls12_381_fp2_mul",
+      "source": "curve",
+      "proof_bytes": 1101180,
+      "peak_worker_requested_bytes": 15893804
+    },
+    {
+      "family": "arith384_mont",
+      "source": "curve",
+      "proof_bytes": 705228,
+      "peak_worker_requested_bytes": 9936508
+    },
+    {
+      "family": "bls12_381_g1_add",
+      "source": "curve",
+      "proof_bytes": 1798880,
+      "peak_worker_requested_bytes": 27389980
+    },
+    {
+      "family": "bls12_381_g1_double",
+      "source": "curve",
+      "proof_bytes": 1921260,
+      "peak_worker_requested_bytes": 29628348
+    },
+    {
+      "family": "add",
+      "source": "secp_row",
+      "proof_bytes": 2277716,
+      "peak_worker_requested_bytes": 34432444
+    },
+    {
+      "family": "double",
+      "source": "secp_row",
+      "proof_bytes": 1772592,
+      "peak_worker_requested_bytes": 27077820
+    },
+    {
+      "family": "keccak",
+      "source": "keccak",
+      "proof_bytes": 2777376,
+      "peak_worker_requested_bytes": 20855040
+    },
+    {
+      "family": "add",
+      "source": "secp",
+      "proof_bytes": 635464,
+      "peak_worker_requested_bytes": 2300311
+    }
+  ],
+  "qualification": {
+    "command": "zig build test-riscv64-op-native-truth -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP catalog'",
+    "passed": true,
+    "log": "/private/tmp/op-p2-truth-final-safe.log",
+    "sha256": "1f8daa9bcebedcb0b904c350055972ea88d627a03d2fbee86970fc0039fc2093",
+    "fresh_receiver": "independently rebuilt P2 fixed key, complete ordered native geometry, exact first/count statement, physical claims and original AIR equations",
+    "negative_controls": [
+      "one-byte live cap rejects source allocation",
+      "zero MAIN cap rejects before source construction",
+      "changed request first_id",
+      "modified physical global claim",
+      "oversized durable envelope"
+    ],
+    "zero_live_budget_after_complete": true
+  },
+  "architecture": {
+    "catalog": "one shared PCS lifecycle, concrete classic/delegated component dispatch; existing original Keccak/secp/SHA/arith/curve equation and witness authority",
+    "ownership": "both MAIN and INTER are handed to PCS without copying wide witnesses; source metadata released before physical proving",
+    "budget": "source factory, source witnesses, PCS, interactions and prover share synchronized heap-owned live cap; immutable keys and caller inputs/output proof bytes and pool stacks remain external",
+    "limits": {
+      "live_bytes": 1073741824,
+      "main_bytes": 134217728,
+      "interaction_bytes": 536870912,
+      "advice_bytes": 134217728
+    },
+    "identity": "immutable family/profile/native tree shape/key root; per-request first/count only in statement; manifest binds execution identity",
+    "durable_envelope": "OPTRP201, canonical8-coordinate OM claims, role-checked claim count, exact bounded proof length; decoder never grants proof authority"
+  },
+  "not_established": [
+    "full CPU/sponge/provider inventory acceptance by these isolated fragment tests",
+    "fresh-process complete OP block receiver",
+    "recursive provider leaves/root acceptance",
+    "controlled full-heavy benchmark or tenfold speedup"
+  ]
+}

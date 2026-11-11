@@ -1,0 +1,480 @@
+//! Bounded conditional CPU-component measurement, never execution acceptance.
+//! Runs only the first 4M real retirements of a pinned heavy guest. INIT covers
+//! prefix-touched cells only. All service/end-memory debts remain outstanding.
+const std = @import("std");
+const E = @import("stwo_prover_engine");
+const C = @import("stwo_core");
+const front = @import("stwo_riscv_frontend");
+const rv = front.rv64;
+const Config = @import("../../rv64_ethereum_request.zig");
+const Image = @import("../../word16_execution/expected_image.zig");
+const Program = @import("../../word16_execution/program.zig").Program;
+const Prepared = @import("../../word16_execution/prepared.zig").Prepared;
+const Memory = @import("../../word16_execution/memory/statement.zig");
+const Collector = @import("../../word16_global_execution/services/collector.zig");
+const Coverage = @import("../../word16_execution/coverage.zig");
+const Coordinator = @import("../../word16_global_execution/services/gkr_local/coordinator.zig");
+const Plan = @import("../../word16_global_execution/ethereum/plan.zig");
+const Types = @import("../../word16_global_execution/services/types.zig");
+const Pipeline = @import("../../word16_global_execution/services/pipeline.zig");
+const Bounds = @import("../../word16_global_execution/services/gkr_local/source_bounds.zig");
+const Frame = @import("frame.zig");
+const Security = @import("security.zig");
+const Source = @import("source.zig").Source;
+const Key = @import("key.zig").Key;
+const Worker = @import("worker.zig");
+const Protocol = @import("../pure_p2_worker_protocol.zig");
+const ProfileType = @import("../op_profile.zig").Profile;
+const Profile = ProfileType.op_target_b4_q72_p0_fold4_v1;
+const B2 = ProfileType.op_control_b2_q144_p0_fold4_v1;
+const Write = @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive;
+const N = 4_000_000;
+const Mode = enum { plan, prove, gkr_only, gkr_all_upper_only, census_only };
+const Endpoint = struct { steps: u64, initial_pc: u64, initial_registers: [32]u64, final_pc: u64, final_registers: [32]u64, elf_sha256: []const u8, input_sha256: []const u8, completed: bool };
+fn json(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, value: anytype) !void {
+    const raw = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
+    defer a.free(raw);
+    try Write(dir, name, raw);
+}
+fn cells(logs: []const u32) u64 {
+    var out: u64 = 0;
+    for (logs) |log| out += @as(u64, 1) << @intCast(log);
+    return out;
+}
+fn run(a: std.mem.Allocator, config: Config.Config, endpoint: Endpoint, dir: std.fs.Dir, comptime mode: Mode, comptime selected_profile: ProfileType, retained: ?[]const u8) !void {
+    if (selected_profile != Profile and selected_profile != B2) return error.ConditionalProfileNotAdmitted;
+    if ((mode == .gkr_only or mode == .gkr_all_upper_only) and selected_profile != Profile) return error.ConditionalRetainedProfile;
+    if (endpoint.steps != N or endpoint.completed or config.workers != 16) return error.ConditionalPrefixOnly;
+    try std.testing.expectEqualStrings(config.elf_sha256, endpoint.elf_sha256);
+    try std.testing.expectEqualStrings(config.input_sha256, endpoint.input_sha256);
+    var timer = try std.time.Timer.start();
+    var image = try Image.Owner.initForOp(a, config);
+    defer image.deinit();
+    var program = try Program.initWithAuthority(a, &image.authority);
+    defer program.deinit();
+    try program.makeCompact();
+    const image_program_ns = timer.read();
+    const elf = try std.fs.cwd().readFileAlloc(a, config.elf, 64 << 20);
+    defer a.free(elf);
+    const input = try std.fs.cwd().readFileAlloc(a, config.input, rv.ethereum_contract.INPUT_CAPACITY_MAX - 4);
+    defer a.free(input);
+    try Config.pin(elf, config.elf_sha256);
+    try Config.pin(input, config.input_sha256);
+    var loaded = try rv.ethereum_contract.load(a, config.symbols, elf, input);
+    defer loaded.deinit();
+    var session = try rv.ethereum_services.Session.initWithProfile(a, rv.machine.Cpu.init(loaded.info.entry, config.symbols.stack_top), &loaded.memory, .{ .max_retirements = N }, .ethereum_services_op_v1);
+    defer session.deinit();
+    const cpu = &session.keccak.base.cpu;
+    try std.testing.expectEqual(endpoint.initial_pc, cpu.pc);
+    try std.testing.expectEqualDeep(endpoint.initial_registers, cpu.regs);
+    var tape = try rv.compact_tape.Tape.init(a, N, cpu.pc, cpu.retired, .ethereum_services_op_v1);
+    defer tape.deinit();
+    var boundary = front.rv64_air.word16_execution.types.Boundary{ .steps = 0, .initial_pc = cpu.pc, .final_pc = undefined, .initial_registers = cpu.regs, .final_registers = undefined, .register_clocks = @splat(0) };
+    const execution_begin = timer.read();
+    while (boundary.steps < N) {
+        if (cpu.pc == config.terminal_pc) return error.PrefixCompletedUnexpectedly;
+        var event: rv.ethereum_services.Event = undefined;
+        const row = if (try session.step(&event)) |r| blk: {
+            try tape.append(r);
+            break :blk r;
+        } else blk: {
+            try tape.appendEvent(event);
+            break :blk event.retirement();
+        };
+        const effects = rv.execution_profile.effects(.ethereum_services_op_v1, row.opcode);
+        const tick: u32 = 4 * boundary.steps;
+        if (effects.reads_rs1 and row.rs1 != 0) boundary.register_clocks[row.rs1] = tick + 1;
+        if (effects.reads_rs2 and row.rs2 != 0) boundary.register_clocks[row.rs2] = tick + 2;
+        if (effects.writes_rd and row.rd != 0) boundary.register_clocks[row.rd] = tick + 3;
+        boundary.steps += 1;
+    }
+    boundary.final_pc = cpu.pc;
+    boundary.final_registers = cpu.regs;
+    try std.testing.expectEqual(endpoint.final_pc, cpu.pc);
+    try std.testing.expectEqualDeep(endpoint.final_registers, cpu.regs);
+    const execution_ns = timer.read() - execution_begin;
+    var native = try Prepared.captureForOpServices(a, &program, boundary, 1, try Coverage.minimalCpuLog(N), &tape, .{ .deduplicate_shift = true });
+    defer native.deinit();
+    var builder = Collector.Builder.init(a, Memory.fromOwner(&image));
+    defer builder.deinit();
+    try builder.append(&native, &tape);
+    var advice = try builder.finish();
+    defer advice.deinit();
+    native.cpu.?.releaseCaptureRecords();
+    const natives = [_]*Prepared{&native};
+    var declaration = try Plan.cpuForSegment(&native, &advice, 0, 2, advice.initial.len, Plan.CpuLayout.forOpGkr());
+    declaration.bridges.sponge = .{};
+    declaration.geometry.terminal_log = 5;
+    var request = try Coordinator.requestView(&natives, &advice, 0);
+    request.base.memory.terminal = &.{};
+    try Coordinator.routeDword(&request, declaration.bridges, advice.events[0]);
+    var requests = [_]@TypeOf(request){request};
+    try Coordinator.assignSpongeIds(&requests);
+    request = requests[0];
+    const span = Types.OpTowerSpan{};
+    if (advice.tower[0].len != 0) return error.PrefixTowerRequiresExplicitModel;
+    const frontier_log = try Coverage.minimalPrefixLog(request.sponge.calls);
+    const DG = @import("../sponge_local_gkr/authority.zig").Geometry;
+    const detached = [_]DG{.{ .calls = request.sponge.calls, .permutations = request.sponge.perms, .first_id = request.calls[0] + 1, .detached = true }};
+    var totals = request.calls;
+    totals[0] += request.sponge.perms;
+    const truths = try Plan.truthsForServiceCounts(a, totals, .{ .v3 = true }, 16);
+    defer a.free(truths);
+    var bounds = try Bounds.deriveForOpDetached(a, program.log_size, &.{declaration}, truths, &.{request}, &.{span}, &.{}, &.{frontier_log}, if (request.sponge.calls == 0) &.{} else &detached);
+    defer bounds.deinit();
+    const checked = try Security.preflight(selected_profile, &bounds, &.{}, &.{});
+    const capture_ns = timer.read() - image_program_ns;
+    if (mode == .census_only) {
+        try laneCensus(a, dir, &program, &native, declaration, request, frontier_log);
+        return;
+    }
+    // Wide keys are constructed only after source field-mass/security admission.
+    var metadata = try @import("../../word16_execution/program_metadata.zig").Cache.init(a, 256 << 20);
+    defer metadata.deinit();
+    var setup = try @import("../pure_p2_op_source_setup.zig").init(a, &image, declaration, &metadata);
+    defer setup.deinit();
+    var roster = try Frame.Roster.init(a, &setup, request.sponge.calls, frontier_log, 1, 0);
+    defer roster.deinit();
+    var numerical = E.lookups.resource.ForField(C.fields.om31.OM31).Plan{};
+    var facts: usize = 0;
+    for (roster.instances) |instance| {
+        facts = try std.math.add(usize, facts, try instance.facts());
+        try numerical.add(.{ .kind = .multiplicities, .variables = try instance.variables() });
+    }
+    try numerical.finish();
+    // Both policies are independently charged before the P2 key/child. The
+    // opt-in all-upper candidate retains no raw bottom but uses 80 B/fact;
+    // checkpointed keeps its original 52 B/fact reserve and default schedule.
+    const child_reserve = try std.math.add(usize, try std.math.mul(usize, facts, if (mode == .gkr_all_upper_only) 80 else 52), numerical.metadata_bytes + 65536);
+    if (child_reserve > 12 << 30) return error.ConditionalPrefixGkrBudget;
+    var part_plan = try @import("../../word16_global_execution/services/gkr_local/cpu_components.zig").Plan.initForOp(a, &setup);
+    defer part_plan.deinit();
+    const fixed_logs = try setup.logs(a, 0);
+    defer a.free(fixed_logs);
+    const main_logs = try setup.logs(a, 1);
+    defer a.free(main_logs);
+    const inter_logs = try part_plan.interLogs(a);
+    defer a.free(inter_logs);
+    var init_fixed: u64 = 0;
+    var init_main: u64 = 0;
+    var init_inter: u64 = 0;
+    for (@import("../../word16_execution/geometry.zig").shapesForProgramLog(program.log_size, declaration.geometry)) |shape| if (shape.role == .initial) {
+        init_fixed = @as(u64, @intCast(shape.widths[0])) << @intCast(shape.log);
+        init_main = @as(u64, @intCast(shape.widths[1])) << @intCast(shape.log);
+    };
+    for (part_plan.slots, 0..) |slot, i| if (slot.origin == .core and slot.origin.core == .initial) {
+        const end = if (i + 1 < part_plan.slots.len) part_plan.slots[i + 1].inter_offset else part_plan.inter_columns;
+        init_inter = @as(u64, @intCast(end - slot.inter_offset)) << @intCast(slot.log);
+    };
+    const plan_at = timer.read();
+    const plan_info = .{ .schema = "op-heavy-conditional-prefix-plan/v1", .profile = @tagName(selected_profile), .steps = N, .final_pc = boundary.final_pc, .final_registers = boundary.final_registers, .cpu = declaration, .request = @import("../../word16_global_execution/services/wire.zig").CompactRequest.from(request), .init_words = advice.initial.len, .terminal_words_proved = 0, .init_fixed_cells = init_fixed, .init_main_cells = init_main, .init_interaction_cells = init_inter, .planned_unproved_truths = truths, .unproved_detached = if (request.sponge.calls == 0) @as(usize, 0) else 1, .gkr_facts = facts, .gkr_checkpoint_floor_bytes = child_reserve, .gkr_checkpoint_planning_reserve_bytes = child_reserve, .gkr_checkpoint_estimate_semantics = "Conservative admission planning reserve; legacy floor field is NOT a lower bound or measured peak", .fixed_cells = cells(fixed_logs) + 3 * (@as(u64, 1) << @intCast(frontier_log)), .main_cells = cells(main_logs) + 8 * (@as(u64, 1) << @intCast(frontier_log)), .interaction_cells_excluding_frontier = cells(inter_logs), .image_program_ns = image_program_ns, .execution_ns = execution_ns, .capture_prepare_ns = capture_ns, .through_setup_ns = plan_at, .security = checked, .init_scope = "prefix-touched cells only, not full-block touched set", .conditional_cpu_fragment_only = true, .block_accepted = false, .root_accepted = false };
+    try json(a, dir, if (mode == .prove) "prove-plan.json" else if ((mode == .gkr_only or mode == .gkr_all_upper_only)) "gkr-plan.json" else "plan.json", plan_info);
+    std.debug.print("OP_HEAVY_PREFIX_PLAN steps={} CPUlog={} facts={} planning_reserve={} INIT={} services={any} sponge={any} mass_admitted=true block_accepted=false\n", .{ N, declaration.geometry.cpu_log, facts, child_reserve, advice.initial.len, request.calls, request.sponge });
+    if (mode == .plan) return;
+    if ((mode == .gkr_only or mode == .gkr_all_upper_only)) {
+        return gkrOnly(a, &setup, request, span, &native, &advice, frontier_log, &roster, dir, retained orelse return error.MissingConditionalRetainedSource, if (mode == .gkr_all_upper_only) .all_upper else .checkpointed);
+    } else {
+        var key = try Key.init(a, &setup, selected_profile, frontier_log);
+        defer key.deinit();
+        // Independently recompute the source key before retiring source FIXED.
+        var fresh = try Key.initDigest(a, &setup, selected_profile, frontier_log);
+        defer fresh.deinit();
+        // Existing B4 is an independently source-rebuilt positive control, not
+        // a producer-supplied key. No mixed-profile inventory is constructed.
+        var cross_key: ?Key = if (selected_profile == B2) try Key.initDigest(a, &setup, Profile, frontier_log) else null;
+        defer if (cross_key) |*v| v.deinit();
+        try @import("../pure_p2_op_source_setup.zig").retireLegacy(a, &setup);
+        const first: [Types.FAMILIES]u32 = @splat(1);
+        const Prof = @import("stwo_prover_api").stage_profile;
+        var recorder = Prof.Recorder.initWithOptions(a, "cpu", "heavy conditional 4M CPU fragment", .{ .capture_tasks = false, .capture_process_usage = true });
+        defer recorder.deinit();
+        var source = try Pipeline.buildCpuSourceForOp(a, &setup, request, span, &native, &advice, 0, first, false, &recorder);
+        var source_owned = true;
+        defer if (source_owned) source.deinit();
+        var frontier = try Source.initCalls(a, advice.sponge[0].calls, request.sponge.calls, frontier_log, 1, 0);
+        var frontier_owned = true;
+        defer if (frontier_owned) frontier.deinit();
+        var worker = try Worker.Worker.init(a, &setup, request, span, first, 0, &key, source, frontier, .{ .gkr_bytes = 12 << 30, .global_bytes = 2 << 30 });
+        source_owned = false;
+        frontier_owned = false;
+        defer worker.deinit();
+        worker.native_recorder = &recorder;
+        const seal_begin = timer.read();
+        const stage = try worker.seal();
+        const sealed_at = timer.read();
+        // A conditional experiment challenge, NOT a complete execution manifest.
+        var h = std.crypto.hash.sha2.Sha256.init(.{});
+        h.update("op-conditional-heavy-prefix/v1");
+        h.update(&key.identity);
+        h.update(&worker.expected.statement);
+        h.update(&stage.main);
+        h.update(&stage.receipt);
+        const digest = h.finalResult();
+        var manifest_words: [16]C.fields.m31.M31 = undefined;
+        for (&manifest_words, 0..) |*word, i| word.* = C.fields.m31.M31.fromCanonical(std.mem.readInt(u16, digest[i * 2 ..][0..2], .little));
+        const manifest = Protocol.W.H.hashNode(null, &manifest_words);
+        var encoded = try worker.complete(manifest);
+        defer encoded.deinit(a);
+        const proved_at = timer.read();
+        try Write(dir, "cpu.pcs.bin", encoded.bytes);
+        try Write(dir, "cpu.gkr.bin", encoded.local);
+        // Source-only fresh key, never the producer key, verifies this fragment.
+        const verify_at = timer.read();
+        const debt = try Worker.verify(a, &setup, request, span, first, 0, &fresh, manifest, stage.main, &encoded);
+        const fresh_verify_ns = timer.read() - verify_at;
+        if (selected_profile == B2) try crossProfileControls(a, &setup, request, span, first, &fresh, &cross_key.?, manifest, stage.main, &encoded, retained orelse return error.MissingConditionalRetainedSource);
+        if (debt.ram.isZero() and debt.kio.isZero() and debt.wire.isZero()) return error.ConditionalDebtUnexpectedlyClosed;
+        var profile = try recorder.snapshot(a);
+        defer profile.deinit(a);
+        try json(a, dir, "stages.json", profile);
+        try json(a, dir, "fragment.json", .{ .schema = "op-heavy-conditional-cpu-fragment/v1", .profile = @tagName(selected_profile), .cross_profile_controls = if (selected_profile == B2) 2 else 0, .valid_independent_B4_positive_control = selected_profile == B2, .steps = N, .key_identity = key.identity, .manifest = manifest, .stage = stage, .pcs_bytes = encoded.bytes.len, .gkr_bytes = encoded.local.len, .claims = encoded.claims, .outstanding_global_debt = debt, .seal_ns = sealed_at - seal_begin, .complete_ns = proved_at - sealed_at, .fresh_verify_ns = fresh_verify_ns, .full_elapsed_ns = timer.read(), .conditional_fragment_verified = true, .complete_execution_accepted = false, .root_accepted = false, .owed = "truth KIO/Wire, detached sponge, end memory, remaining CPU execution; not a block proof" });
+        std.debug.print("OP_HEAVY_PREFIX_PHYSICAL pcs={} GKR={} seal_ns={} complete_ns={} conditional_fragment_only=true block_accepted=false\n", .{ encoded.bytes.len, encoded.local.len, sealed_at - seal_begin, proved_at - sealed_at });
+    }
+}
+// Qualified retained artifacts are pinned by source-controlled full-fileSHA.
+// They supply authentic scope roots, not a producer-selected key or admission.
+fn gkrOnly(a: std.mem.Allocator, setup: *@import("../../word16_global_execution/services/roster.zig").CpuSetup, request: @import("../../word16_global_execution/services/protocol.zig").Request, span: Types.OpTowerSpan, native: *Prepared, advice: *Collector.Advice, frontier_log: u32, roster: *const Frame.Roster, dir: std.fs.Dir, retained_path: []const u8, storage: @import("native.zig").SourceStorage) !void {
+    const Native = @import("native.zig");
+    const Timing = E.lookups.gkr_profile;
+    const Prof = E.stage_profile;
+    var timer = try std.time.Timer.start();
+    var retained = try std.fs.cwd().openDir(retained_path, .{});
+    defer retained.close();
+    const pcs_sha = "db731dc7bc725b68eca35ed7462cd3550dc691c42dab73a06ffe76f8301b8a70";
+    const local_sha = "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3";
+    const raw = try retained.readFileAlloc(a, "cpu.pcs.bin", 16 << 20);
+    defer a.free(raw);
+    try Config.pin(raw, pcs_sha);
+    var original = try Protocol.W.Wire.decodeProofBytesBinary(a, raw);
+    defer original.deinit(a);
+    const roots = original.commitment_scheme_proof.commitments.items;
+    if (roots.len != 4 or !std.meta.eql(original.commitment_scheme_proof.config, Profile.config()) or original.commitment_scheme_proof.revision_config != null) return error.ConditionalRetainedProfile;
+    const local = try retained.readFileAlloc(a, "cpu.gkr.bin", 16 << 20);
+    defer a.free(local);
+    try Config.pin(local, local_sha);
+    var expected_receipt: [36]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&expected_receipt, "3f110a09da6e4916c5a1f618215acb5477ff050459edce3095313e70aba6103364ad8e00");
+    // Rebuild immutable source FIXED authority independently; this is the only
+    // new commitment here. Never commit reconstructed MAIN or INTER columns.
+    var key = try Key.initDigest(a, setup, Profile, frontier_log);
+    defer key.deinit();
+    try std.testing.expectEqualSlices(u8, &roots[0], &key.root);
+    const first: [Types.FAMILIES]u32 = @splat(1);
+    const source_scope = Native.Scope{ .statement = try key.statement(setup, request, first, span, 0), .fixed = key.root, .main = roots[1], .ordinal = 0, .epoch = @intCast(request.base.epoch), .calls = request.sponge.calls };
+    var decoded = try Native.decode(a, roster.instances, local);
+    defer decoded.deinit();
+    var baseline = try Native.verifyPending(a, source_scope, roster.instances, &decoded.proof, expected_receipt);
+    defer baseline.deinit(a);
+    try @import("../pure_p2_op_source_setup.zig").retireLegacy(a, setup);
+    const source_key_ns = timer.read();
+    var recorder = Prof.Recorder.initWithOptions(a, "cpu", "Pinned heavy4M localGKR replay only", .{ .capture_tasks = false, .capture_process_usage = true });
+    defer recorder.deinit();
+    var source = try Pipeline.buildCpuSourceForOp(a, setup, request, span, native, advice, 0, first, false, &recorder);
+    defer source.deinit();
+    var frontier = try Source.initCalls(a, advice.sponge[0].calls, request.sponge.calls, frontier_log, 1, 0);
+    defer frontier.deinit();
+    try frontier.mergeInto(&source);
+    // Same post-merge/owned-MAIN-take metadata state as Worker.seal, then retire
+    // the generated raw matrices immediately. No surrogate MAIN is admitted.
+    const discarded_main = try source.takeMain(setup);
+    discarded_main.deinit(a);
+    a.free(try frontier.takeMain());
+    const source_ns = timer.read() - source_key_ns;
+    var checkpoint_bytes: usize = 0;
+    var all_upper_bytes: usize = 0;
+    var regenerated_odd_secure_pairs: usize = 0;
+    for (roster.instances) |instance| {
+        const variables = try instance.variables();
+        const fact_count = try instance.facts();
+        var h: usize = 1;
+        while (h <= variables) : (h += 1) {
+            const pairs = fact_count >> @intCast(h);
+            all_upper_bytes += 2 * @sizeOf(C.fields.om31.OM31) * pairs;
+            if (h % 2 == 0 or h == variables) checkpoint_bytes += 2 * @sizeOf(C.fields.om31.OM31) * pairs else regenerated_odd_secure_pairs += pairs;
+        }
+    }
+    const child_budget = try E.host_budget_allocator.SharedHostBudget.createRetainingParent(a, 12 << 30);
+    defer child_budget.destroy();
+    const provider = @import("provider.zig").Provider{ .legacy = .{ .source = &source }, .frontier = &frontier };
+    var profiling = Timing.Scope.init(&recorder);
+    defer profiling.deinit();
+    var local_phase = try Prof.StageScope.begin(&recorder, "local_gkr", "Authentic retained MAIN scope localGKR replay only");
+    defer local_phase.end();
+    const begin = timer.read();
+    var child = try Native.proveUnboundWithSourceStorage(child_budget.allocator(), source_scope, roster.instances, provider, storage);
+    defer child.deinit(child_budget.allocator());
+    const child_ns = timer.read() - begin;
+    local_phase.end();
+    const encoded = try Native.encode(a, roster.instances, &child.result.proof);
+    defer a.free(encoded);
+    try std.testing.expectEqualSlices(u8, local, encoded);
+    try std.testing.expectEqualSlices(u8, &expected_receipt, &child.digest);
+    try std.testing.expect(baseline.eta.eql(child.eta));
+    var checked = try Native.verifyPending(a, source_scope, roster.instances, &child.result.proof, child.digest);
+    defer checked.deinit(a);
+    var stages = try recorder.snapshot(a);
+    defer stages.deinit(a);
+    try json(a, dir, "gkr-stages.json", stages);
+    try Write(dir, "local.gkr.bin", encoded);
+    try json(a, dir, "gkr-only.json", .{ .schema = "op-heavy-conditional-local-gkr-only/v1", .source_storage = @tagName(storage), .source_storage_work = .{ .checkpoint_retained_upper_bytes = checkpoint_bytes, .all_retained_upper_bytes = all_upper_bytes, .odd_secure_pairs_not_recomputed = regenerated_odd_secure_pairs, .semantics = "Exact layer sizes; pair counts are source arithmetic work, not elapsed time. Raw bottom is never retained; all-upper builds height1 and every subsequent upper level." }, .retained_pcs_sha256 = pcs_sha, .retained_local_sha256 = local_sha, .source_key_ns = source_key_ns, .source_build_merge_take_retire_ns = source_ns, .local_gkr_ns = child_ns, .key = key.identity, .scope = source_scope, .receipt = child.digest, .encoded_bytes = encoded.len, .exact_retained_GKR_bytes_receipt_eta = true, .source_postmerge_owned_MAIN_take = true, .new_MAIN_or_INTER_commit = false, .new_PCS_physical_verification = false, .new_CPU_or_block_or_root_acceptance = false, .provenance = "Retained fullPCS andGKR files independently pinned to qualified4900/9c36 SHA. Independent sourceFIXED+statement reconstructed, retained child freshly verified. This benchmarks only localGKR, with physicalMAIN authority borrowed from that authentic retained conditional fragment." });
+    std.debug.print("OP_HEAVY_GKR_ONLY steps={} local_bytes={} child_ns={} exact_retained_bytes_receipt_eta=true no_MAIN_INTER_commit=true CPU_block_root_accepted=false\n", .{ N, encoded.len, child_ns });
+}
+const RetainedFragment = struct {
+    key_identity: [32]u8,
+    manifest: [36]u8,
+    stage: Worker.StageOne,
+    claims: []C.fields.om31.OM31,
+    conditional_fragment_verified: bool,
+};
+fn readPinned(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, limit: usize, sha: []const u8) ![]u8 {
+    const raw = try dir.readFileAlloc(a, name, limit);
+    errdefer a.free(raw);
+    try Config.pin(raw, sha);
+    return raw;
+}
+fn crossProfileControls(a: std.mem.Allocator, setup: *@import("../../word16_global_execution/services/roster.zig").CpuSetup, request: @import("../../word16_global_execution/services/protocol.zig").Request, span: Types.OpTowerSpan, first: [Types.FAMILIES]u32, b2: *const Key, b4: *const Key, manifest: [36]u8, main: [36]u8, encoded: *const Worker.Encoded, retained_path: []const u8) !void {
+    var dir = try std.fs.cwd().openDir(retained_path, .{});
+    defer dir.close();
+    const raw = try readPinned(a, dir, "cpu.pcs.bin", 16 << 20, "db731dc7bc725b68eca35ed7462cd3550dc691c42dab73a06ffe76f8301b8a70");
+    defer a.free(raw);
+    const local = try readPinned(a, dir, "cpu.gkr.bin", 16 << 20, "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3");
+    defer a.free(local);
+    // This complete metadata file is pinned too, not merely its proof bytes:
+    // the outer claim vector/manifest must be the known validB4 source frame.
+    const metadata = try readPinned(a, dir, "fragment.json", 1 << 20, "860f231708c6e6f9ecce5f7a495e3989881e114c6f4f5102dd0302e09df8e998");
+    defer a.free(metadata);
+    const frame = try std.json.parseFromSlice(RetainedFragment, a, metadata, .{ .ignore_unknown_fields = true });
+    defer frame.deinit();
+    if (!frame.value.conditional_fragment_verified or frame.value.claims.len > 512) return error.ConditionalRetainedProfile;
+    try std.testing.expectEqualSlices(u8, &b4.identity, &frame.value.key_identity);
+    try std.testing.expect(!std.mem.eql(u8, raw, encoded.bytes));
+    const old = Worker.Encoded{ .bytes = raw, .local = local, .receipt = frame.value.stage.receipt, .claims = frame.value.claims };
+    // Positive before negative: the independently source-builtB4 digest key
+    // accepts the actual valid retainedB4 proof under its authentic statements.
+    _ = try Worker.verify(a, setup, request, span, first, 0, b4, frame.value.manifest, frame.value.stage.main, &old);
+    try std.testing.expectError(error.SpongeCpuProofScope, Worker.verify(a, setup, request, span, first, 0, b2, frame.value.manifest, frame.value.stage.main, &old));
+    try std.testing.expectError(error.SpongeCpuProofScope, Worker.verify(a, setup, request, span, first, 0, b4, manifest, main, encoded));
+    std.debug.print("OP_HEAVY_B2_CONTROL valid_independent_B4_positive=true cross_B4_to_B2_rejected=true cross_B2_to_B4_rejected=true semantic_capture_same=true protocol_bytes_differ=true complete_block_admission=false\n", .{});
+}
+fn environment(comptime forced: ?Mode, comptime selected_profile: ProfileType) !void {
+    const path = std.posix.getenv("STWO_OP_HEAVY_PREFIX_CONFIG") orelse return error.SkipZigTest;
+    const oracle = std.posix.getenv("STWO_OP_HEAVY_PREFIX_ORACLE") orelse return error.MissingPrefixOracle;
+    const out = std.posix.getenv("STWO_OP_HEAVY_PREFIX_OUT") orelse return error.MissingPrefixOutput;
+    const mode_name = std.posix.getenv("STWO_OP_HEAVY_PREFIX_MODE") orelse (if (forced) |value| @tagName(value) else "plan");
+    const mode = std.meta.stringToEnum(Mode, mode_name) orelse return error.InvalidConditionalPrefixMode;
+    if (forced) |value| if (mode != value) return error.InvalidConditionalPrefixMode;
+    const retained = std.posix.getenv("STWO_OP_HEAVY_PREFIX_RETAINED");
+    if (((mode == .gkr_only or mode == .gkr_all_upper_only) or selected_profile == B2) and retained == null) return error.MissingConditionalRetainedSource;
+    // Optional qualification-only control; default fixture behavior is exact.
+    // Existing real two-CPU/serialized-sponge/Keccak join independently closes
+    // all global relations before the separate conditional large CPU fragment.
+    if (std.process.hasEnvVarConstant("STWO_OP_PREFIX_SMALL_JOIN_CONTROL")) {
+        try @import("join_test.zig").exerciseWithHook(false, void);
+    }
+    const a = std.testing.allocator;
+    const raw = try std.fs.cwd().readFileAlloc(a, path, 16384);
+    defer a.free(raw);
+    const config = try std.json.parseFromSlice(Config.Config, a, raw, .{});
+    defer config.deinit();
+    const ref = try std.fs.cwd().readFileAlloc(a, oracle, 16384);
+    defer a.free(ref);
+    const endpoint = try std.json.parseFromSlice(Endpoint, a, ref, .{ .ignore_unknown_fields = true });
+    defer endpoint.deinit();
+    var dir = try std.fs.cwd().openDir(out, .{});
+    defer dir.close();
+    const budget = try E.host_budget_allocator.SharedHostBudget.create(std.heap.smp_allocator, 32 << 30);
+    defer budget.destroy();
+    {
+        var pool: E.work_pool.WorkPool = .{};
+        try pool.initInPlaceWithOptions(.{ .worker_count = 16 });
+        defer pool.deinit();
+        var binding = try E.work_pool.ScopedPoolBinding.init(&pool);
+        defer binding.deinit();
+        if (forced) |value| {
+            try run(budget.allocator(), config.value, endpoint.value, dir, value, selected_profile, retained);
+        } else switch (mode) {
+            inline else => |value| try run(budget.allocator(), config.value, endpoint.value, dir, value, selected_profile, retained),
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
+    try json(a, dir, if (mode == .prove) "prove-budget.json" else if ((mode == .gkr_only or mode == .gkr_all_upper_only)) "gkr-budget.json" else "plan-budget.json", budget.snapshot());
+    std.debug.print("OP_HEAVY_PREFIX_DONE peak={} cap={} live=0 external=0\n", .{ budget.snapshot().peak_live_bytes, @as(usize, 32) << 30 });
+}
+
+test "OP heavy selected conditional 4M CPU fragment profile" {
+    try environment(null, Profile);
+}
+test "OP heavy selected retained local GKR only profile" {
+    // Fixed compile-time path avoids compiling the unrelated full physical
+    // AIR/PCS prover for this source-and-local-child-only qualification.
+    try environment(.gkr_only, Profile);
+}
+
+test "OP heavy selected conditional B2 CPU fragment control" {
+    // Existing typedB2/q144control only, never incoming-proof selection or a
+    // production mixed-profile suite. Source/security guards precede keys.
+    try environment(.prove, B2);
+}
+
+test "OP heavy selected retained all upper local GKR profile" {
+    try environment(.gkr_all_upper_only, Profile);
+}
+
+const CensusRole = struct { kind: []const u8, role: []const u8, row_log: u32, queries: u32, semantic_rows: usize, semantic_scope: []const u8 };
+fn laneCensus(a: std.mem.Allocator, dir: std.fs.Dir, program: *const Program, native: *const Prepared, declaration: @import("../../word16_global_execution/services/wire.zig").CpuDeclaration, request: @import("../../word16_global_execution/services/protocol.zig").Request, frontier_log: u32) !void {
+    const G = @import("../../word16_execution/geometry.zig");
+    const Roster = @import("../../word16_global_execution/services/gkr_local/roster.zig");
+    const A = front.rv64_air;
+    var roles: std.ArrayList(CensusRole) = .empty;
+    defer roles.deinit(a);
+    for (G.shapes(program, declaration.geometry)) |shape| {
+        if (!shape.present()) continue;
+        const count = if (declaration.geometry.cpu_u8_pairs and shape.role == .cpu) 14 else if (declaration.geometry.cpu_u8_pairs and shape.role == .and_table) 2 else Roster.terms(shape.role);
+        const rows: usize = @as(usize, 1) << @intCast(shape.log);
+        const active: usize = switch (shape.role) {
+            .cpu => native.cpu.?.public.steps,
+            .alu => @min(rows, native.alu.facts.len),
+            .binary => @min(rows, native.binary.facts.len),
+            .shift => @min(rows, native.shift.len),
+            .jalr => if (native.jalr) |v| v.facts.len else 0,
+            .division => native.division.len,
+            .multiplication => native.multiplication.len,
+            .ls => @min(rows, request.base.memory.ls_count),
+            .initial => request.base.memory.initial.len,
+            .terminal => request.base.memory.terminal.len,
+            .alu_tail, .binary_tail, .shift_tail, .ls_tail => return error.CensusTailRequiresExplicitCount,
+            else => rows,
+        };
+        try roles.append(a, .{ .kind = "core", .role = @tagName(shape.role), .row_log = shape.log, .queries = count, .semantic_rows = active, .semantic_scope = switch (shape.role) {
+            .cpu, .alu, .binary, .shift, .jalr, .division, .multiplication, .ls, .initial, .terminal => "captured active metadata rows; padded rows may still emit UNIT range fractions",
+            else => "entire structural/public support domain, NOT nonzero multiplicity rows",
+        } });
+    }
+    for (std.enums.values(Types.Family)) |family| if (declaration.bridges.at(family)) |log| {
+        const calls = request.calls[@intFromEnum(family)];
+        const coords: usize = if (family == .keccak) 25 else A.crypto.secp256k1.word16_bridge.types.coordinates(switch (family) {
+            .add => .add,
+            .double => .double,
+            .sha256 => .sha256,
+            else => return error.CensusExtraFamily,
+        });
+        try roles.append(a, .{ .kind = "bridge", .role = @tagName(family), .row_log = log, .queries = Roster.bridgeTerms(family), .semantic_rows = calls * coords, .semantic_scope = "captured calls times exact provider coordinate count" });
+    };
+    inline for (Types.bulk_kinds) |kind| if (declaration.bridges.bulk.at(kind)) |log| {
+        try roles.append(a, .{ .kind = "bulk", .role = @tagName(kind), .row_log = log, .queries = @import("../../word16_global_execution/services/gkr_local/bulk_projection.zig").localTerms(kind), .semantic_rows = request.bulk.rows(kind), .semantic_scope = if (kind == .jtab) "entire fixed JUMPDEST table domain, NOT nonzero multiplicities" else "captured bulk plan row count" });
+    };
+    var dword_remaining: usize = request.ls_dword;
+    for (0..Types.DWORD_INSTANCES) |index| if (declaration.bridges.dwordLog(index)) |log| {
+        const rows = @as(usize, 1) << @intCast(log);
+        const actual = @min(rows, dword_remaining);
+        dword_remaining -= actual;
+        try roles.append(a, .{ .kind = "dword", .role = if (index == 0) "head" else "tail", .row_log = log, .queries = @import("../../word16_global_execution/services/gkr_local/dword_projection.zig").LOCAL_TERMS, .semantic_rows = actual, .semantic_scope = "captured aligned memory events, head first; padding emits unit range queries" });
+    };
+    if (dword_remaining != 0) return error.CensusDwordOverflow;
+    try roles.append(a, .{ .kind = "frontier", .role = "sponge", .row_log = frontier_log, .queries = 3, .semantic_rows = request.sponge.calls, .semantic_scope = "captured calls; padding emits unit U16/U8 queries" });
+    try json(a, dir, "lane-census.json", .{ .schema = "op-authentic-4m-lane-role-census/v1", .retirements = N, .program_log = program.log_size, .program_entries = program.entries.len, .raw_function_counts = native.raw_counts, .roles = roles.items, .proposal_only = true, .new_GKR_or_physical_proof = false, .block_or_root_accepted = false });
+}
+test "OP heavy selected source only lane census" {
+    try environment(.census_only, Profile);
+}

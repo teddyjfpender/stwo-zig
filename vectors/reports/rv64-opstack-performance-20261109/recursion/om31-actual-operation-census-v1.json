@@ -1,0 +1,283 @@
+{
+  "scope": "actual_native_verified_source_graph_only_no_recursive_proving",
+  "operation_order": [
+    "add",
+    "sub",
+    "full_mul",
+    "mul_inner",
+    "square",
+    "mul_m31",
+    "neg",
+    "partial_evals"
+  ],
+  "records": [
+    {
+      "kind": "CPU",
+      "ordinal": 0,
+      "raw": [
+        30606,
+        4818570,
+        2258,
+        68060,
+        65536
+      ],
+      "operations": {
+        "operations": [
+          {
+            "calls": 537542,
+            "qm31_rows": 1061874
+          },
+          {
+            "calls": 59484,
+            "qm31_rows": 107191
+          },
+          {
+            "calls": 132725,
+            "qm31_rows": 825659
+          },
+          {
+            "calls": 495290,
+            "qm31_rows": 972846
+          },
+          {
+            "calls": 2478,
+            "qm31_rows": 14868
+          },
+          {
+            "calls": 0,
+            "qm31_rows": 0
+          },
+          {
+            "calls": 2175,
+            "qm31_rows": 2637
+          },
+          {
+            "calls": 293,
+            "qm31_rows": 7911
+          }
+        ]
+      },
+      "classified_qm31_rows": 2992986,
+      "unclassified_qm31_rows": 1825584,
+      "build_ns": 92054750,
+      "phases": {
+        "proof_inputs": {
+          "eq": 0,
+          "arithmetic": 4,
+          "m31_to_u32": 0,
+          "poseidon": 0,
+          "variables": 465774,
+          "guessed_variables": 465769
+        },
+        "statement": {
+          "public_scope": {
+            "eq": 9,
+            "arithmetic": 23,
+            "m31_to_u32": 27,
+            "poseidon": 0,
+            "variables": 6289,
+            "guessed_variables": 6227
+          },
+          "local_gkr": {
+            "eq": 772,
+            "arithmetic": 318917,
+            "m31_to_u32": 0,
+            "poseidon": 8008,
+            "variables": 511295,
+            "guessed_variables": 70
+          },
+          "claims_shared": {
+            "eq": 0,
+            "arithmetic": 1034,
+            "m31_to_u32": 161,
+            "poseidon": 74,
+            "variables": 3020,
+            "guessed_variables": 38
+          },
+          "source_publics": {
+            "eq": 1164,
+            "arithmetic": 78724,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 80558,
+            "guessed_variables": 1826
+          },
+          "cpu_oods": {
+            "eq": 5884,
+            "arithmetic": 644004,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 650234,
+            "guessed_variables": 5884
+          },
+          "pcs_oods_and_transcript": {
+            "eq": 55,
+            "arithmetic": 935,
+            "m31_to_u32": 0,
+            "poseidon": 44,
+            "variables": 2053,
+            "guessed_variables": 27
+          },
+          "pcs_sampled_mix_and_queries": {
+            "eq": 586,
+            "arithmetic": 134303,
+            "m31_to_u32": 0,
+            "poseidon": 3818,
+            "variables": 226540,
+            "guessed_variables": 562
+          },
+          "pcs_merkle": {
+            "eq": 8928,
+            "arithmetic": 628992,
+            "m31_to_u32": 0,
+            "poseidon": 42336,
+            "variables": 1645056,
+            "guessed_variables": 0
+          },
+          "deep": {
+            "eq": 1850,
+            "arithmetic": 2106832,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 2108679,
+            "guessed_variables": 1825
+          },
+          "fri": {
+            "eq": 8982,
+            "arithmetic": 414558,
+            "m31_to_u32": 0,
+            "poseidon": 13680,
+            "variables": 744156,
+            "guessed_variables": 1278
+          }
+        },
+        "frame": {
+          "eq": 2376,
+          "arithmetic": 5341,
+          "m31_to_u32": 0,
+          "poseidon": 100,
+          "variables": 8932,
+          "guessed_variables": 1188
+        },
+        "finalization": {
+          "eq": 0,
+          "arithmetic": 484903,
+          "m31_to_u32": 2070,
+          "poseidon": 0,
+          "variables": 1670,
+          "guessed_variables": 0
+        }
+      }
+    },
+    {
+      "kind": "keccak",
+      "ordinal": 1,
+      "raw": [
+        14055,
+        6709108,
+        279,
+        69863,
+        65536
+      ],
+      "operations": {
+        "operations": [
+          {
+            "calls": 1052913,
+            "qm31_rows": 2104290
+          },
+          {
+            "calls": 52043,
+            "qm31_rows": 83099
+          },
+          {
+            "calls": 123313,
+            "qm31_rows": 641743
+          },
+          {
+            "calls": 1008847,
+            "qm31_rows": 2010822
+          },
+          {
+            "calls": 89,
+            "qm31_rows": 534
+          },
+          {
+            "calls": 0,
+            "qm31_rows": 0
+          },
+          {
+            "calls": 10,
+            "qm31_rows": 11
+          },
+          {
+            "calls": 679,
+            "qm31_rows": 18333
+          }
+        ]
+      },
+      "classified_qm31_rows": 4858832,
+      "unclassified_qm31_rows": 1850276,
+      "build_ns": 110830791,
+      "phases": null
+    },
+    {
+      "kind": "sha256",
+      "ordinal": 2,
+      "raw": [
+        8291,
+        4426562,
+        183,
+        56952,
+        65536
+      ],
+      "operations": {
+        "operations": [
+          {
+            "calls": 629059,
+            "qm31_rows": 1252894
+          },
+          {
+            "calls": 42081,
+            "qm31_rows": 69308
+          },
+          {
+            "calls": 90993,
+            "qm31_rows": 517567
+          },
+          {
+            "calls": 568089,
+            "qm31_rows": 1131516
+          },
+          {
+            "calls": 15,
+            "qm31_rows": 90
+          },
+          {
+            "calls": 0,
+            "qm31_rows": 0
+          },
+          {
+            "calls": 1,
+            "qm31_rows": 1
+          },
+          {
+            "calls": 5,
+            "qm31_rows": 135
+          }
+        ]
+      },
+      "classified_qm31_rows": 2971511,
+      "unclassified_qm31_rows": 1455051,
+      "build_ns": 72888209,
+      "phases": null
+    }
+  ],
+  "total_ns": 4974523209,
+  "peak_requested_bytes": 2293211170,
+  "security_qualified": false,
+  "native_bundle_sha256": "ceb1bb7f64e1224b4db02007a4df4a11e902408fb540caa7ae31b2d6680581fd",
+  "config_sha256": "4fea61d0e5976b78d80d2ffcc92b144bb7cd403c6a169e14d44bf5cb0d07b639",
+  "block": 120794432,
+  "native_steps": 796406,
+  "no_recursive_authority_or_proof_constructed": true
+}

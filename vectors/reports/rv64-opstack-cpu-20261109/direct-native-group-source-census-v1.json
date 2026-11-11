@@ -1,0 +1,134 @@
+{
+  "scope": "direct_native_verifier_group_source_cost_no_physical_group_proof",
+  "groups": [
+    {
+      "raw": [
+        20073,
+        1463044,
+        1788,
+        31728,
+        65536,
+        38623
+      ],
+      "rows": [
+        32768,
+        2097152,
+        2048,
+        32768,
+        65536,
+        65536
+      ],
+      "logs": [
+        15,
+        21,
+        11,
+        15,
+        16,
+        16
+      ],
+      "fixed_cells": 19896320,
+      "main_cells": 42541056,
+      "interaction_cells": 42254336,
+      "total_cells": 104691712
+    },
+    {
+      "raw": [
+        40007,
+        2837486,
+        3516,
+        62497,
+        65536,
+        74575
+      ],
+      "rows": [
+        65536,
+        4194304,
+        4096,
+        65536,
+        65536,
+        131072
+      ],
+      "logs": [
+        16,
+        22,
+        12,
+        16,
+        16,
+        17
+      ],
+      "fixed_cells": 39727104,
+      "main_cells": 85016576,
+      "interaction_cells": 83984384,
+      "total_cells": 208728064
+    },
+    {
+      "raw": [
+        73265,
+        7675778,
+        4612,
+        126549,
+        65536,
+        193384
+      ],
+      "rows": [
+        131072,
+        8388608,
+        8192,
+        131072,
+        65536,
+        262144
+      ],
+      "logs": [
+        17,
+        23,
+        13,
+        17,
+        16,
+        18
+      ],
+      "fixed_cells": 79388672,
+      "main_cells": 169967616,
+      "interaction_cells": 167444480,
+      "total_cells": 416800768
+    }
+  ],
+  "standalone_graph_exact": true,
+  "group4_numerical_source_parity": true,
+  "group4_member_ninth_limb_rejected": true,
+  "canonical_binary_digest_exact": true,
+  "physical_group_proof": false,
+  "production_admission": false,
+  "security_qualified": false,
+  "schema": "op-direct-native-group-source-census-v1",
+  "baseline_four_wrapper_cells_including_native_OM31": 520104448,
+  "direct_four_cells": 416800768,
+  "cell_saving_vs_wrappers_alone": 0.19862102775171808,
+  "three_outer_fold_proofs_eliminated": true,
+  "baseline_fold_cells_not_in_this_lower_bound": true,
+  "requested_peak_bytes_not_RSS": 664223128,
+  "requested_budget_bytes": 12884901888,
+  "final_live_bytes": 0,
+  "standalone_retained_source": {
+    "proof_bytes": 660292,
+    "source_identity": "3a175536279af336d75aa77123344d91fb9c855611164e60411314347bb60558",
+    "fresh_source_acceptance": true,
+    "balanced_debt_frame_refusal": true,
+    "new_wrapper_proof_generated": false
+  },
+  "checks": [
+    {
+      "command": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='direct native group' -j1",
+      "exit": 0
+    },
+    {
+      "command": "STWO_OP_SPONGE_R6_RETAINED=RETAINED_DIR zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='sponge CPU complete source leaf' -j1",
+      "exit": 0
+    }
+  ],
+  "remaining": [
+    "Physical group proof and fresh independent source-key receiver",
+    "Complete global inventory and execution root admission for grouped source spans",
+    "Resource-derived group sizing on actual OP source classes",
+    "Whole-block performance qualification; no heavy rerun or speed ratio claimed"
+  ]
+}

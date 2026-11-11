@@ -1,0 +1,270 @@
+{
+  "schema": "stwo.opstack.heavy-mainnet-source-plan.v1",
+  "scope": "Complete execution capture and source-derived trace geometry",
+  "block": 121065789,
+  "source_commit": "117942bdc558d13552f29763faee43ad8863858b",
+  "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+  "runner_sha256": "dfc699ba3797436d57bf6802229ba84bb8b6295acfca9c83379e89c890f73ca4",
+  "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+  "elf_sha256": "ae39c318e68bbe5ce06387fb3bfaa365ae4ff15974073466fe0f0029a9e3e284",
+  "pinned_output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+  "batch_steps": 4194303,
+  "workers": 8,
+  "resource_schedule": {
+    "lanes": 2,
+    "workers_per_lane": 4,
+    "memory_cap_bytes": 5368709120,
+    "heaviest_first": true
+  },
+  "timing": {
+    "wall_ns": 251245531961,
+    "peak_rss_bytes": 2190098432,
+    "user_cpu_s": 269.493535,
+    "system_cpu_s": 135.726424,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "capture_ns": 251097924421,
+  "total_steps": 425529933,
+  "memory_words": 539388,
+  "final_pc": 3412,
+  "cpu_proofs_planned": 102,
+  "service_proofs_planned": 24,
+  "truth_declarations": [
+    {
+      "family": "keccak",
+      "first_id": 1,
+      "calls": 4854,
+      "logs": [
+        16,
+        1770517
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 4855,
+      "calls": 4854,
+      "logs": [
+        16,
+        1770517
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 9709,
+      "calls": 4854,
+      "logs": [
+        16,
+        1770517
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 14563,
+      "calls": 559,
+      "logs": [
+        13,
+        1770517
+      ]
+    },
+    {
+      "family": "add",
+      "first_id": 1,
+      "calls": 3237,
+      "logs": [
+        12,
+        0
+      ]
+    },
+    {
+      "family": "double",
+      "first_id": 1,
+      "calls": 2047,
+      "logs": [
+        11,
+        0
+      ]
+    },
+    {
+      "family": "double",
+      "first_id": 2048,
+      "calls": 511,
+      "logs": [
+        9,
+        0
+      ]
+    },
+    {
+      "family": "double",
+      "first_id": 2559,
+      "calls": 202,
+      "logs": [
+        8,
+        0
+      ]
+    },
+    {
+      "family": "sha256",
+      "first_id": 1,
+      "calls": 952,
+      "logs": [
+        10,
+        0
+      ]
+    },
+    {
+      "family": "arith256_mod",
+      "first_id": 1,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "arith256_mod",
+      "first_id": 65536,
+      "calls": 65502,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_g1_add",
+      "first_id": 1,
+      "calls": 19465,
+      "logs": [
+        15,
+        0
+      ]
+    },
+    {
+      "family": "bn254_g1_double",
+      "first_id": 1,
+      "calls": 31908,
+      "logs": [
+        15,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 1,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 65536,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 131071,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 196606,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 262141,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 327676,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 393211,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 458746,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 524281,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 589816,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "first_id": 655351,
+      "calls": 23538,
+      "logs": [
+        15,
+        0
+      ]
+    }
+  ],
+  "source_shape": {
+    "native_proofs": 126,
+    "max_trace_log": 22,
+    "max_public_boundary_log": 20,
+    "max_columns": 7444,
+    "max_constraints": 7751,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 33,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 26,
+    "native_trace_cells": [
+      5984320416,
+      32890665728,
+      20565676544
+    ]
+  },
+  "main_interaction_bits": 1657146610432,
+  "cpu_declarations_sha256": "bfb4c1d88e5e07b7a58775d2c0ab8459a430c8a4ce73ec5e21df894678dbfbe0"
+}

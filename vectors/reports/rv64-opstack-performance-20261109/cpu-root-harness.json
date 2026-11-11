@@ -1,0 +1,133 @@
+{
+  "schema": "stwo.opstack.cpu-root-harness-qualification.v1",
+  "scope": "Small real block: integration qualification only, not the heavy 10x target or a controlled speed comparison",
+  "block": 120794432,
+  "guest_instructions": 796520,
+  "native_profile": "d2_native_b4_q54_p20_fold4",
+  "root_admission": {
+    "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+    "native_profile": "d2_native_b4_q54_p20_fold4",
+    "outer_profile": "stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1",
+    "root_digest": "e28ab7f5a2b6b8fba2d5dfb7f956fcb6b5ee3ae66ea745545300070115fbe058",
+    "root_authority": "cd837e12a3cc89299ce59450b8e7dd7c3fc38dacf68de5eb4ff058620beb6778",
+    "manifest": "e4b72df0653a849cd69c68919a85ff1b33be9282112eb9a03fc1b5833d21302e",
+    "root_proof_bytes": 758776,
+    "cpu_proofs": 1,
+    "service_proofs": 2,
+    "recursive_leaves": 3,
+    "recursive_folds": 1
+  },
+  "proof_verified": true,
+  "recursive_root_verified": true,
+  "tampered_proof_rejected": true,
+  "production_timing": {
+    "native_seconds": 9.060044167,
+    "recursive_seconds": 32.622318334,
+    "summed_producer_seconds": 41.682362501,
+    "native_start_to_root_seconds": 41.68308325,
+    "scope": "execution/capture/native setup/proving plus recursive setup/wrap/fold; fresh reception and corruption trials follow root production"
+  },
+  "stages": {
+    "produce": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "produce-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/request.json",
+        "-",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/proof",
+        "0",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/resources.json"
+      ],
+      "wall_ns": 9060044167,
+      "peak_rss_bytes": 5128847360,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 39.883301,
+      "system_cpu_s": 1.6692449999999999,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "recursive_produce": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "recurse-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/recursive-request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/proof",
+        "2147483648",
+        "55834574848"
+      ],
+      "wall_ns": 32622318334,
+      "peak_rss_bytes": 28705865728,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 356.545443,
+      "system_cpu_s": 13.396178,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "recursive_receive": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "verify-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/recursive-request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/proof",
+        "2147483648",
+        "34359738368"
+      ],
+      "wall_ns": 4086024750,
+      "peak_rss_bytes": 7474216960,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 22.312639,
+      "system_cpu_s": 0.7320019999999999,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "tamper": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "verify-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/proof",
+        "2147483648",
+        "12884901888"
+      ],
+      "wall_ns": 416559333,
+      "peak_rss_bytes": 598441984,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 0.374891,
+      "system_cpu_s": 0.026527,
+      "returncode": 1,
+      "timed_out": false
+    },
+    "tamper-rehashed": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "verify-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/complete-cpu-harness-small-v2/proof",
+        "2147483648",
+        "12884901888"
+      ],
+      "wall_ns": 2675553041,
+      "peak_rss_bytes": 2966536192,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 6.794665,
+      "system_cpu_s": 0.176292,
+      "returncode": 1,
+      "timed_out": false
+    }
+  },
+  "all_five_native_binary_files_match_prior_control": true,
+  "all_five_recursive_proofs_match_prior_control": true,
+  "tests": "44 OP Python tests pass",
+  "tested_harness_sha256": "b7f6416a34141a7179a6258fabbe58051389453a8d1de7bb16ecc9a4f21c4476",
+  "post_qualification_changes": "Metadata-only distinct schema and explicit option/arity cleanup. No prover or transcript change."
+}

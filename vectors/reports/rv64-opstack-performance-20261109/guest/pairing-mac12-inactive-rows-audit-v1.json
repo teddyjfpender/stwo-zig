@@ -1,0 +1,32 @@
+{
+  "status": "conditional functional-soundness audit;noAIRchanges",
+  "production_admitted": false,
+  "security_qualified": false,
+  "original_constraints": 1203,
+  "proposed_retained_constraints": 98,
+  "removed_padding_constraints": 1105,
+  "statement": "notlogicalimplication;acceptedtracelanguageexpandsbutactiveprogramsoundnesscanremain",
+  "counterexamples": [
+    "inactiveINPUT0=1,allotherMAIN/FIXEDzero",
+    "inactiveaccumulator0=7,output0=7,distance0=M31-7(allremainingfieldconstraints0butunranged)"
+  ],
+  "obligations": [
+    "sourceownedFIX_ACTIVE andkeptactiveequality",
+    "allinactiveBYTE/SSAweights0",
+    "noMACcross-rowstate",
+    "actualpaddingD remainsbound,noclampto1",
+    "everyprojectiveoutputDnonzero includingzero-weightpoles",
+    "all17961216paddedfacts in securityledger",
+    "integerno-wrapclaimactive-only",
+    "newprofile/sourcekey/constraintcount,oldprofileunchanged"
+  ],
+  "wrapper_assumptions": [
+    "oldnumericW.validrequiresallzero inactive",
+    "oldpaddingunitpinsallzero contract",
+    "honestmaterializerstillzero;notverifiersemantics"
+  ],
+  "tests": 2,
+  "command": "zig test -O ReleaseSafe --dep stwo_core -Mroot=src/frontends/riscv/rv64_bn254_mac12_padding_audit_test_root.zig -O ReleaseSafe -Mstwo_core=src/core/mod.zig --test-filter research",
+  "test_sha256": "3029c421387479c539a4ac777ecf59f8eab3bc371a4c99c5e1b05bc16a309bf9",
+  "performance_claim": "none;columns/facts/openingwidthunchanged"
+}

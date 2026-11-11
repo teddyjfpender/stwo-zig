@@ -1,0 +1,51 @@
+{
+  "schema": "op-shared-root-source-seams-v1",
+  "scope": "Concrete borrowed view walking shared by existing R6 and upcoming R7; no protocol change",
+  "changes": [
+    "Source-only walker independently derives every CPU/catalog/local/Miller shape from admitted inventory",
+    "Whole template roster validation before any source key factory",
+    "Native verified-capture conversion uses the same typed view union",
+    "Take-once optional template token preserves ownership on callback error",
+    "Cached R6Session retains original prove/cache/fold/publication implementation and lease barriers",
+    "Receiver.Plan.expectedLeaves exposes admitted frames; old expectedRoot keeps original digest domain"
+  ],
+  "qualification": {
+    "semantic": "check-riscv64-op-pure-p2 ReleaseSafe passes",
+    "old_full_source_only_root": {
+      "members": 3,
+      "bytes": 687908,
+      "native_proof_absent": true,
+      "fresh_accepted": true,
+      "cpu_source_identity": "08b8ba82d49d15b413a4a8aac76671dcb0f0712a0f6211bb22f1972173eb0d91",
+      "catalog_source_identities": [
+        "79d38a9ad5e019eecd176cdc2b864030c801e5c34c33a6ce84727f26979d211f",
+        "4a48cb9d2d5fbcf54fa4a9daca8acb44cde8da5133a31bd3c836a14e0b3469cd"
+      ],
+      "source_seconds": 45.592108875,
+      "root_and_negative_controls_seconds": 0.402260959,
+      "controls": [
+        "same-profile wrong VK",
+        "balanced service debt",
+        "missing/duplicate",
+        "halt/length/PC",
+        "physical corruption"
+      ]
+    },
+    "actual_native_capture_callbacks": {
+      "steps": 796406,
+      "cpu": 1,
+      "truth": 2,
+      "templates": 1,
+      "complete_only_after_closure": true,
+      "callback_failure_rejected": true,
+      "no_outer_proof_generated": true,
+      "final_live_bytes": 0,
+      "budget_bytes": 8589934592
+    },
+    "template_token": "linear take, double-take null, idempotent cleanup, error custody pass"
+  },
+  "r6_proof_bytes_or_domain_changed": false,
+  "r7_root_admitted": false,
+  "heavy_execution_or_proving": false,
+  "controlled_speed_measurement": false
+}

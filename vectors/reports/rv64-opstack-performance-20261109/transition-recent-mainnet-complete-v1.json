@@ -1,0 +1,222 @@
+{
+  "schema": "op-recent-mainnet-anchored-transition-qualification-v1",
+  "statement": {
+    "anchor_hash": "ad0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9",
+    "anchor_number": 26378629,
+    "block_hash": "241301a29d2566cb6e850f36dc27d4ade11b8c815295fc94416cf53c87f41714",
+    "chain_id": 10,
+    "l1_chain_id": 1,
+    "next_number": 159321794,
+    "next_origin_hash": "a318027d823bee7ebe41f143d57c441bc6c461ca5c7af237871b7ae023b152a1",
+    "next_origin_number": 26378577,
+    "next_root": "ead7bdb1bc28a437fabe299df41cda2af89c3149d7380be180ff49240e542aed",
+    "payload_commitment": "0fad221ad8f5a2a9d6cba13872158badfc693a5aae20ed187a57b8240b5049d0",
+    "previous_number": 159321793,
+    "previous_root": "94625ee179240693eae780eb83dd89ed052b586030073af009949d722e6b613a",
+    "schema": "stwo.opstack.anchored-transition.v1"
+  },
+  "od_public_output": "a56ec99af8d129c7eaff59bf866890480cda6c7cb00d9506810cfac71cd23377010a000000000000004f44",
+  "input": {
+    "bytes": 19133865,
+    "sha256": "9853ca0f6cadc5739b318671f79a9efe07677feb78ffa8623b3d53e7497d6e91",
+    "records": 62081,
+    "sidecars": 15
+  },
+  "pruned_input": {
+    "bytes": 13882081,
+    "sha256": "9ee0a1f7b425d90c12d705212502dc135773af8d60f63c494a83500214c14031",
+    "records": 38981,
+    "sidecars": 15
+  },
+  "native_seconds": 1.6286241250345483,
+  "pruned_native_seconds": 0.21534583310130984,
+  "kzg": {
+    "verified_standard_sidecars": 15,
+    "trusted_setup_sha256": "d39b9f2d047cc9dca2de58f264b6a09448ccd34db967881a6713eacacf0f26b7",
+    "kzg_verified": true
+  },
+  "host_sha256": "f9d20b270574627995b5dfe20a61b6d3b0bcc876ca8cd7aff211d870f52947b7",
+  "checker_sha256": "15f75872f7654c30ee4e5cd84f8b44d0f8ca79915f205ef9da615623dea369cd",
+  "complete_witness": true,
+  "derivation_accepted": true,
+  "guest_executed": false,
+  "proof_verified": false,
+  "anchor_finality_external": true,
+  "security_qualified": false,
+  "scope": {
+    "historical_159257842_recovered": false,
+    "new_recent_mainnet_transition": true,
+    "rv64_or_guest_execution": false,
+    "stark_or_recursive_proof": false
+  },
+  "candidate": {
+    "previous": 159321793,
+    "next": 159321794,
+    "transactions": 102,
+    "gas_used": 27875465
+  },
+  "upstream_native_capture": {
+    "status": "native_accepted",
+    "elapsed_seconds": 14.768765958957374,
+    "seconds_cap": 180,
+    "decoded_kv_bytes_cap": 67108864,
+    "peak_observed_decoded_kv_bytes": 41837311,
+    "filesystem_kv_bytes_cap": 4294967296,
+    "peak_observed_allocated_kv_bytes": 781012992,
+    "kv_rows": 185021,
+    "upstream_revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+    "patch_sha256": "2442649ee5790fd9c38fbbf5790735b8ea4c5b0bbb2fda3a894a77aedbd7a233",
+    "host_sha256": "862556839311e69c180eb998b190edb45aec23706fbb5a0174e96309a4e39bbd",
+    "candidate": {
+      "l1-anchor": {
+        "number": 26378629,
+        "hash": "0xad0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9",
+        "header_sha256": "af8437ddb8878bf2381cd161d11104b64691c101e118e98efb9c2a5c9ad7a30c"
+      },
+      "previous": {
+        "number": 159321793,
+        "hash": "0x3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+        "header_sha256": "bae79a42074a2b8b09661a69c94296c9a5c40f51d0396a02c91e56408b32f867",
+        "output_root": "0x94625ee179240693eae780eb83dd89ed052b586030073af009949d722e6b613a"
+      },
+      "next": {
+        "number": 159321794,
+        "hash": "0x241301a29d2566cb6e850f36dc27d4ade11b8c815295fc94416cf53c87f41714",
+        "header_sha256": "503879ea89be68dd15743ce33a6fbe102a21e68b9f9eba1971c14b8f34aeea45",
+        "output_root": "0xead7bdb1bc28a437fabe299df41cda2af89c3149d7380be180ff49240e542aed"
+      }
+    },
+    "upstream_native_client_accepted": true,
+    "complete_exported_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false,
+    "guest_executed": false,
+    "host_exit_code": 0,
+    "resumed_kv": {
+      "rows": 185014,
+      "decoded_bytes": 41835079,
+      "source_rows": 185014,
+      "source_decoded_bytes": 41835079,
+      "evicted_account_leaves": []
+    },
+    "header_window": 32,
+    "transport_cache": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/l1-transport-cache",
+    "stop_on_adapter_failure": true,
+    "code_provenance_inputs": [
+      {
+        "sha256": "267bc8e935f9190bf4f19817d190696495105f5d45ac01f4c0985950c0ed009e",
+        "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/native-capture-attempt13/l2-adapter/code-provenance.json"
+      }
+    ],
+    "code_provenance_refresh": null,
+    "verified_record_supplements": {
+      "inputs": [
+        {
+          "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/recovered-storage-sibling15/records.json",
+          "sha256": "6fe5a76216b575dab1e625521bbb85a40c3331ebc158c3008d3f71050927e669"
+        }
+      ],
+      "rows_added": 1,
+      "decoded_bytes_added": 35
+    },
+    "pooled_rpc": true,
+    "storage_repair_helper_sha256": "77dd8d4efc21f91c6c543b4b6032adb25f54deafc31c91ebdccf82d81b8e4fc9",
+    "rpc_min_interval": 0.3,
+    "upstream_endpoints": {
+      "l1": "https://rpc.flashbots.net",
+      "l2": "https://optimism.drpc.org",
+      "beacon": "https://ethereum-beacon-api.publicnode.com"
+    }
+  },
+  "canonical_export": {
+    "schema": "op-native-kv-export-v1",
+    "transport_namespaces": {
+      "2": 123536,
+      "4": 15,
+      "5": 61455,
+      "6": 15
+    },
+    "transport_rows": 185021,
+    "transport_decoded_bytes": 41837311,
+    "ordinary_records": 62081,
+    "ordinary_payload_bytes": 34952896,
+    "blob_sidecars": 15,
+    "removed_exact_oracle_blob_helpers": 61455,
+    "preimage_hashes_verified": true,
+    "kzg_verified": true,
+    "trusted_setup_sha256": "d39b9f2d047cc9dca2de58f264b6a09448ccd34db967881a6713eacacf0f26b7",
+    "checker_sha256": "15f75872f7654c30ee4e5cd84f8b44d0f8ca79915f205ef9da615623dea369cd",
+    "sidecar_bundle_sha256": "a7bdcf20e1f1873d33959934240263b5d3dfdbb75fab957467f244c6e88a5b4b",
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false
+  },
+  "negative_controls": {
+    "schema": "op-native-anchored-negative-qualification-v1",
+    "baseline_input_sha256": "9ee0a1f7b425d90c12d705212502dc135773af8d60f63c494a83500214c14031",
+    "host_sha256": "f9d20b270574627995b5dfe20a61b6d3b0bcc876ca8cd7aff211d870f52947b7",
+    "cases": {
+      "anchor_hash": {
+        "rejected": true,
+        "input_sha256": "8c462cb92cdb26685ffd356430cc9b85fbbc3a5d6a3c397b8fcf6a83367dd4d1",
+        "stderr_sha256": "c76b4f74f3f1999def5611889c292ca3cb309118ce56b9d5ba7f38b61559e9c5",
+        "seconds": 0.09938291599974036
+      },
+      "next_output_root": {
+        "rejected": true,
+        "input_sha256": "842eac29bdc719bb98f6432592d4b809f13dc11768599bc554a5784aea5a17b4",
+        "stderr_sha256": "cb8c0118e79e8406c0e251e577ea1e2cc1f10f1b5860215b3bd546423a168730",
+        "seconds": 0.21898599993437529
+      },
+      "consumed_blob_byte": {
+        "rejected": true,
+        "input_sha256": "4cb2e7a5d68ad62e253c05458f685614905e3136a7004081aee284976ef11cb8",
+        "stderr_sha256": "f3bfa1e857e9b12a5e4139e7144fae373d4e5a4bc39c54b848b9036198e2a187",
+        "seconds": 0.09796824993100017
+      },
+      "proof_byte": {
+        "rejected": true,
+        "input_sha256": "7da3485dafce3e476142cf4ffb532fa63591d4334f8350b1bcf57ac466224af4",
+        "stderr_sha256": "f3bfa1e857e9b12a5e4139e7144fae373d4e5a4bc39c54b848b9036198e2a187",
+        "seconds": 0.09842487494461238
+      },
+      "swapped_valid_proofs": {
+        "rejected": true,
+        "input_sha256": "8be60eb73a541d5e1af360a6eaacbefa15dd00339b9e8fca369d03aefa770a3f",
+        "stderr_sha256": "f3bfa1e857e9b12a5e4139e7144fae373d4e5a4bc39c54b848b9036198e2a187",
+        "seconds": 0.0911135000642389
+      }
+    },
+    "guest_executed": false,
+    "proof_verified": false,
+    "security_qualified": false
+  },
+  "negative_errors": {
+    "anchor_hash": "Error: Transition(Anchor(Witness(Missing(0xac0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9))))",
+    "next_output_root": "Error: Transition(Anchor(OutputRoot))",
+    "consumed_blob_byte": "Error: Transition(Pipeline(Critical(Provider(\"invalid EIP-4844 blob proof batch\"))))",
+    "proof_byte": "Error: Transition(Pipeline(Critical(Provider(\"invalid EIP-4844 blob proof batch\"))))",
+    "swapped_valid_proofs": "Error: Transition(Pipeline(Critical(Provider(\"invalid EIP-4844 blob proof batch\"))))"
+  },
+  "artifact_root": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/own-native-verified16",
+  "provenance": {
+    "independently_pinned_claim_sha256": "c011b7cba6e9d57cc677ac197fa9f8165cfcb473822bf9f4636629dd39285512",
+    "source_revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+    "host_only_prefetch_patch_sha256": "2442649ee5790fd9c38fbbf5790735b8ea4c5b0bbb2fda3a894a77aedbd7a233",
+    "public_endpoints": [
+      "https://rpc.flashbots.net",
+      "https://optimism.drpc.org",
+      "https://mainnet.optimism.io",
+      "https://ethereum-beacon-api.publicnode.com"
+    ],
+    "no_credentials": true
+  },
+  "limits": {
+    "native_capture_seconds": 180,
+    "decoded_kv_bytes": 67108864,
+    "allocated_kv_bytes": 4294967296,
+    "native_offline_reverification_seconds": 180
+  },
+  "security_claim": "128-bit security target under documented assumptions applies to proof lane; this receipt establishes native derivation only",
+  "focused_python_tests": 54
+}

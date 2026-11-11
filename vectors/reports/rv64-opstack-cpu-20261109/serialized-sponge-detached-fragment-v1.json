@@ -1,0 +1,51 @@
+{
+  "schema": "op-serialized-sponge-physical-v1",
+  "geometry": {
+    "calls": 1,
+    "permutations": 1,
+    "first_id": 1,
+    "detached": true
+  },
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "source_identity": "52d16dbcdea68b81f87b7e8a47892b61503285de1b01a3517f5ea11524f95576",
+  "fixed": "7b6add1908219560cf9eae373daef551910eb97d8fe74c3731ad94565099ba56cb59bd47",
+  "main": "f2aa7648a637c60f16b65046db49ae700633ea30b2aff6627b4dc85fdd3b2002c69bd15c",
+  "manifest": "9c51c81f57b7341cc5739f171634163a0f56a441ffc7b21507096d1ef34d893d4b18e962",
+  "boundary": null,
+  "detached": true,
+  "receipt": "26dad736bf3a510bcbeca90a448bbc67545e0a2b23da535f6b8aac040a559c1d0547580d",
+  "native_bytes": 414476,
+  "local_bytes": 28244,
+  "sha256": "bc6ef41f1afea46d179b89917c40497983db127f301a38f3ac6f341eb4b32996",
+  "produce_ns": 998199000,
+  "requested_peak": 148010548,
+  "fresh_source": true,
+  "balanced_global_claims_rejected": true,
+  "geometry_alias_rejected": true,
+  "complete_execution": false,
+  "production_admission": false,
+  "security_qualified": false,
+  "qualification_scope": "one-call detached fragment, not complete CPU/frontier/execution join",
+  "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/serialized-sponge-detached-fragment-v1",
+  "layout": {
+    "fixed": 22,
+    "main": 269,
+    "interaction": 240,
+    "five_role_columns": 475,
+    "standalone_provider_columns": 56,
+    "oods_samples_including_composition": 761
+  },
+  "frontier_model": {
+    "main": 8,
+    "fixed": 3,
+    "interaction": 24,
+    "local_queries": 3,
+    "main_constraints": 7,
+    "whole_cpu_columns_before": 5896,
+    "whole_cpu_columns_after": 3418,
+    "epoch_ordinal_contract": "epoch = ordinal + 1; ordinal < 256"
+  },
+  "legacy_proof_byte_parity": true,
+  "mode_magic_and_wire_claim_controls": true,
+  "production_join_qualified": false
+}

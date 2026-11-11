@@ -1,0 +1,169 @@
+{
+  "schema": "op-pairing-independent-geometry-model/v1",
+  "qualification": "Counterfactual cost only: split component is not implemented or admitted",
+  "source_receipts": {
+    "vectors/reports/rv64-opstack-performance-20261109/guest/composite-pairing-literal-fold-v1.json": "c5b9c64dcfc527a4fb2958b8c9a932bbeb95dc730e2dc837ff56390f8d082b22",
+    "vectors/reports/rv64-opstack-performance-20261109/guest/composite-pairing-source-v1.json": "4c0b45c03bd38ca6744a28c5f3dba1f61cc3a75424584d190ee28a96cd0eef0a",
+    "vectors/reports/rv64-opstack-cpu-20261110/g2-exact-subgroup-physical-v1.json": "7278d738277d39cac0ec6fb87eff10b5971eefadfe6d0b09980a546d0416ab27",
+    "vectors/reports/opstack-cpu-20261110/mac6-source-cost-v1.json": "2d4306983fbec413bd6b986343f9ec74386d1fb40c1c792f60752e82e5ff8133"
+  },
+  "universal_MAC12": {
+    "roles": [
+      {
+        "name": "MAC12",
+        "active": 32533,
+        "log": 15,
+        "padded": 32768,
+        "fixed": 40,
+        "main": 1106,
+        "inter": 32,
+        "byte_lanes": 512,
+        "ssa_lanes": 32
+      },
+      {
+        "name": "private_hints",
+        "active": 1438,
+        "log": 11,
+        "padded": 2048,
+        "fixed": 3,
+        "main": 95,
+        "inter": 32,
+        "byte_lanes": 64,
+        "ssa_lanes": 1
+      },
+      {
+        "name": "frontier",
+        "active": 1514,
+        "log": 11,
+        "padded": 2048,
+        "fixed": 35,
+        "main": 33,
+        "inter": 16,
+        "byte_lanes": 0,
+        "ssa_lanes": 1
+      },
+      {
+        "name": "BYTE",
+        "active": 256,
+        "log": 8,
+        "padded": 256,
+        "fixed": 1,
+        "main": 1,
+        "inter": 16,
+        "byte_lanes": 1,
+        "ssa_lanes": 0
+      }
+    ],
+    "native_cells": {
+      "fixed": 1388800,
+      "main": 36503808,
+      "inter": 1150976
+    },
+    "total_native_cells": 39043584,
+    "committed_columns": {
+      "fixed": 79,
+      "main": 1235,
+      "inter": 96
+    },
+    "total_committed_columns": 1410,
+    "max_component_log": 15,
+    "padded_GKR_facts": 17961216,
+    "GKR_instances": 6,
+    "GKR_max_variables": 24,
+    "GKR_instance_layer_records": 91,
+    "uniform_height_leaf_payload_model": 46202880,
+    "row_padding": 1379
+  },
+  "independently_sized_SG": {
+    "roles": [
+      {
+        "name": "MAC12_nonSG",
+        "active": 16381,
+        "log": 14,
+        "padded": 16384,
+        "fixed": 40,
+        "main": 1106,
+        "inter": 32,
+        "byte_lanes": 512,
+        "ssa_lanes": 32
+      },
+      {
+        "name": "exact_SG",
+        "active": 16152,
+        "log": 14,
+        "padded": 16384,
+        "fixed": 33,
+        "main": 530,
+        "inter": 32,
+        "byte_lanes": 512,
+        "ssa_lanes": 8
+      },
+      {
+        "name": "private_hints",
+        "active": 1438,
+        "log": 11,
+        "padded": 2048,
+        "fixed": 3,
+        "main": 95,
+        "inter": 32,
+        "byte_lanes": 64,
+        "ssa_lanes": 1
+      },
+      {
+        "name": "frontier",
+        "active": 1514,
+        "log": 11,
+        "padded": 2048,
+        "fixed": 35,
+        "main": 33,
+        "inter": 16,
+        "byte_lanes": 0,
+        "ssa_lanes": 1
+      },
+      {
+        "name": "BYTE",
+        "active": 256,
+        "log": 8,
+        "padded": 256,
+        "fixed": 1,
+        "main": 1,
+        "inter": 16,
+        "byte_lanes": 1,
+        "ssa_lanes": 0
+      }
+    ],
+    "native_cells": {
+      "fixed": 1274112,
+      "main": 27066624,
+      "inter": 1150976
+    },
+    "total_native_cells": 29491712,
+    "committed_columns": {
+      "fixed": 112,
+      "main": 1765,
+      "inter": 128
+    },
+    "total_committed_columns": 2005,
+    "max_component_log": 14,
+    "padded_GKR_facts": 17568000,
+    "GKR_instances": 8,
+    "GKR_max_variables": 23,
+    "GKR_instance_layer_records": 129,
+    "uniform_height_leaf_payload_model": 32849920,
+    "row_padding": 1379
+  },
+  "ratios_split_over_universal": {
+    "native_cells": 0.7553536068819912,
+    "opening_column_count": 1.4219858156028369,
+    "GKR_facts": 0.9781074956172232,
+    "uniform_height_leaf_payload": 0.7109929078014184
+  },
+  "limits": [
+    "Columns are not mask/OODS samples or recursive gates; no root speed prediction",
+    "Leaf payload assumes all columns are hashed at the family maximum height; not measured traffic",
+    "Existing narrow subgroup coefficients/IDs must be remapped and requalified in the composite",
+    "Shared Q/z and canonical unit-SSA writer/reader authority must survive the split",
+    "No source instance, FRI domain or transcript may be changed under an old admitted identity",
+    "Universal MAC12 physical integration remains the current first gate"
+  ]
+}

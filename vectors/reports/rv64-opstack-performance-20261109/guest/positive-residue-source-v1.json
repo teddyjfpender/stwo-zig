@@ -1,0 +1,20 @@
+{
+  "status":"qualified conditional residue source/witness; physical binding pending",
+  "production_admitted":false,
+  "security_qualified":false,
+  "scope":"z*c*seed^L=ONE field certificate only; no Miller/curve/subgroup/VM authority",
+  "tower":"i^2=-1, v^3=9+i, w^2=v; scalar index=i+2*v+6*w",
+  "exponent":{"x":4965661367192848881,"k":29793968203157093288,"k_bits":65,"lambda":"p^3-p^2+p+6*x+2","lambda_bits":761,"r_divides_lambda_compile_assert":true,"Fp6_annihilated_by_final_exponent_compile_assert":true},
+  "program":{"dense_squares":64,"dense_multiplies":42,"Frobenius_maps":3,"macro_operations":109,"square_scalar_rows":768,"multiply_scalar_rows":504,"Frobenius_scalar_rows":36,"private_canonical_hint_rows":30,"initial_z_and_literal_fields":39,"global_values":1377,"SSA_read_mass":21456,"constant_pool_fields":27},
+  "scale_subfield":"six free c_low writers; c_high six IDs alias source literal ZERO; all readers must close against that literal",
+  "inverse":"private inverse of seed^p2; complete dense product is pinned to12-coordinate ONE",
+  "hint_dependency":"shared bn254_hint source f9bb84fc3 (equivalent local pick bad2ae92d), MAIN95 BYTE64 plus source-owned ID/fanout; physical joins remain pending",
+  "logical_main_columns":{"square":691,"multiply":1075,"frobenius":434},
+  "Frobenius_geometry":"conservative6/6 envelope forces qualified byte-carry group1; no unqualified group2 interpreter",
+  "planned_physical_layout":{"square_plus_Frobenius":{"rows":804,"log":10,"main":691},"multiply":{"rows":504,"log":9,"main":1075},"private_hints":{"rows":30,"log":5,"main":95},"initial":{"rows":39,"log":6,"main":33},"BYTE":{"log":8,"main":1},"qualification":"model only; no physical proof or measured speedup yet"},
+  "passed":["real retained four-pair positive certificate exactly satisfies efficient source program","three optimized Frobenius outputs equal independent generic p/p2/p3 exponentiation","immutable unique topological IDs, exact21,456 SSA reads, full ONE endpoints","false-z,seedONE,c=z^-1 counterexample has valid field equations and endpoints but fails literal-zero SSA consistency for c_high","identity accepts, zero seed andzero scale reject, inverse mutation rejects","square/multiply/Frobenius output, quotient, carry and congruent+p mutations reject","all privatehint witnesses checked by shared canonical authority"],
+  "command":"zig test -O ReleaseSafe --dep stwo_core -Mroot=src/frontends/riscv/rv64_bn254_residue_test_root.zig -O ReleaseSafe -Mstwo_core=src/core/mod.zig",
+  "tests":16,
+  "remaining":["physical shared canonical-hint BYTE/SSA linkage","physical immutable ZERO reader and ONE endpoint constraints","mixed-height source binding and degree-three composite proof","independent source/receiver security and actual capacity accounting","complete Miller/curve/subgroup/VM joins and recursive acceptance"],
+  "performance_claim":"none"
+}

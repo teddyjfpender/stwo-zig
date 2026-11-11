@@ -1,0 +1,65 @@
+{
+  "schema": "stwo.op.detached-root-admission-qualification.v1",
+  "scope": "source-only root obligations checked against freshly verified retained native fragments; no physical recursive-root acceptance claim",
+  "production_admission": false,
+  "cases": [
+    {
+      "guest": "separate sponge feature control",
+      "block": 120794432,
+      "instructions": 1317255,
+      "CPU": 2,
+      "detached": 1,
+      "catalog": 1,
+      "frames": 4,
+      "fresh_gate_peak_live_bytes": 2558632441,
+      "source": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-small-v1"
+    },
+    {
+      "guest": "unchanged selected guest",
+      "block": 120794432,
+      "instructions": 796406,
+      "CPU": 1,
+      "detached": 1,
+      "catalog": 2,
+      "catalog_types": [
+        "local Keccak338",
+        "classic SHA34"
+      ],
+      "frames": 4,
+      "fresh_gate_peak_live_bytes": 2302088100,
+      "source": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-zero-small-v1",
+      "path_note": "historical directory label; captured metadata has nonzero detached source"
+    }
+  ],
+  "qualifications": {
+    "every_leaf_frame_matches_typed_native_capture": true,
+    "canonical_expected_root_matches_capture_frames": true,
+    "all_global_RAM_KIO_Wire_close_before_completion": true,
+    "terminal43B_independently_pinned": true,
+    "same_source_metadata_restored_positive": true,
+    "zero_final_live_and_external_bytes": true,
+    "no_new_native_guest_execution_or_proof": true
+  },
+  "controls_per_case": 9,
+  "controls": [
+    "wrong execution identity",
+    "wrong manifest digest",
+    "missing leaf",
+    "wrong ordinal",
+    "reordered leaves",
+    "missing required receipt",
+    "changed late detached receipt must reject or change expected root",
+    "equal/opposite CPU-frontier and detached-descriptor Wire debt must reject or change expected root",
+    "independent expected43B output-policy mutation rejects"
+  ],
+  "important_limit": "Preparing a canonical digest of malicious balanced metadata is not acceptance. A physical grouped-root proof must authenticate exactly the independently recomputed frames and digest. That physical root gate belongs to the next integration slice.",
+  "test": "detached actual retained native root obligations independent frames and balanced debt",
+  "optimize": "ReleaseSafe",
+  "workers": 8,
+  "common_host_cap_bytes": 34359738368,
+  "review": {
+    "manifest_stage1": "only CPU receipts enter manifest; all late receipts remain in expected leaf frames",
+    "public_ram": "CPU INIT/terminal claims recomputed using independently derived shared RAM challenge",
+    "suggested_hardening": "explicit authority.cpus.len!=0 coverage guard before final request indexing (valid Inventory construction already requires CPU)"
+  }
+}

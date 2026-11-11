@@ -232,6 +232,7 @@ pub fn inspectLeafSchedule(a: std.mem.Allocator, setups: []const *const R.CpuSet
     const native_capture_and_graph_ns = timer.lap();
     const Circuit = @import("stwo_circuit_frontend");
     const pre_padding_variables = graph.ctx.circuit.n_vars;
+    const primitive_rows = PrimitiveRows.from(&graph.ctx.circuit);
     const padding_targets = try Outer.paddingTargets(graph.ctx);
     // Match outer_wrap.wrapGraphOrLoadWithFactory BEFORE assignment planning.
     // No PP/Authority commitment or proof construction is needed for a census.
@@ -269,8 +270,18 @@ pub fn inspectLeafSchedule(a: std.mem.Allocator, setups: []const *const R.CpuSet
     var origin_kinds: [9]usize = @splat(0);
     for (graph.ctx.witness_metadata.?.origins.items) |origin| origin_kinds[@intFromEnum(origin.kind)] += 1;
     const census = try @import("schedule_census.zig").inspect(plan.level_ends, plan.tasks.len);
-    return .{ .ordinal = ordinal, .kind = if (ordinal < setups.len) "cpu" else @tagName(std.meta.activeTag(truths[ordinal - setups.len])), .manifest = manifest.digest, .statement = worker.statement, .graph_digest = graph.digest, .variables = graph.ctx.circuit.n_vars, .pre_padding_variables = pre_padding_variables, .padding_targets = padding_targets, .padding_ns = padding_ns, .public_words = graph.words.len, .seed_count = plan.seeds.len, .constant_seed_count = try std.math.sub(usize, plan.seeds.len, origin_kinds[0]), .packed_index_bytes = packed_index_bytes, .census = census, .task_kinds = task_kinds, .hint_kinds = hint_kinds, .original_gate_counts = original_gate_counts, .skipped_computational_definitions = skipped_definitions, .hint_origin_counts = origin_kinds, .equality_constraint_gates = circuit.eq.items.len, .output_constraint_gates = circuit.output.items.len, .qm31_operation_rows = circuit.nQm31OpsRows(), .permutation_count = permutation_count, .max_permutation_inputs = max_permutation_inputs, .permutation_pair_work = permutation_pair_work, .estimated_device_assignment_bytes = try std.math.mul(usize, graph.ctx.circuit.n_vars, 16), .packed_task_bytes = try std.math.mul(usize, plan.tasks.len, 32), .packed_seed_bytes = try std.math.mul(usize, plan.seeds.len, 20), .host_plan_task_bytes = try std.math.mul(usize, plan.tasks.len, @sizeOf(Schedule.Task)), .host_level_end_bytes = try std.math.mul(usize, plan.level_ends.len, @sizeOf(usize)), .build_metrics = metrics, .admission_ns = admission_ns, .native_capture_and_graph_ns = native_capture_and_graph_ns, .schedule_ns = schedule_ns, .census_ns = timer.lap() };
+    return .{ .ordinal = ordinal, .kind = if (ordinal < setups.len) "cpu" else @tagName(std.meta.activeTag(truths[ordinal - setups.len])), .manifest = manifest.digest, .statement = worker.statement, .graph_digest = graph.digest, .variables = graph.ctx.circuit.n_vars, .pre_padding_variables = pre_padding_variables, .pre_padding_primitive_rows = primitive_rows, .padding_targets = padding_targets, .padding_ns = padding_ns, .public_words = graph.words.len, .seed_count = plan.seeds.len, .constant_seed_count = try std.math.sub(usize, plan.seeds.len, origin_kinds[0]), .packed_index_bytes = packed_index_bytes, .census = census, .task_kinds = task_kinds, .hint_kinds = hint_kinds, .original_gate_counts = original_gate_counts, .skipped_computational_definitions = skipped_definitions, .hint_origin_counts = origin_kinds, .equality_constraint_gates = circuit.eq.items.len, .output_constraint_gates = circuit.output.items.len, .qm31_operation_rows = circuit.nQm31OpsRows(), .permutation_count = permutation_count, .max_permutation_inputs = max_permutation_inputs, .permutation_pair_work = permutation_pair_work, .estimated_device_assignment_bytes = try std.math.mul(usize, graph.ctx.circuit.n_vars, 16), .packed_task_bytes = try std.math.mul(usize, plan.tasks.len, 32), .packed_seed_bytes = try std.math.mul(usize, plan.seeds.len, 20), .host_plan_task_bytes = try std.math.mul(usize, plan.tasks.len, @sizeOf(Schedule.Task)), .host_level_end_bytes = try std.math.mul(usize, plan.level_ends.len, @sizeOf(usize)), .build_metrics = metrics, .admission_ns = admission_ns, .native_capture_and_graph_ns = native_capture_and_graph_ns, .schedule_ns = schedule_ns, .census_ns = timer.lap() };
 }
+pub const PrimitiveRows = struct {
+    eq: usize,
+    qm31_ops: usize,
+    triple_xor: usize,
+    m31_to_u32: usize,
+    blake_g_gate: usize,
+    fn from(c: *const @import("stwo_circuit_frontend").builder.Circuit) PrimitiveRows {
+        return .{ .eq = c.eq.items.len, .qm31_ops = c.nQm31OpsRows(), .triple_xor = c.triple_xor.items.len, .m31_to_u32 = c.m31_to_u32.items.len, .blake_g_gate = c.blake_g_gate.items.len };
+    }
+};
 pub const ScheduleInspection = struct {
     ordinal: usize,
     kind: []const u8,
@@ -280,6 +291,7 @@ pub const ScheduleInspection = struct {
     variables: usize,
     geometry_scope: []const u8 = "after exact original outer padding, before PP/Authority commitments",
     pre_padding_variables: usize,
+    pre_padding_primitive_rows: PrimitiveRows,
     padding_targets: @import("stwo_circuit_frontend").common.finalize.ComponentSizes,
     padding_ns: u64,
     public_words: usize,
@@ -462,7 +474,10 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
         var current: ?Pending = blk: {
             const proof = try a.create(Outer.Wrapped);
             errdefer a.destroy(proof);
-            proof.* = try Outer.wrapGraphOrLoadWithFactory(a, graph.ctx, graph.digest, encoded, @intCast(nodes.items.len), factory);
+            proof.* = if (encoded == null and factory == null)
+                try Outer.wrapDisposableCpuGraph(a, graph.ctx, graph.digest, @intCast(nodes.items.len))
+            else
+                try Outer.wrapGraphOrLoadWithFactory(a, graph.ctx, graph.digest, encoded, @intCast(nodes.items.len), factory);
             std.log.info("rv64 OM31 recursion leaf {d}/{d} accepted: preprocess_ns={d} prove_ns={d} restore_ns={d} verify_ns={d}", .{ ordinal + 1, n, proof.timings.preprocess_ns, proof.timings.prove_ns, proof.timings.restore_ns, proof.timings.verify_ns });
             errdefer proof.deinit();
             // rootverify derive hook (no-op unless derive-vk-tables runs).
@@ -565,6 +580,7 @@ pub fn foldArity() !usize {
 /// Process-entry policy check (driver and receiver): every recursion policy
 /// env value parses, or the process exits with a clean error (corpus P03).
 pub fn checkPolicyEnv() !void {
+    if (std.posix.getenv("STWO_RV64_RECURSION_CPU_LANES") != null) return error.CpuRecursionLaneExperimentRetired;
     _ = try @import("stwo_circuit_cpu_integration").om31.protocol.checkEnv();
     _ = try Outer.checkShapeEnv();
     _ = try foldArity();
@@ -698,7 +714,10 @@ const ParallelExecution = struct {
         const proof = try a.create(Outer.Wrapped);
         errdefer a.destroy(proof);
         const wrap_start = timer.read();
-        proof.* = try Outer.wrapGraphOrLoadWithFactory(a, ctx, digest, encoded, @intCast(id), factory);
+        proof.* = if (factory == null)
+            try Outer.wrapDisposableCpuGraphOrLoad(a, ctx, digest, encoded, @intCast(id))
+        else
+            try Outer.wrapGraphOrLoadWithFactory(a, ctx, digest, encoded, @intCast(id), factory);
         errdefer proof.deinit();
         const wrapped = timer.read();
         var serialized = wrapped;
@@ -726,7 +745,10 @@ fn runPreparedSequential(input: PreparedExecution, arity: usize) !Report {
     defer for (shared.proofs[0..plan.count]) |proof| if (proof) |p| p.deinit(a);
     for (0..plan.count) |id| {
         std.log.info("rv64 OM31 recursion m3 node {d}/{d}: arity={d}", .{ id + 1, plan.count, plan.nodes[id].arity });
-        const outcome = try shared.prove(id, input.factory);
+        const outcome = shared.prove(id, input.factory) catch |err| {
+            if (!@import("builtin").is_test) std.log.err("RV64_OUTER_NODE_FAILED node={} arity={} error={s}", .{ id, plan.nodes[id].arity, @errorName(err) });
+            return err;
+        };
         var publication = ParallelExecution.Publication{ .execution = &shared, .outcome = outcome };
         ParallelExecution.Publication.apply(&publication, id);
         shared.dispatch.queue.status[id] = .done;

@@ -1,0 +1,206 @@
+{
+  "status": "qualified conditional physical positive residue certificate; production admission closed",
+  "security_qualified": false,
+  "production_admitted": false,
+  "performance_claim": "none; correctness only, no full pairing/VM or whole-protocol security claim",
+  "scope": "Real retained four-pair certificate field relation z*c*seed^L=ONE. Toy input-specific FIXED source keys; no authenticated Miller input, curve/subgroup, guest/VM or recursive join.",
+  "program": {
+    "squares": 64,
+    "multiplies": 42,
+    "Frobenius_maps": 3,
+    "Frobenius_scalar_rows": 36,
+    "free_canonical_hint_fields": 30,
+    "private_scale_fields": 6,
+    "scale_high_ids": "all six upper Fq12 coordinates alias immutable literal ZERO",
+    "source_SSA_read_mass": 21456,
+    "ONE_obligations": "all12 inverse-check outputs and all12 final outputs physically constrained"
+  },
+  "roles": [
+    {
+      "role": "frontier",
+      "log": 6,
+      "active_rows": 39,
+      "padded_rows": 64,
+      "main_columns": 33,
+      "fixed_columns": 35,
+      "interaction_columns": 16,
+      "padded_trace_cells": 3136,
+      "active_trace_cells": 1911
+    },
+    {
+      "role": "square_and_frobenius",
+      "log": 10,
+      "active_rows": 804,
+      "padded_rows": 1024,
+      "main_columns": 691,
+      "fixed_columns": 64,
+      "interaction_columns": 32,
+      "padded_trace_cells": 740352,
+      "active_trace_cells": 581292
+    },
+    {
+      "role": "multiply",
+      "log": 9,
+      "active_rows": 504,
+      "padded_rows": 512,
+      "main_columns": 1075,
+      "fixed_columns": 42,
+      "interaction_columns": 32,
+      "padded_trace_cells": 566784,
+      "active_trace_cells": 557928
+    },
+    {
+      "role": "canonical_private_hints",
+      "log": 5,
+      "active_rows": 30,
+      "padded_rows": 32,
+      "main_columns": 95,
+      "fixed_columns": 3,
+      "interaction_columns": 32,
+      "padded_trace_cells": 4064,
+      "active_trace_cells": 3810
+    },
+    {
+      "role": "BYTE_table",
+      "log": 8,
+      "active_rows": 256,
+      "padded_rows": 256,
+      "main_columns": 1,
+      "fixed_columns": 1,
+      "interaction_columns": 16,
+      "padded_trace_cells": 4352,
+      "active_trace_cells": 4352
+    }
+  ],
+  "total_padded_trace_cells": 1318688,
+  "total_active_trace_cells": 1149293,
+  "total_native_columns": 2168,
+  "local_GKR": {
+    "independent_closures": [
+      "BYTE",
+      "SSA"
+    ],
+    "instances": [
+      {
+        "family": "BYTE",
+        "role": "square",
+        "row_log": 10,
+        "lane_log": 9,
+        "padded_facts": 524288
+      },
+      {
+        "family": "BYTE",
+        "role": "multiply",
+        "row_log": 9,
+        "lane_log": 9,
+        "padded_facts": 262144
+      },
+      {
+        "family": "BYTE",
+        "role": "hint",
+        "row_log": 5,
+        "lane_log": 6,
+        "padded_facts": 2048
+      },
+      {
+        "family": "BYTE",
+        "role": "table",
+        "row_log": 8,
+        "lane_log": 0,
+        "padded_facts": 256
+      },
+      {
+        "family": "SSA",
+        "role": "square",
+        "row_log": 10,
+        "lane_log": 4,
+        "padded_facts": 16384
+      },
+      {
+        "family": "SSA",
+        "role": "multiply",
+        "row_log": 9,
+        "lane_log": 5,
+        "padded_facts": 16384
+      },
+      {
+        "family": "SSA",
+        "role": "hint",
+        "row_log": 5,
+        "lane_log": 0,
+        "padded_facts": 32
+      },
+      {
+        "family": "SSA",
+        "role": "frontier",
+        "row_log": 6,
+        "lane_log": 0,
+        "padded_facts": 64
+      }
+    ],
+    "padded_facts": 821600,
+    "source_binding": "all8 terminal numerator/denominator projections bind physically committed MAIN/FIXED using actual per-instance lifted-domain row points, no trusted table counts or private hint flags"
+  },
+  "physical": {
+    "native_bytes": 217632,
+    "child_bytes": 35372,
+    "total_bytes": 253004,
+    "peak_requested_bytes": 36930983,
+    "limit_bytes": 2147483648,
+    "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/residue-physical-v1/certificate",
+    "files": {
+      "chain.gkr.bin": {
+        "bytes": 35372,
+        "sha256": "c695747ae3655e5c38b84c4dbbfdfe8595abf5369415ce9c785b6011859b7bf3"
+      },
+      "chain.proof.bin": {
+        "bytes": 217632,
+        "sha256": "3070f4dad6f13bfac833220998397848eae6b710abe47b4970cb1f1ea8fec9b2"
+      },
+      "off-subfield.gkr.bin": {
+        "bytes": 35372,
+        "sha256": "aeb5e523c10eaf917c2e6ceae82fb16235b35f1bba829070f35ca9128e3febf4"
+      },
+      "off-subfield.unverified.proof.bin": {
+        "bytes": 215328,
+        "sha256": "5c16ae813061d5256b09fac19230d8b18ee3d13d9a6876cb7eb2e6c174bd48c4"
+      }
+    },
+    "profile": "OM31 toy q12/P0/log_blowup1; degree<=3/2n; not production128 profile"
+  },
+  "passed": [
+    "positive retained four-pair certificate with fresh independent source/FIXED receiver",
+    "ten fresh negative controls: frontier/SSA/BYTE terminal-binding samples, projection equality point, SSA challenge offset, MAIN proof mutation, independently committed wrong ZERO literal and missing inverse-ONE flag",
+    "balanced BYTE positive and SSA negative debt cannot cancel across separate closures",
+    "critical false-z,seedONE,c=z^-1 has canonical values, valid arithmetic and bothONE endpoints; forged source facts make GKR child close, but physical committed-source terminal binding rejects with OodsNotMatching",
+    "all five source emitters pass ReleaseSafe and ReleaseFast degree<=3 and exact constraint count",
+    "16 ReleaseSafe source/oracle tests pass"
+  ],
+  "commands": [
+    "STWO_RESIDUE_OUT=<artifact-parent> zig build test-riscv64-op-dense-local-gkr -Doptimize=ReleaseFast -Driscv-test-filter=\"BN254 residue physical\"",
+    "zig build test-riscv64-op-dense-local-gkr -Doptimize=ReleaseSafe -Driscv-test-filter=\"BN254 residue complete equations\"",
+    "zig test -O ReleaseSafe --dep stwo_core -Mroot=src/frontends/riscv/rv64_bn254_residue_test_root.zig -O ReleaseSafe -Mstwo_core=src/core/mod.zig"
+  ],
+  "remaining": [
+    "authenticated real Miller z writer and public input/curve/subgroup joins",
+    "Q/z-independent reusable source key rather than current input-specific fixture",
+    "production transcript/security/source-mass admission and bounded full-request scheduling",
+    "concrete recursive leaf/root acceptance and full execution integration"
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/bn254_residue/fixture.zig": "334868f5648c18a3ee0b940b771520b8c596da8a1338d5134e6ea99715bc42d6",
+    "src/frontends/riscv/rv64/air/delegations/bn254_residue/frobenius.zig": "7b3c0d3159b116c3ebcbfbb5b59ea0460034def93ba1be7c5b1c323c5526c42b",
+    "src/frontends/riscv/rv64/air/delegations/bn254_residue/mod.zig": "c6640eaf85cc9b34dc9f158bc58410509ec05006f285d6a470a54e802a685a29",
+    "src/frontends/riscv/rv64/air/delegations/bn254_residue/physical_spec.zig": "bd8cef786517cb99de119ab3d1f46ee0929bfef1a08d63ed4faae4b6f066743c",
+    "src/frontends/riscv/rv64/air/delegations/bn254_residue/physical_witness.zig": "457ff11318be0ffcdc4ae1f4ac5fea2913711a302667074ad5096e1523917326",
+    "src/frontends/riscv/rv64/air/delegations/bn254_residue/spec.zig": "6d62adeb60fed45f26b296887034fce25da21edd80f7935194bc0dca38cd1666",
+    "src/frontends/riscv/rv64/air/delegations/bn254_residue/tests.zig": "6510e08ab942db5944f40cadbb6d4fd217851d06e5c87f0d4f9b0d200af04459",
+    "src/frontends/riscv/rv64/air/delegations/bn254_residue/vectors.zig": "fb0f62716b94ba2a6dd36db9a230173633d43349d491bd0cbfa7a187f86b18aa",
+    "src/frontends/riscv/rv64/air/delegations/bn254_residue/witness.zig": "a969f2fc03df929756e8a8e37f33fd8fba7d5a3c9b2a0cc63ad5a0ed43c1ac18",
+    "src/integrations/riscv_cpu/delegations/op_residue/component.zig": "459ffe27abf3cb6da8776af5b07367aa5758e221f56962381f95f169162ee0b4",
+    "src/integrations/riscv_cpu/delegations/op_residue/native.zig": "08e624a55bd2c5e605fa2d8ecacf49f022d12708f6d83d1292c467efd5a4c050",
+    "src/integrations/riscv_cpu/delegations/op_residue/physical_test.zig": "75459ae7cea214f4c26fb17f08be8b8d0a73b6d7d35fa8b73f6c49bbbec5eb38",
+    "src/integrations/riscv_cpu/delegations/op_residue/projection.zig": "c598ef6e8ff57e2dd669de040d942328827a255321e41a9e46bf022c6343edbf",
+    "src/integrations/riscv_cpu/delegations/op_residue/trace.zig": "3360b157081aaf4a530bc4a658c2a4c74cc59bb2059c2cd16bf830f9f2e76780"
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "schema": "op-native-B2-complete-CPU-source-model/v1",
+  "scope": "Actual selected CPU geometry only, complete verifier topology including AIR/localGKR/public frame; hypothetical B2 PCS shape. Not whole four-member group, not legal new source key, not a proof or speed measurement.",
+  "models": [
+    {
+      "scope": "actual_selected_CPU_complete_R7_verifier_topology_hypothetical_PCS_shape_not_admitted",
+      "log_blowup": 2,
+      "queries": 72,
+      "cost": {
+        "raw": [
+          30217,
+          1531147,
+          2172,
+          51190,
+          65536,
+          104786,
+          274608,
+          123659
+        ],
+        "rows": [
+          32768,
+          2097152,
+          4096,
+          65536,
+          65536,
+          131072,
+          524288,
+          131072
+        ],
+        "logs": [
+          15,
+          21,
+          12,
+          16,
+          16,
+          17,
+          19,
+          17
+        ],
+        "fixed_cells": 28389376,
+        "main_cells": 69156864,
+        "interaction_cells": 63799296,
+        "total_cells": 161345536,
+        "dot_calls": 1656,
+        "dot_terms": 274608
+      },
+      "p2_permutations": 51190,
+      "columns": [
+        177,
+        1357,
+        880,
+        16
+      ],
+      "tree_heights": [
+        22,
+        22,
+        22,
+        22
+      ],
+      "extended_cells": [
+        162581248,
+        272671360,
+        220370944,
+        67108864
+      ],
+      "uncompressed_column_query_values": 174960,
+      "gkr_AIR_public_frame_present": true,
+      "new_dummy_PCS_values": true,
+      "B4_source_key_retained_for_framing_only": true,
+      "new_profile_or_key": false,
+      "proof_or_validity_claim": false
+    },
+    {
+      "scope": "actual_selected_CPU_complete_R7_verifier_topology_hypothetical_PCS_shape_not_admitted",
+      "log_blowup": 1,
+      "queries": 144,
+      "cost": {
+        "raw": [
+          49063,
+          2511423,
+          2172,
+          89719,
+          65536,
+          110186,
+          549216,
+          216431
+        ],
+        "rows": [
+          65536,
+          4194304,
+          4096,
+          131072,
+          65536,
+          131072,
+          1048576,
+          262144
+        ],
+        "logs": [
+          16,
+          22,
+          12,
+          17,
+          16,
+          17,
+          20,
+          18
+        ],
+        "fixed_cells": 55521280,
+        "main_cells": 135086080,
+        "interaction_cells": 123830272,
+        "total_cells": 314437632,
+        "dot_calls": 3312,
+        "dot_terms": 549216
+      },
+      "p2_permutations": 89719,
+      "columns": [
+        177,
+        1357,
+        880,
+        16
+      ],
+      "tree_heights": [
+        21,
+        21,
+        21,
+        21
+      ],
+      "extended_cells": [
+        81290624,
+        136335680,
+        110185472,
+        33554432
+      ],
+      "uncompressed_column_query_values": 349920,
+      "gkr_AIR_public_frame_present": true,
+      "new_dummy_PCS_values": true,
+      "B4_source_key_retained_for_framing_only": true,
+      "new_profile_or_key": false,
+      "proof_or_validity_claim": false
+    }
+  ],
+  "ratios_B2_over_B4": {
+    "recursive_native_cells": 1.9488461831382804,
+    "p2_permutations": 1.752666536432897,
+    "dot_terms": 2.0,
+    "native_extended_cells": 0.5,
+    "column_query_values": 2.0
+  },
+  "qualification": {
+    "ReleaseSafe_semantic": true,
+    "ReleaseSafe_model": true,
+    "same_retained_actual_B4_native_bundle_freshly_verified": true,
+    "new_native_or_recursive_proof_generated": false,
+    "source_key_profile_modified": false,
+    "production_admission": false,
+    "certified_security": false
+  },
+  "security": "Both shapes have nominal144 FRI query*blowup bits only. Equal composed128-target review for a new native suite remains necessary; no certification or reinterpretation of B4 proofs.",
+  "decision": "Do not implement native B2 as an immediate optimization from this result. Nearly doubled isolated wrapper cells offset native commitment savings; whole-group plateau or larger-native-height crossover is unmeasured. Existing terminal-onlyB2 result does not settle nativeB2.",
+  "log": "/private/tmp/op-native-b2-full-cpu-model.log",
+  "eight_role_order": [
+    "eq",
+    "qm31_ops",
+    "m31_to_u32",
+    "poseidon2_w24",
+    "range16",
+    "om31_mul",
+    "om31_dot",
+    "qm31_input"
+  ],
+  "widths": {
+    "fixed": [
+      2,
+      8,
+      3,
+      73,
+      1,
+      9,
+      10,
+      2
+    ],
+    "main": [
+      4,
+      12,
+      4,
+      476,
+      1,
+      24,
+      17,
+      4
+    ],
+    "interaction": [
+      8,
+      16,
+      24,
+      192,
+      8,
+      24,
+      24,
+      8
+    ]
+  },
+  "counting_convention": "sum role_padded_rows*(FIXED+MAIN+INTER M31-width), before native proof LDE; range16 floor65536, other roles floor16",
+  "not_same_source_as_historical_217M": "historical native-dot actual-small-cpu-source-v2 uses old inline CPU source class (native masks108/550/368/16), whereas this selected detached CPU source has177/1357/880/16 columns; neither equals four-member root643035136cells"
+}

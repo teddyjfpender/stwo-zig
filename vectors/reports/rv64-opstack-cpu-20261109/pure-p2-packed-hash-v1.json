@@ -1,0 +1,291 @@
+{
+  "schema": "stwo.opstack.p2-packed-native-hash.v1",
+  "scope": "4096 independent equal-width leaf hashes per sample, not CPU leaf or full block",
+  "cpu": "Apple M5 Max",
+  "optimize": "ReleaseFast",
+  "security_or_protocol_change": false,
+  "scalar_and_packed_proof_byte_parity_sha256": "659f827999363b23339a9e6b9caa873e06925f9e234794bf6ddfabc85be4aac5",
+  "qualified_differentials": [
+    "all4 lanes",
+    "empty/rate boundary/final pad",
+    "streaming continuation",
+    "different offsets scalar fallback",
+    "mixed-height lifted index",
+    "parent nodes canonical decode"
+  ],
+  "medians": [
+    {
+      "columns": 16,
+      "blake_ns": 1261583,
+      "scalar_p2_ns": 7361084,
+      "packed4_p2_ns": 2514750,
+      "packed_gain": 2.927163336315737,
+      "packed_vs_scalar_blake": 1.9933290160060813
+    },
+    {
+      "columns": 53,
+      "blake_ns": 3060500,
+      "scalar_p2_ns": 17965250,
+      "packed4_p2_ns": 6444542,
+      "packed_gain": 2.7876690073553716,
+      "packed_vs_scalar_blake": 2.105715405979415
+    },
+    {
+      "columns": 128,
+      "blake_ns": 5490417,
+      "scalar_p2_ns": 39364667,
+      "packed4_p2_ns": 14133083,
+      "packed_gain": 2.78528520634882,
+      "packed_vs_scalar_blake": 2.5741365364415856
+    },
+    {
+      "columns": 497,
+      "blake_ns": 20039417,
+      "scalar_p2_ns": 149841250,
+      "packed4_p2_ns": 53879667,
+      "packed_gain": 2.781035190881933,
+      "packed_vs_scalar_blake": 2.688684356436118
+    }
+  ],
+  "runs": [
+    [
+      {
+        "columns": 16,
+        "blake_ns": 2439875,
+        "scalar_p2_ns": 14613291,
+        "packed4_p2_ns": 4327292,
+        "packed_gain": 3.38,
+        "vs_blake": 1.77
+      },
+      {
+        "columns": 53,
+        "blake_ns": 5358500,
+        "scalar_p2_ns": 25876958,
+        "packed4_p2_ns": 7883583,
+        "packed_gain": 3.28,
+        "vs_blake": 1.47
+      },
+      {
+        "columns": 128,
+        "blake_ns": 6612125,
+        "scalar_p2_ns": 42920834,
+        "packed4_p2_ns": 14438750,
+        "packed_gain": 2.97,
+        "vs_blake": 2.18
+      },
+      {
+        "columns": 497,
+        "blake_ns": 20049250,
+        "scalar_p2_ns": 150349709,
+        "packed4_p2_ns": 53580375,
+        "packed_gain": 2.81,
+        "vs_blake": 2.67
+      }
+    ],
+    [
+      {
+        "columns": 16,
+        "blake_ns": 1262500,
+        "scalar_p2_ns": 7361084,
+        "packed4_p2_ns": 2487000,
+        "packed_gain": 2.96,
+        "vs_blake": 1.97
+      },
+      {
+        "columns": 53,
+        "blake_ns": 3020250,
+        "scalar_p2_ns": 17881416,
+        "packed4_p2_ns": 6339042,
+        "packed_gain": 2.82,
+        "vs_blake": 2.1
+      },
+      {
+        "columns": 128,
+        "blake_ns": 5529792,
+        "scalar_p2_ns": 39340625,
+        "packed4_p2_ns": 14037416,
+        "packed_gain": 2.8,
+        "vs_blake": 2.54
+      },
+      {
+        "columns": 497,
+        "blake_ns": 20039417,
+        "scalar_p2_ns": 149817792,
+        "packed4_p2_ns": 54148625,
+        "packed_gain": 2.77,
+        "vs_blake": 2.7
+      }
+    ],
+    [
+      {
+        "columns": 16,
+        "blake_ns": 1265125,
+        "scalar_p2_ns": 7215708,
+        "packed4_p2_ns": 2514750,
+        "packed_gain": 2.87,
+        "vs_blake": 1.99
+      },
+      {
+        "columns": 53,
+        "blake_ns": 3068416,
+        "scalar_p2_ns": 17967292,
+        "packed4_p2_ns": 6461958,
+        "packed_gain": 2.78,
+        "vs_blake": 2.11
+      },
+      {
+        "columns": 128,
+        "blake_ns": 5467208,
+        "scalar_p2_ns": 39349833,
+        "packed4_p2_ns": 14036750,
+        "packed_gain": 2.8,
+        "vs_blake": 2.57
+      },
+      {
+        "columns": 497,
+        "blake_ns": 19985708,
+        "scalar_p2_ns": 149841250,
+        "packed4_p2_ns": 53864084,
+        "packed_gain": 2.78,
+        "vs_blake": 2.7
+      }
+    ],
+    [
+      {
+        "columns": 16,
+        "blake_ns": 1261583,
+        "scalar_p2_ns": 7381000,
+        "packed4_p2_ns": 2514750,
+        "packed_gain": 2.94,
+        "vs_blake": 1.99
+      },
+      {
+        "columns": 53,
+        "blake_ns": 3060500,
+        "scalar_p2_ns": 17912167,
+        "packed4_p2_ns": 6451000,
+        "packed_gain": 2.78,
+        "vs_blake": 2.11
+      },
+      {
+        "columns": 128,
+        "blake_ns": 5451208,
+        "scalar_p2_ns": 40450375,
+        "packed4_p2_ns": 14618709,
+        "packed_gain": 2.77,
+        "vs_blake": 2.68
+      },
+      {
+        "columns": 497,
+        "blake_ns": 21206292,
+        "scalar_p2_ns": 152130416,
+        "packed4_p2_ns": 54155500,
+        "packed_gain": 2.81,
+        "vs_blake": 2.55
+      }
+    ],
+    [
+      {
+        "columns": 16,
+        "blake_ns": 1214125,
+        "scalar_p2_ns": 7253959,
+        "packed4_p2_ns": 2515583,
+        "packed_gain": 2.88,
+        "vs_blake": 2.07
+      },
+      {
+        "columns": 53,
+        "blake_ns": 3071084,
+        "scalar_p2_ns": 17904500,
+        "packed4_p2_ns": 6390833,
+        "packed_gain": 2.8,
+        "vs_blake": 2.08
+      },
+      {
+        "columns": 128,
+        "blake_ns": 5490417,
+        "scalar_p2_ns": 39364667,
+        "packed4_p2_ns": 14133083,
+        "packed_gain": 2.79,
+        "vs_blake": 2.57
+      },
+      {
+        "columns": 497,
+        "blake_ns": 20005750,
+        "scalar_p2_ns": 149875667,
+        "packed4_p2_ns": 53785375,
+        "packed_gain": 2.79,
+        "vs_blake": 2.69
+      }
+    ],
+    [
+      {
+        "columns": 16,
+        "blake_ns": 1242209,
+        "scalar_p2_ns": 7287167,
+        "packed4_p2_ns": 2517166,
+        "packed_gain": 2.89,
+        "vs_blake": 2.03
+      },
+      {
+        "columns": 53,
+        "blake_ns": 3022625,
+        "scalar_p2_ns": 18025875,
+        "packed4_p2_ns": 6373208,
+        "packed_gain": 2.83,
+        "vs_blake": 2.11
+      },
+      {
+        "columns": 128,
+        "blake_ns": 5469458,
+        "scalar_p2_ns": 39413458,
+        "packed4_p2_ns": 14083083,
+        "packed_gain": 2.8,
+        "vs_blake": 2.57
+      },
+      {
+        "columns": 497,
+        "blake_ns": 19985834,
+        "scalar_p2_ns": 149807000,
+        "packed4_p2_ns": 53879667,
+        "packed_gain": 2.78,
+        "vs_blake": 2.7
+      }
+    ],
+    [
+      {
+        "columns": 16,
+        "blake_ns": 1259458,
+        "scalar_p2_ns": 7365292,
+        "packed4_p2_ns": 2505375,
+        "packed_gain": 2.94,
+        "vs_blake": 1.99
+      },
+      {
+        "columns": 53,
+        "blake_ns": 3025750,
+        "scalar_p2_ns": 17965250,
+        "packed4_p2_ns": 6444542,
+        "packed_gain": 2.79,
+        "vs_blake": 2.13
+      },
+      {
+        "columns": 128,
+        "blake_ns": 5492125,
+        "scalar_p2_ns": 39326000,
+        "packed4_p2_ns": 14160208,
+        "packed_gain": 2.78,
+        "vs_blake": 2.58
+      },
+      {
+        "columns": 497,
+        "blake_ns": 20051000,
+        "scalar_p2_ns": 149835583,
+        "packed4_p2_ns": 53951000,
+        "packed_gain": 2.78,
+        "vs_blake": 2.69
+      }
+    ]
+  ],
+  "production_admission_open": false
+}

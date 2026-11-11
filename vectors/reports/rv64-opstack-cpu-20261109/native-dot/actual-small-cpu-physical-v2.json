@@ -1,0 +1,413 @@
+{
+  "schema": "op-r7-actual-small-cpu-physical-v2",
+  "protocol": "STP27I02",
+  "bytes": 681484,
+  "sha256": "a0e7ec4c0f1c81908ebab0364c53da6b2ac7979b401c67fa05cdacbb258ee360",
+  "source_identity": "612e27325c59ed2b715cf582f9cfa1f0fe10638d8f83e7611bce390921e79138",
+  "fixed_root": [
+    33,
+    39,
+    205,
+    41,
+    76,
+    225,
+    8,
+    111,
+    140,
+    20,
+    171,
+    58,
+    214,
+    214,
+    219,
+    6,
+    45,
+    125,
+    147,
+    10,
+    1,
+    220,
+    108,
+    27,
+    206,
+    108,
+    235,
+    4,
+    143,
+    84,
+    233,
+    54,
+    234,
+    47,
+    101,
+    98
+  ],
+  "source_build_ns": 306312875,
+  "setup_ns": 4425419000,
+  "prove_ns": 17907312042,
+  "fresh_source_setup_ns": 4644648041,
+  "fresh_verify_ns": 34977417,
+  "counts": {
+    "raw": [
+      30606,
+      2005775,
+      2258,
+      68060,
+      65536,
+      132725,
+      465408,
+      129248
+    ],
+    "rows": [
+      32768,
+      2097152,
+      4096,
+      131072,
+      65536,
+      262144,
+      524288,
+      131072
+    ],
+    "logs": [
+      15,
+      21,
+      12,
+      17,
+      16,
+      18,
+      19,
+      17
+    ],
+    "main_cells": 103497728,
+    "fixed_cells": 34353152,
+    "interaction_cells": 79527936,
+    "total_native_cells": 217378816,
+    "dot_calls": 1800,
+    "dot_terms": 465408
+  },
+  "same_public_output": [
+    {
+      "c0": {
+        "a": {
+          "v": 367178056
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 500196526
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 1021286218
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 1856625239
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 1149806794
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 1020996493
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 1556466335
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 1512045833
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 1093536564
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    }
+  ],
+  "producer_destroyed_before_fresh_source": true,
+  "wrong_output_rejected": true,
+  "heavy_run": false,
+  "controlled_speed_measurement": false,
+  "production_admission": false,
+  "root_admission": false,
+  "stages": [
+    {
+      "id": "op_p2.main_generation",
+      "wall_seconds": 0.594424,
+      "user_seconds": 0.580444,
+      "system_seconds": 0.013966
+    },
+    {
+      "id": "op_p2.main_commit",
+      "wall_seconds": 5.948756,
+      "user_seconds": 48.045099,
+      "system_seconds": 0.20627
+    },
+    {
+      "id": "op_p2.interaction_generation",
+      "wall_seconds": 0.388012,
+      "user_seconds": 2.777025,
+      "system_seconds": 0.02575
+    },
+    {
+      "id": "op_p2.interaction_commit",
+      "wall_seconds": 5.35252,
+      "user_seconds": 43.840915,
+      "system_seconds": 0.184667
+    },
+    {
+      "id": "draw_random_coeff",
+      "wall_seconds": 1.2e-05,
+      "user_seconds": 2e-06,
+      "system_seconds": 7e-06
+    },
+    {
+      "id": "composition_trace_extract",
+      "wall_seconds": 1.5e-05,
+      "user_seconds": 5e-06,
+      "system_seconds": 7e-06
+    },
+    {
+      "id": "composition_evaluation",
+      "wall_seconds": 1.641333,
+      "user_seconds": 4.328015,
+      "system_seconds": 0.177963
+    },
+    {
+      "id": "composition_interpolate_and_split",
+      "wall_seconds": 0.013309,
+      "user_seconds": 0.096498,
+      "system_seconds": 0.000258
+    },
+    {
+      "id": "composition_commit",
+      "wall_seconds": 2.022762,
+      "user_seconds": 12.515602,
+      "system_seconds": 0.080855
+    },
+    {
+      "id": "oods_point_and_mask_points",
+      "wall_seconds": 7.6e-05,
+      "user_seconds": 5.9e-05,
+      "system_seconds": 1.4e-05
+    },
+    {
+      "id": "sampled_value_evaluation",
+      "wall_seconds": 0.079375,
+      "user_seconds": 0.549121,
+      "system_seconds": 0.002364
+    },
+    {
+      "id": "sampled_value_channel_mix",
+      "wall_seconds": 0.000927,
+      "user_seconds": 0.000918,
+      "system_seconds": 8e-06
+    },
+    {
+      "id": "fri_quotient_build_and_commit",
+      "wall_seconds": 1.302337,
+      "user_seconds": 7.51127,
+      "system_seconds": 0.088294
+    },
+    {
+      "id": "proof_of_work",
+      "wall_seconds": 7e-06,
+      "user_seconds": 3e-06,
+      "system_seconds": 2e-06
+    },
+    {
+      "id": "fri_decommit",
+      "wall_seconds": 0.067957,
+      "user_seconds": 0.310633,
+      "system_seconds": 0.014264
+    },
+    {
+      "id": "trace_decommit",
+      "wall_seconds": 0.442083,
+      "user_seconds": 1.14417,
+      "system_seconds": 0.01896
+    },
+    {
+      "id": "constraint_check_and_assembly",
+      "wall_seconds": 0.000397,
+      "user_seconds": 0.000388,
+      "system_seconds": 7e-06
+    }
+  ],
+  "process_total": {
+    "wall_seconds": 33.24,
+    "user_seconds": 224.72,
+    "system_seconds": 2.22,
+    "max_rss_bytes": 4504322048
+  },
+  "allocator": {
+    "hard_cap_bytes": 34359738368,
+    "peak_live_bytes": 4490503353,
+    "final_live_bytes": 0
+  },
+  "comparison": {
+    "r6_cells": 264302592,
+    "r7_cells": 217378816,
+    "r6_proof_bytes": 689252,
+    "r7_proof_bytes": 681484,
+    "r6_reference_prove_seconds": 27.35,
+    "reference_comparison_is_not_controlled": true,
+    "other_jobs": "Possible concurrent compiler/test activity; timing is qualification only."
+  },
+  "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/native-dot-r7-cpu-small-v2",
+  "whole_block_or_root_proof": false,
+  "openings": {
+    "schema": "op-r7-physical-opening-census-v2",
+    "source": "durable physical proof sampled_values after fresh source reception",
+    "masks": [
+      108,
+      550,
+      368,
+      16
+    ],
+    "columns": [
+      108,
+      542,
+      304,
+      16
+    ],
+    "mask_sample_values": 1042,
+    "deep_sample_plan_terms": 1114,
+    "pcs": {
+      "pow_bits": 0,
+      "fri_config": {
+        "log_blowup_factor": 2,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 72,
+        "fold_step": 4
+      },
+      "lifting_log_size": null
+    },
+    "root_only_accepted": false
+  }
+}

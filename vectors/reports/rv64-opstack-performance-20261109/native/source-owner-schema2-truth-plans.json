@@ -1,0 +1,324 @@
+[
+  {
+    "declaration": {
+      "family": "keccak",
+      "first_id": 1,
+      "calls": 4518,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    "local_gkr": {
+      "padded_facts": 134226944,
+      "checkpoint_bank_bytes": 2863508160,
+      "first_secure_checkpoint_bytes": 2147483648,
+      "numerical_working_bytes": 6979801088,
+      "numerical_metadata_bytes": 3735552,
+      "child_peak_bytes": 6983536640,
+      "main_bytes": 504139776,
+      "interaction_bytes": 59310080,
+      "binding_bytes": 4784128,
+      "binding_scratch_bytes": 262144,
+      "durable_metadata_bytes": 40726616,
+      "main_merkle_bytes": 18874940,
+      "resident_main_bytes": 564376980,
+      "stage1_peak_bytes": 1202734484,
+      "gkr_phase_peak_bytes": 7547913620,
+      "binding_phase_peak_bytes": 628324756,
+      "pcs_phase_payload_bytes": 2133479436,
+      "whole_peak_bytes": 7547913620
+    },
+    "retained_metadata_bound": 40726616
+  },
+  {
+    "declaration": {
+      "family": "keccak",
+      "first_id": 4519,
+      "calls": 4518,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    "local_gkr": {
+      "padded_facts": 134226944,
+      "checkpoint_bank_bytes": 2863508160,
+      "first_secure_checkpoint_bytes": 2147483648,
+      "numerical_working_bytes": 6979801088,
+      "numerical_metadata_bytes": 3735552,
+      "child_peak_bytes": 6983536640,
+      "main_bytes": 504139776,
+      "interaction_bytes": 59310080,
+      "binding_bytes": 4784128,
+      "binding_scratch_bytes": 262144,
+      "durable_metadata_bytes": 40726616,
+      "main_merkle_bytes": 18874940,
+      "resident_main_bytes": 564376980,
+      "stage1_peak_bytes": 1202734484,
+      "gkr_phase_peak_bytes": 7547913620,
+      "binding_phase_peak_bytes": 628324756,
+      "pcs_phase_payload_bytes": 2133479436,
+      "whole_peak_bytes": 7547913620
+    },
+    "retained_metadata_bound": 40726616
+  },
+  {
+    "declaration": {
+      "family": "keccak",
+      "first_id": 9037,
+      "calls": 4518,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    "local_gkr": {
+      "padded_facts": 134226944,
+      "checkpoint_bank_bytes": 2863508160,
+      "first_secure_checkpoint_bytes": 2147483648,
+      "numerical_working_bytes": 6979801088,
+      "numerical_metadata_bytes": 3735552,
+      "child_peak_bytes": 6983536640,
+      "main_bytes": 504139776,
+      "interaction_bytes": 59310080,
+      "binding_bytes": 4784128,
+      "binding_scratch_bytes": 262144,
+      "durable_metadata_bytes": 40726616,
+      "main_merkle_bytes": 18874940,
+      "resident_main_bytes": 564376980,
+      "stage1_peak_bytes": 1202734484,
+      "gkr_phase_peak_bytes": 7547913620,
+      "binding_phase_peak_bytes": 628324756,
+      "pcs_phase_payload_bytes": 2133479436,
+      "whole_peak_bytes": 7547913620
+    },
+    "retained_metadata_bound": 40726616
+  },
+  {
+    "declaration": {
+      "family": "keccak",
+      "first_id": 13555,
+      "calls": 1567,
+      "logs": [
+        15,
+        0
+      ]
+    },
+    "local_gkr": {
+      "padded_facts": 67118080,
+      "checkpoint_bank_bytes": 1431852352,
+      "first_secure_checkpoint_bytes": 1073741824,
+      "numerical_working_bytes": 3490140160,
+      "numerical_metadata_bytes": 3493888,
+      "child_peak_bytes": 3493634048,
+      "main_bytes": 252088320,
+      "interaction_bytes": 29949952,
+      "binding_bytes": 2686976,
+      "binding_scratch_bytes": 262144,
+      "durable_metadata_bytes": 15658112,
+      "main_merkle_bytes": 9437724,
+      "resident_main_bytes": 277819804,
+      "stage1_peak_bytes": 597016988,
+      "gkr_phase_peak_bytes": 3771453852,
+      "binding_phase_peak_bytes": 312165788,
+      "pcs_phase_payload_bytes": 1084869588,
+      "whole_peak_bytes": 3771453852
+    },
+    "retained_metadata_bound": 15658112
+  },
+  {
+    "declaration": {
+      "family": "add",
+      "first_id": 1,
+      "calls": 3237,
+      "logs": [
+        16,
+        17
+      ]
+    },
+    "local_gkr": {
+      "padded_facts": 25166080,
+      "checkpoint_bank_bytes": 536876352,
+      "first_secure_checkpoint_bytes": 268435456,
+      "numerical_working_bytes": 1308636160,
+      "numerical_metadata_bytes": 3035136,
+      "child_peak_bytes": 1311671296,
+      "main_bytes": 188482560,
+      "interaction_bytes": 37765120,
+      "binding_bytes": 12599296,
+      "binding_scratch_bytes": 32768,
+      "durable_metadata_bytes": 36039232,
+      "main_merkle_bytes": 37749340,
+      "resident_main_bytes": 262506908,
+      "stage1_peak_bytes": 719424924,
+      "gkr_phase_peak_bytes": 1574178204,
+      "binding_phase_peak_bytes": 303416732,
+      "pcs_phase_payload_bytes": 1550110804,
+      "whole_peak_bytes": 1574178204
+    },
+    "retained_metadata_bound": 36039232
+  },
+  {
+    "declaration": {
+      "family": "double",
+      "first_id": 1,
+      "calls": 2760,
+      "logs": [
+        16,
+        15
+      ]
+    },
+    "local_gkr": {
+      "padded_facts": 18874624,
+      "checkpoint_bank_bytes": 402658624,
+      "first_secure_checkpoint_bytes": 268435456,
+      "numerical_working_bytes": 981480448,
+      "numerical_metadata_bytes": 3035136,
+      "child_peak_bytes": 984515584,
+      "main_bytes": 109839360,
+      "interaction_bytes": 18890752,
+      "binding_bytes": 6307840,
+      "binding_scratch_bytes": 32768,
+      "durable_metadata_bytes": 18211936,
+      "main_merkle_bytes": 18874940,
+      "resident_main_bytes": 147162012,
+      "stage1_peak_bytes": 391219100,
+      "gkr_phase_peak_bytes": 1131677596,
+      "binding_phase_peak_bytes": 169197468,
+      "pcs_phase_payload_bytes": 809290260,
+      "whole_peak_bytes": 1131677596
+    },
+    "retained_metadata_bound": 18211936
+  },
+  {
+    "declaration": {
+      "family": "sha256",
+      "first_id": 1,
+      "calls": 952,
+      "logs": [
+        10,
+        0
+      ]
+    },
+    "local_gkr": null,
+    "retained_metadata_bound": 95848
+  },
+  {
+    "declaration": {
+      "family": "arith256_mod",
+      "first_id": 1,
+      "calls": 33117,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    "local_gkr": null,
+    "retained_metadata_bound": 5305224
+  },
+  {
+    "declaration": {
+      "family": "bn254_g1_add",
+      "first_id": 1,
+      "calls": 19465,
+      "logs": [
+        15,
+        0
+      ]
+    },
+    "local_gkr": null,
+    "retained_metadata_bound": 2498024
+  },
+  {
+    "declaration": {
+      "family": "bn254_g1_double",
+      "first_id": 1,
+      "calls": 31908,
+      "logs": [
+        15,
+        0
+      ]
+    },
+    "local_gkr": null,
+    "retained_metadata_bound": 2048616
+  },
+  {
+    "declaration": {
+      "family": "bn254_fp2_mul",
+      "first_id": 1,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    "local_gkr": null,
+    "retained_metadata_bound": 8394984
+  },
+  {
+    "declaration": {
+      "family": "bn254_fp2_mul",
+      "first_id": 65536,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    "local_gkr": null,
+    "retained_metadata_bound": 8394984
+  },
+  {
+    "declaration": {
+      "family": "bn254_fp2_mul",
+      "first_id": 131071,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    "local_gkr": null,
+    "retained_metadata_bound": 8394984
+  },
+  {
+    "declaration": {
+      "family": "bn254_fp2_mul",
+      "first_id": 196606,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    "local_gkr": null,
+    "retained_metadata_bound": 8394984
+  },
+  {
+    "declaration": {
+      "family": "bn254_fp2_mul",
+      "first_id": 262141,
+      "calls": 65535,
+      "logs": [
+        16,
+        0
+      ]
+    },
+    "local_gkr": null,
+    "retained_metadata_bound": 8394984
+  },
+  {
+    "declaration": {
+      "family": "bn254_fp2_mul",
+      "first_id": 327676,
+      "calls": 3488,
+      "logs": [
+        12,
+        0
+      ]
+    },
+    "local_gkr": null,
+    "retained_metadata_bound": 452968
+  }
+]

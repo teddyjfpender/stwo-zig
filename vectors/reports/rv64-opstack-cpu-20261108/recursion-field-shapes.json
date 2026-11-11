@@ -1,0 +1,752 @@
+{
+  "schema": "stwo.opstack.recursion-field-shapes.v1",
+  "block": 120794432,
+  "native_profile": "d2_native_b4_q54_p20_fold4",
+  "outer_profile": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+  "security_qualified": false,
+  "trials": [
+    {
+      "label": "packed-8",
+      "production": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-packed-profile-baseline",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers8.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-d2-m6-profile-before",
+          "2147483648",
+          "42949672960"
+        ],
+        "wall_ns": 65642869917,
+        "peak_rss_bytes": 33963245568,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 409.590864,
+        "system_cpu_s": 9.841982,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stages_seconds": {
+        "outer_witness": 1.268418,
+        "outer_main_commit": 5.523842,
+        "outer_interaction_witness": 12.631173,
+        "outer_interaction_commit": 12.277006,
+        "draw_random_coeff": 1.3999999999999998e-05,
+        "composition_trace_extract": 3.5000000000000004e-05,
+        "composition_evaluation": 18.994447,
+        "composition_interpolate_and_split": 0.186283,
+        "composition_commit": 1.382588,
+        "oods_point_and_mask_points": 0.00035800000000000003,
+        "sampled_value_evaluation": 1.510831,
+        "sampled_value_channel_mix": 0.00023099999999999998,
+        "fri_quotient_build_and_commit": 4.633559,
+        "proof_of_work": 0.010811,
+        "fri_decommit": 0.259806,
+        "trace_decommit": 0.027221000000000002,
+        "constraint_check_and_assembly": 0.00039099999999999996
+      },
+      "per_node": [
+        {
+          "authority": "aa9bff33f3c310ed23fe01605029482ef4c138a50a6b7ff2d5060f28acda8351",
+          "stage_count": 17
+        },
+        {
+          "authority": "1c4227703608882e181bc9b021e17ce44a3d77448e83933a449e256597583994",
+          "stage_count": 17
+        },
+        {
+          "authority": "6f64d11f56060b45f5cd7db691663805f001bc2f5f3354ca0d8d7048ebeccf65",
+          "stage_count": 17
+        },
+        {
+          "authority": "507281efda90d9bc23a5fed6df931c6329e801748c7c7601d1482e5021d6bf7f",
+          "stage_count": 17
+        }
+      ],
+      "stage_process_usage": {
+        "outer_witness": {
+          "wall_s": 1.268418,
+          "user_s": 9.191782,
+          "system_s": 0.323382,
+          "minor_faults": 390408,
+          "major_faults": 0,
+          "busy_cores": 7.5015996304057495
+        },
+        "outer_main_commit": {
+          "wall_s": 5.523842,
+          "user_s": 34.011501,
+          "system_s": 1.501261,
+          "minor_faults": 1328291,
+          "major_faults": 0,
+          "busy_cores": 6.428996701933183
+        },
+        "outer_interaction_witness": {
+          "wall_s": 12.631173,
+          "user_s": 76.42855,
+          "system_s": 1.027794,
+          "minor_faults": 947856,
+          "major_faults": 0,
+          "busy_cores": 6.132157638882786
+        },
+        "outer_interaction_commit": {
+          "wall_s": 12.277006,
+          "user_s": 79.275999,
+          "system_s": 2.139882,
+          "minor_faults": 2421469,
+          "major_faults": 0,
+          "busy_cores": 6.631574587484929
+        },
+        "draw_random_coeff": {
+          "wall_s": 1.3999999999999998e-05,
+          "user_s": 3e-06,
+          "system_s": 6e-06,
+          "minor_faults": 0,
+          "major_faults": 0,
+          "busy_cores": 0.642857142857143
+        },
+        "composition_trace_extract": {
+          "wall_s": 3.5000000000000004e-05,
+          "user_s": 1.1e-05,
+          "system_s": 1.9e-05,
+          "minor_faults": 5,
+          "major_faults": 0,
+          "busy_cores": 0.8571428571428571
+        },
+        "composition_evaluation": {
+          "wall_s": 18.994447,
+          "user_s": 137.22372,
+          "system_s": 0.916197,
+          "minor_faults": 241307,
+          "major_faults": 0,
+          "busy_cores": 7.2726474742855105
+        },
+        "composition_interpolate_and_split": {
+          "wall_s": 0.186283,
+          "user_s": 1.387397,
+          "system_s": 0.043673000000000003,
+          "minor_faults": 0,
+          "major_faults": 0,
+          "busy_cores": 7.682236167551522
+        },
+        "composition_commit": {
+          "wall_s": 1.382588,
+          "user_s": 6.888415999999999,
+          "system_s": 0.587437,
+          "minor_faults": 489165,
+          "major_faults": 0,
+          "busy_cores": 5.407144427696465
+        },
+        "oods_point_and_mask_points": {
+          "wall_s": 0.00035800000000000003,
+          "user_s": 0.000254,
+          "system_s": 8.499999999999999e-05,
+          "minor_faults": 16,
+          "major_faults": 0,
+          "busy_cores": 0.946927374301676
+        },
+        "sampled_value_evaluation": {
+          "wall_s": 1.510831,
+          "user_s": 10.601478,
+          "system_s": 0.180752,
+          "minor_faults": 160,
+          "major_faults": 0,
+          "busy_cores": 7.13662216356429
+        },
+        "sampled_value_channel_mix": {
+          "wall_s": 0.00023099999999999998,
+          "user_s": 0.000205,
+          "system_s": 1.7e-05,
+          "minor_faults": 2,
+          "major_faults": 0,
+          "busy_cores": 0.9610389610389611
+        },
+        "fri_quotient_build_and_commit": {
+          "wall_s": 4.633559,
+          "user_s": 31.917298,
+          "system_s": 1.428081,
+          "minor_faults": 1034076,
+          "major_faults": 0,
+          "busy_cores": 7.196493882995771
+        },
+        "proof_of_work": {
+          "wall_s": 0.010811,
+          "user_s": 0.09480000000000001,
+          "system_s": 0.003391,
+          "minor_faults": 146,
+          "major_faults": 0,
+          "busy_cores": 9.08250855610027
+        },
+        "fri_decommit": {
+          "wall_s": 0.259806,
+          "user_s": 1.6812899999999997,
+          "system_s": 0.117019,
+          "minor_faults": 102050,
+          "major_faults": 0,
+          "busy_cores": 6.921737758173406
+        },
+        "trace_decommit": {
+          "wall_s": 0.027221000000000002,
+          "user_s": 0.024273999999999997,
+          "system_s": 0.0029100000000000003,
+          "minor_faults": 474,
+          "major_faults": 0,
+          "busy_cores": 0.9986407552992173
+        },
+        "constraint_check_and_assembly": {
+          "wall_s": 0.00039099999999999996,
+          "user_s": 0.000304,
+          "system_s": 6.400000000000001e-05,
+          "minor_faults": 7,
+          "major_faults": 0,
+          "busy_cores": 0.9411764705882355
+        }
+      },
+      "raw_profiles": [
+        {
+          "name": "outer-1794157684172635000.stages.json",
+          "sha256": "c00ad709ea6b9b6e10f1356768fa2459ac90535466526d58e2226de31b86579c"
+        },
+        {
+          "name": "outer-1794157695871020000.stages.json",
+          "sha256": "af46190f1ce0c0ba85c2469c98f6f7151bca968c14ae0bc5283bd1b9bd214b45"
+        },
+        {
+          "name": "outer-1794157707754634000.stages.json",
+          "sha256": "c3a5d1180c7e6bf835ea26a77b4f5701f26317dde67684d267ff98f5a087c1bb"
+        },
+        {
+          "name": "outer-1794157731267203000.stages.json",
+          "sha256": "99804e1d2a782f3d3e6ffd72ec10522a65e893adacc6a667867dc66a755e7194"
+        }
+      ]
+    },
+    {
+      "label": "shape-8",
+      "production": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers8.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-d2-m6-shaped",
+          "2147483648",
+          "42949672960"
+        ],
+        "wall_ns": 58268409458,
+        "peak_rss_bytes": 33955856384,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 348.873194,
+        "system_cpu_s": 9.38342,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stages_seconds": {
+        "outer_witness": 1.2147489999999999,
+        "outer_main_commit": 5.428211,
+        "outer_interaction_witness": 12.216656,
+        "outer_interaction_commit": 12.044673,
+        "draw_random_coeff": 1.6e-05,
+        "composition_trace_extract": 4.9999999999999996e-05,
+        "composition_evaluation": 12.228497,
+        "composition_interpolate_and_split": 0.18088300000000002,
+        "composition_commit": 1.357834,
+        "oods_point_and_mask_points": 0.00033900000000000005,
+        "sampled_value_evaluation": 1.485982,
+        "sampled_value_channel_mix": 0.00022,
+        "fri_quotient_build_and_commit": 4.613323,
+        "proof_of_work": 0.0069,
+        "fri_decommit": 0.265741,
+        "trace_decommit": 0.027483,
+        "constraint_check_and_assembly": 0.00036199999999999996
+      },
+      "per_node": [
+        {
+          "authority": "aa9bff33f3c310ed23fe01605029482ef4c138a50a6b7ff2d5060f28acda8351",
+          "stage_count": 17
+        },
+        {
+          "authority": "1c4227703608882e181bc9b021e17ce44a3d77448e83933a449e256597583994",
+          "stage_count": 17
+        },
+        {
+          "authority": "6f64d11f56060b45f5cd7db691663805f001bc2f5f3354ca0d8d7048ebeccf65",
+          "stage_count": 17
+        },
+        {
+          "authority": "507281efda90d9bc23a5fed6df931c6329e801748c7c7601d1482e5021d6bf7f",
+          "stage_count": 17
+        }
+      ],
+      "stage_process_usage": {
+        "outer_witness": {
+          "wall_s": 1.2147489999999999,
+          "user_s": 8.776303,
+          "system_s": 0.305689,
+          "minor_faults": 390965,
+          "major_faults": 0,
+          "busy_cores": 7.476435049545215
+        },
+        "outer_main_commit": {
+          "wall_s": 5.428211,
+          "user_s": 33.596043,
+          "system_s": 1.458648,
+          "minor_faults": 1327332,
+          "major_faults": 0,
+          "busy_cores": 6.457871847649253
+        },
+        "outer_interaction_witness": {
+          "wall_s": 12.216656,
+          "user_s": 73.83912699999999,
+          "system_s": 0.9660989999999999,
+          "minor_faults": 934059,
+          "major_faults": 0,
+          "busy_cores": 6.12321620580951
+        },
+        "outer_interaction_commit": {
+          "wall_s": 12.044673,
+          "user_s": 77.807646,
+          "system_s": 2.0248609999999996,
+          "minor_faults": 2420779,
+          "major_faults": 0,
+          "busy_cores": 6.628034401598118
+        },
+        "draw_random_coeff": {
+          "wall_s": 1.6e-05,
+          "user_s": 3e-06,
+          "system_s": 6.999999999999999e-06,
+          "minor_faults": 0,
+          "major_faults": 0,
+          "busy_cores": 0.625
+        },
+        "composition_trace_extract": {
+          "wall_s": 4.9999999999999996e-05,
+          "user_s": 9.999999999999999e-06,
+          "system_s": 3.2000000000000005e-05,
+          "minor_faults": 10,
+          "major_faults": 0,
+          "busy_cores": 0.8400000000000002
+        },
+        "composition_evaluation": {
+          "wall_s": 12.228497,
+          "user_s": 82.98901599999999,
+          "system_s": 0.6948369999999999,
+          "minor_faults": 241292,
+          "major_faults": 0,
+          "busy_cores": 6.843347387663422
+        },
+        "composition_interpolate_and_split": {
+          "wall_s": 0.18088300000000002,
+          "user_s": 1.331377,
+          "system_s": 0.049172999999999994,
+          "minor_faults": 0,
+          "major_faults": 0,
+          "busy_cores": 7.632281640618521
+        },
+        "composition_commit": {
+          "wall_s": 1.357834,
+          "user_s": 6.7677130000000005,
+          "system_s": 0.556623,
+          "minor_faults": 488134,
+          "major_faults": 0,
+          "busy_cores": 5.39413212513459
+        },
+        "oods_point_and_mask_points": {
+          "wall_s": 0.00033900000000000005,
+          "user_s": 0.000246,
+          "system_s": 8.2e-05,
+          "minor_faults": 13,
+          "major_faults": 0,
+          "busy_cores": 0.9675516224188789
+        },
+        "sampled_value_evaluation": {
+          "wall_s": 1.485982,
+          "user_s": 10.419612,
+          "system_s": 0.17154,
+          "minor_faults": 162,
+          "major_faults": 0,
+          "busy_cores": 7.127375701724517
+        },
+        "sampled_value_channel_mix": {
+          "wall_s": 0.00022,
+          "user_s": 0.00020399999999999997,
+          "system_s": 4e-06,
+          "minor_faults": 0,
+          "major_faults": 0,
+          "busy_cores": 0.9454545454545452
+        },
+        "fri_quotient_build_and_commit": {
+          "wall_s": 4.613323,
+          "user_s": 31.681144,
+          "system_s": 1.6426310000000002,
+          "minor_faults": 1115627,
+          "major_faults": 0,
+          "busy_cores": 7.223377812479203
+        },
+        "proof_of_work": {
+          "wall_s": 0.0069,
+          "user_s": 0.092339,
+          "system_s": 0.0030820000000000005,
+          "minor_faults": 146,
+          "major_faults": 0,
+          "busy_cores": 13.82913043478261
+        },
+        "fri_decommit": {
+          "wall_s": 0.265741,
+          "user_s": 1.7249149999999998,
+          "system_s": 0.116004,
+          "minor_faults": 100953,
+          "major_faults": 0,
+          "busy_cores": 6.927493311156351
+        },
+        "trace_decommit": {
+          "wall_s": 0.027483,
+          "user_s": 0.02461,
+          "system_s": 0.0028539999999999998,
+          "minor_faults": 502,
+          "major_faults": 0,
+          "busy_cores": 0.9993086635374595
+        },
+        "constraint_check_and_assembly": {
+          "wall_s": 0.00036199999999999996,
+          "user_s": 0.000312,
+          "system_s": 3.9999999999999996e-05,
+          "minor_faults": 3,
+          "major_faults": 0,
+          "busy_cores": 0.9723756906077349
+        }
+      },
+      "raw_profiles": [
+        {
+          "name": "outer-1794157878469991000.stages.json",
+          "sha256": "878e6ff0ce3b414cd3ac487880d45aabe2afbcd6518f49454beaac6f1a2af100"
+        },
+        {
+          "name": "outer-1794157888640210000.stages.json",
+          "sha256": "eadff179caa0dc736cdb5523cdbd0908f087f81b5a9b1b19b10966489df00156"
+        },
+        {
+          "name": "outer-1794157899000105000.stages.json",
+          "sha256": "1b19d4bd858f3d4f103fb602779e6411cb724bcc96e35d1c84ff78dfcce47293"
+        },
+        {
+          "name": "outer-1794157919544031000.stages.json",
+          "sha256": "7df1b28cbcf3df65bc73362d5ab6592cb044cbe3e9b8026aaf514736bc2d4b26"
+        }
+      ]
+    },
+    {
+      "label": "shape-16",
+      "production": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-d2-m6-workers16",
+          "2147483648",
+          "42949672960"
+        ],
+        "wall_ns": 38015126417,
+        "peak_rss_bytes": 33958969344,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 397.359064,
+        "system_cpu_s": 12.471672,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "stages_seconds": {
+        "outer_witness": 0.819939,
+        "outer_main_commit": 3.387916,
+        "outer_interaction_witness": 8.837606,
+        "outer_interaction_commit": 7.305073999999999,
+        "draw_random_coeff": 1.8e-05,
+        "composition_trace_extract": 4.3e-05,
+        "composition_evaluation": 7.888214,
+        "composition_interpolate_and_split": 0.19049000000000002,
+        "composition_commit": 0.7581150000000001,
+        "oods_point_and_mask_points": 0.000348,
+        "sampled_value_evaluation": 0.920378,
+        "sampled_value_channel_mix": 0.00024799999999999996,
+        "fri_quotient_build_and_commit": 2.866067,
+        "proof_of_work": 0.007002,
+        "fri_decommit": 0.149219,
+        "trace_decommit": 0.026831,
+        "constraint_check_and_assembly": 0.000374
+      },
+      "per_node": [
+        {
+          "authority": "aa9bff33f3c310ed23fe01605029482ef4c138a50a6b7ff2d5060f28acda8351",
+          "stage_count": 17
+        },
+        {
+          "authority": "1c4227703608882e181bc9b021e17ce44a3d77448e83933a449e256597583994",
+          "stage_count": 17
+        },
+        {
+          "authority": "6f64d11f56060b45f5cd7db691663805f001bc2f5f3354ca0d8d7048ebeccf65",
+          "stage_count": 17
+        },
+        {
+          "authority": "507281efda90d9bc23a5fed6df931c6329e801748c7c7601d1482e5021d6bf7f",
+          "stage_count": 17
+        }
+      ],
+      "stage_process_usage": {
+        "outer_witness": {
+          "wall_s": 0.819939,
+          "user_s": 10.898858,
+          "system_s": 0.405011,
+          "minor_faults": 405156,
+          "major_faults": 0,
+          "busy_cores": 13.786231658696563
+        },
+        "outer_main_commit": {
+          "wall_s": 3.387916,
+          "user_s": 36.745268,
+          "system_s": 2.379102,
+          "minor_faults": 1326855,
+          "major_faults": 0,
+          "busy_cores": 11.54821134880558
+        },
+        "outer_interaction_witness": {
+          "wall_s": 8.837606,
+          "user_s": 88.979237,
+          "system_s": 1.184224,
+          "minor_faults": 982277,
+          "major_faults": 0,
+          "busy_cores": 10.202249455338924
+        },
+        "outer_interaction_commit": {
+          "wall_s": 7.305073999999999,
+          "user_s": 86.672927,
+          "system_s": 2.6048679999999997,
+          "minor_faults": 2420033,
+          "major_faults": 0,
+          "busy_cores": 12.221340262946002
+        },
+        "draw_random_coeff": {
+          "wall_s": 1.8e-05,
+          "user_s": 3e-06,
+          "system_s": 4.9999999999999996e-06,
+          "minor_faults": 0,
+          "major_faults": 0,
+          "busy_cores": 0.4444444444444444
+        },
+        "composition_trace_extract": {
+          "wall_s": 4.3e-05,
+          "user_s": 1.2e-05,
+          "system_s": 2.7e-05,
+          "minor_faults": 7,
+          "major_faults": 0,
+          "busy_cores": 0.9069767441860465
+        },
+        "composition_evaluation": {
+          "wall_s": 7.888214,
+          "user_s": 95.506438,
+          "system_s": 0.793712,
+          "minor_faults": 241610,
+          "major_faults": 0,
+          "busy_cores": 12.2081056624478
+        },
+        "composition_interpolate_and_split": {
+          "wall_s": 0.19049000000000002,
+          "user_s": 1.418186,
+          "system_s": 0.05536600000000001,
+          "minor_faults": 0,
+          "major_faults": 0,
+          "busy_cores": 7.735587169930179
+        },
+        "composition_commit": {
+          "wall_s": 0.7581150000000001,
+          "user_s": 7.4592469999999995,
+          "system_s": 0.85857,
+          "minor_faults": 487095,
+          "major_faults": 0,
+          "busy_cores": 10.971708777692037
+        },
+        "oods_point_and_mask_points": {
+          "wall_s": 0.000348,
+          "user_s": 0.000255,
+          "system_s": 8.1e-05,
+          "minor_faults": 17,
+          "major_faults": 0,
+          "busy_cores": 0.9655172413793104
+        },
+        "sampled_value_evaluation": {
+          "wall_s": 0.920378,
+          "user_s": 11.625831,
+          "system_s": 0.18669599999999997,
+          "minor_faults": 162,
+          "major_faults": 0,
+          "busy_cores": 12.834429984202142
+        },
+        "sampled_value_channel_mix": {
+          "wall_s": 0.00024799999999999996,
+          "user_s": 0.000222,
+          "system_s": 1.8e-05,
+          "minor_faults": 2,
+          "major_faults": 0,
+          "busy_cores": 0.9677419354838711
+        },
+        "fri_quotient_build_and_commit": {
+          "wall_s": 2.866067,
+          "user_s": 35.4598,
+          "system_s": 2.1925679999999996,
+          "minor_faults": 1050441,
+          "major_faults": 0,
+          "busy_cores": 13.13729511557127
+        },
+        "proof_of_work": {
+          "wall_s": 0.007002,
+          "user_s": 0.092815,
+          "system_s": 0.003107,
+          "minor_faults": 145,
+          "major_faults": 0,
+          "busy_cores": 13.699228791773777
+        },
+        "fri_decommit": {
+          "wall_s": 0.149219,
+          "user_s": 1.622278,
+          "system_s": 0.137783,
+          "minor_faults": 100558,
+          "major_faults": 0,
+          "busy_cores": 11.795153432203675
+        },
+        "trace_decommit": {
+          "wall_s": 0.026831,
+          "user_s": 0.024588,
+          "system_s": 0.002197,
+          "minor_faults": 468,
+          "major_faults": 0,
+          "busy_cores": 0.9982855652044277
+        },
+        "constraint_check_and_assembly": {
+          "wall_s": 0.000374,
+          "user_s": 0.00031999999999999997,
+          "system_s": 4.2000000000000004e-05,
+          "minor_faults": 0,
+          "major_faults": 0,
+          "busy_cores": 0.9679144385026738
+        }
+      },
+      "raw_profiles": [
+        {
+          "name": "outer-1794157985156423000.stages.json",
+          "sha256": "841a5fecf1071f6101ce2f0d7ebc6c4954f3a8f050585bd0f9ded48d51a8a8c1"
+        },
+        {
+          "name": "outer-1794157991834441000.stages.json",
+          "sha256": "de640ed52eee476eb3410d13cb7700b29729a685af4d14c54aa03abe3263185e"
+        },
+        {
+          "name": "outer-1794157998658954000.stages.json",
+          "sha256": "4eb7895610e6f91f4d5f18c81149c20705283aa67f12fd22a383d5807b6ed1b0"
+        },
+        {
+          "name": "outer-1794158012372460000.stages.json",
+          "sha256": "e2235e5aa24e7a5027e75426515c2c8405441493fc036781c175870e966f815e"
+        }
+      ]
+    }
+  ],
+  "fresh_receivers": [
+    {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "verify-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers8.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-d2-m6-shaped",
+        "2147483648",
+        "25769803776"
+      ],
+      "wall_ns": 4725978500,
+      "peak_rss_bytes": 7211188224,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 20.118936,
+      "system_cpu_s": 0.462126,
+      "returncode": 0,
+      "timed_out": false
+    },
+    {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "verify-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-d2-m6-workers16",
+        "2147483648",
+        "25769803776"
+      ],
+      "wall_ns": 3835797833,
+      "peak_rss_bytes": 7211663360,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 21.46041,
+      "system_cpu_s": 0.577546,
+      "returncode": 0,
+      "timed_out": false
+    }
+  ],
+  "all_five_proofs_byte_identical": true,
+  "proof_sha256": {
+    "leaf-000001.proof": "df09bdf115f10a9f9058ef92999f9e903ba0ef06a566abcb87ac5a7fa3ceff5a",
+    "fold-000003.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91",
+    "leaf-000000.proof": "797a56a58a4017398c208fe7c6399ce4dbd88e9f5c099a605310ac508ad57884",
+    "leaf-000002.proof": "2f3c39af1732cdaa0621bd374ea16d29d3e2b69e3a56ff9ad6fa06b9b680809a",
+    "root.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91"
+  },
+  "caveats": [
+    "Single-run engineering qualification, not repeated benchmark medians.",
+    "Before run overlapped one compiler; focused tests overlapped part of sixteen-worker run.",
+    "Same-native-profile shapes/worker trials preserve all proof bytes.",
+    "Original 191-second baseline additionally differs in native query profile and fold topology.",
+    "Execution-only root; derivation, joined checkpoint and settlement remain open."
+  ],
+  "native_workers16": {
+    "production": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "produce-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native-d2-workers16/request.json",
+        "-",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native-d2-workers16/proof",
+        "0",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native-d2-workers16/resources.json"
+      ],
+      "wall_ns": 6194483208,
+      "peak_rss_bytes": 3786424320,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 41.982378,
+      "system_cpu_s": 4.393974,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "fresh_receiver": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "verify-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native-d2-workers16/request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native-d2-workers16/proof",
+        "2147483648",
+        "25769803776"
+      ],
+      "wall_ns": 1302661125,
+      "peak_rss_bytes": 2859352064,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 5.757801,
+      "system_cpu_s": 0.18673199999999998,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "three_native_proofs_byte_identical": true,
+    "corrupt_original_and_rehashed_rejected": true
+  }
+}

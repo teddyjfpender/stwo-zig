@@ -1,0 +1,1064 @@
+warning: unnecessary qualification
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:127:26
+    |
+127 |             .map_err(|_| der::Tag::Sequence.value_error())
+    |                          ^^^^^^^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:23:5
+    |
+ 23 |     unused_qualifications
+    |     ^^^^^^^^^^^^^^^^^^^^^
+help: remove the unnecessary path segments
+    |
+127 -             .map_err(|_| der::Tag::Sequence.value_error())
+127 +             .map_err(|_| Tag::Sequence.value_error())
+    |
+
+warning: unnecessary qualification
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:361:26
+    |
+361 |     header.tag.assert_eq(der::Tag::Sequence)?;
+    |                          ^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+361 -     header.tag.assert_eq(der::Tag::Sequence)?;
+361 +     header.tag.assert_eq(Tag::Sequence)?;
+    |
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:89:40
+   |
+89 |     generic_array::{typenum::Unsigned, ArrayLength, GenericArray},
+   |                                        ^^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated struct `elliptic_curve::generic_array::GenericArray`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:89:53
+   |
+89 |     generic_array::{typenum::Unsigned, ArrayLength, GenericArray},
+   |                                                     ^^^^^^^^^^^^
+
+warning: use of deprecated struct `elliptic_curve::generic_array::GenericArray`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:171:30
+    |
+171 | pub type SignatureBytes<C> = GenericArray<u8, SignatureSize<C>>;
+    |                              ^^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:206:23
+    |
+206 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:297:23
+    |
+297 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:334:23
+    |
+334 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated associated type `elliptic_curve::generic_array::ArrayLength::ArrayType`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:335:44
+    |
+335 |     <SignatureSize<C> as ArrayLength<u8>>::ArrayType: Copy,
+    |                                            ^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:342:23
+    |
+342 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:352:23
+    |
+352 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:360:23
+    |
+360 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:372:23
+    |
+372 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:388:23
+    |
+388 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:398:23
+    |
+398 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:411:23
+    |
+411 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:425:23
+    |
+425 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:494:23
+    |
+494 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:508:23
+    |
+508 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:626:23
+    |
+626 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated associated type `elliptic_curve::generic_array::ArrayLength::ArrayType`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:627:44
+    |
+627 |     <SignatureSize<C> as ArrayLength<u8>>::ArrayType: Copy,
+    |                                            ^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:645:23
+    |
+645 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:662:23
+    |
+662 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:677:23
+    |
+677 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:236:26
+    |
+236 |         der::MaxSize<C>: ArrayLength<u8>,
+    |                          ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:237:69
+    |
+237 |         <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+    |                                                                     ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:279:26
+    |
+279 |         der::MaxSize<C>: ArrayLength<u8>,
+    |                          ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:280:69
+    |
+280 |         <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+    |                                                                     ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:589:27
+    |
+589 |         SignatureSize<C>: ArrayLength<u8>,
+    |                           ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:598:27
+    |
+598 |         SignatureSize<C>: ArrayLength<u8>,
+    |                           ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:616:27
+    |
+616 |         SignatureSize<C>: ArrayLength<u8>,
+    |                           ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/recovery.rs:33:24
+   |
+33 |         generic_array::ArrayLength, ops::Invert, CurveArithmetic, PrimeCurve, Scalar,
+   |                        ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/recovery.rs:178:23
+    |
+178 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/recovery.rs:211:23
+    |
+211 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/recovery.rs:223:23
+    |
+223 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/recovery.rs:235:23
+    |
+235 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/recovery.rs:249:23
+    |
+249 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/recovery.rs:106:27
+    |
+106 |         SignatureSize<C>: ArrayLength<u8>,
+    |                           ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/recovery.rs:125:27
+    |
+125 |         SignatureSize<C>: ArrayLength<u8>,
+    |                           ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/recovery.rs:143:27
+    |
+143 |         SignatureSize<C>: ArrayLength<u8>,
+    |                           ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:14:40
+   |
+14 |     generic_array::{typenum::Unsigned, ArrayLength, GenericArray},
+   |                                        ^^^^^^^^^^^
+
+warning: use of deprecated struct `elliptic_curve::generic_array::GenericArray`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:14:53
+   |
+14 |     generic_array::{typenum::Unsigned, ArrayLength, GenericArray},
+   |                                                     ^^^^^^^^^^^^
+
+warning: use of deprecated struct `elliptic_curve::generic_array::GenericArray`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:48:26
+   |
+48 | type SignatureBytes<C> = GenericArray<u8, MaxSize<C>>;
+   |                          ^^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:63:17
+   |
+63 |     MaxSize<C>: ArrayLength<u8>,
+   |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:64:60
+   |
+64 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+   |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:80:17
+   |
+80 |     MaxSize<C>: ArrayLength<u8>,
+   |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:81:60
+   |
+81 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+   |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:160:17
+    |
+160 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:161:60
+    |
+161 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:171:17
+    |
+171 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:172:60
+    |
+172 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:186:17
+    |
+186 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:187:60
+    |
+187 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:203:17
+    |
+203 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:204:60
+    |
+204 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:224:17
+    |
+224 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:225:60
+    |
+225 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:239:17
+    |
+239 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:240:60
+    |
+240 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:248:17
+    |
+248 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:249:60
+    |
+249 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:259:17
+    |
+259 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:260:60
+    |
+260 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:272:17
+    |
+272 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:273:60
+    |
+273 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:329:17
+    |
+329 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:330:60
+    |
+330 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:344:17
+    |
+344 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:345:60
+    |
+345 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:387:17
+    |
+387 |     MaxSize<C>: ArrayLength<u8>,
+    |                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:388:60
+    |
+388 |     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+    |                                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/hazmat.rs:44:44
+   |
+44 | use crate::{elliptic_curve::generic_array::ArrayLength, Signature};
+   |                                            ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/hazmat.rs:60:23
+   |
+60 |     SignatureSize<C>: ArrayLength<u8>,
+   |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/hazmat.rs:124:23
+    |
+124 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/hazmat.rs:171:52
+    |
+171 |     <FieldBytesSize<C> as core::ops::Add>::Output: ArrayLength<u8>,
+    |                                                    ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/hazmat.rs:232:23
+    |
+232 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/hazmat.rs:277:23
+    |
+277 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:11:20
+   |
+11 |     generic_array::ArrayLength,
+   |                    ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:70:23
+   |
+70 |     SignatureSize<C>: ArrayLength<u8>,
+   |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:84:23
+   |
+84 |     SignatureSize<C>: ArrayLength<u8>,
+   |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:141:23
+    |
+141 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:156:23
+    |
+156 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:175:23
+    |
+175 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:187:23
+    |
+187 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:202:23
+    |
+202 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:224:23
+    |
+224 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:236:23
+    |
+236 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:250:23
+    |
+250 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:262:23
+    |
+262 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:263:22
+    |
+263 |     der::MaxSize<C>: ArrayLength<u8>,
+    |                      ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:264:65
+    |
+264 |     <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+    |                                                                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:276:23
+    |
+276 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:277:22
+    |
+277 |     der::MaxSize<C>: ArrayLength<u8>,
+    |                      ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:278:65
+    |
+278 |     <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+    |                                                                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:291:23
+    |
+291 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:292:22
+    |
+292 |     der::MaxSize<C>: ArrayLength<u8>,
+    |                      ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:293:65
+    |
+293 |     <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+    |                                                                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:310:23
+    |
+310 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:311:22
+    |
+311 |     der::MaxSize<C>: ArrayLength<u8>,
+    |                      ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:312:65
+    |
+312 |     <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+    |                                                                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:329:23
+    |
+329 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:330:22
+    |
+330 |     der::MaxSize<C>: ArrayLength<u8>,
+    |                      ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:331:65
+    |
+331 |     <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+    |                                                                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:351:23
+    |
+351 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:362:23
+    |
+362 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:373:23
+    |
+373 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:384:23
+    |
+384 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:396:23
+    |
+396 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:403:23
+    |
+403 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:414:23
+    |
+414 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:432:23
+    |
+432 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:443:23
+    |
+443 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:454:23
+    |
+454 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:465:23
+    |
+465 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:476:23
+    |
+476 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:489:23
+    |
+489 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:498:23
+    |
+498 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:510:23
+    |
+510 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/signing.rs:522:23
+    |
+522 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+ --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:9:20
+  |
+9 |     generic_array::ArrayLength,
+  |                    ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:150:23
+    |
+150 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:161:23
+    |
+161 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:173:23
+    |
+173 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:204:23
+    |
+204 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:205:22
+    |
+205 |     der::MaxSize<C>: ArrayLength<u8>,
+    |                      ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:206:65
+    |
+206 |     <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+    |                                                                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:219:23
+    |
+219 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:220:22
+    |
+220 |     der::MaxSize<C>: ArrayLength<u8>,
+    |                      ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:221:65
+    |
+221 |     <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+    |                                                                 ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:234:23
+    |
+234 |     SignatureSize<C>: ArrayLength<u8>,
+    |                       ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:235:22
+    |
+235 |     der::MaxSize<C>: ArrayLength<u8>,
+    |                      ^^^^^^^^^^^
+
+warning: use of deprecated trait `elliptic_curve::generic_array::ArrayLength`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/verifying.rs:236:65
+    |
+236 |     <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+    |                                                                 ^^^^^^^^^^^
+
+warning: use of deprecated method `elliptic_curve::generic_array::GenericArray::<T, N>::as_slice`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:132:21
+    |
+132 |         &self.bytes.as_slice()[..self.len()]
+    |                     ^^^^^^^^
+
+warning: use of deprecated method `elliptic_curve::generic_array::GenericArray::<T, N>::as_slice`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/der.rs:283:30
+    |
+283 |         Self::try_from(bytes.as_slice())
+    |                              ^^^^^^^^
+
+warning: use of deprecated associated function `elliptic_curve::generic_array::GenericArray::<T, N>::clone_from_slice`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:218:34
+    |
+218 |         let r = FieldBytes::<C>::clone_from_slice(r_bytes);
+    |                                  ^^^^^^^^^^^^^^^^
+
+warning: use of deprecated associated function `elliptic_curve::generic_array::GenericArray::<T, N>::clone_from_slice`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:219:34
+    |
+219 |         let s = FieldBytes::<C>::clone_from_slice(s_bytes);
+    |                                  ^^^^^^^^^^^^^^^^
+
+warning: use of deprecated associated function `elliptic_curve::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:226:51
+    |
+226 |             Self::from_bytes(SignatureBytes::<C>::from_slice(slice))
+    |                                                   ^^^^^^^^^^
+
+warning: use of deprecated method `elliptic_curve::generic_array::GenericArray::<T, N>::as_slice`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa/src/lib.rs:516:30
+    |
+516 |         Self::try_from(bytes.as_slice()).map_err(de::Error::custom)
+    |                              ^^^^^^^^
+
+warning: `ecdsa` (lib) generated 139 warnings (1 duplicate) (run `cargo fix --lib -p ecdsa` to apply 2 suggestions)
+warning: `ecdsa` (lib) generated 139 warnings (139 duplicates)
+warning: unnecessary qualification
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/field.rs:559:21
+    |
+559 |         iter.reduce(core::ops::Add::add).unwrap_or(Self::ZERO)
+    |                     ^^^^^^^^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/lib.rs:16:5
+    |
+ 16 |     unused_qualifications
+    |     ^^^^^^^^^^^^^^^^^^^^^
+help: remove the unnecessary path segments
+    |
+559 -         iter.reduce(core::ops::Add::add).unwrap_or(Self::ZERO)
+559 +         iter.reduce(Add::add).unwrap_or(Self::ZERO)
+    |
+
+warning: unnecessary qualification
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/field.rs:572:21
+    |
+572 |         iter.reduce(core::ops::Mul::mul).unwrap_or(Self::ONE)
+    |                     ^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+572 -         iter.reduce(core::ops::Mul::mul).unwrap_or(Self::ONE)
+572 +         iter.reduce(Mul::mul).unwrap_or(Self::ONE)
+    |
+
+warning: unnecessary qualification
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/scalar.rs:725:21
+    |
+725 |         iter.reduce(core::ops::Add::add).unwrap_or(Self::ZERO)
+    |                     ^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+725 -         iter.reduce(core::ops::Add::add).unwrap_or(Self::ZERO)
+725 +         iter.reduce(Add::add).unwrap_or(Self::ZERO)
+    |
+
+warning: unnecessary qualification
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/scalar.rs:737:21
+    |
+737 |         iter.reduce(core::ops::Mul::mul).unwrap_or(Self::ONE)
+    |                     ^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+737 -         iter.reduce(core::ops::Mul::mul).unwrap_or(Self::ONE)
+737 +         iter.reduce(Mul::mul).unwrap_or(Self::ONE)
+    |
+
+warning: use of deprecated struct `elliptic_curve::generic_array::GenericArray`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/lib.rs:67:20
+   |
+67 |     generic_array::GenericArray,
+   |                    ^^^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated struct `elliptic_curve::generic_array::GenericArray`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/lib.rs:120:28
+    |
+120 | pub type CompressedPoint = GenericArray<u8, U33>;
+    |                            ^^^^^^^^^^^^
+
+warning: use of deprecated struct `elliptic_curve::generic_array::GenericArray`: please upgrade to generic-array 1.x
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/lib.rs:141:22
+    |
+141 | pub type WideBytes = GenericArray<u8, U64>;
+    |                      ^^^^^^^^^^^^
+
+warning: the `must_use` attribute cannot be used on trait methods in impl blocks
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/field.rs:343:7
+    |
+343 |     #[must_use]
+    |       ^^^^^^^^
+    |
+    = help: the `must_use` attribute can be applied to data types, foreign functions, functions, inherent methods, provided trait methods, required trait methods, and traits
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: `#[warn(unused_attributes)]` (part of `#[warn(unused)]`) on by default
+
+warning: the `must_use` attribute cannot be used on trait methods in impl blocks
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/field.rs:348:7
+    |
+348 |     #[must_use]
+    |       ^^^^^^^^
+    |
+    = help: the `must_use` attribute can be applied to data types, foreign functions, functions, inherent methods, provided trait methods, required trait methods, and traits
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+
+warning: the `must_use` attribute cannot be used on trait methods in impl blocks
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/projective.rs:450:7
+    |
+450 |     #[must_use]
+    |       ^^^^^^^^
+    |
+    = help: the `must_use` attribute can be applied to data types, foreign functions, functions, inherent methods, provided trait methods, required trait methods, and traits
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+
+warning: the `must_use` attribute cannot be used on trait methods in impl blocks
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/scalar.rs:240:7
+    |
+240 |     #[must_use]
+    |       ^^^^^^^^
+    |
+    = help: the `must_use` attribute can be applied to data types, foreign functions, functions, inherent methods, provided trait methods, required trait methods, and traits
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+
+warning: the `must_use` attribute cannot be used on trait methods in impl blocks
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/scalar.rs:245:7
+    |
+245 |     #[must_use]
+    |       ^^^^^^^^
+    |
+    = help: the `must_use` attribute can be applied to data types, foreign functions, functions, inherent methods, provided trait methods, required trait methods, and traits
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+
+warning: variable `A` should have a snake case name
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/scalar.rs:446:17
+    |
+446 |         let mut A = Self::ONE;
+    |                 ^ help: convert the identifier to snake case: `a`
+    |
+    = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: variable `C` should have a snake case name
+   --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/scalar.rs:447:17
+    |
+447 |         let mut C = Self::ZERO;
+    |                 ^ help: convert the identifier to snake case (notice the capitalization): `c`
+
+warning: `k256` (lib) generated 14 warnings (run `cargo fix --lib -p k256` to apply 9 suggestions)
+warning: `k256` (lib) generated 14 warnings (14 duplicates)
+warning: use of deprecated method `digest::generic_array::GenericArray::<T, N>::as_slice`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64/src/lib.rs:74:45
+   |
+74 |             compress(&mut self.state, block.as_slice());
+   |                                             ^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated method `digest::generic_array::GenericArray::<T, N>::as_slice`: please upgrade to generic-array 1.x
+  --> /workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64/src/lib.rs:84:79
+   |
+84 |         buffer.len64_padding_be(bits, |block| compress(&mut self.state, block.as_slice()));
+   |                                                                               ^^^^^^^^
+
+warning: `sha2` (lib) generated 2 warnings
+   Compiling spin v0.9.9
+   Compiling lazy_static v1.5.1
+   Compiling kona-registry v0.4.5 (https://github.com/ethereum-optimism/optimism?rev=a271fd6b3feb76e49f3453e5a27be4b33a3c7211#a271fd6b)
+   Compiling stwo-kona-execution v0.1.0 (/workspace/stwo-opstack/opstack/kona)
+warning: `sha2` (lib) generated 2 warnings (2 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.84s
+     Running unittests src/lib.rs (opstack/kona/target/debug/deps/stwo_kona_execution-53504465f7c5ea8c)
+
+running 9 tests
+test precompiles::tests::bn254_rejects_bad_points_even_with_zero_scalar_or_infinity_peer ... ok
+test precompiles::tests::sha_provider_matches_software_at_padding_boundaries ... ok
+test precompiles::bn254::glv::tests::reciprocal_division_and_signed_split_match_full_width_arithmetic ... ok
+test metadata::stream_tests::borrowed_stream_has_identical_legacy_bytes_and_digest_for_every_byte_tail ... ok
+test precompiles::tests::modular_exponentiation_matches_reference_including_even_and_zero_moduli ... ok
+test precompiles::tests::bn254_window_and_exceptional_cases_match_arkworks ... ok
+test precompiles::pairing::tests::invalid_points_are_not_hidden_by_infinity_or_admitted_into_cache ... ok
+test metadata::stream_tests::canonical_comparison_rejects_long_varint_and_every_truncation ... ok
+test precompiles::pairing::tests::cached_pairings_match_reference_for_true_false_infinity_and_eviction ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.81s
+
+     Running unittests src/bin/host.rs (opstack/kona/target/debug/deps/stwo_kona_host-5ec945f6bab80cc5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/metadata.rs (opstack/kona/target/debug/deps/metadata-7712c1e06547d962)
+
+running 4 tests
+test public_output_has_a_distinct_op_schema_and_full_width_chain_id ... ok
+test malformed_metadata_rejects ... ok
+test binding_excludes_claimed_outputs_but_includes_all_payload_inputs ... ok
+test every_payload_field_survives_binary_roundtrip ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sponge.rs (opstack/kona/target/debug/deps/sponge-bad204e96d3a5b9e)
+
+running 2 tests
+test empty_null_input_and_overlapping_output ... ok
+test sponge_boundaries_alignments_and_long_chunking ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.09s
+
+     Running tests/witness.rs (opstack/kona/target/debug/deps/witness-df8871e4c606f428)
+
+running 8 tests
+test bad_version_reserved_count_and_lengths_reject ... ok
+test canonical_offsets_and_trailing_bytes_are_enforced ... ok
+test borrowed_bytes_and_once_only_validation ... ok
+test eager_and_lazy_agree_on_used_bytes ... ok
+test corrupted_preimage_is_never_admitted_or_memoized ... ok
+test every_truncation_rejects ... ok
+test duplicate_and_unsorted_keys_reject ... ok
+test missing_key_fails_and_empty_preimage_is_authenticated ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests stwo_kona_execution
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

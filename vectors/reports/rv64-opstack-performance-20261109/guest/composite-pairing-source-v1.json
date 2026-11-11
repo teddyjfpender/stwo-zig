@@ -1,0 +1,58 @@
+{
+  "status": "qualified source-only complete finite four-pair positive DAG; physical admission closed",
+  "production_admitted": false,
+  "security_qualified": false,
+  "source_commit": "712787aaf plus explicit-kind/derived-count followup",
+  "scope": "all4finiteG1/G2 inputs canonical; infinity unsupported; noVM/physical/recursive pairing claim",
+  "shared_authority": {
+    "public_fields": 24,
+    "literal_fields": 30,
+    "initial_fields": 54,
+    "global_values": 33488,
+    "Q": "SG/prep both alias groupg initial6g+2..5",
+    "z": "residue.initial[0..12] aliases actual sharedMiller.output; no independentlydeclaredz",
+    "c_high": "all6 alias shared source literalZERO"
+  },
+  "counts": {
+    "miller_arithmetic": 14536,
+    "subgroup_arithmetic": 16152,
+    "residue_arithmetic": 1308,
+    "total_arithmetic": 31996,
+    "subgroup_canonical_hints": 1408,
+    "residue_canonical_hints": 30,
+    "total_hints": 1438,
+    "total_writers": 33434,
+    "assertions": 1460,
+    "assertion_value_one": 2,
+    "assertion_value_zero": 1458,
+    "quadratic_terms": 108549,
+    "linear_terms": 9300,
+    "max_expression_terms": 22,
+    "prelowering_polynomial_factor_read_mass": 227858,
+    "max_fanout": 1536
+  },
+  "passed": [
+    "16ReleaseSafe tests",
+    "real independent-oracle4pair certificate finalONE withsameQandactualMillerz",
+    "coherentswappedvalidSGQ keepsfinalONE butfails originalsource",
+    "fake standalonezONE residue reachesONE butfails sharedMiller sourcebinding",
+    "coherentprivateinversehint+p keepsfinalONE butfailscanonicalwriter",
+    "publicP/Qmodulusaliasesandinfinitiesrefuse",
+    "all1460assertionIDsunique, both12coordinateONEendpointscomplete",
+    "sourceexpressions/hintmetadata/topologicalIDsandpublicstatementpinned"
+  ],
+  "command": "zig test -O ReleaseSafe --dep stwo_core -Mroot=src/frontends/riscv/rv64_bn254_pairing_test_root.zig -O ReleaseSafe -Mstwo_core=src/core/mod.zig",
+  "performance_claim": "none; source counts are not a physical prove-time/cell estimate",
+  "remaining": [
+    "reviewed K4/6/8/12 normalization and exact physical counts",
+    "canonicalMAC/hint writer + BYTE + typedlocalSSA proof",
+    "source-mass/transcript/security inventory",
+    "VMinput/Wire owner authority and complete recursive acceptance"
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/mod.zig": "9d0e6cd5ea97fc3202da223fe81e30fbe9c63a2fa2edb85a8b362ec427ae2088",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/spec.zig": "2f54b86723e6b3d392fd3b8207d599040da4bab00fe12b24cf1eadd02ab61089",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/tests.zig": "9c4eef337266d316b923d4e04efd6ad95406ab5589312a4a7b5d8154eb049369",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/witness.zig": "c2a61dab93f1c57c29854e67b56f18d03c4794a05fd07ab0b1a9330c5ae938a3"
+  }
+}

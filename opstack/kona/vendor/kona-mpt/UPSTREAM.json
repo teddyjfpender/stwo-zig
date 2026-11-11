@@ -1,0 +1,32 @@
+{
+  "repository": "https://github.com/ethereum-optimism/optimism",
+  "commit": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+  "upstream_files": {
+    "Cargo.toml": "e788ed94bcea7ed5433d2bb0db5c8874f524b7b123cad6a4550a575ea613c7a7",
+    "README.md": "d7b421d417920e7d6cc46e39be7c9db10d0f4182fda266d1f10a92ffd99c4e78",
+    "src/errors.rs": "af4155753c900f43503e20626f731a25a609ba39a34d9b5ca5c2201525b6640c",
+    "src/lib.rs": "c5d442d4e51e2cb59e93da13580f5c51db98064c18acf5b448928742ebb93e0a",
+    "src/list_walker.rs": "77b3477164970e4bd60af4b91722706435e9dc95213807757610466fc3039b83",
+    "src/node.rs": "2682c8c98f22d5b38aa1001e779e8883aeacef60201384eae721302f036cb148",
+    "src/noop.rs": "245dfab069a2b6d6dbfeeab7efccf52b2860874def3506d7dad1317f57493e3f",
+    "src/test_util.rs": "b2d9dffbb9dc7cdd5c1ed5a3bba519c8b4f39fb81026d3ae53fb807282c00cb7",
+    "src/traits.rs": "0067d51c86d5eeeead6c5027c0446b6cf72f1e2943bd683ff4e66e94aae7efbd",
+    "src/util.rs": "fdcff36b539e4cc11ff99b201acf1a30a388b9f2f254cb1769a405f767705969"
+  },
+  "changes": "standalone manifest; capped reference length; bounded single-pass branch/extension reference encoding for hashing; independent differential tests; original RPC tests retained and excluded explicitly from offline gate; bounded branch decode with one allocation, borrowed compact paths, packed nibble construction",
+  "modified_files": [
+    "Cargo.toml",
+    "src/node.rs",
+    "src/util.rs"
+  ],
+  "added_files": [
+    "Cargo.lock",
+    "UPSTREAM.json",
+    "LICENSE.md",
+    "src/bounded_length_tests.rs",
+    "src/node_decode.rs",
+    "src/node_decode_tests.rs",
+    "src/node_mutation_tests.rs",
+    "src/node_mutation.rs"
+  ]
+}

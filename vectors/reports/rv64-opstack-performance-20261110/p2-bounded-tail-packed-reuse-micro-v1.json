@@ -1,0 +1,91 @@
+{
+  "schema": "op-p2-bounded-tail-packed-reuse-micro-v1",
+  "scope": "bounded scalar/packed/reused lifted Merkle microprobe; not full-native/heavy proof or quiet speed claim",
+  "optimize": "ReleaseSafe",
+  "workers": 1,
+  "columns": 66,
+  "height_logs": [
+    10,
+    12,
+    16
+  ],
+  "height_column_counts": [
+    31,
+    19,
+    16
+  ],
+  "prefix_state_budget_bytes": 208,
+  "unchanged_heap_cap_production": 100663296,
+  "results": [
+    {
+      "mode": 0,
+      "elapsed_ns": 489129250,
+      "stats": {
+        "final_log_size": 16,
+        "prefix_log_size": 1,
+        "prefix_column_count": 0,
+        "tail_column_count": 66,
+        "prefix_state_count": 2,
+        "prefix_state_bytes": 208,
+        "leaf_layer_bytes": 2359296,
+        "leaf_phase_peak_bytes": 2359504,
+        "tail_cache_bytes": 0,
+        "tail_absorptions": 4325376,
+        "repeated_tail_absorptions": 3167232
+      },
+      "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a"
+    },
+    {
+      "mode": 1,
+      "elapsed_ns": 165210167,
+      "stats": {
+        "final_log_size": 16,
+        "prefix_log_size": 1,
+        "prefix_column_count": 0,
+        "tail_column_count": 66,
+        "prefix_state_count": 2,
+        "prefix_state_bytes": 208,
+        "leaf_layer_bytes": 2359296,
+        "leaf_phase_peak_bytes": 2359504,
+        "tail_cache_bytes": 3632,
+        "tail_absorptions": 4325376,
+        "repeated_tail_absorptions": 3167232
+      },
+      "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a"
+    },
+    {
+      "mode": 2,
+      "elapsed_ns": 93853459,
+      "stats": {
+        "final_log_size": 16,
+        "prefix_log_size": 1,
+        "prefix_column_count": 0,
+        "tail_column_count": 66,
+        "prefix_state_count": 2,
+        "prefix_state_bytes": 208,
+        "leaf_layer_bytes": 2359296,
+        "leaf_phase_peak_bytes": 2359504,
+        "tail_cache_bytes": 19760,
+        "tail_absorptions": 1158144,
+        "repeated_tail_absorptions": 0
+      },
+      "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a"
+    }
+  ],
+  "scalar_to_packed_ratio": 2.960648602213446,
+  "scalar_to_packed_reused_ratio": 5.211627309335504,
+  "gates": [
+    "all tree layers equal independent scalar oracle",
+    "equal and3height mixed",
+    "1 and3worker pools",
+    "seed-only partial and full prefix budgets",
+    "instrumented native4 update/finalize dispatch",
+    "exactv2 scheme defaultreuse",
+    "checked too-small prefix rejection",
+    "4MiB shared heap budget finalzero"
+  ],
+  "full_native_proof_byte_parity": "pending parent integration qualification",
+  "log_sha256": "4c0e10c84d71dcbba5d0e589b8237dfbbebd4e0e81ad3ac586f4f25d7b736a06",
+  "crypto_changed": false,
+  "protected_r5_changed": false
+}

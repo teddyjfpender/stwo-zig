@@ -1,0 +1,137 @@
+{
+  "schema": "op-standard-rpc-adapter-v1",
+  "date": "2026-11-09",
+  "status": "two-debug-methods-replaced-authenticated",
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false,
+  "host_executed": false,
+  "guest_executed": false,
+  "upstream_revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+  "actual_l1_anchor": {
+    "number": 26367973,
+    "hash": "0xd734e17668a3fe8ac3598bdd2e63a62f97a65ed5c3acb2c7e7fa874ed60ca96e",
+    "receipts": 185,
+    "receipt_types": [
+      "0x0",
+      "0x2",
+      "0x3",
+      "0x4"
+    ],
+    "receipts_root": "0x960a12c952b870f1ca77645796d7e6c483b4581e4ba2c1bc167086cda7a19f7c",
+    "header_hash_verified": true,
+    "entire_receipt_trie_verified": true
+  },
+  "loopback_l1": {
+    "endpoint": "http://127.0.0.1:19347",
+    "layer": "l1",
+    "capabilities": [
+      {
+        "capability": "raw_header",
+        "status": "returned"
+      },
+      {
+        "capability": "raw_receipts",
+        "status": "returned"
+      }
+    ],
+    "host_executed": false,
+    "payload_executed": false,
+    "complete_witness": false
+  },
+  "loopback_l2": {
+    "endpoint": "http://127.0.0.1:19348",
+    "layer": "l2",
+    "capabilities": [
+      {
+        "capability": "raw_header",
+        "status": "returned"
+      },
+      {
+        "capability": "state_by_hash",
+        "status": "method_unavailable",
+        "http_status": null,
+        "rpc_code": -32601
+      },
+      {
+        "capability": "payload_method_exposure_only",
+        "status": "method_unavailable",
+        "http_status": null,
+        "rpc_code": -32601
+      }
+    ],
+    "host_executed": false,
+    "payload_executed": false,
+    "complete_witness": false
+  },
+  "bounds": {
+    "loopback_only": true,
+    "server_seconds_max": 180,
+    "server_requests_max": 10000,
+    "request_bytes_max": 1048576,
+    "upstream_response_bytes_max": 16777216,
+    "header_cache_bytes_max": 8388608,
+    "header_cache_entries_max": 128,
+    "retained_record_bytes_max": 67108864,
+    "retained_record_count_max": 131072,
+    "receipt_count_max": 16384
+  },
+  "validation": {
+    "combined_focused_tests": 24,
+    "passed": 24,
+    "independent_ethereum_trie_vectors": 5,
+    "real_receipt_fixture": true,
+    "coherent_mutations": [
+      "status",
+      "order",
+      "missing",
+      "block"
+    ],
+    "other_negatives": [
+      "duplicate trie keys",
+      "unsupported types",
+      "deposit tail gaps",
+      "forged hashes",
+      "record budget failure atomicity",
+      "unknown code/state/witness refusals"
+    ]
+  },
+  "independent_vector_source": "https://raw.githubusercontent.com/ethereum/tests/c67e485ff8b5be9abc8ad15345ec21aa22e290d9/TrieTests/trietest.json",
+  "remaining": {
+    "host_prefetch": "Correction: high-level failure is retried before each miss, then fine-grained fallback DOES run. Explicit host-only disable avoids failed prefetch network traffic; no empty witness.",
+    "state_and_code": "address/slot proof cache plus code-hash/address provenance needed; unknown siblings refuse",
+    "blobs": "standard KZG verification and complete consumed sidecars still required",
+    "historical_archive": "historical state proof window remains unavailable; new recent candidate separately pinned"
+  },
+  "artifact_root": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery",
+  "artifacts": {
+    "l1-receipt-adapter/records.json": {
+      "bytes": 920663,
+      "sha256": "bd77903f5fa402d2516f841dac874921324fcdf043517ac9e08386cc8358d3c1"
+    },
+    "l1-receipt-adapter/capture.json": {
+      "bytes": 164,
+      "sha256": "cc6775639266d2c9d437af56fe13843297326f095c7a5595f98f44e3d2ccf01b"
+    },
+    "l1-loopback-adapter/records.json": {
+      "bytes": 920663,
+      "sha256": "bd77903f5fa402d2516f841dac874921324fcdf043517ac9e08386cc8358d3c1"
+    },
+    "l1-loopback-adapter/capture.json": {
+      "bytes": 164,
+      "sha256": "cc6775639266d2c9d437af56fe13843297326f095c7a5595f98f44e3d2ccf01b"
+    },
+    "l2-loopback-adapter/capture.json": {
+      "bytes": 159,
+      "sha256": "1fba2e7ed1efa745d27ada35afc23933dc8910764a82ccd59d6f2c23827d900b"
+    },
+    "loopback-preflight-l1.json": {
+      "bytes": 318,
+      "sha256": "6082fda6eacf971a3036b5b58ff925008e57001f89d827a911381645550fa67b"
+    },
+    "loopback-preflight-l2.json": {
+      "bytes": 537,
+      "sha256": "f7483bdba9c9e98e1159826be745418d3e0e248f8726f14a2e466b69a28fc173"
+    }
+  }
+}

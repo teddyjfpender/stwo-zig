@@ -1,0 +1,43 @@
+{
+  "schema": "op-native-receiver-hook-gate/v1",
+  "status": "physical-real-bundle-qualified",
+  "block": 120794432,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "execution_profile": "ethereum_services_op_v1",
+  "bundle": "pure-p2-native-small-compact-fast/native-op.bin",
+  "fragments": {
+    "cpu": 1,
+    "catalog_truth": 2,
+    "miller": 0
+  },
+  "positive_controls": [
+    "same bytes accepted with default-null hooks",
+    "same bytes accepted with typed callbacks",
+    "exact worker ordinal and count",
+    "four native commitments and exact independently keyed FIXED and stage-one MAIN roots",
+    "source-derived statements",
+    "nonempty verified OODS capture",
+    "completion after native global closure and independently pinned terminal output",
+    "copied statement/root/output values survive callback custody"
+  ],
+  "negative_controls": [
+    "first CPU callback abort cleans every allocation and never completes",
+    "corrupt last physical proof rejects after earlier successful callbacks and never completes",
+    "fault injected into borrowed HALT cell after CPU verification rejects with EthereumHaltNotSet after all three fragment callbacks and never completes"
+  ],
+  "memory": "SharedHostBudget.live_bytes is zero after every positive and negative reception; std.testing allocator reports no leaks",
+  "fault_scope": "Terminal mutation is explicit test-only host-view fault injection; callbacks are trusted receiver code and may not mutate or retain borrowed authority in production",
+  "validation": "STWO_OP_NATIVE_HOOK_REQUEST=.../pure-p2-native-small.config.json STWO_OP_NATIVE_HOOK_BUNDLE=.../pure-p2-native-small-compact-fast zig build test-riscv64-op-native-join -Doptimize=ReleaseFast -j1 -Driscv-test-filter='OP real native receiver capture hooks'",
+  "normal_ci": "Real-artifact gate skips when the two explicit environment paths are absent",
+  "performance_claim": false,
+  "recursive_root_qualified": false,
+  "source_only_gate": {
+    "native_op_bin_deleted": true,
+    "source_callback_reached": true,
+    "fragment_callbacks": 0,
+    "completion_callback": false,
+    "source_keys_and_expected_context_checked": true,
+    "declared_live_limit_smaller_than_allocator_refused": true,
+    "requested_live_after_each": 0
+  }
+}

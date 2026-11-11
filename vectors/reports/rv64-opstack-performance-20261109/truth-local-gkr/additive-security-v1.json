@@ -1,0 +1,20 @@
+{
+  "accounting_profile": "op-truth-local-gkr-additive-source-bounds/v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "source": "actual compact Keccak declaration:338calls first1 logs13,0",
+  "scope_count": 1,
+  "instances": 3,
+  "max_variables": 24,
+  "max_positive_mass_per_scope": 15728640,
+  "sumcheck_rounds": 276,
+  "sumcheck_degree_weight": 2484,
+  "instance_mix_degree_weight": 120,
+  "late_binding_degree_weight": 3,
+  "degenerate_point_degree_weight": 72,
+  "retired_interaction_cells": 41877504,
+  "old_lookup_global_MAIN_bounds_retained": true,
+  "independent_local_scope_characteristic_masses": true,
+  "covers_CPU_GKR_PCS_FRI_hash_FS_recursion": false,
+  "applicability_assumptions": "Same original tuple/multiplicity authority; standard GKR sumcheck/mixing reduction; documented Eq-to-circle binding and native PCS; documented OM31/Poseidon2/ROM assumptions. No certified bound claimed."
+}

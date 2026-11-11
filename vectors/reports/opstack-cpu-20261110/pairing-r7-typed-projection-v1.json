@@ -1,0 +1,20 @@
+{
+  "schema": "op-pairing-r7-typed-expression-conformance-v1",
+  "qualification": "closed-native-expression-conformance-only",
+  "release_safe_tests_passed": 5,
+  "trusted_instances": 6,
+  "full_om31_mask_cases": 18,
+  "explicit_fraction_comparisons": 1833,
+  "external_parameter_mutation_cases": 42,
+  "packed_base_scalar_lane_comparisons": 96,
+  "unchanged_references": ["C.byteFraction", "C.ssaFraction", "P.evaluate"],
+  "target_normalization_owned_by_caller": true,
+  "eq_point_owned_by_caller": true,
+  "real_circuit_verified_parameter_provenance": false,
+  "native_proof_produced": false,
+  "r7_proof_produced": false,
+  "recursive_source_cost_measured": false,
+  "production_admitted": false,
+  "heavy_execution_or_proof_run": false,
+  "reproduce": "scripts/rv64_pairing_r7_projection_test.sh --test-filter 'MAC12 typed R7'"
+}

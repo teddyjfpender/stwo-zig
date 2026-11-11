@@ -1,0 +1,114 @@
+{
+  "schema": "op-native-source-owned-setup-cache/v1",
+  "status": "qualified-actual-small-two-request-byte-parity-and-adversarial-reception",
+  "production_admitted": false,
+  "security": "128-bit security target under documented assumptions; no security-construction change",
+  "source_authority": "independent bootstrap from pinned executable authority; no producer-supplied roots or deserialized keys",
+  "cache_limits": {
+    "heap_bytes": 4294967296,
+    "disk_bytes": 17179869184,
+    "mapped_bytes": 1073741824,
+    "entries": 64,
+    "metadata_bytes": 268435456
+  },
+  "request_limits": {
+    "common_live_bytes": 34359738368,
+    "combined_disk_bytes": 206158430208,
+    "combined_mapped_bytes": 12884901888,
+    "request_main_disk_after_reserved_cache_cap": 188978561024,
+    "request_main_mapped_after_reserved_cache_cap": 11811160064,
+    "concurrent_cached_requests": 1
+  },
+  "block": 120794432,
+  "instructions": 796406,
+  "native_bytes": 7048980,
+  "native_sha256": "ceb1bb7f64e1224b4db02007a4df4a11e902408fb540caa7ae31b2d6680581fd",
+  "both_proofs_identical_to_uncached_control": true,
+  "fresh_independent_uncached_receiver_accepted": true,
+  "cold_request": {
+    "setup_and_admission_seconds": 3.001059292,
+    "native_prove_seconds": 14.126062416,
+    "capture_seconds": 0.089216625,
+    "observed_call_seconds": 17.892718375
+  },
+  "warm_request": {
+    "setup_and_admission_seconds": 0.025041292,
+    "native_prove_seconds": 14.651155375,
+    "capture_seconds": 0.101787375,
+    "observed_call_seconds": 15.473331334
+  },
+  "setup_stage_ratio": 119.84442703675194,
+  "retained_cache_after_two_produces": {
+    "entries": 1,
+    "misses": 1,
+    "hits": 1,
+    "parked_bytes": 181469184,
+    "heap_bytes": 53032162,
+    "mapped_bytes": 0,
+    "active_request_leases": 0
+  },
+  "teardown": {
+    "common_budget_live_bytes": 0,
+    "common_budget_external_bytes": 0,
+    "asserted_in_actual_test": true
+  },
+  "qualification": [
+    "ReleaseSafe source ownership and source/profile/geometry misses with entry cap; cache-handle and image destruction while a lease survives",
+    "one active request and reserved aggregate disk/map quota refusal",
+    "two complete real native proves through one independently bootstrapped source cache",
+    "exact native bundle bytes match uncached control for both requests",
+    "fresh independent no-cache receiver accepts",
+    "a changed per-request final-register statement is rejected on a cache hit; request leases/maps clean after rejection",
+    "separate empty receiver-owned cache independently bootstrap-verifies retained proof, then hit-verifies; no producer cache/root/key imported; replay rejected and final live0"
+  ],
+  "timing_caveat": "Other correctness work was active. Stage timing distinguishes removed bootstrap work, but native/whole-run times are not controlled speedup measurements. Cache-aware additive timing labels were semantic-checked after the physical pair binary was built; explicit Cache.snapshot supplies the measured class/bytes counts.",
+  "heavy_cache_qualified": false,
+  "heavy_caveat": "The previous all-class source preparation421.689s is a cold result. No new heavy bootstrap or full-heavy proof was run for this cache slice.",
+  "artifacts": {
+    "pair_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small-setup-cache-pair",
+    "pair_log": "/private/tmp/op-setup-cache-real-pair.log",
+    "foundation_log": "/private/tmp/op-setup-cache-foundation.log",
+    "independent_receiver_log": "/private/tmp/op-setup-cache-fresh-receiver.log"
+  },
+  "checks": [
+    "zig build check-rv64-op-native -Doptimize=ReleaseFast -j1",
+    "ReleaseSafe filtered foundation fixture",
+    "ReleaseFast filtered actual two-request cache fixture",
+    "ReleaseFast filtered separate independent receiver-owned cache fixture"
+  ],
+  "independent_receiver_owned_cache": {
+    "imports_producer_cache": false,
+    "bootstrap_misses": 1,
+    "warm_hits": 1,
+    "entries": 1,
+    "cold_call_seconds": 4.957651625,
+    "warm_call_seconds": 1.98570525,
+    "cold_setup_and_decode_seconds": 3.075243459,
+    "warm_setup_and_decode_seconds": 0.129959459,
+    "cold_physical_verify_seconds": 1.359291375,
+    "warm_physical_verify_seconds": 1.355884333,
+    "statement_replay_rejected_on_hit": true,
+    "post_teardown_common_heap_bytes": 0
+  },
+  "owned_view_lifetime_hardening": {
+    "review_finding": "Store file owners alone retained a pointer to the cache-owned State; independently owned PCS views must also retain that State",
+    "fix": "atomic State retain/release callbacks on successfully published shape/mapped views only; release after all view teardown outside Store mutex; templates have no State back-reference",
+    "guard": "new request admission fails busy while owned views survive even after request token is returned",
+    "qualification": "ReleaseSafe focused owned-view lifetime fixture passes both mapped-last and shape-last teardown orders",
+    "released_before_views": [
+      "source authority",
+      "EntryLease",
+      "RequestLease",
+      "Cache handle"
+    ],
+    "mapped_coefficients_and_roots_remain_valid": true,
+    "final_common_heap_bytes": 0,
+    "final_common_external_bytes": 0,
+    "heap_caps_unchanged": true,
+    "disk_caps_unchanged": true,
+    "mapping_caps_unchanged": true,
+    "store_dependency": "0ca004c38",
+    "raw_log": "/private/tmp/op-setup-cache-owned-views.log",
+    "note": "Storage lifetime hardening only; prior actual-small proof-byte measurements remain the qualification baseline; no new prover speed claim"
+  }
+}

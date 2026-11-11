@@ -61,6 +61,7 @@ pub fn main() !void {
     const count = try std.fmt.parseUnsigned(u32, args[3], 10);
     const direct_capture = std.mem.eql(u8, args[2], "-");
     const capture_options = resources.value.capture_options;
+    if (capture_options.spill != null) return error.CaptureSpillRequiresNativeDirectCandidate;
     if (!direct_capture and capture_options.execution_workers != 0) return error.ExecutionWorkersRequireDirectCapture;
     var timer = try std.time.Timer.start();
     var direct_stats: DirectCapture.Stats = .{};

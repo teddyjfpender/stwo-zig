@@ -1,0 +1,41 @@
+{
+  "scope": "actualCPU_source_AIR_OODS_masks_terminal_PCS_GKR_FS_publicframe",
+  "raw": [
+    20456,
+    2117856,
+    1774,
+    34266,
+    65536
+  ],
+  "cells": {
+    "rows": [
+      32768,
+      4194304,
+      2048,
+      65536,
+      65536
+    ],
+    "main_cells": 81731584,
+    "fixed_cells": 38475776,
+    "interaction_cells": 80527360,
+    "total_trace_cells": 200734720,
+    "poseidon_hybrid": false,
+    "production_qualified": false
+  },
+  "permutations": 34266,
+  "variables": 2942014,
+  "public_words": 444,
+  "native_assignment_exact": true,
+  "production_admission_open": false,
+  "recursive_execution_acceptance": false,
+  "schema": "stwo.opstack.pure-p2-actual-cpu-circuit.v1",
+  "qualification": [
+    "actualCPU native proofs/freshsourcephysicalreceiver",
+    "actualnativeassignment+publicframe numerical circuit parity",
+    "MAIN OODS/terminal/ninthpubliclimb circuit mutation rejection",
+    "noBLAKE/XOR gates",
+    "ReleaseFast and ReleaseSafe (mutations in ReleaseSafe)"
+  ],
+  "scope_limit": "twoCPU shards/five retirements; no physical outer proof, heavyblock or recursive root yet",
+  "security_qualified": false
+}

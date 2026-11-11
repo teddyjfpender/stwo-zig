@@ -121,7 +121,65 @@ pub const Component = struct {
         const inv = try Core.constraints.cosetVanishing(O, Canonic.new(log).coset(), point.repeatedDouble(max_log - log)).inv();
         for (try self.roots(&main, &fixed, &current, O.fromPartialEvals(previous))) |root| acc.accumulate(root.mul(inv));
     }
+    /// Commitment blowup and quotient degree are independent. Canonical
+    /// circle domains at 2n and 4n are disjoint: a larger committed LDE must
+    /// be re-evaluated from its authenticated coefficients, never indexed as
+    /// if it belonged to the smaller quotient domain.
+    const QuotientColumns = struct {
+        allocator: std.mem.Allocator,
+        columns: []Engine.air.component_trace.Poly,
+        owned: []bool,
+        fn init(a: std.mem.Allocator, trace: *const PC.Trace, log: u32) !@This() {
+            const count = L.FIXED_COLUMNS + L.MAIN_COLUMNS + L.CLASSIC_INTERACTION_COLUMNS;
+            const columns = try a.alloc(Engine.air.component_trace.Poly, count);
+            errdefer a.free(columns);
+            const owned = try a.alloc(bool, count);
+            errdefer a.free(owned);
+            @memset(owned, false);
+            var made: usize = 0;
+            errdefer for (columns[0..made], owned[0..made]) |column, take| if (take) {
+                a.free(@constCast(column.values));
+            };
+            const domain = Canonic.new(log).circleDomain();
+            for ([_]usize{ L.FIXED_COLUMNS, L.MAIN_COLUMNS, L.CLASSIC_INTERACTION_COLUMNS }, 0..) |width, tree| {
+                const start = switch (tree) {
+                    0 => A.FIXED_START[3],
+                    1 => A.MAIN_START[3],
+                    2 => A.INTER_START[3],
+                    else => unreachable,
+                };
+                if (tree >= trace.polys.items.len or start + width > trace.polys.items[tree].len) return error.InvalidPoseidonTraceShape;
+                for (trace.polys.items[tree][start..][0..width]) |source| {
+                    try source.validate();
+                    if (source.device != null) return error.DeviceColumnRequiresBackend;
+                    if (source.log_size == log and source.values.len != 0) {
+                        columns[made] = source;
+                    } else {
+                        const coefficients = source.coefficients orelse return error.PoseidonQuotientRequiresCoefficients;
+                        if (coefficients.logSize() > log) return error.InvalidPoseidonQuotientDegree;
+                        const evaluation = try coefficients.evaluate(a, domain);
+                        columns[made] = .{ .log_size = log, .values = evaluation.values };
+                        owned[made] = true;
+                    }
+                    made += 1;
+                }
+            }
+            return .{ .allocator = a, .columns = columns, .owned = owned };
+        }
+        fn deinit(self: *@This()) void {
+            for (self.columns, self.owned) |column, take| if (take) {
+                self.allocator.free(@constCast(column.values));
+            };
+            self.allocator.free(self.columns);
+            self.allocator.free(self.owned);
+            self.* = undefined;
+        }
+    };
     pub fn evaluateConstraintQuotientsOnDomain(self: *const @This(), trace: *const PC.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
+        if (try @import("op_profile.zig").scalarDomainControl()) return self.evaluateScalarDomain(trace, acc);
+        return self.evaluatePackedDomain(trace, acc);
+    }
+    fn evaluateScalarDomain(self: *const @This(), trace: *const PC.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
         const a = acc.allocator;
         const log = self.key.logs[3];
         const eval_log = log + 1;
@@ -129,17 +187,22 @@ pub const Component = struct {
         defer a.free(slots);
         const output = &slots[0];
         const domain = Canonic.new(eval_log).circleDomain();
+        var prepared = try QuotientColumns.init(a, trace, eval_log);
+        defer prepared.deinit();
+        const fixed_columns = prepared.columns[0..L.FIXED_COLUMNS];
+        const main_columns = prepared.columns[L.FIXED_COLUMNS..][0..L.MAIN_COLUMNS];
+        const inter_columns = prepared.columns[L.FIXED_COLUMNS + L.MAIN_COLUMNS ..];
         for (0..domain.size()) |r| {
             var fixed: [L.FIXED_COLUMNS]O = undefined;
             var main: [L.MAIN_COLUMNS]O = undefined;
             var current: [24]O = undefined;
             var previous: [8]O = undefined;
-            for (&fixed, trace.polys.items[0][A.FIXED_START[3]..][0..L.FIXED_COLUMNS]) |*v, poly| v.* = O.fromBase(try poly.valueAtLiftingPosition(eval_log, r));
-            for (&main, trace.polys.items[1][A.MAIN_START[3]..][0..L.MAIN_COLUMNS]) |*v, poly| v.* = O.fromBase(try poly.valueAtLiftingPosition(eval_log, r));
+            for (&fixed, fixed_columns) |*v, poly| v.* = O.fromBase(try poly.valueAtLiftingPosition(eval_log, r));
+            for (&main, main_columns) |*v, poly| v.* = O.fromBase(try poly.valueAtLiftingPosition(eval_log, r));
             for (&current, 0..) |*value, i| {
                 var coords: [8]M = undefined;
                 for (&coords, 0..) |*coord, j| {
-                    const poly = trace.polys.items[2][A.INTER_START[3] + 8 * i + j];
+                    const poly = inter_columns[8 * i + j];
                     coord.* = try poly.valueAtLiftingPosition(eval_log, r);
                     if (i == 23) previous[j] = O.fromBase(try poly.valueAtLiftingPosition(eval_log, Core.utils.offsetBitReversedCircleDomainIndex(r, log, eval_log, -1)));
                 }
@@ -150,6 +213,56 @@ pub const Component = struct {
             var value = O.zero();
             for (try self.roots(&main, &fixed, &current, O.fromPartialEvals(previous)), 0..) |root, i| value = value.add(root.mul(output.random_coeff_powers[ROOTS - 1 - i]));
             output.accumulate(r, value.mul(inv));
+        }
+    }
+    fn evaluatePackedDomain(self: *const @This(), trace: *const PC.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
+        const Lane = @import("domain_lane.zig");
+        const MF = Core.fields.m31;
+        const Packed = Core.fields.packed_om31;
+        const a = acc.allocator;
+        const log = self.key.logs[3];
+        const eval_log = log + 1;
+        const slots = try acc.columns(a, &.{.{ .log_size = eval_log, .n_cols = ROOTS }});
+        defer a.free(slots);
+        const output = &slots[0];
+        const domain = Canonic.new(eval_log).circleDomain();
+        var prepared = try QuotientColumns.init(a, trace, eval_log);
+        defer prepared.deinit();
+        const fixed_columns = prepared.columns[0..L.FIXED_COLUMNS];
+        const main_columns = prepared.columns[L.FIXED_COLUMNS..][0..L.MAIN_COLUMNS];
+        const inter_columns = prepared.columns[L.FIXED_COLUMNS + L.MAIN_COLUMNS ..];
+        const lane = Lane.Prepared.init(self.elements, self.claim.mulM31(try M.fromU64(self.key.rows[3]).inv()), output.random_coeff_powers);
+        // On the canonical 2n quotient domain, the n-coset vanishing value is
+        // constant on each contiguous bit-reversed half. Derive both values
+        // from the same source polynomial, in M31, once rather than invert an
+        // OM31 value on every row. OODS evaluation remains unchanged.
+        var inverse: [2]M = undefined;
+        for (&inverse, 0..) |*value, half| {
+            const row = half * (domain.size() / 2);
+            value.* = try Core.constraints.cosetVanishing(M, Canonic.new(log).coset(), domain.at(Core.utils.bitReverseIndex(row, eval_log))).inv();
+        }
+        var row: usize = 0;
+        while (row < domain.size()) : (row += Lane.WIDTH) {
+            var fixed: [L.FIXED_COLUMNS]Lane.Base = undefined;
+            var main: [L.MAIN_COLUMNS]Lane.Base = undefined;
+            for (&fixed, fixed_columns) |*value, poly| value.* = .{ .v = MF.loadPacked(poly.values[row..].ptr) };
+            for (&main, main_columns) |*value, poly| value.* = .{ .v = MF.loadPacked(poly.values[row..].ptr) };
+            var current: [24]Lane.Secure = undefined;
+            var previous: [8]MF.PackedM31 = undefined;
+            for (&current, 0..) |*value, i| {
+                var coords: [8]MF.PackedM31 = undefined;
+                for (&coords, 0..) |*coordinate, j| {
+                    const poly = inter_columns[8 * i + j];
+                    coordinate.* = MF.loadPacked(poly.values[row..].ptr);
+                    if (i == 23) inline for (0..Lane.WIDTH) |k| {
+                        const index = Core.utils.offsetBitReversedCircleDomainIndex(row + k, log, eval_log, -1);
+                        previous[j][k] = poly.values[index].v;
+                    };
+                }
+                value.* = Packed.fromCoordinates(coords);
+            }
+            const sum = (try lane.accumulate(&main, &fixed, &current, Packed.fromCoordinates(previous))).mulBase(@as(MF.PackedM31, @splat(inverse[row / (domain.size() / 2)].v)));
+            inline for (0..Lane.WIDTH) |k| output.accumulate(row + k, Packed.lane(sum, k));
         }
     }
 };

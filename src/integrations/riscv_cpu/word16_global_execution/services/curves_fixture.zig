@@ -55,7 +55,16 @@ pub fn initialWords(op: Op) [Curves.MAX_WORDS]u64 {
     for (out[0..n], 0..) |*w, i| w.* = 0x9e3779b97f4a7c15 *% (i + 1) ^ 0xd1b54a32d192ed03 ^ (@as(u64, @intFromEnum(op)) << 40);
     const limbs: usize = if (@intFromEnum(op) <= 7) 4 else 6;
     for (0..@min(4, n / limbs)) |v| out[v * limbs + limbs - 1] &= if (limbs == 4) 0x0fffffffffffffff else 0x0fffffffffffffff >> 4;
-    if (op == .arith384_mont) out[12] |= 1;
+    if (op == .arith384_mont) {
+        // Exercise the OP Arkworks Fr adapter, not merely small canonical
+        // operands: a*2^128 exceeds m and must remain admitted. Subsequent
+        // calls consume the in-place result across both shard boundaries.
+        const p: u256 = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001;
+        const values = [_]u384{ @as(u384, p - 1) << 128, p - 2, p };
+        for (values, 0..) |value, j| for (0..6) |i| {
+            out[6 * j + i] = @truncate(value >> @intCast(64 * i));
+        };
+    }
     return out;
 }
 fn initial(context: *const anyopaque, address: u64) !u64 {

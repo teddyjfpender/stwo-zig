@@ -1,0 +1,215 @@
+{
+  "schema": 3,
+  "status": "qualified_native_P2_and_parallel_source_control",
+  "production_admitted": false,
+  "security_qualified": false,
+  "security_label": "128-bit security target under documented assumptions; not composed certification",
+  "profiles": {
+    "q12": {
+      "field": "OM31",
+      "pcs": "Blake2s256",
+      "queries": 12,
+      "blowup": 2,
+      "pow_bits": 0,
+      "workers": 1,
+      "correctness_only": true
+    },
+    "q72_blake": {
+      "field": "OM31",
+      "pcs": "Blake2s256",
+      "queries": 72,
+      "blowup": 4,
+      "fold_step": 4,
+      "pow_bits": 0,
+      "workers": 16
+    },
+    "q72_p2": {
+      "field": "OM31",
+      "pcs": "Poseidon2 M31 Om31V2",
+      "root_bytes": 36,
+      "root_coordinates": 9,
+      "queries": 72,
+      "blowup": 4,
+      "fold_step": 4,
+      "pow_bits": 0,
+      "workers": 16
+    }
+  },
+  "source_authority_revision": 3,
+  "native_P2_framing": {
+    "scope": {
+      "statement_bytes": 32,
+      "fixed_bytes": 36,
+      "main_bytes": 36
+    },
+    "canonical_ninth_coordinate_checked": true,
+    "roots_mixed_directly_all9": true,
+    "sha_root_adapter": false,
+    "own_statement_suite_domain": true,
+    "local_magic": "PAIRP2V1",
+    "raw_control_magic": "PAIRMAC1",
+    "shared_arithmetic_reader_GP_and_closure": true
+  },
+  "tests": {
+    "safe_passed": 7,
+    "full_blake_proof_reference_fast_exact": true,
+    "full_GKR_reference_fast_exact": true,
+    "all6_packed_projection_planes_match_original_scalar_reader": true,
+    "q12_coherent_hint_plus_p_actual_GP_closes_physical_rejects": "OodsNotMatching",
+    "fresh_no_private_certificate": true,
+    "wrong_profile_both_directions_reject": true,
+    "valid_blake_control_and_cross_suite_native_proof_refusals": true,
+    "cross_suite_child_magic_reject": true,
+    "ninth_coordinate_changes_FS": true,
+    "noncanonical_ninth_root_reject": true,
+    "native_P2_fresh_source_and13_controls": true,
+    "all_roles_degree_le": 3,
+    "cap": 2147483648,
+    "native_P2_peak_requested": 1006517525,
+    "blake_peak_requested": 1004420381,
+    "zero_retained_budget_on_destroy": true
+  },
+  "cases": {
+    "four-pair-q72": {
+      "phase_seconds": {
+        "pairing.source_witness": 0.269723,
+        "pairing.lowering": 0.008527,
+        "pairing.normalized_values": 0.1047,
+        "pairing.diagnostic_check": 0.110795,
+        "pairing.columns": 1.137773,
+        "pairing.fixed_commit": 0.009486,
+        "pairing.main_commit": 0.168813,
+        "pairing.local_gkr": 0.902485,
+        "pairing.local_encode": 0.000126,
+        "pairing.local_verify": 0.006854,
+        "pairing.binding_witness": 0.03297,
+        "pairing.projection_check": 1.926382,
+        "pairing.binding_finish": 5e-06,
+        "pairing.inter_commit": 0.009384,
+        "pairing.native_stark": 0.204799,
+        "pairing.encode": 0.002538,
+        "pairing.fresh_receiver": 0.116596,
+        "pairing.adversaries": 0.792575
+      },
+      "producer_seconds_excluding_qualification_checks": 2.858183,
+      "fresh_receiver_seconds": 0.116596,
+      "stages_file": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/pairing-mac12-whole-physical-v3/four-pair-q72/stages.json"
+    },
+    "four-pair-q72-reference": {
+      "phase_seconds": {
+        "pairing.source_witness": 0.271313,
+        "pairing.lowering": 0.008738,
+        "pairing.normalized_values": 0.10527,
+        "pairing.diagnostic_check": 0.110759,
+        "pairing.columns": 1.38717,
+        "pairing.fixed_commit": 0.009548,
+        "pairing.main_commit": 0.169931,
+        "pairing.local_gkr": 0.893399,
+        "pairing.local_encode": 0.000127,
+        "pairing.local_verify": 0.006906,
+        "pairing.binding_witness": 0.033045,
+        "pairing.inter_commit": 0.009503,
+        "pairing.native_stark": 0.208515,
+        "pairing.encode": 0.002598,
+        "pairing.fresh_receiver": 0.11768,
+        "pairing.adversaries": 0.798459
+      },
+      "producer_seconds_excluding_qualification_checks": 3.1060630000000002,
+      "fresh_receiver_seconds": 0.11768,
+      "stages_file": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/pairing-mac12-whole-physical-v3/four-pair-q72-reference/stages.json"
+    },
+    "four-pair-p2-q72": {
+      "phase_seconds": {
+        "pairing.source_witness": 0.276724,
+        "pairing.lowering": 0.008756,
+        "pairing.normalized_values": 0.107112,
+        "pairing.diagnostic_check": 0.11293,
+        "pairing.columns": 1.153159,
+        "pairing.fixed_commit": 0.033612,
+        "pairing.main_commit": 0.450915,
+        "pairing.local_gkr": 0.89395,
+        "pairing.local_encode": 0.000128,
+        "pairing.local_verify": 0.006892,
+        "pairing.binding_witness": 0.033187,
+        "pairing.projection_check": 1.952865,
+        "pairing.binding_finish": 7e-06,
+        "pairing.inter_commit": 0.038504,
+        "pairing.native_stark": 0.222787,
+        "pairing.encode": 0.002674,
+        "pairing.fresh_receiver": 0.159136,
+        "pairing.adversaries": 1.226365
+      },
+      "producer_seconds_excluding_qualification_checks": 3.2284070000000002,
+      "fresh_receiver_seconds": 0.159136,
+      "stages_file": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/pairing-mac12-whole-physical-v3/four-pair-p2-q72/stages.json"
+    }
+  },
+  "artifacts": {
+    "four-pair-q72-reference/chain.proof.bin": {
+      "bytes": 667072,
+      "sha256": "bea1564fe7618d26c78b146a447855f935ca487b722b1d1a25cd98c26fd54f06",
+      "accepted": true
+    },
+    "four-pair-q72-reference/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "d593b6b9baa2708767f759cf71e18dd376ea4b32dd00f3eb5afbdba370657277",
+      "accepted": true
+    },
+    "four-pair-q72-reference/stages.json": {
+      "bytes": 17645,
+      "sha256": "46b8e6ecf6c49343c9a237cc3d6157db41a7ab01a05678211529ac6e444bc4ab",
+      "accepted": true
+    },
+    "four-pair/coherent-hint-plus-p.unverified.proof.bin": {
+      "bytes": 178552,
+      "sha256": "cad2c682b0bdb0d1629c40491816009d3c2d0988ed752cb5b20b0b275759e695",
+      "accepted": false
+    },
+    "four-pair/chain.proof.bin": {
+      "bytes": 176440,
+      "sha256": "4ec90546f9ee2657b55ca0b14169ed3dcc9c1be12d7e35ae664c26d546b61358",
+      "accepted": true
+    },
+    "four-pair/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "321d5342a7674f58a42a1cd0b956750ceef9001be56cb95c6a4ed1e23e47aeed",
+      "accepted": true
+    },
+    "four-pair/coherent-hint-plus-p.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "d31da44178841c4edd0775d8ac316b860b816dbeef2509630649c76ad1402e5e",
+      "accepted": true
+    },
+    "four-pair-q72/chain.proof.bin": {
+      "bytes": 667072,
+      "sha256": "bea1564fe7618d26c78b146a447855f935ca487b722b1d1a25cd98c26fd54f06",
+      "accepted": true
+    },
+    "four-pair-q72/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "d593b6b9baa2708767f759cf71e18dd376ea4b32dd00f3eb5afbdba370657277",
+      "accepted": true
+    },
+    "four-pair-q72/stages.json": {
+      "bytes": 18875,
+      "sha256": "8da69f43aaa3605cc43b4c52a676b588d62ad8b3ffac6e6c5c97796a4c59ea2f",
+      "accepted": true
+    },
+    "four-pair-p2-q72/chain.proof.bin": {
+      "bytes": 670756,
+      "sha256": "5110d5ed4b9784571a471a54c2898c936984a47b3b66dd2988c5e3cb8dd42aed",
+      "accepted": true
+    },
+    "four-pair-p2-q72/chain.gkr.bin": {
+      "bytes": 48604,
+      "sha256": "e905b9462f7603dbbef6dc1500d5521cb38e39ffd3ea2f1c5f2a6aacdf34e4e7",
+      "accepted": true
+    },
+    "four-pair-p2-q72/stages.json": {
+      "bytes": 18877,
+      "sha256": "d294681728f47b865652ed0d2db71fb3abf8ac465dab1abebfdbb52d96c1f66d",
+      "accepted": true
+    }
+  },
+  "measurement_note": "One qualification observation, not a repeated controlled benchmark. Producer excludes explicitly separate qualification-only checks, receiver and attacks; no block/VM/root speed claim. V3 Source identity changed explicitly; v1/v2 retained."
+}

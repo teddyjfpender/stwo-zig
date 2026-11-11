@@ -13,6 +13,7 @@ const CacheUnpack = @import("stwo_circuit_cpu_integration").om31.cache_unpack;
 const HybridKey = @import("../../outer_gkr/hybrid_receiver.zig").Key;
 const HybridSection = @import("../../outer_gkr/section.zig").Section;
 const HybridDevice = @import("../../outer_gkr/hybrid_device.zig");
+const HybridCpu = @import("../../outer_gkr/hybrid_cpu.zig");
 const HybridWire = @import("../../outer_gkr/hybrid_wire.zig");
 pub const HybridPayload = struct {
     key: *HybridKey,
@@ -359,7 +360,31 @@ pub fn wrapGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, en
 /// Explicit device selection is terminal on refusal; cached bytes still use
 /// independent native reception and never invoke a proving backend.
 pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory) !Wrapped {
-    if (hybridProfileActive()) return wrapHybridGraphOrLoad(a, ctx, digest, encoded, ordinal, factory);
+    return wrapGraphInternal(a, ctx, digest, encoded, ordinal, factory, false);
+}
+
+/// The caller owns a disposable CPU graph. Keep its assignments for witness
+/// generation but retire the gate arrays once preprocessed columns own the
+/// topology. The context remains valid for deinit on both success and error.
+pub fn wrapDisposableCpuGraph(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, ordinal: u32) !Wrapped {
+    return wrapDisposableCpuGraphOrLoad(a, ctx, digest, null, ordinal);
+}
+/// Disposable CPU graph, including independently verified restore. Assignment
+/// consumption and topology retirement never apply to device factories.
+pub fn wrapDisposableCpuGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32) !Wrapped {
+    return wrapGraphInternal(a, ctx, digest, encoded, ordinal, null, true);
+}
+fn retireTopology(ctx: *C.Context, retire: bool) void {
+    if (retire and !@import("topology_fingerprint.zig").enabled()) {
+        ctx.circuit.deinit(ctx.gpa);
+        ctx.circuit = .{};
+        _ = ctx.scratch_arena.reset(.free_all);
+    }
+}
+
+fn wrapGraphInternal(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory, retire_topology: bool) !Wrapped {
+    defer if (retire_topology) ctx.value_table.clearAndFree(ctx.gpa);
+    if (hybridProfileActive()) return wrapHybridGraphOrLoad(a, ctx, digest, encoded, ordinal, factory, retire_topology);
     if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
     if (ctx.trace_only and encoded == null and (factory == null or factory.?.prepare_from_circuit == null)) return error.TraceOnlySourceRequired;
     if (!ctx.trace_only and !try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
@@ -385,6 +410,7 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
         std.debug.print("GPU_OUTER_PP_CLASS check_ok class={x}\n", .{key[0..8]});
     };
     if (cached_pp != null) std.debug.print("GPU_OUTER_PP_CLASS hit=true class={x}\n", .{class.?[0..8]});
+    retireTopology(ctx, retire_topology);
     const columns_end_ns = timer.read();
     const authority = try a.create(Outer.Authority);
     errdefer a.destroy(authority);
@@ -420,7 +446,7 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
         for (&expected, 0..) |*out, i| out.* = circuit.builder.ivalue.packU32(C.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little));
         if (precommitted) |*fixed| break :blk try Device.proveFromPrecommittedCircuit(a, authority, ctx, &expected, ordinal, fixed);
         break :blk try Device.proveFromCircuit(a, authority, ctx, &expected, ordinal, gpu);
-    } else try Outer.prove(a, authority, ctx.values());
+    } else if (retire_topology) try Outer.proveDisposableContext(a, authority, ctx) else try Outer.prove(a, authority, ctx.values());
     errdefer produced.deinit();
     const source_ns = timer.lap();
     try requireDigest(produced.outputs, digest);
@@ -786,8 +812,8 @@ fn digestOutputs(digest: [32]u8) [8]C.Q {
     for (&expected, 0..) |*out, i| out.* = circuit.builder.ivalue.packU32(C.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little));
     return expected;
 }
-fn wrapHybridGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory) !Wrapped {
-    if (!ctx.trace_only or ctx.circuit.output.items.len != 9) return error.TraceOnlySourceRequired;
+fn wrapHybridGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory, retire_topology: bool) !Wrapped {
+    if (ctx.circuit.output.items.len != 9 or (factory != null and !ctx.trace_only)) return error.TraceOnlySourceRequired;
     const expected = digestOutputs(digest);
     if (encoded) |bytes| {
         try Finalize.padToTargets(C.Q, ctx, try paddingTargets(ctx));
@@ -795,6 +821,7 @@ fn wrapHybridGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, 
         errdefer a.destroy(pp);
         pp.* = try PP.fromBuilderCircuit(a, &ctx.circuit);
         errdefer pp.deinit(a);
+        retireTopology(ctx, retire_topology);
         const authority = try a.create(Outer.Authority);
         errdefer a.destroy(authority);
         authority.* = try Outer.Authority.init(a, pp);
@@ -803,7 +830,22 @@ fn wrapHybridGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, 
         result.borrowed = false;
         return result;
     }
-    const gpu = factory orelse return error.HybridFactoryRequired;
+    if (factory == null) {
+        if (ctx.trace_only) return error.HybridCpuRequiresAssignment;
+        var produced = proveHybridCpu(a, ctx, &expected, retire_topology) catch |err| {
+            if (!@import("builtin").is_test) std.log.err("CPU_HYBRID_NODE_FAILED ordinal={} error={s}", .{ ordinal, @errorName(err) });
+            return err;
+        };
+        var owns = true;
+        defer if (owns) produced.deinit(a);
+        const result = finishProvedForOutputs(a, &produced, &expected, digest) catch |err| {
+            if (!@import("builtin").is_test) std.log.err("CPU_HYBRID_FINISH_FAILED ordinal={} error={s}", .{ ordinal, @errorName(err) });
+            return err;
+        };
+        owns = false;
+        return result;
+    }
+    const gpu = factory.?;
     _ = try HybridDevice.extension(gpu);
     var prep = try prepareHost(a, ctx, gpu);
     defer prep.deinit(a);
@@ -813,6 +855,26 @@ fn wrapHybridGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, 
     const result = try finishProvedForOutputs(a, &produced, &expected, digest);
     owns = false;
     return result;
+}
+fn proveHybridCpu(a: std.mem.Allocator, ctx: *C.Context, expected: []const C.Q, retire_topology: bool) !Proved {
+    var timer = try std.time.Timer.start();
+    try Finalize.padToTargets(C.Q, ctx, try paddingTargets(ctx));
+    const pp = try a.create(PP);
+    errdefer a.destroy(pp);
+    pp.* = try PP.fromBuilderCircuit(a, &ctx.circuit);
+    errdefer pp.deinit(a);
+    retireTopology(ctx, retire_topology);
+    const authority = try a.create(Outer.Authority);
+    errdefer a.destroy(authority);
+    authority.* = try Outer.Authority.init(a, pp);
+    errdefer authority.deinit();
+    const key = try a.create(HybridKey);
+    errdefer a.destroy(key);
+    key.* = try HybridKey.init(a, authority, 256);
+    errdefer key.deinit();
+    const preprocess_ns = timer.lap();
+    const produced = if (retire_topology) try HybridCpu.proveDisposableContext(a, key, ctx, expected) else try HybridCpu.prove(a, key, ctx.values(), expected);
+    return .{ .pp = pp, .authority = authority, .produced = produced.base, .hybrid = .{ .key = key, .section = produced.section }, .timings = .{ .preprocess_ns = preprocess_ns, .prove_ns = timer.read(), .verify_ns = 0 } };
 }
 /// Output values must be canonical encoded raw-u32 words, not arbitrary QM31s
 /// that happen to reduce to the same field value.

@@ -155,14 +155,14 @@
       "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
       "default": "false",
       "status": "runtime",
-      "date": "2026-11-08",
+      "date": "2026-11-10",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
-        "text": "    const digest_capture = if (std.posix.getenv(\"STWO_RV64_CAPTURE_DIGEST\")) |flag| std.mem.eql(u8, flag, \"1\") else false;\n    const captured_values_sha256: ?[64]u8 = if (digest_capture) std.fmt.bytesToHex(@import(\"capture_digest.zig\").digest(image.identity, &captured), .lower) else null;\n    b2i.capture = capture_inputs;\n    // Early Source callbacks may still borrow immutable ROM columns. Keep this\n    // owner until the early producer joins; Program.deinit follows that join.\n    if (!early_segments and !program.fixed_retired) try program.releaseFixedWitness();\n    const capture_cache_released = recycler.releaseCached();\n    // Explicit authenticated service scope; classic-only encodings stay closed."
+        "text": "    const digest_capture = if (std.posix.getenv(\"STWO_RV64_CAPTURE_DIGEST\")) |flag| std.mem.eql(u8, flag, \"1\") else false;\n"
       }
     },
     "STWO_RV64_CAPTURE_JOB_NICE": {
@@ -409,6 +409,19 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/cpu_projection.zig",
         "text": "        const compact_enabled = if (std.posix.getenv(\"STWO_RV64_CPU_COMPACT_INGRESS\")) |v| !std.mem.eql(u8, v, \"0\") else false;\n        if (compact_enabled and self.unpack == null) return error.MissingCpuUnpackKernel;\n        const host = self.host_allocator;\n        var compact_capture: ?Ingress.Compact = if (compact_enabled) try Ingress.Compact.fromCapture(host, source) else null;\n        defer if (compact_capture) |*p| p.deinit();\n        const pack_ns = timer.lap();\n        return self.projectPacked(source, scope, if (compact_capture) |*p| p else null, pack_ns);\n    }"
+      }
+    },
+    "STWO_RV64_CPU_WRAP_RECYCLE_BYTES": {
+      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/receiver_budget.zig",
+      "default": "64 MiB retained cache; an explicit override is parsed and capped at 4 GiB",
+      "status": "qualification",
+      "date": "2026-11-10",
+      "references": [
+        "src/integrations/riscv_cpu/word16_global_execution/ethereum/receiver_budget.zig"
+      ],
+      "default_evidence": {
+        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/receiver_budget.zig",
+        "text": "    const text = std.process.getEnvVarOwned(a, \"STWO_RV64_CPU_WRAP_RECYCLE_BYTES\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return CPU_WRAP_RECYCLER_CACHE_BYTES,\n        else => return err,\n    };\n    defer a.free(text);\n"
       }
     },
     "STWO_RV64_CURVE_TRUTH": {
@@ -1259,6 +1272,19 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
         "text": "    const directory = try std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_WORKDIR\");\n    defer a.free(directory);\n    try std.fs.cwd().makePath(directory);\n    var context = H.Context{ .helper = helper, .directory = directory };\n    const stage = context.stage();\n    const composition_helper = std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_COMPOSITION_HELPER\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => null,\n        else => return err,"
+      }
+    },
+    "STWO_RV64_GROUP_ARITHMETIC": {
+      "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group.zig",
+      "default": "legacy arithmetic authority (false); only explicit structural-v1 selects the separate experimental graph",
+      "status": "qualification",
+      "date": "2026-11-10",
+      "references": [
+        "src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group.zig"
+      ],
+      "default_evidence": {
+        "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group.zig",
+        "text": "    const value = std.posix.getenv(\"STWO_RV64_GROUP_ARITHMETIC\") orelse return false;\n"
       }
     },
     "STWO_RV64_HARNESS_ALLOW_BLOCKS": {
@@ -3048,6 +3074,32 @@
         "text": "    const addon_path = std.posix.getenv(\"STWO_RV64_OUTER_FS_OPS_LIBRARY\") orelse return error.MissingOuterDeviceFsAddon;\n    var addon = try std.DynLib.open(addon_path);\n    errdefer addon.close();\n    _ = try sym(LookupParams, &addon, \"stwo_rv64_outer_fs_lookup_params_on\");\n    _ = try sym(Powers, &addon, \"stwo_rv64_outer_fs_powers_on\");\n    const self = try a.create(Recorder);\n    self.* = .{ .a = a, .service = service, .scope = scope, .class = class orelse @splat(0), .is_leaf = is_leaf, .addon = addon };\n    return .{ .context = self, .start = Recorder.start, .record = Recorder.record, .before_pcs = Recorder.before, .finish = Recorder.finish, .destroy = Recorder.destroy };"
       }
     },
+    "STWO_RV64_OUTER_GKR_INTERPRETER": {
+      "owner": "src/integrations/riscv_cpu/outer_gkr/cpu_native.zig",
+      "default": "absent: does not force interpreter; native evaluator still requires its explicit opt-in and aarch64",
+      "status": "qualification",
+      "date": "2026-11-10",
+      "references": [
+        "src/integrations/riscv_cpu/outer_gkr/cpu_native.zig"
+      ],
+      "default_evidence": {
+        "path": "src/integrations/riscv_cpu/outer_gkr/cpu_native.zig",
+        "text": "    return @import(\"builtin\").cpu.arch == .aarch64 and std.process.hasEnvVarConstant(\"STWO_RV64_OUTER_GKR_NATIVE\") and !std.process.hasEnvVarConstant(\"STWO_RV64_OUTER_GKR_INTERPRETER\");\n"
+      }
+    },
+    "STWO_RV64_OUTER_GKR_NATIVE": {
+      "owner": "src/integrations/riscv_cpu/outer_gkr/cpu_native.zig",
+      "default": "absent: native compiled evaluator disabled (false)",
+      "status": "qualification",
+      "date": "2026-11-10",
+      "references": [
+        "src/integrations/riscv_cpu/outer_gkr/cpu_native.zig"
+      ],
+      "default_evidence": {
+        "path": "src/integrations/riscv_cpu/outer_gkr/cpu_native.zig",
+        "text": "    return @import(\"builtin\").cpu.arch == .aarch64 and std.process.hasEnvVarConstant(\"STWO_RV64_OUTER_GKR_NATIVE\") and !std.process.hasEnvVarConstant(\"STWO_RV64_OUTER_GKR_INTERPRETER\");\n"
+      }
+    },
     "STWO_RV64_OUTER_OWNER_CONTROLLER": {
       "owner": "src/integrations/riscv_cuda/rv64/outer_source.zig",
       "default": "null",
@@ -3509,6 +3561,19 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/resident_composition.zig",
         "text": ".workspace_policy = if (std.posix.getenv(\"STWO_RV64_RC_ROLE_WORKSPACE\")) |v| std.mem.eql(u8, v, \"1\") else false"
+      }
+    },
+    "STWO_RV64_RECURSION_CPU_LANES": {
+      "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
+      "default": "absent: unchanged admitted execution; any supplied value rejects with CpuRecursionLaneExperimentRetired",
+      "status": "qualification",
+      "date": "2026-11-10",
+      "references": [
+        "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
+      ],
+      "default_evidence": {
+        "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
+        "text": "    if (std.posix.getenv(\"STWO_RV64_RECURSION_CPU_LANES\") != null) return error.CpuRecursionLaneExperimentRetired;\n"
       }
     },
     "STWO_RV64_RECURSION_HOST_BYTES": {

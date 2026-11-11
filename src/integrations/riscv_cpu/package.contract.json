@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_cpu_integration",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "layer": "integration",
   "owner": "riscv-cpu-integration",
   "public_modules": {
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "stwo_artifact_store": "../../engine/artifact_store",
+    "stwo_cairo_frontend": "../../frontends/cairo",
     "stwo_circuit_cpu_integration": "../circuit_cpu",
     "stwo_circuit_frontend": "../../frontends/circuit",
     "stwo_circuit_recursion_wire": "../../waist/recursion_wire",
@@ -24,9 +25,11 @@
     "circuit_air_projection",
     "delegation_entry",
     "ethereum_tree0_probe_backend",
+    "hybrid_cpu_emitter",
     "interop_postcard",
     "keccakf_proof_harness",
     "lookup_v2_test_backend",
+    "outer_gkr_cpu_aot",
     "riscv_cpu_capabilities",
     "secp256k1_proof_harness",
     "stwo",

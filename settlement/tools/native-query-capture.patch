@@ -1,0 +1,14 @@
+diff --git a/src/core/pcs/verifier_family.zig b/src/core/pcs/verifier_family.zig
+index 3d07868d6..86c14fba1 100644
+--- a/src/core/pcs/verifier_family.zig
++++ b/src/core/pcs/verifier_family.zig
+@@ -303,0 +304,9 @@ pub fn ForField(comptime Secure: type) type {
++                    if (comptime @TypeOf(self.trees.items[0].root) == [32]u8) {
++                        if (std.process.hasEnvVarConstant("STWO_EXPORT_SETTLEMENT_QUERIES")) {
++                            std.debug.print("SETTLEMENT_QUERIES {x} {x} {d} {d} {d} {d}\n", .{
++                                &self.trees.items[0].root, &channel.digestBytes(), lifting_log_size,
++                                self.config.pow_bits, self.config.fri_config.n_queries, proof.proof_of_work,
++                            });
++                        }
++                    }
++

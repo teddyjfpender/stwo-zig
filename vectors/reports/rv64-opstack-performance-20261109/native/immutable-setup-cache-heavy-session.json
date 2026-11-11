@@ -1,0 +1,174 @@
+{
+  "schema": "op-native-heavy-immutable-cache-qualification/v1",
+  "status": "qualified-two-fresh-heavy-source-preparations-one-cache-session",
+  "proof_verified": false,
+  "production_admitted": false,
+  "block": 121065789,
+  "instructions": 238226172,
+  "workers": {
+    "cpu": 57,
+    "inherited_truth": 13,
+    "miller": 22
+  },
+  "metadata_matches_frozen_uncached_capture": true,
+  "fresh_capture_initial_terminal_cells_equal": true,
+  "same_all32_final_registers": true,
+  "same_pinned43_byte_output": true,
+  "same_source_cells": true,
+  "same_exact_root_distribution": true,
+  "root_distribution": {
+    "geometry_classes": 36,
+    "unique_poseidon_fixed_roots": 36,
+    "unique_legacy_blake_fixed_roots": 36,
+    "accidental_physical_root_equivalence_explains_hits": false,
+    "records_file": "immutable-heavy-root-distribution.json"
+  },
+  "cold_cache": {
+    "entries": 36,
+    "active_leases": 0,
+    "owned_views": 0,
+    "hits": 0,
+    "misses": 36,
+    "heap": {
+      "live_bytes": 618251414,
+      "peak_live_bytes": 3583539306,
+      "host_live_bytes": 618251414,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 3583539306,
+      "peak_external_bytes": 0,
+      "limit": 4294967296,
+      "exceeded": false
+    },
+    "parked_bytes": 11006001152,
+    "mapped_bytes": 0,
+    "peak_mapped_bytes": 0
+  },
+  "warm_cache": {
+    "entries": 36,
+    "active_leases": 0,
+    "owned_views": 0,
+    "hits": 36,
+    "misses": 36,
+    "heap": {
+      "live_bytes": 618251414,
+      "peak_live_bytes": 3583539306,
+      "host_live_bytes": 618251414,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 3583539306,
+      "peak_external_bytes": 0,
+      "limit": 4294967296,
+      "exceeded": false
+    },
+    "parked_bytes": 11006001152,
+    "mapped_bytes": 0,
+    "peak_mapped_bytes": 0
+  },
+  "cold_common_heap_after_request": {
+    "live_bytes": 618251526,
+    "peak_live_bytes": 28068271993,
+    "host_live_bytes": 618251526,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 28068271993,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "warm_common_heap_after_request": {
+    "live_bytes": 618251526,
+    "peak_live_bytes": 28068271993,
+    "host_live_bytes": 618251526,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 28068271993,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "final_common_heap": {
+    "live_bytes": 0,
+    "peak_live_bytes": 28068271993,
+    "host_live_bytes": 0,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 28068271993,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "cache_limits": {
+    "heap_bytes": 4294967296,
+    "disk_bytes": 55834574848,
+    "mapped_bytes": 1073741824,
+    "entries": 64,
+    "metadata_bytes": 268435456
+  },
+  "resources": {
+    "consume_memory_events": true,
+    "live_bytes": 34359738368,
+    "disk_bytes": 206158430208,
+    "mapped_bytes": 12884901888,
+    "gkr_bytes": 12884901888,
+    "global_bytes": 2147483648,
+    "truth_live_bytes": 8589934592,
+    "truth_main_bytes": 2147483648,
+    "truth_interaction_bytes": 4294967296,
+    "truth_advice_bytes": 268435456,
+    "proof_bytes": 67108864,
+    "bundle_bytes": 2147483648
+  },
+  "resource_admission": {
+    "main_only_source_upper_bytes": 143601034804,
+    "configured_request_main_disk_limit": 150323855360,
+    "configured_cache_plus_main_upper_bytes": 199435609652,
+    "actual_parked_fixed_bytes": 11006001152,
+    "maps_owned_views_and_request_leases_after_each_request": 0
+  },
+  "timings": {
+    "cold_wall_gross_seconds": 877.143107292,
+    "cold_setup_admission_gross_seconds": 855.091028834,
+    "warm_wall_gross_seconds": 92.319305333,
+    "warm_setup_admission_gross_seconds": 70.344639,
+    "cold_capture_seconds": 21.231405875,
+    "warm_capture_seconds": 21.194788125,
+    "cold_elapsed_interrupted": true,
+    "warm_elapsed_interrupted": true,
+    "uninterrupted_heavy_warm_setup_measurement": false,
+    "prior_separate_uninterrupted_cold_setup_seconds": 421.68912725,
+    "caveat": "Both raw elapsed timers include explicit SIGSTOP scheduling holds for independent R6 qualification. They are not uninterrupted performance measurements, and no corrected active-time number or wall-speedup ratio is claimed. The functional work evidence is36 bootstrap constructions, then36 hits with zero additional constructions."
+  },
+  "pause_observations": {
+    "reason": "root-reserved quiet actual R6 leaf qualification; cached prepare is source-only and SIGSTOP retained",
+    "pid": 53224,
+    "observation_after_sigstop_unix_ns": 1794225024203240000,
+    "observation_after_sigstop_monotonic_ns": 780141205729875,
+    "timing_caveat": "SIGSTOP preceded this observation. Cold Timer wall and setup/admission include the pause; do not present them as uninterrupted performance measurements.",
+    "sigcont_unix_ns": 1794225388969695000,
+    "sigcont_monotonic_ns": 780505965396375,
+    "known_minimum_pause_ns": 364759666500,
+    "cold_wall_interrupted": true,
+    "second_sigstop_observed_unix_ns": 1794225755155993000,
+    "second_sigstop_observed_monotonic_ns": 780872092405625,
+    "second_pause_reason": "Cold36class receipt complete; held before next request for quiet warm measurement",
+    "second_sigcont_unix_ns": 1794225824107810000,
+    "second_sigcont_monotonic_ns": 780941042516291,
+    "second_pause_observed_ns": 68950110666,
+    "warm_timer_may_be_interrupted": true,
+    "second_pause_caveat": "Warm directory already existed at stop, indicating fresh capture completed and warm setup had begun; both raw cold and warm elapsed timers need interruption caveats. No correction is asserted."
+  },
+  "security": "128-bit security target under documented assumptions; unchanged construction",
+  "scope": "Fresh VM capture, exact source inventory and immutable setup only. No MAIN witness commitment, GKR, native execution proof, recursive proof or block acceptance was produced.",
+  "artifacts": {
+    "root": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-heavy-immutable-session",
+    "raw_session": "session.json",
+    "raw_cold_receipt": "cold/native-op-prepare.json",
+    "raw_warm_receipt": "warm/native-op-prepare.json",
+    "pause_log": "pause.json",
+    "test_log": "/private/tmp/op-heavy-immutable-session.log"
+  },
+  "checks": [
+    "ReleaseFast filtered heavy one-session cold+warm prepare fixture exited0",
+    "frozen metadata canonical SHA256 match",
+    "both public cell list canonical hashes match across fresh captures",
+    "all36 class root records match exactly",
+    "cache/context ownership leases and mappings zero after both requests",
+    "final common requested heap/external reservations zero after cache teardown"
+  ]
+}

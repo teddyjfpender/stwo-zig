@@ -1,0 +1,162 @@
+{
+  "schema": "op-complete-pairing-positive-schedule-v1",
+  "production_admission": false,
+  "security_qualified": false,
+  "scope": "independent arithmetic/schedule oracle, not AIR/proof/retirement benchmark",
+  "source_sha256": {
+    "opstack/kona/vendor/ark-bn254/src/curves/mod.rs": "274aeb949f0a8660e5dbbbba3f23172ebcdd38805acb9408f21de27de439d4a1",
+    "opstack/kona/src/precompiles/pairing_miller.rs": "ae8474495815b1d97d9002307ac82b3f13dc778613bab44e55629d726fe2b838",
+    "opstack/kona/src/precompiles/pairing_residue.rs": "b716a44bef56b18f1c791663ddf900af6b7540cde6e7bb3e691e0765a1844faa",
+    "opstack/kona/src/precompiles/pairing.rs": "385ae7b04cd855e6f5a587a7270a0a570fd5f903fdf61f25a14cbd849d86f004",
+    "opstack/kona/src/precompiles/pairing_hint_stream.rs": "590c5429601aedeb30d45941455bb5126ac318ec5ceaa9e761ee1d41f39edf64",
+    "opstack/kona/vendor/ark-bn254/src/curves/g2.rs": "d8423e33bc3aafb2511769ed946450d4d7454357908ba6de9a64fba48586fc02",
+    "opstack/kona/vendor/ark-bn254/src/fields/fq6.rs": "e41425906891a632b132bda0a635d241de03a30849e38aa0e75c603fc6b4c549",
+    "opstack/kona/vendor/ark-bn254/src/fields/fq12.rs": "16e5643f3fcfabe2c1c8b6478f4e8c341d1eba1ca8bc4eb3f2413a9cf7f61cbd"
+  },
+  "ate": {
+    "digits": 65,
+    "doublings": 64,
+    "signed_additions": 21,
+    "lines_per_group": 87,
+    "seeded_squares": 64,
+    "unseeded_squares": 63
+  },
+  "positive_two_pair_cost": {
+    "semantic_ops": {
+      "checked_seed_inverse": 1,
+      "fp12_seed_multiply": 21,
+      "fp12_square": 64,
+      "frobenius_tail_3_2_1": 1,
+      "prepare_add": 42,
+      "prepare_double": 128,
+      "prepare_frobenius_correction": 4,
+      "require_residue_one": 1,
+      "sparse034_line": 174,
+      "subgroup_6x2_vs_psi": 2,
+      "validate_g1": 2,
+      "validate_g2": 2
+    },
+    "fq_ops_by_phase": {
+      "input_validity": {
+        "canonical_input": 12,
+        "fq_add": 4772,
+        "fq_inverse_witness": 390,
+        "fq_mul": 7764,
+        "fq_sub": 9874
+      },
+      "prepared_lines": {
+        "fq_add": 7028,
+        "fq_mul": 6170,
+        "fq_sub": 7642
+      },
+      "hint_inverse": {
+        "canonical_input": 30,
+        "fq_add": 122,
+        "fq_mul": 75,
+        "fq_sub": 123
+      },
+      "miller_seeded": {
+        "fq_add": 31598,
+        "fq_mul": 20121,
+        "fq_sub": 31857
+      },
+      "residue_tail": {
+        "fq_add": 530,
+        "fq_mul": 363,
+        "fq_sub": 567
+      }
+    },
+    "fq_ops_total": {
+      "canonical_input": 42,
+      "fq_mul": 34493,
+      "fq_add": 44050,
+      "fq_sub": 50063,
+      "fq_inverse_witness": 390
+    }
+  },
+  "positive_two_pair_schedule_sha256": "d7c27c4f5613f624ce89c785289a60c769374cf33fa897713e421c1343d379e3",
+  "checks": [
+    "complete positive pairing against generic final exponent",
+    "single generator pairing false",
+    "seed inverse mutation",
+    "scale mutation",
+    "G1 infinity does not hide invalid G2",
+    "Fq modulus alias rejected",
+    "on-curve non-subgroup G2 rejected even with G1 infinity",
+    "omitted/reordered loop opcode schedule rejected",
+    "empty input and canonical infinities accepted",
+    "G2 infinity does not hide invalid G1"
+  ],
+  "actual_four_pair_positive": {
+    "pairs_hex": [
+      "07706afa5c18f7e101f5757aa975a0bd584a75abf25c55721448a13a1d7280592233bec22f2f0ff6c01774596ec09c4c2821d9722be75ad3a925f83278cf6b8819a99eb9cacb5c76526d20f47ed7c6db5e32dd92c0b745ccb9bbc60f268a9ff82c53a0fb1ccb463a855fc6cf2fd322ce37f6aaf65096796b8a29540cf36d478d0e3baba70eac1d51f5518851a537a13978bb25a201790912e54a984562bed7151e6431b5623237b5f5c32cc6b1ed693ae159add9d421339d5db513b70e75d186",
+      "2d4d9aa7e302d9df41749d5507949d05dbea33fbb16c643b22f599a2be6df2e214bedd503c37ceb061d8ec60209fe345ce89830a19230301f076caff004d19260967032fcbf776d1afc985f88877f182d38480a653f2decaa9794cbc3bf3060c0e187847ad4c798374d0d6732bf501847dd68bc0e071241e0213bc7fc13db7ab304cfbd1e08a704a99f5e847d93f8c3caafddec46b7a0d379da69a4d112346a71739c1b1a457a8c7313123d24d2f9192f896b7c63eea05a9d57f06547ad0cec8",
+      "1f65aa31fe57cdc7922c9c48d029962a46d802e5a5b07a5af4299fc401249afe1e27317e1406f382e04484bad6f3de779f153e941a7f2b6b515686efe33969ed198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c21800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa",
+      "1fb904a42b34762f03e4a515c63d0c25354f00a0cc89c9ab0d985aa4cf37069424604a41736425729dc3f234370a2ea89d701ec1f76934f566f7d479732e69a1168e4fddac50a40d5bcff39c7fa9207cd368444c0c01a86690a6645b52f3aa1f2139a256456825daa623957c4f2ea1a0d26f135769e450759142a7159b0a447628deba4ed0a3b79dbc6a7dac67c07051f421904de49dcd7ae91aaf1223bc6d631c3976c9a490dad50e601586279bb60f12416a8cc141710167fcdc0dc931bffd"
+    ],
+    "expected_result": true,
+    "loop_program_sha256": "85b3a99be0f2286f9b0cecbf3830d1ce5cbe5bd2aed0091b11b5ca2d58829971",
+    "schedule_cost": {
+      "semantic_ops": {
+        "checked_seed_inverse": 1,
+        "fp12_seed_multiply": 21,
+        "fp12_square": 64,
+        "frobenius_tail_3_2_1": 1,
+        "prepare_add": 84,
+        "prepare_double": 256,
+        "prepare_frobenius_correction": 8,
+        "require_residue_one": 1,
+        "sparse034_line": 348,
+        "subgroup_6x2_vs_psi": 4,
+        "validate_g1": 4,
+        "validate_g2": 4
+      },
+      "fq_ops_by_phase": {
+        "input_validity": {
+          "canonical_input": 24,
+          "fq_add": 9544,
+          "fq_inverse_witness": 780,
+          "fq_mul": 15528,
+          "fq_sub": 19748
+        },
+        "prepared_lines": {
+          "fq_add": 14056,
+          "fq_mul": 12340,
+          "fq_sub": 15284
+        },
+        "hint_inverse": {
+          "canonical_input": 30,
+          "fq_add": 122,
+          "fq_mul": 75,
+          "fq_sub": 123
+        },
+        "miller_seeded": {
+          "fq_add": 52826,
+          "fq_mul": 33867,
+          "fq_sub": 53259
+        },
+        "residue_tail": {
+          "fq_add": 530,
+          "fq_mul": 363,
+          "fq_sub": 567
+        }
+      },
+      "fq_ops_total": {
+        "canonical_input": 54,
+        "fq_mul": 62173,
+        "fq_add": 77078,
+        "fq_sub": 88981,
+        "fq_inverse_witness": 780
+      }
+    }
+  },
+  "retained_census": {
+    "sha256": "bb153d535c78e263db6fa997873b8f9b48ddaa22d2f072100c9b9511aebec826",
+    "calls": 84,
+    "pairs": 336,
+    "positive": 84,
+    "false": 0,
+    "invalid": 0,
+    "distinct_g2": 87
+  }
+}

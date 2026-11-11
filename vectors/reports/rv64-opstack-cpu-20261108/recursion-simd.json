@@ -1,0 +1,57 @@
+{
+  "schema": "stwo.opstack.cpu-recursion-simd.v1",
+  "block": 120794432,
+  "qualification": true,
+  "controlled_speedup_claim": false,
+  "timing_caveat": "Concurrent heavy OP proof on the same host; no quiet A/B.",
+  "baseline_wall_ns": 191121313542,
+  "packed": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "recurse-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-simd40g",
+      "2147483648",
+      "42949672960"
+    ],
+    "wall_ns": 136427062292,
+    "peak_rss_bytes": 33540014080,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 846.785208,
+    "system_cpu_s": 22.282783,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "fresh_receiver": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "verify-recursion-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-recursion-simd40g",
+      "2147483648",
+      "25769803776"
+    ],
+    "wall_ns": 7714951458,
+    "peak_rss_bytes": 7208271872,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 31.210599,
+    "system_cpu_s": 0.916311,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "all_six_proofs_byte_identical": true,
+  "proof_sha256": {
+    "fold-000002.proof": "3dfe1efe2ff5e263e054f446572ee65fd5a79f1d13907e85308e27c6c53722ed",
+    "fold-000004.proof": "549bb0eb2fcfec5f2a0ca26bdea32f654f63df9194afe5215ae3237f858fcf03",
+    "leaf-000000.proof": "62f25076552699fc22e41266bb82fb037534b65b279461fd3116d5c49ec74646",
+    "leaf-000001.proof": "ff2d9ab33dab452bd03ce03c93ffaf30cb32961c1b05db0cc4552f605d63b64c",
+    "leaf-000002.proof": "79ebdb3b6cee43cbb7969c57f6e5a5295d3d9a00e5a0eb375126fea08f826dbe",
+    "root.proof": "549bb0eb2fcfec5f2a0ca26bdea32f654f63df9194afe5215ae3237f858fcf03"
+  },
+  "strict_receiver_admitted": true,
+  "security_qualified": false
+}

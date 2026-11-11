@@ -34,7 +34,18 @@ pub const Authority = struct {
     /// `rom_profile` may differ from `profile` only for the Zbb route
     /// (v2 legacy statement, ethereum_services_v3_zbb execution ROM).
     pub fn initWithRom(a: std.mem.Allocator, expected: rv.program.setup.Program, profile: Profile, rom_profile: Profile, control: rv.control_policy.Policy) !Authority {
-        if (rom_profile != profile and (profile != .ethereum_services_v2 or rom_profile != .ethereum_services_v3_zbb)) return error.UnsupportedRv64RomProfile;
+        return initRomMode(a, expected, profile, rom_profile, control, false);
+    }
+    /// OP Word16 ROM custody only. The historical byte-ROM encoding remains
+    /// v2; it grants no OP execution/proof admission. Old constructors refuse
+    /// this mixed profile and all OP proving uses the explicit Word16 lane.
+    pub fn initForOpWord16(a: std.mem.Allocator, expected: rv.program.setup.Program, control: rv.control_policy.Policy) !Authority {
+        return initRomMode(a, expected, .ethereum_services_v2, .ethereum_services_op_v1, control, true);
+    }
+    fn initRomMode(a: std.mem.Allocator, expected: rv.program.setup.Program, profile: Profile, rom_profile: Profile, control: rv.control_policy.Policy, op_only: bool) !Authority {
+        if (op_only) {
+            if (profile != .ethereum_services_v2 or rom_profile != .ethereum_services_op_v1) return error.UnsupportedRv64RomProfile;
+        } else if (rom_profile != profile and (profile != .ethereum_services_v2 or rom_profile != .ethereum_services_v3_zbb)) return error.UnsupportedRv64RomProfile;
         var program = try rv.program.setup.Setup.initWithProfile(a, expected, profile);
         errdefer program.deinit();
         const words = try a.dupe(u32, expected.words);

@@ -1,0 +1,26 @@
+{
+  "schema": "stwo.op.detached.shared-capture-control.v1",
+  "scope": "shared source construction extraction only; detached production admission remains closed",
+  "block": 120794432,
+  "steps": 796406,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "optimize": "ReleaseSafe",
+  "workers": 8,
+  "controls": {
+    "native_op_bin_byte_identical": true,
+    "native_op_json_byte_identical": true,
+    "cells_bin_byte_identical": true,
+    "fresh_independent_native_receiver": true,
+    "zero_final_live_bytes": true
+  },
+  "peak_live_bytes": 2962542311,
+  "qualification_only_no_speed_claim": true,
+  "test": "OP shared capture plan preserves actual classic native bundle bytes",
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/capture-plan-classic-control-v1",
+  "notes": [
+    "Image and Program are stable heap owners; source metadata retains exact lifetime.",
+    "Program.makeCompact precedes capture.",
+    "Shared source constructor retires legacy FIXED only after independently building new source key.",
+    "Default planning and profile remain unchanged."
+  ]
+}

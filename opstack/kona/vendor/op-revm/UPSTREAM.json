@@ -1,0 +1,38 @@
+{
+  "repository": "https://github.com/ethereum-optimism/optimism",
+  "commit": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+  "path": "rust/op-revm",
+  "upstream_files": {
+    "README.md": "4fe7355c2890f0e1d0b4b149e1073a197c7485d4371cc1a565c37a5e786a5918",
+    "LICENSE": "8946bedbf7b19245da61f429ac90b03dd6b6c69e1e2b98988aa1793958c54e2f",
+    "Cargo.toml": "2682e61af74cc5c208b29c71686dfb672a1aef8e048f7dc3e2ef377a6532fa7c",
+    "src/transaction.rs": "5b64974ed803c62dd2112201b16dabdc8938db9677f77dc923a3597d75eb1486",
+    "src/spec.rs": "5021472d4701842a0fe0a672c74195c08418f218788cf9eb69cd2b95dfe7ce4b",
+    "src/result.rs": "847a38f3bf8bd2bde78f5de3c2c95c50a73b4fed352abbb067c52364177bc269",
+    "src/precompiles.rs": "42baddddc64ff94276e6e9b597351f664e329279cc47577c55d71f4aeca0f6e8",
+    "src/lib.rs": "41596e3990a469c708f9d4956b4ce68dd5142a3b3be6f1586855c226a3c06f6c",
+    "src/l1block.rs": "f136593aa8f008586062d896c6029335ca81a7abecd5eea3acc89997e19a17e3",
+    "src/handler.rs": "b22d9bf16f79f4acd8e929ada7ddd2ddabf94957dc2c4d8f57c8978c1f31f591",
+    "src/fast_lz.rs": "14e348e6c40579cd6ee80f67b5bf218b0ea8b48bd5d9e2c6432ea1c47a5a4936",
+    "src/evm.rs": "439345df3af59715e8849c6f89f0ac12e92be348a736fddf8b2270903de0ee2f",
+    "src/constants.rs": "6ed63b3fef9600131eb78a845f6c15830d69dacced19b77f42b58ad1a5effd2c",
+    "src/catch_error_tests.rs": "5bec75457f0cf876377912d831838c1671d7ded45c732ab1794c9f6651eb3e55",
+    "src/api.rs": "9f8202f10cd1fdfb0847e9b16515ae8cb0750628d759d0ad92e836a48672fb0e",
+    "src/transaction/error.rs": "ee2c9c0ef678ad692265a91f07d4ffb0b643a70269f6dd458f96fc0c72d51d32",
+    "src/transaction/deposit.rs": "f2dbc593834cd1c37c0e095213d1d852e3ec8b622c18a8d0e3701398ab2cc38d",
+    "src/transaction/abstraction.rs": "e926bcc2fc6b5687da7cac901a9fd1011f382cbac66de8f721b59704a34d711f",
+    "src/api/exec.rs": "061edd62af0a8af6e2d2c44e18697223b78cbbe7eabc274a413d5135f1ed656e",
+    "src/api/default_ctx.rs": "de229a56271a69ee7b7620cf7e67c10a2112267c857a2b79a191fb1eacd06eaf",
+    "src/api/builder.rs": "1cf859a64cae703f4b7771679f387fb60d0be42150f90c12f1af571d95384f56"
+  },
+  "changes": "standalone manifest; guard operator vault balance increment at Isthmus activation; preserve L1/base fees and all post-Isthmus operator payouts",
+  "modified_files": [
+    "Cargo.toml",
+    "src/handler.rs"
+  ],
+  "added_files": [
+    "Cargo.lock",
+    "src/fee_vault_tests.rs",
+    "UPSTREAM.json"
+  ]
+}

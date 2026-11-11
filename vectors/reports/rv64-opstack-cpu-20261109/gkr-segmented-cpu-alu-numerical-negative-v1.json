@@ -1,0 +1,123 @@
+{
+  "schema": "op-authentic-cpu-alu-segmented-numerical-negative/v1",
+  "decision": "NO PROMOTION. Mainline receipt/design finding only; experimental code remains isolated on codex/op-segmented-numerical-4m-next. No live source format, worker, profile, old fingerprints or defaults changed.",
+  "experimental_commit": "406f0fb3e",
+  "experimental_git_show_binary_patch_sha256": "b3c9686da08f5b0330773323abd4449d83802cc9d51622e4b623be2fdb47b2c4",
+  "scope": "Onlyfirst4M actualcapturedretirements ofselectedheavyOP121065789, pinnedELF/input andUnicornPC/all32registers. SameauthenticoldMAIN/sourcecontext, EXPLICITNEWnumericalscope/order/challenges. NoMAIN/INTER/nativeSTARK/heavyblockreproof.",
+  "layout": {
+    "version": 1,
+    "local_magic": "OPLSCPU1",
+    "selected_roles": [
+      "CPU",
+      "ALU"
+    ],
+    "selected": "Dyadic lane-major CPU8/4/2 andALU8/4/1",
+    "others": "Originalrow-major source callbacks retained under newtypedhybrid descriptor; their input order is NOT silently changed.",
+    "challenge_namespace": "Explicittrustedv3; noCPU14heuristic",
+    "old_instances": 30,
+    "new_instances": 34,
+    "old_facts": 149605184,
+    "new_facts": 138070848,
+    "fact_reduction_percent": 7.709850482186498,
+    "old_max_variables": 26,
+    "new_max_variables": 25,
+    "old_common_sumcheck_rounds": 325,
+    "new_common_sumcheck_rounds": 300,
+    "old_layer_mask_records": 533,
+    "new_layer_mask_records": 620
+  },
+  "reader_work": {
+    "denominator_count": "UNCHANGED for realqueries; oldreader already skipped dummy0/1lane denomination.",
+    "CPU": "Directmetadata/Entry REG6 andgap/pair5 extraction. OnlyFUNCTION/ROM/OWNER reconstructcurrentcompactrow (3timesperCPUrow); ROMpreviousnext uses2limbs directly. No15row-constructor naive reader.",
+    "ALU": "Exactlyone savedU16orFUNCTION tuple perrequestedlane, noall13denominator replay.",
+    "remaining_costs": "Repeatedmetadata/ROMentryloads acrosslane-major passes, 3currentcompactrow reconstructions versusold1current+1previous perCPUrow, andextra-instance/mixed-height/mask/checkpoint overhead. These are source-work mechanisms, not isolated time attribution.",
+    "dense_cache_or_expansion_retention": false
+  },
+  "measurements": {
+    "optimize": "ReleaseFast",
+    "workers": 16,
+    "single_observation": "Baselinepreviousquietcontrol; candidatemayoverlapone-coreAOTdevelopment. Not statisticalor controlledwall-regression proof. No rerun to findfavorablepoint.",
+    "old_child_seconds": 3.413142167,
+    "new_GP_plus_localclosure_seconds": 4.280258,
+    "old_receipt_accounting": "Old3.413s includes~3msclosure/receipt; new4.280stimesGP+closure withreceipt/encoding reportedseparately.",
+    "new_receipt_encoding_seconds": 0.004904459,
+    "observed_child_increase_percent": 25.405207007891974,
+    "old_stages_seconds": {
+      "local_gkr": 3.413112,
+      "gkr_source_tree_construction": 0.658667,
+      "gkr_sumcheck_traversal": 2.751065,
+      "gkr_terminal_artifact": 2.1e-05,
+      "gkr_terminal_receipt": 0.002973,
+      "gkr_wire_encoding": 9.8e-05
+    },
+    "new_stages_seconds": {
+      "segmented_local_gkr": 4.280265,
+      "gkr_source_tree_construction": 1.043039,
+      "gkr_sumcheck_traversal": 3.237141,
+      "gkr_terminal_artifact": 2.8e-05,
+      "segmented_terminal_source_check": 0.640596
+    },
+    "fresh_GP_verify_seconds": 0.011524792,
+    "ALL_independent_original_provider_marginals_seconds": 0.640596541,
+    "old_GKR_bytes": 113288,
+    "new_GKR_bytes": 121392,
+    "bytes_increase_percent": 7.153449615140173,
+    "same_proof_or_old_scope": false,
+    "new_proof_sha256": "a25cd87a3fa33220cd47a524b0453a8c160b32334c8f56a88f58c070c3d0ce08"
+  },
+  "resources": {
+    "child_cap_bytes": 12884901888,
+    "parent_cap_bytes": 34359738368,
+    "planning_bytes": 7186887960,
+    "explicit_old_new_reader_adapter_bytes": 642072,
+    "numerical_metadata_bytes": 6496256,
+    "new_child_peak_bytes": 2946209726,
+    "new_whole_fixture_peak_bytes": 4623349708,
+    "old_whole_fixture_peak_bytes": 4869066225,
+    "old_child_only_peak": "notserialized; do NOT compare childpeak witholdwholefixturepeak",
+    "all_end_live_and_external_bytes": 0,
+    "process_rss_peak_bytes": 4632510464,
+    "process_footprint_peak_bytes": 4632678816,
+    "major_faults": 0
+  },
+  "validation": {
+    "focused_physical_source_tests_passed": 71,
+    "Safe_unit_getters_match_original_emitter": "ALL14CPUqueries acrossADD/immediate/LUI/AUIPC/JAL/JALR/LD/SD/branch pluspadding; directREG/gap paths checked separately.",
+    "fresh_new_codec_GP_and_whole_channel_receipt": true,
+    "new_local_closure_zero": true,
+    "ALL34_N_D_marginals_match_original_provider": true,
+    "independent_check_method": "OriginalProvider+preparedprojection, perdescriptor correctlane-prefix/row-suffix or originalrow-prefix/lane-suffix, Eq-weighted evaluation ofALLpaddedrows. Outside timedGP; no densefactmatrix.",
+    "native_PCS_binding_or_VM_block_root_accepted": false,
+    "why_no_acceptance": "Oldphysicalframe cannotbind newpoints/claims. Hostmarginalevaluation is a numericalcheck, NOT newphysicalbinding proof."
+  },
+  "security": {
+    "target": "128-bit security target under documented assumptions",
+    "raw_modulo_cap_envelope_bits": 151,
+    "baseline_terms": "Unchangedconservativecapledger plusnewscopeinstance/mix/pointterms, notsubtractedoldterms",
+    "production_admission": false,
+    "security_qualified": false
+  },
+  "process": {
+    "wall_seconds": 9.0,
+    "user_seconds": 80.89,
+    "system_seconds": 4.14,
+    "minor_faults": 1348741,
+    "major_faults": 0
+  },
+  "finding": "Fewerpaddedfacts didnotyieldfasterauthenticGKR. Construction andtraversal bothincreasedinthissample, andmaskrecords/proofbytesgrew. Readerdataorientation, per-querymetadatawork andextra-instance/regeneration effects remain hypotheses; no profileisolates them. The fact-savingmodel alone is insufficient to justifyprotocolintegration.",
+  "artifacts": {
+    "old": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-gkr-profile-v1",
+    "new": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-gkr-segmented-cpu-alu-v1",
+    "log": "/private/tmp/op-segmented-numerical-physical.log",
+    "plan": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-gkr-segmented-cpu-alu-v1/segmented-plan.json"
+  },
+  "reproduction": {
+    "checkout": "406f0fb3e experimentalonly",
+    "build": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseFast -j1 -Driscv-test-filter='OP heavy selected segmented CPU ALU numerical GKR source'",
+    "mode": "gkr_segmented_only",
+    "config": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-v1/config.json",
+    "oracle": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-v1/oracle.json",
+    "retained": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-native-tiles-v1",
+    "output": "Newemptydirectory; exclusivewrites."
+  }
+}

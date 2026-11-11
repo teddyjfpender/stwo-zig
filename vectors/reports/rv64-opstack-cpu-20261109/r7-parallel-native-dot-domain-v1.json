@@ -1,0 +1,139 @@
+{
+  "schema": "op-r7-parallel-native-dot-domain-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "native_profile": "op_target_b4_q72_p0_fold4_v1",
+  "terminal_profile": "op_control_b2_q144_p0_fold4_v1",
+  "terminal_arithmetic": "genuine eight-role R7",
+  "terminal_hash": "plain Blake2s-256",
+  "workers": 8,
+  "cap_bytes": 34359738368,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "source_identity": "358e7e117a751de780f25f65b4de31d84ccb1d24cd2c3b12dfa4ce2d30ca4aa5",
+  "terminal_identity": "782ce12ef2301366a673e05a2c209f273bff731c5a8bed736256f2fd540846fb",
+  "trace_cells": 643035136,
+  "same_root_bytes": 1263064,
+  "same_root_sha256": "8cc0c6259801fd7939c94ac4fd8b44bcb519adf3876f86b47cd39f3ce8773d63",
+  "byte_parity": {
+    "root.bin": {
+      "bytes": 1263064,
+      "sha256": "8cc0c6259801fd7939c94ac4fd8b44bcb519adf3876f86b47cd39f3ce8773d63",
+      "exact": true
+    },
+    "root.json": {
+      "bytes": 40265,
+      "sha256": "8cab146aa1076d9afe7e0ef241b62af191bdaafb47195ea7945cb70a3ee48e20",
+      "exact": true
+    },
+    "templates.bin": {
+      "bytes": 741,
+      "sha256": "1df72a61eaf8059b6e1431ac2849cf3e4321253bc01465b04fcbe4e61e8ffd48",
+      "exact": true
+    }
+  },
+  "timing": {
+    "serial_control_prove_ns": 15647032458,
+    "parallel_prove_ns": 14882458417,
+    "serial_control_composition_seconds": 5.557198,
+    "parallel_composition_seconds": 4.779545,
+    "serial_control_producer_ns": 31551963667,
+    "parallel_producer_ns": 30449756292,
+    "parallel_self_verify_ns": 13783916,
+    "parallel_real_P2_source_FIXED_ns": 8660771833,
+    "parallel_extra_Blake_FIXED_ns": 1313062834,
+    "whole_parallel_test_OS_seconds": {
+      "wall": 30.46,
+      "user": 151.92,
+      "system": 2.68
+    }
+  },
+  "stage_seconds_serial": {
+    "terminal_blake.main_generation": 1.436072,
+    "terminal_blake.main_commit": 1.964955,
+    "terminal_blake.interaction_generation": 1.148262,
+    "terminal_blake.interaction_commit": 2.21843,
+    "draw_random_coeff": 8e-06,
+    "composition_trace_extract": 1.2e-05,
+    "composition_evaluation": 5.557198,
+    "composition_interpolate_and_split": 0.05427,
+    "composition_commit": 0.588827,
+    "oods_point_and_mask_points": 7e-05,
+    "sampled_value_evaluation": 0.223979,
+    "sampled_value_channel_mix": 0.000124,
+    "fri_quotient_build_and_commit": 1.440885,
+    "proof_of_work": 5e-06,
+    "fri_decommit": 0.120047,
+    "trace_decommit": 0.81494,
+    "constraint_check_and_assembly": 0.000381
+  },
+  "stage_seconds_parallel": {
+    "terminal_blake.main_generation": 1.464923,
+    "terminal_blake.main_commit": 1.994819,
+    "terminal_blake.interaction_generation": 1.138085,
+    "terminal_blake.interaction_commit": 2.205474,
+    "draw_random_coeff": 7e-06,
+    "composition_trace_extract": 1.2e-05,
+    "composition_evaluation": 4.779545,
+    "composition_interpolate_and_split": 0.055274,
+    "composition_commit": 0.593119,
+    "oods_point_and_mask_points": 6.7e-05,
+    "sampled_value_evaluation": 0.218223,
+    "sampled_value_channel_mix": 0.000119,
+    "fri_quotient_build_and_commit": 1.430989,
+    "proof_of_work": 4e-06,
+    "fri_decommit": 0.116915,
+    "trace_decommit": 0.805137,
+    "constraint_check_and_assembly": 0.000397
+  },
+  "memory": {
+    "serial_requested_peak_bytes": 8667031932,
+    "parallel_requested_peak_bytes": 8667031932,
+    "parallel_RSS_peak_bytes": 8667283456,
+    "final_live": 0,
+    "final_external": 0,
+    "new_heap_or_global_cache": false
+  },
+  "qualification": {
+    "component_domain_serial_parallel_exact_values": true,
+    "four_worker_pool_and_saturated_lease_serial_fallback": true,
+    "previous_row_wrap_and_both_coset_halves": true,
+    "failure_wave_joins_all_jobs_and_returns_admission": true,
+    "domain_unit_shared_cap_bytes": 2147483648,
+    "domain_unit_final_live": 0,
+    "retained_identical_R7_Blake_proof_fresh_source_only_and_nine_controls": true,
+    "retained_fresh_source_only_total_ns": 15007697459,
+    "retained_fresh_root_read_verify_ns": 18998708,
+    "bounded_same_source_actual_reprove_byte_parity": true,
+    "native_reproof_or_guest_execution": false,
+    "heavy_run": false,
+    "scalar_reference_evaluators_unchanged": true,
+    "R6_authorities_or_default_pipeline_changed": false
+  },
+  "implementation": [
+    "One bounded available-worker lease from the existing proof pool; no second pool.",
+    "Unbound helper and exhausted/racing admission paths use the same serial range kernel.",
+    "Each helper receives a disjoint pack-aligned interval, with global previous-row indices and shared read-only prepared columns.",
+    "Accumulator copies disable shared fresh-index mutation; zeroed/existing buckets retain additive semantics.",
+    "All spawned jobs and structured slots finish before error propagation, column cleanup and lease release.",
+    "No heap allocation in row dispatch; existing reserved pool stacks remain outside payload accounting as before."
+  ],
+  "scope": [
+    "Single ReleaseSafe qualification samples, not a statistical speed claim.",
+    "Composition is 14% lower and proving about 5% lower in these two samples; all other stage differences may include noise.",
+    "Serial column expansion in native_dot/polynomials.zig remains unchanged.",
+    "Unit fixture now derives actual source logs rather than assuming the stale minimum-log5; no production defect was found.",
+    "Old retained proof plus root metadata and templates exactly equal the new outputs; the independent fresh receiver already accepted those identical bytes under the new code.",
+    "No extra fresh verification was repeated after exact three-file byte comparison."
+  ],
+  "artifacts": {
+    "serial": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-r7-terminal-blake-physical-v1",
+    "parallel": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-r7-terminal-blake-parallel-rows-v1"
+  },
+  "logs": [
+    "/private/tmp/op-r7-parallel-domain-unit.log",
+    "/private/tmp/op-r7-parallel-retained-fresh.log",
+    "/private/tmp/op-r7-parallel-actual-prove.log"
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "schema": "op-direct-native-group-actual-small-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "native_members": {
+    "CPU": 1,
+    "detached_sponge": 1,
+    "local_GKR_Keccak": 1,
+    "classic_SHA256": 1
+  },
+  "groups": 1,
+  "fold_proofs": 0,
+  "intermediate_wrapped_proofs": 0,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "execution_only": true,
+  "production_admission": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "optimize": "ReleaseFast",
+  "workers": 8,
+  "proof_and_source": {
+    "root.bin": {
+      "bytes": 750068,
+      "sha256": "2e97b43c82c8817cfb6d155e31754dbcab8eebb43f9d45e321a393120b49b24a"
+    },
+    "root.json": {
+      "bytes": 40278,
+      "sha256": "cb5d58be132d0745423ef0b9e532cd2ae1dbd85b83f8cdf8dd519383da00103e"
+    },
+    "templates.bin": {
+      "bytes": 741,
+      "sha256": "1df72a61eaf8059b6e1431ac2849cf3e4321253bc01465b04fcbe4e61e8ffd48"
+    },
+    "node-0.bin": {
+      "bytes": 750068,
+      "sha256": "2e97b43c82c8817cfb6d155e31754dbcab8eebb43f9d45e321a393120b49b24a"
+    }
+  },
+  "source_identity": "7858014eeaf2eb196cbffaf46d8db650bb0366d3d171c6d21cbdb9f5884dc914",
+  "native_bundle_sha256": "4e7c5dc1ca425a57754eae3f913932da9e69c8fab7a920dcb08a279b0b00e17f",
+  "model": {
+    "raw": [
+      73080,
+      11562353,
+      3451,
+      173939,
+      65536,
+      321145
+    ],
+    "rows": [
+      131072,
+      16777216,
+      4096,
+      262144,
+      65536,
+      524288
+    ],
+    "fixed_cells": 158412800,
+    "main_cells": 339296256,
+    "interaction_cells": 333021184,
+    "total_cells": 830730240
+  },
+  "timing_ns": {
+    "root_producer_including_native_reverification_and_source_setup": 121132667625,
+    "single_node_prove_persist_verify": 93372967708,
+    "fresh_source_receiver_in_same_test": 26616926166,
+    "separate_native_bin_absent_receiver": 26646910042,
+    "fresh_CLI_source_group_and_fold_key_construction": 22608739250,
+    "fresh_CLI_physical_root_read_and_verification": 30151292
+  },
+  "timing_scope": "Qualification during concurrent engineering. Original native proof production is additional and NOT rerun here. No controlled speed ratio or heavy-block result.",
+  "stage_seconds": {
+    "op_p2.main_generation": 1.6215,
+    "op_p2.main_commit": 30.773861,
+    "op_p2.interaction_generation": 0.824081,
+    "op_p2.interaction_commit": 27.223746,
+    "draw_random_coeff": 1.2e-05,
+    "composition_trace_extract": 1.9e-05,
+    "composition_evaluation": 3.392224,
+    "composition_interpolate_and_split": 0.12532,
+    "composition_commit": 16.409842,
+    "oods_point_and_mask_points": 6.9e-05,
+    "sampled_value_evaluation": 0.292908,
+    "sampled_value_channel_mix": 0.000718,
+    "fri_quotient_build_and_commit": 9.427569,
+    "proof_of_work": 7e-06,
+    "fri_decommit": 0.357178,
+    "trace_decommit": 2.699029,
+    "constraint_check_and_assembly": 0.000108
+  },
+  "memory": {
+    "requested_peak_bytes_not_RSS": 18884891914,
+    "common_cap_bytes": 34359738368,
+    "final_live_bytes": 0,
+    "final_external_reservations": 0,
+    "fresh_CLI_requested_peak_bytes": 10404702986
+  },
+  "qualification": {
+    "all_freshly_reverified_original_native_proofs": true,
+    "complete_RAM_KIO_Wire_closure": true,
+    "pinned_ELF_input_image_terminal43B": true,
+    "physical_one_group_root": true,
+    "independent_source_only_receiver": true,
+    "separate_process_native_bin_physically_absent": true,
+    "eight_retained_physical_root_metadata_attacks": true,
+    "restored_positive_control": true,
+    "source_only_key_not_producer_VK": true,
+    "canonical_mixed_size_numeric_planner_exhaustive": true,
+    "actual_mixed_group_fold_runtime_physical": false
+  },
+  "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-physical-v1",
+  "remaining": [
+    "Actual multi-group fold runtime gate including odd source counts",
+    "Final-only b2/q144 control and R7 dot-group source experiment; no measured improvement claimed",
+    "Resource-derived group selection on heavy classes",
+    "Heavy tenfold goal remains unachieved; no heavy run repeated"
+  ]
+}

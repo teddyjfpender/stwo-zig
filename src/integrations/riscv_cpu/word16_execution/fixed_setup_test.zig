@@ -268,3 +268,41 @@ test "different immutable layouts share exact coefficient payloads and retain cu
     try sharedLayoutCase(std.testing.allocator);
     try std.testing.checkAllAllocationFailures(std.testing.allocator, sharedLayoutCase, .{});
 }
+
+test "lifted source roots cannot alias different constant-column geometries" {
+    const a = std.testing.allocator;
+    var values: [256]M = undefined;
+    for (&values, 0..) |*value, i| value.* = M.fromCanonical(@intCast(i * 7 + 3));
+    const short = [_]M{M.zero()} ** 32;
+    const long = [_]M{M.zero()} ** 64;
+    const first = [_]engine.pcs.ColumnEvaluation{ .{ .log_size = 8, .values = &values }, .{ .log_size = 5, .values = &short } };
+    const second = [_]engine.pcs.ColumnEvaluation{ .{ .log_size = 8, .values = &values }, .{ .log_size = 6, .values = &long } };
+    var x = try Key.sealWithSuite(a, &first, Key.Suite.experimentalFold4());
+    defer x.deinit();
+    var y = try Key.sealWithSuite(a, &second, Key.Suite.experimentalFold4());
+    defer y.deinit();
+    // Lifted leaf values are identical: the source root alone does not bind
+    // the native height of a constant column. Candidate identities do.
+    try std.testing.expectEqualSlices(u8, &x.root, &y.root);
+    var cache = try Fixed.Cache.init(a, 16 << 20);
+    defer cache.deinit();
+    const W = @import("../word16_global_execution/services/gkr_local/worker_protocol.zig");
+    const Binding = @import("../word16_global_execution/services/gkr_local/fixed_authority.zig").Binding;
+    var bound = try Binding.acquire(&cache, &x, W.Candidate.configFor(.conjectured128_b2_q108_p20_fold4));
+    defer bound.deinit();
+    try std.testing.expect(!bound.matchesSource(&y));
+    const logs = [_]u32{ y.tree.columns[0].log_size, y.tree.columns[1].log_size };
+    var restored = try Key.rootOnly(a, y.suite, y.root, &logs);
+    defer restored.deinit();
+    try std.testing.expectError(error.MissingFixedSetupCoefficients, cache.acquireFromKey(&restored, descriptor(1)));
+    const good_logs = [_]u32{ x.tree.columns[0].log_size, x.tree.columns[1].log_size };
+    var good = try Key.rootOnly(a, x.suite, x.root, &good_logs);
+    defer good.deinit();
+    var reused = try cache.acquireFromKey(&good, descriptor(1));
+    defer reused.deinit();
+    try std.testing.expectEqualSlices(u8, &bound.fixed_identity, &reused.key.identity);
+    const swapped_logs = [_]u32{ good_logs[1], good_logs[0] };
+    var swapped = try Key.rootOnly(a, x.suite, x.root, &swapped_logs);
+    defer swapped.deinit();
+    try std.testing.expectError(error.MissingFixedSetupCoefficients, cache.acquireFromKey(&swapped, descriptor(1)));
+}

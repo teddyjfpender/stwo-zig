@@ -1,0 +1,26 @@
+{
+  "elf": "/workspace/opstack-runs/sha/guest.elf",
+  "input": "/workspace/opstack-runs/sha-small-bench/120794432.opx",
+  "expected_output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+  "elf_sha256": "255089fc41b82e17ee4723d510e4626c0d2d47122551dfdb5caea3ed88eeb3db",
+  "input_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+  "max_steps": 970703,
+  "execution_profile": "ethereum_services_v3",
+  "symbols": {
+    "input_start": 8388608,
+    "input_end": 25165824,
+    "halt_flag": 25165824,
+    "output_len": 25165828,
+    "output_data": 25165832,
+    "output_end": 29360128,
+    "stack_bottom": 29360128,
+    "stack_top": 46137344,
+    "heap_start": 46285584,
+    "heap_end": 268435456
+  },
+  "terminal_pc": 2748,
+  "batch_steps": 262143,
+  "output_directory": "/workspace/opstack-runs/cpu-small-1g/proof",
+  "workers": 1,
+  "max_batches": 0
+}

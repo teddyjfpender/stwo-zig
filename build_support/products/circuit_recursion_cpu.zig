@@ -109,6 +109,17 @@ pub fn addProduct(context: Context) void {
         "Test the circuit recursion CPU product's commands and embedded assets",
     );
     test_step.dependOn(&context.b.addRunArtifact(tests).step);
+    const shadow_root = graph.create(context.b, .{
+        .product = product(.@"test"),
+        .root_source_file = "src/integrations/circuit_cpu/om31/shadow_columns.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(shadow_root);
+    const shadow_tests = context.b.addTest(.{ .root_module = shadow_root });
+    const shadow_run = context.b.addRunArtifact(shadow_tests);
+    context.b.step("test-circuit-om31-shadow-columns", "Qualify exact bounded OM31 quotient-domain column preparation").dependOn(&shadow_run.step);
+    test_step.dependOn(&shadow_run.step);
     const help = context.b.addRunArtifact(installed.executable);
     help.addArg("--help");
     test_step.dependOn(&help.step);
@@ -336,8 +347,8 @@ fn createCompositionModule(
         .linkage = .static,
         .root_module = b.createModule(.{ .target = target, .optimize = optimize, .pic = true, .link_libc = true }),
     });
-    for (0..11) |index| kernels.root_module.addCSourceFile(.{
-        .file = directory.path(b, b.fmt("circuit_cpu_air_{d}.c", .{index})),
+    for (0..11) |index| inline for (.{ "", "_om31" }) |suffix| kernels.root_module.addCSourceFile(.{
+        .file = directory.path(b, b.fmt("circuit_cpu_air{s}_{d}.c", .{ suffix, index })),
         .flags = &.{ "-std=c11", "-O3", "-fstrict-aliasing", "-fno-vectorize", "-fno-slp-vectorize", "-gline-tables-only" },
     });
     module.linkLibrary(kernels);

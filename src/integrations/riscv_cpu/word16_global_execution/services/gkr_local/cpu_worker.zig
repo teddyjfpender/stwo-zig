@@ -283,6 +283,7 @@ pub const CpuWorker = struct {
         for (&self.source.bulk) |*bulk| if (bulk.*) |*src| @import("bulk_metadata.zig").retireLocal(src);
         if (self.source.sha256) |*bridge| releaseBridgeLocals(bridge);
         if (self.source.arith256_mod) |*bridge| releaseBridgeLocals(bridge);
+        if (self.source.tower) |*bridge| releaseBridgeLocals(bridge);
         for (&self.source.curves) |*bridge| if (bridge.*) |*v| releaseBridgeLocals(v);
         for (&self.source.sponge) |*sponge_source| if (sponge_source.*) |*v| @import("sponge_metadata.zig").retireLocal(v);
         for (&self.source.ls_dword) |*dword_source| if (dword_source.*) |*v| {

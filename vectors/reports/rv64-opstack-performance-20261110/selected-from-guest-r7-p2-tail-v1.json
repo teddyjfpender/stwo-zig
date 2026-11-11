@@ -1,0 +1,46 @@
+{
+  "schema": "op-selected-terminal-end-to-end/v1",
+  "scope": "Fresh selected guest execution and native proving, native fresh verification, grouped root source and both FIXED builds, root proving and self-verification in one process; independent final receiver additional",
+  "native_produce_ns": 9158938958,
+  "root_producer_ns": 16465214292,
+  "total_producer_ns": 25624153250,
+  "workers": 16,
+  "requested_peak_bytes": 8667033468,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "implementation_commit": "ab5cd7c64",
+  "block": 120794432,
+  "instructions": 796406,
+  "optimize": "ReleaseFast",
+  "root_bytes": 1263064,
+  "root_sha256": "8cc0c6259801fd7939c94ac4fd8b44bcb519adf3876f86b47cd39f3ce8773d63",
+  "native_bundle_bytes": 5045776,
+  "root_prove_ns": 9786785709,
+  "root_self_verify_ns": 9923875,
+  "proof_parity": {
+    "native_bundle": true,
+    "native_metadata": true,
+    "public_cells": true,
+    "root": true,
+    "root_metadata": true,
+    "templates": true
+  },
+  "fresh_source_only": {
+    "native_proof_bytes_read": 0,
+    "source_setup_ns": 4556292875,
+    "root_read_verify_ns": 9293417,
+    "all_controls_total_ns": 6579571916,
+    "negative_controls": 9,
+    "peak_requested_bytes": 4510553430
+  },
+  "final_heap_bytes": 0,
+  "final_external_bytes": 0,
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/selected-from-guest-p2-tail-v1-root",
+  "limits": [
+    "Single qualification observation; not quiet repeated benchmark",
+    "Producer total excludes config parsing and worker-pool initialization; independent final receiver additional",
+    "Small actual execution only; not heavy block or anchored derivation",
+    "No production or settlement admission"
+  ]
+}

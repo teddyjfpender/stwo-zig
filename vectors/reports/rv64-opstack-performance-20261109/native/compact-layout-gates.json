@@ -1,0 +1,47 @@
+{
+  "schema": "op-compact-native-qualification/v1",
+  "scope": "two-shard mixed execution fixture; not a block benchmark",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "steps": 19,
+  "cpu_proofs": 2,
+  "truth_proofs": 2,
+  "sha_calls": 2,
+  "arith_calls": 2,
+  "bulk_calls": 2,
+  "ordinary_native_proof_bytes": 3915744,
+  "compact_native_proof_bytes": 3899052,
+  "compact_layout": {
+    "fused_tail": true,
+    "u8_pairs": true,
+    "ls_dword": true,
+    "compact_decode": true,
+    "reserve_arithmetic_row": true
+  },
+  "fresh_source_receiver": true,
+  "global_ram_wire_closed": true,
+  "bound_main_parking": true,
+  "parking_mapped_bytes_after_completion": 0,
+  "parking_reserved_bytes_after_completion": 0,
+  "unfiltered_command": "zig build test-riscv64-op-native-join -Doptimize=ReleaseSafe -j1",
+  "unfiltered_tests_passed": 86,
+  "unfiltered_tests_failed": 0,
+  "compact_miller_join": {
+    "command": "zig build test-riscv64-op-native-join -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP compact actual Miller CPU'",
+    "steps": 1,
+    "cpu_native_bytes": 570728,
+    "miller_native_bytes": 559408,
+    "owner_gkr_verified": true,
+    "all_80_packet_ram_words_bound": true,
+    "ram_wire_closed": true,
+    "fresh_source_receiver": true,
+    "recursive_execution_acceptance": false
+  },
+  "notes": [
+    "The first broad run found a stale field-count test; the corrected test explicitly excludes appended Zbb and OP fields from the unchanged legacy V3 statement projection.",
+    "Compact source programs are prepared before capture and reconstructed independently at reception.",
+    "No legacy OP admission was broadened.",
+    "No new complete heavy-block proving time or tenfold speedup is established by this fixture."
+  ]
+}

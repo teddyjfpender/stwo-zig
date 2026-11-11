@@ -1,0 +1,58 @@
+{
+  "status": "qualified complete four-pair shared Miller source/witness only",
+  "production_admitted": false,
+  "security_qualified": false,
+  "scope": "no physical AIR/VM/recursive or complete pairing admission; finite canonical P/Q input fixture",
+  "program": {
+    "groups": 4,
+    "lines_per_group": 87,
+    "consumed_lines": 348,
+    "shared_squares": 63,
+    "sparse_products": 347,
+    "source_only_constant_folds": [
+      "omit literalONE square",
+      "alias first literalONE-times-sparse factor into12accumulatorIDs"
+    ],
+    "line_scale_writes": 1392,
+    "prep_scalar_writes": 8208,
+    "G1_oncurve_rows": 16,
+    "scalar_writes": 14536,
+    "initial_fields": 33,
+    "global_values": 14569,
+    "SSA_read_mass_including_zero_and_z_exports": 117260,
+    "max_fanout": 1024,
+    "quadratic_terms": 56589,
+    "linear_terms": 1412,
+    "max_terms_per_expression": 13,
+    "naive_MAC6_source_groups": 17495
+  },
+  "initial_authority": "fourP(x,y)+fourQ(Fp2x,Fp2y)+nineQ-independentliteralfields; G1zero checks source-owned; Qcurve/subgroup still open",
+  "oracle": {
+    "source_commit": "94d996702",
+    "sha256": "340a9899c91ff52a0307fe5b3ab40c8f64809d5a1baeaa208e7d94d12987da81",
+    "comparison": "all12resultfields equal independent original multiMiller and bn254_residue.POSITIVE.z"
+  },
+  "passed": [
+    "all16ReleaseSafe tests",
+    "full canonical unique-ID source DAG and exact348line order/fanout",
+    "16source G1curve relations and mandatoryzero markers",
+    "coherently replayed wrong line order/sign/preparation state changesz and fails source",
+    "canonicalinput,localwrite,finaloutput,sourceexpression and publicstatement mutations"
+  ],
+  "command": "zig test -O ReleaseSafe --dep stwo_core -Mroot=src/frontends/riscv/rv64_bn254_miller_test_root.zig -O ReleaseSafe -Mstwo_core=src/core/mod.zig",
+  "performance_claim": "none; no wide physical bank or heavy VM execution",
+  "remaining": [
+    "reviewed MAC6 source lowering/carry/range/localSSA physical authority",
+    "complete subgroup +sameQ/sourceinitial join",
+    "actual Millerz IDs shared with residue source, nothostdigests",
+    "authenticated guestinput/VM and recursive root admission",
+    "production security ledger/capacity"
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/bn254_miller/mod.zig": "c57330cd8d56cb168f560b712b4881e71ca2e73e9e1904cb2531ce4f55252391",
+    "src/frontends/riscv/rv64/air/delegations/bn254_miller/spec.zig": "bc97122ad73e55baec1c68b69c6dda3dfa56363586de000a79d8f8bfd37b1f59",
+    "src/frontends/riscv/rv64/air/delegations/bn254_miller/tests.zig": "1bf1c99149eb6955b23dba8c71eb70e002d0a37fb625ebe622788175614ecccf",
+    "src/frontends/riscv/rv64/air/delegations/bn254_miller/vectors.zig": "8df9e76a56b1a2529ec74d6e8826a46a0653e82bd0a3cc00545b140a42989fa7",
+    "src/frontends/riscv/rv64/air/delegations/bn254_miller/witness.zig": "07a5c1545bfbfebaf59e958e679be54e81cf461ab4a9a18f99dd658f4957b9dd"
+  }
+}

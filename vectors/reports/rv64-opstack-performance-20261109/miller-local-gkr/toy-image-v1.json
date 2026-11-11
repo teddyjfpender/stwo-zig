@@ -1,0 +1,41 @@
+{
+  "schema": "op-miller-toy-image-v1",
+  "scope": "test-only fully owned native ECALL image; no ELF/Kona/ABI or physical execution proof qualification",
+  "program": {
+    "words": [
+      115,
+      111
+    ],
+    "entry": 4096,
+    "terminal_pc": 4100,
+    "instructions": 1
+  },
+  "packet_words": 80,
+  "readonly_halt_word": 78,
+  "readonly_output_length_word": 79,
+  "output_bytes": 43,
+  "independently_pinned": [
+    "Canonical instruction bytes and all80 initial packet words",
+    "Immutable memory permissions and source program identity",
+    "Native/ROM/control profiles",
+    "All32 initial registers",
+    "All ABI symbol fields, entry/terminal PC and prefix step count",
+    "Expected output recomputed from independently selected service input"
+  ],
+  "owner_fully_initialized_and_deinitializable": true,
+  "production_constructor_available": false,
+  "checks_passed": [
+    "Fresh owners derive equal identity/policy",
+    "Absorbing terminal ROM word is fetched and admitted",
+    "Readonly halt/output-length tail and immutable executable writes refuse",
+    "Terminal helper accepts exact output and rejects wrong PC/halt/length/output"
+  ],
+  "command": "zig build test-riscv64-op-native-join -Doptimize=ReleaseSafe -Driscv-test-filter='OP Miller toy image' -j1",
+  "log": "/private/tmp/op-miller-toy-image-focused.log",
+  "pending": [
+    "Complete local-GKR suite CPU+Miller physical execution",
+    "Physical recursive root and fresh source-only root reception"
+  ],
+  "heavy_execution_or_proof_rerun": false,
+  "production_admission": false
+}

@@ -1,0 +1,187 @@
+{
+  "schema": "stwo.opstack.extension-codegen-review.v1",
+  "scope": "Execution and source geometry qualification; complete proving-time improvement not yet measured",
+  "selected_helpers": [
+    "quadratic mul_assign",
+    "Fp6 mul_by_01",
+    "Fp12 mul_by_034"
+  ],
+  "selected_elf_sha256": "5e3a6b7fba09296780c5e4675c37a2f4e43a901a41ff0ea68d94a10996b859f5",
+  "control_elf_sha256": "4d15b8f6c7291bba4311b592f9f62153a4f52a7e1f6cb4f679f4c534a7e1b302",
+  "rows": [
+    {
+      "block": 121065789,
+      "control_instructions": 425537671,
+      "selected_instructions": 380167068,
+      "change_pct": -10.661947482435696,
+      "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+      "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+      "curve_calls": [
+        19465,
+        31908,
+        678888,
+        0,
+        0,
+        0,
+        0
+      ],
+      "independent_oracle_agreement": true,
+      "oracle_sha256": "0b2f29dd77c511a7328fbac3b149884c7419ef826ec868e8d28991102ce3dbdb"
+    },
+    {
+      "block": 120794432,
+      "control_instructions": 796452,
+      "selected_instructions": 796470,
+      "change_pct": 0.0022600232029157397,
+      "input_sha256": "610ca2169a1f3b8aa25f354a81325f2b448d1644947828bce6c5c3bfd3d42887",
+      "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "independent_oracle_agreement": true,
+      "oracle_sha256": "7875f0147d7636f00300d363afdda3b16ed06ed7452a206100ca0cddb7e09b4f"
+    },
+    {
+      "block": 121057303,
+      "control_instructions": 5926830,
+      "selected_instructions": 5926158,
+      "change_pct": -0.011338270205152323,
+      "input_sha256": "7fd22876560553e94cc3e244b0adde554a471b9e446d7465c313d56f96b914e9",
+      "output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "independent_oracle_agreement": true,
+      "oracle_sha256": "6346a670d152e5424a1684f946966a1079ff3c0fd1df435981a8f039e7b6841b"
+    }
+  ],
+  "sweep": [
+    {
+      "name": "q_mul_add",
+      "selected": [
+        "q_add",
+        "q_mul"
+      ],
+      "instructions": 386575759,
+      "text_bytes": 2682712,
+      "elf_bytes": 3622784,
+      "elf_sha256": "c3e6e8019e0bcabd3faafa8ee8d2580665b733c8609b56676e64d5a19efaa78b",
+      "config": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/extension-sweep-q_mul_add.config.json",
+      "native_output_accepted": true,
+      "independent_oracle_pending": true
+    },
+    {
+      "name": "sparse",
+      "selected": [
+        "fp12",
+        "fp6"
+      ],
+      "instructions": 418996347,
+      "text_bytes": 2360792,
+      "elf_bytes": 3269360,
+      "elf_sha256": "b412c778c0e8c3d00d96a843051e1cb8a99712598d44a404961e9c4a0cba67f4",
+      "config": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/extension-sweep-sparse.config.json",
+      "native_output_accepted": true,
+      "independent_oracle_pending": true
+    },
+    {
+      "name": "q_mul",
+      "selected": [
+        "q_mul"
+      ],
+      "instructions": 389556181,
+      "text_bytes": 2686656,
+      "elf_bytes": 3625928,
+      "elf_sha256": "6f62b54bff5ca3430e9de6bd8f579fab9814c78d646d03fe83c91d6103bbafb6",
+      "config": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/extension-sweep-q_mul.config.json",
+      "native_output_accepted": true,
+      "independent_oracle_pending": true
+    },
+    {
+      "name": "q_mul_sparse",
+      "selected": [
+        "fp12",
+        "fp6",
+        "q_mul"
+      ],
+      "instructions": 380167068,
+      "text_bytes": 2737980,
+      "elf_bytes": 3678416,
+      "elf_sha256": "5e3a6b7fba09296780c5e4675c37a2f4e43a901a41ff0ea68d94a10996b859f5",
+      "config": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/extension-sweep-q_mul_sparse.config.json",
+      "native_output_accepted": true,
+      "independent_oracle_pending": true
+    },
+    {
+      "name": "cubic",
+      "selected": [
+        "c_add",
+        "c_mul"
+      ],
+      "instructions": 425083720,
+      "text_bytes": 2396120,
+      "elf_bytes": 3305896,
+      "elf_sha256": "5e40471190dd6308c493e322b9378214c1223d790b1156bdfd658c7eea603558",
+      "config": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/extension-sweep-cubic.config.json",
+      "native_output_accepted": true,
+      "independent_oracle_pending": true
+    }
+  ],
+  "code_size": {
+    "control_text_bytes": 2336880,
+    "all_six_helpers_text_bytes": 4792884,
+    "broader_inline2_text_bytes": 5864852,
+    "selected_text_bytes": 2737980
+  },
+  "first_prefix_source_geometry": {
+    "scope": "Same 4194303-retirement prefix budget; endpoints differ. This tests shape, not equivalent semantic progress or full-block cells.",
+    "control_program_log": 20,
+    "selected_program_log": 20,
+    "control_cells": [
+      73542144,
+      376296288,
+      261417472
+    ],
+    "selected_cells": [
+      73542144,
+      376296288,
+      261417472
+    ],
+    "control_sha256": "a300eb60d1bb0982c0a40a5ec7d9f840338cfa63ab0a951a449f89db9406baee",
+    "selected_sha256": "0ca59330c2fa0a72164b9f0ff2ea3c7b16cef451b1e79a358de4dcd345e92fe7"
+  },
+  "rejected": {
+    "broader_inline": {
+      "instructions": 368918576,
+      "text_bytes": 5864852,
+      "reason": "Only 3.09M additional instruction saving over broad trial, with still larger text; not adopted"
+    },
+    "inplace_fp2": {
+      "instructions": 423222591,
+      "text_bytes": 2335032,
+      "host_random_differential_pairs": 128,
+      "native_and_unicorn_accepted_blocks": [
+        120794432,
+        121057303,
+        121065789
+      ],
+      "reason": "About 0.54% saving does not justify a new two-trait specialization API and duplicate packet code; source removed"
+    }
+  },
+  "default_existing_variants_keep_original_formulas_and_inlining_policy": true,
+  "service_packet_or_air_changes": false,
+  "full_new_guest_proof_pending": true,
+  "raw_artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu"
+}

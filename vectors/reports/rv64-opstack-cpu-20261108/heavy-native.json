@@ -1,0 +1,639 @@
+{
+  "schema": "stwo.opstack.heavy-native-proof.v1",
+  "block": 121065789,
+  "scope": "complete OP execution and native service closure; no derivation or recursive root",
+  "proof_verified": true,
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "security_qualified": false,
+  "guest_instructions": 425537671,
+  "elf_sha256": "4d15b8f6c7291bba4311b592f9f62153a4f52a7e1f6cb4f679f4c534a7e1b302",
+  "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+  "cpu_proofs": 102,
+  "service_proofs": 24,
+  "expected_output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+  "producer": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "produce-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-52g/request.json",
+      "-",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-52g/proof",
+      "0",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-52g/resources.json"
+    ],
+    "wall_ns": 1723236392500,
+    "peak_rss_bytes": 50392776704,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 8445.70786,
+    "system_cpu_s": 600.419883,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "fresh_receiver": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "verify-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-52g/request.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-52g/proof",
+      "4294967296",
+      "25769803776"
+    ],
+    "wall_ns": 38325366417,
+    "peak_rss_bytes": 6491848704,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 211.135235,
+    "system_cpu_s": 0.97268,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "corruption_rejected": {
+    "tamper": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-52g/request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-52g/proof",
+        "4294967296",
+        "25769803776"
+      ],
+      "wall_ns": 414796583,
+      "peak_rss_bytes": 636420096,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 0.37987899999999997,
+      "system_cpu_s": 0.02681,
+      "returncode": 1,
+      "timed_out": false
+    },
+    "tamper-rehashed": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-52g/request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-52g/proof",
+        "4294967296",
+        "25769803776"
+      ],
+      "wall_ns": 35964155333,
+      "peak_rss_bytes": 6490193920,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 200.389109,
+      "system_cpu_s": 0.728904,
+      "returncode": 1,
+      "timed_out": false
+    }
+  },
+  "resources": {
+    "gkr_bytes": 8589934592,
+    "global_bytes": 4294967296,
+    "retained_frontend_bytes": 55834574848,
+    "disk_bytes": 274877906944,
+    "fixed_setup_bytes": 4294967296,
+    "park_main": true,
+    "recycler_cache_bytes": 67108864,
+    "keccak_max_log": 16,
+    "capture_options": {
+      "execution_workers": 0,
+      "max_inflight_packets": 1,
+      "spill": {
+        "directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-capture-scratch",
+        "bytes": 274877906944
+      }
+    },
+    "schedule": {
+      "lanes": 1,
+      "workers_per_lane": 8,
+      "memory_cap_bytes": 8589934592,
+      "heaviest_first": true
+    },
+    "defer_local_binding": true
+  },
+  "timing_caveat": "Qualification run; recursion builds/tests and the SIMD root trial overlapped part of production. Not a quiet benchmark.",
+  "proof_files": {
+    "cells.bin": {
+      "bytes": 24837946,
+      "sha256": "dab88742ff4ff6e781abd771e50a5ce847c92a9a4447639417ef65d8b6971eb6"
+    },
+    "cpu-0.bin": {
+      "bytes": 2999560,
+      "sha256": "3b9149e9b0f6473b0e256ad52c3b6d1ea8bd8faa7b799a526cd96abbdbb21ef6"
+    },
+    "cpu-1.bin": {
+      "bytes": 3029912,
+      "sha256": "b0d3b24d22e2f3ec77e8337efae89ba4fa05b4e449adf6b6c59913b065e506b4"
+    },
+    "cpu-10.bin": {
+      "bytes": 2854952,
+      "sha256": "9c5116d27dbb7cb8170db5f4e9183d6fe918315659f4dd48f8077cf9b7a04c86"
+    },
+    "cpu-100.bin": {
+      "bytes": 2522992,
+      "sha256": "e278a8305aa359487226c9ab88bd8f7a8cbe43498784d8f5f1d78ce4b3d6e85a"
+    },
+    "cpu-101.bin": {
+      "bytes": 2486344,
+      "sha256": "c6c4a7145c8a61731f7d32621e0692668d8ee908591945b616fa29e393c9e0cd"
+    },
+    "cpu-11.bin": {
+      "bytes": 2855304,
+      "sha256": "2144a476808e2ec782bd8c9ea2c1d491cec792f52af0f1be627d4cdf30980824"
+    },
+    "cpu-12.bin": {
+      "bytes": 2849064,
+      "sha256": "26b9964900a3e1756b4152623bae4ec48a0cedd47a370f087a33fb251280e074"
+    },
+    "cpu-13.bin": {
+      "bytes": 2855848,
+      "sha256": "042687dbe746ccc8cc7352f206366f44eae62951a4a79fea5251d1c98f9c9f0b"
+    },
+    "cpu-14.bin": {
+      "bytes": 2861928,
+      "sha256": "c73b518ee4fbe01c56ced323fe6491dd3403f485e31b83e20b6e529cce523513"
+    },
+    "cpu-15.bin": {
+      "bytes": 2895776,
+      "sha256": "e467463ac7a6397d6885a7bd37633e8735ebee8da6dfd7dedeca7aaddd8ad84f"
+    },
+    "cpu-16.bin": {
+      "bytes": 2698976,
+      "sha256": "5b279c2dc9cd396db9ab2fe5a7e96782ea10863d0b86adc9c025ce68c35cf6ed"
+    },
+    "cpu-17.bin": {
+      "bytes": 2904000,
+      "sha256": "724a469c1711b484d088648203be5a0363334d43603f9f266606f338ee879281"
+    },
+    "cpu-18.bin": {
+      "bytes": 2858824,
+      "sha256": "c65894eae9b5cce17fccf2d861843817bafabe294002f2e51e44800cedc66114"
+    },
+    "cpu-19.bin": {
+      "bytes": 2901704,
+      "sha256": "7e7087326194603851774a3f2235495ad2cf26542c3cf6f159a08fcccf4e58fe"
+    },
+    "cpu-2.bin": {
+      "bytes": 2928616,
+      "sha256": "b21ca6b6787464bc96e5db81d8cf329954778c0d54e1f193327c458307f43669"
+    },
+    "cpu-20.bin": {
+      "bytes": 2899840,
+      "sha256": "493e3b3faadbb9ba5f909e17462d1278a2583cc2991e9dd45297ac06591211a5"
+    },
+    "cpu-21.bin": {
+      "bytes": 1619672,
+      "sha256": "8d2079efd1159e2f0d10cc8c4334249b5d57851d256e7b4a9aaac0a1bc590de3"
+    },
+    "cpu-22.bin": {
+      "bytes": 2855176,
+      "sha256": "dfa723d5f0c7461073204a036e82b02a1c838801a5fc49e503548c77967b0d55"
+    },
+    "cpu-23.bin": {
+      "bytes": 2850696,
+      "sha256": "9ad98e032a4cfb11ac64375a45db1477bda10effd64892377886fcd9e14ab297"
+    },
+    "cpu-24.bin": {
+      "bytes": 2860808,
+      "sha256": "4d337578042a28e03a811f3f09680e512f058fbeac4869973ebc5e118efeccdd"
+    },
+    "cpu-25.bin": {
+      "bytes": 2853224,
+      "sha256": "480b105a8664c2a36c1df7b4ee646c6441fa434620dfb30658a45d2b4beeba8b"
+    },
+    "cpu-26.bin": {
+      "bytes": 2847688,
+      "sha256": "90f73c64a610382f6b403064b7ec602c0617faab30f0f82d116500f001353ff7"
+    },
+    "cpu-27.bin": {
+      "bytes": 2856936,
+      "sha256": "555f39fae346842a712da60065548675ab0b1d4c87ce7fe966463a543292b3f6"
+    },
+    "cpu-28.bin": {
+      "bytes": 2856328,
+      "sha256": "7ad51eea08c0fc7aa09b26051b6cb1da4b0b19ca330ff049abe7436587db359e"
+    },
+    "cpu-29.bin": {
+      "bytes": 2900544,
+      "sha256": "5696994599542d8451826c5a5f569d104befebab06be14f6c140a86b89c83dfe"
+    },
+    "cpu-3.bin": {
+      "bytes": 3137944,
+      "sha256": "8e8ed40ae03833852c767562a895f4fdc9a85ad81fe4b9fdcdc46da0434f16b8"
+    },
+    "cpu-30.bin": {
+      "bytes": 2897088,
+      "sha256": "8e99287f71bdda3793f5db5b3cab8fe8edbcf34f09ff69cba12c7cf27b19ee5e"
+    },
+    "cpu-31.bin": {
+      "bytes": 2902592,
+      "sha256": "972244646a4851640b54498845d006554ae9eda84b5f3ad75c9dc908e24ce3ce"
+    },
+    "cpu-32.bin": {
+      "bytes": 2855912,
+      "sha256": "104a7d965eb866719add4b718ffbcf3db99ed96089fd4c7f85ec60e12326a5a9"
+    },
+    "cpu-33.bin": {
+      "bytes": 2852424,
+      "sha256": "ada777c43008dc7c3a5356d2f835c14f1b7d751ca34981f58d42fa1e6490582e"
+    },
+    "cpu-34.bin": {
+      "bytes": 2848776,
+      "sha256": "298ec52ca00bb5bd840c4d1b56c45736634550303cb5aff69382e570df0604ac"
+    },
+    "cpu-35.bin": {
+      "bytes": 2902440,
+      "sha256": "08ab76f3292e39836ea7ae5a845c27a623270c45e9a8462c597210f6506b7f27"
+    },
+    "cpu-36.bin": {
+      "bytes": 2707968,
+      "sha256": "4f9797bc1c2c24e6486d6295ece43d9896ecf35954b3e8311bc2dae1446395bd"
+    },
+    "cpu-37.bin": {
+      "bytes": 2857064,
+      "sha256": "d4b2d0b7eb5e9c28ca178579bae92c1abd88872c782a9f4690e6e0b032417911"
+    },
+    "cpu-38.bin": {
+      "bytes": 2845160,
+      "sha256": "ff86cd41376d01189943ca9135260931d6db8c1f6deac66515ef1ce69322cfae"
+    },
+    "cpu-39.bin": {
+      "bytes": 2854568,
+      "sha256": "d4224be18a32198f26adbc80705fa92ad8766eaa07737209fd959585bcd1c013"
+    },
+    "cpu-4.bin": {
+      "bytes": 2933912,
+      "sha256": "26d903afbb3a9f0186f3f7274271d9f776ac632d998d0f6a8eff3fd9a87bb116"
+    },
+    "cpu-40.bin": {
+      "bytes": 2855912,
+      "sha256": "8d1406caff4d7db5abe2d59540327476e9892158b199b09b5f5cc6e72fdcb993"
+    },
+    "cpu-41.bin": {
+      "bytes": 2864200,
+      "sha256": "35e693b0adb96bf0d7a72fafc4173ef9527fdbc8ce072f0e85a1f68a054db636"
+    },
+    "cpu-42.bin": {
+      "bytes": 2858568,
+      "sha256": "04aa7d7875b774bdaadcf5af86460d888f911214f1eafe9d4673a7d7b5fa7ac8"
+    },
+    "cpu-43.bin": {
+      "bytes": 2910944,
+      "sha256": "a3e5a7f159b19a7dc67a35db2300ccfb93e3b643f35e3a80945277a3f97e8b54"
+    },
+    "cpu-44.bin": {
+      "bytes": 2904512,
+      "sha256": "be25b725a8f38c157cf97b965752a1e85443e0821d7853bf7d43513481630366"
+    },
+    "cpu-45.bin": {
+      "bytes": 2906784,
+      "sha256": "6a3742aa3a3de32b5c13b9f243da9fcbb762124dccd5f22f292df502a1deb5fb"
+    },
+    "cpu-46.bin": {
+      "bytes": 2859080,
+      "sha256": "32e0741e0513308f56b865cf08ba29e74754ac2fe4c701b5e4860bb8df6da722"
+    },
+    "cpu-47.bin": {
+      "bytes": 2859112,
+      "sha256": "0d4581ca49368f9767f9409f342eee017d612b3e40408ea60efb27e02233dd0f"
+    },
+    "cpu-48.bin": {
+      "bytes": 2860392,
+      "sha256": "4d7b323f4b55a143820d43db226de2ccbbfba94ce3d1391d912fb2b92b2f9eb9"
+    },
+    "cpu-49.bin": {
+      "bytes": 2856392,
+      "sha256": "a5b7c15e2c209345b4e13babdea15bf044bb3d83c33eed4e31381f602156efda"
+    },
+    "cpu-5.bin": {
+      "bytes": 2904448,
+      "sha256": "ffc1fe296f5377179c5c191700b7383d5980efe88c59bd245f3a46e0f75ad6bf"
+    },
+    "cpu-50.bin": {
+      "bytes": 2856808,
+      "sha256": "894f887f178270636f25979aea2e3dde8b52564dff6f827a362924d633f68e9d"
+    },
+    "cpu-51.bin": {
+      "bytes": 2929176,
+      "sha256": "833b94c0080ba11f9832779026ef08c9295ebef618abf5b9ca1b9513dba2dc61"
+    },
+    "cpu-52.bin": {
+      "bytes": 1379464,
+      "sha256": "ca5c24c79874a5e2fa69fbadae7e152d8934e211c7cbe32b263b38ceca4e8c2e"
+    },
+    "cpu-53.bin": {
+      "bytes": 2848136,
+      "sha256": "c9c1928c5c55c351f096af30c673c19204b4133ca2744184b4951fecaa8be266"
+    },
+    "cpu-54.bin": {
+      "bytes": 2856264,
+      "sha256": "2d4d30fba446cb771eb0a4957595897b76b8f934ee059741ead3e3f595028107"
+    },
+    "cpu-55.bin": {
+      "bytes": 2855752,
+      "sha256": "946b9d35cb7a3f64a6c82984eee9024570aed392ced41eff983c9bed7c7428c4"
+    },
+    "cpu-56.bin": {
+      "bytes": 2852488,
+      "sha256": "8158c8539a1b3ea440da56a94a4ae0cf8faca8ff121213c1050962ea9b652f80"
+    },
+    "cpu-57.bin": {
+      "bytes": 2903808,
+      "sha256": "deeba168fe4c31e4fd8ea04d0d0554b4873fc657736d974844f65327af6713ed"
+    },
+    "cpu-58.bin": {
+      "bytes": 2908192,
+      "sha256": "2c24248c34bf268482afd9380b0f7e6589ce52544b59e3c26860d373fef327de"
+    },
+    "cpu-59.bin": {
+      "bytes": 2904576,
+      "sha256": "9dee70e48e363c0e2f00e04f0c2029a5972f8a990d9397de5f180529944ec19e"
+    },
+    "cpu-6.bin": {
+      "bytes": 1718440,
+      "sha256": "69a7d4cb869d6e654d1a4ceb2298037a8e470a6bc7c81771aba716045c6cf58d"
+    },
+    "cpu-60.bin": {
+      "bytes": 2858184,
+      "sha256": "6057f149fade04a108941ed4a788091134e491cb7c20dd9d053833b0a16593e7"
+    },
+    "cpu-61.bin": {
+      "bytes": 2851784,
+      "sha256": "45ff3442355c56a1751f119f18e88e4fe197f50d32054cd6dc49c47ceb664881"
+    },
+    "cpu-62.bin": {
+      "bytes": 2857640,
+      "sha256": "db80ed61d568fd4696e3484e7b70114c40df2bba939f7c833a553229144b05bf"
+    },
+    "cpu-63.bin": {
+      "bytes": 2848264,
+      "sha256": "af2738e8534b100625fbbed109fd8a0a80c965cccbd27ebb1f35d0d7da65e475"
+    },
+    "cpu-64.bin": {
+      "bytes": 2851656,
+      "sha256": "81ea64793af65047aa96e6132611751ef9450e7a89d42a6dd0ab20c517737022"
+    },
+    "cpu-65.bin": {
+      "bytes": 2856552,
+      "sha256": "9a0f9f934134fbe388f98acd725c91d91f06cbba9cb167d9cbad6a0c4bc592b2"
+    },
+    "cpu-66.bin": {
+      "bytes": 2860840,
+      "sha256": "bc824ae9f65a65a6d037f9dc6557722c848b26e39bc3351bab5e4d5a85a4602f"
+    },
+    "cpu-67.bin": {
+      "bytes": 2938072,
+      "sha256": "f353f0016cd6c6a6f2833a458968c201e42e6244d395be45925dfea44365daef"
+    },
+    "cpu-68.bin": {
+      "bytes": 1402040,
+      "sha256": "1a1f3772ebd354202309650562d3d3d3fa083133eb42daa5ee1598b60e014c95"
+    },
+    "cpu-69.bin": {
+      "bytes": 2851208,
+      "sha256": "e2ba064f8f75fc1b19cc9872686bb7689ae05493f3d8ff5208e2b1392bd7ec08"
+    },
+    "cpu-7.bin": {
+      "bytes": 2843784,
+      "sha256": "c0d6cf42b8de0489626165e75005a81983ff730afa1f37e85e5928f145e061fd"
+    },
+    "cpu-70.bin": {
+      "bytes": 2847848,
+      "sha256": "3632dddbbc37820e78d9aad993a28b0b815266e48d82b0222a919198ccad59d9"
+    },
+    "cpu-71.bin": {
+      "bytes": 2906496,
+      "sha256": "10863398fcadd7c6611615e9359343f38eeaf352920d7d0931b720cab32f2586"
+    },
+    "cpu-72.bin": {
+      "bytes": 2900256,
+      "sha256": "7f71b0d829e836c162753306f5a0cc6baf82f6a3aeb8ba52d23678890974601d"
+    },
+    "cpu-73.bin": {
+      "bytes": 2900320,
+      "sha256": "9e64c201445b65ae1b65e253816b74cc12e2ae6c9402359615ac2b67695c0577"
+    },
+    "cpu-74.bin": {
+      "bytes": 2860040,
+      "sha256": "1fc4286f1ca0a046acd3b706852c34c3b21e521a06cc5c6afd09d2607960bab4"
+    },
+    "cpu-75.bin": {
+      "bytes": 2864232,
+      "sha256": "2962b972d810bba41cbfecc77e23e28a20d1f92d98e2d259c21a21ed7813bec5"
+    },
+    "cpu-76.bin": {
+      "bytes": 2859656,
+      "sha256": "efc42ff3fbad4858cf44b011ed2da815456b89cf54ca009cd7c443d9743100de"
+    },
+    "cpu-77.bin": {
+      "bytes": 2857032,
+      "sha256": "b900232a0c8b69b50d76fe3a61f42f647072f3b9fc6b6cd58bd9ac6d74990e82"
+    },
+    "cpu-78.bin": {
+      "bytes": 2847656,
+      "sha256": "624569567301ba58b71194923146b530f7304cd533735bde9ae0fcf48d3fb3a3"
+    },
+    "cpu-79.bin": {
+      "bytes": 2852008,
+      "sha256": "391ecf2df7d659ee1843e9fa3c552f98e0340543e40670deb0f330e8e7240c00"
+    },
+    "cpu-8.bin": {
+      "bytes": 2849032,
+      "sha256": "16357e58a459ab1a4c27fe6046b33c918015699e1e2f4769bd9ae81e6adcfa18"
+    },
+    "cpu-80.bin": {
+      "bytes": 2854824,
+      "sha256": "b86ad01b4a811d7f5dc6d2a0fba91d89866cc472ca321d1041aa367d7e0eab34"
+    },
+    "cpu-81.bin": {
+      "bytes": 2852584,
+      "sha256": "46f42f21a6d75ddb20bd135a42db0274361abcc6e655c4b761a35dbcb52ec6c5"
+    },
+    "cpu-82.bin": {
+      "bytes": 2853832,
+      "sha256": "ab5708779673e3c9769646d9626f79ca915d6d0d94b498f249c6fb72aa35e7f6"
+    },
+    "cpu-83.bin": {
+      "bytes": 2904640,
+      "sha256": "063a4ff0937023f4a223db70d81870eabdf33b9709dfc5ded8bc35a05579b995"
+    },
+    "cpu-84.bin": {
+      "bytes": 1534480,
+      "sha256": "916c44f6fefdb4e67078e4bca2f7bd8ce0a170d0b3d10724eca4c257153fa0c7"
+    },
+    "cpu-85.bin": {
+      "bytes": 2849480,
+      "sha256": "e3f4150c9f7124f8085d1a408f2dfdf924a49866f52bc2d0c1a9fdcd43ac484a"
+    },
+    "cpu-86.bin": {
+      "bytes": 2854440,
+      "sha256": "987dba031b42322dcf75dba848b471dc06056faf9c6e53d0312a4f94789d5e4b"
+    },
+    "cpu-87.bin": {
+      "bytes": 2682688,
+      "sha256": "ce4292ec3b393450dd400de2840c40216668d2c23bbb9bde0c2382cfb31d1363"
+    },
+    "cpu-88.bin": {
+      "bytes": 2853224,
+      "sha256": "b7dd71398e831037395cbcb4440f56e5256ec90f8207d871fe015b72d17411e2"
+    },
+    "cpu-89.bin": {
+      "bytes": 2863624,
+      "sha256": "0c925cdeb388efafe34d5de2b2012caeba5b0c67f23720f83220c4a88295478b"
+    },
+    "cpu-9.bin": {
+      "bytes": 2852008,
+      "sha256": "6acda4d20988d640fd6c31b3e428299c409176e362cf1e3b526aed662bf4e75a"
+    },
+    "cpu-90.bin": {
+      "bytes": 2856488,
+      "sha256": "0ed77c7f71f5c8fcaec30bdce60701edd0599e4289f3cd47eb7be912b64dbad8"
+    },
+    "cpu-91.bin": {
+      "bytes": 2854664,
+      "sha256": "9573fb304f116ebcdb07f571e44213e30344916191c7a26357aece759deec1e2"
+    },
+    "cpu-92.bin": {
+      "bytes": 2854248,
+      "sha256": "301d1c1352098529af85d14808c3dadafc80417730f092aff5648cb46a14823e"
+    },
+    "cpu-93.bin": {
+      "bytes": 2850632,
+      "sha256": "27d13961e14c6a5f8661aa3a492ce02494b9ca862971ef53d8f3a1306487f97f"
+    },
+    "cpu-94.bin": {
+      "bytes": 2859624,
+      "sha256": "351047d737258f066caf7c371c7648f09ea8396ace40bd308d3abceddd959c4a"
+    },
+    "cpu-95.bin": {
+      "bytes": 2856520,
+      "sha256": "8b6fbddf510fd8fcbeb8df625bfe2f1fe475c2828a6328b44e9b88c74819583c"
+    },
+    "cpu-96.bin": {
+      "bytes": 2862312,
+      "sha256": "0bf0a6093a7da9d97e38d304eae24c175ab1ae371fbfa47d1b4bfb371b28e5ac"
+    },
+    "cpu-97.bin": {
+      "bytes": 2854696,
+      "sha256": "b51f2f0d00bb44dd0349c8b0d28dddd1d265e5ace126376e681777515fda8ac6"
+    },
+    "cpu-98.bin": {
+      "bytes": 2855880,
+      "sha256": "5a112f1f082abff08e82c0554be0e19c94a1762b020205990527073f01812862"
+    },
+    "cpu-99.bin": {
+      "bytes": 2695000,
+      "sha256": "0eaf856d15977fe3d9792b8870098a7d7400bc0c60e4ae1f67faf4ba02a1ba45"
+    },
+    "stage-one.bin": {
+      "bytes": 11289424,
+      "sha256": "bf3ceeb6aef62d163d7b1ec51b03dece1fbcda85896966984abb970d51da2894"
+    },
+    "truth-0.bin": {
+      "bytes": 2348936,
+      "sha256": "53cd4cacb328326cd015d3c1cdef5f262de6e299e7005308112bdbe46ea0c028"
+    },
+    "truth-1.bin": {
+      "bytes": 2349736,
+      "sha256": "332925a36f2cebb4cfc8c35a3f78455c091e4ff586b88c46312ad44438f9e258"
+    },
+    "truth-10.bin": {
+      "bytes": 920424,
+      "sha256": "255af124c00c30195e40276e84484aa72f2281199e3bc719198a68e6f2da2cb5"
+    },
+    "truth-11.bin": {
+      "bytes": 1780848,
+      "sha256": "dea590bc56b6028aa77cfb6d014fe8b57a7b55d966f0e3327e8c724e5252109b"
+    },
+    "truth-12.bin": {
+      "bytes": 1680016,
+      "sha256": "dc2c390abe761e1d39448faa57f4e81ca106fb946b68b5d0ff7088ed05e6ba5b"
+    },
+    "truth-13.bin": {
+      "bytes": 1102136,
+      "sha256": "bb951ffa71d68f7db1bde0f905a7ba53507374b888ac5b9ad7eb0aa0e78054c3"
+    },
+    "truth-14.bin": {
+      "bytes": 1111744,
+      "sha256": "c952ec923d271b4ee2739d4904b36c5790d3fb39389385a0a71a67276c0c2738"
+    },
+    "truth-15.bin": {
+      "bytes": 1113568,
+      "sha256": "63b967a8fdc2a91c3ed0bb44ad7ccc9afe051b0afc9e219a6c4af9859e2f9785"
+    },
+    "truth-16.bin": {
+      "bytes": 1106560,
+      "sha256": "d49e8204410e7179c180d86e32e068b0dec77a4f617b01f4646be3b302c83d8e"
+    },
+    "truth-17.bin": {
+      "bytes": 1108064,
+      "sha256": "dd6d2c9655b2e143dc1f0c05bdee8be71a5c6727ba54246d90101635dcb1108a"
+    },
+    "truth-18.bin": {
+      "bytes": 1117056,
+      "sha256": "b5ae0bf2b55411d237cd927f16db1255e1ee93a59ffa7b0037579d2cb9faa277"
+    },
+    "truth-19.bin": {
+      "bytes": 1109088,
+      "sha256": "a106352439965fda9a72e111a11d720103d16292aebb793f863861827f8bfe37"
+    },
+    "truth-2.bin": {
+      "bytes": 2342664,
+      "sha256": "eea5f909ed133136086f6965813e5d3e857ef18f2b4ac213df71592db6530582"
+    },
+    "truth-20.bin": {
+      "bytes": 1112416,
+      "sha256": "7b94fdec563066f0063c2f27e77ec4825025e1810da0f5c2b5c17715db85e632"
+    },
+    "truth-21.bin": {
+      "bytes": 1106368,
+      "sha256": "e6667034f4c42b967914c6949a58cff17132121eb8b383726dfb212202514a8a"
+    },
+    "truth-22.bin": {
+      "bytes": 1111808,
+      "sha256": "ab38ffa37196e63f2e5492e2e1173679036af8c02804ff2c36fbe260399628a5"
+    },
+    "truth-23.bin": {
+      "bytes": 1079776,
+      "sha256": "f30f76bc53c58c0daead4e177b8465a98bf9b7056201e1e98eb3bc1c3f590e95"
+    },
+    "truth-3.bin": {
+      "bytes": 2349448,
+      "sha256": "f407fc999640be2c692ada4b6539fb95e781a0c8a492c2cce9c1f44f016fcb84"
+    },
+    "truth-4.bin": {
+      "bytes": 3428892,
+      "sha256": "2658c49f38a7dbac70961bbd3b2ff263e813a90b3979be242028aa824fcc447c"
+    },
+    "truth-5.bin": {
+      "bytes": 2691812,
+      "sha256": "897e3fe446e02fd4de31e4914e8895cfdd50b47d1c12f4405e8087c6dd3946db"
+    },
+    "truth-6.bin": {
+      "bytes": 2555188,
+      "sha256": "4dc7a0633a9e5eee32b87fcca1e39888420444877804babffde47dd9c426d33a"
+    },
+    "truth-7.bin": {
+      "bytes": 2240784,
+      "sha256": "f7b2db5fd2cf94b1f588149c7c0f9896e6f1a6482e16b7000486eca23b000038"
+    },
+    "truth-8.bin": {
+      "bytes": 3472456,
+      "sha256": "0118dba993f42c169cb72a498d438a93eb565c205ad7e7cf95261809073c3e69"
+    },
+    "truth-9.bin": {
+      "bytes": 926568,
+      "sha256": "65aec184f1db947714b4915085b2cddedc3086e7675d22b623351709fdd2861e"
+    }
+  },
+  "first_attempt": {
+    "retained_frontend_bytes": 51539607552,
+    "required_bytes": 51853871529,
+    "error": "BoundedWideCoordinatorRetainedLimit",
+    "proof_verified": false
+  }
+}

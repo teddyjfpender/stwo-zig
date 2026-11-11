@@ -66,6 +66,13 @@ pub const BRIDGES: [std.meta.fields(Types.Family).len]Counts = blk: {
     for (std.enums.values(Types.Family), &result) |kind, *row| row.* = bridgeCounts(kind);
     break :blk result;
 };
+pub const TOWER: Counts = blk: {
+    const fixed = [_]M{M.zero()} ** 8;
+    const main = [_]M{M.zero()} ** 134;
+    var sink = Counter{};
+    @import("op_tower_projection.zig").emitLocalFor(M, &fixed, &main, &sink);
+    break :blk sink.counts;
+};
 pub fn sum(counts: Counts) u32 {
     var result: u32 = 0;
     for (counts) |count| result += count;

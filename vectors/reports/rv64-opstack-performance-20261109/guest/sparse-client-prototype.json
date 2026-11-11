@@ -1,0 +1,195 @@
+{
+  "schema": "stwo.opstack.sparse034-client-prototype.v1",
+  "status": "Complete native/independent execution agreement on three real OP blocks; physical proof admission remains closed",
+  "source_parent": "6fa6a9174",
+  "guest": {
+    "bytes": 3637288,
+    "sha256": "2b00b4094102e8d72f553debdc1fd688a9b8fa280d526af68d2dde147467b701"
+  },
+  "executable_load_bytes": 2582356,
+  "variant": "canonical-glv-hinted-sparse",
+  "required_execution_profile": "ethereum_services_op_v1",
+  "extra_service_tag": 262145,
+  "abi": {
+    "packet_bytes": 640,
+    "alignment": 32,
+    "inputs_fq": 20,
+    "output_fq": 12,
+    "fq_encoding": "plain canonical little-endian u256 as4u64 words; no Rust field-layout cast",
+    "accumulator_order": [
+      "c0.c0.re",
+      "c0.c0.im",
+      "c0.c1.re",
+      "c0.c1.im",
+      "c0.c2.re",
+      "c0.c2.im",
+      "c1.c0.re",
+      "c1.c0.im",
+      "c1.c1.re",
+      "c1.c1.im",
+      "c1.c2.re",
+      "c1.c2.im"
+    ],
+    "line_order": [
+      "c0.re",
+      "c0.im",
+      "c3.re",
+      "c3.im",
+      "c4.re",
+      "c4.im"
+    ],
+    "output_location": "overwrite first384bytes; readonly final256bytes/8Fq",
+    "tower": "i^2=-1,u^3=9+i,w^2=u",
+    "point_order": {
+      "G1x": 18,
+      "G1y": 19
+    },
+    "point_scaling": "c0*=G1y; c3*=G1x; c4 unchanged, then sparse034"
+  },
+  "client_scope": "Miller sparse034 only, explicit opt-in. Canonical BN254 required on RV64; native host uses original Ark software. Default v3 guests/profiles unchanged.",
+  "independent_oracle": "Direct schoolbook triple products accumulator*line*point coordinate, reduced only after full tower multiplication; independent of private scaled witnesses/stagedcarryequations. Pure576-bytesparse product exists only as a reference test helper, not an admitted service.",
+  "tests": {
+    "release_host_pairing_sparse_unit_tests": 15,
+    "python_opstack_tests": 43,
+    "failed": 0,
+    "packet_checks": [
+      "explicit order",
+      "size/alignment",
+      "12coordinate output decoding",
+      "eightreadonlyline/pointcoordinatespreserved",
+      "noncanonicaloutputrefused"
+    ],
+    "independent_python_checks": [
+      "identity",
+      "w and u basis relations",
+      "nonresidue9+i",
+      "i^2=-1",
+      "fullu256representatives",
+      "packetlength"
+    ]
+  },
+  "legacy_refusal": {
+    "execution_profile": "ethereum_services_v3",
+    "status": "trap",
+    "stop_error": "UnsupportedService",
+    "verified_output": false,
+    "instructions_before_refusal": 15731280,
+    "a7": 262145,
+    "raw_report_sha256": "51f0ec30e08465b3db608ebc94252485f492f4fe55578e71ecc9d5a591f3b5fb"
+  },
+  "open_gates": [
+    "New OP VM session/compact capture/packet wire",
+    "Authenticated provider owner and global RAM joins",
+    "Physical proof, receiver, mutation and full cost qualification",
+    "Production admission and newprofile security accounting"
+  ],
+  "proving_speedup_claim": false,
+  "op_service_abi": "bn254-miller-line-640/v1",
+  "superseded_closed_control": {
+    "guest": {
+      "bytes": 3640096,
+      "sha256": "a9ee26a0bf2f8f25a5984d523a24eb1e284f2f6f5fdbc2bdb6601e4a5aa606ad"
+    },
+    "packet_bytes": 576,
+    "status": "Never admitted; replaced before OPv1 production qualification by the640-byte boundary including point scaling."
+  },
+  "execution_qualification": [
+    {
+      "block": 121065789,
+      "instructions": 253185635,
+      "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+      "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+      "op_sparse034_calls": 22185,
+      "curve_calls": [
+        19465,
+        31908,
+        331163,
+        0,
+        0,
+        0,
+        0
+      ],
+      "arith256_mod_calls": 33117,
+      "service_ram_word_transitions": 20423872,
+      "native_sha256": "54d9044a861d29fc8cdaa90a2129663bc0064286db37d23ea19b87aba93de75d",
+      "oracle_sha256": "23976c6b40d3628daa36191eb07dd718190c833f792630dc23da468be548f1ba",
+      "independent_output_pc_registers_steps_and_service_counts_agree": true
+    },
+    {
+      "block": 120794432,
+      "instructions": 796313,
+      "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+      "input_sha256": "610ca2169a1f3b8aa25f354a81325f2b448d1644947828bce6c5c3bfd3d42887",
+      "op_sparse034_calls": 0,
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "arith256_mod_calls": 0,
+      "service_ram_word_transitions": 97650,
+      "native_sha256": "a7c7111117b55a8e7755b2832fae30a7199610d7e40937ea26a3065e520956d3",
+      "oracle_sha256": "411de167ff780e43e18e1062aaae8d3435b985aa1a5cdf1731311d5e0cb39ed8",
+      "independent_output_pc_registers_steps_and_service_counts_agree": true
+    },
+    {
+      "block": 121057303,
+      "instructions": 5927325,
+      "output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+      "input_sha256": "7fd22876560553e94cc3e244b0adde554a471b9e446d7465c313d56f96b914e9",
+      "op_sparse034_calls": 0,
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "arith256_mod_calls": 22,
+      "service_ram_word_transitions": 664198,
+      "native_sha256": "847f6c1e77b81777c913993078a66d939dc367446295376ee8e3fb26fcfbeabc",
+      "oracle_sha256": "1d35f24ef9c620bddcfb0c9e7165a729e1e065a119153c0267f26dd01d1c0ceb",
+      "independent_output_pc_registers_steps_and_service_counts_agree": true
+    }
+  ],
+  "native_executor_sha256": "e32cbadc74439c46ad2c23486f5a6b007e85a14ce4dccd5da2d29b9c07af73f6",
+  "execution_counterfactual": {
+    "baseline_v3_selected_instructions": 380167068,
+    "v3_lru_instructions": 361804837,
+    "op_miller_instructions": 253185635,
+    "op_miller_delta_from_lru_pct": -30.021489734809713,
+    "lru_arith256_calls": 121857,
+    "op_arith256_calls": 33117,
+    "exactly_four_arith_calls_removed_per_new_call": true,
+    "lru_fp2_calls": 619553,
+    "op_fp2_calls": 331163,
+    "lru_service_ram_words": 26347061,
+    "op_service_ram_words": 20423872
+  },
+  "full_text_census": {
+    "covered_instructions": 253185635,
+    "outside_profile_instructions": 0,
+    "symbol_unknown_startup_instructions": 6,
+    "attribution_sha256": "a0e478d7623aba13e4ef1e0efdb4c0aaeeeafb883dd5d0b88d4d3f0353b9463b",
+    "remaining_self_counts": {
+      "Fp6 general multiply": 34875197,
+      "EVM dispatch": 28383306,
+      "Fp2 addition": 23320522,
+      "memcpy": 12784198,
+      "G2 preparation": 10587931,
+      "MLOAD": 10232957,
+      "Miller closure and packet": 10002390,
+      "G2 addition": 9240596,
+      "Fp12 square": 8431317,
+      "G2 double": 8360843,
+      "Fp2 square": 8279703,
+      "memcmp": 8153585
+    }
+  }
+}

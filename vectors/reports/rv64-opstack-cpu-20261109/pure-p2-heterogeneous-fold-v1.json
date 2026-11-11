@@ -1,0 +1,74 @@
+{
+  "scope": "actual one-ECALL OP CPU and Miller shared-manifest heterogeneous recursion correctness gate",
+  "measurement": "concurrent ReleaseSafe qualification; not controlled benchmark",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "native": {
+    "instructions": 1,
+    "cpu_proof_bytes": 599024,
+    "miller_proof_bytes": 555856,
+    "ram_words": 80,
+    "wire_words": 32,
+    "fresh_native_closure": true
+  },
+  "leaves": [
+    {
+      "kind": "CPU",
+      "proof_bytes": 636448,
+      "producer_ns": 17731590750,
+      "fresh_receiver_ns": 4035690500
+    },
+    {
+      "kind": "Miller",
+      "proof_bytes": 633688,
+      "producer_ns": 18906190625,
+      "fresh_receiver_ns": 4308869583
+    }
+  ],
+  "parent": {
+    "scope": "actual_CPU_Miller_shared_manifest_heterogeneous_physical_fold",
+    "bytes": 674648,
+    "producer_ns": 40970738333,
+    "fresh_receiver_ns": 8664702583,
+    "raw": [
+      41502,
+      2650348,
+      268,
+      68271,
+      65536
+    ],
+    "cells": {
+      "rows": [
+        65536,
+        4194304,
+        512,
+        131072,
+        65536
+      ],
+      "main_cells": 113051648,
+      "fixed_cells": 43320832,
+      "interaction_cells": 93335552,
+      "total_trace_cells": 249708032,
+      "poseidon_hybrid": false,
+      "production_qualified": false
+    },
+    "ordered": true,
+    "ninth_limb_bound": true,
+    "source_independent": true,
+    "execution_admission": false,
+    "production_admission_open": false
+  },
+  "adversarial": [
+    "first child ninth frame limb changes invalidate circuit",
+    "swapped leaf order rejected by physical root receiver",
+    "ninth root limb mutation rejected",
+    "physical parent proof mutation rejected"
+  ],
+  "remaining": [
+    "independent execution Inventory/manifest/claims root admission",
+    "arbitrary leaf-count tree and real OP block root",
+    "full-log real CPU leaf cost",
+    "matched heavy-block target <=332.845 seconds remains unmet"
+  ]
+}

@@ -1,0 +1,135 @@
+# Closed OP Miller-line provider
+
+This directory has two physical correctness references for the same OP-only
+640-byte packet (`0x00040001`). Neither opens OP proof admission. The existing
+Ethereum profiles, 424-byte legacy curve capture, and legacy service roster are
+unchanged.
+
+`spec.zig` uses one wide row per call. It is useful as an independently checked
+reference, but its 20,832 main plus OM31 interaction columns would make recursive
+openings expensive. The narrow provider therefore uses two independently sized
+components in **one proof**, rather than one proof for each micro-operation:
+
+| Component | Active rows per call | Main | OM31 interaction base columns |
+| --- | ---: | ---: | ---: |
+| Input frontier | 20 | 33 | 16 |
+| Arithmetic DAG | 32 | 370 | 560 |
+
+For 22,185 calls, these components use logs 19 and 20. Their 979 combined main
+and interaction columns are 21 times narrower than the wide reference. Their
+1,000,865,792 padded native cells are 1.47 times the wide reference's cells.
+This is an explicit tradeoff, **not a measured proving speedup**. The physical
+toy proof is 101,072 bytes including its four-claim frame, versus 931,648 bytes
+for the wide reference. Whole-block and recursive timings remain necessary.
+
+## Authority and organization
+
+- `dag.zig`: immutable 32-step program, 52 SSA values, fixed read fanouts, and a
+  compile-time unique-writer/topological-edge audit. No incoming packet selects
+  instructions, edges, signs, or weights.
+- `micro.zig`: exact integer arithmetic, source-derived carry offset and strict
+  positive/negative M31 residual bounds. Carries use one U15 limb, reducing the
+  arithmetic row from 399 to 368 columns before two multiplicity columns.
+- `narrow_source.zig`: receiver-reconstructible periodic ROM, complete 20/32-row
+  call spans, global Wire35 expressions, and local BYTE/U15/SSA expressions.
+- `narrow_equations.zig`: degree-three AIR and paired classic lookup chains.
+  SSA and global Wire35 have separate claims. Arithmetic/frontier SSA claims
+  must sum to zero; their Wire35 claims must match the authenticated packet.
+- `narrow_trace.zig`: native witness advice in column-major storage. Arithmetic
+  is evaluated once per call before rows are written. Its retained input advice
+  is bounded independently of the committed witness.
+- `narrow_component.zig`: packed 16-row domain evaluator and scalar OODS evaluator
+  for each independently sized component.
+- `schedule.zig`: source-owned mass bounds and a 64-row control cost model. This
+  uniform control schedule is not the chosen independently sized layout.
+
+Inputs can be arbitrary 256-bit representatives. Their byte range comes from the
+packet frontier's global Wire35 authority. Every arithmetic output is locally
+byte ranged and constrained below the BN254 modulus. Exact local SSA closure
+then supplies range authority to later reads. Constant zero/nine operands are
+constrained to source-owned literals; exempting them from SSA creates no free
+values. Absolute relation masses include both positive and negative sides and
+must remain strictly below the M31 characteristic.
+
+## Qualification and next gates
+
+Focused tests check independent tower algebra, arbitrary representatives,
+every 32-step carry/output/quotient/distance/borrow forgery, exact SSA closure,
+self-consistent orphan operands, whole-call geometry, characteristic bounds,
+and degree three including fixed ROM columns. A fresh physical receiver rebuilds
+the fixed root and rejects wrong call IDs, outputs, OODS samples and SSA claims.
+The fixture uses 12 queries and no PoW for correctness; it does not qualify the
+production 128-bit target.
+
+Before production admission: join actual CPU call ownership and all 80 packet RAM
+transitions; add durable service framing, manifest/source bounds and fresh
+receiver authority; connect the typed recursive catalog; qualify native-to-root
+proofs on real OP calls; then benchmark the complete heavy block. Local GKR may
+replace classic BYTE/U15/SSA interaction traces using the same typed source
+expressions. It must bind both independently sized components on the lifted
+domain and preserve cross-instance SSA closure. The request whitelist remains
+closed until these gates pass.
+
+### Wide-field physical qualification
+
+`narrow.ForField(OM31).Component(role)` and
+`narrow.trace.SourceForField(role, OM31)` instantiate the same equation source
+as the QM31 reference. Interaction offsets, previous masks, claim framing and
+commitment geometry use the selected field's coordinate count. Domain arithmetic
+stays in sixteen packed M31 lanes, with packed OM31 only for secure relation
+expressions and weighted accumulation; OODS uses scalar OM31. The existing
+QM31 entrypoints remain compatibility aliases.
+
+The physical composite fixture now runs both fields, independently rebuilding
+fixed authority and checking SSA, expected Wire outputs and OODS mutations.
+QM31 remains 101,072 bytes; OM31 is 142,192 bytes on the toy q12/P0 profile.
+This is correctness evidence, not production 128-bit qualification. Both
+independently sized components remain in one PCS/proof. The row scheduler is
+shared with existing components and tests all eight OM31 coordinates plus
+failure draining without changing legacy scheduling.
+
+### Bounded interaction inversions
+
+The narrow trace batches SSA/Wire denominator inversions in 128-row chunks,
+using the existing packed QM31/OM31 inverter. Range-table inverses are batched
+once per table. Scratch is bounded independently of the trace height, and zero
+weight terms preserve the scalar producer's pole behavior. Prefix accumulation
+and claim centering retain their exact order. A test-only scalar reference checks
+every interaction cell and claim in both fields, with five calls crossing a
+chunk boundary and including the padded provider rows. This removes per-fraction
+inversion work; no whole-block speedup is inferred from this unit qualification.
+
+### Owned commitment and durable relation advice
+
+The pure-P2 truth worker transfers both MAIN and INTER backings into the PCS.
+It retains 52 field values, 32 quotients and 32 carry vectors per call after
+MAIN is consumed: the expensive arithmetic witness is generated once. Packed
+row reconstruction from this advice performs no field products, modular
+division or DAG rerun. Source-owned fixed rows are reconstructed directly when
+needed, so workers reuse the independently committed FIXED setup. Advice is
+released after INTER commitment, when physical claims and the PCS retain its
+obligations.
+
+For 22,185 calls the two sources retain 118,689,760 bytes between phases,
+versus 1,621,098,496 bytes of MAIN at the modeled geometry. These are source
+storage figures, not whole-prover peak RSS. Both field families compare every
+interaction cell before and after MAIN/FIXED release against the scalar
+reference. The source-owned target-profile pure-P2 fragment proof freshly
+verifies (558,184 framed bytes); missing CPU/Wire closure is explicitly refused.
+A complete inventory and recursive receiver remain required for admission.
+
+### Explicit phase and resource admission
+
+The worker requires `Limits{live_bytes, main_bytes, interaction_bytes,
+advice_bytes}`. Geometry-derived source floors are checked before allocation;
+a stable synchronized allocator then caps source, PCS and prover heap allocations
+through completion. Immutable cached keys, caller input, shared-pool stacks and
+returned serialized bytes remain separately caller-owned. The single-call
+physical gate peaks at 499,410,100 requested worker bytes under a 1 GiB cap and
+returns to zero worker-owned bytes. This is a logical allocation counter, not RSS.
+
+Source retains its call count independently of compact advice. Successful
+interaction generation and advice retirement are explicit phases: moving INTER
+out cannot permit regeneration, and retiring advice preserves public identity.
+These close the two gaps recorded in the independent
+[worker review](../../../../../../../design/riscv-proving-stack/reviews/op-miller-worker-f673-resource-review.md).

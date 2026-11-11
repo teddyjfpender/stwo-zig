@@ -2,6 +2,7 @@
 const std = @import("std");
 const Capture = @import("capture.zig");
 const Pool = @import("stwo_prover_engine").work_pool.WorkPool;
+const Spill = @import("capture_spill.zig");
 pub const Options = struct {
     max_inflight_packets: u8 = 1,
     packet_heap_bytes: usize = 512 << 20,
@@ -10,8 +11,11 @@ pub const Options = struct {
     /// JOBS="-" only: fast checkpoint pass plus this many segment replay
     /// workers. Zero retains the serial executing walk. No protocol effect.
     execution_workers: u8 = 0,
+    /// Optional independently capped scratch disk for native capture buffers.
+    spill: ?Spill.Options = null,
     pub fn validate(self: Options) !void {
         if (self.max_inflight_packets == 0 or self.max_inflight_packets > Capture.MAX_INFLIGHT or self.packet_heap_bytes == 0 or self.packet_heap_bytes > self.max_inflight_packet_heap_bytes or self.max_inflight_wire_bytes == 0 or self.execution_workers > @import("../../rv64_ethereum_segments.zig").MAX_WORKERS) return error.InvalidEthereumCaptureOptions;
+        if (self.spill) |spill| try spill.validate();
     }
     pub fn isDefault(self: Options) bool {
         return std.meta.eql(self, Options{});

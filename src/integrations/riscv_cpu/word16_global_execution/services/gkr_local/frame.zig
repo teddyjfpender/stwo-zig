@@ -3,7 +3,7 @@
 const std = @import("std");
 const Geometry = @import("../../../word16_execution/geometry.zig");
 const Types = @import("../types.zig");
-pub const Origin = union(enum) { core: Geometry.Role, bridge: Types.Family, bulk: Types.BulkKind, dword: u1, sponge: Types.SpongeKind };
+pub const Origin = union(enum) { core: Geometry.Role, bridge: Types.Family, bulk: Types.BulkKind, dword: u1, sponge: Types.SpongeKind, tower: void };
 pub const MAX_LOCAL_TERMS: usize = 256;
 /// Stable binary tags. v2's original tags/ordering never depend on enum growth.
 pub fn originWords(origin: Origin) [2]u32 {
@@ -13,11 +13,12 @@ pub fn originWords(origin: Origin) [2]u32 {
         .bulk => |v| .{ 2, @intFromEnum(v) },
         .dword => |v| .{ 3, v },
         .sponge => |v| .{ 4, @intFromEnum(v) },
+        .tower => .{ 5, 0 },
     };
 }
 pub fn v3Instances(instances: []const Instance) bool {
     for (instances) |instance| switch (instance.origin) {
-        .bulk, .dword, .sponge => return true,
+        .bulk, .dword, .sponge, .tower => return true,
         .bridge => |family| if (@intFromEnum(family) >= Types.V2_FAMILIES) {
             return true;
         },

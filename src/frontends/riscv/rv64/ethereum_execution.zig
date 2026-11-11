@@ -19,7 +19,7 @@ const cisa = @import("candidate_isa.zig");
 /// `ethereum_services_v3_zbb` = v3 plus the ADMITTED-ISA Zbb BINARY subset
 /// (andn orn xnor rev8 sext.b sext.h zext.h; decode.Isa.rv64im_zbb_binary),
 /// counted in `zbb_binary_counts`; any other Zbb/Zba encoding traps.
-const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate, ethereum_services_v3_candidate_isa, ethereum_services_v3, ethereum_services_v3_zbb };
+const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate, ethereum_services_v3_candidate_isa, ethereum_services_v3, ethereum_services_v3_zbb, ethereum_services_op_v1 };
 const ZBB_BINARY_OPS = [_]rv.decode.Opcode{ .ANDN, .ORN, .XNOR, .REV8, .SEXT_B, .SEXT_H, .ZEXT_H };
 const ZbbBinaryCounts = struct { andn: u64 = 0, orn: u64 = 0, xnor: u64 = 0, rev8: u64 = 0, sext_b: u64 = 0, sext_h: u64 = 0, zext_h: u64 = 0 };
 fn bumpZbb(counts: *ZbbBinaryCounts, op: rv.decode.Opcode) void {
@@ -144,6 +144,7 @@ const Report = struct {
     keccak_sponge_bytes: u64 = 0,
     /// Admitted v3 curve/field calls per op (ethereum_services/curves.zig order).
     curve_calls: [7]u64 = @splat(0),
+    op_sparse034_calls: u64 = 0,
     bulk_memcpy_calls: u64 = 0,
     bulk_memset_calls: u64 = 0,
     bulk_memcpy_bytes: u64 = 0,
@@ -251,7 +252,7 @@ fn profileStep(session: *ethereum.Session, execution: Profile, event: *ethereum.
             if (row == null) event.* = .{ .keccak = call };
             break :blk row;
         },
-        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa, .ethereum_services_v3, .ethereum_services_v3_zbb => session.step(event),
+        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa, .ethereum_services_v3, .ethereum_services_v3_zbb, .ethereum_services_op_v1 => session.step(event),
     };
 }
 fn candidateInstruction(cpu: *rv.machine.Cpu, memory: anytype, report: *Report) bool {
@@ -276,6 +277,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
     var service_session = try ethereum.Session.initWithProfile(A, rv.machine.Cpu.init(loaded.info.entry, c.symbols.stack_top), memory, .{ .max_retirements = c.max_steps, .cache_entries = c.cache_entries }, switch (c.execution_profile) {
         .ethereum_services_v3 => .ethereum_services_v3,
         .ethereum_services_v3_zbb => .ethereum_services_v3_zbb,
+        .ethereum_services_op_v1 => .ethereum_services_op_v1,
         .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => .ethereum_services_v2,
         else => .ethereum_services_v1,
     });
@@ -294,6 +296,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => .ethereum_services_v2,
         .ethereum_services_v3 => .ethereum_services_v3,
         .ethereum_services_v3_zbb => .ethereum_services_v3_zbb,
+        .ethereum_services_op_v1 => .ethereum_services_op_v1,
     };
     var tape: ?rv.compact_tape.Tape = if (c.compact_capture_batch_steps) |steps| try rv.compact_tape.Tape.init(A, steps, session.cpu.pc, 0, execution_profile) else null;
     defer if (tape) |*value| value.deinit();
@@ -358,8 +361,8 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
             break;
         };
         if (optional_row == null) {
-            if (tape) |*value| try value.appendEvent(event);
-            if (boundaries) |*value| try value.appendEvent(event, memory);
+            if (tape) |*value| try value.appendEventRef(&event);
+            if (boundaries) |*value| try value.appendEventRef(&event, memory);
             const retirement = event.retirement();
             switch (event) {
                 .keccak => |call| {
@@ -381,6 +384,11 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                     report.curve_calls[ethereum.curves.index(call.op)] += 1;
                     report.service_ram_word_transitions += call.wordCount();
                     if (census) |*value| for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < call.writtenWords());
+                },
+                .tower => |call| {
+                    report.op_sparse034_calls += 1;
+                    report.service_ram_word_transitions += call.before.len;
+                    if (census) |*value| for (call.before, 0..) |before, i| try value.observe(call.pointer + 8 * i, before, call.wordAfter(i), i < ethereum.tower.math.WRITTEN_WORDS);
                 },
                 .sha256 => |call| {
                     report.sha256_calls += 1;
@@ -475,7 +483,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
             }
             if (census) |*value| switch (event) {
                 // Bulk memory is counted as a plain ECALL retirement.
-                .bulk, .sponge, .curve => try value.retireOpcode(@intFromEnum(rv.decode.Opcode.ECALL)),
+                .bulk, .sponge, .curve, .tower => try value.retireOpcode(@intFromEnum(rv.decode.Opcode.ECALL)),
                 .keccak => try value.retireService(.keccak),
                 .secp => |call| try value.retireService(if (call.kind == .add) .secp_add else .secp_double),
                 .sha256 => try value.retireService(.sha256),

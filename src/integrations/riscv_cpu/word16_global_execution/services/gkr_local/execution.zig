@@ -149,6 +149,8 @@ pub fn validateConfig(config: Config) !void {
 }
 
 pub const Limits = struct {
+    /// Explicitly selected only with a thread-safe allocator and a bound pool.
+    physical_verify_workers: usize = 1,
     max_proof_bytes: usize = 128 << 20,
     max_total_proof_bytes: usize = 2 << 30,
     max_claims_per_worker: usize = 256,
@@ -243,12 +245,87 @@ pub fn verifyWithAuthorityAndLimits(a: std.mem.Allocator, setups: []const *const
     defer pending.deinit(a);
     const verified_claims = try a.alloc(Manifest.Claims, inventory.workers.len);
     defer a.free(verified_claims);
-    for (setups, requests, cpus, 0..) |setup, request, *proof, i| {
-        verified_claims[i] = try CPU.verifyCpuWithAuthority(a, setup, request, inventory.workers[i], inventory.first_ids[i], &pending, i, config, proof, if (fixed) |authority| authority.at(i) else null);
-    }
-    for (truths, truth_proofs, 0..) |truth, *proof, i| {
-        const ordinal = setups.len + i;
-        verified_claims[ordinal] = if (extendedTruth(truth)) try V3.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, config, proof, if (fixed) |authority| authority.at(ordinal) else null) else try Truth.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, config, proof, if (fixed) |authority| authority.at(ordinal) else null);
+    const RowWork = @import("stwo_prover_engine").lookups.row_work;
+    const Job = struct {
+        ordinal: usize,
+        bytes: usize,
+        failure: ?anyerror = null,
+
+        fn largerFirst(_: void, lhs: @This(), rhs: @This()) bool {
+            return lhs.bytes > rhs.bytes;
+        }
+    };
+    const Physical = struct {
+        allocator: std.mem.Allocator,
+        setups: []const *const R.CpuSetup,
+        truths: []const R.Truth,
+        requests: []const P.Request,
+        cpus: []const CPU.CpuEncoded,
+        truth_proofs: []const Truth.TruthEncoded,
+        inventory: *const Inventory,
+        pending: *const Manifest.PendingManifest,
+        config: Config,
+        fixed: ?*const FixedSet,
+        claims: []Manifest.Claims,
+        jobs: []Job,
+        next: std.atomic.Value(usize) = .init(0),
+
+        fn verifyAt(self: *const @This(), ordinal: usize) !Manifest.Claims {
+            const binding = if (self.fixed) |authority| authority.at(ordinal) else null;
+            const worker = self.inventory.workers[ordinal];
+            if (ordinal < self.setups.len) {
+                return CPU.verifyCpuWithAuthority(self.allocator, self.setups[ordinal], self.requests[ordinal], worker, self.inventory.first_ids[ordinal], self.pending, ordinal, self.config, &self.cpus[ordinal], binding);
+            }
+            const i = ordinal - self.setups.len;
+            const truth = self.truths[i];
+            return if (extendedTruth(truth))
+                V3.verifyTruthWithAuthority(self.allocator, truth, worker, self.pending, ordinal, self.config, &self.truth_proofs[i], binding)
+            else
+                Truth.verifyTruthWithAuthority(self.allocator, truth, worker, self.pending, ordinal, self.config, &self.truth_proofs[i], binding);
+        }
+        pub fn runRange(self: *@This(), _: usize, _: usize, _: usize) void {
+            while (true) {
+                const index = self.next.fetchAdd(1, .monotonic);
+                if (index >= self.jobs.len) return;
+                const job = &self.jobs[index];
+                self.claims[job.ordinal] = self.verifyAt(job.ordinal) catch |err| {
+                    job.failure = err;
+                    continue;
+                };
+            }
+        }
+    };
+    const jobs = try a.alloc(Job, verified_claims.len);
+    defer a.free(jobs);
+    for (cpus, jobs[0..cpus.len], 0..) |proof, *job, i| job.* = .{ .ordinal = i, .bytes = proof.bytes.len };
+    for (truth_proofs, jobs[cpus.len..], cpus.len..) |proof, *job, i| job.* = .{ .ordinal = i, .bytes = proof.bytes.len };
+    var physical = Physical{
+        .allocator = a,
+        .setups = setups,
+        .truths = truths,
+        .requests = requests,
+        .cpus = cpus,
+        .truth_proofs = truth_proofs,
+        .inventory = &inventory,
+        .pending = &pending,
+        .config = config,
+        .fixed = fixed,
+        .claims = verified_claims,
+        .jobs = jobs,
+    };
+    if (limits.physical_verify_workers <= 1) {
+        for (verified_claims, 0..) |*claim, ordinal| claim.* = try physical.verifyAt(ordinal);
+    } else {
+        // Pull the largest encodings first. A worker that finishes a small
+        // proof can immediately pick up another without waiting for a shard.
+        std.mem.sort(Job, jobs, {}, Job.largerFirst);
+        _ = RowWork.forEachRange(jobs.len, &physical, .{ .max_shards = limits.physical_verify_workers, .min_rows_per_shard = 1 });
+        // Preserve the lowest failing proof ordinal across all workers.
+        var first_failure: ?Job = null;
+        for (jobs) |job| {
+            if (job.failure != null and (first_failure == null or job.ordinal < first_failure.?.ordinal)) first_failure = job;
+        }
+        if (first_failure) |job| return job.failure.?;
     }
     try pending.checkGlobalClosure(verified_claims);
     return .{ .completed = true, .total_steps = expected.total_steps, .physical_proofs = inventory.workers.len, .execution_identity = inventory.execution_identity, .manifest_identity = pending.digest };

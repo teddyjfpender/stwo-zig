@@ -1,0 +1,234 @@
+{
+  "scope": "R7 eight-role direct-group actual source-only; no execution/native/recursive proving",
+  "cost": {
+    "raw": [
+      73080,
+      5173527,
+      3451,
+      173939,
+      65536,
+      321145,
+      1515168,
+      335498
+    ],
+    "rows": [
+      131072,
+      8388608,
+      4096,
+      262144,
+      65536,
+      524288,
+      2097152,
+      524288
+    ],
+    "logs": [
+      17,
+      23,
+      12,
+      18,
+      16,
+      19,
+      21,
+      19
+    ],
+    "fixed_cells": 113324032,
+    "main_cells": 276381696,
+    "interaction_cells": 253329408,
+    "total_cells": 643035136,
+    "dot_calls": 3384,
+    "dot_terms": 1515168
+  },
+  "expected_root": [
+    {
+      "c0": {
+        "a": {
+          "v": 2140067354
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 1550217808
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 1745248738
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 1250765403
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 829383664
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 461953969
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 403257322
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 727715823
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    {
+      "c0": {
+        "a": {
+          "v": 759134592
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    }
+  ],
+  "wall_ns": 5173976375,
+  "peak_live_bytes": 2302088100,
+  "end_live_bytes": 0,
+  "root_admission": false,
+  "production_admission": false,
+  "schema": "stwo.op.r7-direct-group-source-qualification.v1",
+  "selected_native_bundle": {
+    "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-zero-small-v1",
+    "bytes": 5045776,
+    "sha256": "4e7c5dc1ca425a57754eae3f913932da9e69c8fab7a920dcb08a279b0b00e17f",
+    "note": "historical path label; actual1CPU+1detached+localKeccak+classicSHA"
+  },
+  "block": 120794432,
+  "instructions": 796406,
+  "workers": 8,
+  "optimize": "ReleaseSafe",
+  "source_output_matches_independent_root_preparation": true,
+  "legacy_R6_key_refuses_before_allocation": true,
+  "native_guest_execution_or_proving": false,
+  "recursive_physical_proof": false,
+  "immutable_FIXED_key_construction": false,
+  "baseline_reference": {
+    "source": "separate parent R6 source census of identical selected native fragments",
+    "qm31_log": 24,
+    "total_cells_approx": 830700000,
+    "qm31_raw_approx": 11560000,
+    "no_new_baseline_timing_or_speed_claim": true
+  },
+  "important_domain_limit": "Single-group builder intentionally shares native_group canonical R6 binary-tree hash domain. Existing native_dot/fold R7 digest domain differs; do not reuse it for multi-group canonical execution roots without an explicit source-owned shared fold-body variant."
+}

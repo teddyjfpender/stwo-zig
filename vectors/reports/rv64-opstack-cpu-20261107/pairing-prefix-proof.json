@@ -1,0 +1,212 @@
+{
+  "schema": "stwo.opstack.pairing-prefix-proof.v1",
+  "source_commit": "210e29910a0799ceae7385cea0ddb0cdf41c2bb8",
+  "gpu_base": "093d738abea7c6dbdc6514f549ee2f1e7ff30427",
+  "block": 121065789,
+  "scope": "Independently verified native STARK bundle for an execution prefix",
+  "prefix_proof_verified": true,
+  "completed_ethereum_block": false,
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "runner_sha256": "65284f115b3eca5b7d6b186ed9e429a77efbd74d3d2545a090f006a3a902a3af",
+  "elf_sha256": "ae39c318e68bbe5ce06387fb3bfaa365ae4ff15974073466fe0f0029a9e3e284",
+  "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+  "batch_steps": 1048575,
+  "prefix_batches": 13,
+  "prefix_steps": 13631475,
+  "first_fp2_retirement": 13425710,
+  "fp2_calls": 841,
+  "native_trace_bits": 65100828320,
+  "cpu_proofs": 13,
+  "service_proofs": 12,
+  "resources": {
+    "gkr_bytes": 3221225472,
+    "global_bytes": 1073741824,
+    "retained_frontend_bytes": 6442450944,
+    "disk_bytes": 17179869184,
+    "fixed_setup_bytes": 2147483648,
+    "park_main": true,
+    "recycler_cache_bytes": 67108864,
+    "keccak_max_log": 16,
+    "capture_options": {
+      "execution_workers": 0,
+      "max_inflight_packets": 1,
+      "spill": {
+        "directory": "scratch-directory",
+        "bytes": 6442450944
+      }
+    },
+    "schedule": {
+      "lanes": 1,
+      "workers_per_lane": 8,
+      "memory_cap_bytes": 4294967296,
+      "heaviest_first": true
+    },
+    "defer_local_binding": true
+  },
+  "stages": {
+    "plan": {
+      "wall_ns": 10787417490,
+      "peak_rss_bytes": 1442619392,
+      "user_cpu_s": 8.678438,
+      "system_cpu_s": 7.722344,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "produce": {
+      "wall_ns": 338259458638,
+      "peak_rss_bytes": 5274787840,
+      "user_cpu_s": 1269.994525,
+      "system_cpu_s": 187.660827,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "receive": {
+      "wall_ns": 47586553289,
+      "peak_rss_bytes": 2872238080,
+      "user_cpu_s": 80.923594,
+      "system_cpu_s": 9.660637,
+      "returncode": 0,
+      "timed_out": false
+    }
+  },
+  "producer_stage_ns": {
+    "capture_ns": 17581038503,
+    "setup_ns": 31210516496,
+    "prove_ns": 288116969998,
+    "same_process_verify_ns": 891069374
+  },
+  "receiver_stage_ns": {
+    "load_and_setup_ns": 46554533312,
+    "verify_ns": 828824413
+  },
+  "capture_backing_peak_bytes": 2072899584,
+  "binary_artifacts": {
+    "cells.bin": {
+      "bytes": 11296466,
+      "sha256": "13edcc4e768efc362a597858cba0b670040f4398e6ade86970995a9d4341861f"
+    },
+    "cpu-0.bin": {
+      "bytes": 1208280,
+      "sha256": "3af43db62b5ae0e4f9a9af06e847efece0a087dc6d9cd1236bb35c7182ff27e2"
+    },
+    "cpu-1.bin": {
+      "bytes": 2713728,
+      "sha256": "d040f130106f5505adf62a6c656af0bf74dfd6ca4768ed24f54e37150ded0056"
+    },
+    "cpu-10.bin": {
+      "bytes": 2698016,
+      "sha256": "4f1de2fccd2921ee6b5b20a3f5bb566b11bed9a83008685e989542bb6018d69d"
+    },
+    "cpu-11.bin": {
+      "bytes": 2678648,
+      "sha256": "9c3b3b961df5db1d0862910358b9b5e381e5fd797295c2e69d42ae05fe9f7cc6"
+    },
+    "cpu-12.bin": {
+      "bytes": 3161784,
+      "sha256": "cabb2e3ba6df0c95eb4b15882e9c65fd1e5dd1d760801b4aac797de52da62115"
+    },
+    "cpu-2.bin": {
+      "bytes": 2585440,
+      "sha256": "ac5131bbbd0b2f025e9e60d318a25759687feefeffc923defb457b1450dbcaf3"
+    },
+    "cpu-3.bin": {
+      "bytes": 2865512,
+      "sha256": "3d200606abe61a3e3e0f91d6360ac60795c065b212fca9ac1e88a1a83e466e45"
+    },
+    "cpu-4.bin": {
+      "bytes": 2788848,
+      "sha256": "6d3d62bf1e351754bb1e7501affee2dd046e842bbaf12dd7e01eb62d847a1f1e"
+    },
+    "cpu-5.bin": {
+      "bytes": 2892248,
+      "sha256": "800842d2829e6c99c696e368232fa1f81719a52cbc22d3ee9cf71993e586f4d5"
+    },
+    "cpu-6.bin": {
+      "bytes": 2812432,
+      "sha256": "11df0b3cc6cb99e895cdc8711d5ad6876b71e4c102106ffd74f1c6d40efb7685"
+    },
+    "cpu-7.bin": {
+      "bytes": 2575168,
+      "sha256": "c348e0cff07ba7cf71f9ecfffaf11a6fe2a6aa49addac37f274795b76f22f453"
+    },
+    "cpu-8.bin": {
+      "bytes": 2539824,
+      "sha256": "987cfeb49cc005e47ef2e79d5ca93b90649b4bfea97f3d66ff456ab1e48366e4"
+    },
+    "cpu-9.bin": {
+      "bytes": 2628512,
+      "sha256": "eb812a3f87ff031610767997df661babf3737dfddda273c6ed8b68285fab8075"
+    },
+    "stage-one.bin": {
+      "bytes": 1316564,
+      "sha256": "79d4b8700c510fbb9ea2b0ee76d3365acb379e406c5ac08a13ab3c116e6c8f5e"
+    },
+    "truth-0.bin": {
+      "bytes": 2353832,
+      "sha256": "07b38f6d3e597483783a540b4ad4ceaffc89a786d7e33f3212bf5d715a1adddc"
+    },
+    "truth-1.bin": {
+      "bytes": 2343784,
+      "sha256": "cd320efcf68cff0c0b85906ae865954ae4ed265ab267de7bcef008df13ba7d81"
+    },
+    "truth-10.bin": {
+      "bytes": 1420152,
+      "sha256": "cdf11291680753795c9ea0de6135fcb8960374216f87594983383507ef175072"
+    },
+    "truth-11.bin": {
+      "bytes": 890320,
+      "sha256": "cfd6d43191f269fca30cdc7682db8eae4bff2bdaaf9a6f65bbb211babd95f586"
+    },
+    "truth-2.bin": {
+      "bytes": 3829996,
+      "sha256": "ed10d96704054da6662e04f21678e0e43286c1d2f3ee425fa605200f5400274d"
+    },
+    "truth-3.bin": {
+      "bytes": 3432508,
+      "sha256": "e2a4c397497137a02e746d17108d2b0e2aedcccbc633930531f2a7fb4d952922"
+    },
+    "truth-4.bin": {
+      "bytes": 2667384,
+      "sha256": "8d4e8722033be935f7f28a2a7dbc92bb9aae2432bd3918242b1682d7d623825c"
+    },
+    "truth-5.bin": {
+      "bytes": 2551892,
+      "sha256": "4c20c91c844c66b5c4c1b2ebca17650d97bd45ccb05f54415846a1bb3b9d89c1"
+    },
+    "truth-6.bin": {
+      "bytes": 2485556,
+      "sha256": "efe7c87def95f3f33c3cefb29d37a918a8d06d0919d8a67eedb65db08e7aea92"
+    },
+    "truth-7.bin": {
+      "bytes": 3476904,
+      "sha256": "987d4ced0d8e7e92d02cb2033caa9b841ec2414892f7bbc0857917ca88e4386f"
+    },
+    "truth-8.bin": {
+      "bytes": 658636,
+      "sha256": "0efbf566a48e580321554519866c58060fe483bb16a9299a4053508270e694b8"
+    },
+    "truth-9.bin": {
+      "bytes": 1412448,
+      "sha256": "f63d3890a89c1c531580147f3f74b5e07ba415132e6aff48ddae27ec09dea305"
+    }
+  },
+  "binary_artifact_bytes": 74284882,
+  "rejections": {
+    "tamper": "WideBundleFileChanged",
+    "tamper-rehashed": "RootMismatch",
+    "verify-as-full": "EthereumTerminalPcMismatch"
+  },
+  "first_attempt": {
+    "prefix_steps": 14680050,
+    "fp2_calls": 5090,
+    "defer_local_binding": false,
+    "producer": {
+      "wall_ns": 188574095093,
+      "peak_rss_bytes": 6047195136,
+      "user_cpu_s": 589.706166,
+      "system_cpu_s": 169.829228,
+      "returncode": -9,
+      "timed_out": false
+    }
+  }
+}

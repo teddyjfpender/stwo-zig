@@ -112,6 +112,12 @@ unsafe impl GlobalAlloc for ExactLayoutFreeListHeapV2 {
         start as *mut u8
     }
 
+    // The free-list node occupies our full physical block, which may exceed
+    // the caller's logical Layout (e.g. an 8-byte Box uses a 24-byte block).
+    // These stores publish allocator state which outlives the logical object.
+    // Keep them observable: size-oriented LTO otherwise removes metadata
+    // stores while retaining the published intrusive pointer. Volatile stores
+    // preserve the inlined hot path without adding a reclamation call frame.
     #[inline(always)]
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
         let (block_bytes, alignment) = Self::normalized(layout);
@@ -119,9 +125,9 @@ unsafe impl GlobalAlloc for ExactLayoutFreeListHeapV2 {
         let state = unsafe { &mut *self.0.get() };
         let words = pointer.cast::<usize>();
         unsafe {
-            ptr::write(words.cast::<*mut u8>(), state.free_heads[bucket]);
-            ptr::write(words.add(1), block_bytes);
-            ptr::write(words.add(2), alignment);
+            ptr::write_volatile(words.cast::<*mut u8>(), state.free_heads[bucket]);
+            ptr::write_volatile(words.add(1), block_bytes);
+            ptr::write_volatile(words.add(2), alignment);
         }
         state.free_heads[bucket] = pointer;
     }

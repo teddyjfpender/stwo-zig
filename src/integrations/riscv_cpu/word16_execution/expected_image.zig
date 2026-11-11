@@ -169,8 +169,15 @@ pub const Owner = struct {
     pub fn initShared(a: std.mem.Allocator, config: Request.Config, cache: *AuthorityCache) !Owner {
         return initWith(a, config, cache);
     }
+    /// Separately admitted OP-native candidate, never selected by legacy init.
+    pub fn initForOp(a: std.mem.Allocator, config: Request.Config) !Owner {
+        return initMode(a, config, null, true);
+    }
     fn initWith(a: std.mem.Allocator, config: Request.Config, cache: ?*AuthorityCache) !Owner {
-        try Request.validateBudget(config);
+        return initMode(a, config, cache, false);
+    }
+    fn initMode(a: std.mem.Allocator, config: Request.Config, cache: ?*AuthorityCache, op_only: bool) !Owner {
+        if (op_only) try Request.validateBudgetForOp(config) else try Request.validateBudget(config);
         const elf = try std.fs.cwd().readFileAlloc(a, config.elf, 64 * 1024 * 1024);
         defer a.free(elf);
         // Same bound as the producer's request loader: the guest's widest input
@@ -190,7 +197,7 @@ pub const Owner = struct {
         var authority = if (cache) |c| (try c.getPinned(&loaded, config)).* else blk: {
             var program = try Request.Program.init(a, &loaded.memory);
             defer program.deinit(a);
-            break :blk try Full.ProgramAuthority.initWithRom(a, program.value(), Request.authorityProfile(config), Request.romProfile(config), config.control_policy);
+            break :blk if (op_only) try Full.ProgramAuthority.initForOpWord16(a, program.value(), config.control_policy) else try Full.ProgramAuthority.initWithRom(a, program.value(), Request.authorityProfile(config), Request.romProfile(config), config.control_policy);
         };
         errdefer if (!shared) authority.deinit();
         if (config.terminal_pc & 3 != 0 or try loaded.memory.fetch(config.terminal_pc) != 0x0000006f) return error.InvalidEthereumTerminalPc;

@@ -1,0 +1,151 @@
+{
+  "schema": "op-grouped-max2-terminal-b2-actual-small-v1",
+  "scope": "actual selected small execution; no new source/prover code",
+  "block": 120794432,
+  "instructions": 796406,
+  "native_profile": "op_target_b4_q72_p0_fold4_v1",
+  "terminal_outer_profile": "op_control_b2_q144_p0_fold4_v1",
+  "native_bundle_sha256": "4e7c5dc1ca425a57754eae3f913932da9e69c8fab7a920dcb08a279b0b00e17f",
+  "native_members": 4,
+  "maximum_group": 2,
+  "groups": 2,
+  "folds": 1,
+  "nodes": [
+    {
+      "index": 0,
+      "span": [
+        0,
+        2
+      ],
+      "operation": "native_group",
+      "outer_profile": "op_target_b4_q72_p0_fold4_v1",
+      "bytes": 680132,
+      "sha256": "0c5e69a94ca1daec6e5eeca434f8f8b0e54478f34a1dbc85bfd4c5cffef8c962",
+      "source_identity": "5a028d23e380ebfeb9a86e2a5fd016882541bf3be5cbdbb4e089333156073b42",
+      "prove_persist_verify_ns": 21931645250,
+      "stage_seconds": {
+        "op_p2.main_generation": 0.577964,
+        "op_p2.main_commit": 6.848925,
+        "op_p2.interaction_generation": 0.244558,
+        "op_p2.interaction_commit": 6.373576,
+        "draw_random_coeff": 1e-05,
+        "composition_trace_extract": 1.2e-05,
+        "composition_evaluation": 1.030399,
+        "composition_interpolate_and_split": 0.025816,
+        "composition_commit": 3.959434,
+        "oods_point_and_mask_points": 6.5e-05,
+        "sampled_value_evaluation": 0.08868,
+        "sampled_value_channel_mix": 0.000652,
+        "fri_quotient_build_and_commit": 2.067806,
+        "proof_of_work": 8e-06,
+        "fri_decommit": 0.088096,
+        "trace_decommit": 0.548495,
+        "constraint_check_and_assembly": 0.000105
+      }
+    },
+    {
+      "index": 1,
+      "span": [
+        2,
+        2
+      ],
+      "operation": "native_group",
+      "outer_profile": "op_target_b4_q72_p0_fold4_v1",
+      "bytes": 724276,
+      "sha256": "76547ed29d4ed6c936284ae756412891e9543a0759d47fb9e8eac27e973ad594",
+      "source_identity": "20514ebfb7e13f4473451c3a7ab9c4f9cf92c31afa8d094a91cd95df46d108e4",
+      "prove_persist_verify_ns": 42640295709,
+      "stage_seconds": {
+        "op_p2.main_generation": 0.769538,
+        "op_p2.main_commit": 12.752706,
+        "op_p2.interaction_generation": 0.412759,
+        "op_p2.interaction_commit": 12.577616,
+        "draw_random_coeff": 8e-06,
+        "composition_trace_extract": 1.2e-05,
+        "composition_evaluation": 1.646567,
+        "composition_interpolate_and_split": 0.06016,
+        "composition_commit": 8.184538,
+        "oods_point_and_mask_points": 6.6e-05,
+        "sampled_value_evaluation": 0.152449,
+        "sampled_value_channel_mix": 0.000717,
+        "fri_quotient_build_and_commit": 4.696338,
+        "proof_of_work": 7e-06,
+        "fri_decommit": 0.181683,
+        "trace_decommit": 1.079824,
+        "constraint_check_and_assembly": 0.000107
+      }
+    },
+    {
+      "index": 2,
+      "span": [
+        0,
+        4
+      ],
+      "operation": "canonical_fold",
+      "outer_profile": "op_control_b2_q144_p0_fold4_v1",
+      "bytes": 1228888,
+      "sha256": "f89c69122369b4ab81921fac41f2cf7ac69ab167de23ce0f80a3b9e0f164db6b",
+      "source_identity": "9c4154300317b427ede0d2ffd07b21f687f3d5d4be7f7b60a3f3d7568b20fd68",
+      "prove_persist_verify_ns": 11637596459,
+      "stage_seconds": {
+        "op_p2.main_generation": 0.579596,
+        "op_p2.main_commit": 3.204896,
+        "op_p2.interaction_generation": 0.24258,
+        "op_p2.interaction_commit": 2.952533,
+        "draw_random_coeff": 5e-06,
+        "composition_trace_extract": 1.7e-05,
+        "composition_evaluation": 0.82696,
+        "composition_interpolate_and_split": 0.027972,
+        "composition_commit": 2.043846,
+        "oods_point_and_mask_points": 5.2e-05,
+        "sampled_value_evaluation": 0.088907,
+        "sampled_value_channel_mix": 0.000711,
+        "fri_quotient_build_and_commit": 1.079166,
+        "proof_of_work": 6e-06,
+        "fri_decommit": 0.054037,
+        "trace_decommit": 0.467276,
+        "constraint_check_and_assembly": 0.000102
+      }
+    }
+  ],
+  "canonical_public_root": "1ad68e7f5072665ce26106685b2a8d4af0636f31b1db881bea370918ef0f602b80793f2d",
+  "timing": {
+    "whole_producer_wall_seconds": 100.11,
+    "fresh_source_only_qualification_wall_seconds": 23.35,
+    "fresh_group_and_fold_key_ns": 19645379625,
+    "root_read_verify_ns": 47890000,
+    "native_production_additional_not_rerun": true
+  },
+  "memory": {
+    "requested_peak_bytes": 10071481267,
+    "RSS_peak_bytes": 9910452224,
+    "fresh_receiver_requested_peak_bytes": 5713292016,
+    "cap_bytes": 34359738368,
+    "workers": 8,
+    "final_live": 0,
+    "final_external": 0
+  },
+  "qualification": {
+    "all_original_native_proofs_freshly_reverified": true,
+    "complete_RAM_KIO_Wire_and_pinned_terminal43B": true,
+    "both_b4_group_proofs_and_final_b2_fold_physical": true,
+    "lazy_fold_key_from_retired_child_keys": true,
+    "fresh_source_only_receiver_native_bin_physically_absent": true,
+    "eight_physical_attacks_restored_positive": true,
+    "same_canonical_root_as_max4_B4_and_B2": true,
+    "all_three_node_proofs_persisted_before_root_publish": true
+  },
+  "comparison": {
+    "max4_B2_requested_peak_bytes": 13312794270,
+    "max4_B2_producer_wall_seconds": 62.63,
+    "scope": "Memory/time tradeoff observed during qualification, not a quiet comparative benchmark. Group4 is not assumed optimal for all source classes."
+  },
+  "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-max2-terminal-b2-physical-v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "remaining": [
+    "Odd member count runtime physical gate remains separate from exhaustive numerical topology parity",
+    "Heavy tenfold goal remains unachieved; no heavy proof repeated"
+  ]
+}

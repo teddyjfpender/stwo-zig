@@ -1,0 +1,73 @@
+{
+  "schema": "op-detached-sponge-cpu-recursive-leaf-v1",
+  "kind": "sponge_cpu",
+  "bytes": 660292,
+  "key_ns": 5788467041,
+  "prove_ns": 19718766292,
+  "fresh_setup_ns": 6033434667,
+  "fresh_verify_ns": 113435208,
+  "sha256": "d0cbee8dbf4a20441eedce2d5ca4c2a6aa6ce7fe7e813dd6a1f46725ad1cbecb",
+  "source_identity": "3a175536279af336d75aa77123344d91fb9c855611164e60411314347bb60558",
+  "raw": [
+    20073,
+    1463044,
+    1788,
+    31728,
+    65536
+  ],
+  "logs": [
+    15,
+    21,
+    11,
+    15,
+    16
+  ],
+  "mul_log": 16,
+  "native_mul_calls": 38623,
+  "fresh_source": true,
+  "wrong_output_rejected": true,
+  "complete_execution": false,
+  "production_admission": false,
+  "fixture": {
+    "instructions": 11,
+    "cpu_shards": 2,
+    "detached_sponge_calls": 3,
+    "permutations": 5,
+    "scope": "one complete frontier CPU recursive leaf from the qualified four-worker native join"
+  },
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "outer_budget": {
+    "limit_bytes": 8589934592,
+    "peak_bytes": 2132579239,
+    "combined_limit_bytes": 10737418240,
+    "combined_peak_bytes": 2500881598,
+    "native_fixture_limit_bytes": 4294967296,
+    "final_live_bytes": 0
+  },
+  "controls": {
+    "native_cpu0_sha256_unchanged": "13d5fabb5e847915e6753d781aca9f753bfa44a9e2ffe70770ae32915a642bcc",
+    "fresh_trace_geometry_exact": true,
+    "native_child_point_marginals_eta_receipt_parity": true,
+    "frontier_main_mask_terminal_wire_ninth_limb_mutations_rejected": true,
+    "retained_physical_balanced_wire_frame_rejected": true
+  },
+  "legacy_control": {
+    "source_identity_unchanged": "08b8ba82d49d15b413a4a8aac76671dcb0f0712a0f6211bb22f1972173eb0d91",
+    "retained_root_bytes": 687908,
+    "members": 3,
+    "fresh_root_only_accepted": true,
+    "native_PCS_GKR_reverified": false,
+    "same_profile_wrong_VK_balanced_service_missing_duplicate_halt_length_PC_corruption_rejected": true
+  },
+  "remaining": [
+    "Detached sponge recursive child and complete source-owned leaf",
+    "New-suite independent source inventory/runtime admission and bounded resource accounting",
+    "Full root admission binding exact CPU/detached/truth coverage and terminal policy"
+  ],
+  "limitations": [
+    "Correctness-only tiny fixture; timings do not establish a block speedup",
+    "No production source-suite or root-runtime registration",
+    "Heavy 10x end-to-end target remains unmet"
+  ]
+}

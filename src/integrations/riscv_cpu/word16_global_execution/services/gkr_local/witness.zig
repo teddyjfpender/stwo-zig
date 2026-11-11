@@ -142,6 +142,12 @@ fn projectAndPrefix(comptime projection_ready: bool, data: []M, rows: usize, row
         _ = Work.forEachRange(rows, &carry, options);
     }
 }
+/// Prefix a caller-produced Eq*projection-target plane with the same bounded
+/// two-wave carry implementation used by CPU binding witnesses.
+pub fn prefixProjectedWithOptions(data: []M, rows: usize, row_log: u32, options: Work.RangeOptions) !void {
+    if (row_log >= @bitSizeOf(usize) or rows != @as(usize, 1) << @intCast(row_log) or data.len != try std.math.mul(usize, rows, 16)) return error.LocalGkrProjectionShape;
+    try projectAndPrefix(true, data, rows, row_log, 0, &.{}, &.{}, &.{}, O.zero(), O.zero(), options);
+}
 pub const Witness = struct {
     allocator: std.mem.Allocator,
     columns: [][]M,

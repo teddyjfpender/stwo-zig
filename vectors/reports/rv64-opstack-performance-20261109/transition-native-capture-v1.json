@@ -1,0 +1,127 @@
+{
+  "schema": "op-native-capture-v1",
+  "date": "2026-11-09",
+  "status": "bounded-progress-incomplete",
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false,
+  "guest_executed": false,
+  "attempt1": {
+    "status": "deadline",
+    "elapsed_seconds": 180.24225554196164,
+    "seconds_cap": 180,
+    "decoded_kv_bytes_cap": 67108864,
+    "peak_observed_decoded_kv_bytes": 1452478,
+    "upstream_revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+    "patch_sha256": "2442649ee5790fd9c38fbbf5790735b8ea4c5b0bbb2fda3a894a77aedbd7a233",
+    "host_sha256": "862556839311e69c180eb998b190edb45aec23706fbb5a0174e96309a4e39bbd",
+    "candidate": {
+      "l1-anchor": {
+        "number": 26378629,
+        "hash": "0xad0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9",
+        "header_sha256": "af8437ddb8878bf2381cd161d11104b64691c101e118e98efb9c2a5c9ad7a30c"
+      },
+      "previous": {
+        "number": 159321793,
+        "hash": "0x3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+        "header_sha256": "bae79a42074a2b8b09661a69c94296c9a5c40f51d0396a02c91e56408b32f867",
+        "output_root": "0x94625ee179240693eae780eb83dd89ed052b586030073af009949d722e6b613a"
+      },
+      "next": {
+        "number": 159321794,
+        "hash": "0x241301a29d2566cb6e850f36dc27d4ade11b8c815295fc94416cf53c87f41714",
+        "header_sha256": "503879ea89be68dd15743ce33a6fbe102a21e68b9f9eba1971c14b8f34aeea45",
+        "output_root": "0xead7bdb1bc28a437fabe299df41cda2af89c3149d7380be180ff49240e542aed"
+      }
+    },
+    "upstream_native_client_accepted": false,
+    "complete_exported_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false,
+    "guest_executed": false,
+    "host_exit_code": -2
+  },
+  "attempt1_material": {
+    "import": {
+      "records": 4532,
+      "kv_rows": 4532,
+      "ignored_key_types": {},
+      "preimage_hashes_verified": true,
+      "sidecars_recovered": false,
+      "complete_witness": false,
+      "derivation_accepted": false,
+      "proof_verified": false
+    },
+    "header_ranges": {
+      "l1": {
+        "count": 103,
+        "min": 26378527,
+        "max": 26378629
+      },
+      "l2": {
+        "count": 104,
+        "min": 159321690,
+        "max": 159321793
+      }
+    }
+  },
+  "l1_adapter": {
+    "records": 103,
+    "bytes": 66595,
+    "preimage_hashes_verified": true,
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false,
+    "missing_preimages": {}
+  },
+  "l2_adapter": {
+    "records": 113,
+    "bytes": 69846,
+    "preimage_hashes_verified": true,
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false,
+    "missing_preimages": {}
+  },
+  "validation": {
+    "python_tests_passed": 29,
+    "host_rust_regression_passed": true,
+    "source_prepare_independent_apply_passed": true,
+    "readahead_coherent_fork_rejected": true,
+    "resume_claim_source_cap_hash_negatives": true
+  },
+  "readahead": {
+    "default": 1,
+    "opt_in_max": 32,
+    "threads_max": 8,
+    "authority": "parent hashes from independently requested header, every RLP/hash checked"
+  },
+  "resume": "new output only; pinned candidate/source/patch/executable plus bounded reauthenticated Keccak/SHA cache",
+  "artifacts": {
+    "import-summary.json": {
+      "bytes": 452,
+      "sha256": "83522b7d56c5b44c75b913ff493c2f21d3a80592250b25df2d78ddb8427ac48b"
+    },
+    "capture-run.json": {
+      "bytes": 1478,
+      "sha256": "3e8b1f0409c78b73c7b029746e87254ad1cc556b126deea3a95dcb27d9cd7053"
+    },
+    "l2-adapter/capture.json": {
+      "bytes": 190,
+      "sha256": "559c89bb8bed916fb2076ffebef244afcbef174fcb69ad7c5fd4e530e60aede9"
+    },
+    "l2-adapter/records.json": {
+      "bytes": 148055,
+      "sha256": "ccd2f2b77741d6d341e652e6ae71b0ab590e59c1a3b3316dfed9dbf53dccfecd"
+    },
+    "l1-adapter/capture.json": {
+      "bytes": 190,
+      "sha256": "baf83cebf97ee9f4e4c0bfa9da6dce22d9b1f5c4b24a172a07a85b691bc4b0a3"
+    },
+    "l1-adapter/records.json": {
+      "bytes": 140813,
+      "sha256": "da4ea0eca3e6d8b83ffb31b410eca566ba2511817a7985358624f57349398d05"
+    }
+  },
+  "remaining": "finish driven native capture, export standard sidecars and independently admit complete OPD; no RV64/proof qualification"
+}

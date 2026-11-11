@@ -4,3 +4,4 @@ pub const decommit = @import("decommit.zig");
 pub const bounded_blake2_tail = @import("bounded_blake2_tail.zig");
 pub const query_reconstruction = @import("query_reconstruction.zig");
 pub const compact_blake_state = @import("compact_blake_state.zig");
+pub const native_four_tail = @import("native_four_tail.zig");

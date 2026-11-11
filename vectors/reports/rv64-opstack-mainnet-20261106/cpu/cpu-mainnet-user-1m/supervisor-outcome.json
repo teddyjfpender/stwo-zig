@@ -1,0 +1,6 @@
+{
+  "schema": "stwo.opstack.incomplete-supervision.v1",
+  "proof_verified": false,
+  "last_persisted_stage": "plan",
+  "observation": "Execution session was no longer retrievable; no terminal producer receipt or accepted bundle was present after its requested 1800-second stage budget. No exit status or cause is inferred."
+}

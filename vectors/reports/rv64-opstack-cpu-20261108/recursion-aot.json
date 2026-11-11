@@ -1,0 +1,316 @@
+{
+  "schema": "stwo.opstack.om31-native-aot.v1",
+  "block": 120794432,
+  "native_profile": "d2_native_b4_q54_p20_fold4",
+  "outer_profile": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+  "security_qualified": false,
+  "method": "control,aot,aot,control; 16 workers; cold independent processes; no restored proofs; native proving excluded; 32 GiB requested-live production and 24 GiB receive; same 2 GiB fixed cache; machine otherwise quiet",
+  "records": [
+    {
+      "index": 0,
+      "kind": "control",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-before-om31-aot",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/om31-aot-controlled/0-control",
+          "2147483648",
+          "34359738368"
+        ],
+        "wall_ns": 35813449000,
+        "peak_rss_bytes": 29360963584,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 354.328074,
+        "system_cpu_s": 11.400614,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/om31-aot-controlled/0-control",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 5043992375,
+        "peak_rss_bytes": 7322353664,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 20.820637,
+        "system_cpu_s": 0.663018,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof_sha256": {
+        "leaf-000001.proof": "df09bdf115f10a9f9058ef92999f9e903ba0ef06a566abcb87ac5a7fa3ceff5a",
+        "fold-000003.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91",
+        "leaf-000000.proof": "797a56a58a4017398c208fe7c6399ce4dbd88e9f5c099a605310ac508ad57884",
+        "leaf-000002.proof": "2f3c39af1732cdaa0621bd374ea16d29d3e2b69e3a56ff9ad6fa06b9b680809a",
+        "root.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91"
+      },
+      "runner_sha256": "4d6ad5ec893842dc085a386855a8ba440c5f5ab8209c1c38a96d9754d18035ad",
+      "summed_stage_seconds": {
+        "outer_witness": 0.793863,
+        "outer_main_commit": 3.239883,
+        "outer_interaction_witness": 6.942552,
+        "outer_interaction_commit": 6.209839,
+        "draw_random_coeff": 1.6e-05,
+        "composition_trace_extract": 2.6000000000000002e-05,
+        "composition_evaluation": 7.49823,
+        "composition_interpolate_and_split": 0.169035,
+        "composition_commit": 0.717285,
+        "oods_point_and_mask_points": 0.000321,
+        "sampled_value_evaluation": 0.874467,
+        "sampled_value_channel_mix": 0.00022099999999999998,
+        "fri_quotient_build_and_commit": 2.622253,
+        "proof_of_work": 0.00621,
+        "fri_decommit": 0.15290499999999999,
+        "trace_decommit": 0.025065999999999998,
+        "constraint_check_and_assembly": 0.00039200000000000004
+      }
+    },
+    {
+      "index": 1,
+      "kind": "aot",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/om31-aot-controlled/1-aot",
+          "2147483648",
+          "34359738368"
+        ],
+        "wall_ns": 33808962042,
+        "peak_rss_bytes": 29359194112,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 340.574151,
+        "system_cpu_s": 12.095131,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/om31-aot-controlled/1-aot",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 3949721417,
+        "peak_rss_bytes": 7322320896,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 21.664543,
+        "system_cpu_s": 0.677192,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof_sha256": {
+        "leaf-000001.proof": "df09bdf115f10a9f9058ef92999f9e903ba0ef06a566abcb87ac5a7fa3ceff5a",
+        "fold-000003.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91",
+        "leaf-000000.proof": "797a56a58a4017398c208fe7c6399ce4dbd88e9f5c099a605310ac508ad57884",
+        "leaf-000002.proof": "2f3c39af1732cdaa0621bd374ea16d29d3e2b69e3a56ff9ad6fa06b9b680809a",
+        "root.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91"
+      },
+      "runner_sha256": "667d355d12f33ae040f5eb0cc1fde391e407ab986111521fc2b1b6f1a845db96",
+      "summed_stage_seconds": {
+        "outer_witness": 0.8163940000000001,
+        "outer_main_commit": 3.4202199999999996,
+        "outer_interaction_witness": 7.3437019999999995,
+        "outer_interaction_commit": 6.612141,
+        "draw_random_coeff": 1.6e-05,
+        "composition_trace_extract": 3.4e-05,
+        "composition_evaluation": 5.589167,
+        "composition_interpolate_and_split": 0.190456,
+        "composition_commit": 0.752158,
+        "oods_point_and_mask_points": 0.00032500000000000004,
+        "sampled_value_evaluation": 0.931619,
+        "sampled_value_channel_mix": 0.00024400000000000002,
+        "fri_quotient_build_and_commit": 2.9009359999999997,
+        "proof_of_work": 0.006633,
+        "fri_decommit": 0.155885,
+        "trace_decommit": 0.027372,
+        "constraint_check_and_assembly": 0.000389
+      }
+    },
+    {
+      "index": 2,
+      "kind": "aot",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/om31-aot-controlled/2-aot",
+          "2147483648",
+          "34359738368"
+        ],
+        "wall_ns": 35561004292,
+        "peak_rss_bytes": 29359210496,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 359.987297,
+        "system_cpu_s": 12.495923,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/om31-aot-controlled/2-aot",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 4032157333,
+        "peak_rss_bytes": 7322337280,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 22.289053,
+        "system_cpu_s": 0.692029,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof_sha256": {
+        "leaf-000001.proof": "df09bdf115f10a9f9058ef92999f9e903ba0ef06a566abcb87ac5a7fa3ceff5a",
+        "fold-000003.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91",
+        "leaf-000000.proof": "797a56a58a4017398c208fe7c6399ce4dbd88e9f5c099a605310ac508ad57884",
+        "leaf-000002.proof": "2f3c39af1732cdaa0621bd374ea16d29d3e2b69e3a56ff9ad6fa06b9b680809a",
+        "root.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91"
+      },
+      "runner_sha256": "667d355d12f33ae040f5eb0cc1fde391e407ab986111521fc2b1b6f1a845db96",
+      "summed_stage_seconds": {
+        "outer_witness": 0.844728,
+        "outer_main_commit": 3.583475,
+        "outer_interaction_witness": 7.668991,
+        "outer_interaction_commit": 6.948297999999999,
+        "draw_random_coeff": 1.9999999999999998e-05,
+        "composition_trace_extract": 3.8e-05,
+        "composition_evaluation": 5.8914159999999995,
+        "composition_interpolate_and_split": 0.201783,
+        "composition_commit": 0.779811,
+        "oods_point_and_mask_points": 0.00036300000000000004,
+        "sampled_value_evaluation": 0.9950110000000001,
+        "sampled_value_channel_mix": 0.000257,
+        "fri_quotient_build_and_commit": 3.123311,
+        "proof_of_work": 0.0064010000000000004,
+        "fri_decommit": 0.16739199999999999,
+        "trace_decommit": 0.028436999999999997,
+        "constraint_check_and_assembly": 0.00040199999999999996
+      }
+    },
+    {
+      "index": 3,
+      "kind": "control",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-before-om31-aot",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/om31-aot-controlled/3-control",
+          "2147483648",
+          "34359738368"
+        ],
+        "wall_ns": 38575389834,
+        "peak_rss_bytes": 29360930816,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 405.852986,
+        "system_cpu_s": 12.703471,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/om31-aot-controlled/3-control",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 4068878417,
+        "peak_rss_bytes": 7322320896,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 22.363672,
+        "system_cpu_s": 0.693778,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof_sha256": {
+        "leaf-000001.proof": "df09bdf115f10a9f9058ef92999f9e903ba0ef06a566abcb87ac5a7fa3ceff5a",
+        "fold-000003.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91",
+        "leaf-000000.proof": "797a56a58a4017398c208fe7c6399ce4dbd88e9f5c099a605310ac508ad57884",
+        "leaf-000002.proof": "2f3c39af1732cdaa0621bd374ea16d29d3e2b69e3a56ff9ad6fa06b9b680809a",
+        "root.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91"
+      },
+      "runner_sha256": "4d6ad5ec893842dc085a386855a8ba440c5f5ab8209c1c38a96d9754d18035ad",
+      "summed_stage_seconds": {
+        "outer_witness": 0.8420730000000001,
+        "outer_main_commit": 3.657255,
+        "outer_interaction_witness": 7.746036,
+        "outer_interaction_commit": 7.025018,
+        "draw_random_coeff": 1.7e-05,
+        "composition_trace_extract": 2.9e-05,
+        "composition_evaluation": 8.534092,
+        "composition_interpolate_and_split": 0.20265699999999998,
+        "composition_commit": 0.7943439999999999,
+        "oods_point_and_mask_points": 0.000364,
+        "sampled_value_evaluation": 1.010201,
+        "sampled_value_channel_mix": 0.000245,
+        "fri_quotient_build_and_commit": 3.168068,
+        "proof_of_work": 0.011283,
+        "fri_decommit": 0.16608,
+        "trace_decommit": 0.028139,
+        "constraint_check_and_assembly": 0.000441
+      }
+    }
+  ],
+  "qualification": [
+    "all 11 pinned programs compared against scalar octic evaluation, every coordinate, three lifts, cyclic offsets, additive tiles",
+    "actual q108/P20 circuit proof accepted and five physical mutations rejected",
+    "serial, two-worker and three-worker proofs byte-identical",
+    "all allocation failure points in prepared metadata; explicit SharedHostBudget returns to zero after success and invalid source",
+    "invalid geometry rejects and modified program identity has no registered kernel",
+    "all 11 existing quartic C sources byte-identical",
+    "native CPU OM31 proof/PCS regression suite passes",
+    "all five real OP recursive proof files byte-identical between all four trials; separate receivers accept every root"
+  ],
+  "caveats": [
+    "four-trial sample, two per variant; stages drift with trial order",
+    "not an anchored transition, accumulated checkpoint or settlement qualification",
+    "128-bit target under documented assumptions; security_qualified remains false",
+    "scalar OODS verifier and proof wire are unchanged; M7 hybrid IR still uses its separate evaluator"
+  ],
+  "summary": {
+    "control": {
+      "production_median_s": 37.194419417,
+      "composition_median_s": 8.016161,
+      "receive_median_s": 4.5564353959999995,
+      "production_peak_rss_max_bytes": 29360963584
+    },
+    "aot": {
+      "production_median_s": 34.684983167,
+      "composition_median_s": 5.7402915,
+      "receive_median_s": 3.990939375,
+      "production_peak_rss_max_bytes": 29359210496
+    }
+  }
+}

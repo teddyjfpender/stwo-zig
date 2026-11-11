@@ -1,8 +1,9 @@
 //! Execution-only CANDIDATE curve, field and sponge services for profile
 //! `ethereum_services_v3_candidate` (dispatched from candidate_services.zig).
 //!
-//! Like every candidate service these exist only in the execution tool; the
-//! prover does not admit them and results that use them are never promotable.
+//! The pointer-packet dispatch below is execution-only. Its pure arithmetic
+//! helpers are also reused by the separately admitted inline-packet v3 roster
+//! in curves.zig; that admission never enables this candidate dispatch.
 //! ABI: guests/ethereum/abi/candidate-curves-abi.md. Granularity
 //! mirrors ZisK's precompiles (Bn254CurveAdd/Dbl, Bn254ComplexMul,
 //! Bls12_381CurveAdd/Dbl, Bls12_381ComplexMul, Arith384Mod) plus a Montgomery
@@ -20,6 +21,10 @@
 //!   unsatisfiable; the guest must not issue such a call).
 const std = @import("std");
 const memory = @import("../memory.zig");
+const BnMontgomery = @import("montgomery_bn254.zig");
+comptime {
+    if (BnMontgomery.MODULUS != BN254_P) @compileError("BN254 Montgomery modulus drift");
+}
 
 pub const BN254_G1_ADD_TAG: u64 = 0x0003_0100;
 pub const BN254_G1_DOUBLE_TAG: u64 = 0x0003_0101;
@@ -57,6 +62,8 @@ pub fn kindOf(tag: u64) ?Kind {
 
 pub const BN254_P: u256 = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47;
 pub const BLS12_381_P: u384 = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab;
+pub const BLS12_381_SCALAR_P: u256 = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001;
+pub const BN254_SCALAR_P: u256 = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
 
 /// Prime-field arithmetic on canonical values (< p).
 pub fn Field(comptime T: type, comptime p: T) type {
@@ -140,16 +147,42 @@ pub fn affineDouble(comptime F: type, comptime T: type, x: T, y: T) [2]T {
 
 /// Fp2 = Fp[u]/(u^2 + 1) product on canonical coefficients.
 pub fn fp2Mul(comptime F: type, comptime T: type, a: [2]T, b: [2]T) [2]T {
+    if (comptime F == Bn254) {
+        // Canonical coefficients are below the 254-bit prime. Both the
+        // signed real correction by p² and the imaginary sum fit in u512.
+        // Reduce the two outputs instead of reducing every product.
+        const real_left = @as(u512, a[0]) * b[0];
+        const real_right = @as(u512, a[1]) * b[1];
+        const modulus_squared = @as(u512, BN254_P) * BN254_P;
+        const real = if (real_left >= real_right) real_left - real_right else modulus_squared + real_left - real_right;
+        const imaginary = @as(u512, a[0]) * b[1] + @as(u512, a[1]) * b[0];
+        return .{ @intCast(real % BN254_P), @intCast(imaginary % BN254_P) };
+    }
     return .{ F.sub(F.mul(a[0], b[0]), F.mul(a[1], b[1])), F.add(F.mul(a[0], b[1]), F.mul(a[1], b[0])) };
 }
+
+fn inverseRadix(comptime modulus: u384) u384 {
+    @setEvalBranchQuota(100000);
+    return invMod(u384, @intCast((@as(u768, 1) << 384) % modulus), modulus);
+}
+const BN254_RADIX_INVERSE = inverseRadix(BN254_P);
+const BLS12_RADIX_INVERSE = inverseRadix(BLS12_381_P);
+const BLS12_SCALAR_RADIX_INVERSE = inverseRadix(BLS12_381_SCALAR_P);
+const BN254_SCALAR_RADIX_INVERSE = inverseRadix(BN254_SCALAR_P);
 
 /// a * b * 2^-384 mod m for odd m (m = 1 gives 0). Any a, b < 2^384.
 pub fn mont384(a: u384, b: u384, m: u384) u384 {
     std.debug.assert(m & 1 == 1);
     if (m == 1) return 0;
+    // Ark BN254 uses a 256-bit Montgomery radix. Its admitted inline packet
+    // shifts the first residue by 128 bits to match this service's radix.
+    // Recognize only that bounded shape; all other inputs stay generic.
+    if (m == BN254_P and @as(u128, @truncate(a)) == 0 and a >> 128 < BN254_P and b < BN254_P)
+        return BnMontgomery.product(@intCast(a >> 128), @intCast(b));
     const t: u384 = @intCast(@as(u768, a) * b % m);
-    const r_mod: u384 = @intCast((@as(u768, 1) << 384) % m);
-    const r_inv = invMod(u384, r_mod, m);
+    // Public fixed-field specializations avoid a repeated binary-GCD inverse
+    // on every admitted call. Arbitrary odd moduli retain the generic path.
+    const r_inv = if (m == BN254_P) BN254_RADIX_INVERSE else if (m == BLS12_381_P) BLS12_RADIX_INVERSE else if (m == BLS12_381_SCALAR_P) BLS12_SCALAR_RADIX_INVERSE else if (m == BN254_SCALAR_P) BN254_SCALAR_RADIX_INVERSE else invMod(u384, @intCast((@as(u768, 1) << 384) % m), m);
     return @intCast(@as(u768, t) * r_inv % m);
 }
 
@@ -530,4 +563,38 @@ test "candidate keccak_sponge equals Keccak-256 for every length and alignment" 
     try testing.expectError(error.CandidateDomain, run(&mem, .keccak_sponge, BASE, &.{ state, input, 136, 4 }));
     try testing.expectError(error.UnmappedAddress, run(&mem, .keccak_sponge, BASE, &.{ state, BASE + SIZE + memory.PAGE_SIZE - 8, 136, 0 }));
     try testing.expectEqual(lane0, try mem.load(state, 8));
+}
+
+test "Montgomery fixed-field inverses preserve arbitrary operand residues" {
+    const moduli = [_]u384{ 1, 3, BN254_P, BLS12_381_P, BLS12_381_SCALAR_P, BN254_SCALAR_P };
+    const values = [_]u384{ 0, 1, BN254_P - 1, BLS12_381_P - 1, BLS12_381_SCALAR_P - 1, BN254_SCALAR_P - 1, (@as(u384, BLS12_381_SCALAR_P) - 1) << 128, std.math.maxInt(u384) };
+    for (moduli) |m| for (values) |a| for (values) |b| {
+        const reference: u384 = if (m == 1) 0 else blk: {
+            const radix: u384 = @intCast((@as(u768, 1) << 384) % m);
+            const inverse = invMod(u384, radix, m);
+            const product: u384 = @intCast(@as(u768, a) * b % m);
+            break :blk @intCast(@as(u768, product) * inverse % m);
+        };
+        try testing.expectEqual(reference, mont384(a, b, m));
+    };
+}
+
+test "canonical BN254 Fp2 fused reduction matches the four-product field formula" {
+    var rng = std.Random.DefaultPrng.init(0x9670_5141_d2b0_50ee);
+    const random = rng.random();
+    for (0..128) |i| {
+        const a = [2]u256{
+            if (i == 0) 0 else random.int(u256) % BN254_P,
+            if (i < 2) BN254_P - 1 else random.int(u256) % BN254_P,
+        };
+        const b = [2]u256{
+            if (i == 0) 0 else random.int(u256) % BN254_P,
+            if (i < 2) BN254_P - 1 else random.int(u256) % BN254_P,
+        };
+        const expected = [2]u256{
+            Bn254.sub(Bn254.mul(a[0], b[0]), Bn254.mul(a[1], b[1])),
+            Bn254.add(Bn254.mul(a[0], b[1]), Bn254.mul(a[1], b[0])),
+        };
+        try std.testing.expectEqual(expected, fp2Mul(Bn254, u256, a, b));
+    }
 }

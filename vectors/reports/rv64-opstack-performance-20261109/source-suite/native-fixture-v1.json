@@ -1,0 +1,50 @@
+{
+  "schema": "op-source-suite-native-fixture/v1",
+  "qualification": "synthetic one-ECALL CPU + local Miller, not an ELF/Kona or heavy block benchmark",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "suite": {
+    "version": 1,
+    "cpu": 1,
+    "truth": "classic",
+    "miller": "local_gkr",
+    "sponge": 0
+  },
+  "wire_schema": 3,
+  "native_bundle_bytes": 1052596,
+  "native_bundle_sha256": "0dad2f3ccb88d7f4709c91115aac46cf645e9e5dd5b6c3b740082010380fd472",
+  "cpu_native_bytes": 566444,
+  "miller_pcs_bytes": 398684,
+  "positive": {
+    "receiver_source_keys": "independently rebuilt",
+    "inventory_source_security": "checked after source Bounds and before native admission",
+    "global_RAM_and_Wire": "closed",
+    "terminal_pc": "image-owned absorbing JAL x0,0",
+    "terminal_halt": 1,
+    "terminal_length": 43,
+    "terminal_output": "exact image-owned43bytes",
+    "readonly_packet_tail": "preserved",
+    "packet": "80words/48writes crosspage"
+  },
+  "rejected": [
+    "missing Miller provider",
+    "duplicated Miller provider",
+    "local key under classic suite",
+    "new bundle under old decoder",
+    "different expected suite",
+    "wrong declared proof count",
+    "reordered CPU/Miller proofs",
+    "balanced opposite Wire claim changes",
+    "wrong local GKR receipt",
+    "existing CPU wrong span, missing local roster, bad profile, wrong mass and manifest controls"
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/miller-local-source-suite-native-v1",
+  "security": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admitted": false,
+  "timing_claim": null,
+  "remaining": [
+    "complete source-owned recursive fixture/root with this suite",
+    "actual Kona mode qualification before any production promotion",
+    "no heavy rerun permitted in this task"
+  ]
+}

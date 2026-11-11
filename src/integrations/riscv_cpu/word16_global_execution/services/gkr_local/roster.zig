@@ -38,9 +38,15 @@ pub fn bridgeTerms(family: @import("../types.zig").Family) u32 {
         1 + A.crypto.secp256k1.word16_bridge.layout.U16.len + A.crypto.secp256k1.word16_bridge.layout.U8.len;
 }
 pub fn fromSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
+    return fromSetupMode(a, setup, false);
+}
+pub fn fromOpSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
+    return fromSetupMode(a, setup, true);
+}
+fn fromSetupMode(a: std.mem.Allocator, setup: *const R.CpuSetup, op: bool) ![]Instance {
     // Qualified v2 bridges and bulk on the historical CPU layout (fused-tail / byte-pair
     // CPU layouts fail closed with UnsupportedFusedTailInLocalGkr).
-    try @import("service_scope.zig").setup(setup);
+    if (op) try @import("service_scope.zig").setupForOp(setup) else try @import("service_scope.zig").setup(setup);
     var out = std.ArrayList(Instance).empty;
     errdefer out.deinit(a);
     for (setup.materials.shapes()) |shape| {
@@ -61,5 +67,9 @@ pub fn fromSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
     for (0..@import("../types.zig").DWORD_INSTANCES) |k| if (setup.bridges.dwordLog(k)) |log| {
         try out.append(a, .{ .origin = .{ .dword = @intCast(k) }, .row_log = log, .terms = @import("dword_projection.zig").LOCAL_TERMS, .fixed_offset = setup.dwordOffset(k, 0), .main_offset = setup.dwordOffset(k, 1) });
     };
+    if (setup.bridges.tower) |log| {
+        if (!op) return error.UnqualifiedOpProtocol;
+        try out.append(a, .{ .origin = .{ .tower = {} }, .row_log = log, .terms = @import("op_tower_projection.zig").LOCAL_TERMS, .fixed_offset = setup.towerOffset(0), .main_offset = setup.towerOffset(1) });
+    }
     return out.toOwnedSlice(a);
 }

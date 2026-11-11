@@ -15,6 +15,15 @@ const W = @import("../../word16_global_execution/services/gkr_local/worker_proto
 pub fn geometry(a: std.mem.Allocator, setup: *const R.CpuSetup, config: W.PcsConfig) !V.Shape {
     var plan = try Components.Plan.init(a, setup);
     defer plan.deinit();
+    return geometryWithPlan(a, setup, config, &plan);
+}
+/// Explicit OP-only shape; the legacy geometry path still refuses OP setups.
+pub fn geometryForOp(a: std.mem.Allocator, setup: *const R.CpuSetup, config: W.PcsConfig) !V.Shape {
+    var plan = try Components.Plan.initForOp(a, setup);
+    defer plan.deinit();
+    return geometryWithPlan(a, setup, config, &plan);
+}
+fn geometryWithPlan(a: std.mem.Allocator, setup: *const R.CpuSetup, config: W.PcsConfig, plan: *const Components.Plan) !V.Shape {
     var global_log: u32 = 0;
     for (plan.slots) |slot| global_log = @max(global_log, slot.log);
     const logs = try a.alloc([]const u32, 4);

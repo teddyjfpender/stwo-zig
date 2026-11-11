@@ -37,6 +37,7 @@ pub const descriptor = product_policy.Descriptor{
     .source_closure = source_closure,
 };
 pub fn addProduct(context: Context) void {
+    @import("riscv_op_tests.zig").add(testContext(context));
     inline for (.{
         .{ "security-policy", "src/integrations/riscv_cpu/rv64_security_policy_test_root.zig", 23 },
         .{ "om-classic-control", "src/integrations/riscv_cpu/rv64_om_classic_control_test_root.zig", 1 },
@@ -147,8 +148,8 @@ pub fn addProduct(context: Context) void {
         .{ "poseidon-simd", "src/integrations/riscv_cpu/rv64_poseidon_simd_test_root.zig", 4 },
         .{ "pcs-commit", "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig", 2 },
         .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 4 },
-        .{ "recursion", "src/integrations/riscv_cpu/rv64_recursion_test_root.zig", 1 },
-        .{ "composition-ir", "src/integrations/riscv_cpu/rv64_composition_ir_test_root.zig", 0 },
+        .{ "recursion", "src/integrations/riscv_cpu/rv64_recursion_test_root.zig", 3 },
+        .{ "composition-ir", "src/integrations/riscv_cpu/rv64_composition_ir_test_root.zig", 1 },
         .{ "composition-ir-services", "src/integrations/riscv_cpu/rv64_composition_ir_services_test_root.zig", 1 },
         .{ "composition-ir-truths", "src/integrations/riscv_cpu/rv64_composition_ir_truths_test_root.zig", 1 },
     }) |suite| {
@@ -185,9 +186,10 @@ pub fn addProduct(context: Context) void {
         rv64_execution.dependOn(&executable.step);
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "rv64-op-native", .source = "src/integrations/riscv_cpu/rv64_op_native_main.zig" },
+        .{ .name = "rv64-word16-ethereum-native", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_native_main.zig" },
         .{ .name = "rv64-om-classic-control", .source = "src/integrations/riscv_cpu/rv64_om_classic_control_main.zig" },
         .{ .name = "rv64-word16-ethereum", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_main.zig" },
-        .{ .name = "rv64-word16-ethereum-gkr", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_gkr_main.zig" },
         .{ .name = "rv64-capture-bench", .source = "src/integrations/riscv_cpu/rv64_capture_bench_main.zig" },
         .{ .name = "rv64-logup-gkr-prototype", .source = "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_main.zig" },
         .{ .name = "rv64-logup-kernel-bench", .source = "src/integrations/riscv_cpu/rv64_logup_kernel_bench_main.zig" },
@@ -253,6 +255,9 @@ pub fn addProduct(context: Context) void {
         context.protocol.addImports(tool_root);
         _ = graph.addProofWireImport(context.b, context.protocol, product, context.target, context.optimize, tool_root);
         @import("../graph/integrations.zig").addRiscVCpuStack(context.b, context.protocol, product, context.target, context.optimize, tool_root);
+        if (std.mem.eql(u8, tool.name, "rv64-op-native")) {
+            @import("riscv_op_tests.zig").addNativeCheck(context.b, tool_root);
+        }
         const executable = context.b.addExecutable(.{ .name = tool.name, .root_module = tool_root });
         const install = context.b.addInstallArtifact(executable, .{});
         context.b.step(tool.name, "Build proof qualification and performance diagnostics").dependOn(&install.step);

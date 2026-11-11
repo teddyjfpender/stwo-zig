@@ -1,0 +1,91 @@
+{
+  "schema": "p2-simd-diagonal-rotation-negative/v1",
+  "decision": "rejected; no production arithmetic or optional hook adopted",
+  "host": {
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18,
+    "zig": "0.15.2",
+    "optimization": "ReleaseFast"
+  },
+  "quiet_interleaved": {
+    "groups": 32768,
+    "repeats": 9,
+    "order": "control/candidate alternating each repetition",
+    "baseline": "pre-hook four-lane SIMD Ops, same shared permutation and framing",
+    "candidate": "power-of-two diagonal31-bit rotations via optional SIMD-only mulPow2",
+    "rows": [
+      {
+        "mode": "node18",
+        "baseline_ns": 80128375,
+        "candidate_ns": 80222500,
+        "speedup": 0.9988,
+        "checksum": 4215416306773978106
+      },
+      {
+        "mode": "leaf64",
+        "baseline_ns": 240685041,
+        "candidate_ns": 240143375,
+        "speedup": 1.0023,
+        "checksum": 2952116522089867729
+      },
+      {
+        "mode": "leaf128",
+        "baseline_ns": 442303792,
+        "candidate_ns": 441135834,
+        "speedup": 1.0026,
+        "checksum": 550758373879783109
+      },
+      {
+        "mode": "balanced",
+        "widths": [
+          18,
+          64,
+          18,
+          128
+        ],
+        "baseline_ns": 212529875,
+        "candidate_ns": 210936084,
+        "speedup": 1.0076,
+        "checksum": 3083255484935726678
+      }
+    ]
+  },
+  "isolated_permutation_diagnostic": {
+    "groups": 32768,
+    "repeats": 9,
+    "baseline_ns": 39877333,
+    "candidate_ns": 39713666,
+    "speedup": 1.0041,
+    "quiet_window": false,
+    "interpretation": "also noise-level; does not support blaming sponge framing for the lack of gain"
+  },
+  "codegen": {
+    "baseline_diagonal": "ld1r + MUL/SQDMULH + canonical reduction; not already strength-reduced",
+    "candidate_diagonal": "SHL/BIC/USHR/OR,4 instructions before unchanged canonical add",
+    "baseline_permutation_static_instructions": 437,
+    "candidate_permutation_static_instructions": 581,
+    "baseline_vector_registers": "v0..v7",
+    "candidate_vector_registers": "v0..v31",
+    "baseline_stack_frame_bytes": 32,
+    "candidate_stack_frame_bytes": 96,
+    "loop_stack_spills_observed": false,
+    "limits": "static counts are not dynamic instruction/stall attribution; no hardware-counter diagnosis"
+  },
+  "parity": {
+    "candidate_tests_passed": 13,
+    "production_tests_passed": 12,
+    "diagonal_edge_random_checks": 22344,
+    "all_domains_rate_boundaries_state_transfer": true,
+    "dense_and_pinned_KAT": true,
+    "parameter_identity_unchanged": true,
+    "default_operation_count": 4040,
+    "default_operation_stream_sha256": "8240740eb07c131ea9f8c41442be88c500367839c4afe02da46ba702f1615108",
+    "all_benchmark_checksums_equal": true
+  },
+  "harness": "scripts/bench_poseidon2_diagonal_rotation.py copies a bounded source set and applies the rejected patch only in a temporary directory",
+  "benchmark_scope": "numeric packed node and streaming-leaf hashing; excludes full PCS/tree allocation/column gathering",
+  "next_priority": "R7 dot and serialized sponge frontier reduce committed rows/columns and therefore complete hash work; do not infer a win from diagonal instruction counts",
+  "production_kernel_changed": false,
+  "whole_block_benchmark_run": false,
+  "security_profile_changed": false
+}

@@ -1,0 +1,360 @@
+{
+  "schema": "stwo.opstack.arkworks-montgomery-service.v1",
+  "scope": "Optional guest execution optimization; complete KZG verification runs, not a complete OP transition proof or proving-time speedup",
+  "control_elf_sha256": "61b9c8458c79b6eb5d9ae0326e9f0364ef153a1f63377f637411f784ca7d30d6",
+  "service_elf_sha256": "357c4921e23098ec73a1e3b918e71291246459b6ee0fd07be6323f751f9cdd9b",
+  "rows": [
+    {
+      "case": "dense",
+      "algorithm": "fraction",
+      "input_sha256": "b2e0331e0b6d1d0dc98d796546dcb3af97634779a105edbe11f7fe2c5e34dee5",
+      "expected_output": "000000000000000000000000000000000000000000000000000000013df493a24245563100000000004250",
+      "control_instructions": 9164654,
+      "service_instructions": 3250010,
+      "instruction_ratio": 2.819884861892733,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        24609,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "72f9f3aacdc514437ba2377f409c96eb26881af93040e985fa20bfe58f104e5e"
+    },
+    {
+      "case": "dense",
+      "algorithm": "adaptive",
+      "input_sha256": "4314082dc650562bd7da1530ce30d2c6f23e71c74b4c70a0f82cdda114e45169",
+      "expected_output": "000000000000000000000000000000000000000000000000000000013df493a24245563100000000004250",
+      "control_instructions": 6555710,
+      "service_instructions": 2807877,
+      "instruction_ratio": 2.3347568287357316,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        15403,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "4ff02131849ec84ec59f878dcca7cdcffb566df81a321ad95d067af728876531"
+    },
+    {
+      "case": "dense-hash",
+      "algorithm": "fraction",
+      "input_sha256": "83e39b61e9be59678e24b3ebb217f2224cddb4778e95678878e3dfd50e735983",
+      "expected_output": "538c2fa46699dec5d0c0eff99a0ddc78bac42aec86b4c5cbc4f234d46514139f4245563100000000004250",
+      "control_instructions": 9165030,
+      "service_instructions": 3248638,
+      "instruction_ratio": 2.8211915270337906,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        24609,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "cc7b882effa8699597a2b0a264faaf747cd25c14e2f7ea4935c49f21ef4c7bcf"
+    },
+    {
+      "case": "dense-hash",
+      "algorithm": "adaptive",
+      "input_sha256": "48de0bee9171afb9dd77ee161c7b1cd326fde09fb562c43f7f6a37e9cba27d7c",
+      "expected_output": "538c2fa46699dec5d0c0eff99a0ddc78bac42aec86b4c5cbc4f234d46514139f4245563100000000004250",
+      "control_instructions": 6876987,
+      "service_instructions": 2906789,
+      "instruction_ratio": 2.3658363231730957,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        16416,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "a6fd925c92c16a18416b48d82a285aa70ca2f45cf2ee017b01546d9d17145e15"
+    },
+    {
+      "case": "half-padded",
+      "algorithm": "fraction",
+      "input_sha256": "46721bde32efc98954efc83472f7a2bfeaf988a2ab8f6b5d120cb7f7149f9cfd",
+      "expected_output": "1406374561c3aceb910e3d896bb50f0bb6da957df8ebd87d47633fa4837df2e34245563100000000004250",
+      "control_instructions": 6097727,
+      "service_instructions": 2510955,
+      "instruction_ratio": 2.4284493350139686,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        14369,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "1f56ac23e59c0c87d09f5fa2b3db798df725fbc25b9740d8e5095e4cf071b57d"
+    },
+    {
+      "case": "half-padded",
+      "algorithm": "adaptive",
+      "input_sha256": "1a1fc54ca67fbe32cef0fa996ca08cf3f6c137453b62773c426d9e902a55321d",
+      "expected_output": "1406374561c3aceb910e3d896bb50f0bb6da957df8ebd87d47633fa4837df2e34245563100000000004250",
+      "control_instructions": 6088897,
+      "service_instructions": 2485617,
+      "instruction_ratio": 2.4496521386842782,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        14369,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "4352ed773a11bddcae16c73ec992be224e9d7414b8c06c559a280aaee8cafb4c"
+    },
+    {
+      "case": "sparse",
+      "algorithm": "fraction",
+      "input_sha256": "4037c6fe708cbf91f0c4305454c1677d648c75b726fa6fdb7cbcb710595be6da",
+      "expected_output": "43e27fcf3f6106de21c79243c9d94e165167ef4dff9d52957a08f1a8fe5e3e814245563100000000004250",
+      "control_instructions": 3027112,
+      "service_instructions": 1770346,
+      "instruction_ratio": 1.7098985170130585,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        4135,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "e4c35c88898c2acca8074ce2c83885596912892fce4b5c6d7f9cedad75275cdc"
+    },
+    {
+      "case": "sparse",
+      "algorithm": "adaptive",
+      "input_sha256": "91783ad3ba7bf82c7735458a5825a2c8d97446e120191d5a9632a946dbb7f428",
+      "expected_output": "43e27fcf3f6106de21c79243c9d94e165167ef4dff9d52957a08f1a8fe5e3e814245563100000000004250",
+      "control_instructions": 2924909,
+      "service_instructions": 1672255,
+      "instruction_ratio": 1.7490807323045827,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        4135,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "f534e723bd5cffeb7a98f859b37564689953e2ceeb1b2ccf6a3f863bd0f029ba"
+    },
+    {
+      "case": "zero",
+      "algorithm": "fraction",
+      "input_sha256": "1f45fb034068e44c24f88e09decc42a1bfdda080fcdd8efcbcc0286233fe7939",
+      "expected_output": "00000000000000000000000000000000000000000000000000000000000000004245563100000000004250",
+      "control_instructions": 3027912,
+      "service_instructions": 1772233,
+      "instruction_ratio": 1.7085292960914282,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        4130,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "26875126395feada89b85d8a8599cc3f95d0f8b097b61595f730cf422a1791a1"
+    },
+    {
+      "case": "zero",
+      "algorithm": "adaptive",
+      "input_sha256": "43acd2f2c3d5e557dcd2aed1e6e5ad3b946aa1c3a8fb7deb0da2035a835d6a23",
+      "expected_output": "00000000000000000000000000000000000000000000000000000000000000004245563100000000004250",
+      "control_instructions": 2634118,
+      "service_instructions": 1394921,
+      "instruction_ratio": 1.8883635704100805,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        4117,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "b260071761470726f19f1b323e632906a3f8f3a9bf9bd9bc17f8318b7b1bf323"
+    },
+    {
+      "case": "domain",
+      "algorithm": "fraction",
+      "input_sha256": "e934e64ccb495cf97ba99ee56b908b6f57bfaea31a7b175b0a652399a9def626",
+      "expected_output": "17fc5e7c8dda13cc28fa5f1b6622bf8fd97cef1c0a2a27b51cb3c7eb6c4e84fa4245563100000000004250",
+      "control_instructions": 4101223,
+      "service_instructions": 1879365,
+      "instruction_ratio": 2.1822386816823767,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        8325,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "561d08f0d794a1dc96cb623e7dc5cb6325a2634d47e5b21be2c180ccddaa9183"
+    },
+    {
+      "case": "domain",
+      "algorithm": "adaptive",
+      "input_sha256": "0097bbae8e6e8145ba31eb7e453756ab00cd9c6beabb3eb21f3ccadeecfed903",
+      "expected_output": "17fc5e7c8dda13cc28fa5f1b6622bf8fd97cef1c0a2a27b51cb3c7eb6c4e84fa4245563100000000004250",
+      "control_instructions": 3832987,
+      "service_instructions": 1646677,
+      "instruction_ratio": 2.32771029169655,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        8218,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "fc387fbcf1cb632c169714fb6da9d401a2a0dede539bfb70163bcc696f1d3fd5"
+    },
+    {
+      "case": "kzg-single",
+      "algorithm": "production",
+      "input_sha256": "1f14a94bc7306d15afc7dc1449fa83a9350833739dd82b16e4488de7a143a93a",
+      "expected_output": "15566234c3147e7d3f0fa4207e6044985f8043969e91f590f75df0bd83aa18d6424b563101000000004250",
+      "control_instructions": 51367828,
+      "service_instructions": 28486651,
+      "instruction_ratio": 1.8032245348882885,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        60130,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "d4a943759301d9253e264679700054a19891b24440906f036178a54511c9cec3"
+    },
+    {
+      "case": "kzg-batch",
+      "algorithm": "production",
+      "input_sha256": "54a515e3f239cae56fe6a06b7867d0f460b944267e64f2078d4650a3cb373598",
+      "expected_output": "13b70f311b06eeba9739ecc67870fd2d2925ddb8216d2997278838310da6ae72424b563102000000004250",
+      "control_instructions": 73334596,
+      "service_instructions": 40544466,
+      "instruction_ratio": 1.80874489751573,
+      "service_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        81960,
+        0,
+        0
+      ],
+      "output_register_pc_step_services_oracle_agreement": true,
+      "oracle_sha256": "1b67dce09d85543fc98e5d1d4911560002ba2526f71359a181db5846d60d5a29"
+    }
+  ],
+  "negative_guest_tests": [
+    {
+      "case": "proof-bit",
+      "input_sha256": "3d1568768a709b73ff7450d2edc5c51889b1199acca172dd64c561a9585731f6",
+      "native_rejected": true,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "blob-bit",
+      "input_sha256": "70f5e243fb409c5fc0806fd584fcd48ac562049138568c11875feafebf4e3815",
+      "native_rejected": true,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "noncanonical-scalar",
+      "input_sha256": "2887a24f6f80f474ecc70438bd594dc1a0b5b33a80e1f099883bea9b430517aa",
+      "native_rejected": true,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "duplicate-blob",
+      "input_sha256": "2777ca7cf02ef761a190eea1307cc79d8ca86b0f1ccb7fe4ebffef1037261cda",
+      "native_rejected": true,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "truncated",
+      "input_sha256": "75f44bf40262551dc45bc18b1d44822cea75b8043d80dc31131365a07601609e",
+      "native_rejected": true,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "zero-count",
+      "input_sha256": "5a2ce064fc6ca17297c35c7cb7e92dae0699a7a1f43be36ad341c793adcdc1e8",
+      "native_rejected": true,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "oversize-count",
+      "input_sha256": "c28a43bfc5830c07c622218f236378127b639a4d0f5c8a2611c1025b1a398646",
+      "native_rejected": true,
+      "rv64_status": "trap",
+      "verified_output": false
+    }
+  ],
+  "qualifications": {
+    "host_tests": 40,
+    "python_tests": 40,
+    "zig": [
+      "test-riscv64-execution",
+      "test-riscv64-curves-truth",
+      "test-riscv64-word16-curves-services"
+    ],
+    "packet_math": "128 input pairs each for N4 and N6, independent BigUint; zero and modulus-minus-one included",
+    "physical_proofs": "CPU, bridge, truth, global RAM and fresh durable-wire receivers; first arith384 packet uses shifted BLS Fr modulus-minus-one above modulus",
+    "transition_build": "transition-sha-montgomery built successfully; retained full transition input still missing"
+  },
+  "limitations": [
+    "Instruction reduction is not a measured full prover improvement. Service proof costs are additional.",
+    "All new guest variants are opt-in; ABI, service tags, admitted relation and AIR schema unchanged.",
+    "Ark Montgomery representation is preserved; four limbs shift a by 128 bits into existing 384-bit relation.",
+    "No new security claim. 128-bit security target under documented assumptions; security_qualified=false.",
+    "Wall timings overlap the heavy recursion qualification and are not quiet benchmark evidence."
+  ],
+  "raw_artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu",
+  "build_report_sha256": "18df01e46ca501a27a6636202ef5c2dca55b4f83a55b88bf447781df04e17f7d"
+}

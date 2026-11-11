@@ -173,11 +173,22 @@ pub const Capture = struct {
         } else try self.publish(record.clock, &.{}, memory);
     }
     pub fn appendEvent(self: *Capture, event: Event, memory: *Memory) !void {
-        if (event == .bulk) return self.appendBulk(event.bulk, memory);
-        if (event == .sponge) return self.appendSponge(event.sponge, memory);
+        try self.appendEventRef(&event, memory);
+    }
+    pub fn appendEventRef(self: *Capture, event: *const Event, memory: *Memory) !void {
+        if (event.* == .bulk) return self.appendBulk(event.bulk, memory);
+        if (event.* == .sponge) return self.appendSponge(event.sponge, memory);
+        if (event.* == .tower) {
+            const call = &event.tower;
+            const T = @import("ethereum_services/tower_call.zig");
+            if (call.pointer & 31 != 0 or call.pointer > std.math.maxInt(u64) - (T.math.PACKET_BYTES - 1)) return error.InvalidBoundaryService;
+            var words: [T.math.WORDS]Transition = undefined;
+            for (&words, 0..) |*word, i| word.* = .{ .address = call.pointer + 8 * i, .before = call.before[i], .after = call.wordAfter(i), .writable_required = i < T.math.WRITTEN_WORDS };
+            return self.publish(call.clock, &words, memory);
+        }
         var transitions: [25]Transition = undefined;
         var count: usize = 0;
-        const clock = switch (event) {
+        const clock = switch (event.*) {
             .keccak => |call| blk: {
                 if (call.pointer & 7 != 0 or call.pointer > std.math.maxInt(u64) - 199) return error.InvalidBoundaryService;
                 for (0..25) |lane| transitions[lane] = .{ .address = call.pointer + 8 * lane, .before = call.before[lane], .after = call.after[lane], .writable_required = true };
@@ -203,7 +214,7 @@ pub const Capture = struct {
                 }
                 break :blk call.clock;
             },
-            .bulk, .sponge => unreachable,
+            .bulk, .sponge, .tower => unreachable,
             .curve => |call| blk: {
                 count = call.wordCount();
                 if (call.pointer & 31 != 0 or call.pointer > std.math.maxInt(u64) - (8 * count - 1)) return error.InvalidBoundaryService;
@@ -418,7 +429,7 @@ pub fn visitEventWordAddresses(event: Event, writer: anytype) !void {
             for (0..25) |k| try writer.word(e.packet.state + 8 * k);
             for (0..@intCast(e.packet.words())) |j| try writer.word(e.packet.base() + 8 * j);
         },
-        inline .keccak, .secp, .sha256, .arith256_mod, .curve => |call| {
+        inline .keccak, .secp, .sha256, .arith256_mod, .curve, .tower => |call| {
             const count: usize = if (@hasDecl(@TypeOf(call), "wordCount")) call.wordCount() else call.before.len;
             for (0..count) |k| try writer.word(call.pointer + 8 * k);
         },

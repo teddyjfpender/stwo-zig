@@ -1,0 +1,255 @@
+{
+  "schema": "op-native-derivation-phase-qualification-v1",
+  "native_only": true,
+  "elapsed_ns": 153999041,
+  "rows": [
+    {
+      "phase": "input_decode",
+      "calls": 1,
+      "inclusive_ns": 37506292,
+      "exclusive_ns": 37468125
+    },
+    {
+      "phase": "witness_parse",
+      "calls": 3,
+      "inclusive_ns": 78876,
+      "exclusive_ns": 78876
+    },
+    {
+      "phase": "derivation",
+      "calls": 1,
+      "inclusive_ns": 114694125,
+      "exclusive_ns": 46582215
+    },
+    {
+      "phase": "preimage_hash",
+      "calls": 38981,
+      "inclusive_ns": 24832941,
+      "exclusive_ns": 24832941
+    },
+    {
+      "phase": "blob_batch",
+      "calls": 1,
+      "inclusive_ns": 10883042,
+      "exclusive_ns": 3336794
+    },
+    {
+      "phase": "blob_evaluation",
+      "calls": 15,
+      "inclusive_ns": 3376958,
+      "exclusive_ns": 27584
+    },
+    {
+      "phase": "fr_decode",
+      "calls": 15,
+      "inclusive_ns": 951540,
+      "exclusive_ns": 951540
+    },
+    {
+      "phase": "fr_fold",
+      "calls": 15,
+      "inclusive_ns": 2397834,
+      "exclusive_ns": 2397834
+    },
+    {
+      "phase": "fr_sparse",
+      "calls": 0,
+      "inclusive_ns": 0,
+      "exclusive_ns": 0
+    },
+    {
+      "phase": "g1_decode",
+      "calls": 30,
+      "inclusive_ns": 1484915,
+      "exclusive_ns": 1484915
+    },
+    {
+      "phase": "g1_msm",
+      "calls": 1,
+      "inclusive_ns": 1510625,
+      "exclusive_ns": 1510625
+    },
+    {
+      "phase": "kzg_final_proof",
+      "calls": 1,
+      "inclusive_ns": 1173750,
+      "exclusive_ns": 1173750
+    },
+    {
+      "phase": "evm_and_output_root",
+      "calls": 1,
+      "inclusive_ns": 38437208,
+      "exclusive_ns": 32355218
+    }
+  ],
+  "counts": {
+    "preimage_hashes": 38981,
+    "preimage_bytes": 19925728,
+    "preimage_keccak_permutations": 162303,
+    "blobs": 15,
+    "blob_scalars": 61440,
+    "dense_blobs": 15,
+    "sparse_blobs": 0,
+    "dense_fold_multiplications": 122757,
+    "dense_fold_squares": 180,
+    "sparse_multiplications": 0,
+    "sparse_inversions": 0
+  },
+  "field_ops": [
+    {
+      "limbs": 4,
+      "modulus_hex": "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
+      "multiply": 122635,
+      "square": 360,
+      "canonical_decode": 61526,
+      "inverse_requests": 0,
+      "modeled_montgomery_packets": 184521
+    },
+    {
+      "limbs": 6,
+      "modulus_hex": "1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab",
+      "multiply": 87822,
+      "square": 43542,
+      "canonical_decode": 35,
+      "inverse_requests": 6,
+      "modeled_montgomery_packets": 131399
+    }
+  ],
+  "native_host_sha256": "3d9fed718c4e6a70dc9f39183f21c225ffa77611dc7d849c68829ea82f2e4e33",
+  "input_sha256": "9ee0a1f7b425d90c12d705212502dc135773af8d60f63c494a83500214c14031",
+  "exact_pinned_statement_accepted": true,
+  "phase_timings_without_field_counter": {
+    "schema": "op-native-derivation-phase-census-v1",
+    "native_only": true,
+    "elapsed_ns": 179901833,
+    "rows": [
+      {
+        "phase": "input_decode",
+        "calls": 1,
+        "inclusive_ns": 42449959,
+        "exclusive_ns": 42405501
+      },
+      {
+        "phase": "witness_parse",
+        "calls": 3,
+        "inclusive_ns": 91958,
+        "exclusive_ns": 91958
+      },
+      {
+        "phase": "derivation",
+        "calls": 1,
+        "inclusive_ns": 135063500,
+        "exclusive_ns": 56136325
+      },
+      {
+        "phase": "preimage_hash",
+        "calls": 38981,
+        "inclusive_ns": 28611360,
+        "exclusive_ns": 28611360
+      },
+      {
+        "phase": "blob_batch",
+        "calls": 1,
+        "inclusive_ns": 12701250,
+        "exclusive_ns": 4357375
+      },
+      {
+        "phase": "blob_evaluation",
+        "calls": 15,
+        "inclusive_ns": 3635458,
+        "exclusive_ns": 41166
+      },
+      {
+        "phase": "fr_decode",
+        "calls": 15,
+        "inclusive_ns": 1139500,
+        "exclusive_ns": 1139500
+      },
+      {
+        "phase": "fr_fold",
+        "calls": 15,
+        "inclusive_ns": 2454792,
+        "exclusive_ns": 2454792
+      },
+      {
+        "phase": "fr_sparse",
+        "calls": 0,
+        "inclusive_ns": 0,
+        "exclusive_ns": 0
+      },
+      {
+        "phase": "g1_decode",
+        "calls": 30,
+        "inclusive_ns": 1740833,
+        "exclusive_ns": 1740833
+      },
+      {
+        "phase": "g1_msm",
+        "calls": 1,
+        "inclusive_ns": 1706959,
+        "exclusive_ns": 1706959
+      },
+      {
+        "phase": "kzg_final_proof",
+        "calls": 1,
+        "inclusive_ns": 1260625,
+        "exclusive_ns": 1260625
+      },
+      {
+        "phase": "evm_and_output_root",
+        "calls": 1,
+        "inclusive_ns": 44185333,
+        "exclusive_ns": 37567065
+      }
+    ],
+    "counts": {
+      "preimage_hashes": 38981,
+      "preimage_bytes": 19925728,
+      "preimage_keccak_permutations": 162303,
+      "blobs": 15,
+      "blob_scalars": 61440,
+      "dense_blobs": 15,
+      "sparse_blobs": 0,
+      "dense_fold_multiplications": 122757,
+      "dense_fold_squares": 180,
+      "sparse_multiplications": 0,
+      "sparse_inversions": 0
+    },
+    "native_host_sha256": "d4482d71e989926753ebcfaddde0aa6599d9ee38fa238c4b0dfc5d1665162ace"
+  },
+  "field_counter_model": "existing RV64 Montgomery client branches incl zero/one skips; native conversion internal multiply is suppressed so one conversion is one packet",
+  "modeled_packet_total": 315920,
+  "canonical_fr_candidate": {
+    "removed_conversion_packets": 61526,
+    "remaining_existing_arith256_products": 122995,
+    "packet_bytes_old": 160,
+    "packet_bytes_new": 160,
+    "new_protocol_required": false,
+    "candidate_qualified": false
+  },
+  "focused_rust_tests": [
+    "phase_census::tests::nesting_and_disabled_scopes",
+    "phase_census::tests::conversion_is_one_packet_and_identity_products_are_skipped"
+  ],
+  "not_rv64_instruction_census": true,
+  "not_proving_benchmark": true,
+  "guest_executed": false,
+  "proof_verified": false,
+  "security_qualified": false,
+  "diagnostic_sources_sha256": {
+    "opstack/kona/src/phase_census.rs": "b33fb349684a85f7b502b9ff17b8d4b7a21f652ef1e6cb651a01bfb899519576",
+    "opstack/kona/vendor/ark-ff/src/operation_census.rs": "10bd63970b74bfe835e8075b6101cd35433258efff08c22d4b12567a881a3b9e",
+    "opstack/kona/vendor/ark-ff/src/fields/models/fp/montgomery_backend.rs": "029709b12755416a8bdc9e49a0f059a8c1b13d70629fe31e943cc94883e925a5",
+    "opstack/kona/src/anchored_blobs.rs": "83d4b1facdde1127ad60f0044006b96b7de60a8745c50eb0d2e121509372dab8",
+    "opstack/kona/src/witness.rs": "733b4ebb00342cef018209fcd532fc9319abaf4e6afe381f2d7a4c63d40fecc6",
+    "opstack/kona/src/transition_input.rs": "a3c88d1e13f14f286bdec24539fa8c54cd79b978b19a0ed5afd1973878c892f6",
+    "opstack/kona/src/transition.rs": "603679d8385e6a88398aa4d9db0ea09994eeae45cf454f9988976f275174abef",
+    "opstack/kona/src/anchored_l2.rs": "f4e21730d0e783de83c31696284b7cd1c9e93c833481369ad3b4527101915676",
+    "opstack/kona/src/host/transition.rs": "2f571764da9c0755e44da5fc57c909ab2670b7ed9731ac09f52397f46b15e9b2",
+    "opstack/kona/src/bin/host.rs": "5c4826741959fc55ba0c7cb4a639162faea9e7e9141cf604bc5e1446f1875ce8",
+    "opstack/kona/src/lib.rs": "2a74d2ab4fa4aded7f6d9a32d4fdf4d3e41215ddcfa722b9908129555ef7a42e",
+    "opstack/kona/vendor/ark-ff/src/lib.rs": "e4fc2cf2f1f014eb55d5b96408bd6bc4839c2b1f813f62eac11e6456da15757a",
+    "opstack/kona/Cargo.toml": "dec0b6a53ec64d3f7177791d8ac30bcadd7dfff240105f6d74705b5039c81fc2",
+    "opstack/kona/vendor/ark-ff/Cargo.toml": "f4b11920459f71a93dc0fd2ba05e2478ea06c4ba21698e146610d63a9ed18ec0"
+  }
+}

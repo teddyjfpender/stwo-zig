@@ -8,6 +8,10 @@ use std::vec::Vec;
 ///
 /// Prefer using [`Bytecode::new_legacy`](crate::Bytecode::new_legacy) instead.
 pub(crate) fn analyze_legacy(bytecode: Bytes) -> (JumpTable, Bytes) {
+    #[cfg(all(feature = "stwo-jumpdest-service", target_arch = "riscv64"))]
+    if (256..=1 << 20).contains(&bytecode.len()) {
+        return super::jumpdest_service::analyze(bytecode);
+    }
     let mut jumps: BitVec<u8> = bitvec![u8, Lsb0; 0; bytecode.len()];
     let range = bytecode.as_ptr_range();
     let start = range.start;

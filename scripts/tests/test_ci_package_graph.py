@@ -24,7 +24,8 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
 EXPECTED_PACKAGES = 27
-EXPECTED_EDGES = 107
+# RFC #374 declares the retained OP recursion's Cairo provider explicitly.
+EXPECTED_EDGES = 108
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
@@ -170,6 +171,15 @@ class RepositoryGraphTest(unittest.TestCase):
     def test_workspace_shape_is_pinned(self) -> None:
         self.assertEqual(len(self.packages), EXPECTED_PACKAGES)
         self.assertEqual(graph.edge_count(self.packages), EXPECTED_EDGES)
+
+    def test_op_recursion_cairo_provider_selects_its_consumer_lane(self) -> None:
+        consumer = self.packages["stwo_riscv_cpu_integration"]
+        self.assertIn("stwo_cairo_frontend", consumer.dependencies)
+        lanes, unowned = graph.selection(
+            ["src/frontends/cairo/mod.zig"], self.packages, self.bindings
+        )
+        self.assertFalse(unowned)
+        self.assertIn("riscv_cpu_integration", lanes)
 
     def test_every_package_has_its_lane_and_frontend_has_releasefast_companion(self) -> None:
         bound = sorted(self.bindings.values())

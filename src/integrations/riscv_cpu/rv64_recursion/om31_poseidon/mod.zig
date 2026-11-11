@@ -57,7 +57,17 @@ pub fn reconstructComposition(ctx: *common.Context, samples: []const []const F, 
 /// mixPublic(ctx,channel), nTreesBeforeChallenges(), drawChallenges(ctx,channel),
 /// mixClaims(ctx,channel), evalComposition(ctx,point,masks,randomness,challenges).
 /// Topology/shape and public authority must be independently admitted by caller.
+pub const PcsPhase = enum { begin, oods, transcript, merkle, deep, fri };
+fn notePhase(ctx: *common.Context, statement: anytype, comptime phase: PcsPhase) !void {
+    const T = @TypeOf(statement);
+    const S = switch (@typeInfo(T)) {
+        .pointer => |pointer| pointer.child,
+        else => T,
+    };
+    if (comptime @hasDecl(S, "notePcsPhase")) try statement.notePcsPhase(ctx, phase);
+}
 pub fn verify(ctx: *common.Context, geometry: *const Shape, witness: *const Proof, statement: anytype) !Verified {
+    try notePhase(ctx, statement, .begin);
     try witness.validate(geometry);
     var channel = try Channel.init(ctx);
     try statement.mixPublic(ctx, &channel);
@@ -73,6 +83,7 @@ pub fn verify(ctx: *common.Context, geometry: *const Shape, witness: *const Proo
     const point = pointFromSeed(try channel.draw(ctx));
     const actual = try statement.evalComposition(ctx, point, witness.sampled_values, randomness, challenges);
     try common.eq(ctx, actual, try reconstructComposition(ctx, witness.sampled_values[composition_tree], point, geometry.global_log, geometry.composition_log_split));
+    try notePhase(ctx, statement, .oods);
     var count: usize = 0;
     for (witness.sampled_values) |tree| for (tree) |column| {
         count = try std.math.add(usize, count, column.len);
@@ -92,6 +103,7 @@ pub fn verify(ctx: *common.Context, geometry: *const Shape, witness: *const Proo
     const lifting = geometry.liftingLogSize();
     const drawn = try channel.raw.inner.drawQueryBits(Q, ctx, lifting, geometry.nQueries());
     const queries = try circuit.native_verifier.fri.queriesFromBits(Q, ctx, drawn, lifting);
+    try notePhase(ctx, statement, .transcript);
     const logs = try ctx.scratch().alloc([]const u32, geometry.nTrees());
     for (logs, 0..) |*out, tree| out.* = try geometry.extendedLogSizes(ctx.scratch(), tree);
     if (witness.cap_log == 0) {
@@ -100,9 +112,12 @@ pub fn verify(ctx: *common.Context, geometry: *const Shape, witness: *const Proo
         // M6 diet-wire Merkle cap (rv64-m6-diet-wire.md section 5).
         try merkle.decommitTreesCapped(Q, ctx, logs, lifting, witness.queried_values, witness.auth_paths, queries.unpacked, witness.commitments, witness.caps, witness.cap_log);
     }
+    try notePhase(ctx, statement, .merkle);
     const plan = try shape.SamplePlan.init(ctx.scratch(), geometry);
     const input = try deep.friInput(ctx, &plan, point, witness.sampled_values, alpha, queries.points, witness.queried_values);
+    try notePhase(ctx, statement, .deep);
     try fri.decommit(ctx, witness, lifting, geometry.pcs.fri_config, input, queries, alphas);
+    try notePhase(ctx, statement, .fri);
     try common.lane.check();
     return .{ .composition_randomness = randomness, .oods_point = point, .deep_randomness = alpha, .fri_alphas = alphas, .queries = queries, .fri_input = input, .channel = channel };
 }

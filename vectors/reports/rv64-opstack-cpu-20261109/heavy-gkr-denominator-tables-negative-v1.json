@@ -1,0 +1,113 @@
+{
+  "schema": "op-gkr-denominator-tables-negative-control/v1",
+  "decision": "DO NOT ADOPT. Receipt only on mainline. Experimental code stays on codex/op-gkr-denominator-tables-next; no production RowSink lookup branch, options or defaults added.",
+  "experiment_commit": "70db8426d",
+  "experiment_git_show_binary_patch_sha256": "7d325421677fd7515a808e3eff6aa42591de708adcf0a898b1df0c0b2ae25e78",
+  "scope": "Source-local denominator projection only, using actual retained first4M conditionalCPUfragment; no MAIN/INTER/nativePCS reproof, no block/root/full-prefix acceptance.",
+  "audit": {
+    "existing_path": "sponge_cpu/source_inputs.Reader -> Provider.emitRange -> gkr_local/inputs.RowSink.emitBase -> Challenges.denominatorBase",
+    "existing_caches": "PreparedProjection folds terminal/domain coefficients; it does not serve rawsourceGKR fractions. denominatorBase has AVX512onlyx86 path; this measurement is arm64/M5Max.",
+    "candidate": "Request-owned immutable Range8[256] andRange16[65536] OM31 denominator tables built AFTER MAIN-bound transcript/challenge draw, freed after joined GKR completes. No key/global cache.",
+    "strict_requested_byte_cap": 2105376,
+    "fallback": "Non-domain values/otherrelations retain exact original denominatorBase calculation; canonicalM31 checks precede lookup.",
+    "admission": "Existing52B/fact checkpoint reserve PLUS2,105,376B cache charged before P2key/child. Same12GiB child/32GiB parent. No dense-upper policy enabled."
+  },
+  "source_census": {
+    "padded_source_template_queries_by_relation": {
+      "register": 25165888,
+      "rom": 5242880,
+      "function": 6127712,
+      "owner": 5816768,
+      "range16": 34381888,
+      "range8": 30929280,
+      "and_": 2162688,
+      "shift": 2359296,
+      "selection": 655360,
+      "byte_pair": 8454144
+    },
+    "total_emitted_template_queries": 121295904,
+    "total_padded_GKR_facts": 149605184,
+    "lane_padding_facts": 28309280,
+    "eligible_range8_and16_template_queries": 65311168,
+    "eligible_percent_of_padded_GKR_facts": 43.65568508642053,
+    "method": "Source row0 emitter relation IDs extrapolated over independently derived paddedrows. Chosen emitter relation roster is static per source/layout; includes zero-weight facts, excludes lane padding.",
+    "limitation": "Counts include zero-weight/inactive paddedrows and are NOT actual nonzero/active query counts. Source emitter relation roster is static by admitted layout. Byte-pair arity4 needs independent bounds; it was not cached."
+  },
+  "unit_micro": {
+    "correctness": "FullNativewire/receipt/eta +enginewholechannel/nextdraw parity, exhaustive allocator-failure cleanup, every65536U16and256U8value, out-of-range/otherrelationfallback andstrictcaprefusal pass.",
+    "actual_byte_coefficient": "ONE, as drawn by actualtranscript; generic exactness also tested nontrivialall8coordinatecoefficients.",
+    "projection_iterations": 1000000,
+    "order": "direct,cached,cached,direct",
+    "nanoseconds": [
+      1488333,
+      1344500,
+      1334792,
+      1509833
+    ],
+    "construction_nanoseconds": 166292,
+    "affine_only_speedup": 1.1190142769059885,
+    "interpretation": "Small scalar micro suggests~12% localaffinegain but does not predict wholeGKR; compiler/vectorization/lookuptraffic differ. Initial customchallenge micro usednon-ONEBYTE coefficient and is not representative; it is excluded from the performance conclusion."
+  },
+  "authentic_replay": {
+    "workers": 16,
+    "optimize": "ReleaseFast",
+    "baseline_seconds": 3.413142167,
+    "candidate_seconds": 3.544163167,
+    "observed_change_percent": 3.838720849860211,
+    "baseline_stages_seconds": {
+      "local_gkr": 3.413112,
+      "gkr_source_tree_construction": 0.658667,
+      "gkr_sumcheck_traversal": 2.751065,
+      "gkr_terminal_artifact": 2.1e-05,
+      "gkr_terminal_receipt": 0.002973,
+      "gkr_wire_encoding": 9.8e-05
+    },
+    "candidate_stages_seconds": {
+      "local_gkr": 3.544143,
+      "gkr_denominator_tables": 0.000186,
+      "gkr_source_tree_construction": 0.685496,
+      "gkr_sumcheck_traversal": 2.855102,
+      "gkr_terminal_artifact": 2.6e-05,
+      "gkr_terminal_receipt": 0.002941,
+      "gkr_wire_encoding": 9.6e-05
+    },
+    "baseline_requested_peak_bytes": 4869066225,
+    "candidate_requested_peak_bytes": 4871172193,
+    "peak_increase_bytes": 2105968,
+    "live_after_teardown": 0,
+    "external_after_teardown": 0,
+    "exact_retained_wire_receipt_eta": true,
+    "fresh_partial_child_verification": true,
+    "focused_tests_passed": 69,
+    "proof_sha256": "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3",
+    "sample_limit": "One sequential baseline/control qualification each; observed3.84%slowdown is not statistical proof of regression. It establishes no measured gain, so promotion fails. No retry or favorable-sample selection."
+  },
+  "process": {
+    "wall_seconds": 7.57,
+    "user_seconds": 72.28,
+    "system_seconds": 3.9,
+    "minor_faults": 1428210,
+    "major_faults": 0,
+    "rss_peak_bytes": 4881661952,
+    "footprint_peak_bytes": 4881928752
+  },
+  "interpretation": "Despite65.3Meligible padded-templatequeries and negligiblebuildcost, authenticGKR did not improve. Extra genericlookupbranches/loads and existingefficientaffinearithmetic are possible explanations; no profile isolates their cost, so this is inference. Do not rewrite sumcheck, compressedLayer or projectionbasedonthismicroalone.",
+  "artifacts": {
+    "baseline": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-gkr-profile-v1",
+    "candidate": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-gkr-tables-v1",
+    "physical_log": "/private/tmp/op-gkr-tables-physical.log",
+    "unit_log": "/private/tmp/op-gkr-tables-unit.log",
+    "corrected_micro_log": "/private/tmp/op-gkr-tables-real-byte-micro.log"
+  },
+  "reproduction": {
+    "checkout": "70db8426d (experimentalonly; not requiredby mainline receipt)",
+    "build": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseFast -j1 -Driscv-test-filter='OP heavy selected retained table cached local GKR profile'",
+    "mode": "gkr_tables_only",
+    "source_config": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-v1/config.json",
+    "source_oracle": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-v1/oracle.json",
+    "retained_AUTHENTIC_MAIN_and_GKR": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-native-tiles-v1",
+    "output": "newemptydirectory; allfilesexclusive",
+    "micro": "STWO_OP_GKR_TABLE_MICRO=1 zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseFast -j1 -Driscv-test-filter='OP CPU GKR' (broaderfilterneededtoinstantiateindirecttablemodule)"
+  },
+  "security": "No crypto/transcript/security/profile change. Same128-bit target under documented assumptions; partial child verifier cannot close physical/global/block obligations."
+}

@@ -1,0 +1,163 @@
+{
+  "schema": "op-r7-parallel-column-preparation-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "native_profile": "op_target_b4_q72_p0_fold4_v1",
+  "terminal_profile": "op_control_b2_q144_p0_fold4_v1",
+  "terminal_arithmetic": "genuine eight-role R7",
+  "terminal_hash": "plain Blake2s-256",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "workers": 8,
+  "cap_bytes": 34359738368,
+  "source_identity": "358e7e117a751de780f25f65b4de31d84ccb1d24cd2c3b12dfa4ce2d30ca4aa5",
+  "terminal_identity": "782ce12ef2301366a673e05a2c209f273bff731c5a8bed736256f2fd540846fb",
+  "trace_cells": 643035136,
+  "root_bytes": 1263064,
+  "root_sha256": "8cc0c6259801fd7939c94ac4fd8b44bcb519adf3876f86b47cd39f3ce8773d63",
+  "byte_parity": {
+    "root.bin": {
+      "exact": true,
+      "bytes": 1263064,
+      "sha256": "8cc0c6259801fd7939c94ac4fd8b44bcb519adf3876f86b47cd39f3ce8773d63"
+    },
+    "root.json": {
+      "exact": true,
+      "bytes": 40265,
+      "sha256": "8cab146aa1076d9afe7e0ef241b62af191bdaafb47195ea7945cb70a3ee48e20"
+    },
+    "templates.bin": {
+      "exact": true,
+      "bytes": 741,
+      "sha256": "1df72a61eaf8059b6e1431ac2849cf3e4321253bc01465b04fcbe4e61e8ffd48"
+    }
+  },
+  "timing": {
+    "row_parallel_control_prove_ns": 14882458417,
+    "column_and_row_parallel_prove_ns": 13652094667,
+    "row_parallel_control_producer_ns": 30449756292,
+    "column_and_row_parallel_producer_ns": 29273658000,
+    "control_composition_seconds": 4.779545,
+    "new_composition_seconds": 3.425931,
+    "real_P2_source_and_FIXED_ns": 8846882917,
+    "extra_Blake_FIXED_ns": 1330473708,
+    "self_verify_ns": 13785125,
+    "OS_seconds": {
+      "wall": 29.28,
+      "user": 152.84,
+      "system": 2.5
+    }
+  },
+  "phase_seconds": {
+    "op_r7.dot_prepare": 0.261976,
+    "op_r7.dot_rows": 0.130749,
+    "op_r7.input_prepare": 0.017181,
+    "op_r7.input_rows": 0.00979
+  },
+  "remaining_composition_seconds_outside_new_four_phase_scopes": 3.0062349999999998,
+  "stage_seconds": {
+    "terminal_blake.main_generation": 1.462312,
+    "terminal_blake.main_commit": 2.014535,
+    "terminal_blake.interaction_generation": 1.143874,
+    "terminal_blake.interaction_commit": 2.254644,
+    "draw_random_coeff": 1.2e-05,
+    "composition_trace_extract": 1.4e-05,
+    "composition_evaluation": 3.425931,
+    "composition_interpolate_and_split": 0.057097,
+    "composition_commit": 0.603895,
+    "oods_point_and_mask_points": 7.1e-05,
+    "sampled_value_evaluation": 0.222106,
+    "sampled_value_channel_mix": 0.000116,
+    "fri_quotient_build_and_commit": 1.457622,
+    "proof_of_work": 4e-06,
+    "fri_decommit": 0.116338,
+    "trace_decommit": 0.814159,
+    "constraint_check_and_assembly": 0.000393
+  },
+  "stage_seconds_control": {
+    "terminal_blake.main_generation": 1.464923,
+    "terminal_blake.main_commit": 1.994819,
+    "terminal_blake.interaction_generation": 1.138085,
+    "terminal_blake.interaction_commit": 2.205474,
+    "draw_random_coeff": 7e-06,
+    "composition_trace_extract": 1.2e-05,
+    "composition_evaluation": 4.779545,
+    "composition_interpolate_and_split": 0.055274,
+    "composition_commit": 0.593119,
+    "oods_point_and_mask_points": 6.7e-05,
+    "sampled_value_evaluation": 0.218223,
+    "sampled_value_channel_mix": 0.000119,
+    "fri_quotient_build_and_commit": 1.430989,
+    "proof_of_work": 4e-06,
+    "fri_decommit": 0.116915,
+    "trace_decommit": 0.805137,
+    "constraint_check_and_assembly": 0.000397
+  },
+  "memory": {
+    "previous_peak_requested_bytes": 8667031932,
+    "new_peak_requested_bytes": 8667033468,
+    "difference_bytes": 1536,
+    "profiling_nodes_accounted": true,
+    "new_peak_RSS_bytes": 8668037120,
+    "final_live": 0,
+    "final_external": 0,
+    "retained_expansion_or_process_cache": false
+  },
+  "microprobe": {
+    "columns": 12,
+    "target_log": 16,
+    "workers": 4,
+    "serial_ns": 3738250,
+    "parallel_ns": 1221750,
+    "exact_values": true,
+    "scope": "bounded synthetic coefficient-only FFT probe, not block benchmarking"
+  },
+  "qualification": {
+    "matching_domain_host_LDE_absent_still_expands": true,
+    "borrowed_host_values_pointer_and_ownership_preserved": true,
+    "serial_parallel_saturated_exact_values": true,
+    "all_serial_allocation_failure_points_clean": true,
+    "parallel_1MiB_budget_OOM_joins_and_releases": true,
+    "too_high_degree_and_descriptor_overflow_refused": true,
+    "all_domain_and_preparation_units_pass": true,
+    "actual_source_numeric_geometry_and_registry_parity": true,
+    "complete_native_and_terminal_admission_before_publish": true,
+    "same_three_persisted_files_as_previously_fresh_accepted_control": true,
+    "proof_self_check_pass": true,
+    "native_execution_or_native_proving_rerun": false,
+    "heavy_run": false
+  },
+  "source_audit": {
+    "single_buffer_FFT_has_no_inner_pool": [
+      "src/prover/poly/circle/poly.zig:256",
+      "src/prover/poly/circle/poly.zig:277",
+      "src/prover/poly/circle/transforms.zig:153",
+      "src/prover/poly/circle/transforms.zig:170"
+    ],
+    "separate_pool_aware_FFT_APIs_are_not_called_by_coefficients_evaluate": true
+  },
+  "implementation": [
+    "Independently validates all source column descriptors before helper publication.",
+    "Uses the existing bounded disjoint-range work lease for columns and rows; saturated or unbound paths stay serial.",
+    "Concurrent allocation is allowed only for the existing thread-safe SharedHostBudget allocator; arbitrary arenas stay serial.",
+    "Each successful expanded column transfers ownership once; all helper jobs finish before error cleanup or caller return.",
+    "No LDE retention, twiddle cache, altered FFT algorithm, AIR/schema/key/transcript changes.",
+    "Default-null coordinator-scoped recorder reports Dot/Input preparation and row phases through the existing terminal prover recorder.",
+    "Real P2 FIXED and additional Blake FIXED construction remain counted."
+  ],
+  "scope": [
+    "One ReleaseSafe actual-small qualification sample; a parent AOT build overlapped, so no controlled wall-speed claim.",
+    "Current four instrumented Dot/Input phases total about0.420s of3.426s composition; remaining work belongs to other roles/setup.",
+    "Old serial preparation phase timings were not separately captured; the source audit, bounded microprobe and total-stage comparison are distinct evidence.",
+    "Exact proof+metadata+template equality reuses the prior independent fresh source-only nine-control acceptance; no redundant receiver or heavy proof rerun."
+  ],
+  "artifacts": {
+    "control": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-r7-terminal-blake-parallel-rows-v1",
+    "parallel": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-r7-terminal-blake-parallel-prepare-v1"
+  },
+  "logs": [
+    "/private/tmp/op-r7-preparation-unit.log",
+    "/private/tmp/op-r7-preparation-actual-prove.log"
+  ]
+}

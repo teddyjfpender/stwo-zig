@@ -63,10 +63,10 @@ pub fn validateExpected(truth: R.Truth, expected: Manifest.ExpectedWorker, fixed
     const relations = Manifest.Relations{ .ram = false, .kio = kind == .keccak, .wire = kind != .keccak };
     if (!std.meta.eql(relations, expected.global_relations)) return error.WideTruthExpectedMismatch;
 }
-fn templates(truth: R.Truth) !Components {
+pub fn templates(truth: R.Truth) !Components {
     return Components.init(truth, undefined, undefined, &@as([5]O, @splat(O.zero())));
 }
-fn expectedFrames(truth: R.Truth) ![3]Frame.Instance {
+pub fn expectedFrames(truth: R.Truth) ![3]Frame.Instance {
     const c = try templates(truth);
     return .{ c.items[0].instance(), c.items[1].instance(), c.items[2].instance() };
 }
@@ -75,7 +75,7 @@ pub fn validatePending(expected: Manifest.ExpectedWorker, pending: *const Manife
     const e = pending.entries[index];
     if (e.kind != expected.kind or e.local != null or !std.meta.eql(e.mass, expected.mass) or !std.meta.eql(e.global_relations, expected.global_relations) or !std.mem.eql(u8, &e.scope.statement, &expected.statement) or !std.mem.eql(u8, &e.scope.fixed, &expected.fixed)) return error.WideTruthManifestMismatch;
 }
-fn claimsResult(truth: R.Truth, claims: []const O) !Manifest.Claims {
+pub fn claimsResult(truth: R.Truth, claims: []const O) !Manifest.Claims {
     if (claims.len != 5) return error.InvalidWideTruthClaims;
     return .{ .ram = O.zero(), .kio = if (truth == .keccak) claims[3] else O.zero(), .wire = if (truth == .secp) claims[3].add(claims[4]) else O.zero() };
 }
@@ -237,7 +237,7 @@ pub const TruthWorker = struct {
         return .{ .bytes = bytes, .claims = claims };
     }
 };
-fn admit(frames: [3]Frame.Instance, budget: usize) !void {
+pub fn admit(frames: [3]Frame.Instance, budget: usize) !void {
     var output: usize = 0;
     var scratch: usize = 0;
     for (frames, 0..) |frame, i| {
@@ -250,7 +250,7 @@ fn admit(frames: [3]Frame.Instance, budget: usize) !void {
     if (frames[0].role != .keccak) scratch = try std.math.add(usize, scratch, try GM.secpSourceDescriptorBytes());
     if (try std.math.add(usize, output, scratch) > budget) return error.WideTruthBudgetExceeded;
 }
-fn take(a: std.mem.Allocator, locals: *[3]Classic.Witness, globals: []Classic.Witness) !Commit {
+pub fn take(a: std.mem.Allocator, locals: *[3]Classic.Witness, globals: []Classic.Witness) !Commit {
     var width: usize = 0;
     for (locals) |*v| width += v.width();
     for (globals) |*v| width += v.width();

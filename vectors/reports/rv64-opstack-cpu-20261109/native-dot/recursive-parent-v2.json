@@ -1,0 +1,92 @@
+{
+  "schema": "op-r7-eight-role-recursive-parent-v2",
+  "bytes": 680332,
+  "sha256": "12e346e4e5cc79b42a4daea0604bee409f86335d04f7c013a5730dbdd38c65b2",
+  "source_identity": "0cc52cbfefe753b04f15c9ce4462b498bf61e4d6fed79476aa500486d72b281c",
+  "cells": {
+    "raw": [
+      32740,
+      1435840,
+      268,
+      55656,
+      65536,
+      27054,
+      160416,
+      168350
+    ],
+    "rows": [
+      32768,
+      2097152,
+      512,
+      65536,
+      65536,
+      32768,
+      262144,
+      262144
+    ],
+    "logs": [
+      15,
+      21,
+      9,
+      16,
+      16,
+      15,
+      18,
+      18
+    ],
+    "main_cells": 62851072,
+    "fixed_cells": 25134592,
+    "interaction_cells": 56111104,
+    "total_native_cells": 144096768,
+    "dot_calls": 792,
+    "dot_terms": 160416
+  },
+  "prove_ns": 14917224250,
+  "fresh_verify_ns": 41499000,
+  "extra_role_exceeds_core": true,
+  "physical_mutations": [
+    "balanced_claims",
+    "swapped_frames",
+    "missing_second_frame",
+    "child_main_root_transcript"
+  ],
+  "physical_error": "PoseidonGlobalLookupSum",
+  "peak_live_bytes": 3158567154,
+  "cap_bytes": 25769803776,
+  "execution_root_admitted": false,
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/pure-p2-r7-parent-v2",
+  "security_qualification": "R7 composed ledger/root admission remains pending",
+  "physical_rejection_stage": "native authenticated global Var interaction generation; not wire parsing and not claimed as composition-AIR rejection",
+  "controlled_speed_measurement": false,
+  "final_live_bytes": 0,
+  "claim_closure_control": [
+    {
+      "child": "child0.bin",
+      "first_six_sum_coordinates": [
+        1618644600,
+        248312345,
+        1060464245,
+        900274693,
+        869307670,
+        836874517,
+        1014330102,
+        278065566
+      ],
+      "first_six_sum_nonzero": true
+    },
+    {
+      "child": "child1.bin",
+      "first_six_sum_coordinates": [
+        954928300,
+        1429320213,
+        606102107,
+        210630483,
+        2045213468,
+        648262573,
+        1888855572,
+        584613114
+      ],
+      "first_six_sum_nonzero": true
+    }
+  ]
+}

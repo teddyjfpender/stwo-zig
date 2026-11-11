@@ -1,0 +1,460 @@
+{
+  "records": [
+    {
+      "index": 0,
+      "kind": "control",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-m7-joined-control",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/m7-unit-ab-0-control",
+          "2147483648",
+          "42949672960"
+        ],
+        "wall_ns": 39070825958,
+        "peak_rss_bytes": 38055591936,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 376.692739,
+        "system_cpu_s": 25.477508,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-m7-joined-control",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/m7-unit-ab-0-control",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 3761348916,
+        "peak_rss_bytes": 7329529856,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 21.156672,
+        "system_cpu_s": 0.695344,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof_sha256": {
+        "leaf-000001.proof": "03fd8fb7a6abf8d93f3b784a9faa1cbf43ea71a3406562488f84ea591e5fd7df",
+        "fold-000003.proof": "004abc21415fba035292eabf4d67653f791bfa51504e33b7efbb689d96b5823c",
+        "leaf-000000.proof": "45960ca307fa56c479e4e892d415139db5cb51334c6f8a58d7c7e4761eee23ef",
+        "leaf-000002.proof": "c57339ce8f5c4d1c57cf261bb3e5153b4ac6d3446ebe0746dee80d7a64e4259e",
+        "root.proof": "004abc21415fba035292eabf4d67653f791bfa51504e33b7efbb689d96b5823c"
+      },
+      "admission": {
+        "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+        "native_profile": "d2_native_b4_q54_p20_fold4",
+        "outer_profile": "stwo/circuit/native-om31/m7-outer-gkr-k4-cap3-q108-p20-fold4/lens-v1",
+        "root_digest": "65bb12f2720ac477b2eeb0479cfc9d244ee34087c68db294a112f2dd65444075",
+        "root_authority": "effe5748f85396b33c424dc01554e1cba03b85ebd6f9838ccccf7bdc204ea204",
+        "manifest": "e4b72df0653a849cd69c68919a85ff1b33be9282112eb9a03fc1b5833d21302e",
+        "root_proof_bytes": 731620,
+        "cpu_proofs": 1,
+        "service_proofs": 2,
+        "recursive_leaves": 3,
+        "recursive_folds": 1
+      },
+      "summed_stage_seconds": {
+        "outer_witness": 0.8054779999999999,
+        "outer_main_commit": 3.283496,
+        "outer_classic_witness": 1.881856,
+        "outer_gkr_inputs": 2.2920779999999996,
+        "outer_gkr_prove": 8.728011,
+        "outer_gkr_verify": 0.003026,
+        "outer_binding_witness": 1.4795360000000002,
+        "outer_interaction_commit": 2.421824,
+        "draw_random_coeff": 1.9999999999999998e-05,
+        "composition_trace_extract": 3.8e-05,
+        "composition_evaluation": 8.201189,
+        "composition_interpolate_and_split": 0.170841,
+        "composition_commit": 0.716477,
+        "oods_point_and_mask_points": 0.00030999999999999995,
+        "sampled_value_evaluation": 0.6354209999999999,
+        "sampled_value_channel_mix": 0.00018,
+        "fri_quotient_build_and_commit": 2.6837530000000003,
+        "proof_of_work": 0.019173000000000003,
+        "fri_decommit": 0.15338100000000002,
+        "trace_decommit": 0.019387,
+        "constraint_check_and_assembly": 0.002729
+      }
+    },
+    {
+      "index": 1,
+      "kind": "unit",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/m7-unit-ab-1-unit",
+          "2147483648",
+          "42949672960"
+        ],
+        "wall_ns": 40914865917,
+        "peak_rss_bytes": 38053855232,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 402.84751,
+        "system_cpu_s": 25.942727,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/m7-unit-ab-1-unit",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 4007178333,
+        "peak_rss_bytes": 7329497088,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 21.973069,
+        "system_cpu_s": 0.700732,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof_sha256": {
+        "leaf-000001.proof": "03fd8fb7a6abf8d93f3b784a9faa1cbf43ea71a3406562488f84ea591e5fd7df",
+        "fold-000003.proof": "004abc21415fba035292eabf4d67653f791bfa51504e33b7efbb689d96b5823c",
+        "leaf-000000.proof": "45960ca307fa56c479e4e892d415139db5cb51334c6f8a58d7c7e4761eee23ef",
+        "leaf-000002.proof": "c57339ce8f5c4d1c57cf261bb3e5153b4ac6d3446ebe0746dee80d7a64e4259e",
+        "root.proof": "004abc21415fba035292eabf4d67653f791bfa51504e33b7efbb689d96b5823c"
+      },
+      "admission": {
+        "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+        "native_profile": "d2_native_b4_q54_p20_fold4",
+        "outer_profile": "stwo/circuit/native-om31/m7-outer-gkr-k4-cap3-q108-p20-fold4/lens-v1",
+        "root_digest": "65bb12f2720ac477b2eeb0479cfc9d244ee34087c68db294a112f2dd65444075",
+        "root_authority": "effe5748f85396b33c424dc01554e1cba03b85ebd6f9838ccccf7bdc204ea204",
+        "manifest": "e4b72df0653a849cd69c68919a85ff1b33be9282112eb9a03fc1b5833d21302e",
+        "root_proof_bytes": 731620,
+        "cpu_proofs": 1,
+        "service_proofs": 2,
+        "recursive_leaves": 3,
+        "recursive_folds": 1
+      },
+      "summed_stage_seconds": {
+        "outer_witness": 0.8728689999999999,
+        "outer_main_commit": 3.5126680000000006,
+        "outer_classic_witness": 2.065142,
+        "outer_gkr_inputs": 2.385831,
+        "outer_gkr_prove": 8.979675,
+        "outer_gkr_verify": 0.003124,
+        "outer_binding_witness": 1.688377,
+        "outer_interaction_commit": 2.307719,
+        "draw_random_coeff": 1.6e-05,
+        "composition_trace_extract": 2.5000000000000005e-05,
+        "composition_evaluation": 8.988239,
+        "composition_interpolate_and_split": 0.187746,
+        "composition_commit": 0.7710190000000001,
+        "oods_point_and_mask_points": 0.000322,
+        "sampled_value_evaluation": 0.6913420000000001,
+        "sampled_value_channel_mix": 0.00018800000000000002,
+        "fri_quotient_build_and_commit": 3.0380320000000003,
+        "proof_of_work": 0.019785000000000004,
+        "fri_decommit": 0.16209,
+        "trace_decommit": 0.021234,
+        "constraint_check_and_assembly": 0.003019
+      }
+    },
+    {
+      "index": 2,
+      "kind": "unit",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/m7-unit-ab-2-unit",
+          "2147483648",
+          "42949672960"
+        ],
+        "wall_ns": 42667586167,
+        "peak_rss_bytes": 38053855232,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 422.829509,
+        "system_cpu_s": 27.051805,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/m7-unit-ab-2-unit",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 4110908000,
+        "peak_rss_bytes": 7329497088,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 22.423645,
+        "system_cpu_s": 0.711766,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof_sha256": {
+        "leaf-000001.proof": "03fd8fb7a6abf8d93f3b784a9faa1cbf43ea71a3406562488f84ea591e5fd7df",
+        "fold-000003.proof": "004abc21415fba035292eabf4d67653f791bfa51504e33b7efbb689d96b5823c",
+        "leaf-000000.proof": "45960ca307fa56c479e4e892d415139db5cb51334c6f8a58d7c7e4761eee23ef",
+        "leaf-000002.proof": "c57339ce8f5c4d1c57cf261bb3e5153b4ac6d3446ebe0746dee80d7a64e4259e",
+        "root.proof": "004abc21415fba035292eabf4d67653f791bfa51504e33b7efbb689d96b5823c"
+      },
+      "admission": {
+        "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+        "native_profile": "d2_native_b4_q54_p20_fold4",
+        "outer_profile": "stwo/circuit/native-om31/m7-outer-gkr-k4-cap3-q108-p20-fold4/lens-v1",
+        "root_digest": "65bb12f2720ac477b2eeb0479cfc9d244ee34087c68db294a112f2dd65444075",
+        "root_authority": "effe5748f85396b33c424dc01554e1cba03b85ebd6f9838ccccf7bdc204ea204",
+        "manifest": "e4b72df0653a849cd69c68919a85ff1b33be9282112eb9a03fc1b5833d21302e",
+        "root_proof_bytes": 731620,
+        "cpu_proofs": 1,
+        "service_proofs": 2,
+        "recursive_leaves": 3,
+        "recursive_folds": 1
+      },
+      "summed_stage_seconds": {
+        "outer_witness": 0.880439,
+        "outer_main_commit": 3.7179259999999994,
+        "outer_classic_witness": 2.116979,
+        "outer_gkr_inputs": 2.450018,
+        "outer_gkr_prove": 9.428794,
+        "outer_gkr_verify": 0.0032029999999999997,
+        "outer_binding_witness": 1.7643229999999999,
+        "outer_interaction_commit": 2.3984,
+        "draw_random_coeff": 1.9e-05,
+        "composition_trace_extract": 2.4999999999999998e-05,
+        "composition_evaluation": 9.376281,
+        "composition_interpolate_and_split": 0.19715,
+        "composition_commit": 0.785284,
+        "oods_point_and_mask_points": 0.00035,
+        "sampled_value_evaluation": 0.722555,
+        "sampled_value_channel_mix": 0.000208,
+        "fri_quotient_build_and_commit": 3.220502,
+        "proof_of_work": 0.018830000000000003,
+        "fri_decommit": 0.164496,
+        "trace_decommit": 0.021942,
+        "constraint_check_and_assembly": 0.003108
+      }
+    },
+    {
+      "index": 3,
+      "kind": "control",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-m7-joined-control",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/m7-unit-ab-3-control",
+          "2147483648",
+          "42949672960"
+        ],
+        "wall_ns": 43283049791,
+        "peak_rss_bytes": 38055542784,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 429.422934,
+        "system_cpu_s": 27.699254,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-m7-joined-control",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/m7-unit-ab-3-control",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 4078157083,
+        "peak_rss_bytes": 7329677312,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 22.144029,
+        "system_cpu_s": 0.727001,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof_sha256": {
+        "leaf-000001.proof": "03fd8fb7a6abf8d93f3b784a9faa1cbf43ea71a3406562488f84ea591e5fd7df",
+        "fold-000003.proof": "004abc21415fba035292eabf4d67653f791bfa51504e33b7efbb689d96b5823c",
+        "leaf-000000.proof": "45960ca307fa56c479e4e892d415139db5cb51334c6f8a58d7c7e4761eee23ef",
+        "leaf-000002.proof": "c57339ce8f5c4d1c57cf261bb3e5153b4ac6d3446ebe0746dee80d7a64e4259e",
+        "root.proof": "004abc21415fba035292eabf4d67653f791bfa51504e33b7efbb689d96b5823c"
+      },
+      "admission": {
+        "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+        "native_profile": "d2_native_b4_q54_p20_fold4",
+        "outer_profile": "stwo/circuit/native-om31/m7-outer-gkr-k4-cap3-q108-p20-fold4/lens-v1",
+        "root_digest": "65bb12f2720ac477b2eeb0479cfc9d244ee34087c68db294a112f2dd65444075",
+        "root_authority": "effe5748f85396b33c424dc01554e1cba03b85ebd6f9838ccccf7bdc204ea204",
+        "manifest": "e4b72df0653a849cd69c68919a85ff1b33be9282112eb9a03fc1b5833d21302e",
+        "root_proof_bytes": 731620,
+        "cpu_proofs": 1,
+        "service_proofs": 2,
+        "recursive_leaves": 3,
+        "recursive_folds": 1
+      },
+      "summed_stage_seconds": {
+        "outer_witness": 0.8524689999999999,
+        "outer_main_commit": 3.677795,
+        "outer_classic_witness": 2.1476990000000002,
+        "outer_gkr_inputs": 2.460643,
+        "outer_gkr_prove": 9.924743,
+        "outer_gkr_verify": 0.0032370000000000003,
+        "outer_binding_witness": 1.644562,
+        "outer_interaction_commit": 2.70206,
+        "draw_random_coeff": 2.5e-05,
+        "composition_trace_extract": 3.7e-05,
+        "composition_evaluation": 9.331236,
+        "composition_interpolate_and_split": 0.195343,
+        "composition_commit": 0.7824909999999999,
+        "oods_point_and_mask_points": 0.00033999999999999997,
+        "sampled_value_evaluation": 0.7201740000000001,
+        "sampled_value_channel_mix": 0.000207,
+        "fri_quotient_build_and_commit": 3.165864,
+        "proof_of_work": 0.019598,
+        "fri_decommit": 0.171216,
+        "trace_decommit": 0.021632,
+        "constraint_check_and_assembly": 0.003119
+      },
+      "measurement_caveat": "Short coordinate-lowering compilation/test started during final control tail; not a quiet trial."
+    }
+  ],
+  "schema": "stwo.opstack.m7-unit-owned-qualification.v1",
+  "block": 120794432,
+  "security_qualified": false,
+  "qualification": {
+    "produce": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "recurse-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/m7-unit-owned-qualification",
+        "2147483648",
+        "42949672960"
+      ],
+      "wall_ns": 38143316000,
+      "peak_rss_bytes": 38053871616,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 365.797668,
+      "system_cpu_s": 24.147838,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "receive": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "verify-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/m7-unit-owned-qualification",
+        "2147483648",
+        "25769803776"
+      ],
+      "wall_ns": 3710123209,
+      "peak_rss_bytes": 7329497088,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 20.851275,
+      "system_cpu_s": 0.653327,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "proof_sha256": {
+      "leaf-000001.proof": "03fd8fb7a6abf8d93f3b784a9faa1cbf43ea71a3406562488f84ea591e5fd7df",
+      "fold-000003.proof": "004abc21415fba035292eabf4d67653f791bfa51504e33b7efbb689d96b5823c",
+      "leaf-000000.proof": "45960ca307fa56c479e4e892d415139db5cb51334c6f8a58d7c7e4761eee23ef",
+      "leaf-000002.proof": "c57339ce8f5c4d1c57cf261bb3e5153b4ac6d3446ebe0746dee80d7a64e4259e",
+      "root.proof": "004abc21415fba035292eabf4d67653f791bfa51504e33b7efbb689d96b5823c"
+    },
+    "admission": {
+      "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+      "native_profile": "d2_native_b4_q54_p20_fold4",
+      "outer_profile": "stwo/circuit/native-om31/m7-outer-gkr-k4-cap3-q108-p20-fold4/lens-v1",
+      "root_digest": "65bb12f2720ac477b2eeb0479cfc9d244ee34087c68db294a112f2dd65444075",
+      "root_authority": "effe5748f85396b33c424dc01554e1cba03b85ebd6f9838ccccf7bdc204ea204",
+      "manifest": "e4b72df0653a849cd69c68919a85ff1b33be9282112eb9a03fc1b5833d21302e",
+      "root_proof_bytes": 731620,
+      "cpu_proofs": 1,
+      "service_proofs": 2,
+      "recursive_leaves": 3,
+      "recursive_folds": 1
+    }
+  },
+  "method": "control,unit,unit,control; cold independent processes, 16 workers, same D2 bundle; final control tail overlaps the short lowering compiler/test; visible trial-order slowdown; this comparison does not establish a wall-time speedup",
+  "interpretation": "The checked specialization removes unit numerator buffers/folds without changing any proof bytes. Root RSS is not reduced in these trials. No whole-root speedup is claimed; qualification and phase data guide the next work.",
+  "gates": [
+    "same five physical recursive files and fresh strict reception in qualification and all four trials",
+    "full outer GKR suite passes, including physical mutations and failure-atomic wrapper lifecycle after ownership transfer",
+    "unit and weighted instances match complete reference sections with no pool and 2/4 workers",
+    "one changed weight falls back to weighted arithmetic on the next request",
+    "unit-weight projections match the independent scalar projection in all four GKR-bound components",
+    "zero-worker and zero-repetition benchmark requests reject"
+  ],
+  "per_outer_proof_gkr_stats": [
+    {
+      "authority": "bc52d107699b509b1924118dfbd202ab516d9a8fb3b65d10dabc3433cf14f090",
+      "gkr": {
+        "build_ns": 304997625,
+        "sumcheck_ns": 1411996666,
+        "peak_layer_bytes": 8791260672,
+        "unit_instances": 3,
+        "unit_facts": 75497472
+      }
+    },
+    {
+      "authority": "70a529189897b1ae4cbfb12b814db4f0eaa6460fedc87f3d1d5dc9c8656b2ed2",
+      "gkr": {
+        "build_ns": 276918584,
+        "sumcheck_ns": 1361349333,
+        "peak_layer_bytes": 8422161920,
+        "unit_instances": 3,
+        "unit_facts": 71303168
+      }
+    },
+    {
+      "authority": "70644ebc19a25525ef3833a43d27b36805ee2e173bf92b51e41dd8710ccb2738",
+      "gkr": {
+        "build_ns": 280092292,
+        "sumcheck_ns": 1377727375,
+        "peak_layer_bytes": 8422161920,
+        "unit_instances": 3,
+        "unit_facts": 71303168
+      }
+    },
+    {
+      "authority": "effe5748f85396b33c424dc01554e1cba03b85ebd6f9838ccccf7bdc204ea204",
+      "gkr": {
+        "build_ns": 541332208,
+        "sumcheck_ns": 2537797125,
+        "peak_layer_bytes": 16173235712,
+        "unit_instances": 3,
+        "unit_facts": 146800640
+      }
+    }
+  ]
+}

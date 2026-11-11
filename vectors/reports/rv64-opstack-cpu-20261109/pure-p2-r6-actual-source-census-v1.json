@@ -1,0 +1,119 @@
+{
+  "schema": "op-r6-actual-source-census-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "scope": "complete native receiver plus actual source verifier graph; no outer key/commit/prove",
+  "native_receiver_total_ns": 5665126708,
+  "source_classes": [
+    {
+      "kind": "CPU",
+      "ordinal": 0,
+      "raw": [
+        30606,
+        3992911,
+        2258,
+        68060,
+        65536
+      ],
+      "native_omul_calls": 132725,
+      "rows": [
+        32768,
+        4194304,
+        4096,
+        131072,
+        65536,
+        262144
+      ],
+      "logs": [
+        15,
+        22,
+        12,
+        17,
+        16,
+        18
+      ],
+      "main_cells": 119226368,
+      "interaction_cells": 99450880,
+      "fixed_cells": 45625344,
+      "total_native_cells": 264302592,
+      "source_only": true,
+      "production_admission": false
+    },
+    {
+      "kind": "keccak",
+      "ordinal": 1,
+      "raw": [
+        14055,
+        6067365,
+        279,
+        69863,
+        65536
+      ],
+      "native_omul_calls": 123313,
+      "rows": [
+        16384,
+        8388608,
+        512,
+        131072,
+        65536,
+        131072
+      ],
+      "logs": [
+        14,
+        23,
+        9,
+        17,
+        16,
+        17
+      ],
+      "main_cells": 166332416,
+      "interaction_cells": 163196928,
+      "fixed_cells": 77956608,
+      "total_native_cells": 407485952,
+      "source_only": true,
+      "production_admission": false
+    },
+    {
+      "kind": "sha256",
+      "ordinal": 2,
+      "raw": [
+        8291,
+        3908995,
+        183,
+        56952,
+        65536
+      ],
+      "native_omul_calls": 90993,
+      "rows": [
+        16384,
+        4194304,
+        256,
+        65536,
+        65536,
+        131072
+      ],
+      "logs": [
+        14,
+        22,
+        8,
+        16,
+        16,
+        17
+      ],
+      "main_cells": 84804608,
+      "interaction_cells": 83499008,
+      "fixed_cells": 39617280,
+      "total_native_cells": 207920896,
+      "source_only": true,
+      "production_admission": false
+    }
+  ],
+  "r5_control_cells": {
+    "CPU": 400355328,
+    "keccak": 400014848,
+    "sha256": 351444736
+  },
+  "security_qualified": false,
+  "production_admission": false,
+  "full_block_speedup_measured": false
+}

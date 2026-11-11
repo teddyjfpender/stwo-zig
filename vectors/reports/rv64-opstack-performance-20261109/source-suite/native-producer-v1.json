@@ -1,0 +1,39 @@
+{
+  "schema": "op-source-suite-native-producer/v1",
+  "fixture": "one-ECALL independently pinned toy image; not Kona/ELF or complete heavy block",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "suite": {
+    "version": 1,
+    "cpu": 1,
+    "truth": "classic",
+    "miller": "local_gkr",
+    "sponge": 0
+  },
+  "positive": [
+    "actual Producer.produceForSourceSuite dispatch",
+    "numeric SharedHostBudget admission",
+    "bound MAIN parking and restore",
+    "full independently rebuilt native bundle receiver",
+    "global RAM/Wire closure",
+    "image-owned terminal PC, halt=1, length=43 and exact output",
+    "all mapping/worker/budget ownership released"
+  ],
+  "rejected": [
+    "legacy Producer entrypoint with non-null suite",
+    "same missing/duplicate/flavor Inventory controls as native fixture"
+  ],
+  "bundle_bytes": 1052596,
+  "shared_host_budget_cap_bytes": 2147483648,
+  "shared_requested_peak_bytes": 448777880,
+  "store_peak_mapped_bytes": 57982976,
+  "store_mapped_bytes_after_prove": 0,
+  "checks": [
+    "focused named physical test passes ReleaseSafe",
+    "complete OP pure-P2 semantic suite passes after shared fixture refactor"
+  ],
+  "proof_byte_parity": "same bundle length as manual native fixture; no hash-parity claim for this producer run",
+  "security": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admitted": false,
+  "timing_claim": null
+}

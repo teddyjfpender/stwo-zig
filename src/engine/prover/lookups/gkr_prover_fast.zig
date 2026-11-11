@@ -187,6 +187,11 @@ pub fn ForField(comptime S: type) type {
             /// Private pool size; 1 runs on the calling thread with no pool.
             /// The caller must include it in its own scheduling/admission.
             threads: usize = 1,
+            /// Reuse the caller's bounded proof pool instead of constructing a
+            /// private pool. All waves join; no pool or input escapes this call.
+            /// Without a scoped pool (or inside cooperative work), waves run
+            /// on the caller, preserving nested scheduling safety.
+            use_scoped_pool: bool = false,
             /// Smallest loop that is split across the pool (tests lower it).
             min_parallel: usize = 1 << 13,
         };
@@ -221,6 +226,7 @@ pub fn ForField(comptime S: type) type {
 
         const Ctx = struct {
             pool: ?*std.Thread.Pool,
+            scoped: bool = false,
             threads: usize,
             min_parallel: usize,
 
@@ -235,6 +241,19 @@ pub fn ForField(comptime S: type) type {
                     @call(.auto, func, args ++ .{ 0, n, 0 });
                     return;
                 }
+                if (self.scoped) {
+                    const Work = struct {
+                        args: @TypeOf(args),
+                        count: usize,
+                        chunks: usize,
+                        pub fn runRange(work: *@This(), _: usize, first: usize, end: usize) void {
+                            for (first..end) |c| @call(.auto, func, work.args ++ .{ work.count * c / work.chunks, work.count * (c + 1) / work.chunks, c });
+                        }
+                    };
+                    var work = Work{ .args = args, .count = n, .chunks = k };
+                    _ = @import("row_work.zig").forEachRange(k, &work, .{ .max_shards = self.threads, .min_rows_per_shard = 1 });
+                    return;
+                }
                 var wg = std.Thread.WaitGroup{};
                 for (0..k) |c| self.pool.?.spawnWg(&wg, func, args ++ .{ n * c / k, n * (c + 1) / k, c });
                 self.pool.?.waitAndWork(&wg);
@@ -244,6 +263,17 @@ pub fn ForField(comptime S: type) type {
             fn runExact(self: Ctx, n: usize, comptime func: anytype, args: anytype) void {
                 if (n <= 1 or self.threads == 1) {
                     @call(.auto, func, args ++ .{ 0, n, 0 });
+                    return;
+                }
+                if (self.scoped) {
+                    const Work = struct {
+                        args: @TypeOf(args),
+                        pub fn runRange(work: *@This(), _: usize, first: usize, end: usize) void {
+                            for (first..end) |c| @call(.auto, func, work.args ++ .{ c, c + 1, c });
+                        }
+                    };
+                    var work = Work{ .args = args };
+                    _ = @import("row_work.zig").forEachRange(n, &work, .{ .max_shards = self.threads, .min_rows_per_shard = 1 });
                     return;
                 }
                 var wg = std.Thread.WaitGroup{};
@@ -604,12 +634,12 @@ pub fn ForField(comptime S: type) type {
             }
             var timer = try std.time.Timer.start();
             var pool_storage: std.Thread.Pool = undefined;
-            const pool: ?*std.Thread.Pool = if (options.threads > 1) blk: {
+            const pool: ?*std.Thread.Pool = if (options.threads > 1 and !options.use_scoped_pool) blk: {
                 try pool_storage.init(.{ .allocator = a, .n_jobs = options.threads });
                 break :blk &pool_storage;
             } else null;
             defer if (pool) |p| p.deinit();
-            const ctx = Ctx{ .pool = pool, .threads = options.threads, .min_parallel = options.min_parallel };
+            const ctx = Ctx{ .pool = pool, .scoped = options.use_scoped_pool, .threads = options.threads, .min_parallel = options.min_parallel };
 
             const n_vars = try a.alloc(usize, n_inst);
             defer a.free(n_vars);
@@ -780,7 +810,10 @@ pub fn ForField(comptime S: type) type {
                         nv[s] -= 1;
                     }
                 }
-                try sumcheck_proofs.append(a, .{ .round_polys = try round_polys.toOwnedSlice(a) });
+                // Reserve before transferring the nested owner: an append
+                // allocation failure must leave round_polys with its cleanup.
+                try sumcheck_proofs.ensureUnusedCapacity(a, 1);
+                sumcheck_proofs.appendAssumeCapacity(.{ .round_polys = try round_polys.toOwnedSlice(a) });
 
                 for (0..n_active) |s| {
                     const i = active[s];
@@ -842,6 +875,7 @@ pub fn ForField(comptime S: type) type {
             const ood_point = try a.dupe(S, ood.items);
             errdefer a.free(ood_point);
             const n_variables = try a.dupe(usize, n_vars);
+            errdefer a.free(n_variables);
             const sumchecks = try sumcheck_proofs.toOwnedSlice(a);
             return .{
                 .proof = .{ .sumcheck_proofs = sumchecks, .layer_masks_by_instance = proof_masks, .output_claims_by_instance = proof_outputs },

@@ -83,7 +83,7 @@ pub fn Equations(comptime op: anytype) type {
             var acc = F.zero();
             const base = L.CARRY[r] + g.carry_bytes * j;
             for (0..g.carry_bytes) |b| acc = acc.add(v.main(base + b).mul(k(F, @as(u32, 1) << @intCast(8 * b))));
-            return acc.sub(v.main(L.ACTIVE).mul(k(F, @as(u32, 1) << @intCast(g.carry_bits - 1))));
+            return acc.sub(v.main(L.ACTIVE).mul(k(F, @as(u32, @intCast(g.carry_offset)))));
         }
         fn modulusChunk(comptime F: type, v: anytype, i: usize) F {
             return switch (d.modulus) {

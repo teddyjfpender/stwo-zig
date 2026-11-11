@@ -1,0 +1,92 @@
+{
+  "schema": "op-miller-local-gkr-r6-physical-v1",
+  "calls": 1,
+  "frontier_log": 8,
+  "arithmetic_log": 15,
+  "bytes": 629628,
+  "sha256": "24f758dfcdb26370e2ebc73a85f166b51cd66018ac65b0db3a6ce5bb69b4931b",
+  "source_identity": "a0aef772b3a102d63425bbc0e361f47591b5cdd32df2e30d8c0810a05b0d4b78",
+  "raw": [
+    16585,
+    970683,
+    288,
+    25357,
+    65536
+  ],
+  "native_om_calls": 22367,
+  "mul_rows": 32768,
+  "fresh_source": true,
+  "ninth_word_mutation_rejected": true,
+  "execution_accepted": false,
+  "production_admission": false,
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/miller-local-gkr-r6-foundation-v1/",
+  "scope": "actual one-call native source GKR+PCS wrapped physically; no whole-execution acceptance",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "caller_requested_cap_bytes": 8589934592,
+  "source_class1023": {
+    "scope": "source-only; no guest execution or field/DAG witness replay",
+    "calls": 1023,
+    "frontier_log": 15,
+    "arithmetic_log": 15,
+    "raw": [
+      16619,
+      974601,
+      288,
+      25432,
+      65536
+    ],
+    "native_om_calls": 23928,
+    "six_component_cells": 65027584,
+    "request_spans_with_identical_source_topology": [
+      {
+        "calls": 1023,
+        "first_id": 1
+      },
+      {
+        "calls": 1022,
+        "first_id": 17
+      }
+    ],
+    "checks": [
+      "all EQ/ADD/SUB/MUL/pointwise-MUL/M31-to-u32 gate metadata",
+      "output ports and variable count",
+      "native OM and Poseidon gate metadata",
+      "complete source usage counts"
+    ]
+  },
+  "qualified_controls": [
+    "complete numeric circuit validates",
+    "terminal/source mask/global claim/ninth-output mutations reject",
+    "physical R6 proof accepted under independent freshly source-built key",
+    "physical ninth-output mutation rejects",
+    "switched local receipt rejects native receiver",
+    "coherently reframed different-span manifest rejects native receiver"
+  ],
+  "remaining": [
+    "independently allowlisted new wire-suite flavor for Inventory/runtime",
+    "complete source security ledger and global coverage under that mode",
+    "root collector/fresh-root-only receiver admission"
+  ],
+  "performance_claim": "Stage profile is qualification telemetry; no controlled speedup comparison.",
+  "top_level_stage_seconds": {
+    "op_p2.main_generation": 0.244401,
+    "op_p2.main_commit": 3.154527,
+    "op_p2.interaction_generation": 0.92852,
+    "op_p2.interaction_commit": 2.173445,
+    "draw_random_coeff": 5e-06,
+    "composition_trace_extract": 2.2e-05,
+    "composition_evaluation": 1.350606,
+    "composition_interpolate_and_split": 0.038155,
+    "composition_commit": 3.097965,
+    "oods_point_and_mask_points": 0.009302,
+    "sampled_value_evaluation": 0.157065,
+    "sampled_value_channel_mix": 0.000739,
+    "fri_quotient_build_and_commit": 2.232706,
+    "proof_of_work": 7e-06,
+    "fri_decommit": 0.16499,
+    "trace_decommit": 0.406563,
+    "constraint_check_and_assembly": 0.001139
+  },
+  "sum_top_level_stage_seconds": 13.960156999999999
+}

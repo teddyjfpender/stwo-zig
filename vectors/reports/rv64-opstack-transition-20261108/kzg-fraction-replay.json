@@ -1,0 +1,39 @@
+{
+  "schema": "stwo.opstack.kzg-fraction-replay.v1",
+  "block": 159257842,
+  "l1_anchor": 26367973,
+  "witness_sha256": "c6a7eaf7e8c052f8a227d739ddbb84b5d3e2907002f83879a76f9d37740fc698",
+  "candidate_source_base": "a7c4a3adee07609142f775dfcc2185e6fd3109c5",
+  "candidate_source_diff_sha256": "8597424df031965d298b002c8c069c57487834f142d9bac77854d44ab49aac0f",
+  "compiler": "rustc 1.99.0-nightly (1a98b1e13 2026-08-07)",
+  "cargo_lock_sha256": "c094dd03cffadcfae8bd3bd12cbd38aba653cfa0a5c765305198f574bff43fc5",
+  "runner_sha256": "5ef6ba13badeedc889907c0213a662974c6250b3dd23c91c0e39fd52c61cd2f6",
+  "proof_generated": false,
+  "native_statement_matches": true,
+  "retired_instruction_reduction": 0.054968805857012915,
+  "trials": [
+    {
+      "variant": "direct-canonical-scalar",
+      "instructions": 3250596756,
+      "minimum_cpu_shards": 776,
+      "elf_sha256": "879e62c09df435253ec6130ce223640d9a99710e9a33298c475ea1a77d1ed9f7",
+      "output": "3c68ba4f99670164c5660cf8b46df57b4c70c5d1335dabdf539f887e0f991040010a000000000000004f44",
+      "service_ram_word_transitions": 9672285
+    },
+    {
+      "variant": "single-fraction",
+      "instructions": 3071915334,
+      "minimum_cpu_shards": 733,
+      "elf_sha256": "4b5e14561985c10dcd09bb69b1daf97c4a0eb812295324c416480e03da5f5f3a",
+      "output": "3c68ba4f99670164c5660cf8b46df57b4c70c5d1335dabdf539f887e0f991040010a000000000000004f44",
+      "service_ram_word_transitions": 9672285
+    }
+  ],
+  "native_proof_preflight": {
+    "statement_sha256": "04c7e2333e901a2e05825f9e3007b4dfa0a738a14eef5158bfc1638d33c76806",
+    "max_steps_per_shard": 4194303,
+    "minimum_cpu_shards": 733,
+    "native_proof_cap": 256,
+    "blocked": true
+  }
+}

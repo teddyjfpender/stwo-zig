@@ -31,8 +31,11 @@ pub const Data = struct {
     eta: O,
     target_per_row: O,
     pub fn init(instance: @import("frame.zig").Instance, pending: *const @import("child.zig").Pending, index: usize) !Data {
+        return initChecked(instance, .{ .artifact = &pending.artifact, .challenges = pending.challenges, .eta = pending.eta }, index);
+    }
+    pub fn initChecked(instance: @import("frame.zig").Instance, pending: @import("terminal_view.zig").Checked, index: usize) !Data {
         if (instance.origin != .dword or instance.terms != Projection.LOCAL_TERMS) return error.LocalGkrRoleMismatch;
-        const common = try @import("role.zig").Data.init(instance, pending, index);
+        const common = try @import("role.zig").Data.initChecked(instance, pending, index);
         if (common.lane_count != 8) return error.LocalGkrRoleMismatch;
         return .{ .instance = instance, .point = common.point, .lane_weights = common.lane_weights[0..8].*, .lane_count = 8, .challenges = common.challenges, .eta = common.eta, .target_per_row = common.target_per_row };
     }

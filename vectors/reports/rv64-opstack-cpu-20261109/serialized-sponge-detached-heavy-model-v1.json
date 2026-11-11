@@ -1,0 +1,35 @@
+{
+  "schema": "op-detached-sponge-heavy-source-geometry-model-v1",
+  "block": 121065789,
+  "retained_counts": {
+    "cpu_shards": 57,
+    "calls": 6852,
+    "permutations": 15121
+  },
+  "scope": "derived source geometry only; no heavy capture, proof or wall-time projection",
+  "logs": [
+    13,
+    18,
+    14,
+    19,
+    19,
+    16,
+    8,
+    16
+  ],
+  "columns": {
+    "detached_five_roles": 475,
+    "standalone_with_providers": 531,
+    "tiny_cpu_frontier": 35,
+    "widest_cpu_before": 5896,
+    "widest_cpu_after": 3418
+  },
+  "native_cells": 121336320,
+  "padded_facts": 51511552,
+  "checkpoint_plane_estimate_bytes": 2678600704,
+  "checkpoint_estimate_scope": "source-checkpoint planes including conservative bank/fold/Eq; excludes metadata, MAIN/PCS/key/proof and allocator effects",
+  "physical_execution_qualified": false,
+  "security_qualified": false,
+  "metadata_sha256": "60bf99b17f88c02537e78bbbca2fbe182e22d4ff95a29b8d0f7aa6076e20865d",
+  "metadata_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-heavy-immutable-session/cold/native-op-prepare-metadata.json"
+}

@@ -7,6 +7,7 @@ const gkr_verifier_module = @import("gkr_verifier.zig");
 const mle_mod = @import("mle.zig");
 const sumcheck_module = @import("sumcheck.zig");
 const utils = @import("utils.zig");
+const Profile = @import("gkr_profile.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -15,6 +16,7 @@ const QM31 = qm31.QM31;
 pub fn ForField(comptime Secure: type) type {
     return struct {
         const sumcheck_field = sumcheck_module.ForField(Secure);
+        pub const Options = sumcheck_field.Options;
         const gkr_circuit_field = gkr_circuit_module.ForField(Secure);
         const gkr_verifier_field = gkr_verifier_module.ForField(Secure);
         const MleBase = mle_mod.MleFor(Secure, M31);
@@ -43,31 +45,36 @@ pub fn ForField(comptime Secure: type) type {
             channel: anytype,
             input_layer_by_instance: []const Layer,
         ) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
-            return proveBatchImpl(false, false, false, allocator, channel, input_layer_by_instance, &.{});
+            return proveBatchImpl(false, false, false, allocator, channel, input_layer_by_instance, &.{}, .{});
         }
 
         /// Operational stride-two tree storage. Identical transcript and proof;
         /// missing levels are regenerated once from the retained lower level.
         /// Caller inputs remain immutable, with the original borrowed lifetime.
         pub fn proveBatchCheckpointed(allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
-            return proveBatchImpl(false, true, false, allocator, channel, input_layer_by_instance, &.{});
+            return proveBatchImpl(false, true, false, allocator, channel, input_layer_by_instance, &.{}, .{});
         }
         /// Consumes heap descriptors and all owned input MLEs on success AND
         /// failure. Used when terminal binding can replay narrow metadata.
         pub fn proveBatchOwnedCheckpointed(allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
-            return proveBatchImpl(false, true, true, allocator, channel, input_layer_by_instance, &.{});
+            return proveBatchImpl(false, true, true, allocator, channel, input_layer_by_instance, &.{}, .{});
         }
         /// Borrowed opaque sources must remain immutable until all joined work
         /// returns. No source pointer is retained in the proof or artifact.
         pub fn proveBatchSourceCheckpointed(allocator: std.mem.Allocator, channel: anytype, sources: []const MultiplicitiesSource) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
-            return proveSourceWithStorage(true, allocator, channel, sources);
+            return proveSourceWithStorage(true, allocator, channel, sources, .{});
+        }
+        /// Explicit source-prover encoding option; existing APIs retain trimmed
+        /// coefficient vectors and exact historical transcript bytes.
+        pub fn proveBatchSourceCheckpointedWithOptions(allocator: std.mem.Allocator, channel: anytype, sources: []const MultiplicitiesSource, options: sumcheck_field.Options) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
+            return proveSourceWithStorage(true, allocator, channel, sources, options);
         }
         /// Stream only the raw bottom facts; retain every secure upper layer.
         /// Same borrowed-source lifetime and exact proof/transcript as dense input.
         pub fn proveBatchSource(allocator: std.mem.Allocator, channel: anytype, sources: []const MultiplicitiesSource) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
-            return proveSourceWithStorage(false, allocator, channel, sources);
+            return proveSourceWithStorage(false, allocator, channel, sources, .{});
         }
-        fn proveSourceWithStorage(comptime checkpointed: bool, allocator: std.mem.Allocator, channel: anytype, sources: []const MultiplicitiesSource) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
+        fn proveSourceWithStorage(comptime checkpointed: bool, allocator: std.mem.Allocator, channel: anytype, sources: []const MultiplicitiesSource, options: sumcheck_field.Options) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
             if (sources.len == 0) return error.EmptyBatch;
             const headers = try allocator.alloc(Layer, sources.len);
             defer allocator.free(headers);
@@ -75,9 +82,9 @@ pub fn ForField(comptime Secure: type) type {
                 try source.validate();
                 header.* = .{ .LogUpMultiplicities = .{ .numerators = .{ .evals = &.{}, .owns_evals = false }, .denominators = .{ .evals = &.{}, .owns_evals = false } } };
             }
-            return proveBatchImpl(true, checkpointed, false, allocator, channel, headers, sources);
+            return proveBatchImpl(true, checkpointed, false, allocator, channel, headers, sources, options);
         }
-        fn proveBatchImpl(comptime source_input: bool, comptime checkpointed: bool, comptime owned_input: bool, allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer, sources: []const MultiplicitiesSource) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
+        fn proveBatchImpl(comptime source_input: bool, comptime checkpointed: bool, comptime owned_input: bool, allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer, sources: []const MultiplicitiesSource, options: sumcheck_field.Options) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
             var input_transferred: usize = 0;
             defer if (owned_input) {
                 for (input_layer_by_instance[input_transferred..]) |layer_value| {
@@ -121,6 +128,8 @@ pub fn ForField(comptime Secure: type) type {
                 allocator.free(layers_by_instance);
             }
 
+            var tree_phase = try Profile.begin("gkr_source_tree_construction", if (source_input) "Fraction projection and checkpoint tree construction (fused)" else "Lookup layer/checkpoint tree construction");
+            defer tree_phase.end();
             for (input_layer_by_instance, 0..) |input_layer, i| {
                 if (checkpointed) {
                     if (owned_input) input_transferred += 1;
@@ -131,6 +140,8 @@ pub fn ForField(comptime Secure: type) type {
                 next_layer_idx[i] = layers_by_instance[i].len;
                 layers_initialized += 1;
             }
+
+            tree_phase.end();
 
             var output_claims_by_instance = try allocator.alloc(?[]Secure, n_instances);
             defer {
@@ -169,6 +180,8 @@ pub fn ForField(comptime Secure: type) type {
             var ood_point = try allocator.alloc(Secure, 0);
             defer allocator.free(ood_point);
 
+            var traversal_phase = try Profile.begin("gkr_sumcheck_traversal", "Sumcheck traversal, checkpoint regeneration and layer transcript");
+            defer traversal_phase.end();
             var layer_idx: usize = 0;
             while (layer_idx < n_layers) : (layer_idx += 1) {
                 const n_remaining_layers = n_layers - layer_idx;
@@ -237,13 +250,14 @@ pub fn ForField(comptime Secure: type) type {
                     }
                 }
 
-                var sumcheck_result = sumcheck_field.proveBatchOwned(
+                var sumcheck_result = sumcheck_field.proveBatchOwnedWithOptions(
                     GkrMultivariatePolyOracle,
                     allocator,
                     sumcheck_claims.items,
                     try sumcheck_oracles.toOwnedSlice(allocator),
                     sumcheck_alpha,
                     channel,
+                    options,
                 ) catch |err| switch (err) {
                     std.mem.Allocator.Error.OutOfMemory => return error.OutOfMemory,
                     else => return GkrProverError.InvalidSumcheck,
@@ -293,6 +307,9 @@ pub fn ForField(comptime Secure: type) type {
                 }
             }
 
+            traversal_phase.end();
+            var artifact_phase = try Profile.begin("gkr_terminal_artifact", "Terminal proof and artifact assembly");
+            defer artifact_phase.end();
             const proof_sumcheck = try sumcheck_proofs.toOwnedSlice(allocator);
             errdefer {
                 for (proof_sumcheck) |*v| v.deinit(allocator);
@@ -352,6 +369,7 @@ pub fn ForField(comptime Secure: type) type {
             };
 
             ood_point = &[_]Secure{};
+            artifact_phase.end();
             return .{ .proof = proof, .artifact = artifact };
         }
 

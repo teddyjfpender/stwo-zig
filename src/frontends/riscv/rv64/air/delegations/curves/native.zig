@@ -144,7 +144,13 @@ pub fn Native(comptime op: anytype) type {
             for (&in, 0..) |*x, i| x.* = operand(packet, i);
             for (d.canonical_inputs) |i| if (in[i] >= modulusOf(packet)) return error.CurveDomain;
             var w: Witness = undefined;
-            if (comptime @TypeOf(op) == spec.SecpKind) {
+            if (comptime @TypeOf(op) == spec.TowerKind) {
+                var values: [@import("../../../ethereum_services/bn254_tower.zig").INPUTS]u256 = undefined;
+                for (&values, in) |*dst, x| dst.* = @intCast(x);
+                const result = @import("../../../ethereum_services/bn254_tower.zig").evaluate(&values);
+                for (&w.out, result.out) |*dst, x| dst.* = x;
+                for (&w.wit, result.witness) |*dst, x| dst.* = x;
+            } else if (comptime @TypeOf(op) == spec.SecpKind) {
                 const sw = secpWitness(op, &in);
                 w.out = sw.out;
                 w.wit = sw.wit;
@@ -272,7 +278,8 @@ pub fn Native(comptime op: anytype) type {
                 };
                 var carry: i64 = 0;
                 const radix: i64 = @as(i64, 1) << @intCast(8 * g.group);
-                const half: i64 = @as(i64, 1) << @intCast(g.carry_bits - 1);
+                const carry_offset: i64 = @intCast(g.carry_offset);
+                const upper: i64 = (@as(i64, 1) << @intCast(g.carry_bits)) - carry_offset;
                 for (0..g.groups) |j| {
                     var sum: i64 = carry;
                     for (0..g.group) |offset| sum += coef[g.group * j + offset] << @intCast(8 * offset);
@@ -282,8 +289,8 @@ pub fn Native(comptime op: anytype) type {
                         std.debug.assert(carry == 0);
                         break;
                     }
-                    std.debug.assert(carry >= -half and carry < half);
-                    const encoded: u64 = @intCast(carry + half);
+                    std.debug.assert(carry >= -carry_offset and carry < upper);
+                    const encoded: u64 = @intCast(carry + carry_offset);
                     for (0..g.carry_bytes) |b| row[L.CARRY[r] + g.carry_bytes * j + b] = @as(u8, @truncate(encoded >> @intCast(8 * b)));
                 }
             }

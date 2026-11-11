@@ -1,0 +1,427 @@
+{
+  "schema": "op-native-blake-vs-p2-actual-source-cost-v1",
+  "production_admission": false,
+  "security_qualified": false,
+  "no_new_native_or_outer_proof": true,
+  "scope": "same actual selectedCPU geometry/OM31/q72B4P0fold4, PCS/FS/DEEP/FRI source graphs; omitted AIR/P2GKR/frame and mixed source closure",
+  "primitive_source_cases": [
+    {
+      "words": 1,
+      "blocks": 1,
+      "raw": {
+        "eq": 0,
+        "qm31_ops": 8,
+        "m31_to_u32": 1,
+        "triple_xor": 8,
+        "blake_g_gate": 80
+      },
+      "logs": {
+        "eq": 4,
+        "qm31_ops": 4,
+        "triple_xor": 4,
+        "m_31_to_u_32": 4,
+        "blake_g_gate": 7,
+        "verify_bitwise_xor_8": 16,
+        "verify_bitwise_xor_12": 20,
+        "verify_bitwise_xor_4": 8,
+        "verify_bitwise_xor_7": 14,
+        "verify_bitwise_xor_9": 18,
+        "range_check_16": 16
+      },
+      "main_cells": 17259904,
+      "om_inter_cells": 70402560,
+      "fixed_cells": 4245920,
+      "source_only": true,
+      "proof_validity_claimed": false
+    },
+    {
+      "words": 16,
+      "blocks": 1,
+      "raw": {
+        "eq": 0,
+        "qm31_ops": 8,
+        "m31_to_u32": 16,
+        "triple_xor": 8,
+        "blake_g_gate": 80
+      },
+      "logs": {
+        "eq": 4,
+        "qm31_ops": 4,
+        "triple_xor": 4,
+        "m_31_to_u_32": 4,
+        "blake_g_gate": 7,
+        "verify_bitwise_xor_8": 16,
+        "verify_bitwise_xor_12": 20,
+        "verify_bitwise_xor_4": 8,
+        "verify_bitwise_xor_7": 14,
+        "verify_bitwise_xor_9": 18,
+        "range_check_16": 16
+      },
+      "main_cells": 17259904,
+      "om_inter_cells": 70402560,
+      "fixed_cells": 4245920,
+      "source_only": true,
+      "proof_validity_claimed": false
+    },
+    {
+      "words": 17,
+      "blocks": 2,
+      "raw": {
+        "eq": 0,
+        "qm31_ops": 8,
+        "m31_to_u32": 17,
+        "triple_xor": 16,
+        "blake_g_gate": 160
+      },
+      "logs": {
+        "eq": 4,
+        "qm31_ops": 4,
+        "triple_xor": 4,
+        "m_31_to_u_32": 5,
+        "blake_g_gate": 8,
+        "verify_bitwise_xor_8": 16,
+        "verify_bitwise_xor_12": 20,
+        "verify_bitwise_xor_4": 8,
+        "verify_bitwise_xor_7": 14,
+        "verify_bitwise_xor_9": 18,
+        "range_check_16": 16
+      },
+      "main_cells": 17266624,
+      "om_inter_cells": 70416256,
+      "fixed_cells": 4247376,
+      "source_only": true,
+      "proof_validity_claimed": false
+    },
+    {
+      "words": 64,
+      "blocks": 4,
+      "raw": {
+        "eq": 0,
+        "qm31_ops": 8,
+        "m31_to_u32": 64,
+        "triple_xor": 32,
+        "blake_g_gate": 320
+      },
+      "logs": {
+        "eq": 4,
+        "qm31_ops": 4,
+        "triple_xor": 5,
+        "m_31_to_u_32": 6,
+        "blake_g_gate": 9,
+        "verify_bitwise_xor_8": 16,
+        "verify_bitwise_xor_12": 20,
+        "verify_bitwise_xor_4": 8,
+        "verify_bitwise_xor_7": 14,
+        "verify_bitwise_xor_9": 18,
+        "range_check_16": 16
+      },
+      "main_cells": 17280384,
+      "om_inter_cells": 70444416,
+      "fixed_cells": 4250368,
+      "source_only": true,
+      "proof_validity_claimed": false
+    },
+    {
+      "words": 512,
+      "blocks": 32,
+      "raw": {
+        "eq": 0,
+        "qm31_ops": 8,
+        "m31_to_u32": 512,
+        "triple_xor": 256,
+        "blake_g_gate": 2560
+      },
+      "logs": {
+        "eq": 4,
+        "qm31_ops": 4,
+        "triple_xor": 8,
+        "m_31_to_u_32": 9,
+        "blake_g_gate": 12,
+        "verify_bitwise_xor_8": 16,
+        "verify_bitwise_xor_12": 20,
+        "verify_bitwise_xor_4": 8,
+        "verify_bitwise_xor_7": 14,
+        "verify_bitwise_xor_9": 18,
+        "range_check_16": 16
+      },
+      "main_cells": 17473024,
+      "om_inter_cells": 70838656,
+      "fixed_cells": 4292256,
+      "source_only": true,
+      "proof_validity_claimed": false
+    },
+    {
+      "words": 1152,
+      "blocks": 72,
+      "raw": {
+        "eq": 0,
+        "qm31_ops": 8,
+        "m31_to_u32": 1152,
+        "triple_xor": 576,
+        "blake_g_gate": 5760
+      },
+      "logs": {
+        "eq": 4,
+        "qm31_ops": 4,
+        "triple_xor": 10,
+        "m_31_to_u_32": 11,
+        "blake_g_gate": 13,
+        "verify_bitwise_xor_8": 16,
+        "verify_bitwise_xor_12": 20,
+        "verify_bitwise_xor_4": 8,
+        "verify_bitwise_xor_7": 14,
+        "verify_bitwise_xor_9": 18,
+        "range_check_16": 16
+      },
+      "main_cells": 17707520,
+      "om_inter_cells": 71338368,
+      "fixed_cells": 4345760,
+      "source_only": true,
+      "proof_validity_claimed": false
+    }
+  ],
+  "actual_blake": {
+    "scope": "ACTUAL_CPU_geometry_NEW_dummyBlake_PCS_FS_DEEP_FRI_trace_R7lowering_no_AIR_or_GKR_or_acceptance",
+    "columns": [
+      177,
+      1357,
+      880,
+      16
+    ],
+    "tree_heights": [
+      22,
+      22,
+      22,
+      22
+    ],
+    "global_log": 20,
+    "composition_split": 1,
+    "config": {
+      "pow_bits": 0,
+      "fri_config": {
+        "log_blowup_factor": 2,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 72,
+        "fold_step": 4
+      },
+      "lifting_log_size": null
+    },
+    "claim_count": 16,
+    "raw": {
+      "eq": 9607,
+      "qm31_ops": 769350,
+      "m31_to_u32": 246128,
+      "triple_xor": 212144,
+      "blake_g_gate": 2121440
+    },
+    "native_om_mul": 28283,
+    "dot_calls": 1656,
+    "dot_terms": 274608,
+    "input_ports": 0,
+    "p2_permutations": 0,
+    "root_bytes": 32,
+    "native_p2_values_not_cast": true,
+    "source_identity_admitted": false,
+    "proof_validity_claimed": false,
+    "production_admission": false
+  },
+  "matched_p2": {
+    "scope": "SAME_actualgeometry_P2_PCS_FS_DEEP_FRI_trace_no_AIR_GKR_frame_or_acceptance",
+    "raw": {
+      "eq": 20337,
+      "qm31_ops": 963913,
+      "m31_to_u32": 0,
+      "triple_xor": 0,
+      "blake_g_gate": 0
+    },
+    "native_om_mul": 28283,
+    "dot_calls": 1656,
+    "p2_permutations": 43257,
+    "source_identity_admitted": false,
+    "proof_validity_claimed": false
+  },
+  "source_qualifiers": [
+    "fresh native P2 bundle physically accepted before/after callback",
+    "NEW dummy32-byte Blake values; P2 capture supplies geometry only",
+    "audit public/claim framing is not a new production suite",
+    "R7 Mul/Dot scopes enabled; Input-origin source/Var usage not finalized",
+    "neither dummy verifier graph is asserted valid or admitted"
+  ],
+  "hash_work": {
+    "total_blake_compressions": 26518,
+    "trace_leaf_blocks": 11016,
+    "trace_path_blocks": 6336,
+    "fri_layers": [
+      {
+        "step": 4,
+        "path_height": 18,
+        "leaf_blocks_per_query": 8,
+        "internal_node_blocks_per_query": 3
+      },
+      {
+        "step": 4,
+        "path_height": 14,
+        "leaf_blocks_per_query": 8,
+        "internal_node_blocks_per_query": 3
+      },
+      {
+        "step": 4,
+        "path_height": 10,
+        "leaf_blocks_per_query": 8,
+        "internal_node_blocks_per_query": 3
+      },
+      {
+        "step": 4,
+        "path_height": 6,
+        "leaf_blocks_per_query": 8,
+        "internal_node_blocks_per_query": 3
+      },
+      {
+        "step": 4,
+        "path_height": 2,
+        "leaf_blocks_per_query": 8,
+        "internal_node_blocks_per_query": 3
+      }
+    ],
+    "all_merkle_blocks": 24912,
+    "residual_FS_blocks_including_audit_framing": 1606
+  },
+  "additional_xor_tables": [
+    {
+      "role": "xor8",
+      "log": 16,
+      "main": 2,
+      "om_inter": 8,
+      "fixed": 3,
+      "cells": 851968
+    },
+    {
+      "role": "xor12",
+      "log": 20,
+      "main": 16,
+      "om_inter": 64,
+      "fixed": 3,
+      "cells": 87031808
+    },
+    {
+      "role": "xor4",
+      "log": 8,
+      "main": 1,
+      "om_inter": 8,
+      "fixed": 3,
+      "cells": 3072
+    },
+    {
+      "role": "xor7",
+      "log": 14,
+      "main": 1,
+      "om_inter": 8,
+      "fixed": 3,
+      "cells": 196608
+    },
+    {
+      "role": "xor9",
+      "log": 18,
+      "main": 1,
+      "om_inter": 8,
+      "fixed": 3,
+      "cells": 3145728
+    }
+  ],
+  "additional_xor_table_floor_cells": 91229184,
+  "blake_hash_roles_cap0": {
+    "compressions": 26518,
+    "g_gates": 2121440,
+    "g_log": 22,
+    "g_main_inter_fixed_cells": 700448768,
+    "triple_xor_rows": 262144,
+    "triple_main_inter_fixed_cells": 19136512,
+    "xor_table_cells": 91229184,
+    "subtotal": 810814464
+  },
+  "p2_hash_role_cells": 48562176,
+  "static_cap_counterfactuals": [
+    {
+      "compressions": 26518,
+      "g_gates": 2121440,
+      "g_log": 22,
+      "g_main_inter_fixed_cells": 700448768,
+      "triple_xor_rows": 262144,
+      "triple_main_inter_fixed_cells": 19136512,
+      "xor_table_cells": 91229184,
+      "subtotal": 810814464,
+      "cap_log": 0,
+      "eligible_trees": 0,
+      "compression_saving": 0,
+      "scope": "static compression/gate counterfactual only; cap selection arithmetic/source authority/padding not qualified"
+    },
+    {
+      "compressions": 25879,
+      "g_gates": 2070320,
+      "g_log": 21,
+      "g_main_inter_fixed_cells": 350224384,
+      "triple_xor_rows": 262144,
+      "triple_main_inter_fixed_cells": 19136512,
+      "xor_table_cells": 91229184,
+      "subtotal": 460590080,
+      "cap_log": 1,
+      "eligible_trees": 9,
+      "compression_saving": 639,
+      "scope": "static compression/gate counterfactual only; cap selection arithmetic/source authority/padding not qualified"
+    },
+    {
+      "compressions": 24846,
+      "g_gates": 1987680,
+      "g_log": 21,
+      "g_main_inter_fixed_cells": 350224384,
+      "triple_xor_rows": 262144,
+      "triple_main_inter_fixed_cells": 19136512,
+      "xor_table_cells": 91229184,
+      "subtotal": 460590080,
+      "cap_log": 3,
+      "eligible_trees": 8,
+      "compression_saving": 1672,
+      "scope": "static compression/gate counterfactual only; cap selection arithmetic/source authority/padding not qualified"
+    },
+    {
+      "compressions": 23886,
+      "g_gates": 1910880,
+      "g_log": 21,
+      "g_main_inter_fixed_cells": 350224384,
+      "triple_xor_rows": 262144,
+      "triple_main_inter_fixed_cells": 19136512,
+      "xor_table_cells": 91229184,
+      "subtotal": 460590080,
+      "cap_log": 5,
+      "eligible_trees": 8,
+      "compression_saving": 2632,
+      "scope": "static compression/gate counterfactual only; cap selection arithmetic/source authority/padding not qualified"
+    }
+  ],
+  "excluded": [
+    "original AIR/OODS/terminal/GKR public frame work",
+    "full R7 input origin/Var/range fanout and typed mixed roster",
+    "remaining generic arithmetic/OMmul/Dot and M31-u32 roles",
+    "extra lookup fractions/source-degree qualification",
+    "native prover speed and whole native+root wall time",
+    "actual cap witnesses/selectors and fresh source VK cost"
+  ],
+  "opening_columns_added": {
+    "main_plus_om_inter": 341,
+    "fixed": 31,
+    "roles": 7,
+    "scope": "existing classic lookup roster; not a qualified mixed key"
+  },
+  "source_sha256": {
+    "src/frontends/circuit/common/component_list.zig": "d2f1e8facad581464f365958fb8e9fb9270fb28c09363b8361898df4136ceb2b",
+    "src/frontends/circuit/common/preprocessed.zig": "9bff7f44835f091aef0de7f545f5d402c1c85d4a2f7569fa018c3ddb7b9198b4",
+    "src/frontends/circuit/native_verifier/blake_chain.zig": "6cb5925edde6672d1810bb035d0b6aca8561cb46d94d6fbd181fcea4199a3a40",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig": "3cbcea24946ca2539b0954716c6a9f0c3b74a1a4bac9c442f111aebb3626a988",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/proof.zig": "e6ea4f384286c8dd0fe81294b215f215e2699e51af65f587e533192da4f630b2",
+    "src/integrations/riscv_cpu/poseidon2_outer/layout.zig": "cdc1b86e24b39f6403e87350b77fbed835cb0f4dc389ef7bbb7bfb60f28618a0"
+  },
+  "evidence_sha256": {
+    "primitive_log": "afb12a607041545360a5a2236ff5c782fc8e06db1d01ce64bfcec08a38f6166c",
+    "actual_log": "751f6b265fd6b3bf20439f83d782b6ac4f9c6da8a5c84763d78e90aa6097baec"
+  }
+}

@@ -23,7 +23,7 @@ const HEADER = 8 + 32 + 5 * 8 * 4;
 fn begin(a: std.mem.Allocator, key: *const Authority, outputs: []const Q) !Channel {
     if (outputs.len != key.n_outputs) return error.InvalidPoseidonOutputCount;
     var channel = Channel.init();
-    (try A.config()).mixInto(&channel);
+    key.profile.config().mixInto(&channel);
     const words = try a.alloc(u32, 9 + 4 * outputs.len);
     defer a.free(words);
     for (0..8) |i| words[i] = std.mem.readInt(u32, key.identity[4 * i ..][0..4], .little);
@@ -46,10 +46,20 @@ pub const Mutation = enum { none, x2, x5, port_extension, range_multiplicity, in
 pub fn prove(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q) ![]u8 {
     return proveMutation(a, ctx, key, outputs, .none);
 }
+pub fn proveProfiled(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, recorder: *Engine.stage_profile.Recorder) ![]u8 {
+    return proveRecorded(a, ctx, key, outputs, .none, recorder);
+}
 /// Falsification harness only: successful proofs still pass the same engine
 /// self-check and receiver. No receiver accepts a mutation selector.
 pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, mutation: Mutation) ![]u8 {
-    var main = try W.main(a, ctx, key);
+    return proveRecorded(a, ctx, key, outputs, mutation, null);
+}
+fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, mutation: Mutation, recorder: ?*Engine.stage_profile.Recorder) ![]u8 {
+    var main = blk: {
+        var span = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.main_generation", "P2 MAIN generation");
+        defer span.end();
+        break :blk try W.main(a, ctx, key);
+    };
     defer main.deinit();
     switch (mutation) {
         .x2, .x5 => {
@@ -74,14 +84,32 @@ pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Au
         else => {},
     }
     var channel = try begin(a, key, outputs);
-    var scheme = try A.E.init(a, try A.config());
+    var scheme = try A.E.init(a, key.profile.config());
     var owned = true;
     defer if (owned) scheme.deinit(a);
-    try scheme.commit(a, key.fixed.values, &channel);
+    const control = try @import("op_profile.zig").monolithicControl();
+    var main_commit = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.main_commit", "P2 MAIN commitment");
+    defer main_commit.end();
+    if (control) {
+        try scheme.commit(a, key.fixed.values, &channel);
+        try scheme.commit(a, main.values, &channel);
+    } else {
+        // Immutable FIXED was constructed once by independently derived key.
+        try scheme.trees.ensureUnusedCapacity(a, 1);
+        scheme.trees.appendAssumeCapacity((key.fixed_tree orelse return error.PoseidonProverDataNotRetained).retainShared());
+        MC.mixRoot(&channel, key.fixed_root);
+        // Absorb native-height prefixes once rather than flat-rehashing the
+        // entire roster at its largest range-table height.
+        try scheme.commitBorrowedStreamingWithRecorder(a, main.values, 64, recorder, &channel);
+    }
+    main_commit.end();
     if (!std.mem.eql(u8, &scheme.trees.items[0].root(), &key.fixed_root)) return error.UntrustedPoseidonFixedCommitment;
-    try scheme.commit(a, main.values, &channel);
     const elements = W.Elements.init(channel.drawSecureFelt(), channel.drawSecureFelt());
-    var interaction = try W.interaction(a, key, main.values, outputs, &elements);
+    var interaction = blk: {
+        var span = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.interaction_generation", "P2 interaction generation");
+        defer span.end();
+        break :blk try W.interaction(a, key, main.values, outputs, &elements);
+    };
     defer interaction.deinit();
     if (mutation == .claim_balanced) {
         interaction.claims[0] = interaction.claims[0].add(O.one());
@@ -93,14 +121,18 @@ pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Au
         @constCast(interaction.columns[col].values)[5] = interaction.columns[col].values[5].add(M.one());
     }
     channel.mixFelts(&interaction.claims);
-    try scheme.commit(a, interaction.columns, &channel);
+    {
+        var span = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.interaction_commit", "P2 interaction commitment");
+        defer span.end();
+        if (control) try scheme.commit(a, interaction.columns, &channel) else try scheme.commitBorrowedStreamingWithRecorder(a, interaction.columns, 64, recorder, &channel);
+    }
     const fixed_logs = try key.treeLogs(a, 0);
     defer a.free(fixed_logs);
     const ls = try legacy(a, key, elements, interaction.claims, fixed_logs);
     const p2 = P2{ .key = key, .elements = elements, .claim = interaction.claims[3] };
     const components = [_]PC.ComponentProver{ ls[0].asProverComponent(), ls[1].asProverComponent(), ls[2].asProverComponent(), P2.Adapter.asProverComponent(&p2), ls[3].asProverComponent() };
     owned = false;
-    var produced = try A.E.prove(a, &components, &channel, scheme, .{});
+    var produced = try A.E.prove(a, &components, &channel, scheme, .{ .recorder = recorder });
     defer produced.deinit(a);
     const body = try Wire.encodeProofBytesBinary(a, produced.proof);
     defer a.free(body);
@@ -113,7 +145,29 @@ pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Au
     @memcpy(encoded[HEADER..], body);
     return encoded;
 }
+pub const NativeProof = Core.proof.ForField(O).StarkProof(H);
+pub const NativeCapture = Core.pcs.ForField(O).verifier.VerifiedProofCapture(H);
+pub const Captured = struct {
+    proof: NativeProof,
+    claims: W.Claims,
+    capture: NativeCapture,
+    pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
+        self.capture.deinit(a);
+        self.proof.deinit(a);
+        self.* = undefined;
+    }
+};
 pub fn verify(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, encoded: []const u8) !void {
+    return verifyImpl(a, key, outputs, encoded, null, null, null);
+}
+/// Captures only after the same full native receiver has admitted source
+/// authority, canonical claims, global Var/range closure and the complete PCS.
+pub fn verifyCaptured(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, encoded: []const u8) !Captured {
+    var out: Captured = undefined;
+    try verifyImpl(a, key, outputs, encoded, &out.capture, &out.proof, &out.claims);
+    return out;
+}
+fn verifyImpl(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, encoded: []const u8, capture: ?*NativeCapture, retained: ?*NativeProof, retained_claims: ?*W.Claims) !void {
     if (encoded.len < HEADER or !std.mem.eql(u8, encoded[0..8], MAGIC)) return error.InvalidPoseidonFiveWire;
     if (!std.mem.eql(u8, encoded[8..40], &key.identity)) return error.InvalidPoseidonFiveAuthority;
     var claims: W.Claims = undefined;
@@ -130,10 +184,10 @@ pub fn verify(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, e
     var owned = true;
     defer if (owned) proof.deinit(a);
     const pcs = &proof.commitment_scheme_proof;
-    if (pcs.commitments.items.len != 4 or !std.meta.eql(pcs.config, try A.config())) return error.InvalidPoseidonFiveShape;
+    if (pcs.commitments.items.len != 4 or pcs.revision_config != null or !std.meta.eql(pcs.config, key.profile.config())) return error.InvalidPoseidonFiveShape;
     if (!std.mem.eql(u8, &pcs.commitments.items[0], &key.fixed_root)) return error.UntrustedPoseidonFixedCommitment;
     var channel = try begin(a, key, outputs);
-    var receiver = try Core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(H, MC).init(a, try A.config());
+    var receiver = try Core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(H, MC).init(a, key.profile.config());
     defer receiver.deinit(a);
     const fixed_logs = try key.treeLogs(a, 0);
     defer a.free(fixed_logs);
@@ -150,8 +204,15 @@ pub fn verify(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, e
     const ls = try legacy(a, key, elements, claims, fixed_logs);
     const p2 = P2{ .key = key, .elements = elements, .claim = claims[3] };
     const components = [_]Air.Component{ ls[0].asVerifierComponent(), ls[1].asVerifierComponent(), ls[2].asVerifierComponent(), P2.Adapter.asVerifierComponent(&p2), ls[3].asVerifierComponent() };
-    owned = false;
-    try Core.verifier.ForField(O).verify(H, MC, a, &components, &channel, &receiver, proof);
+    if (capture) |captured| {
+        try Core.verifier.ForField(O).verifyBorrowedWithProofCapture(H, MC, a, &components, &channel, &receiver, &proof, captured);
+        retained.?.* = proof;
+        retained_claims.?.* = claims;
+        owned = false;
+    } else {
+        owned = false;
+        try Core.verifier.ForField(O).verify(H, MC, a, &components, &channel, &receiver, proof);
+    }
 }
 pub fn fixture(a: std.mem.Allocator, trace_only: bool) !C.Context {
     var ctx = if (trace_only) try C.Context.initTraceOnly(a, 1) else try C.Context.init(a, 1);

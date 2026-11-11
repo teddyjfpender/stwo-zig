@@ -1,0 +1,99 @@
+{
+  "schema": "stwo.opstack.resident-receiver-comparison.v1",
+  "scope": "same OP Mainnet block 121057303, two independently received durable bundle copies each loaded twice",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "timing_note": "Each arm ran in one process. The parallel arm overlapped compilation during cold setup.",
+  "runs": {
+    "serial": {
+      "runner_sha256": "c84c43810004ed1260b86a1ae79c1a76a5aacd92f17dcbe29185911498025dff",
+      "wall_ns": 30596550522,
+      "peak_rss_bytes": 2613420032,
+      "request_reports": [
+        {
+          "accepted": true,
+          "load_and_setup_ns": 25124790186,
+          "verify_ns": 1178045483,
+          "source_validations": 13,
+          "cpu_proofs": 6,
+          "truth_proofs": 7
+        },
+        {
+          "accepted": true,
+          "load_and_setup_ns": 83243527,
+          "verify_ns": 1284131982,
+          "source_validations": 0,
+          "cpu_proofs": 6,
+          "truth_proofs": 7
+        },
+        {
+          "accepted": true,
+          "load_and_setup_ns": 116195265,
+          "verify_ns": 1121811514,
+          "source_validations": 0,
+          "cpu_proofs": 6,
+          "truth_proofs": 7
+        },
+        {
+          "accepted": true,
+          "load_and_setup_ns": 80115729,
+          "verify_ns": 1275865738,
+          "source_validations": 0,
+          "cpu_proofs": 6,
+          "truth_proofs": 7
+        }
+      ],
+      "rejections": {
+        "tamper": "WideBundleFileChanged",
+        "tamper-rehashed": "RootMismatch"
+      }
+    },
+    "parallel": {
+      "runner_sha256": "5b54611d5754a79cc5f07f81f6d0a5364f1a95f3fe3afde6a13f1bbffc62bd09",
+      "wall_ns": 32852573082,
+      "peak_rss_bytes": 2633961472,
+      "request_reports": [
+        {
+          "accepted": true,
+          "load_and_setup_ns": 29985045716,
+          "verify_ns": 489866963,
+          "source_validations": 13,
+          "cpu_proofs": 6,
+          "truth_proofs": 7,
+          "physical_verify_workers": 4
+        },
+        {
+          "accepted": true,
+          "load_and_setup_ns": 156042150,
+          "verify_ns": 427309941,
+          "source_validations": 0,
+          "cpu_proofs": 6,
+          "truth_proofs": 7,
+          "physical_verify_workers": 4
+        },
+        {
+          "accepted": true,
+          "load_and_setup_ns": 61941724,
+          "verify_ns": 427048845,
+          "source_validations": 0,
+          "cpu_proofs": 6,
+          "truth_proofs": 7,
+          "physical_verify_workers": 4
+        },
+        {
+          "accepted": true,
+          "load_and_setup_ns": 63287247,
+          "verify_ns": 421654497,
+          "source_validations": 0,
+          "cpu_proofs": 6,
+          "truth_proofs": 7,
+          "physical_verify_workers": 4
+        }
+      ],
+      "rejections": {
+        "tamper": "WideBundleFileChanged",
+        "tamper-rehashed": "RootMismatch"
+      }
+    }
+  },
+  "accepted_output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50"
+}

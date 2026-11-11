@@ -57,7 +57,7 @@ pub const products = [_]Spec{
         .scope = .riscv_cpu,
         .constructor = .riscv_cpu,
         .configure_tools = &.{ "cargo", "python3" },
-        .generated_module_roots = &.{ "generated:options:", "generated:circuit-composition-cpu-aot:" },
+        .generated_module_roots = &.{ "generated:options:", "generated:circuit-composition-cpu-aot:", "generated:rv64-hybrid-cpu-aot:" },
         .dependency_module_roots = catalog.package_dependencies.riscv_cpu_protocol_package_roots,
         .configure_allowed_files = &.{
             "src/frontends/riscv/air/lang/artifacts/embedded.zig",
@@ -71,6 +71,7 @@ pub const products = [_]Spec{
             "src/products/riscv/cpu/tests/recursion_ingress_real_guest_test.zig",
             "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test.zig",
         },
+        .configure_allowed_prefixes = &.{"src/products/cairo/tools/composition_cpu_codegen"},
     },
     .{
         .descriptor = native_metal.descriptor(.cli),

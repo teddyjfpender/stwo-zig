@@ -1,0 +1,317 @@
+{
+  "schema": "stwo.opstack.mainnet-native-recursion-receipt.v1",
+  "date_utc": "2026-11-08",
+  "block": {
+    "l2_chain_id": 10,
+    "number": 120794432,
+    "hash": "0xc037066dfa979f84bda99016623d1bd4d2168e7a54dfe95b0948b56eda50a2bb",
+    "gas_used": 43851,
+    "transactions": 1,
+    "records": 79,
+    "fixture_revision": "85f22e11a0e7e946ae7e26905c21feef23a2a7df",
+    "fixture_sha256": "5729dcbdf3ecdb70ff16c1f64be9ebf600b3e34b7d4fa017afb80a15fed84f2e"
+  },
+  "authority": {
+    "native_profile": "conjectured128_b2_q108_p20_fold4",
+    "native_assumption_set": "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v2-boundary23",
+    "security_qualified": false,
+    "execution_profile": "ethereum_services_v3",
+    "elf_sha256": "0a4ab22b34b37b8f51372fcac25b5a6d900db53bb010d6b24b45a5b476c991db",
+    "input_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+    "input_commitment": "dd071834b6f5c078023f1441c76b97e4920686b833008071401447de5d9918da",
+    "expected_output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50"
+  },
+  "oracle": {
+    "benchmark_source_head": "f65a9430f3fe3a4ea35e36c79c14a96aec6aaeb5",
+    "upstream_host_sha256": "a5708b64b4a052d7b6a1d6c668b6c616a854b461375b855f2a0f22a8e55d4faa",
+    "implementation": "Unicorn2.1.4",
+    "instructions": 797040,
+    "terminal_pc": 2912,
+    "registers_equal": true,
+    "sponge_calls": 124,
+    "sha256_calls": 34,
+    "rv64_receipt_sha256": "3d7a81cfbab0aa03263ac4256254a7f9e705828de35b241eacf31053996fbe39",
+    "oracle_receipt_sha256": "bd18562af49e16248bc3262a1e61f25d3753ad223ee5451797de70b8cc41dd70"
+  },
+  "optimized_native": {
+    "source_head": "f39021ddc6f958600ad5e3cbc6688e7a651c1834",
+    "build": "zig build rv64-word16-ethereum-native -Doptimize=ReleaseSmall -j1",
+    "zig": "0.15.2",
+    "runner_sha256": "ce7c9ddc4b8646a3c9aa43f91c589dc6d6b484cae30521ef64e9e4e929eb3790",
+    "request": {
+      "elf": "/workspace/scratch/8764ebc80ad4/recursive-stwo/opstack/kona/target/riscv64i-stwo/frontier/stwo-kona-rv64-lean",
+      "input": "/tmp/opstack-recursive-mainnet-run/benchmark-oracle/120794432.opx",
+      "expected_output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+      "elf_sha256": "0a4ab22b34b37b8f51372fcac25b5a6d900db53bb010d6b24b45a5b476c991db",
+      "input_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+      "max_steps": 797041,
+      "execution_profile": "ethereum_services_v3",
+      "symbols": {
+        "input_start": 8388608,
+        "input_end": 25165824,
+        "halt_flag": 25165824,
+        "output_len": 25165828,
+        "output_data": 25165832,
+        "output_end": 29360128,
+        "stack_bottom": 29360128,
+        "stack_top": 46137344,
+        "heap_start": 46286704,
+        "heap_end": 268435456
+      },
+      "terminal_pc": 2912,
+      "batch_steps": 1048575,
+      "output_directory": "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/proof",
+      "workers": 4,
+      "max_batches": 0
+    },
+    "request_sha256": "40db1f283356bb10746706b191f6c63237ef6433015739015f1495fd54bb45a2",
+    "resources": {
+      "gkr_bytes": 2147483648,
+      "global_bytes": 1073741824,
+      "retained_frontend_bytes": 2147483648,
+      "disk_bytes": 8589934592,
+      "fixed_setup_bytes": 1073741824,
+      "park_main": true,
+      "recycler_cache_bytes": 67108864,
+      "keccak_max_log": 16,
+      "capture_options": {
+        "execution_workers": 0
+      },
+      "schedule": {
+        "lanes": 1,
+        "workers_per_lane": 4,
+        "memory_cap_bytes": 2147483648
+      }
+    },
+    "resources_sha256": "acf47e895cc9f954cee83b7a6b77309d9efbd13f4f9bab5342de3b670ac29a76",
+    "produce": {
+      "command": [
+        "/workspace/scratch/8764ebc80ad4/recursive-stwo/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "produce-candidate",
+        "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/request.json",
+        "-",
+        "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/proof",
+        "0",
+        "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/resources.json"
+      ],
+      "wall_ns": 58902262046,
+      "peak_rss_bytes": 2922844160,
+      "user_cpu_s": 142.462552,
+      "system_cpu_s": 10.22828,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "receive": {
+      "command": [
+        "/workspace/scratch/8764ebc80ad4/recursive-stwo/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/request.json",
+        "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 5776327139,
+      "peak_rss_bytes": 2064322560,
+      "user_cpu_s": 9.989821,
+      "system_cpu_s": 1.010375,
+      "returncode": 0,
+      "timed_out": false,
+      "accepted": true,
+      "completed_ethereum_block": true,
+      "cpu_proofs": 1,
+      "truth_proofs": 2,
+      "load_and_setup_ns": 5475926550,
+      "verify_ns": 183137264,
+      "source_shape": {
+        "native_proofs": 3,
+        "max_trace_log": 21,
+        "max_public_boundary_log": 15,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 30,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 24,
+        "native_trace_cells": [
+          56048000,
+          87143904,
+          102725120
+        ]
+      }
+    },
+    "mutated_cpu_file": {
+      "command": [
+        "/workspace/scratch/8764ebc80ad4/recursive-stwo/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/request.json",
+        "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 2116266684,
+      "peak_rss_bytes": 597508096,
+      "user_cpu_s": 1.7023549999999998,
+      "system_cpu_s": 0.39802,
+      "returncode": 1,
+      "timed_out": false,
+      "stderr": "error: WideBundleFileChanged"
+    },
+    "mutated_cpu_file_with_updated_manifest_digest": {
+      "command": [
+        "/workspace/scratch/8764ebc80ad4/recursive-stwo/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/request.json",
+        "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 5854599445,
+      "peak_rss_bytes": 2065129472,
+      "user_cpu_s": 10.996651,
+      "system_cpu_s": 1.101413,
+      "returncode": 1,
+      "timed_out": false,
+      "stderr": "error: RootMismatch"
+    },
+    "bundle_files": {
+      "bundle.json": {
+        "bytes": 11511,
+        "sha256": "968aacfe3a9c74f573a121e0f0ecdcd9c9f52df419903b4dba1b4cb8b19a8c84"
+      },
+      "candidate-fixed-setup.json": {
+        "bytes": 960,
+        "sha256": "fcbad0ac877de92ccdc99cfb20a942914f709b90f3fdd4ad4028b0109617f509"
+      },
+      "candidate-source-bounds.json": {
+        "bytes": 6855,
+        "sha256": "361cbfac9876107dcce7ec9f239cf0603721e705ef4cbf9e1f1d766a03424afe"
+      },
+      "cells.bin": {
+        "bytes": 1374680,
+        "sha256": "d905aba4a83633bad916b0a4dbc411c0aee42a3954f4ed36a697506e5b6bb17e"
+      },
+      "cpu-0.bin": {
+        "bytes": 2743480,
+        "sha256": "b354fa6d6b388edb74b6cac0b546ac750427837d4a7e6a5dfe09af8b2d0888c0"
+      },
+      "physical-0000.stages.json": {
+        "bytes": 208101,
+        "sha256": "6980d07c246120a0ac3c924274402be8fb51cdddaadecd1cbb48088f91d563bd"
+      },
+      "physical-0001.stages.json": {
+        "bytes": 157600,
+        "sha256": "fc6228dbc4447b3f3ed7861ba3e58d823aee7fdbb8100083b389492b73d5e7ec"
+      },
+      "physical-0002.stages.json": {
+        "bytes": 309193,
+        "sha256": "79d34f794f0f83d155d4b8e67daf59d6b00296cd7dace437acbf02b45923518d"
+      },
+      "report.json": {
+        "bytes": 10150,
+        "sha256": "22b9278cd7652f2b0da2ffa677f3bc98a4597ec795c515b6cc6a55b96c36457b"
+      },
+      "schedule.json": {
+        "bytes": 1565,
+        "sha256": "283126a642902db46eb11c1a76b2e1c560ff7bc1cd46c06de8d2fa66ef927f94"
+      },
+      "stage-one.bin": {
+        "bytes": 100740,
+        "sha256": "2f8f2b765a6ae3f95c97ff82220e8932ad4f48ed49c3914be9fb1cef1727c323"
+      },
+      "truth-0.bin": {
+        "bytes": 2350248,
+        "sha256": "b90842827cb9b953adc33d37bddfe2ae934733b13d6db8bd82f7de8a62812ede"
+      },
+      "truth-1.bin": {
+        "bytes": 2508928,
+        "sha256": "2a58da564f49126e62954fd05c11e268620219e655cf63bdcc47376952e1a274"
+      }
+    }
+  },
+  "non_llvm_native": {
+    "source_head": "a691d91d835764014d9dfa3bdf722182d0af7766",
+    "build": "zig build rv64-word16-ethereum-native -Doptimize=ReleaseFast -j1 with use_llvm=false in the product build",
+    "zig": "0.15.2",
+    "runner_sha256": "54413de05253e2273ff51231ce8f3b8fe2f3982c875dff82645c6260d68ce262",
+    "request_sha256": "a9aca6789aebf3500f42aebb9694acb5d9cb88b814ce90f71d708d1c54d861f8",
+    "resources_sha256": "acf47e895cc9f954cee83b7a6b77309d9efbd13f4f9bab5342de3b670ac29a76",
+    "produce": {
+      "command": [
+        "/workspace/opstack-fri-native/zig-out/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "produce-candidate",
+        "/tmp/opstack-recursive-mainnet-run/native/request.json",
+        "-",
+        "/tmp/opstack-recursive-mainnet-run/native/proof",
+        "0",
+        "/tmp/opstack-recursive-mainnet-run/native/resources.json"
+      ],
+      "wall_ns": 900160173844,
+      "peak_rss_bytes": 2161516544,
+      "user_cpu_s": 2326.798335,
+      "system_cpu_s": 11.705073,
+      "returncode": -9,
+      "timed_out": true
+    },
+    "completed_bundle": false
+  },
+  "ordered_application_fold_fixture": {
+    "fixture_revision": "e9580524dd1829380295d03bad78752a046a6cf1",
+    "admission_test_revision": "ec3f39daee2b1312008e9fb6a264a3163bf8680e",
+    "compile_passed": true,
+    "admission_test_passed": true,
+    "full_fixture_cap_s": 300,
+    "full_fixture_wall_s": 300.042,
+    "full_fixture_address_space_limit_bytes": 2684354560,
+    "parent_proof_completed": false
+  },
+  "execution_wrap": {
+    "source_head_at_compiler_launch": "256c0dd9e7434a91923d04ed35b87a54e140d7b5",
+    "llvm_build": "zig build rv64-word16-ethereum-gkr-recursion -Doptimize=ReleaseFast -j1",
+    "llvm_build_failure": "compiler command terminated unexpectedly",
+    "non_llvm_build": "same emitted zig build-exe invocation, with -fno-llvm and standalone output",
+    "zig": "0.15.2",
+    "runner_sha256": "80013ea37b90c3036b75c7752ce7b9391b0991b9989601a3903f97222e7aa9eb",
+    "outer_profile_default": "r1_b2_q108_p20_fold4",
+    "native_manifest_sha256": "968aacfe3a9c74f573a121e0f0ecdcd9c9f52df419903b4dba1b4cb8b19a8c84",
+    "command": [
+      "timeout",
+      "600",
+      "/tmp/opstack-recursion-nollvm",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "recurse-candidate",
+      "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/request.json",
+      "/workspace/scratch/8764ebc80ad4/recursive-mainnet-llvm/native/proof",
+      "1073741824",
+      "5905580032"
+    ],
+    "wall_s": 289.969,
+    "user_cpu_s": 597.302,
+    "system_cpu_s": 3.73,
+    "returncode": 137,
+    "terminated_by_signal": 9,
+    "timed_out": false,
+    "setup": {
+      "image_ns": 20752970743,
+      "program_ns": 3489430605,
+      "native_keys_ns": 116530618121,
+      "fixed_authority_ns": 128779338264,
+      "other_ns": 345451969
+    },
+    "last_progress": "rv64 OM31 recursion leaf 1/3: admitted graph",
+    "completed_recursive_leaves": 0,
+    "published_recursive_root": false,
+    "cold_recursive_receiver_ran": false
+  }
+}

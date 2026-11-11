@@ -1,0 +1,36 @@
+{
+  "schema": "op-fresh-miller-fixture-source/v1",
+  "scope": "test-only source owner, not production ELF/Kona image admission",
+  "api": "Owner.init(allocator,Runtime.Metadata,initialCells,terminalCells); view(); deinit()",
+  "independent_authority": [
+    "Toy immutable ECALL+absorbingROM, packet bytes/rights, registers, ABI status/output and image identity",
+    "independently captured one-step compact Plan geometry and request; incoming geometry compared exactly",
+    "initial and terminal cells compared to source-derived canonical80-word packet",
+    "CPUsetup+FIXEDkey andML8/15 key rebuilt independently",
+    "full ExpectedFromRequests/P.admitForOp, source bounds/security Inventory and Terminal.require"
+  ],
+  "independently_fixed_suite": {
+    "version": 1,
+    "cpu": 1,
+    "truth": "classic",
+    "miller": "local_gkr",
+    "sponge": 0
+  },
+  "proof_input": false,
+  "verifying_key_input": false,
+  "native_proof_verification": false,
+  "owns": [
+    "stable heap image/setup/keys",
+    "copied initial/terminal cells",
+    "inline metadata/request arrays rebound by view"
+  ],
+  "checks": [
+    "ReleaseSafe named25-test gate passed",
+    "valid alternate cpu_log rejected before key construction",
+    "forged terminal cell rejected",
+    "caller cell mutations cannot change existing source view",
+    "old schema rejected with failing allocator"
+  ],
+  "security_qualified": false,
+  "production_admitted": false
+}

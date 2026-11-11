@@ -1,0 +1,53 @@
+{
+  "schema": "op-detached-sponge-typed-manifest-v1",
+  "production_admission": false,
+  "security_qualified": false,
+  "scope": "Pending two-phase manifest and source event bounds; not complete execution or a performance benchmark",
+  "implementation": {
+    "manifest": "src/integrations/riscv_cpu/poseidon2_outer/sponge_cpu/manifest.zig",
+    "mass": "src/integrations/riscv_cpu/poseidon2_outer/sponge_cpu/mass.zig"
+  },
+  "gates": {
+    "typed_kinds_no_old_frame_coercion": true,
+    "cpu_local_child_verified_before_shared_draw": true,
+    "canonical_nine_limb_roots": true,
+    "ordered_contiguous_ordinals_and_cpu_epochs": true,
+    "per_relation_unsigned_absolute_mass_below_characteristic": true,
+    "absent_relation_cancellation_rejected": true,
+    "missing_child_rejected_before_allocation": true,
+    "real_two_shard_cpu_local_child_and_receipt_checked": true,
+    "changed_receipt_rejected": true,
+    "physical_stark_production_required_separately": true
+  },
+  "mass_authority": {
+    "cpu": "Original signed CPU event visitor with sponge counts zero, existing tower span bounds, plus one positive unit frontier Wire transfer per call",
+    "detached_ram": "58*calls + 36*permutations, conservative before+after packet/state/message bound",
+    "detached_kio": "50*(calls+permutations), conservative positive and negative state/lane emissions; no net cancellation",
+    "detached_wire": "calls negative unit frontier transfers",
+    "citations": [
+      "src/frontends/riscv/rv64/air/delegations/keccak_sponge/serialized/descriptor.zig:85",
+      "src/frontends/riscv/rv64/air/delegations/keccak_sponge/serialized/state_word.zig:107",
+      "src/frontends/riscv/rv64/air/delegations/keccak_sponge/serialized/state_word.zig:118",
+      "src/frontends/riscv/rv64/air/delegations/keccak_sponge/serialized/message_word.zig:90",
+      "src/frontends/riscv/rv64/air/delegations/keccak_sponge/serialized/permutation_lane.zig:102",
+      "src/frontends/riscv/rv64/air/delegations/keccak_sponge/serialized/frontier.zig:94"
+    ]
+  },
+  "checks": [
+    {
+      "command": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='detached manifest' -j1",
+      "exit": 0
+    },
+    {
+      "command": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='sponge CPU authentic two-shard source GKR' -j1",
+      "exit": 0
+    }
+  ],
+  "remaining": [
+    "Expected recipes must be independently rebuilt from pinned program/image, requests and source keys",
+    "Complete source inventory, continuity, KIO coverage, terminal and output checks",
+    "Physical verification of all worker proofs before global claim closure",
+    "Complete recursive execution root and independent source-only receiver",
+    "Composed concrete security ledger before production admission"
+  ]
+}

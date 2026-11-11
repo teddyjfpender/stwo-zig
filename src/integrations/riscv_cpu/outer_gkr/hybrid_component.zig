@@ -23,14 +23,15 @@ pub const Component = struct {
     class: *const P.Class,
     verified: *const S.Verified,
     parameters: []const O,
+    cpu_metrics: ?*@import("cpu_metrics.zig").Counters = null,
     const ProverAir = @import("stwo_prover_engine").air.component_prover.ForField(O);
     const Domain = @import("stwo_prover_engine").air.accumulation.ForField(O);
     const Adapter = core.air.derive.ForField(O).ComponentAdapter(@This(), ProverAir.ComponentProver, ProverAir.Trace, Domain.DomainEvaluationAccumulator);
     pub fn asProverComponent(self: *const @This()) ProverAir.ComponentProver {
         return Adapter.asProverComponent(self);
     }
-    pub fn evaluateConstraintQuotientsOnDomain(_: *const @This(), _: *const ProverAir.Trace, _: *Domain.DomainEvaluationAccumulator) !void {
-        return error.HybridResidentCompositionRequired;
+    pub fn evaluateConstraintQuotientsOnDomain(self: *const @This(), trace: *const ProverAir.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
+        return @import("cpu_domain.zig").evaluate(self, trace, acc);
     }
     pub fn asVerifierComponent(self: *const @This()) Air.Component {
         return Adapter.asVerifierComponent(self);

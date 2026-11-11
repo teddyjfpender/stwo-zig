@@ -1,0 +1,42 @@
+{
+  "schema": "op-dense-direct-physical-v2",
+  "scope": "closed public-packet square and multiply arithmetic, not production service joins",
+  "security_qualified": false,
+  "production_admission_open": false,
+  "profile": "OM31 q12/P0 correctness-only; degree3/2n",
+  "class_proofs": {
+    "multiply": {
+      "bytes": 237192,
+      "sha256": "e7a40744a21becf6023e1265b78672db35489db1912fc4640588bcf4c8aa3dd4",
+      "main": 1075,
+      "inter": 1432,
+      "exact_old_proof_bytes": true
+    },
+    "square": {
+      "bytes": 203304,
+      "sha256": "7ce5c2ba209cbdf041f0d9773183015f4321ec63f3ae90555c2f75d7e4f93da3",
+      "main": 691,
+      "inter": 1432,
+      "noncyclotomic": true
+    }
+  },
+  "coherent_canonical_controls": {
+    "cases": 24,
+    "integer_carries_close": true,
+    "all_byte_ranges_pass": true,
+    "forgery": "canonical output+p, adjusted quotient/carries, wrapping distance",
+    "canonical_writer_rejects": true
+  },
+  "source_root_mutation_rejected": true,
+  "wrong_public_frames_rejected": true,
+  "degree_and_packed_scalar_parity": true,
+  "standalone_tests": 14,
+  "artifact": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/dense-direct-physical-v2",
+  "planned_cost_correction": "dense-direct-source-v2.json includes8 global Wire inter columns omitted by preliminary v1",
+  "pending": [
+    "BYTE-local-GKR projection",
+    "production typedSSA/frontier/global packet joins",
+    "recursive concrete source factory",
+    "new runtime ABI/profile admission if chosen"
+  ]
+}

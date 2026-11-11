@@ -1,0 +1,45 @@
+{
+  "schema": "op-storage-sibling-recovery-qualification-v1",
+  "capture_attempt10": {
+    "status": "deadline",
+    "rows": 184997,
+    "decoded_bytes": 41831386,
+    "eth_getProof": 504,
+    "adapter_failures": 0,
+    "global_interval_seconds": 0.3
+  },
+  "capture_attempt11": {
+    "status": "explicit_missing_state_node",
+    "rows": 185009,
+    "seconds": 15.3208,
+    "rpc": "https://optimism.drpc.org"
+  },
+  "recovery": {
+    "schema": "op-exact-storage-sibling-recovery-v1",
+    "block_hash": "3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+    "state_root": "7e77c23c053933fd100f7a5fd28de93d854c1c10d8e0ededbfb0b3a9681900a2",
+    "address": "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
+    "target": "c725414b2d41f4ea59670a3d837bf7b72ea7e99b2aedf0115c10578b7ce810d2",
+    "prefix": "b3ec6a",
+    "slot": "0000000000000000000000000000000000000000000000000000000001394733",
+    "search_attempts": 20530996,
+    "verified_nodes": 15,
+    "rpc": "https://mainnet.optimism.io",
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false
+  },
+  "records_sha256": "302f95d77ce084722302b6476be1e92c95e71995084afbb62841f1fb117f2b6e",
+  "node_sha256": "130a67b190f0964f7340f49086dcb161c2ee492ff95aafa06bf88ab3f2680136",
+  "method": "secure-storage-prefix search plus one authenticated standard eth_getProof; exact requested node required",
+  "checks": {
+    "account_and_storage_root_verified": true,
+    "exact_target_keccak_verified": true,
+    "tests": 50
+  },
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "guest_executed": false,
+  "proof_verified": false,
+  "security_qualified": false
+}

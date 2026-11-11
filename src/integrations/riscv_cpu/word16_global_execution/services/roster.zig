@@ -26,6 +26,8 @@ const Col = engine.pcs.ColumnEvaluation;
 pub const CpuSetup = struct {
     materials: Mat.Materials,
     bridges: T.Logs,
+    /// Only explicit OP constructors may populate the optional tower block.
+    op_only: bool = false,
     fixed: [T.FAMILIES][]M,
     /// Bulk-memory fixed columns (desc, copy, set), after every family.
     bulk_fixed: [T.bulk_kinds.len][]M = @splat(&.{}),
@@ -35,6 +37,7 @@ pub const CpuSetup = struct {
     dword_fixed: [T.DWORD_INSTANCES][]M = @splat(&.{}),
     /// Zbb BINARY fixed (first/last) columns, after the LS-D64 block.
     zbb_fixed: []M = &.{},
+    tower_fixed: []M = &.{},
     key: Key,
     pub fn initProgram(a: std.mem.Allocator, program: A.program.setup.Program, g: Mat.Geometry, bridges: T.Logs) !CpuSetup {
         return initProgramWithSuite(a, program, g, bridges, Mat.Suite.production());
@@ -72,8 +75,23 @@ pub const CpuSetup = struct {
     fn seal(a: std.mem.Allocator, m: Mat.Materials, bridges: T.Logs) !CpuSetup {
         return sealWithCache(a, m, bridges, null);
     }
+    pub fn initForOpProgram(a: std.mem.Allocator, program: A.program.setup.Program, g: Mat.Geometry, bridges: T.Logs) !CpuSetup {
+        var m = try Mat.Materials.initWithSuiteAndProfile(a, program, g, Mat.Suite.production(), .ethereum_services_op_v1);
+        errdefer m.deinit();
+        return sealWithCacheMode(a, m, bridges, null, true);
+    }
+    pub fn initForOpWithAuthorityAndSuiteAndCaches(a: std.mem.Allocator, authority: *const @import("../../rv64_full.zig").ProgramAuthority, g: Mat.Geometry, bridges: T.Logs, suite: Mat.Suite, caches: Mat.ImmutableCaches) !CpuSetup {
+        if (authority.rom_profile != .ethereum_services_op_v1) return error.UnqualifiedOpSetup;
+        var m = try Mat.Materials.initWithAuthorityAndSuiteAndMetadataCache(a, authority, g, suite, caches.program);
+        errdefer m.deinit();
+        return sealWithCacheMode(a, m, bridges, caches.native, true);
+    }
     fn sealWithCache(a: std.mem.Allocator, m: Mat.Materials, bridges: T.Logs, cache: ?*const Mat.NativeCache.Cache) !CpuSetup {
-        var self = CpuSetup{ .materials = m, .bridges = bridges, .fixed = @splat(&.{}), .key = undefined };
+        return sealWithCacheMode(a, m, bridges, cache, false);
+    }
+    fn sealWithCacheMode(a: std.mem.Allocator, m: Mat.Materials, bridges: T.Logs, cache: ?*const Mat.NativeCache.Cache, op_only: bool) !CpuSetup {
+        if ((!op_only and (bridges.tower != null or m.program.profile == .ethereum_services_op_v1)) or (op_only and m.program.profile != .ethereum_services_op_v1)) return error.UnqualifiedOpSetup;
+        var self = CpuSetup{ .materials = m, .bridges = bridges, .op_only = op_only, .fixed = @splat(&.{}), .key = undefined };
         var done: usize = 0;
         errdefer for (self.fixed[0..done]) |f| a.free(f);
         for (0..T.FAMILIES) |k| {
@@ -116,6 +134,8 @@ pub const CpuSetup = struct {
             if (!A.word16_execution.features.zbbProfile(m.program.profile)) return error.UnexpectedZbbComponent;
             self.zbb_fixed = try BS.fixedForLog(a, log);
         }
+        errdefer a.free(self.tower_fixed);
+        if (bridges.tower) |log| self.tower_fixed = try S.source.fixed(a, .bn254_sparse034, log);
         const columns = try self.fixedColumns(a);
         defer a.free(columns);
         self.key = try Key.sealWithSuiteAndCache(a, columns, m.suite, cache);
@@ -142,6 +162,8 @@ pub const CpuSetup = struct {
         }
         self.materials.allocator.free(self.zbb_fixed);
         self.zbb_fixed = &.{};
+        self.materials.allocator.free(self.tower_fixed);
+        self.tower_fixed = &.{};
     }
     pub fn deinit(self: *CpuSetup) void {
         self.key.deinit();
@@ -150,6 +172,7 @@ pub const CpuSetup = struct {
         for (self.sponge_fixed) |f| self.materials.allocator.free(f);
         for (self.dword_fixed) |f| self.materials.allocator.free(f);
         self.materials.allocator.free(self.zbb_fixed);
+        self.materials.allocator.free(self.tower_fixed);
         self.materials.deinit();
     }
     pub fn total(self: *const CpuSetup, tree: usize) usize {
@@ -215,8 +238,11 @@ pub const CpuSetup = struct {
     pub fn zbbOffset(self: *const CpuSetup, tree: usize) usize {
         return self.dwordOffset(T.DWORD_INSTANCES, tree);
     }
-    pub fn columnCount(self: *const CpuSetup, tree: usize) usize {
+    pub fn towerOffset(self: *const CpuSetup, tree: usize) usize {
         return self.zbbOffset(tree) + if (self.bridges.zbb != null) T.zbbWidths()[tree] else 0;
+    }
+    pub fn columnCount(self: *const CpuSetup, tree: usize) usize {
+        return self.towerOffset(tree) + if (self.bridges.tower != null) T.towerWidths()[tree] else 0;
     }
     pub fn fixedColumns(self: *const CpuSetup, a: std.mem.Allocator) ![]Col {
         const old = try self.materials.fixedColumns(a);
@@ -235,6 +261,7 @@ pub const CpuSetup = struct {
         };
         for (0..T.DWORD_INSTANCES) |k| if (self.bridges.dwordLog(k)) |log| append(out, &at, self.dword_fixed[k], log);
         if (self.bridges.zbb) |log| append(out, &at, self.zbb_fixed, log);
+        if (self.bridges.tower) |log| append(out, &at, self.tower_fixed, log);
         return out;
     }
     pub fn logs(self: *const CpuSetup, a: std.mem.Allocator, tree: usize) ![]u32 {
@@ -268,6 +295,11 @@ pub const CpuSetup = struct {
             @memset(out[at..][0..width], log);
             at += width;
         }
+        if (self.bridges.tower) |log| {
+            const width = T.towerWidths()[tree];
+            @memset(out[at..][0..width], log);
+            at += width;
+        }
         return out;
     }
 };
@@ -291,10 +323,12 @@ pub const Sources = struct {
     ls_dword: [T.DWORD_INSTANCES]?LSD.source.Source = @splat(null),
     /// Zbb BINARY truth provider (FUNCTION ids 19..24 of this CPU proof).
     zbb: ?BS.Source = null,
+    tower: ?S.source.TowerSource = null,
     pub fn deinit(self: *Sources) void {
         if (self.device_main) |*owner| owner.release();
         self.device_main = null;
         if (self.zbb) |*s| s.deinit();
+        if (self.tower) |*s| s.deinit();
         for (&self.ls_dword) |*b| if (b.*) |*s| s.deinit();
         for (&self.sponge) |*b| if (b.*) |*s| s.deinit();
         if (self.sponge_plan) |plan| {
@@ -385,6 +419,12 @@ pub const Sources = struct {
             if (s.log_size != log or data.len != T.zbbWidths()[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
             append(out, &at, data, log);
         } else if (self.zbb != null) return error.UnexpectedCombinedServiceSource;
+        if (setup.bridges.tower) |log| {
+            const source = self.tower orelse return error.MissingCombinedServiceSource;
+            const data = if (tree == 1) source.main else source.interaction;
+            if (!setup.op_only or source.kind != .bn254_sparse034 or data.len != T.towerWidths()[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+            append(out, &at, data, log);
+        } else if (self.tower != null) return error.UnexpectedCombinedServiceSource;
         return out;
     }
     pub fn mainTraceColumns(self: *const Sources, a: std.mem.Allocator, setup: *const CpuSetup) ![]@import("stwo_prover_api").device_pcs.TraceColumn {
@@ -443,6 +483,12 @@ pub const Sources = struct {
             if (s.log_size != log or data.len != T.zbbWidths()[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
             appendTrace(out, &at, data, log);
         } else if (self.zbb != null) return error.UnexpectedCombinedServiceSource;
+        if (setup.bridges.tower) |log| {
+            const source = self.tower orelse return error.MissingCombinedServiceSource;
+            const data = if (tree == 1) source.main else source.interaction;
+            if (!setup.op_only or source.kind != .bn254_sparse034 or data.len != T.towerWidths()[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+            appendTrace(out, &at, data, log);
+        } else if (self.tower != null) return error.UnexpectedCombinedServiceSource;
         return out;
     }
     pub fn mergeRanges(self: *Sources) !void {
@@ -473,6 +519,7 @@ pub const Sources = struct {
         // Zbb byte-AND lookups (8 per physical row, padding included) join the
         // core AND table exactly like the BINARY chip's own requests.
         if (self.zbb) |*s| try mergeAnd(&self.core, s.and_counts);
+        if (self.tower) |*s| try merge(&self.core, s.counts16, s.counts8);
     }
     pub fn releaseMain(self: *Sources) !void {
         if (self.device_main) |*owner| {
@@ -494,6 +541,7 @@ pub const Sources = struct {
         for (&self.sponge) |*b| if (b.*) |*s| s.releaseMain();
         for (&self.ls_dword) |*b| if (b.*) |*s| s.releaseMain();
         if (self.zbb) |*s| s.releaseMain();
+        if (self.tower) |*s| s.releaseMain();
     }
     /// Preflight all allocations and cross-family spans before moving anything.
     /// After core's own success-only handoff, only infallible slice moves remain.
@@ -522,6 +570,7 @@ pub const Sources = struct {
         };
         for (0..T.DWORD_INSTANCES) |k| count += @intFromBool(setup.bridges.dwordLog(k) != null);
         if (setup.bridges.zbb != null) count += 1;
+        if (setup.bridges.tower != null) count += 1;
         const backings = try a.alloc([]M, count);
         errdefer a.free(backings);
         inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(self, name)) |*s| {
@@ -582,6 +631,15 @@ pub const Sources = struct {
             for (0..k) |j| {
                 const prior = (self.bulkMatrix(j, tree) orelse continue).*;
                 if (overlap(data, try spanEnd(prior), prior, end)) return error.AliasedCombinedMain;
+            }
+        }
+        if (self.tower) |*source| {
+            if (!setup.op_only or (tree == 1 and (!source.owns_main or source.interaction.len != 0)) or !A.memory.ownership.same(a, source.allocator)) return error.InvalidCombinedMainOwner;
+            const data = if (tree == 1) source.main else source.interaction;
+            const data_end = try spanEnd(data);
+            // Against every earlier column, including all optional providers.
+            for (headers[0..setup.towerOffset(tree)]) |column| {
+                if (overlap(data, try spanEnd(column.values), column.values, data_end)) return error.AliasedCombinedMain;
             }
         }
         const old = if (tree == 1) try self.core.takeMainForCommit() else try self.core.takeInteractionForCommit();
@@ -653,6 +711,17 @@ pub const Sources = struct {
             } else {
                 backings[at] = s.interaction;
                 s.interaction = &.{};
+            }
+            at += 1;
+        }
+        if (self.tower) |*source| {
+            if (tree == 1) {
+                backings[at] = source.main;
+                source.main = &.{};
+                source.owns_main = false;
+            } else {
+                backings[at] = source.interaction;
+                source.interaction = &.{};
             }
             at += 1;
         }
@@ -979,6 +1048,9 @@ pub const TruthSource = union(enum) {
         }
     }
     pub fn columns(self: *const TruthSource, a: std.mem.Allocator, tree: usize) ![]Col {
+        // FIXED authority belongs to the immutable truth setup. Source adapters
+        // expose MAIN/INTER only; several otherwise treat tree0 as INTER.
+        if (tree != 1 and tree != 2) return error.InvalidTruthTree;
         return switch (self.*) {
             inline else => |s| s.columns(a, tree),
         };
@@ -1078,4 +1150,11 @@ fn appendTrace(out: []@import("stwo_prover_api").device_pcs.TraceColumn, at: *us
         out[at.*] = .{ .log_size = log, .encoding = .evaluations, .host = data[i * n ..][0..n] };
         at.* += 1;
     }
+}
+
+test "OP truth source rejects unsupported trees before allocation or union access" {
+    const source: TruthSource = undefined;
+    try std.testing.expectError(error.InvalidTruthTree, source.columns(std.testing.failing_allocator, 0));
+    try std.testing.expectError(error.InvalidTruthTree, source.columns(std.testing.failing_allocator, 3));
+    try std.testing.expectError(error.InvalidTruthTree, source.columns(std.testing.failing_allocator, std.math.maxInt(usize)));
 }

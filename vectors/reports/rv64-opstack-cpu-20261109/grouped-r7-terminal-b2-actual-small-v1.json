@@ -1,0 +1,123 @@
+{
+  "schema": "op-grouped-r7-terminal-b2-actual-small-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "native_profile": "op_target_b4_q72_p0_fold4_v1",
+  "terminal_outer_profile": "op_control_b2_q144_p0_fold4_v1",
+  "arithmetization": "r7",
+  "native_members": {
+    "CPU": 1,
+    "detached_sponge": 1,
+    "local_GKR_Keccak": 1,
+    "classic_SHA256": 1
+  },
+  "native_bundle_bytes": 5045776,
+  "groups": 1,
+  "fold_proofs": 0,
+  "workers": 8,
+  "cap_bytes": 34359738368,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "root_bytes": 1324724,
+  "root_sha256": "0095bdcde43bcb879489dc86e30a4096660861c1a4c05b5cf32da5049e150772",
+  "source_identity": "358e7e117a751de780f25f65b4de31d84ccb1d24cd2c3b12dfa4ce2d30ca4aa5",
+  "canonical_public_root": "1ad68e7f5072665ce26106685b2a8d4af0636f31b1db881bea370918ef0f602b80793f2d",
+  "model": {
+    "raw": [
+      73080,
+      5173527,
+      3451,
+      173939,
+      65536,
+      321145,
+      1515168,
+      335498
+    ],
+    "logs": [
+      17,
+      23,
+      12,
+      18,
+      16,
+      19,
+      21,
+      19
+    ],
+    "total_cells": 643035136
+  },
+  "timing": {
+    "node_prove_persist_verify_ns": 37756948208,
+    "producer_ns": 51742896417,
+    "fresh_receiver_ns": 14299234333,
+    "fresh_source_group_and_fold_key_ns": 9450197750,
+    "fresh_physical_root_read_verify_ns": 73563041,
+    "native_production_additional_not_rerun": true,
+    "whole_test_wall_seconds": 66.05,
+    "whole_test_user_seconds": 431.02,
+    "whole_test_system_seconds": 3.04
+  },
+  "stage_seconds": {
+    "op_p2.main_generation": 1.388442,
+    "op_p2.main_commit": 10.715742,
+    "op_p2.interaction_generation": 1.140328,
+    "op_p2.interaction_commit": 10.619953,
+    "draw_random_coeff": 8e-06,
+    "composition_trace_extract": 1.5e-05,
+    "composition_evaluation": 5.583618,
+    "composition_interpolate_and_split": 0.056111,
+    "composition_commit": 4.122574,
+    "oods_point_and_mask_points": 5.9e-05,
+    "sampled_value_evaluation": 0.219809,
+    "sampled_value_channel_mix": 0.000935,
+    "fri_quotient_build_and_commit": 2.577208,
+    "proof_of_work": 7e-06,
+    "fri_decommit": 0.129113,
+    "trace_decommit": 1.052084,
+    "constraint_check_and_assembly": 0.000384
+  },
+  "memory": {
+    "requested_peak_bytes": 8965316741,
+    "RSS_peak_bytes": 8989261824,
+    "final_live": 0,
+    "final_external": 0,
+    "major_faults": 0
+  },
+  "qualification": {
+    "same_source_native_proofs_freshly_reverified": true,
+    "full_RAM_KIO_Wire_terminal43B_and_manifest_closure": true,
+    "same_canonical_public_root_as_R6_B2": true,
+    "fresh_source_only_native_bin_absent": true,
+    "physical_attack_controls": 9,
+    "valid_R6_B2_same_statement_proof_rejected_by_R7_key": true,
+    "restored_positive": true,
+    "wrong_explicit_arithmetization_policy_rejected_before_wide_keys": true,
+    "stripped_R7_policy_with_independently_rebuilt_R6_key_rejected": "InvalidNativeOmulWire",
+    "default_R6_B2_retained_proof_and_source_identity_unchanged": true,
+    "default_R6_metadata_exact_bytes_unit_control": true,
+    "focused_tests_passed": 61,
+    "CLI_semantic_check_passed": true
+  },
+  "control": {
+    "R6_B2_node_prove_persist_verify_ns": 46588560334,
+    "R6_B2_producer_seconds": 62.63,
+    "R6_B2_requested_peak_bytes": 13312794270,
+    "R6_B2_root_bytes": 1341688,
+    "R6_B2_source_identity": "6d9d9ff0bd4b41e1cfcfa64e0753399601f4f1785f7ed728b09568285d15d000"
+  },
+  "scope": [
+    "Single qualification run; development work overlapped, not a controlled performance benchmark.",
+    "Actual SMALL block only; no heavy guest execution or heavy proving rerun.",
+    "No native proof was regenerated; complete retained native bundle was verified under the same pinned source manifest.",
+    "R7 is explicit opt-in; existing R6 defaults and physical root bytes remain unchanged.",
+    "Single group has no fold proof; R7 canonical fold source and legacy default-fold identity are covered by prior source gates.",
+    "SourceSuite production admission stays closed."
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-r7-terminal-b2-physical-v1",
+  "logs": [
+    "/private/tmp/op-r7-runtime-b2-physical.log",
+    "/private/tmp/op-r7-runtime-b2-qualification.log",
+    "/private/tmp/op-r7-runtime-b2-stripped-policy.log",
+    "/private/tmp/op-r7-runtime-r6-control.log"
+  ]
+}

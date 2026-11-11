@@ -19,18 +19,44 @@ on:
           - regenerate-circuit-vectors
           - regenerate-recursion-shapes
           - focused-cpu
+          - mantle-cpu-qualification
         default: standard
       cpu_lane:
         description: Existing CPU lane for focused-cpu diagnostics only
         type: string
         default: circuit_frontend
+      mantle_variant:
+        description: Explicit guest build for the manual Mantle qualification
+        type: choice
+        options:
+          - mantle-software
+          - mantle-services
+        default: mantle-software
+      mantle_block:
+        description: Pinned block for the single Mantle qualification
+        type: choice
+        options:
+          - '103132217'
+          - '103132921'
+          - '103133433'
+          - '103133561'
+          - '103133753'
+        default: '103132217'
+      mantle_suite:
+        description: Authenticated Mantle workload coverage
+        type: choice
+        options:
+          - single
+          - five-block
+          - replay
+        default: single
 
 permissions:
   actions: read
   contents: read
 
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}-${{ inputs.mantle_variant }}-${{ inputs.mantle_suite }}-${{ inputs.mantle_block }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
 
 jobs:
@@ -544,6 +570,164 @@ jobs:
           path: ${{ runner.temp }}/focused-ci/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Retain Mantle guest and execution qualification
+        if: always() && matrix.lane == 'opstack_kona'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: mantle-rv64-${{ github.sha }}
+          path: |
+            /tmp/stwo-mantle-build/
+            /tmp/stwo-mantle-execution/
+            /tmp/stwo-mantle-fixtures/
+          if-no-files-found: warn
+          retention-days: 7
+
+  mantle-cpu-qualification:
+    name: Mantle CPU qualification / ${{ matrix.block }}
+    if: github.event_name == 'workflow_dispatch' && inputs.gate == 'mantle-cpu-qualification'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        block: ${{ fromJSON(inputs.mantle_suite == 'five-block' && '[103132217,103132921,103133433,103133561,103133753]' || format('[{0}]', inputs.mantle_block || '103132217')) }}
+    env:
+      MANTLE_BLOCK: ${{ matrix.block }}
+    steps:
+      - name: Checkout frozen source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Setup Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.15.2
+          use-cache: false
+      - name: Restore Mantle Rust compiler cache
+        id: mantle-rust-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: opstack/mantle/target
+          key: mantle-rust-linux-nightly-2026-08-08-${{ hashFiles('opstack/mantle/Cargo.lock') }}-${{ inputs.mantle_variant }}-${{ github.sha }}
+          restore-keys: mantle-rust-linux-nightly-2026-08-08-${{ hashFiles('opstack/mantle/Cargo.lock') }}-
+      - name: Build pinned Mantle host and RV64 guest
+        id: mantle-build
+        run: |
+          rustup toolchain install nightly-2026-08-08 --profile minimal --component rust-src
+          python3 -m pip install pycryptodome==4.3.0 unicorn==2.1.4
+          python3 opstack/build.py --variant '${{ inputs.mantle_variant }}' --guest-opt-level s --artifacts /tmp/stwo-mantle-build --jobs 2
+      - name: Preserve the bounded Rust compiler cache
+        if: always() && steps.mantle-rust-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: opstack/mantle/target
+          key: ${{ steps.mantle-rust-cache.outputs.cache-primary-key }}
+      - name: Materialize the authenticated real-block fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from opstack.tests.test_mantle_input import qualification_inputs
+          for row in qualification_inputs():
+              target = Path('/tmp/stwo-mantle-fixtures') / ('block-' + str(row['block_number']))
+              target.mkdir(parents=True)
+              (target / 'guest-input.json').write_bytes(row['guest_input_utf8'].encode())
+          PY
+      - name: Match native, RV64 and independent execution
+        run: |
+          python3 opstack/benchmark.py --network mantle --profile ethereum_services_v3 \
+            --fixtures /tmp/stwo-mantle-fixtures --artifacts /tmp/stwo-mantle-execution \
+            --host /tmp/stwo-mantle-build/host --guest /tmp/stwo-mantle-build/guest.elf \
+            --runner /tmp/stwo-mantle-build/rv64-execution --blocks "$MANTLE_BLOCK" --samples 1 --oracle
+      - name: Build the frozen CPU implementation for explicit portable ISA
+        if: inputs.mantle_suite != 'replay'
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, platform, subprocess
+          from pathlib import Path
+          source = '66f08a7af2e4fe769fcfec7a04ba48c0b2791377'
+          subprocess.run(['git', 'diff', '--exit-code', source, 'HEAD', '--',
+                          'src', 'build_support', 'build.zig', 'build.zig.zon',
+                          'vectors', 'conformance', 'tools'], check=True)
+          # The old artifact used -mcpu=native and cannot be admitted on an
+          # arbitrary hosted CPU from its byte hash alone (SIGILL observed).
+          subprocess.run(['zig', 'build', 'rv64-word16-ethereum-gkr-recursion',
+                          '-Doptimize=ReleaseFast', '-Dcpu=x86_64_v3', '-j1',
+                          '--prefix', '/tmp/stwo-mantle-prover'], check=True)
+          binary = Path('/tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion')
+          (binary.parent.parent / 'authority.json').write_text(json.dumps({
+              'source_commit': source,
+              'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(),
+              'binary_origin': 'fresh build of unchanged admitted proof implementation',
+              'cpu_target': 'x86_64_v3', 'platform': platform.platform(),
+              'lscpu': json.loads(subprocess.check_output(['lscpu', '--json'], text=True)),
+              'scope': 'generic CPU prover; guest/image/input authority remains independent'
+          }, indent=2))
+          PY
+      - name: Prove and freshly verify every native execution
+        if: inputs.mantle_suite != 'replay'
+        run: |
+          BLOCK="$MANTLE_BLOCK"
+          python3 opstack/cpu.py \
+          --request "/tmp/stwo-mantle-execution/${BLOCK}-proof-config.json" \
+          --execution "/tmp/stwo-mantle-execution/${BLOCK}-rv64.json" \
+          --runner /tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion \
+          --native-profile d2_native_b4_q54_p20_fold4 \
+          --workers 2 --batch-steps 262143 --timeout 1800 \
+          --receiver-bytes 12884901888 --artifacts "/tmp/stwo-mantle-proof/${BLOCK}"
+          git diff --exit-code
+      - name: Produce and freshly receive the first Mantle execution root
+        if: inputs.mantle_suite == 'single' && matrix.block == 103132217
+        run: |
+          python3 - <<'PYROOT'
+          import argparse, json, os
+          from pathlib import Path
+          from opstack import cpu_recursion
+          from opstack.cpu import measured
+          root = Path('/tmp/stwo-mantle-proof/103132217')
+          native = json.loads((root / 'summary.json').read_text())
+          if native.get('proof_verified') is not True:
+              raise ValueError('root requires independently admitted native execution')
+          args = argparse.Namespace(
+              recursive_runner=Path('/tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion'),
+              recursive_profile='r1_b2_q108_p20_fold4',
+              native_profile='d2_native_b4_q54_p20_fold4',
+              workers=2, recursive_workers=2, timeout=1800,
+              recursive_live_bytes=12884901888, recursive_receiver_bytes=12884901888,
+          )
+          report = {'scope': 'Mantle execution root; no L1 derivation',
+                    'recursive_root_verified': False, 'security_qualified': False, 'stages': {}}
+          path = root / 'recursive-summary.json'
+          def record(name, row):
+              report['stages'][name] = row
+              path.write_text(json.dumps(report, indent=2) + '\n')
+          path.write_text(json.dumps(report, indent=2) + '\n')
+          report['recursive'] = cpu_recursion.run(
+              args, json.loads((root / 'request.json').read_text()), root, 1 << 30,
+              dict(os.environ, STWO_ZIG_RV64_SETUP_BUILD_THREADS='1',
+                   STWO_CIRCUIT_OM31_PROFILE_DIR=str(root / 'outer-stages')), measured, record)
+          report['recursive_root_verified'] = True
+          path.write_text(json.dumps(report, indent=2) + '\n')
+          PYROOT
+      - name: Retain complete Mantle qualification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mantle-cpu-qualification-${{ github.sha }}-${{ matrix.block }}
+          path: |
+            /tmp/stwo-mantle-build/
+            /tmp/stwo-mantle-execution/
+            /tmp/stwo-mantle-fixtures/
+            /tmp/stwo-mantle-proof/
+            /tmp/stwo-mantle-prover/
+          if-no-files-found: warn
+          retention-days: 7
+          compression-level: 1
 
   frontend-main-baseline:
     name: Main frontend ReleaseFast baseline

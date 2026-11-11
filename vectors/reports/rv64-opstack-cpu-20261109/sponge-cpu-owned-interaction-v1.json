@@ -1,0 +1,363 @@
+{
+  "schema": "op-sponge-cpu-owned-interaction-qualification/v1",
+  "change": "Transfer completed CPU local binding/global debt/frontier INTER matrices to existing owned streamingPCS. All validation/allocation precedes owner mutation; retained coefficient backing ownership is explicit. Successful protocol/source/AIR/profile/hash/statement/wire/default field geometry unchanged.",
+  "scope": "Only sponge_cpu.Worker INTER. Other classicCPU/truth/Miller worker custody is unchanged. No whole-heavy execution/proof.",
+  "artifacts": {
+    "baseline": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-p2-tail-v1",
+    "candidate": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-owned-inter-v1",
+    "tiny_baseline": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-sponge-digest-keys-v1"
+  },
+  "implementation_evidence": [
+    {
+      "file": "src/integrations/riscv_cpu/poseidon2_outer/sponge_cpu/interaction_ownership.zig:35",
+      "finding": "Exact source allocator/shape/index/coverage checks and pairwise disjoint backing validation precede all ownership mutation; consumed empty slices reject before allocations."
+    },
+    {
+      "file": "src/integrations/riscv_cpu/poseidon2_outer/sponge_cpu/worker.zig:130",
+      "finding": "Set and Frontier handles are constructed before matrix take; retain binding Data/claims/offsets, not generator matrix pointers. Native GKR artifact stays live separately."
+    },
+    {
+      "file": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role.zig:44",
+      "finding": "Role.Data holds instance, MLE point, lane weights, challenges, eta and target; no Witness.columns/data pointer."
+    },
+    {
+      "file": "src/integrations/riscv_cpu/poseidon2_outer/sponge_cpu/component.zig:25",
+      "finding": "Frontier Component points to Binding.Data (point+weights), not Binding.Witness.data; composition reads PCS trace."
+    },
+    {
+      "file": "src/prover/pcs/commit_ops.zig:475",
+      "finding": "Owned streaming API consumes descriptors/backings on both success and error."
+    },
+    {
+      "file": "src/prover/pcs/commit_ops.zig:565",
+      "finding": "Under this CPU compact backend, source_backings adopts existing column slices; borrowed path instead allocator.dupe copies each column. Original backing owners move to retained_coefficient_buffers once all batches join."
+    },
+    {
+      "file": "src/integrations/riscv_cpu/poseidon2_outer/sponge_cpu/worker.zig:149",
+      "finding": "After successful take, mark worker consumed before irreversible channel mix/PCS call; a commit failure requires deinit, not retry. Pre-transfer allocation/validation failures preserve source custody."
+    }
+  ],
+  "validation": {
+    "ReleaseSafe_unit_gate": "All three ownership tests pass: exact pointers/views +all allocation failures +consumed-phase refusal; alias/gap/group/allocator/shape refusals; PCS early-error consumption and zero requested heap/external.",
+    "physical_gate": "Existing real twoCPU+serializedsponge+Keccak complete join: fresh source keys, globalRAM/KIO/Wire closure and valid-rawSTARK/full-worker refusal. All seven frozen proof files byte-identical. Then same real4M conditional CPU22 fragment, fresh source digest receiver and exact PCS/GKR bytes. All67 focused Fast tests pass.",
+    "source_key_MAIN_local_receipt_manifest_claims_identical": true,
+    "whole_block_or_root_accepted": false,
+    "no_repeated_favorable_timing_attempt": true,
+    "security": "128-bit target under documented assumptions; unchanged, not a certificate."
+  },
+  "proofs": [
+    {
+      "file": "cpu.pcs.bin",
+      "bytes": 1333204,
+      "entire_file_identical": true,
+      "sha256": "db731dc7bc725b68eca35ed7462cd3550dc691c42dab73a06ffe76f8301b8a70"
+    },
+    {
+      "file": "cpu.gkr.bin",
+      "bytes": 113288,
+      "entire_file_identical": true,
+      "sha256": "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3"
+    },
+    {
+      "file": "tiny/cpu-0.bin",
+      "bytes": 588120,
+      "entire_file_identical": true,
+      "sha256": "13d5fabb5e847915e6753d781aca9f753bfa44a9e2ffe70770ae32915a642bcc"
+    },
+    {
+      "file": "tiny/cpu-1.bin",
+      "bytes": 556052,
+      "entire_file_identical": true,
+      "sha256": "e1f585665eec1ec9c29d36b8653df62bfdadb37f89945b07e921e9c1a28f8714"
+    },
+    {
+      "file": "tiny/cpu-0.local.bin",
+      "bytes": 49376,
+      "entire_file_identical": true,
+      "sha256": "86a93afa9dde8c9049caf589c4dab38fbbb0563a2a7d8919a38c5548f3d17d79"
+    },
+    {
+      "file": "tiny/cpu-1.local.bin",
+      "bytes": 47900,
+      "entire_file_identical": true,
+      "sha256": "624773c290a9c05a438b2ab2f4bbba1387cf858a25122b1d4284eba5a6220aa4"
+    },
+    {
+      "file": "tiny/detached.bin",
+      "bytes": 411248,
+      "entire_file_identical": true,
+      "sha256": "8be51254f5dc66c7ab29f442b029c005726e96fd9052068c0e9728eb7eaa2023"
+    },
+    {
+      "file": "tiny/detached.local.bin",
+      "bytes": 29012,
+      "entire_file_identical": true,
+      "sha256": "21145d05edb158621b61e73b9f559b5916acb571b69413ec9cea160efe4067d3"
+    },
+    {
+      "file": "tiny/keccak.bin",
+      "bytes": 2785968,
+      "entire_file_identical": true,
+      "sha256": "c7ae12f25ee21a283fb08894a58a33e6d06e25ffa004cc801cc9c6353c31274e"
+    }
+  ],
+  "retained_memory": {
+    "INTER_payload_bytes_source_derived": 690888704,
+    "copied_bytes_counter_enabled": false,
+    "copy_removal_basis": "Old borrowed path duplicates every INTER column exactly once; new helper emits disjoint views whose complete backing allocations are adopted by CPU source_backings. Source-derived690,888,704B clone removal, not an instrumented copy count.",
+    "measured_post_INTER_resident_reduction_bytes": 689782784,
+    "measured_post_composition_resident_reduction_bytes": 690388992,
+    "measured_post_decommit_resident_reduction_bytes": 690044928,
+    "whole_requested_peak_baseline": {
+      "live_bytes": 0,
+      "peak_live_bytes": 10093072140,
+      "host_live_bytes": 0,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 10093072140,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    },
+    "whole_requested_peak_candidate": {
+      "live_bytes": 0,
+      "peak_live_bytes": 10093072140,
+      "host_live_bytes": 0,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 10093072140,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    },
+    "interpretation": "About690MB less retained resident memory throughout composition/decommit. Whole-request high watermark remains the earlier MAIN/GKR phase; no whole-peak reduction claimed."
+  },
+  "timing": {
+    "native_seal_complete_baseline_seconds": 23.931348833,
+    "native_seal_complete_candidate_seconds": 24.426455375,
+    "candidate_change_percent": 2.0688618324650188,
+    "baseline_fragment_full_seconds": 30.684386583,
+    "candidate_fragment_full_seconds": 31.267634666,
+    "candidate_fresh_physical_verify_seconds": 0.069976667,
+    "candidate_whole_test_wall_seconds_including_separate_tiny_join": 36.4,
+    "no_measured_latency_gain": true,
+    "note": "Single qualification sample, candidate about2.1% slower. This is ownership/memory/failure-hardening adoption; not a speedup claim."
+  },
+  "stages": [
+    {
+      "stage": "MAIN_merkle",
+      "baseline": {
+        "seconds": 5.792132,
+        "user_seconds": 92.01202,
+        "system_seconds": 0.401774,
+        "minor_faults": 80717,
+        "major_faults": 0,
+        "resident_bytes_at_end": 3499065344,
+        "footprint_bytes_at_end": 3499971096
+      },
+      "candidate": {
+        "seconds": 5.856494,
+        "user_seconds": 92.99992,
+        "system_seconds": 0.40135,
+        "minor_faults": 80710,
+        "major_faults": 0,
+        "resident_bytes_at_end": 3503521792,
+        "footprint_bytes_at_end": 3501003264
+      }
+    },
+    {
+      "stage": "local_gkr",
+      "baseline": {
+        "seconds": 3.515078,
+        "user_seconds": 42.835654,
+        "system_seconds": 1.988399,
+        "minor_faults": 813405,
+        "major_faults": 0,
+        "resident_bytes_at_end": 3511418880,
+        "footprint_bytes_at_end": 3512423512
+      },
+      "candidate": {
+        "seconds": 3.556101,
+        "user_seconds": 43.641786,
+        "system_seconds": 1.986573,
+        "minor_faults": 813171,
+        "major_faults": 0,
+        "resident_bytes_at_end": 3512958976,
+        "footprint_bytes_at_end": 3510801424
+      }
+    },
+    {
+      "stage": "interaction_generation",
+      "baseline": {
+        "seconds": 0.426779,
+        "user_seconds": 5.359522,
+        "system_seconds": 0.221413,
+        "minor_faults": 45998,
+        "major_faults": 0,
+        "resident_bytes_at_end": 4204445696,
+        "footprint_bytes_at_end": 4205680232
+      },
+      "candidate": {
+        "seconds": 0.435723,
+        "user_seconds": 5.455805,
+        "system_seconds": 0.225305,
+        "minor_faults": 46030,
+        "major_faults": 0,
+        "resident_bytes_at_end": 4206067712,
+        "footprint_bytes_at_end": 4204238320
+      }
+    },
+    {
+      "stage": "INTER_merkle",
+      "baseline": {
+        "seconds": 3.827841,
+        "user_seconds": 60.608232,
+        "system_seconds": 0.359131,
+        "minor_faults": 80706,
+        "major_faults": 0,
+        "resident_bytes_at_end": 4967514112,
+        "footprint_bytes_at_end": 4969470600
+      },
+      "candidate": {
+        "seconds": 3.876622,
+        "user_seconds": 61.871256,
+        "system_seconds": 0.369941,
+        "minor_faults": 80706,
+        "major_faults": 0,
+        "resident_bytes_at_end": 4277731328,
+        "footprint_bytes_at_end": 4276328544
+      }
+    },
+    {
+      "stage": "composition_evaluation",
+      "baseline": {
+        "seconds": 1.803029,
+        "user_seconds": 12.67207,
+        "system_seconds": 0.391078,
+        "minor_faults": 263195,
+        "major_faults": 0,
+        "resident_bytes_at_end": 5271437312,
+        "footprint_bytes_at_end": 5272804432
+      },
+      "candidate": {
+        "seconds": 1.855526,
+        "user_seconds": 12.935513,
+        "system_seconds": 0.378175,
+        "minor_faults": 262964,
+        "major_faults": 0,
+        "resident_bytes_at_end": 4581048320,
+        "footprint_bytes_at_end": 4579711432
+      }
+    },
+    {
+      "stage": "composition_commit",
+      "baseline": {
+        "seconds": 1.68539,
+        "user_seconds": 25.702205,
+        "system_seconds": 0.307276,
+        "minor_faults": 155703,
+        "major_faults": 0,
+        "resident_bytes_at_end": 5615452160,
+        "footprint_bytes_at_end": 5616950640
+      },
+      "candidate": {
+        "seconds": 1.748187,
+        "user_seconds": 26.562733,
+        "system_seconds": 0.298632,
+        "minor_faults": 155697,
+        "major_faults": 0,
+        "resident_bytes_at_end": 4924981248,
+        "footprint_bytes_at_end": 4923841256
+      }
+    },
+    {
+      "stage": "fri_quotient_build_and_commit",
+      "baseline": {
+        "seconds": 2.315889,
+        "user_seconds": 23.896028,
+        "system_seconds": 1.649158,
+        "minor_faults": 564039,
+        "major_faults": 0,
+        "resident_bytes_at_end": 5959417856,
+        "footprint_bytes_at_end": 5960998592
+      },
+      "candidate": {
+        "seconds": 2.405397,
+        "user_seconds": 24.697615,
+        "system_seconds": 1.712088,
+        "minor_faults": 571862,
+        "major_faults": 0,
+        "resident_bytes_at_end": 5268733952,
+        "footprint_bytes_at_end": 5267856488
+      }
+    },
+    {
+      "stage": "trace_decommit",
+      "baseline": {
+        "seconds": 0.868667,
+        "user_seconds": 2.697447,
+        "system_seconds": 0.16533,
+        "minor_faults": 45794,
+        "major_faults": 0,
+        "resident_bytes_at_end": 5352161280,
+        "footprint_bytes_at_end": 5353479512
+      },
+      "candidate": {
+        "seconds": 0.901273,
+        "user_seconds": 2.805378,
+        "system_seconds": 0.174402,
+        "minor_faults": 45850,
+        "major_faults": 0,
+        "resident_bytes_at_end": 4662116352,
+        "footprint_bytes_at_end": 4661009176
+      }
+    },
+    {
+      "stage": "MAIN_prepare",
+      "baseline": {
+        "seconds": 2.365843,
+        "user_seconds": 4.298073,
+        "system_seconds": 0.415703,
+        "minor_faults": 415130,
+        "major_faults": 0,
+        "resident_bytes_at_end": 10099294208,
+        "footprint_bytes_at_end": 10102776016
+      },
+      "candidate": {
+        "seconds": 2.428885,
+        "user_seconds": 4.36981,
+        "system_seconds": 0.420066,
+        "minor_faults": 415142,
+        "major_faults": 0,
+        "resident_bytes_at_end": 10103865344,
+        "footprint_bytes_at_end": 10103906464
+      }
+    },
+    {
+      "stage": "INTER_prepare",
+      "baseline": {
+        "seconds": 1.059405,
+        "user_seconds": 2.262472,
+        "system_seconds": 0.215588,
+        "minor_faults": 211655,
+        "major_faults": 0,
+        "resident_bytes_at_end": 7655014400,
+        "footprint_bytes_at_end": 7657938960
+      },
+      "candidate": {
+        "seconds": 1.085088,
+        "user_seconds": 2.3183890000000003,
+        "system_seconds": 0.214475,
+        "minor_faults": 211623,
+        "major_faults": 0,
+        "resident_bytes_at_end": 7656062976,
+        "footprint_bytes_at_end": 7655940016
+      }
+    }
+  ],
+  "limitations": [
+    "Original4M conditional scope and prefix-only INIT caveat remain; no terminal/truth/detached/laterCPU proof or complete execution acceptance.",
+    "No allocation-size histogram or live-requested-per-stage counter was collected; stage RSS/footprint are observed process memory and include allocator effects.",
+    "The tiny join runs before the fragment in this candidate test; its whole-process cumulative counters are not directly comparable to the baseline fragment-only whole-test counters. Per-fragment timers and scoped stage data remain separate.",
+    "INTER prepare minor faults211655\u2192211623 and time1.0594\u21921.0851s: no meaningful prepare/fault improvement established.",
+    "The repeated high watermark is exactly10,093,072,140B, below unchanged32GiB cap; both runs deinitialize to zero heap/external ownership."
+  ]
+}

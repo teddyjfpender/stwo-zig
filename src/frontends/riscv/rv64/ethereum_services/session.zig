@@ -13,6 +13,8 @@ pub const PROFILE_V3 = "rv64im-ethereum-services-v3";
 pub const sha256 = @import("sha256.zig");
 pub const arith256 = @import("arith256.zig");
 pub const curves = @import("curves.zig");
+pub const tower = @import("tower_call.zig");
+pub const TowerCall = tower.Call;
 pub const bulk_memory = @import("bulk_memory.zig");
 pub const keccak_sponge = @import("keccak_sponge.zig");
 pub const SecpCall = struct {
@@ -120,8 +122,9 @@ pub const Event = union(enum) {
     bulk: bulk_memory.Event,
     sponge: keccak_sponge.Event,
     curve: CurveCall,
-    pub fn retirement(self: Event) machine.Retirement {
-        return switch (self) {
+    tower: TowerCall,
+    pub fn retirement(self: *const Event) machine.Retirement {
+        return switch (self.*) {
             .sponge => |e| e.call.retirement(),
             .bulk => |e| e.call.retirement(),
             .keccak => |call| call.retirement(),
@@ -129,10 +132,11 @@ pub const Event = union(enum) {
             .sha256 => |call| call.retirement(),
             .arith256_mod => |call| call.retirement(),
             .curve => |call| call.retirement(),
+            .tower => |*call| call.retirement(),
         };
     }
 };
-pub const Error = K.Error || keccak_sponge.Error || error{ InvalidProjectiveInputCount, BulkMemoryLength, BulkMemoryOverlap, CurveServiceDomain };
+pub const Error = K.Error || keccak_sponge.Error || error{ InvalidProjectiveInputCount, BulkMemoryLength, BulkMemoryOverlap, CurveServiceDomain, TowerPacketShape };
 pub const Session = struct {
     keccak: K.Session,
     execution_profile: profile.Profile = .ethereum_services_v1,
@@ -144,6 +148,7 @@ pub const Session = struct {
     sponge_calls: u64 = 0,
     /// Admitted v3 curve/field calls per op (curves.index order).
     curve_calls: [curves.COUNT]u64 = @splat(0),
+    op_sparse034_calls: u64 = 0,
     allocator: std.mem.Allocator = undefined,
     /// Destination words before the latest bulk call (Event.bulk.dst_before).
     bulk_before: std.ArrayList(u64) = .empty,
@@ -151,7 +156,7 @@ pub const Session = struct {
         return initWithProfile(a, cpu, mem, options, .ethereum_services_v1);
     }
     pub fn initWithProfile(a: std.mem.Allocator, cpu: machine.Cpu, mem: *memory.Memory, options: Base.Options, execution_profile: profile.Profile) Error!Session {
-        if (execution_profile != .ethereum_services_v1 and execution_profile != .ethereum_services_v2 and !profile.isV3(execution_profile)) return error.UnsupportedService;
+        if (execution_profile != .ethereum_services_v1 and execution_profile != .ethereum_services_v2 and !profile.hasV3Services(execution_profile)) return error.UnsupportedService;
         // The ISA follows the profile; a caller cannot widen a pre-Zbb profile.
         var opts = options;
         if (opts.isa != .rv64im and opts.isa != profile.isaOf(execution_profile)) return error.UnsupportedService;
@@ -170,11 +175,15 @@ pub const Session = struct {
             if (err != error.UnsupportedService) return err;
             // v3-only tags are dispatched before secp; v2 never sees them.
             const tag = self.keccak.base.cpu.read(profile.TAG_REGISTER);
-            if (profile.isV3(self.execution_profile)) if (bulk_memory.kindOf(tag)) |kind| {
+            if (self.execution_profile == .ethereum_services_op_v1 and tag == profile.OP_TOWER_TAG) {
+                event.* = .{ .tower = try tower.execute(&self.keccak.base.cpu, self.keccak.base.memory, &self.op_sparse034_calls) };
+                return null;
+            }
+            if (profile.hasV3Services(self.execution_profile)) if (bulk_memory.kindOf(tag)) |kind| {
                 event.* = .{ .bulk = try self.bulk(kind) };
                 return null;
             };
-            if (profile.isV3(self.execution_profile) and tag == profile.KECCAK_SPONGE_TAG) {
+            if (profile.hasV3Services(self.execution_profile) and tag == profile.KECCAK_SPONGE_TAG) {
                 event.* = .{ .sponge = try self.sponge() };
                 return null;
             }

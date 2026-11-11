@@ -1,0 +1,73 @@
+     Locking 1 package to highest compatible version
+ Downgrading alloy-primitives v1.7.3 -> v1.6.1 (available: v1.7.3)
+   Compiling alloy-primitives v1.6.1
+   Compiling revm-primitives v42.0.0
+   Compiling revm-bytecode v42.0.0 (/workspace/stwo-opstack/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode)
+warning: extern crate `bytes` is unused in crate `revm_bytecode`
+  |
+  = help: remove the dependency or add `use bytes as _;` to the crate root
+note: the lint level is defined here
+ --> src/lib.rs:6:29
+  |
+6 | #![cfg_attr(not(test), warn(unused_crate_dependencies))]
+  |                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `revm-bytecode` (lib) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.75s
+     Running unittests src/lib.rs (opstack/kona/target/debug/deps/revm_bytecode-1b58c4c76c7e9f4a)
+
+running 46 tests
+test bytecode::tests::is_default ... ok
+test bytecode::tests::new_raw_checked_dispatch ... ok
+test bytecode::tests::eip7702_from_address ... ok
+test bytecode::tests::eip7702_sanity_decode ... ok
+test bytecode::tests::eip7702_invalid_magic ... ok
+test bytecode::tests::test_new_empty ... ok
+test bytecode::tests::test_panic_on_empty_bytecode - should panic ... ok
+test eip7702::tests::verify_magic_bytes ... ok
+test bytecode::tests::test_panic_on_short_jump_table - should panic ... ok
+test eip7702::tests::verify_magic_hash ... ok
+test bytecode::tests::test_panic_on_large_original_len - should panic ... ok
+test iter::tests::test_empty_bytecode ... ok
+test iter::tests::test_bytecode_with_various_push_sizes ... ok
+test iter::tests::test_bytecode_skips_immediates ... ok
+test bytecode::tests::test_new_analyzed ... ok
+test iter::tests::test_position_after_truncated_push ... ok
+test iter::tests::test_position_tracking ... ok
+test iter::tests::test_simple_bytecode_iteration ... ok
+test legacy::analysis::tests::test_bytecode_ends_with_immediate_opcode_and_stop_requires_padding ... ok
+test legacy::analysis::tests::test_bytecode_ends_with_push16_requires_17_bytes_padding ... ok
+test legacy::analysis::tests::test_bytecode_ends_with_push2_requires_2_bytes_padding ... ok
+test legacy::analysis::tests::test_bytecode_ends_with_stop_no_padding_needed ... ok
+test iter::tests::test_truncated_push_does_not_iterate_padding ... ok
+test legacy::analysis::tests::test_bytecode_ends_without_stop_requires_padding ... ok
+test legacy::analysis::tests::test_bytecode_with_invalid_opcode ... ok
+test legacy::analysis::tests::test_bytecode_with_jumpdest_after_push ... ok
+test legacy::analysis::tests::test_bytecode_with_jumpdest_at_start ... ok
+test legacy::analysis::tests::test_bytecode_with_jumpdest_in_push_data ... ok
+test legacy::analysis::tests::test_bytecode_with_multiple_jumpdests ... ok
+test legacy::analysis::tests::test_bytecode_with_max_push32 ... ok
+test legacy::analysis::tests::test_bytecode_with_sequential_pushes ... ok
+test legacy::analysis::tests::test_truncated_pushes_are_padded_without_inbounds_pointer_advance ... ok
+test legacy::jump_map::tests::test_jump_table_from_slice ... ok
+test legacy::jump_map::tests::test_is_valid ... ok
+test opcode::tests::test_op_code_valid ... ok
+test legacy::jump_map::tests::test_jump_table_from_slice_panic - should panic ... ok
+test opcode::tests::count_opcodes ... ok
+test opcode::tests::test_terminating_opcodes ... ok
+test opcode::tests::test_parsing ... ok
+test legacy::jumpdest_service::tests::admitted_scan_matches_original_revm_with_safe_owned_padding ... ok
+test opcode::tests::test_enabled_opcodes ... ok
+test opcode::tests::test_immediate_size ... ok
+test opcode::tests::test_new_unchecked_invalid ... ok
+test opcode::tests::test_modifies_memory ... ok
+test opcode::tests::test_opcode ... ok
+test utils::test::test_build_memory_input_opcodes ... ok
+
+test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+   Doc-tests revm_bytecode
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

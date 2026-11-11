@@ -1,0 +1,43 @@
+diff --git a/src/integrations/circuit_cpu/om31/prove.zig b/src/integrations/circuit_cpu/om31/prove.zig
+index 36a22cb92..bf17c4cc7 100644
+--- a/src/integrations/circuit_cpu/om31/prove.zig
++++ b/src/integrations/circuit_cpu/om31/prove.zig
+@@ -15,6 +15,10 @@ const Preprocessed = circuit.common.preprocessed.PreprocessedCircuit;
+ const Col = prover.pcs.ColumnEvaluation;
+ const Components = prover.air.component_prover.ForField(O);
+ const CoreAir = core.air.components.ForField(O);
++// Recursive circuit columns can each contain millions of rows. Keep transform
++// scratch bounded independently of the total width while preserving borrowed
++// preprocessed/MAIN planes needed by the lookup witness writer.
++const COMMIT_BATCH_COLUMNS: u32 = 8;
+ pub const Capture = core.pcs.ForField(O).verifier.VerifiedProofCapture(P.H);
+ /// OM31 widens challenges, not the characteristic of M31 multiplicities.
+ /// The independently constructed circuit topology bounds every positive
+@@ -162,7 +166,7 @@ pub const Authority = struct {
+             const columns = try a.alloc(Col, pp.columns.len);
+             defer a.free(columns);
+             for (columns, pp.columns, fixed_logs) |*out, column, log| out.* = .{ .log_size = log, .values = column.values };
+-            try scheme.commit(a, columns, &channel);
++            try scheme.commitBorrowedStreaming(a, columns, COMMIT_BATCH_COLUMNS, &channel);
+             fixed = scheme.trees.orderedRemove(0);
+             try fixed.?.share(a);
+             break :blk fixed.?.root();
+@@ -263,12 +267,16 @@ pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Pr
+     P.MC.mixRoot(&channel, key.fixedRoot());
+     // MAIN is generated and committed exactly once. Lookup arithmetic does not
+     // rebuild the builder assignment or its table multiplicities.
+-    try scheme.commit(a, base.columns, &channel);
++    try scheme.commitBorrowedStreaming(a, base.columns, COMMIT_BATCH_COLUMNS, &channel);
+     const elements = draw(&channel);
+     var interaction = try W.writeReleasing(a, &base, key.pp, elements.z, elements.alpha);
+     defer interaction.deinit();
+     channel.mixFelts(&interaction.claimed_sums.toArray());
+-    try scheme.commit(a, interaction.columns, &channel);
++    // No later stage reads the raw INTER evaluations. Transfer them into PCS
++    // instead of retaining the witness alongside PCS's cloned/extended copy.
++    // The owned committer consumes columns on both success and failure; takeColumns
++    // leaves deinit safe while preserving the public claims used below.
++    try scheme.commitOwnedStreaming(a, interaction.takeColumns(), COMMIT_BATCH_COLUMNS, &channel);
+     const bound = try bind(a, key, elements.z, elements.alpha, interaction.claimed_sums);
+     defer a.free(bound);
+     const components = try a.alloc(Components.ComponentProver, bound.len);

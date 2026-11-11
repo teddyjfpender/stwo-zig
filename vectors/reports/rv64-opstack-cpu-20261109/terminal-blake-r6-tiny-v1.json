@@ -1,0 +1,47 @@
+{
+  "schema": "op-terminal-blake-R6-tiny-v1",
+  "scope": "isolated source/correctness prototype; no execution/runtime/settlement admission",
+  "suite": "plain-blake2s256-merkle/raw-mod-OM31/b2-q144-P0-fold4/v1",
+  "wire_magic": "STB26G01",
+  "proof_bytes": 895872,
+  "qualification": {
+    "original_six_R6_component_emitters_and_witness_authority": true,
+    "exact_numeric_trace_graph_P2_nativeOM_descriptors": true,
+    "fresh_independent_source_key": true,
+    "retired_prover_key_still_verifies": true,
+    "retired_key_cannot_prove": true,
+    "coherently_reproved_balanced_false_claims_rejected": true,
+    "output_claim_proof_key_mutations_rejected": true,
+    "noncanonical_claim_rejected": true,
+    "valid_P2_and_Blake_positive_controls": true,
+    "both_valid_cross_suite_proofs_rejected": true,
+    "restored_Blake_positive": true,
+    "standard_testing_allocator_final_cleanup": true
+  },
+  "tiny_cold_setup_observation_ns": {
+    "original_P2_R6_source_and_FIXED_build": 84029125,
+    "additional_Blake_FIXED_build": 11686917
+  },
+  "cost_scope": "Both cold FIXED costs retained explicitly; toy timings are not a speed claim. No real block/large root proved.",
+  "unchanged": [
+    "R5 files",
+    "R6 AIR/witness/source geometry",
+    "native P2 verifiers/public frames",
+    "existing P2 runtime/topology/profile/defaults"
+  ],
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "security_notes": [
+    "Nominal FRI product144 is not a composed bound.",
+    "OM31 rational/tuple/pole/multiplicity/characteristic arguments retain their original source assumptions.",
+    "Plain Blake256 has generic128-bit birthday work with less nominal margin than P2 D9; explicit Merkle and Fiat-Shamir hash-query union budget still required."
+  ],
+  "remaining": [
+    "Independent review",
+    "Complete source-only execution receiver integration under an explicit new hash/format policy",
+    "Actual matched R6 root proving with all cold source/FIXED costs",
+    "Security/hash-query union review",
+    "No recursive P2 parent or unchanged Solidity settlement support"
+  ]
+}

@@ -49,6 +49,14 @@ pub const WORDS = [_]u32{
     LD_SA,
     mv(10, 29), ECALL, // sponge B
 };
+/// A later direct Keccak retirement creates a hole in retirement order, but
+/// the shared proof policy still places BOTH direct calls before Sponge IDs.
+pub const HOLE_WORDS = WORDS[0..6].* ++ [_]u32{
+    mv(10, 5),  mv(17, 18), ECALL,
+    mv(10, 28), mv(17, 19), ECALL,
+    LD_SA,      mv(10, 29), ECALL,
+};
+pub const HOLE_STEPS: u32 = HOLE_WORDS.len;
 pub const SHARD0_STEPS: u32 = 6;
 pub const STEPS: u32 = WORDS.len;
 pub const CPU_LOG: u32 = 5;
@@ -116,7 +124,10 @@ pub fn finalRegisters(loaded: u64) [32]u64 {
     return r;
 }
 pub fn expectedFor(identity: [32]u8, loaded: u64) P.Expected {
-    return .{ .admission = .{ .image = image(), .image_identity = @splat(0x4b), .initial_pc = 4096, .initial_registers = initialRegisters(), .max_prefix_steps = 31 }, .program_identity = identity, .total_steps = STEPS, .max_total_steps = STEPS, .final_pc = 4096 + 4 * STEPS, .final_registers = finalRegisters(loaded) };
+    return expectedForSteps(identity, loaded, STEPS);
+}
+pub fn expectedForSteps(identity: [32]u8, loaded: u64, steps: u32) P.Expected {
+    return .{ .admission = .{ .image = image(), .image_identity = @splat(0x4b), .initial_pc = 4096, .initial_registers = initialRegisters(), .max_prefix_steps = 31 }, .program_identity = identity, .total_steps = steps, .max_total_steps = steps, .final_pc = 4096 + 4 * @as(u64, steps), .final_registers = finalRegisters(loaded) };
 }
 pub const BRIDGES = [2]T.Logs{
     .{ .keccak = 5, .sponge = .{ .call = 5, .perm = 5 } },
@@ -135,15 +146,30 @@ pub const Captured = struct {
     digest_a: [32]u8,
     digest_c: [32]u8,
     pub fn init(a: std.mem.Allocator) !Captured {
+        return initProfile(a, .ethereum_services_v3, false);
+    }
+    /// Real OP executor/capture route for the closed detached-sponge join.
+    pub fn initForOp(a: std.mem.Allocator) !Captured {
+        return initProfile(a, .ethereum_services_op_v1, false);
+    }
+    pub fn initForOpWithDirectSecond(a: std.mem.Allocator) !Captured {
+        return initProfile(a, .ethereum_services_op_v1, true);
+    }
+    fn initProfile(a: std.mem.Allocator, comptime profile: rv.execution_profile.Profile, comptime direct_second: bool) !Captured {
+        const words = if (direct_second) &HOLE_WORDS else &WORDS;
         const program = try a.create(Program);
         errdefer a.destroy(program);
-        program.* = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+        // Preserve the original generic ROM authority for Ethereum fixtures;
+        // their session/tape executes v3 services, while CpuSetup.initProgram
+        // independently derives the historical default ROM identity. OP has
+        // its own explicit ROM profile and must never erase that distinction.
+        program.* = if (profile == .ethereum_services_op_v1) try Program.initWithProfile(a, .{ .base = 4096, .words = words }, profile) else try Program.init(a, .{ .base = 4096, .words = words });
         errdefer program.deinit();
         var memory = rv.memory.Memory.init(a, .{});
         defer memory.deinit();
-        try memory.map(.{ .start = 4096, .size = 4 * WORDS.len, .permissions = .{ .read = true, .execute = true } });
+        try memory.map(.{ .start = 4096, .size = 4 * words.len, .permissions = .{ .read = true, .execute = true } });
         try memory.map(.{ .start = BASE, .size = SIZE, .permissions = .{ .read = true, .write = true } });
-        for (WORDS, 0..) |word, i| {
+        for (words, 0..) |word, i| {
             var bytes: [4]u8 = undefined;
             std.mem.writeInt(u32, &bytes, word, .little);
             try memory.initialize(4096 + 4 * i, &bytes);
@@ -156,9 +182,9 @@ pub const Captured = struct {
         }
         var cpu = rv.machine.Cpu.init(4096, 0);
         cpu.regs = initialRegisters();
-        var session = try rv.ethereum_services.Session.initWithProfile(a, cpu, &memory, .{ .max_retirements = 64 }, .ethereum_services_v3);
+        var session = try rv.ethereum_services.Session.initWithProfile(a, cpu, &memory, .{ .max_retirements = 64 }, profile);
         defer session.deinit();
-        const sizes = [2]u32{ SHARD0_STEPS, STEPS - SHARD0_STEPS };
+        const sizes = [2]u32{ SHARD0_STEPS, @as(u32, @intCast(words.len)) - SHARD0_STEPS };
         var tapes: [2]rv.compact_tape.Tape = undefined;
         var boundaries: [2]A.word16_execution.types.Boundary = undefined;
         var made: usize = 0;
@@ -166,7 +192,7 @@ pub const Captured = struct {
         var digest_a: [32]u8 = undefined;
         for (sizes, &tapes, &boundaries, 0..) |steps, *tape, *boundary, shard| {
             const c = &session.keccak.base.cpu;
-            tape.* = try rv.compact_tape.Tape.init(a, steps, c.pc, c.retired, .ethereum_services_v3);
+            tape.* = try rv.compact_tape.Tape.init(a, steps, c.pc, c.retired, profile);
             made += 1;
             boundary.* = .{ .steps = steps, .initial_pc = c.pc, .final_pc = undefined, .initial_registers = c.regs, .final_registers = undefined, .register_clocks = @splat(0) };
             for (0..steps) |local| {
@@ -191,13 +217,13 @@ pub const Captured = struct {
         var digest_c: [32]u8 = undefined;
         for (0..4) |l| std.mem.writeInt(u64, digest_c[8 * l ..][0..8], try memory.load(SC + 8 * l, 8), .little);
         const loaded = session.keccak.base.cpu.regs[9];
-        var n0 = try Native.captureForCombinedServicesV3(a, program, boundaries[0], 1, CPU_LOG, &tapes[0], .{});
+        var n0 = if (profile == .ethereum_services_op_v1) try Native.captureForOpServices(a, program, boundaries[0], 1, CPU_LOG, &tapes[0], .{}) else try Native.captureForCombinedServicesV3(a, program, boundaries[0], 1, CPU_LOG, &tapes[0], .{});
         errdefer n0.deinit();
-        var n1 = try Native.captureForCombinedServicesV3(a, program, boundaries[1], 2, CPU_LOG, &tapes[1], .{});
+        var n1 = if (profile == .ethereum_services_op_v1) try Native.captureForOpServices(a, program, boundaries[1], 2, CPU_LOG, &tapes[1], .{}) else try Native.captureForCombinedServicesV3(a, program, boundaries[1], 2, CPU_LOG, &tapes[1], .{});
         errdefer n1.deinit();
         var advice = try C.collect(a, &.{ &n0, &n1 }, &.{ &tapes[0], &tapes[1] }, image());
         errdefer advice.deinit();
-        if (advice.keccak[0].len != 1 or advice.sponge[0].calls.len != 1 or advice.sponge[0].inputs.len != 3 or advice.sponge[1].calls.len != 2 or advice.sponge[1].inputs.len != 2) return error.InvalidSpongeFixtureChronology;
+        if (advice.keccak[0].len != 1 or advice.keccak[1].len != @intFromBool(direct_second) or advice.sponge[0].calls.len != 1 or advice.sponge[0].inputs.len != 3 or advice.sponge[1].calls.len != 2 or advice.sponge[1].inputs.len != 2) return error.InvalidSpongeFixtureChronology;
         // C reads A's epoch-1 output state as its message.
         if (advice.sponge[1].words[0].epoch != 1) return error.InvalidSpongeFixtureChronology;
         return .{ .allocator = a, .program = program, .tapes = tapes, .native = .{ n0, n1 }, .advice = advice, .loaded = loaded, .digest_a = digest_a, .digest_c = digest_c };

@@ -1,0 +1,43 @@
+{
+  "status": "qualified source-owned MAC12 lowering/value witness; physical closures pending",
+  "production_admitted": false,
+  "security_qualified": false,
+  "counts": {
+    "source_initial": 54,
+    "MAC12_stages": 32543,
+    "canonical_hints": 1438,
+    "normalized_values": 34035,
+    "source_obligations": 1460,
+    "frontier_rows": 1514,
+    "SSA_unit_read_mass": 815035,
+    "actual_BYTE_query_mass": 11579711
+  },
+  "model": {
+    "arithmetic_log": 15,
+    "hint_log": 11,
+    "frontier_log": 11,
+    "BYTE_log": 8,
+    "padded_local_facts": 17961216,
+    "fixed_main_inter_cells": 39043584,
+    "native_columns": 1410,
+    "qualification": "source-derived only; no physical proof yet"
+  },
+  "custody": "immutable planmetadata + canonicalvalues; no32543x1106rowbank; one row at a time for future scatter-once MAINfill",
+  "passed": [
+    "14ReleaseSafe tests",
+    "everyoriginalsourcewriter equalsitsfreshlaststageoutput",
+    "all25readports includingunusedZERO exactlycounted",
+    "all1460assertions remappedexactly;54initial+1460assertfrontier",
+    "representativeactualsignedcarry/canonicalMACrows +hint95rows valid",
+    "coherentwrongSGQreference refuses",
+    "every6planinitallocations plusfirst/last expressionOOM clean"
+  ],
+  "command": "zig test -O ReleaseSafe --dep stwo_core -Mroot=src/frontends/riscv/rv64_bn254_pairing_lowering_test_root.zig -O ReleaseSafe -Mstwo_core=src/core/mod.zig",
+  "performance_claim": "none",
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/lowering.zig": "2091945a92492919b3e26b2e020d811857c1f75c59a9278b73d085ef38509cd6",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/normalized_witness.zig": "3ee73b2c6a7eed7e10dd64f4ab7fe3d124375302ecddaceff033c9cc46806327",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/normalized.zig": "32e7c8e7bf88f807f6a275edf1770a279f36008107bec3ffd4ed5db354372f5a",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/lowering_tests.zig": "ac40ea5161e7c5eb082cf55e53378ef1ee40b5ba4af7433c125a114aa9e80c57"
+  }
+}

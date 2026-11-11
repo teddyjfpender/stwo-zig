@@ -1,0 +1,154 @@
+{
+  "schema": "stwo.op.detached-native-small-qualification.v1",
+  "scope": "complete experimental native execution; production SourceSuite remains closed",
+  "block": 120794432,
+  "optimize": "ReleaseSafe",
+  "workers": 8,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "guest_control": "guest/detached-sponge-guest-small-v1.json",
+  "instructions": 1317255,
+  "CPU": 2,
+  "detached": 1,
+  "catalog_truth": 1,
+  "Miller": 0,
+  "sponge_calls": 124,
+  "sponge_permutations": 338,
+  "frontier_logs": [
+    7,
+    5
+  ],
+  "native_bytes": 3243228,
+  "timing_ns": {
+    "capture_and_plan_ns": 598924125,
+    "setup_ns": 11194771375,
+    "prove_ns": 51249574458,
+    "total_ns": 63044680333
+  },
+  "timing_qualification_only": true,
+  "matched_speed_comparison": false,
+  "qualification": {
+    "source_security_preflight_before_FIXED": true,
+    "exact_source_security_after_rosters": true,
+    "typed_two_phase_manifest": true,
+    "all_fresh_native_proofs": true,
+    "global_RAM_KIO_Wire_closed": true,
+    "independent_ELF_input_image_and_terminal43B": true,
+    "fresh_independent_source_key_receiver": true,
+    "default_and_typed_capture_receivers": true,
+    "all4_captures_ordered_then_complete": true,
+    "fragment_callback_failure_no_complete": true,
+    "zero_final_live_bytes": true,
+    "zero_final_external_reservations": true,
+    "retained_bundle_adversarial_fresh_source_gate": true
+  },
+  "budgets_bytes": {
+    "common_host": 34359738368,
+    "truth_detached_worker": 8589934592,
+    "GKR": 12884901888,
+    "global": 2147483648,
+    "store_disk": 206158430208,
+    "store_mapped": 12884901888
+  },
+  "peak_live_bytes": null,
+  "peak_note": "Production test asserted zero teardown; no snapshot peak was persisted in this first run. No RSS or memory speedup claim.",
+  "security": {
+    "accounting_profile": "op-detached-typed-source-security/v1",
+    "target": "128-bit security target under documented assumptions",
+    "cpu_and_detached": {
+      "scopes": 3,
+      "instances": 47,
+      "max_variables": 25,
+      "sumcheck_rounds": 724,
+      "sumcheck_degree_weight": 36384,
+      "instance_mix_degree_weight": 1221,
+      "late_binding_degree_weight": 47,
+      "degenerate_point_degree_weight": 1236
+    },
+    "truth": {
+      "accounting_profile": "op-truth-local-gkr-additive-source-bounds/v1",
+      "scopes": 1,
+      "instances": 3,
+      "max_variables": 24,
+      "max_positive_mass_per_scope": 15728640,
+      "sumcheck_rounds": 276,
+      "sumcheck_degree_weight": 2484,
+      "instance_mix_degree_weight": 120,
+      "late_binding_degree_weight": 3,
+      "degenerate_point_degree_weight": 72,
+      "retired_interaction_cells": 41877504,
+      "security_qualified": false
+    },
+    "miller": {
+      "accounting_profile": "op-miller-local-gkr-additive-source-bounds/v1",
+      "scopes": 0,
+      "instances": 0,
+      "max_variables": 0,
+      "max_positive_mass_per_scope": 0,
+      "sumcheck_rounds": 0,
+      "sumcheck_degree_weight": 0,
+      "instance_mix_degree_weight": 0,
+      "late_binding_degree_weight": 0,
+      "degenerate_point_degree_weight": 0,
+      "retired_interaction_cells": 0,
+      "added_interaction_cells": 0,
+      "security_qualified": false
+    },
+    "conditional_degree_weight": [
+      6051712648790554232341664,
+      10995182341024,
+      12886230356,
+      11008068572688,
+      42801108,
+      999741,
+      32818,
+      16777216,
+      9007199254740992,
+      18014398509481984,
+      142970992295527055360
+    ],
+    "raw_modulo_envelope_bits": 151,
+    "security_qualified": false,
+    "production_admission": false,
+    "scope": "conditional native algebraic envelope; P2/hash/FRI/Fiat-Shamir/recursion assumptions are not certified by this ledger"
+  },
+  "production_admission": false,
+  "remaining": [
+    "Actual zero-detached selected-guest control (including classic SHA) is separate.",
+    "New complete recursive root and fresh source-only root receiver remain separate.",
+    "Large detached source partitioning and heavy memory/latency qualification remain closed; no heavy rerun."
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-small-v1",
+  "files": {
+    "detached-op.bin": {
+      "bytes": 3243228,
+      "sha256": "96c1c3e76a6dc8f8ddd23f11e6bcccc644001a42883acc014ab411645218c5cf"
+    },
+    "detached-op.json": {
+      "bytes": 6699,
+      "sha256": "efd84238f8b4c8d45bf13730ce4cfae5b717c27da267d667b8f8fc01005cd515"
+    },
+    "cells.bin": {
+      "bytes": 1411388,
+      "sha256": "836c60ed27230823ff366e8817984437bf0681ce16132b1d83c341c8e6ca4582"
+    }
+  },
+  "adversarial_controls": {
+    "count": 7,
+    "physical": [
+      "MAIN OODS sample changed and native proof re-encoded canonically",
+      "CPU GKR output claim changed and child proof re-encoded canonically",
+      "equal/opposite claim edits across CPU0/CPU1 cannot hide physical debt"
+    ],
+    "framing": [
+      "missing worker",
+      "swapped worker order",
+      "wrong execution identity",
+      "whole-byte cap refusal before allocation"
+    ],
+    "restored_positive_same_source_keys": true,
+    "no_guest_execution_or_reproof": true,
+    "fresh_gate_peak_live_bytes": 2558632441,
+    "fresh_gate_final_live_bytes": 0,
+    "fresh_gate_final_external_bytes": 0
+  }
+}

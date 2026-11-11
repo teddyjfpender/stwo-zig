@@ -1,0 +1,66 @@
+{
+  "produce": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-m6-aot-m7-unprofiled",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "recurse-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/r1-recursion-workers16.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/r1-aot-default-parity",
+      "2147483648",
+      "42949672960"
+    ],
+    "wall_ns": 56960309041,
+    "peak_rss_bytes": 28920545280,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 567.562295,
+    "system_cpu_s": 20.214913,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "receive": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-m6-aot-m7-unprofiled",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "verify-recursion-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/r1-recursion-workers16.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/r1-aot-default-parity",
+      "2147483648",
+      "25769803776"
+    ],
+    "wall_ns": 5104703708,
+    "peak_rss_bytes": 7328333824,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 28.883314,
+    "system_cpu_s": 0.95765,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "admission": {
+    "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+    "native_profile": "conjectured128_b2_q108_p20_fold4",
+    "outer_profile": "stwo/circuit/native-om31/q108-p20-fold4/lens-v1",
+    "root_digest": "3520cdd399720e289b91834e4fbe6c82395c0d8f0fa3dcd726ba41570dd6d52e",
+    "root_authority": "83d7b2e473bce35429df38db74b3d9a6dd762560a57c008575ca0438b6f84c00",
+    "manifest": "28694979f3ac3636d75405e236ab42ba5540ae8e27c82bccfcb0f94b36200d18",
+    "root_proof_bytes": 746584,
+    "cpu_proofs": 1,
+    "service_proofs": 2,
+    "recursive_leaves": 3,
+    "recursive_folds": 2
+  },
+  "proof_sha256": {
+    "leaf-000001.proof": "ff2d9ab33dab452bd03ce03c93ffaf30cb32961c1b05db0cc4552f605d63b64c",
+    "leaf-000000.proof": "62f25076552699fc22e41266bb82fb037534b65b279461fd3116d5c49ec74646",
+    "fold-000004.proof": "549bb0eb2fcfec5f2a0ca26bdea32f654f63df9194afe5215ae3237f858fcf03",
+    "leaf-000002.proof": "79ebdb3b6cee43cbb7969c57f6e5a5295d3d9a00e5a0eb375126fea08f826dbe",
+    "fold-000002.proof": "3dfe1efe2ff5e263e054f446572ee65fd5a79f1d13907e85308e27c6c53722ed",
+    "root.proof": "549bb0eb2fcfec5f2a0ca26bdea32f654f63df9194afe5215ae3237f858fcf03"
+  },
+  "all_six_proof_files_byte_identical": true,
+  "concurrent_recursion_compilation": true,
+  "timing_scope": "qualification with build activity; not a controlled speedup; native proving additional",
+  "schema": "stwo.opstack.default-r1-aot-qualification.v1",
+  "security_qualified": false
+}

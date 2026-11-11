@@ -1,0 +1,2553 @@
+{
+  "schema": "op-retained-source-lifetime-model/v1",
+  "heavy_execution_or_proof_rerun": false,
+  "admission_or_rss_guarantee": false,
+  "compiled_sizes": {
+    "cpu_metadata": 56,
+    "alu_metadata": 54,
+    "binary_metadata": 46,
+    "shift_metadata": 30,
+    "division_metadata": 88,
+    "multiplication_metadata": 32,
+    "ls32_metadata": 82,
+    "ls64_metadata": 82,
+    "boundary_metadata": 22,
+    "alu_native_fact": 32,
+    "binary_native_fact": 32,
+    "shift_native_fact": 32,
+    "division_native_fact": 32,
+    "multiplication_native_fact": 32,
+    "jalr_fact": 32,
+    "bridge_call": 784,
+    "tower_call": 2576,
+    "bulk_call": 112,
+    "bulk_word": 32,
+    "sponge_call": 488,
+    "sponge_word": 16,
+    "sponge_permutation": 400,
+    "ordinary_event": 72,
+    "cell": 24,
+    "m31": 4,
+    "miller_advice_per_call": 5344,
+    "miller_advice_per_worker": 133120,
+    "miller_frontier_main": 33,
+    "miller_arithmetic_main": 370,
+    "miller_frontier_inter": 16,
+    "miller_arithmetic_inter": 560
+  },
+  "exact_reconstructed_native_capture_payload": 15677219728,
+  "all_cpu_metadata_parked": 13340665632,
+  "cpus": [
+    {
+      "ordinal": 0,
+      "source_owned_payload": {
+        "tuple_metadata": 224815848,
+        "raw_fixed_masks": 49777792,
+        "histograms_and_saved_tables": 27039744,
+        "service_and_bulk_copies_lower": 54642940,
+        "service_and_bulk_copies_upper": 54884604
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 85235184,
+        "temporary_family_facts": 53878980
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 15728640,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 356276324,
+      "new_source_retained_upper": 356517988,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9614400,
+      "main_coefficients": 1391471744,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 751611904,
+      "local_gkr_peak": 7801303296
+    },
+    {
+      "ordinal": 1,
+      "source_owned_payload": {
+        "tuple_metadata": 173402560,
+        "raw_fixed_masks": 32087168,
+        "histograms_and_saved_tables": 29661184,
+        "service_and_bulk_copies_lower": 54819260,
+        "service_and_bulk_copies_upper": 55268524
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 105044616,
+        "temporary_family_facts": 27641412
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 18972672,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 289970172,
+      "new_source_retained_upper": 290419436,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9793664,
+      "main_coefficients": 1188720256,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 655931392,
+      "local_gkr_peak": 6378148096
+    },
+    {
+      "ordinal": 2,
+      "source_owned_payload": {
+        "tuple_metadata": 174151424,
+        "raw_fixed_masks": 31777920,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 51787073,
+        "service_and_bulk_copies_upper": 52144929
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 104870592,
+        "temporary_family_facts": 27248496
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 19070976,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 286851265,
+      "new_source_retained_upper": 287209121,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9837248,
+      "main_coefficients": 1182464128,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 651325440,
+      "local_gkr_peak": 6323085568
+    },
+    {
+      "ordinal": 3,
+      "source_owned_payload": {
+        "tuple_metadata": 239670720,
+        "raw_fixed_masks": 42198400,
+        "histograms_and_saved_tables": 40151040,
+        "service_and_bulk_copies_lower": 31332512,
+        "service_and_bulk_copies_upper": 31392832
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 137082312,
+        "temporary_family_facts": 37728668
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27131904,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 353352672,
+      "new_source_retained_upper": 353412992,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9549856,
+      "main_coefficients": 1269260160,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 755994624,
+      "local_gkr_peak": 6269112576
+    },
+    {
+      "ordinal": 4,
+      "source_owned_payload": {
+        "tuple_metadata": 238375200,
+        "raw_fixed_masks": 39765888,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 18523428,
+        "service_and_bulk_copies_upper": 18537220
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131264640,
+        "temporary_family_facts": 29680772
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 332088772,
+      "new_source_retained_upper": 332102564,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9366752,
+      "main_coefficients": 1236683264,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 738080768,
+      "local_gkr_peak": 5978198272
+    },
+    {
+      "ordinal": 5,
+      "source_owned_payload": {
+        "tuple_metadata": 240856864,
+        "raw_fixed_masks": 41059328,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 19530104,
+        "service_and_bulk_copies_upper": 19556440
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129917520,
+        "temporary_family_facts": 36287728
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 330581144,
+      "new_source_retained_upper": 330607480,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9416704,
+      "main_coefficients": 1261687296,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 748918784,
+      "local_gkr_peak": 6154768640
+    },
+    {
+      "ordinal": 6,
+      "source_owned_payload": {
+        "tuple_metadata": 240038048,
+        "raw_fixed_masks": 40421248,
+        "histograms_and_saved_tables": 38047744,
+        "service_and_bulk_copies_lower": 18861080,
+        "service_and_bulk_copies_upper": 18873976
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131062320,
+        "temporary_family_facts": 31600924
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 337368120,
+      "new_source_retained_upper": 337381016,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9377792,
+      "main_coefficients": 1248348672,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 743323648,
+      "local_gkr_peak": 6046466304
+    },
+    {
+      "ordinal": 7,
+      "source_owned_payload": {
+        "tuple_metadata": 193379968,
+        "raw_fixed_masks": 33524736,
+        "histograms_and_saved_tables": 36474880,
+        "service_and_bulk_copies_lower": 18150920,
+        "service_and_bulk_copies_upper": 18179496
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 128438568,
+        "temporary_family_facts": 28238120
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 281530504,
+      "new_source_retained_upper": 281559080,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9369728,
+      "main_coefficients": 1154314752,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 673880064,
+      "local_gkr_peak": 5740933376
+    },
+    {
+      "ordinal": 8,
+      "source_owned_payload": {
+        "tuple_metadata": 252303424,
+        "raw_fixed_masks": 42791936,
+        "histograms_and_saved_tables": 28610560,
+        "service_and_bulk_copies_lower": 20484316,
+        "service_and_bulk_copies_upper": 20508156
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 132311088,
+        "temporary_family_facts": 37196564
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27131904,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 344190236,
+      "new_source_retained_upper": 344214076,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9438208,
+      "main_coefficients": 1302741504,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 761731072,
+      "local_gkr_peak": 6359130368
+    },
+    {
+      "ordinal": 9,
+      "source_owned_payload": {
+        "tuple_metadata": 238381984,
+        "raw_fixed_masks": 39779328,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 18762444,
+        "service_and_bulk_copies_upper": 18782300
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 130187736,
+        "temporary_family_facts": 28925200
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 332348012,
+      "new_source_retained_upper": 332367868,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9379040,
+      "main_coefficients": 1237271040,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 738465792,
+      "local_gkr_peak": 5980967168
+    },
+    {
+      "ordinal": 10,
+      "source_owned_payload": {
+        "tuple_metadata": 245392256,
+        "raw_fixed_masks": 41208832,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 19161076,
+        "service_and_bulk_copies_upper": 19188260
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129416904,
+        "temporary_family_facts": 31008864
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 341186420,
+      "new_source_retained_upper": 341213604,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9393632,
+      "main_coefficients": 1267036672,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 751867904,
+      "local_gkr_peak": 6101946624
+    },
+    {
+      "ordinal": 11,
+      "source_owned_payload": {
+        "tuple_metadata": 238199040,
+        "raw_fixed_masks": 40169344,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 19207196,
+        "service_and_bulk_copies_upper": 19220940
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131992200,
+        "temporary_family_facts": 36281444
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27131904,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 326710428,
+      "new_source_retained_upper": 326724172,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9404288,
+      "main_coefficients": 1244338688,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 740079616,
+      "local_gkr_peak": 6031020288
+    },
+    {
+      "ordinal": 12,
+      "source_owned_payload": {
+        "tuple_metadata": 192183648,
+        "raw_fixed_masks": 33097472,
+        "histograms_and_saved_tables": 39098368,
+        "service_and_bulk_copies_lower": 19502044,
+        "service_and_bulk_copies_upper": 19577932
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 124968384,
+        "temporary_family_facts": 25323956
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22806528,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 283881532,
+      "new_source_retained_upper": 283957420,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9380128,
+      "main_coefficients": 1148428800,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 673044480,
+      "local_gkr_peak": 5702279424
+    },
+    {
+      "ordinal": 13,
+      "source_owned_payload": {
+        "tuple_metadata": 252309152,
+        "raw_fixed_masks": 42791936,
+        "histograms_and_saved_tables": 28610560,
+        "service_and_bulk_copies_lower": 20475652,
+        "service_and_bulk_copies_upper": 20498372
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 132265440,
+        "temporary_family_facts": 37220220
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27131904,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 344187300,
+      "new_source_retained_upper": 344210020,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9436640,
+      "main_coefficients": 1302741504,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 761731072,
+      "local_gkr_peak": 6359130368
+    },
+    {
+      "ordinal": 14,
+      "source_owned_payload": {
+        "tuple_metadata": 238374848,
+        "raw_fixed_masks": 39778176,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 18568432,
+        "service_and_bulk_copies_upper": 18584704
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 130393080,
+        "temporary_family_facts": 29188172
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 332145712,
+      "new_source_retained_upper": 332161984,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9373856,
+      "main_coefficients": 1236933120,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 738310144,
+      "local_gkr_peak": 5979902208
+    },
+    {
+      "ordinal": 15,
+      "source_owned_payload": {
+        "tuple_metadata": 238316384,
+        "raw_fixed_masks": 40160256,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 18890680,
+        "service_and_bulk_copies_upper": 18917592
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129390912,
+        "temporary_family_facts": 30563404
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 332791576,
+      "new_source_retained_upper": 332818488,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9387776,
+      "main_coefficients": 1242395136,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 743479296,
+      "local_gkr_peak": 5992894720
+    },
+    {
+      "ordinal": 16,
+      "source_owned_payload": {
+        "tuple_metadata": 236845920,
+        "raw_fixed_masks": 40497024,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 19451392,
+        "service_and_bulk_copies_upper": 19464304
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 132211944,
+        "temporary_family_facts": 36874304
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 26935296,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 325929184,
+      "new_source_retained_upper": 325942096,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9408224,
+      "main_coefficients": 1248532992,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 742701056,
+      "local_gkr_peak": 6126440704
+    },
+    {
+      "ordinal": 17,
+      "source_owned_payload": {
+        "tuple_metadata": 191866208,
+        "raw_fixed_masks": 32963584,
+        "histograms_and_saved_tables": 35950592,
+        "service_and_bulk_copies_lower": 18576880,
+        "service_and_bulk_copies_upper": 18602144
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129467520,
+        "temporary_family_facts": 27489368
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 279357264,
+      "new_source_retained_upper": 279382528,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9381120,
+      "main_coefficients": 1143161344,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 667162624,
+      "local_gkr_peak": 5708448000
+    },
+    {
+      "ordinal": 18,
+      "source_owned_payload": {
+        "tuple_metadata": 245358272,
+        "raw_fixed_masks": 41733120,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 19630168,
+        "service_and_bulk_copies_upper": 19656552
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 130094640,
+        "temporary_family_facts": 32600700
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 342145816,
+      "new_source_retained_upper": 342172200,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9402624,
+      "main_coefficients": 1275818496,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 756586496,
+      "local_gkr_peak": 6210998528
+    },
+    {
+      "ordinal": 19,
+      "source_owned_payload": {
+        "tuple_metadata": 240910464,
+        "raw_fixed_masks": 40562560,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 18837860,
+        "service_and_bulk_copies_upper": 18851044
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131478120,
+        "temporary_family_facts": 34673988
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 329445732,
+      "new_source_retained_upper": 329458916,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9393376,
+      "main_coefficients": 1253513728,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 744273920,
+      "local_gkr_peak": 6058283264
+    },
+    {
+      "ordinal": 20,
+      "source_owned_payload": {
+        "tuple_metadata": 192339904,
+        "raw_fixed_masks": 33381120,
+        "histograms_and_saved_tables": 39098368,
+        "service_and_bulk_copies_lower": 19038328,
+        "service_and_bulk_copies_upper": 19102264
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 125510112,
+        "temporary_family_facts": 26685380
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22413312,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 283857720,
+      "new_source_retained_upper": 283921656,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9361920,
+      "main_coefficients": 1150365184,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 674297856,
+      "local_gkr_peak": 5704835328
+    },
+    {
+      "ordinal": 21,
+      "source_owned_payload": {
+        "tuple_metadata": 250984960,
+        "raw_fixed_masks": 42594560,
+        "histograms_and_saved_tables": 28610560,
+        "service_and_bulk_copies_lower": 20107648,
+        "service_and_bulk_copies_upper": 20125104
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 132249312,
+        "temporary_family_facts": 37086992
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 26935296,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 342297728,
+      "new_source_retained_upper": 342315184,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9425952,
+      "main_coefficients": 1297904896,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 759537664,
+      "local_gkr_peak": 6344646912
+    },
+    {
+      "ordinal": 22,
+      "source_owned_payload": {
+        "tuple_metadata": 238379360,
+        "raw_fixed_masks": 39779328,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 18739944,
+        "service_and_bulk_copies_upper": 18760664
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 130176144,
+        "temporary_family_facts": 28845456
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 332322888,
+      "new_source_retained_upper": 332343608,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9380160,
+      "main_coefficients": 1237271040,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 738465792,
+      "local_gkr_peak": 5980967168
+    },
+    {
+      "ordinal": 23,
+      "source_owned_payload": {
+        "tuple_metadata": 245388800,
+        "raw_fixed_masks": 41208832,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 18902216,
+        "service_and_bulk_copies_upper": 18926920
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129544272,
+        "temporary_family_facts": 30996876
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 340924104,
+      "new_source_retained_upper": 340948808,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9387872,
+      "main_coefficients": 1267036672,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 751867904,
+      "local_gkr_peak": 6101946624
+    },
+    {
+      "ordinal": 24,
+      "source_owned_payload": {
+        "tuple_metadata": 238194912,
+        "raw_fixed_masks": 40169344,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 19274712,
+        "service_and_bulk_copies_upper": 19288712
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131981544,
+        "temporary_family_facts": 36447884
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27131904,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 326773816,
+      "new_source_retained_upper": 326787816,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9405120,
+      "main_coefficients": 1244338688,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 740079616,
+      "local_gkr_peak": 6031020288
+    },
+    {
+      "ordinal": 25,
+      "source_owned_payload": {
+        "tuple_metadata": 191856352,
+        "raw_fixed_masks": 32963584,
+        "histograms_and_saved_tables": 35950592,
+        "service_and_bulk_copies_lower": 18305040,
+        "service_and_bulk_copies_upper": 18331392
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129492864,
+        "temporary_family_facts": 27599176
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 279075568,
+      "new_source_retained_upper": 279101920,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9382624,
+      "main_coefficients": 1143161344,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 667162624,
+      "local_gkr_peak": 5708448000
+    },
+    {
+      "ordinal": 26,
+      "source_owned_payload": {
+        "tuple_metadata": 245358656,
+        "raw_fixed_masks": 41733120,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 19914976,
+        "service_and_bulk_copies_upper": 19940224
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 130320576,
+        "temporary_family_facts": 32950228
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 342431008,
+      "new_source_retained_upper": 342456256,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9399232,
+      "main_coefficients": 1275818496,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 756586496,
+      "local_gkr_peak": 6210998528
+    },
+    {
+      "ordinal": 27,
+      "source_owned_payload": {
+        "tuple_metadata": 240914240,
+        "raw_fixed_masks": 40562560,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 18834588,
+        "service_and_bulk_copies_upper": 18846668
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131469336,
+        "temporary_family_facts": 34494328
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 329446236,
+      "new_source_retained_upper": 329458316,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9391072,
+      "main_coefficients": 1253513728,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 744273920,
+      "local_gkr_peak": 6058283264
+    },
+    {
+      "ordinal": 28,
+      "source_owned_payload": {
+        "tuple_metadata": 190364128,
+        "raw_fixed_masks": 32689152,
+        "histograms_and_saved_tables": 36474880,
+        "service_and_bulk_copies_lower": 17987652,
+        "service_and_bulk_copies_upper": 18014308
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 128502000,
+        "temporary_family_facts": 27680808
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 277515812,
+      "new_source_retained_upper": 277542468,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9382016,
+      "main_coefficients": 1139110400,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 664836096,
+      "local_gkr_peak": 5679591680
+    },
+    {
+      "ordinal": 29,
+      "source_owned_payload": {
+        "tuple_metadata": 254073920,
+        "raw_fixed_masks": 42976000,
+        "histograms_and_saved_tables": 37523456,
+        "service_and_bulk_copies_lower": 21587280,
+        "service_and_bulk_copies_upper": 21644416
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129002832,
+        "temporary_family_facts": 36518800
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 356160656,
+      "new_source_retained_upper": 356217792,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9417664,
+      "main_coefficients": 1306525184,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 764901376,
+      "local_gkr_peak": 6363074816
+    },
+    {
+      "ordinal": 30,
+      "source_owned_payload": {
+        "tuple_metadata": 191858016,
+        "raw_fixed_masks": 32963584,
+        "histograms_and_saved_tables": 35950592,
+        "service_and_bulk_copies_lower": 18758400,
+        "service_and_bulk_copies_upper": 18783664
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129880440,
+        "temporary_family_facts": 27860952
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 279530592,
+      "new_source_retained_upper": 279555856,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9382080,
+      "main_coefficients": 1143161344,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 667162624,
+      "local_gkr_peak": 5708448000
+    },
+    {
+      "ordinal": 31,
+      "source_owned_payload": {
+        "tuple_metadata": 245372288,
+        "raw_fixed_masks": 41733120,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 19129352,
+        "service_and_bulk_copies_upper": 19152952
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129801384,
+        "temporary_family_facts": 31985464
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 341659016,
+      "new_source_retained_upper": 341682616,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9393472,
+      "main_coefficients": 1275818496,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 756586496,
+      "local_gkr_peak": 6210998528
+    },
+    {
+      "ordinal": 32,
+      "source_owned_payload": {
+        "tuple_metadata": 238209088,
+        "raw_fixed_masks": 40169344,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 18929592,
+        "service_and_bulk_copies_upper": 18942504
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131808672,
+        "temporary_family_facts": 35524028
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27131904,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 326442872,
+      "new_source_retained_upper": 326455784,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9397120,
+      "main_coefficients": 1244338688,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 740079616,
+      "local_gkr_peak": 6031020288
+    },
+    {
+      "ordinal": 33,
+      "source_owned_payload": {
+        "tuple_metadata": 191858720,
+        "raw_fixed_masks": 32963584,
+        "histograms_and_saved_tables": 35950592,
+        "service_and_bulk_copies_lower": 18041680,
+        "service_and_bulk_copies_upper": 18068624
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 128955816,
+        "temporary_family_facts": 27541964
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 278814576,
+      "new_source_retained_upper": 278841520,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9390848,
+      "main_coefficients": 1143161344,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 667162624,
+      "local_gkr_peak": 5708448000
+    },
+    {
+      "ordinal": 34,
+      "source_owned_payload": {
+        "tuple_metadata": 239928096,
+        "raw_fixed_masks": 40907776,
+        "histograms_and_saved_tables": 38047744,
+        "service_and_bulk_copies_lower": 20195620,
+        "service_and_bulk_copies_upper": 20221700
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 130652280,
+        "temporary_family_facts": 34005608
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 339079236,
+      "new_source_retained_upper": 339105316,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9402208,
+      "main_coefficients": 1256759808,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 747870208,
+      "local_gkr_peak": 6148915456
+    },
+    {
+      "ordinal": 35,
+      "source_owned_payload": {
+        "tuple_metadata": 240936576,
+        "raw_fixed_masks": 40603520,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 18927212,
+        "service_and_bulk_copies_upper": 18938716
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131436936,
+        "temporary_family_facts": 33252524
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 329602156,
+      "new_source_retained_upper": 329613660,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9383840,
+      "main_coefficients": 1254152704,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 744536064,
+      "local_gkr_peak": 6068506880
+    },
+    {
+      "ordinal": 36,
+      "source_owned_payload": {
+        "tuple_metadata": 189857856,
+        "raw_fixed_masks": 32558080,
+        "histograms_and_saved_tables": 36474880,
+        "service_and_bulk_copies_lower": 17914712,
+        "service_and_bulk_copies_upper": 17941080
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 128549016,
+        "temporary_family_facts": 27848900
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 276805528,
+      "new_source_retained_upper": 276831896,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9373408,
+      "main_coefficients": 1135702528,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 663787520,
+      "local_gkr_peak": 5665960192
+    },
+    {
+      "ordinal": 37,
+      "source_owned_payload": {
+        "tuple_metadata": 240857888,
+        "raw_fixed_masks": 41140992,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 21443548,
+        "service_and_bulk_copies_upper": 21503244
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 130386240,
+        "temporary_family_facts": 36546544
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 332577276,
+      "new_source_retained_upper": 332636972,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9420832,
+      "main_coefficients": 1264057856,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 750221312,
+      "local_gkr_peak": 6172233984
+    },
+    {
+      "ordinal": 38,
+      "source_owned_payload": {
+        "tuple_metadata": 191884352,
+        "raw_fixed_masks": 32963584,
+        "histograms_and_saved_tables": 35950592,
+        "service_and_bulk_copies_lower": 18383228,
+        "service_and_bulk_copies_upper": 18402556
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129124512,
+        "temporary_family_facts": 28281116
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 279181756,
+      "new_source_retained_upper": 279201084,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9376288,
+      "main_coefficients": 1143161344,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 667162624,
+      "local_gkr_peak": 5708448000
+    },
+    {
+      "ordinal": 39,
+      "source_owned_payload": {
+        "tuple_metadata": 245364864,
+        "raw_fixed_masks": 41733120,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 19412552,
+        "service_and_bulk_copies_upper": 19436712
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 129899376,
+        "temporary_family_facts": 32432832
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 341934792,
+      "new_source_retained_upper": 341958952,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9397472,
+      "main_coefficients": 1275818496,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 756586496,
+      "local_gkr_peak": 6210998528
+    },
+    {
+      "ordinal": 40,
+      "source_owned_payload": {
+        "tuple_metadata": 238220224,
+        "raw_fixed_masks": 40169344,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 18891444,
+        "service_and_bulk_copies_upper": 18904628
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131532768,
+        "temporary_family_facts": 35049628
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27131904,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 326415860,
+      "new_source_retained_upper": 326429044,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9394368,
+      "main_coefficients": 1244338688,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 740079616,
+      "local_gkr_peak": 6031020288
+    },
+    {
+      "ordinal": 41,
+      "source_owned_payload": {
+        "tuple_metadata": 190351008,
+        "raw_fixed_masks": 32689152,
+        "histograms_and_saved_tables": 36474880,
+        "service_and_bulk_copies_lower": 17880432,
+        "service_and_bulk_copies_upper": 17906240
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 128795976,
+        "temporary_family_facts": 27720824
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 277395472,
+      "new_source_retained_upper": 277421280,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9384512,
+      "main_coefficients": 1139110400,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 664836096,
+      "local_gkr_peak": 5679591680
+    },
+    {
+      "ordinal": 42,
+      "source_owned_payload": {
+        "tuple_metadata": 239910624,
+        "raw_fixed_masks": 40907776,
+        "histograms_and_saved_tables": 38047744,
+        "service_and_bulk_copies_lower": 20090864,
+        "service_and_bulk_copies_upper": 20114480
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131076288,
+        "temporary_family_facts": 34290896
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 338957008,
+      "new_source_retained_upper": 338980624,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9401536,
+      "main_coefficients": 1256759808,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 747870208,
+      "local_gkr_peak": 6148915456
+    },
+    {
+      "ordinal": 43,
+      "source_owned_payload": {
+        "tuple_metadata": 240943488,
+        "raw_fixed_masks": 40628096,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 18990948,
+        "service_and_bulk_copies_upper": 19004132
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131264280,
+        "temporary_family_facts": 32930108
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 329697380,
+      "new_source_retained_upper": 329710564,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9386720,
+      "main_coefficients": 1254611456,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 744863744,
+      "local_gkr_peak": 6071914752
+    },
+    {
+      "ordinal": 44,
+      "source_owned_payload": {
+        "tuple_metadata": 189858080,
+        "raw_fixed_masks": 32558080,
+        "histograms_and_saved_tables": 36474880,
+        "service_and_bulk_copies_lower": 17868528,
+        "service_and_bulk_copies_upper": 17893824
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 128434392,
+        "temporary_family_facts": 27869176
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 276759568,
+      "new_source_retained_upper": 276784864,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9370048,
+      "main_coefficients": 1135702528,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 663787520,
+      "local_gkr_peak": 5665960192
+    },
+    {
+      "ordinal": 45,
+      "source_owned_payload": {
+        "tuple_metadata": 238154112,
+        "raw_fixed_masks": 40694784,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 20534164,
+        "service_and_bulk_copies_upper": 20559172
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131793120,
+        "temporary_family_facts": 36231768
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27131904,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 328517908,
+      "new_source_retained_upper": 328542916,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9431648,
+      "main_coefficients": 1253458432,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 744953856,
+      "local_gkr_peak": 6141137152
+    },
+    {
+      "ordinal": 46,
+      "source_owned_payload": {
+        "tuple_metadata": 195449120,
+        "raw_fixed_masks": 33590016,
+        "histograms_and_saved_tables": 35950592,
+        "service_and_bulk_copies_lower": 18948000,
+        "service_and_bulk_copies_upper": 19000688
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 127297800,
+        "temporary_family_facts": 28459692
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 283937728,
+      "new_source_retained_upper": 283990416,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9368992,
+      "main_coefficients": 1157299712,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 672954368,
+      "local_gkr_peak": 5767659776
+    },
+    {
+      "ordinal": 47,
+      "source_owned_payload": {
+        "tuple_metadata": 245314464,
+        "raw_fixed_masks": 41726976,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 19971460,
+        "service_and_bulk_copies_upper": 19998660
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 130258584,
+        "temporary_family_facts": 32901788
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 342437156,
+      "new_source_retained_upper": 342464356,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9404960,
+      "main_coefficients": 1275658752,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 756553728,
+      "local_gkr_peak": 6210146560
+    },
+    {
+      "ordinal": 48,
+      "source_owned_payload": {
+        "tuple_metadata": 240915040,
+        "raw_fixed_masks": 40595328,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 18823900,
+        "service_and_bulk_copies_upper": 18837084
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131338440,
+        "temporary_family_facts": 34213556
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 329469116,
+      "new_source_retained_upper": 329482300,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9390208,
+      "main_coefficients": 1254062592,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 744568832,
+      "local_gkr_peak": 6065099008
+    },
+    {
+      "ordinal": 49,
+      "source_owned_payload": {
+        "tuple_metadata": 190349088,
+        "raw_fixed_masks": 32689152,
+        "histograms_and_saved_tables": 36474880,
+        "service_and_bulk_copies_lower": 17845168,
+        "service_and_bulk_copies_upper": 17871568
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 128619720,
+        "temporary_family_facts": 27803144
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 277358288,
+      "new_source_retained_upper": 277384688,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9379776,
+      "main_coefficients": 1139110400,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 664836096,
+      "local_gkr_peak": 5679591680
+    },
+    {
+      "ordinal": 50,
+      "source_owned_payload": {
+        "tuple_metadata": 239898752,
+        "raw_fixed_masks": 40875008,
+        "histograms_and_saved_tables": 38047744,
+        "service_and_bulk_copies_lower": 20186536,
+        "service_and_bulk_copies_upper": 20211800
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131310720,
+        "temporary_family_facts": 35051092
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 339008040,
+      "new_source_retained_upper": 339033304,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9414016,
+      "main_coefficients": 1256210944,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 747575296,
+      "local_gkr_peak": 6142099712
+    },
+    {
+      "ordinal": 51,
+      "source_owned_payload": {
+        "tuple_metadata": 240015264,
+        "raw_fixed_masks": 40421248,
+        "histograms_and_saved_tables": 38047744,
+        "service_and_bulk_copies_lower": 18992092,
+        "service_and_bulk_copies_upper": 19004732
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 131252040,
+        "temporary_family_facts": 32068728
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27525120,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 337476348,
+      "new_source_retained_upper": 337488988,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9382464,
+      "main_coefficients": 1248348672,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 743323648,
+      "local_gkr_peak": 6046466304
+    },
+    {
+      "ordinal": 52,
+      "source_owned_payload": {
+        "tuple_metadata": 193401088,
+        "raw_fixed_masks": 33082368,
+        "histograms_and_saved_tables": 36474880,
+        "service_and_bulk_copies_lower": 17792024,
+        "service_and_bulk_copies_upper": 17816168
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 128398176,
+        "temporary_family_facts": 28076964
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 22020096,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 280750360,
+      "new_source_retained_upper": 280774504,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9360736,
+      "main_coefficients": 1148023296,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 667981824,
+      "local_gkr_peak": 5720486144
+    },
+    {
+      "ordinal": 53,
+      "source_owned_payload": {
+        "tuple_metadata": 238144864,
+        "raw_fixed_masks": 40694784,
+        "histograms_and_saved_tables": 29134848,
+        "service_and_bulk_copies_lower": 20622408,
+        "service_and_bulk_copies_upper": 20646552
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 132226776,
+        "temporary_family_facts": 36629036
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 27131904,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 328596904,
+      "new_source_retained_upper": 328621048,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9436896,
+      "main_coefficients": 1253458432,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 744953856,
+      "local_gkr_peak": 6141137152
+    },
+    {
+      "ordinal": 54,
+      "source_owned_payload": {
+        "tuple_metadata": 238362752,
+        "raw_fixed_masks": 39765888,
+        "histograms_and_saved_tables": 35424256,
+        "service_and_bulk_copies_lower": 18589752,
+        "service_and_bulk_copies_upper": 18603240
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 130619520,
+        "temporary_family_facts": 30246772
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 28311552,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 332142648,
+      "new_source_retained_upper": 332156136,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 9372832,
+      "main_coefficients": 1236683264,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 738080768,
+      "local_gkr_peak": 5978198272
+    },
+    {
+      "ordinal": 55,
+      "source_owned_payload": {
+        "tuple_metadata": 154051616,
+        "raw_fixed_masks": 35259904,
+        "histograms_and_saved_tables": 29132800,
+        "service_and_bulk_copies_lower": 108852424,
+        "service_and_bulk_copies_upper": 109626040
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 108561168,
+        "temporary_family_facts": 16029560
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 19070976,
+        "shift_semantic_histograms": 8388608
+      },
+      "new_source_retained_lower": 327296744,
+      "new_source_retained_upper": 328070360,
+      "cpu_metadata_active": 234880968,
+      "moved_capture_counts_and_jalr": 11024000,
+      "main_coefficients": 1138358272,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 714835968,
+      "local_gkr_peak": 5496729856
+    },
+    {
+      "ordinal": 56,
+      "source_owned_payload": {
+        "tuple_metadata": 153370376,
+        "raw_fixed_masks": 41696128,
+        "histograms_and_saved_tables": 33843200,
+        "service_and_bulk_copies_lower": 98037840,
+        "service_and_bulk_copies_upper": 99138800
+      },
+      "retired_capture_payload": {
+        "ordinary_capture_events": 85316472,
+        "temporary_family_facts": 6578044
+      },
+      "qualified_auxiliary_retirement": {
+        "ls_raw_fixed_masks": 15728640,
+        "shift_semantic_histograms": 16777216
+      },
+      "new_source_retained_lower": 326947544,
+      "new_source_retained_upper": 328048504,
+      "cpu_metadata_active": 187331424,
+      "moved_capture_counts_and_jalr": 11306208,
+      "main_coefficients": 1091637120,
+      "main_merkle_upper": 1207959516,
+      "interaction_payload": 723335168,
+      "local_gkr_peak": 4995969280
+    }
+  ],
+  "cpu_stage_one_timeline": [
+    {
+      "ordinal": 0,
+      "seal_payload_upper_excluding_unmodeled_scratch": 23028652458,
+      "after_seal_park_payload_upper": 12368919686
+    },
+    {
+      "ordinal": 1,
+      "seal_payload_upper_excluding_unmodeled_scratch": 21536361930,
+      "after_seal_park_payload_upper": 12499291814
+    },
+    {
+      "ordinal": 2,
+      "seal_payload_upper_excluding_unmodeled_scratch": 21602772027,
+      "after_seal_park_payload_upper": 12626922263
+    },
+    {
+      "ordinal": 3,
+      "seal_payload_upper_excluding_unmodeled_scratch": 21786737495,
+      "after_seal_park_payload_upper": 12761615155
+    },
+    {
+      "ordinal": 4,
+      "seal_payload_upper_excluding_unmodeled_scratch": 21590494327,
+      "after_seal_park_payload_upper": 12887683539
+    },
+    {
+      "ordinal": 5,
+      "seal_payload_upper_excluding_unmodeled_scratch": 21911382191,
+      "after_seal_park_payload_upper": 13016172043
+    },
+    {
+      "ordinal": 6,
+      "seal_payload_upper_excluding_unmodeled_scratch": 21928545275,
+      "after_seal_park_payload_upper": 13146587479
+    },
+    {
+      "ordinal": 7,
+      "seal_payload_upper_excluding_unmodeled_scratch": 21609558483,
+      "after_seal_park_payload_upper": 13232672559
+    },
+    {
+      "ordinal": 8,
+      "seal_payload_upper_excluding_unmodeled_scratch": 22512091339,
+      "after_seal_park_payload_upper": 13371858471
+    },
+    {
+      "ordinal": 9,
+      "seal_payload_upper_excluding_unmodeled_scratch": 22206192095,
+      "after_seal_park_payload_upper": 13500024635
+    },
+    {
+      "ordinal": 10,
+      "seal_payload_upper_excluding_unmodeled_scratch": 22492636251,
+      "after_seal_park_payload_upper": 13635723703
+    },
+    {
+      "ordinal": 11,
+      "seal_payload_upper_excluding_unmodeled_scratch": 22512373691,
+      "after_seal_park_payload_upper": 13758653719
+    },
+    {
+      "ordinal": 12,
+      "seal_payload_upper_excluding_unmodeled_scratch": 22185867507,
+      "after_seal_park_payload_upper": 13852735055
+    },
+    {
+      "ordinal": 13,
+      "seal_payload_upper_excluding_unmodeled_scratch": 23132171771,
+      "after_seal_park_payload_upper": 13991938903
+    },
+    {
+      "ordinal": 14,
+      "seal_payload_upper_excluding_unmodeled_scratch": 22824195447,
+      "after_seal_park_payload_upper": 14119430867
+    },
+    {
+      "ordinal": 15,
+      "seal_payload_upper_excluding_unmodeled_scratch": 22970425379,
+      "after_seal_park_payload_upper": 14247206271
+    },
+    {
+      "ordinal": 16,
+      "seal_payload_upper_excluding_unmodeled_scratch": 23221876299,
+      "after_seal_park_payload_upper": 14368738215
+    },
+    {
+      "ordinal": 17,
+      "seal_payload_upper_excluding_unmodeled_scratch": 22785613683,
+      "after_seal_park_payload_upper": 14452366543
+    },
+    {
+      "ordinal": 18,
+      "seal_payload_upper_excluding_unmodeled_scratch": 23561500911,
+      "after_seal_park_payload_upper": 14586754635
+    },
+    {
+      "ordinal": 19,
+      "seal_payload_upper_excluding_unmodeled_scratch": 23504698919,
+      "after_seal_park_payload_upper": 14714147715
+    },
+    {
+      "ordinal": 20,
+      "seal_payload_upper_excluding_unmodeled_scratch": 23143914875,
+      "after_seal_park_payload_upper": 14806683351
+    },
+    {
+      "ordinal": 21,
+      "seal_payload_upper_excluding_unmodeled_scratch": 24065054523,
+      "after_seal_park_payload_upper": 14944338327
+    },
+    {
+      "ordinal": 22,
+      "seal_payload_upper_excluding_unmodeled_scratch": 23778739027,
+      "after_seal_park_payload_upper": 15072571567
+    },
+    {
+      "ordinal": 23,
+      "seal_payload_upper_excluding_unmodeled_scratch": 24064803007,
+      "after_seal_park_payload_upper": 15207890459
+    },
+    {
+      "ordinal": 24,
+      "seal_payload_upper_excluding_unmodeled_scratch": 24084448307,
+      "after_seal_park_payload_upper": 15330728335
+    },
+    {
+      "ordinal": 25,
+      "seal_payload_upper_excluding_unmodeled_scratch": 23747188043,
+      "after_seal_park_payload_upper": 15413940903
+    },
+    {
+      "ordinal": 26,
+      "seal_payload_upper_excluding_unmodeled_scratch": 24522783863,
+      "after_seal_park_payload_upper": 15548037587
+    },
+    {
+      "ordinal": 27,
+      "seal_payload_upper_excluding_unmodeled_scratch": 24466169715,
+      "after_seal_park_payload_upper": 15675618511
+    },
+    {
+      "ordinal": 28,
+      "seal_payload_upper_excluding_unmodeled_scratch": 24058520735,
+      "after_seal_park_payload_upper": 15758180859
+    },
+    {
+      "ordinal": 29,
+      "seal_payload_upper_excluding_unmodeled_scratch": 25061317503,
+      "after_seal_park_payload_upper": 15904574683
+    },
+    {
+      "ordinal": 30,
+      "seal_payload_upper_excluding_unmodeled_scratch": 24320838975,
+      "after_seal_park_payload_upper": 15987591835
+    },
+    {
+      "ordinal": 31,
+      "seal_payload_upper_excluding_unmodeled_scratch": 25097145111,
+      "after_seal_park_payload_upper": 16122398835
+    },
+    {
+      "ordinal": 32,
+      "seal_payload_upper_excluding_unmodeled_scratch": 24999721379,
+      "after_seal_park_payload_upper": 16246001407
+    },
+    {
+      "ordinal": 33,
+      "seal_payload_upper_excluding_unmodeled_scratch": 24662794975,
+      "after_seal_park_payload_upper": 16329547835
+    },
+    {
+      "ordinal": 34,
+      "seal_payload_upper_excluding_unmodeled_scratch": 25352511011,
+      "after_seal_park_payload_upper": 16459692927
+    },
+    {
+      "ordinal": 35,
+      "seal_payload_upper_excluding_unmodeled_scratch": 25390117195,
+      "after_seal_park_payload_upper": 16588703399
+    },
+    {
+      "ordinal": 36,
+      "seal_payload_upper_excluding_unmodeled_scratch": 24953640583,
+      "after_seal_park_payload_upper": 16670340067
+    },
+    {
+      "ordinal": 37,
+      "seal_payload_upper_excluding_unmodeled_scratch": 25715176579,
+      "after_seal_park_payload_upper": 16800130527
+    },
+    {
+      "ordinal": 38,
+      "seal_payload_upper_excluding_unmodeled_scratch": 25216375811,
+      "after_seal_park_payload_upper": 16883128671
+    },
+    {
+      "ordinal": 39,
+      "seal_payload_upper_excluding_unmodeled_scratch": 25992412923,
+      "after_seal_park_payload_upper": 17017666647
+    },
+    {
+      "ordinal": 40,
+      "seal_payload_upper_excluding_unmodeled_scratch": 25895712755,
+      "after_seal_park_payload_upper": 17141992783
+    },
+    {
+      "ordinal": 41,
+      "seal_payload_upper_excluding_unmodeled_scratch": 25524439827,
+      "after_seal_park_payload_upper": 17224099951
+    },
+    {
+      "ordinal": 42,
+      "seal_payload_upper_excluding_unmodeled_scratch": 26246229139,
+      "after_seal_park_payload_upper": 17353411055
+    },
+    {
+      "ordinal": 43,
+      "seal_payload_upper_excluding_unmodeled_scratch": 26288293923,
+      "after_seal_park_payload_upper": 17483013503
+    },
+    {
+      "ordinal": 44,
+      "seal_payload_upper_excluding_unmodeled_scratch": 25847998003,
+      "after_seal_park_payload_upper": 17564697487
+    },
+    {
+      "ordinal": 45,
+      "seal_payload_upper_excluding_unmodeled_scratch": 26562651583,
+      "after_seal_park_payload_upper": 17689695003
+    },
+    {
+      "ordinal": 46,
+      "seal_payload_upper_excluding_unmodeled_scratch": 26185727899,
+      "after_seal_park_payload_upper": 17779130615
+    },
+    {
+      "ordinal": 47,
+      "seal_payload_upper_excluding_unmodeled_scratch": 26887080395,
+      "after_seal_park_payload_upper": 17913345831
+    },
+    {
+      "ordinal": 48,
+      "seal_payload_upper_excluding_unmodeled_scratch": 26839278219,
+      "after_seal_park_payload_upper": 18041362407
+    },
+    {
+      "ordinal": 49,
+      "seal_payload_upper_excluding_unmodeled_scratch": 26423866795,
+      "after_seal_park_payload_upper": 18123526919
+    },
+    {
+      "ordinal": 50,
+      "seal_payload_upper_excluding_unmodeled_scratch": 27137349551,
+      "after_seal_park_payload_upper": 18251896075
+    },
+    {
+      "ordinal": 51,
+      "seal_payload_upper_excluding_unmodeled_scratch": 27163719755,
+      "after_seal_park_payload_upper": 18381761959
+    },
+    {
+      "ordinal": 52,
+      "seal_payload_upper_excluding_unmodeled_scratch": 26817411247,
+      "after_seal_park_payload_upper": 18467264011
+    },
+    {
+      "ordinal": 53,
+      "seal_payload_upper_excluding_unmodeled_scratch": 27464465315,
+      "after_seal_park_payload_upper": 18591508735
+    },
+    {
+      "ordinal": 54,
+      "seal_payload_upper_excluding_unmodeled_scratch": 27420520599,
+      "after_seal_park_payload_upper": 18717709811
+    },
+    {
+      "ordinal": 55,
+      "seal_payload_upper_excluding_unmodeled_scratch": 26999118055,
+      "after_seal_park_payload_upper": 18893729859
+    },
+    {
+      "ordinal": 56,
+      "seal_payload_upper_excluding_unmodeled_scratch": 26612781187,
+      "after_seal_park_payload_upper": 19097377991
+    }
+  ],
+  "cpu_stage_two_timeline": [
+    {
+      "ordinal": 0,
+      "restore_payload_upper": 22297640227,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 25008823551
+    },
+    {
+      "ordinal": 1,
+      "restore_payload_upper": 21752873599,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 24272695899
+    },
+    {
+      "ordinal": 2,
+      "restore_payload_upper": 21473765651,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 23984376047
+    },
+    {
+      "ordinal": 3,
+      "restore_payload_upper": 21290974898,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 24010923662
+    },
+    {
+      "ordinal": 4,
+      "restore_payload_upper": 20939344274,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 23623465326
+    },
+    {
+      "ordinal": 5,
+      "restore_payload_upper": 20667967758,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 23373764842
+    },
+    {
+      "ordinal": 6,
+      "restore_payload_upper": 20350518678,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 23045125490
+    },
+    {
+      "ordinal": 7,
+      "restore_payload_upper": 19954028286,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 22509747930
+    },
+    {
+      "ordinal": 8,
+      "restore_payload_upper": 19850323542,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 22581745202
+    },
+    {
+      "ordinal": 9,
+      "restore_payload_upper": 19466721306,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 22151612406
+    },
+    {
+      "ordinal": 10,
+      "restore_payload_upper": 19199828798,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 21911524122
+    },
+    {
+      "ordinal": 11,
+      "restore_payload_upper": 18871612346,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 21559731094
+    },
+    {
+      "ordinal": 12,
+      "restore_payload_upper": 18475094510,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 21029142986
+    },
+    {
+      "ordinal": 13,
+      "restore_payload_upper": 18375653410,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 21107075070
+    },
+    {
+      "ordinal": 14,
+      "restore_payload_upper": 17991718878,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 20676298682
+    },
+    {
+      "ordinal": 15,
+      "restore_payload_upper": 17700733822,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 20395651930
+    },
+    {
+      "ordinal": 16,
+      "restore_payload_upper": 17409754182,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 20103115810
+    },
+    {
+      "ordinal": 17,
+      "restore_payload_upper": 17004356118,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 19546640882
+    },
+    {
+      "ordinal": 18,
+      "restore_payload_upper": 16887046934,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 19608179442
+    },
+    {
+      "ordinal": 19,
+      "restore_payload_upper": 16558256110,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 19254763466
+    },
+    {
+      "ordinal": 20,
+      "restore_payload_upper": 16152169002,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 18708724230
+    },
+    {
+      "ordinal": 21,
+      "restore_payload_upper": 16045615666,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 18772650510
+    },
+    {
+      "ordinal": 22,
+      "restore_payload_upper": 15668564578,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 18353455678
+    },
+    {
+      "ordinal": 23,
+      "restore_payload_upper": 15401695210,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 18113390534
+    },
+    {
+      "ordinal": 24,
+      "restore_payload_upper": 15073749314,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 17761868062
+    },
+    {
+      "ordinal": 25,
+      "restore_payload_upper": 14671899546,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 17214184310
+    },
+    {
+      "ordinal": 26,
+      "restore_payload_upper": 14554869466,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 17276001974
+    },
+    {
+      "ordinal": 27,
+      "restore_payload_upper": 14225797978,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 16922305334
+    },
+    {
+      "ordinal": 28,
+      "restore_payload_upper": 13808458990,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 16346090698
+    },
+    {
+      "ordinal": 29,
+      "restore_payload_upper": 13727746602,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 16465508870
+    },
+    {
+      "ordinal": 30,
+      "restore_payload_upper": 13243049642,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 15785334406
+    },
+    {
+      "ordinal": 31,
+      "restore_payload_upper": 13125566170,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 15846698678
+    },
+    {
+      "ordinal": 32,
+      "restore_payload_upper": 12788099042,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 15476217790
+    },
+    {
+      "ordinal": 33,
+      "restore_payload_upper": 12386589306,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 14928874070
+    },
+    {
+      "ordinal": 34,
+      "restore_payload_upper": 12250752714,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 14954452646
+    },
+    {
+      "ordinal": 35,
+      "restore_payload_upper": 11943940422,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 14640972066
+    },
+    {
+      "ordinal": 36,
+      "restore_payload_upper": 11522406474,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 14057941030
+    },
+    {
+      "ordinal": 37,
+      "restore_payload_upper": 11403353810,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 14111755950
+    },
+    {
+      "ordinal": 38,
+      "restore_payload_upper": 10976313222,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 13518597986
+    },
+    {
+      "ordinal": 39,
+      "restore_payload_upper": 10859190314,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 13580322822
+    },
+    {
+      "ordinal": 40,
+      "restore_payload_upper": 10521442850,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 13209561598
+    },
+    {
+      "ordinal": 41,
+      "restore_payload_upper": 10115911662,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 12653543370
+    },
+    {
+      "ordinal": 42,
+      "restore_payload_upper": 9985552590,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 12689252522
+    },
+    {
+      "ordinal": 43,
+      "restore_payload_upper": 9679324414,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 12377011418
+    },
+    {
+      "ordinal": 44,
+      "restore_payload_upper": 9257231930,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 11792766486
+    },
+    {
+      "ordinal": 45,
+      "restore_payload_upper": 9127630234,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 11825497462
+    },
+    {
+      "ordinal": 46,
+      "restore_payload_upper": 8729017462,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 11282885714
+    },
+    {
+      "ordinal": 47,
+      "restore_payload_upper": 8592814406,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 11313881378
+    },
+    {
+      "ordinal": 48,
+      "restore_payload_upper": 8264437698,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 10961534878
+    },
+    {
+      "ordinal": 49,
+      "restore_payload_upper": 7846526726,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 10384158434
+    },
+    {
+      "ordinal": 50,
+      "restore_payload_upper": 7715660118,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 10418770226
+    },
+    {
+      "ordinal": 51,
+      "restore_payload_upper": 7403652862,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 10098259674
+    },
+    {
+      "ordinal": 52,
+      "restore_payload_upper": 7000758370,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 9544681534
+    },
+    {
+      "ordinal": 53,
+      "restore_payload_upper": 6854855578,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 9552722806
+    },
+    {
+      "ordinal": 54,
+      "restore_payload_upper": 6535542978,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 9219664030
+    },
+    {
+      "ordinal": 55,
+      "restore_payload_upper": 6140777786,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 8778409238
+    },
+    {
+      "ordinal": 56,
+      "restore_payload_upper": 5734872314,
+      "interaction_commit_payload_upper_excluding_pcs_scratch": 8389502166
+    }
+  ],
+  "truth_plans": [
+    {
+      "declaration": {
+        "family": "keccak",
+        "first_id": 1,
+        "calls": 4518,
+        "logs": [
+          16,
+          0
+        ]
+      },
+      "local_gkr": {
+        "padded_facts": 134226944,
+        "checkpoint_bank_bytes": 2863508160,
+        "first_secure_checkpoint_bytes": 2147483648,
+        "numerical_working_bytes": 6979801088,
+        "numerical_metadata_bytes": 3735552,
+        "child_peak_bytes": 6983536640,
+        "main_bytes": 504139776,
+        "interaction_bytes": 59310080,
+        "binding_bytes": 4784128,
+        "binding_scratch_bytes": 262144,
+        "durable_metadata_bytes": 40726616,
+        "main_merkle_bytes": 18874940,
+        "resident_main_bytes": 564376980,
+        "stage1_peak_bytes": 1202734484,
+        "gkr_phase_peak_bytes": 7547913620,
+        "binding_phase_peak_bytes": 628324756,
+        "pcs_phase_payload_bytes": 2133479436,
+        "whole_peak_bytes": 7547913620
+      },
+      "retained_metadata_bound": 40726616
+    },
+    {
+      "declaration": {
+        "family": "keccak",
+        "first_id": 4519,
+        "calls": 4518,
+        "logs": [
+          16,
+          0
+        ]
+      },
+      "local_gkr": {
+        "padded_facts": 134226944,
+        "checkpoint_bank_bytes": 2863508160,
+        "first_secure_checkpoint_bytes": 2147483648,
+        "numerical_working_bytes": 6979801088,
+        "numerical_metadata_bytes": 3735552,
+        "child_peak_bytes": 6983536640,
+        "main_bytes": 504139776,
+        "interaction_bytes": 59310080,
+        "binding_bytes": 4784128,
+        "binding_scratch_bytes": 262144,
+        "durable_metadata_bytes": 40726616,
+        "main_merkle_bytes": 18874940,
+        "resident_main_bytes": 564376980,
+        "stage1_peak_bytes": 1202734484,
+        "gkr_phase_peak_bytes": 7547913620,
+        "binding_phase_peak_bytes": 628324756,
+        "pcs_phase_payload_bytes": 2133479436,
+        "whole_peak_bytes": 7547913620
+      },
+      "retained_metadata_bound": 40726616
+    },
+    {
+      "declaration": {
+        "family": "keccak",
+        "first_id": 9037,
+        "calls": 4518,
+        "logs": [
+          16,
+          0
+        ]
+      },
+      "local_gkr": {
+        "padded_facts": 134226944,
+        "checkpoint_bank_bytes": 2863508160,
+        "first_secure_checkpoint_bytes": 2147483648,
+        "numerical_working_bytes": 6979801088,
+        "numerical_metadata_bytes": 3735552,
+        "child_peak_bytes": 6983536640,
+        "main_bytes": 504139776,
+        "interaction_bytes": 59310080,
+        "binding_bytes": 4784128,
+        "binding_scratch_bytes": 262144,
+        "durable_metadata_bytes": 40726616,
+        "main_merkle_bytes": 18874940,
+        "resident_main_bytes": 564376980,
+        "stage1_peak_bytes": 1202734484,
+        "gkr_phase_peak_bytes": 7547913620,
+        "binding_phase_peak_bytes": 628324756,
+        "pcs_phase_payload_bytes": 2133479436,
+        "whole_peak_bytes": 7547913620
+      },
+      "retained_metadata_bound": 40726616
+    },
+    {
+      "declaration": {
+        "family": "keccak",
+        "first_id": 13555,
+        "calls": 1567,
+        "logs": [
+          15,
+          0
+        ]
+      },
+      "local_gkr": {
+        "padded_facts": 67118080,
+        "checkpoint_bank_bytes": 1431852352,
+        "first_secure_checkpoint_bytes": 1073741824,
+        "numerical_working_bytes": 3490140160,
+        "numerical_metadata_bytes": 3493888,
+        "child_peak_bytes": 3493634048,
+        "main_bytes": 252088320,
+        "interaction_bytes": 29949952,
+        "binding_bytes": 2686976,
+        "binding_scratch_bytes": 262144,
+        "durable_metadata_bytes": 15658112,
+        "main_merkle_bytes": 9437724,
+        "resident_main_bytes": 277819804,
+        "stage1_peak_bytes": 597016988,
+        "gkr_phase_peak_bytes": 3771453852,
+        "binding_phase_peak_bytes": 312165788,
+        "pcs_phase_payload_bytes": 1084869588,
+        "whole_peak_bytes": 3771453852
+      },
+      "retained_metadata_bound": 15658112
+    },
+    {
+      "declaration": {
+        "family": "add",
+        "first_id": 1,
+        "calls": 3237,
+        "logs": [
+          16,
+          17
+        ]
+      },
+      "local_gkr": {
+        "padded_facts": 25166080,
+        "checkpoint_bank_bytes": 536876352,
+        "first_secure_checkpoint_bytes": 268435456,
+        "numerical_working_bytes": 1308636160,
+        "numerical_metadata_bytes": 3035136,
+        "child_peak_bytes": 1311671296,
+        "main_bytes": 188482560,
+        "interaction_bytes": 37765120,
+        "binding_bytes": 12599296,
+        "binding_scratch_bytes": 32768,
+        "durable_metadata_bytes": 36039232,
+        "main_merkle_bytes": 37749340,
+        "resident_main_bytes": 262506908,
+        "stage1_peak_bytes": 719424924,
+        "gkr_phase_peak_bytes": 1574178204,
+        "binding_phase_peak_bytes": 303416732,
+        "pcs_phase_payload_bytes": 1550110804,
+        "whole_peak_bytes": 1574178204
+      },
+      "retained_metadata_bound": 36039232
+    },
+    {
+      "declaration": {
+        "family": "double",
+        "first_id": 1,
+        "calls": 2760,
+        "logs": [
+          16,
+          15
+        ]
+      },
+      "local_gkr": {
+        "padded_facts": 18874624,
+        "checkpoint_bank_bytes": 402658624,
+        "first_secure_checkpoint_bytes": 268435456,
+        "numerical_working_bytes": 981480448,
+        "numerical_metadata_bytes": 3035136,
+        "child_peak_bytes": 984515584,
+        "main_bytes": 109839360,
+        "interaction_bytes": 18890752,
+        "binding_bytes": 6307840,
+        "binding_scratch_bytes": 32768,
+        "durable_metadata_bytes": 18211936,
+        "main_merkle_bytes": 18874940,
+        "resident_main_bytes": 147162012,
+        "stage1_peak_bytes": 391219100,
+        "gkr_phase_peak_bytes": 1131677596,
+        "binding_phase_peak_bytes": 169197468,
+        "pcs_phase_payload_bytes": 809290260,
+        "whole_peak_bytes": 1131677596
+      },
+      "retained_metadata_bound": 18211936
+    },
+    {
+      "declaration": {
+        "family": "sha256",
+        "first_id": 1,
+        "calls": 952,
+        "logs": [
+          10,
+          0
+        ]
+      },
+      "local_gkr": null,
+      "retained_metadata_bound": 95848
+    },
+    {
+      "declaration": {
+        "family": "arith256_mod",
+        "first_id": 1,
+        "calls": 33117,
+        "logs": [
+          16,
+          0
+        ]
+      },
+      "local_gkr": null,
+      "retained_metadata_bound": 5305224
+    },
+    {
+      "declaration": {
+        "family": "bn254_g1_add",
+        "first_id": 1,
+        "calls": 19465,
+        "logs": [
+          15,
+          0
+        ]
+      },
+      "local_gkr": null,
+      "retained_metadata_bound": 2498024
+    },
+    {
+      "declaration": {
+        "family": "bn254_g1_double",
+        "first_id": 1,
+        "calls": 31908,
+        "logs": [
+          15,
+          0
+        ]
+      },
+      "local_gkr": null,
+      "retained_metadata_bound": 2048616
+    },
+    {
+      "declaration": {
+        "family": "bn254_fp2_mul",
+        "first_id": 1,
+        "calls": 65535,
+        "logs": [
+          16,
+          0
+        ]
+      },
+      "local_gkr": null,
+      "retained_metadata_bound": 8394984
+    },
+    {
+      "declaration": {
+        "family": "bn254_fp2_mul",
+        "first_id": 65536,
+        "calls": 65535,
+        "logs": [
+          16,
+          0
+        ]
+      },
+      "local_gkr": null,
+      "retained_metadata_bound": 8394984
+    },
+    {
+      "declaration": {
+        "family": "bn254_fp2_mul",
+        "first_id": 131071,
+        "calls": 65535,
+        "logs": [
+          16,
+          0
+        ]
+      },
+      "local_gkr": null,
+      "retained_metadata_bound": 8394984
+    },
+    {
+      "declaration": {
+        "family": "bn254_fp2_mul",
+        "first_id": 196606,
+        "calls": 65535,
+        "logs": [
+          16,
+          0
+        ]
+      },
+      "local_gkr": null,
+      "retained_metadata_bound": 8394984
+    },
+    {
+      "declaration": {
+        "family": "bn254_fp2_mul",
+        "first_id": 262141,
+        "calls": 65535,
+        "logs": [
+          16,
+          0
+        ]
+      },
+      "local_gkr": null,
+      "retained_metadata_bound": 8394984
+    },
+    {
+      "declaration": {
+        "family": "bn254_fp2_mul",
+        "first_id": 327676,
+        "calls": 3488,
+        "logs": [
+          12,
+          0
+        ]
+      },
+      "local_gkr": null,
+      "retained_metadata_bound": 452968
+    }
+  ],
+  "truth_retained_metadata_bound": 244464728,
+  "classic_miller_retained_advice_bound": 121485280,
+  "service_stage_one_envelopes": [
+    {
+      "truth_ordinal": 0,
+      "family": "keccak",
+      "whole_worker_payload_envelope_with_cpu_barrier": 26645291611,
+      "worker_bound_kind": "reviewed-local-resource-plan"
+    },
+    {
+      "truth_ordinal": 1,
+      "family": "keccak",
+      "whole_worker_payload_envelope_with_cpu_barrier": 26686018227,
+      "worker_bound_kind": "reviewed-local-resource-plan"
+    },
+    {
+      "truth_ordinal": 2,
+      "family": "keccak",
+      "whole_worker_payload_envelope_with_cpu_barrier": 26726744843,
+      "worker_bound_kind": "reviewed-local-resource-plan"
+    },
+    {
+      "truth_ordinal": 3,
+      "family": "keccak",
+      "whole_worker_payload_envelope_with_cpu_barrier": 22991011691,
+      "worker_bound_kind": "reviewed-local-resource-plan"
+    },
+    {
+      "truth_ordinal": 4,
+      "family": "add",
+      "whole_worker_payload_envelope_with_cpu_barrier": 20809394155,
+      "worker_bound_kind": "reviewed-local-resource-plan"
+    },
+    {
+      "truth_ordinal": 5,
+      "family": "double",
+      "whole_worker_payload_envelope_with_cpu_barrier": 20402932779,
+      "worker_bound_kind": "reviewed-local-resource-plan"
+    },
+    {
+      "truth_ordinal": 6,
+      "family": "sha256",
+      "whole_worker_payload_envelope_with_cpu_barrier": 27879401711,
+      "worker_bound_kind": "explicit-whole-worker-cap"
+    },
+    {
+      "truth_ordinal": 7,
+      "family": "arith256_mod",
+      "whole_worker_payload_envelope_with_cpu_barrier": 27879497559,
+      "worker_bound_kind": "explicit-whole-worker-cap"
+    },
+    {
+      "truth_ordinal": 8,
+      "family": "bn254_g1_add",
+      "whole_worker_payload_envelope_with_cpu_barrier": 27884802783,
+      "worker_bound_kind": "explicit-whole-worker-cap"
+    },
+    {
+      "truth_ordinal": 9,
+      "family": "bn254_g1_double",
+      "whole_worker_payload_envelope_with_cpu_barrier": 27887300807,
+      "worker_bound_kind": "explicit-whole-worker-cap"
+    },
+    {
+      "truth_ordinal": 10,
+      "family": "bn254_fp2_mul",
+      "whole_worker_payload_envelope_with_cpu_barrier": 27889349423,
+      "worker_bound_kind": "explicit-whole-worker-cap"
+    },
+    {
+      "truth_ordinal": 11,
+      "family": "bn254_fp2_mul",
+      "whole_worker_payload_envelope_with_cpu_barrier": 27897744407,
+      "worker_bound_kind": "explicit-whole-worker-cap"
+    },
+    {
+      "truth_ordinal": 12,
+      "family": "bn254_fp2_mul",
+      "whole_worker_payload_envelope_with_cpu_barrier": 27906139391,
+      "worker_bound_kind": "explicit-whole-worker-cap"
+    },
+    {
+      "truth_ordinal": 13,
+      "family": "bn254_fp2_mul",
+      "whole_worker_payload_envelope_with_cpu_barrier": 27914534375,
+      "worker_bound_kind": "explicit-whole-worker-cap"
+    },
+    {
+      "truth_ordinal": 14,
+      "family": "bn254_fp2_mul",
+      "whole_worker_payload_envelope_with_cpu_barrier": 27922929359,
+      "worker_bound_kind": "explicit-whole-worker-cap"
+    },
+    {
+      "truth_ordinal": 15,
+      "family": "bn254_fp2_mul",
+      "whole_worker_payload_envelope_with_cpu_barrier": 27931324343,
+      "worker_bound_kind": "explicit-whole-worker-cap"
+    },
+    {
+      "miller_workers": 22,
+      "retained_metadata_total": 121485280,
+      "last_miller_whole_worker_cap_envelope": 28053262591
+    }
+  ],
+  "cpu_barrier_payload_upper": 19097377991,
+  "maximum_seal_payload_upper": 27464465315,
+  "maximum_interaction_commit_payload_upper": 25008823551,
+  "not_yet_in_cpu_timeline": [
+    "local child proof/artifact/header payloads not included in reviewed durable metadata figures",
+    "FFT/composition/PCS scratch and allocator headers",
+    "source-construction overlap with retired arrays",
+    "immutable FIXED lease mappings",
+    "schema2 immutable-key difference from measured schema1 setup baseline"
+  ],
+  "bounds_notes": [
+    "Bulk source copies every call/word list once per present kind, not merely matching facts.",
+    "Bulk JUMPDEST word interval uses ceil(codeWords/8); frozen aggregate counts omit exact codeWord lengths.",
+    "Sponge input-word interval uses packet words<=17*permutations+calls.",
+    "CPU ROM/range histograms and JALR facts move from capture and are not counted as new source allocations.",
+    "Generated provider metadata replaces freed capture family facts; LS metadata replaces consumed events.",
+    "Service advice remains captured for truth producers; copied CPU bridge advice is additional.",
+    "Only LS/D64 fixed masks and SHIFT semantic histograms use the qualified postseal auxiliary retirement."
+  ],
+  "input_sha256": {
+    "plan": "5342850f24d95f3c81c1dbd113a013f390766d72da113eca1c1d99638ce7a3a4",
+    "cost": "3519a290a3d9a62ae878fd0c82ea946bb9c675822c24ee128eb3fd591a43c225",
+    "seal": "30974a0ea5deebfbd62752689c89f064e4928e3667621d402df9e7ba45c0fef2",
+    "sizes": "c4e236cad5bc9f8110194cfd338de81072c77eb9c40cb2d1bea7d9f192c7de76",
+    "truths": "2f5e540470adefca39e50c38a422f4a87cba45d1ea8458a4e2dee906b6e7c522"
+  }
+}

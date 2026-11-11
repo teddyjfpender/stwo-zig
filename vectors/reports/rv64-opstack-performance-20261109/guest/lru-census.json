@@ -1,0 +1,181 @@
+{
+  "schema": "stwo.opstack.guest-lru-census.v1",
+  "scope": "Same existing v3 services, bounded guest-owned exact reuse; execution qualification, not physical proof or speedup qualification",
+  "source_base": "f5f7a4add",
+  "security_profile_changed": false,
+  "service_tags_packets_air_changed": false,
+  "baseline_elf_sha256": "5e3a6b7fba09296780c5e4675c37a2f4e43a901a41ff0ea68d94a10996b859f5",
+  "candidate_elf_sha256": "34977929b020da33c13f729c9eda287134041bf026ed572385b2a4a7f3d66991",
+  "canonical_rebuild_byte_identical": true,
+  "elf_geometry": {
+    "baseline_text_bytes": 2621764,
+    "candidate_text_bytes": 2625232,
+    "baseline_rodata_bytes": 116216,
+    "candidate_rodata_bytes": 116280,
+    "rom_log_both": 20,
+    "symbols_regenerated_from_candidate_elf": true
+  },
+  "bounded_memory": {
+    "point_slots": 16,
+    "factor_slots": 16,
+    "result_slots": 8,
+    "extra_last_use_bytes": 128,
+    "point_clock_replaces_existing_eight_byte_cursor": true,
+    "prepared_owners_remain_arc_pinned": true
+  },
+  "full_text_profile": {
+    "retired": 380167068,
+    "covered": 380167068,
+    "excluded": 0,
+    "range": [
+      1024,
+      4194304
+    ],
+    "raw_report_sha256": "bb22428f92d4e2e5fbf98001068ec1c525044f05155581c3a77423466ab07869",
+    "attribution_tool": "scripts/riscv64_ethereum_profile.py",
+    "attribution_sha256": "6ee48d535938c373ae9aba9a87c9b2d345a2f00c6bb90bc55e491fbe9526aadf",
+    "key_self_counts": {
+      "Miller line closure": 98336859,
+      "Fp2 add": 45925508,
+      "Fp6 multiply": 36055931,
+      "EVM dispatch": 28383306,
+      "memcpy": 16328539,
+      "G2 preparation": 12406611,
+      "memcmp": 10910868,
+      "G2 addition": 10829391,
+      "MLOAD": 10232957,
+      "G2 doubling": 9802868,
+      "Fp2 square": 9707238,
+      "Fp12 square": 8914985
+    }
+  },
+  "pairing_census": {
+    "baseline": {
+      "calls": 84,
+      "pairs": 336,
+      "distinct_requests": 84,
+      "distinct_pairs": 253,
+      "pair_frequency_histogram": {
+        "1": 252,
+        "84": 1
+      },
+      "distinct_g2": 87,
+      "g2_frequency_histogram": {
+        "1": 84,
+        "84": 3
+      },
+      "result_cache_hits": 0,
+      "g2_cache_hits": 234,
+      "prepared_builds": 102,
+      "factor_counters": {
+        "entry_hits": 78,
+        "computed_factors": 6,
+        "candidate_insertions": 258,
+        "candidate_evictions": 242
+      }
+    },
+    "lru": {
+      "calls": 84,
+      "pairs": 336,
+      "distinct_requests": 84,
+      "distinct_pairs": 253,
+      "pair_frequency_histogram": {
+        "1": 252,
+        "84": 1
+      },
+      "distinct_g2": 87,
+      "g2_frequency_histogram": {
+        "1": 84,
+        "84": 3
+      },
+      "result_cache_hits": 0,
+      "g2_cache_hits": 249,
+      "prepared_builds": 87,
+      "factor_counters": {
+        "entry_hits": 83,
+        "computed_factors": 1,
+        "candidate_insertions": 253,
+        "candidate_evictions": 237
+      }
+    },
+    "exact_public_requests_and_results_agree": true,
+    "source_request_sha256": "c80525cf54eb8e7b34ed3fd2c8e0c41cf8e58b03a65deaca275b32067a2f0fa6",
+    "candidate_request_sha256": "bb153d535c78e263db6fa997873b8f9b48ddaa22d2f072100c9b9511aebec826"
+  },
+  "execution_rows": [
+    {
+      "block": 121065789,
+      "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+      "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+      "baseline_instructions": 380167068,
+      "candidate_instructions": 361804837,
+      "change_pct": -4.8300425117306585,
+      "baseline_fp2_calls": 678888,
+      "candidate_fp2_calls": 619553,
+      "baseline_service_ram_word_transitions": 28053166,
+      "candidate_service_ram_word_transitions": 26347061,
+      "independent_oracle": {
+        "source_sha256": "76b1a41311cf8e947c7e01d38aae61b9cac900d4ad64cd5e513e1ebe12775998",
+        "report_sha256": "8e225e522bbcdc92fdaab53bbb5e69d4895dfd0bf803e4c9eea00db7e14b0f3a",
+        "all_registers_terminal_pc_output_steps_and_service_counts_agree": true,
+        "elapsed_s": 16.132782208
+      },
+      "native_report_sha256": "fb218151bb3ce25e3193e3a8e6ea8f13936d66f69daf1a92d5a72108833cfbd7"
+    },
+    {
+      "block": 120794432,
+      "input_sha256": "610ca2169a1f3b8aa25f354a81325f2b448d1644947828bce6c5c3bfd3d42887",
+      "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+      "baseline_instructions": 796470,
+      "candidate_instructions": 796270,
+      "change_pct": -0.02511080141123223,
+      "baseline_fp2_calls": 0,
+      "candidate_fp2_calls": 0,
+      "baseline_service_ram_word_transitions": 97655,
+      "candidate_service_ram_word_transitions": 97654,
+      "independent_oracle": {
+        "source_sha256": "76b1a41311cf8e947c7e01d38aae61b9cac900d4ad64cd5e513e1ebe12775998",
+        "report_sha256": "f91bb85b0d4a0037a36d45cec8392fb1645cb1ff3876e4d84687c9fe5b04d1f4",
+        "all_registers_terminal_pc_output_steps_and_service_counts_agree": true,
+        "elapsed_s": 0.180894208
+      },
+      "native_report_sha256": "21d0b93ace5a360fb8a94eb9c9437a608527de9f165f374f153d15216747ce5b"
+    },
+    {
+      "block": 121057303,
+      "input_sha256": "7fd22876560553e94cc3e244b0adde554a471b9e446d7465c313d56f96b914e9",
+      "output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+      "baseline_instructions": 5926158,
+      "candidate_instructions": 5927282,
+      "change_pct": 0.018966757214378127,
+      "baseline_fp2_calls": 0,
+      "candidate_fp2_calls": 0,
+      "baseline_service_ram_word_transitions": 664045,
+      "candidate_service_ram_word_transitions": 664202,
+      "independent_oracle": {
+        "source_sha256": "76b1a41311cf8e947c7e01d38aae61b9cac900d4ad64cd5e513e1ebe12775998",
+        "report_sha256": "52f44cff58cd474a9dc2fce350a4ba00ab5ca20cd0b922857826817e32801eb2",
+        "all_registers_terminal_pc_output_steps_and_service_counts_agree": true,
+        "elapsed_s": 1.059293042
+      },
+      "native_report_sha256": "721b4d7bc9c05a042b77fe3f3cb9674f3b8fd8350c2fb6b16562cb13a66c92c1"
+    }
+  ],
+  "tests": {
+    "release_host_pairing_hints_unit_tests": 14,
+    "failures": 0,
+    "host_pairing_cache_without_hints_compiles": true,
+    "regressions": [
+      "frequent prepared G2 owners survive streaming one-shot points and clock wrap",
+      "old computed factor entries do not starve new recurrent pairs",
+      "reference equality for true/false/infinity/malformed/subgroup/eviction",
+      "seeded and ordinary Miller product equivalence"
+    ]
+  },
+  "limitations": [
+    "No physical proof or complete proving-time claim for this new ELF yet. Native execution wall overlapped another correctness workload; only instruction counts are compared.",
+    "Full final-RAM snapshot comparison is not exposed by the current oracle. Independent instructions, output, registers, terminal PC and service packets/counts are checked.",
+    "All84 heavy pairing requests are distinct; enlarging exact result caches cannot eliminate their unique Miller work.",
+    "Static self-counts are not a call-graph inclusive model and must be re-profiled after sparse fusion."
+  ]
+}

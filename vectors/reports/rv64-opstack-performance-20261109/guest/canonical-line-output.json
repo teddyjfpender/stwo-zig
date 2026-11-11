@@ -1,0 +1,97 @@
+{
+  "schema": "stwo.opstack.canonical-line-output.v1",
+  "status": "guest execution qualified; fullOPservice proof admission remains closed",
+  "description": "Write each provider-canonical output coordinate directly to caller-owned Fq12 fields, avoiding twelve redundant modulus checks and avoiding a returned384B aggregate. RV64 asserts canonical Fq representation at compile time. The host-only packet tests retain checked canonical-to-Montgomery conversion. Existing v3 service clients are untouched.",
+  "baseline_instructions": 240511227,
+  "candidate_instructions": 238226172,
+  "service_ram_word_transitions": 15867083,
+  "text_bytes": 2574516,
+  "rom_log": 20,
+  "elf_sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930",
+  "canonical_authority": {
+    "provider_commit": "8100988d3",
+    "writer": "bn254_tower/micro.zig emitMain/emitSelected:16chunks RESULT+DISTANCE+1=p, BooleanBORROW, nofinalcarry; bytesrangechecked",
+    "outputs": "Twelveunique final DAGwriters34..45 map to source-owned globalWirelabels20..31 in narrow_source.fixedRow/globalFraction",
+    "remaining": "PhysicalCPU/RAMjoins and freshaggregate receiver required before OPprofile admission; host-output correctness alone is insufficient."
+  },
+  "qualification": [
+    {
+      "block": 121065789,
+      "instructions": 238226172,
+      "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+      "native_unicorn_agreement": [
+        "exact steps",
+        "output",
+        "all32registers",
+        "terminalPC",
+        "all service counters"
+      ],
+      "whole_final_ram_snapshot_compared": false
+    },
+    {
+      "block": 120794432,
+      "instructions": 796406,
+      "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+      "native_unicorn_agreement": [
+        "exact steps",
+        "output",
+        "all32registers",
+        "terminalPC",
+        "all service counters"
+      ],
+      "whole_final_ram_snapshot_compared": false
+    },
+    {
+      "block": 121057303,
+      "instructions": 5926435,
+      "output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+      "native_unicorn_agreement": [
+        "exact steps",
+        "output",
+        "all32registers",
+        "terminalPC",
+        "all service counters"
+      ],
+      "whole_final_ram_snapshot_compared": false
+    }
+  ],
+  "sources": {
+    "op-kona-direct-output-heavy.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-direct-output-heavy.native.json",
+      "sha256": "ae536438c1b053716fdb2f5d89d0d864648a557170b2927726bf7f6dac31dbb5"
+    },
+    "op-kona-direct-output-121065789.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-direct-output-121065789.oracle.json",
+      "sha256": "097f17002a14c3c35e7fb18604d191d38d4e9327b8b9f1c3719d235bcb500184"
+    },
+    "op-kona-direct-output-120794432.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-direct-output-120794432.native.json",
+      "sha256": "d5aff2efe7933602c84b887e0f96365fd5e93e22bb8b4ecbc4b9fe6e9c5035ab"
+    },
+    "op-kona-direct-output-120794432.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-direct-output-120794432.oracle.json",
+      "sha256": "9176ce64ff94e7f3b211df752d9cb85bdb4d4e3d231e53dd1a6992f9852e0d1b"
+    },
+    "op-kona-direct-output-121057303.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-direct-output-121057303.native.json",
+      "sha256": "3fd4eef2b83d81ffa03a35ac4fcb788afc47347f83807a331492295176cc1a2d"
+    },
+    "op-kona-direct-output-121057303.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-direct-output-121057303.oracle.json",
+      "sha256": "e041f29faaeef4660b07be6f3ad0e63c0eb29eae83b44c4a4d2dab382f92be57"
+    },
+    "op-kona-canonical-final-build/guest.elf": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-canonical-final-build/guest.elf",
+      "sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930"
+    }
+  },
+  "rejected_control": {
+    "returned_fq12": {
+      "instructions": 244097802,
+      "service_ram_word_transitions": 20326268,
+      "reason": "Large returned aggregate introduces three extra memcpy calls per line; reject despite cheaper arithmetic decoding."
+    }
+  },
+  "limitation": "Concurrent execution measurements; no controlled physical proving-time claim.",
+  "build_identity": "Corrected host-only decoding rebuild byte-identical to the three-fixture qualified RV64 ELF."
+}

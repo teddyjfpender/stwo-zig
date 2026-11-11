@@ -1,0 +1,96 @@
+{
+  "schema": "op-gkr-lane-major-alu-physical-fragment/v1",
+  "scope": "Closed conditional ALU source-binding prototype; no completeFUNCTION/range/global/execution/block/root closure or production admission.",
+  "source": {
+    "trusted_version": 1,
+    "source_context_id": 7,
+    "row_log": 5,
+    "real_queries": 13,
+    "canonical_segments": [
+      {
+        "first": 0,
+        "width": 8,
+        "variables": 8
+      },
+      {
+        "first": 8,
+        "width": 4,
+        "variables": 7
+      },
+      {
+        "first": 12,
+        "width": 1,
+        "variables": 5
+      }
+    ],
+    "facts": 416,
+    "old_padded_facts": 512,
+    "MAIN_columns": 47,
+    "binding_INTER_columns": 16,
+    "additional_FIXED_columns": 0,
+    "producer_facts": "17deterministicvalidu64ADD facts plus32-rowpadding, includingcarry/overflowcases; existential conditionalALU statement, not publicexecution input authentication.",
+    "extractor": "Trustedlane switch directlyextractsoneU16orFUNCTION tuple; compares EVERYrow/lane against original committedMAIN fractionemitter. Nevercomputes13denominators per fact or retains densefractions."
+  },
+  "protocol": {
+    "GKR": "Actual OM31 source-checkpointed GP child with3mixedheightinstances",
+    "ordering": "LaneMSB prefix / physicalrowLSB suffix. Allrole segments share last5coordinates; tested against11coordinate commonpoint.",
+    "domain": "0x4c4d5347/v1 +trustedsourceid/roster, explicitv3 relation namespace; noCPUterms14heuristic",
+    "local_magic": "OPLMSEG1",
+    "receipt": "FullboundedGKRwire +derivedterminalmarginals +sourcecontext hashed, thenlatechallenge domain andrho followedindependentmu",
+    "aggregation": "lambdas1,rho,rho\u00b2; weightoriginal13real querylanes andZERO3removeddummyweights inunchanged16-slotRole.Data",
+    "binding": "Unchanged originalRole.Component ALUAIR+Eq/prefix; freshreceiver derives Data fromvalidatedGPartifact andknownsource context. No oldrow-majorData.initChecked/fakeoldsegmentedFrame used.",
+    "PCS": "ExistingOM31/Blake2sPrefixed role-test backend withB4/q72/P0/fold4settings. Not a productionPureP2OPprofile."
+  },
+  "controls": {
+    "all_focused_ReleaseSafe_tests_passed": 71,
+    "actual_GP_plus_physical_fresh_receiver": true,
+    "unchanged_valid_proof_wrong_known_source_refuses_then_correct_accepts": true,
+    "bad_version_overlap_order_width_refuse": true,
+    "wrong_local_magic_and_missing_instance_count_refuse": true,
+    "coherent_opposite_D_errors_GP_valid_unweighted_terminal_errors_cancel_physical_reject": true,
+    "early_rho_ONE_witness_cyclic_prefix_closes_but_physical_reject": true,
+    "Eq_and_prefix_forgery_physical_reject": true,
+    "invalid_physical_proofs_retained_for_fresh_receiver": true,
+    "physical_rejection_errors": [
+      "OodsNotMatching",
+      "LastLayerDegreeInvalid"
+    ],
+    "global_suffix_test": true,
+    "whole_field_OM31_weights_and_marginals": true
+  },
+  "resource": {
+    "requested_hard_cap_bytes": 2147483648,
+    "positive_requested_peak_bytes": 2629652,
+    "all_cases_end_live_bytes": 0,
+    "physical_facts_characteristic_bound": 416,
+    "source_instance_cap": 128,
+    "scope": "Eachcase runs throughsamehardbudget; key/callerheapobject andOSstack accounting distinct. No timingclaim."
+  },
+  "security": {
+    "target": "128-bit security target under documented assumptions",
+    "baseline_ledger": "UnchangedPolicy.Facts.caps atblowup2; no baseline term subtracted.",
+    "added_source_GKR_degree_weights": {
+      "gkr_sumcheck": 252,
+      "gkr_instance_mix": 40,
+      "gkr_late_binding": 3,
+      "degenerate_point": 30,
+      "late_segment_rho_powers": 2
+    },
+    "rho_aggregation_degree": 2,
+    "independent_ND_mu_degree": 1,
+    "extra_aggregation_ND_union_bound": "3/((2^31-1)^8), conditional onfixedsource/GKRmarginals beforelatecoins",
+    "enforced_raw_modulo_envelope_bits": 151,
+    "security_qualified": false,
+    "production_admission": false,
+    "limitations": "Does notcertifyFRI/hash/FiatShamir assumptions orclose local/global obligations. Livefullsource+recursiveledger remainsrequired."
+  },
+  "readwork_caveat": "Productionlane-major source requiresdirecttrusted-lane extraction orboundedtiling, notreplayofallTqueriesperfact. Factreduction is not a speedupforecast. Baseline4Mphase0.659sprojection/tree vs2.751straversal does not determine newlayouttiming.",
+  "reproduction": {
+    "build": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP segmented lane ALU'",
+    "physical_environment": "STWO_OP_SEGMENTED_ALU_PHYSICAL=1; defaults skipphysicalcases",
+    "input": "Self-containeddeterministicactualALUcomponentfixture; no heavyguest/OPblock replay.",
+    "log": "/private/tmp/op-segmented-alu-ledger-physical.log",
+    "initial_physical_log": "/private/tmp/op-segmented-alu-physical.log"
+  },
+  "next_gate": "No liveintegration yet. Whole128-instance resource/security admission, specializedperroleextractors, durablewhole-source/root/recursion closure and actualcostcomparison required."
+}

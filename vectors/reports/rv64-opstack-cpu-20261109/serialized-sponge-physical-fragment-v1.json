@@ -1,0 +1,39 @@
+{
+  "schema": "op-serialized-sponge-physical-v1",
+  "geometry": {
+    "calls": 1,
+    "permutations": 1,
+    "first_id": 1
+  },
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "source_identity": "acd591efcddf3eac1ff92bca3eb92c2ce3e54d05bfd62f948c1e974dead7c833",
+  "fixed": "7b6add1908219560cf9eae373daef551910eb97d8fe74c3731ad94565099ba56cb59bd47",
+  "main": "f2aa7648a637c60f16b65046db49ae700633ea30b2aff6627b4dc85fdd3b2002c69bd15c",
+  "manifest": "9c51c81f57b7341cc5739f171634163a0f56a441ffc7b21507096d1ef34d893d4b18e962",
+  "boundary": "a6040dcce916b0d4a3c65376f47d6081c9610aeebcab87d5526095ce0c7dad56",
+  "receipt": "1f267b1c3c13037f51ca47374b27ad35ae67167f1f0c7e1bb21848506614333c35e1fc25",
+  "native_bytes": 409328,
+  "local_bytes": 28244,
+  "sha256": "7b664a04002cb4f5321614a5366474822ca820ebe59424c7bedfd58959b70b11",
+  "produce_ns": 995621125,
+  "requested_peak": 148002164,
+  "fresh_source": true,
+  "balanced_global_claims_rejected": true,
+  "geometry_alias_rejected": true,
+  "complete_execution": false,
+  "production_admission": false,
+  "security_qualified": false,
+  "qualification_scope": "one-call standalone fragment; no execution acceptance or matched speedup",
+  "layout": {
+    "fixed": 22,
+    "main": 269,
+    "interaction": 232,
+    "five_role_columns": 467,
+    "standalone_provider_columns": 56,
+    "oods_samples_including_composition": 745
+  },
+  "equation_degree_ir_gate": 3,
+  "witness_only_cache_proof_parity": true,
+  "balanced_cross_namespace_source_mutation_rejected": true,
+  "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/serialized-sponge-fragment-v1"
+}

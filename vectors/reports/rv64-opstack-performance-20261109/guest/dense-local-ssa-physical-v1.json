@@ -1,0 +1,117 @@
+{
+  "status": "qualified closed two-operation physical fixture",
+  "production_admitted": false,
+  "security_qualified": false,
+  "profile": {
+    "field": "OM31",
+    "queries": 12,
+    "pow_bits": 0,
+    "log_blowup": 1,
+    "quotient_split": 1
+  },
+  "scope": "square(A)->temporary; multiply(temporary,B)->public output; no VM, global RAM, request sharding or recursive wrapper",
+  "source": "source-owned mixed-height immutable ROM, full typed SSA35 tuples and separate BYTE/SSA closure",
+  "roles": [
+    {
+      "role": "public initial producer",
+      "log": 5,
+      "active_rows": 24,
+      "padded_rows": 32,
+      "fixed": 34,
+      "main": 33,
+      "inter": 16
+    },
+    {
+      "role": "square",
+      "log": 8,
+      "active_rows": 12,
+      "padded_rows": 256,
+      "fixed": 14,
+      "main": 691,
+      "inter": 32
+    },
+    {
+      "role": "multiply",
+      "log": 9,
+      "active_rows": 12,
+      "padded_rows": 512,
+      "fixed": 14,
+      "main": 1075,
+      "inter": 40
+    },
+    {
+      "role": "shared BYTE table",
+      "log": 8,
+      "active_rows": 256,
+      "padded_rows": 256,
+      "fixed": 1,
+      "main": 1,
+      "inter": 16
+    }
+  ],
+  "padded_main_inter_cells": 761888,
+  "padded_fixed_cells": 12096,
+  "main_inter_columns": 1904,
+  "fixed_columns": 63,
+  "total_opening_width_columns": 1967,
+  "gkr": {
+    "instances": 6,
+    "padded_facts": 413984,
+    "encoding": "fixed4",
+    "retention": "checkpointed streaming bottom facts",
+    "closure": "BYTE first three and SSA last three close independently; all projective denominators nonzero"
+  },
+  "binding_columns_per_instance": 16,
+  "output_debt_columns": 8,
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/dense-local-ssa-v2",
+  "proof": {
+    "file": "chain.proof.bin",
+    "bytes": 194368,
+    "sha256": "f073d82e7758fbae963031e7ce4b8c40d33a7c13b459f269ab2e2f9c974b4575"
+  },
+  "child": {
+    "file": "chain.gkr.bin",
+    "bytes": 30168,
+    "sha256": "fd2485cd1c9831de4d7a40f74997ea9c23430056cbb2301aefb0a07b5160cb5f"
+  },
+  "total_proof_bytes": 224536,
+  "qualified": [
+    "fresh physical receiver independently rebuilds FIXED authority, public inputs/output and source GKR roster",
+    "mixed log5 initial, log8 square, log9 multiply, log8 BYTE table; per-instance local MLE suffix and global PCS masks",
+    "two source-binding instances on each arithmetic component, one on each producer/table",
+    "source-owned unique IDs, immutable writer fanout12 and exact positive/negative SSA mass432",
+    "all four complete component equations have degree at most3 including variable auxiliaries",
+    "initial SSA binding, square SSA Eq, multiply SSA prefix, final output debt, BYTE provider prefix and initial MAIN mutations reject",
+    "wrong SSA point and independently changed initial SSA challenge reject",
+    "genuine alternative FIXED commitment with wrong initial value ID rejects as DenseFixedAuthority",
+    "balanced BYTE/SSA debt is rejected by separate relation closures",
+    "missing initial writer rejects the streamed source GKR construction",
+    "coherent temporary+p propagates all multiply inputs and BYTE counts with unchanged final modular output; BYTE and SSA child verifies, but physical OODS fails and retained unverified proof rejects under fresh source authority"
+  ],
+  "allocation_cap_bytes": 2147483648,
+  "allocation_checks": "ReleaseSafe complete filtered batch uses std.testing.allocator under shared hard cap; all retained objects release",
+  "checks": [
+    "zig build test-riscv64-op-dense-local-gkr -Doptimize=ReleaseSafe -Driscv-test-filter='dense SSA chain'",
+    "zig build test-riscv64-op-dense-local-gkr -Doptimize=ReleaseFast -Driscv-test-filter='dense SSA chain complete equations'"
+  ],
+  "performance_claim": "none; tiny correctness fixture and intentionally padded geometry",
+  "remaining": [
+    "whole program source ROM and source-derived capacity/security inventory",
+    "global VM packet/OWNER/RAM/Wire joins",
+    "independent recursive source leaf and root qualification",
+    "real whole-request cost/performance before admission"
+  ],
+  "canonical_forgery_artifacts": [
+    {
+      "file": "temporary-plus-p.unverified.proof.bin",
+      "bytes": 194144,
+      "sha256": "3bfea636f9f74421b90e4790a4b7bb0d7aec6e245cff60e88ca5f2708349ad11"
+    },
+    {
+      "file": "temporary-plus-p.gkr.bin",
+      "bytes": 30168,
+      "sha256": "e8534c7e8f42b56f86fa1a04004760356c6ca076d4dbcab246bb8286f13c3601"
+    }
+  ],
+  "canonical_forgery_native_error": "OodsNotMatching"
+}

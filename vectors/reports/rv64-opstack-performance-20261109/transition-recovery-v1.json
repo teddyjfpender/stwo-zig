@@ -1,0 +1,281 @@
+{
+  "schema": "op-transition-material-recovery-v1",
+  "date": "2026-11-09",
+  "status": "incomplete_authenticated_material_only",
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false,
+  "security_qualified": false,
+  "scope": "read-only filesystem/RPC capture and offline hash/trie checks; no Kona/EVM/RV64 execution, STARK proving, GPU, installation or credential access",
+  "historical_recovery": {
+    "files_statted": 741739,
+    "candidates_hashed": 0,
+    "matches": [],
+    "kv_stores": []
+  },
+  "search_roots": [
+    "/private/tmp",
+    "/Users/theodorepender/code/cryptography/rv64-proof-artifacts",
+    "/Users/theodorepender/Downloads"
+  ],
+  "historical_headers": {
+    "headers": 292,
+    "output_root_preimages": [
+      "next_root",
+      "previous_root"
+    ],
+    "authenticated_from": "bbc6c3ed0222bdfa398d6bf5936703f422b4610e5a50f9d5dfdd1eb34d2dfd72",
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false
+  },
+  "recent_candidate": {
+    "candidate": {
+      "l1-anchor": {
+        "number": 26378629,
+        "hash": "0xad0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9",
+        "header_sha256": "af8437ddb8878bf2381cd161d11104b64691c101e118e98efb9c2a5c9ad7a30c"
+      },
+      "previous": {
+        "number": 159321793,
+        "hash": "0x3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+        "header_sha256": "bae79a42074a2b8b09661a69c94296c9a5c40f51d0396a02c91e56408b32f867",
+        "output_root": "0x94625ee179240693eae780eb83dd89ed052b586030073af009949d722e6b613a"
+      },
+      "next": {
+        "number": 159321794,
+        "hash": "0x241301a29d2566cb6e850f36dc27d4ade11b8c815295fc94416cf53c87f41714",
+        "header_sha256": "503879ea89be68dd15743ce33a6fbe102a21e68b9f9eba1971c14b8f34aeea45",
+        "output_root": "0xead7bdb1bc28a437fabe299df41cda2af89c3149d7380be180ff49240e542aed"
+      }
+    },
+    "account_proof_verified_under_previous_state_root": true,
+    "anchor_selection": "RPC finalized header pinned at capture; consensus proof not checked",
+    "l1_endpoint": "https://rpc.flashbots.net",
+    "l2_endpoint": "https://mainnet.optimism.io",
+    "next_origin_bound": false,
+    "kzg_verified": false,
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false
+  },
+  "capabilities": [
+    {
+      "endpoint": "https://mainnet.optimism.io",
+      "capability": "historical header and parent chain",
+      "result": "available;292 headers verified from pinned159257842 hash"
+    },
+    {
+      "endpoint": "https://mainnet.optimism.io",
+      "capability": "historical eth_getProof159257841",
+      "result": "HTTP413 /RPC-32614;10,000-block proof window"
+    },
+    {
+      "endpoint": "https://mainnet.optimism.io",
+      "capability": "debug_getRawHeader",
+      "result": "HTTP403 /RPC-32601;not whitelisted"
+    },
+    {
+      "endpoint": "https://mainnet.optimism.io",
+      "capability": "recent eth_getProof159321793",
+      "result": "available;secure account MPT inclusion verified under authenticated previous header;EIP1898 blockHash request"
+    },
+    {
+      "endpoint": "https://rpc.flashbots.net",
+      "capability": "Ethereum historical anchor26367973",
+      "result": "available;649B RLP header verified against pinned d734e176...;185 transaction JSON objects not trie-verified"
+    },
+    {
+      "endpoint": "https://ethereum-beacon-api.publicnode.com",
+      "capability": "modern beacon blob body for historical anchor slot15607553",
+      "result": "available;131072B actual blob, one result;KZG not checked"
+    },
+    {
+      "endpoint": "https://lodestar-mainnet.chainsafe.io",
+      "capability": "beacon genesis",
+      "result": "available;actual blob request did not yield a retained successful response"
+    },
+    {
+      "endpoint": "https://ethereum.publicnode.com",
+      "capability": "RPC POST from this host",
+      "result": "HTTP403 non-JSON;backend state/archive capability undetermined"
+    },
+    {
+      "endpoint": "https://optimism.publicnode.com",
+      "capability": "RPC POST from this host",
+      "result": "HTTP403 non-JSON;backend state/archive capability undetermined"
+    }
+  ],
+  "beacon_sample": {
+    "slot": 15607553,
+    "queried_versioned_hash": "0x019598dda3e12254426541918e069d1d36fc691241281c424d4d2298443acf47",
+    "blob_bytes": 131072,
+    "blob_sha256": "7fc0129688c8ba02043839e02b5f8230d719a04380febf181680a7de4d6eab15",
+    "canonical_bls_field_elements": true,
+    "commitment_binding_verified": false,
+    "kzg_verified": false
+  },
+  "missing": [
+    "historical archive state or driven recent execution access/hint set",
+    "L1 transaction/receipt trie construction and binding",
+    "complete L2 reset/span context",
+    "all consumed blob commitments and standard EIP4844 KZG verification",
+    "native anchored derivation acceptance before proving"
+  ],
+  "upstream": {
+    "repository": "https://github.com/ethereum-optimism/optimism",
+    "revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+    "sources": [
+      "rust/kona/bin/host/src/single/cfg.rs",
+      "rust/kona/bin/host/src/kv/directory.rs",
+      "rust/kona/bin/host/src/kv/disk.rs",
+      "rust/kona/bin/host/src/single/handler.rs",
+      "rust/kona/crates/providers/providers-alloy/src/beacon_client.rs"
+    ],
+    "warning": "server-only mode requires driven hints; DiskKeyValueStore Drop destroys RocksDB; import uses read-only rocksdict"
+  },
+  "references": [
+    "https://eips.ethereum.org/EIPS/eip-1186",
+    "https://docs.flashbots.net/flashbots-protect/quick-start",
+    "https://ethereum.publicnode.com/"
+  ],
+  "validation": {
+    "focused_unittests": 19,
+    "result": "pass",
+    "resource_warnings": "treated as errors",
+    "covers": [
+      "strict bounded RLP",
+      "actual pinned header/output-root fixtures",
+      "actual recent account MPT and mutations",
+      "duplicate/forged/extraneous trie nodes",
+      "checkpoint/container/zlib bounds",
+      "archive path independence",
+      "atomic no-overwrite publication",
+      "read-only RocksDB preservation",
+      "resume reauthentication",
+      "endpoint redaction/method whitelist"
+    ]
+  },
+  "artifact_root": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery",
+  "artifacts": {
+    "beacon-sample-publicnode.json": {
+      "bytes": 262205,
+      "sha256": "6477fceb3e0b36d7f3899030a56629cd6af3d26648732f32512be0f2211b5e3b"
+    },
+    "l1-anchor-block.json": {
+      "bytes": 375497,
+      "sha256": "d5959dce20fc467e14153e52383a1c0fa0fa44ffd1d6f86a819676ffbc33ed21"
+    },
+    "l1-anchor-header.rlp": {
+      "bytes": 649,
+      "sha256": "30dc84a0aeb3659d13e3929228e00f64eb8cdd3618deef73f8f4cba2d6944e3b"
+    },
+    "l2-header-pilot/capture.json": {
+      "bytes": 270,
+      "sha256": "47dd300f41f0c48f1bb94743095fac1f2033fc0fcc73e3e5ceff3f4feabc1db8"
+    },
+    "l2-header-pilot/claim.json": {
+      "bytes": 490,
+      "sha256": "e6db9f72e731d8539dfcca11b91879f498b959ff91fba81a40614954540309d8"
+    },
+    "l2-header-pilot/records.json": {
+      "bytes": 3351,
+      "sha256": "47c2a8fb5234a2c3c32aeba4d06223a3e7d10c896b94e6e8f09922885a950f07"
+    },
+    "l2-headers-292/capture.json": {
+      "bytes": 272,
+      "sha256": "ea88caeeebef4ee5b0ac834e547f7f5b0b7d72987036eb7db82d14638bd64377"
+    },
+    "l2-headers-292/claim.json": {
+      "bytes": 490,
+      "sha256": "e6db9f72e731d8539dfcca11b91879f498b959ff91fba81a40614954540309d8"
+    },
+    "l2-headers-292/headers.jsonl": {
+      "bytes": 503224,
+      "sha256": "764ab62e808717432d459c0e7de3d3efd8bd966be1f73fa216539ffe1ae2e48c"
+    },
+    "l2-headers-292/records.json": {
+      "bytes": 397505,
+      "sha256": "361cdb8a47f56e05c2c7b36841140b88641d6453b1e9c3bed3db1cb11dc0a76d"
+    },
+    "recent-candidate/account-proof.json": {
+      "bytes": 7957,
+      "sha256": "b4067e831d55b7de46ab1d847ec331a5df3e4e6a233bce7cce08c022f53ea710"
+    },
+    "recent-candidate/account.rlp": {
+      "bytes": 80,
+      "sha256": "1d6330667fe5fe4b2946a311a023b071e6ebe87294baacb3a4e13107f7a079c5"
+    },
+    "recent-candidate/capture.json": {
+      "bytes": 1270,
+      "sha256": "8602ca0a8d60a862e3f989c6239fe4b49334e77cd457fe3c296cf0fa230328f2"
+    },
+    "recent-candidate/l1-anchor.rlp": {
+      "bytes": 649,
+      "sha256": "af8437ddb8878bf2381cd161d11104b64691c101e118e98efb9c2a5c9ad7a30c"
+    },
+    "recent-candidate/next-root-preimage.bin": {
+      "bytes": 128,
+      "sha256": "1e8501f86743c843fc15f89c2f798e277b47ec7d7033599312a13b2380f4ad66"
+    },
+    "recent-candidate/next.rlp": {
+      "bytes": 636,
+      "sha256": "503879ea89be68dd15743ce33a6fbe102a21e68b9f9eba1971c14b8f34aeea45"
+    },
+    "recent-candidate/previous-root-preimage.bin": {
+      "bytes": 128,
+      "sha256": "001cd49f5ee944aecb783362e131014afcece29e905dac0b084616ed35463cc3"
+    },
+    "recent-candidate/previous.rlp": {
+      "bytes": 635,
+      "sha256": "bae79a42074a2b8b09661a69c94296c9a5c40f51d0396a02c91e56408b32f867"
+    }
+  },
+  "host_preflight": {
+    "revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+    "existing_upstream_host_executable_found": false,
+    "existing_local_hosts": "offline conversion/run-transition only; no online host mode",
+    "capabilities": [
+      {
+        "endpoint": "https://mainnet.optimism.io",
+        "method": "debug_getRawHeader",
+        "http_status": 403,
+        "rpc_code": -32601,
+        "status": "method_unavailable"
+      },
+      {
+        "endpoint": "https://mainnet.optimism.io",
+        "method": "debug_dbGet",
+        "http_status": 403,
+        "rpc_code": -32601,
+        "status": "method_unavailable"
+      },
+      {
+        "endpoint": "https://mainnet.optimism.io",
+        "method": "debug_executePayload",
+        "http_status": 403,
+        "rpc_code": -32601,
+        "status": "method_unavailable"
+      },
+      {
+        "endpoint": "https://rpc.flashbots.net",
+        "method": "debug_getRawHeader",
+        "http_status": 403,
+        "rpc_code": -32601,
+        "status": "method_unavailable"
+      },
+      {
+        "endpoint": "https://rpc.flashbots.net",
+        "method": "debug_getRawReceipts",
+        "http_status": 403,
+        "rpc_code": -32601,
+        "status": "method_unavailable"
+      }
+    ],
+    "payload_method_probe": "empty invalid parameters only; no payload execution",
+    "first_unavoidable_failure": "SingleChainHintHandler.StartingL2Output requests L2 debug_getRawHeader; official endpoint rejects method",
+    "native_host_started": false,
+    "reason_not_built": "required public methods already demonstrated unavailable before build/run",
+    "next_capability_needed": "endpoint supporting Kona debug_getRawHeader/debug_getRawReceipts and L2 witness/code/state retrieval; or implement audited standard-RPC hint adapter with proof/code provenance"
+  }
+}

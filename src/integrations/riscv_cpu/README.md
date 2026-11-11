@@ -2,7 +2,7 @@
 
 | Fact | Value |
 | --- | --- |
-| Version | `0.2.0` |
+| Version | `0.3.0` |
 | Layer | `integration` |
 | Owner | `riscv-cpu-integration` |
 | Focused CI host | Linux |
@@ -27,6 +27,17 @@ The public module is [`mod.zig`](mod.zig). Its supported surface consists of `Cp
 The existing build also consumes `stwo_circuit_recursion_wire`. Their providers stay explicit in the package manifest; injected aliases do not replace these concrete dependency edges.
 
 ## Build, test, and run
+
+OP pairing edits use the canonical developer entrypoint. For example,
+`python3 scripts/dev_test.py --check src/integrations/riscv_cpu/delegations/op_pairing_mac12/native.zig`
+selects `test-op-pairing-proof` with semantic checking only. Omitting `--check`
+runs the focused package test; Horner and typed-projection owners select their
+own five-test gates. The pairing gate retains its nine-test discovery floor.
+Actual physical target qualification additionally requires the fixture's
+explicit `STWO_PAIRING_MAC12_TARGET=1` and `STWO_PAIRING_MAC12_P2=1` settings
+and a fresh `STWO_PAIRING_MAC12_OUT` directory. A default or semantic check does
+not establish that physical qualification. Use the qualified build host for
+compiler-heavy runs.
 
 The CPU package also builds four detached SegmentV2 tools. They prove and verify bounded execution leaves and parent nodes; they do not claim whole-block memory/provider closure:
 
@@ -216,6 +227,7 @@ are tracked separately from this metadata reconciliation.
 
 ## Dependencies
 
+- `stwo_cairo_frontend`: captured AIR and native evaluator used by the retained OP recursion path.
 - `stwo_circuit_frontend`: shared circuit program and preprocessing authorities.
 - `stwo_circuit_cpu_integration`: existing OM31 fold/root proof and wire provider.
 
@@ -282,3 +294,9 @@ tree coverage and publication. Canonical package modules share field and engine
 identity. OM31 retains its existing **prefixed** Blake2s Merkle hasher and raw-mod
 transcript; the older circuit profiles retain their existing plain family.
 No hash family, wire bytes, profile admission or device qualification changes.
+
+RFC [#374](https://github.com/teddyjfpender/stwo-zig/issues/374) declares the
+existing OP recursion Cairo dependency and the `outer_gkr_cpu_aot` and
+`hybrid_cpu_emitter` generated-module aliases. Version 0.3.0 adds these package
+declarations and canonical standalone binding; runtime APIs and proof protocols
+are unchanged. The main-branch port still requires fresh receiver qualification.

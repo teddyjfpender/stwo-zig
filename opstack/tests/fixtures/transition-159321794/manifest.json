@@ -1,0 +1,61 @@
+{
+  "schema": "op-retained-anchored-mainnet-fixture-v1",
+  "file": "input.opd.gz",
+  "compression": "gzip,level=9,mtime=0",
+  "compressed_bytes": 13885356,
+  "compressed_sha256": "98564470263f75a0a2703f3c79b6111e5378da8bc71c8fb12f7a8c54be94486f",
+  "uncompressed_bytes": 13882081,
+  "uncompressed_sha256": "9ee0a1f7b425d90c12d705212502dc135773af8d60f63c494a83500214c14031",
+  "maximum_bytes": 16777216,
+  "claim": {
+    "anchor": {
+      "number": 26378629,
+      "hash": "0xad0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9"
+    },
+    "previous_number": 159321793,
+    "previous_root": "0x94625ee179240693eae780eb83dd89ed052b586030073af009949d722e6b613a",
+    "next_number": 159321794,
+    "next_root": "0xead7bdb1bc28a437fabe299df41cda2af89c3149d7380be180ff49240e542aed",
+    "next_origin": {
+      "number": 26378577,
+      "hash": "0xa318027d823bee7ebe41f143d57c441bc6c461ca5c7af237871b7ae023b152a1"
+    }
+  },
+  "statement": {
+    "anchor_hash": "ad0a9026229de9327a50a749e2fee99e5e73f5ae13645de3d5250d4a32b5cbc9",
+    "anchor_number": 26378629,
+    "block_hash": "241301a29d2566cb6e850f36dc27d4ade11b8c815295fc94416cf53c87f41714",
+    "chain_id": 10,
+    "l1_chain_id": 1,
+    "next_number": 159321794,
+    "next_origin_hash": "a318027d823bee7ebe41f143d57c441bc6c461ca5c7af237871b7ae023b152a1",
+    "next_origin_number": 26378577,
+    "next_root": "ead7bdb1bc28a437fabe299df41cda2af89c3149d7380be180ff49240e542aed",
+    "payload_commitment": "0fad221ad8f5a2a9d6cba13872158badfc693a5aae20ed187a57b8240b5049d0",
+    "previous_number": 159321793,
+    "previous_root": "94625ee179240693eae780eb83dd89ed052b586030073af009949d722e6b613a",
+    "schema": "stwo.opstack.anchored-transition.v1"
+  },
+  "od_public_output": "a56ec99af8d129c7eaff59bf866890480cda6c7cb00d9506810cfac71cd23377010a000000000000004f44",
+  "preimage_records": 38981,
+  "blob_sidecars": 15,
+  "provenance": {
+    "upstream_revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+    "upstream_native_host_sha256": "862556839311e69c180eb998b190edb45aec23706fbb5a0174e96309a4e39bbd",
+    "upstream_host_only_patch_sha256": "2442649ee5790fd9c38fbbf5790735b8ea4c5b0bbb2fda3a894a77aedbd7a233",
+    "native_verifier_sha256": "f9d20b270574627995b5dfe20a61b6d3b0bcc876ca8cd7aff211d870f52947b7",
+    "native_build_report_sha256": "3340ddea5462e648d6aea543713b92cb107487ce537f852ca6b1509a808d48a5",
+    "native_source_head": "bf5758d4c0c17f0f476a22e266a32319dfcc3693",
+    "native_tracked_diff_sha256": "4b86379f1ea8a01dd2ab33627048c9ee55ed368b90db575529996649e4255c26",
+    "native_compile_sources_manifest_sha256": "71926bdc445bcbe8166513635ca3192eb5b2a9cc028a885c142dc5c2e7ecf0da",
+    "cargo_lock_sha256": "5f83a3d2709089304daf70e614ea5666690d9c84d777edfef1c7bd0e8e5ca7d9",
+    "kzg_checker_sha256": "15f75872f7654c30ee4e5cd84f8b44d0f8ca79915f205ef9da615623dea369cd",
+    "ethereum_trusted_setup_sha256": "d39b9f2d047cc9dca2de58f264b6a09448ccd34db967881a6713eacacf0f26b7",
+    "qualification_report": "vectors/reports/rv64-opstack-performance-20261109/transition-recent-mainnet-complete-v1.json"
+  },
+  "native_derivation_accepted": true,
+  "guest_executed": false,
+  "proof_verified": false,
+  "anchor_finality_external": true,
+  "security_qualified": false
+}

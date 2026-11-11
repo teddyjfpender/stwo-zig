@@ -101,6 +101,25 @@ pub const Error = Allocator.Error || error{
     EqFailedOnEval,
 };
 
+/// Explicit source-owned override for unrestricted QM31 guess producers only.
+/// The source owner must validate the exact algebra context and origin IDs.
+pub const Qm31GuessSink = struct {
+    context: ?*anyopaque,
+    emit: *const fn (?*anyopaque, *anyopaque, Var) Error!void,
+};
+threadlocal var qm31_guess_sink: ?Qm31GuessSink = null;
+pub const Qm31GuessSinkScope = struct {
+    previous: ?Qm31GuessSink,
+    pub fn init(sink: Qm31GuessSink) Qm31GuessSinkScope {
+        const previous = qm31_guess_sink;
+        qm31_guess_sink = sink;
+        return .{ .previous = previous };
+    }
+    pub fn deinit(self: *Qm31GuessSinkScope) void {
+        qm31_guess_sink = self.previous;
+    }
+};
+
 /// Failures of `finalize` (upstream panics for each).
 pub const FinalizeError = Error || error{
     /// Some reserved variables were never assigned by `setOutputs`.
@@ -368,7 +387,9 @@ pub fn Context(comptime V: type) type {
             self.guesses_finalized = true;
             for (self.guessed_vars.items) |guessed| switch (guessed) {
                 .m31 => |v| try self.pointwiseMulInto(v, self.one(), v),
-                .qm31 => |v| try self.addInto(v, self.zero(), v),
+                .qm31 => |v| if (qm31_guess_sink) |sink| {
+                    try sink.emit(sink.context, @ptrCast(self), v);
+                } else try self.addInto(v, self.zero(), v),
                 .u16 => |v| try self.m31ToU32Into(v, v),
             };
             self.guessed_vars.clearAndFree(self.gpa);

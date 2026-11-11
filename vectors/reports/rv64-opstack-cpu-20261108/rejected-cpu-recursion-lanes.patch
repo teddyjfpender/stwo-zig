@@ -1,0 +1,264 @@
+diff --git b/build_support/products/riscv_cpu.zig a/build_support/products/riscv_cpu.zig
+index 007c6ad20..7d9e5c802 100644
+--- b/build_support/products/riscv_cpu.zig
++++ a/build_support/products/riscv_cpu.zig
+@@ -155 +155 @@ pub fn addProduct(context: Context) void {
+-        .{ "recursion", "src/integrations/riscv_cpu/rv64_recursion_test_root.zig", 3 },
++        .{ "recursion", "src/integrations/riscv_cpu/rv64_recursion_test_root.zig", 7 },
+diff --git b/src/integrations/riscv_cpu/rv64_recursion/om31_native/cpu_lanes.zig a/src/integrations/riscv_cpu/rv64_recursion/om31_native/cpu_lanes.zig
+new file mode 100644
+index 000000000..70e06b6da
+--- /dev/null
++++ a/src/integrations/riscv_cpu/rv64_recursion/om31_native/cpu_lanes.zig
+@@ -0,0 +1,151 @@
++//! Bounded CPU-only pool ownership for the existing recursive DAG. No proof
++//! identity, transcript or verifier policy depends on this operational choice.
++const std = @import("std");
++const engine = @import("stwo_prover_engine");
++const Pools = engine.work_pool;
++const Budget = engine.host_budget_allocator.SharedHostBudget;
++
++pub fn fromEnv(a: std.mem.Allocator) !?usize {
++    const text = std.process.getEnvVarOwned(a, "STWO_RV64_RECURSION_CPU_LANES") catch |err| switch (err) {
++        error.EnvironmentVariableNotFound => return null,
++        else => return err,
++    };
++    defer a.free(text);
++    return try parseCount(text);
++}
++fn parseCount(text: []const u8) !usize {
++    const count = try std.fmt.parseUnsigned(usize, text, 10);
++    if (count < 2 or count > 4) return error.InvalidCpuRecursionLanes;
++    return count;
++}
++pub const Options = struct {
++    lanes: usize,
++    workers: usize,
++    stack_size: usize,
++    pub fn validate(self: Options) !void {
++        if (self.lanes < 2 or self.lanes > 4) return error.InvalidCpuRecursionLanes;
++        if (self.workers < self.lanes * 2 or self.workers > Pools.MAX_WORKERS) return error.InsufficientCpuRecursionWorkers;
++        if (self.stack_size == 0) return error.InvalidCpuRecursionStack;
++    }
++    pub fn laneWorkers(self: Options, index: usize) usize {
++        std.debug.assert(index < self.lanes);
++        return self.workers / self.lanes + @intFromBool(index < self.workers % self.lanes);
++    }
++};
++/// Whole-proof worker admission. Folds take the complete caller pool; waiting
++/// folds block new leaves so they cannot starve behind a stream of small jobs.
++pub const WorkerGate = struct {
++    mutex: std.Thread.Mutex = .{},
++    condition: std.Thread.Condition = .{},
++    total: usize,
++    active: usize = 0,
++    exclusive_waiters: usize = 0,
++    fn available(self: *const WorkerGate, workers: usize) bool {
++        return self.active + workers <= self.total and (workers == self.total or self.exclusive_waiters == 0);
++    }
++    pub fn enter(self: *WorkerGate, workers: usize) void {
++        std.debug.assert(workers > 0 and workers <= self.total);
++        self.mutex.lock();
++        defer self.mutex.unlock();
++        const exclusive = workers == self.total;
++        if (exclusive) self.exclusive_waiters += 1;
++        while (!self.available(workers)) self.condition.wait(&self.mutex);
++        if (exclusive) self.exclusive_waiters -= 1;
++        self.active += workers;
++    }
++    pub fn leave(self: *WorkerGate, workers: usize) void {
++        self.mutex.lock();
++        defer self.mutex.unlock();
++        std.debug.assert(self.active >= workers);
++        self.active -= workers;
++        self.condition.broadcast();
++    }
++};
++/// Stable heap address: WorkPool cannot be moved after helper threads start.
++/// Coordinator and helper stacks are charged before spawning any thread.
++pub const Owner = struct {
++    allocator: std.mem.Allocator,
++    options: Options,
++    pools: [4]Pools.WorkPool = @splat(.{}),
++    initialized: usize = 0,
++    stacks: Budget.ExternalReservation,
++    gate: WorkerGate,
++    pub fn create(budget: *Budget, options: Options) !*Owner {
++        try options.validate();
++        const a = budget.allocator();
++        const self = try a.create(Owner);
++        self.* = .{ .allocator = a, .options = options, .stacks = Budget.ExternalReservation.empty(), .gate = .{ .total = options.workers } };
++        errdefer self.destroy();
++        self.stacks = try budget.reserveExternal(try std.math.add(usize, try std.math.mul(usize, 2 * options.workers - options.lanes - 1, options.stack_size), try std.math.mul(usize, options.lanes, 8 << 20)));
++        for (self.pools[0..options.lanes], 0..) |*pool, i| {
++            try pool.initInPlaceWithOptions(.{ .worker_count = options.laneWorkers(i), .stack_size = options.stack_size, .backing_allocator = a });
++            self.initialized += 1;
++        }
++        return self;
++    }
++    pub fn destroy(self: *Owner) void {
++        for (self.pools[0..self.initialized]) |*pool| pool.deinit();
++        self.stacks.deinit();
++        self.allocator.destroy(self);
++    }
++};
++
++test "OM31 native PCS CPU recursion lane admission and worker partition are bounded" {
++    for (2..5) |count| {
++        var text: [2]u8 = undefined;
++        try std.testing.expectEqual(count, try parseCount(try std.fmt.bufPrint(&text, "{d}", .{count})));
++        for (count * 2..Pools.MAX_WORKERS + 1) |workers| {
++            const options = Options{ .lanes = count, .workers = workers, .stack_size = 1 << 20 };
++            try options.validate();
++            var sum: usize = 0;
++            for (0..count) |i| sum += options.laneWorkers(i);
++            try std.testing.expectEqual(workers, sum);
++        }
++    }
++    for ([_][]const u8{ "0", "1", "5", "99" }) |text| try std.testing.expectError(error.InvalidCpuRecursionLanes, parseCount(text));
++    try std.testing.expectError(error.InvalidCharacter, parseCount("two"));
++    try std.testing.expectError(error.InsufficientCpuRecursionWorkers, (Options{ .lanes = 2, .workers = 3, .stack_size = 1 }).validate());
++}
++test "OM31 native PCS CPU lane refused stack admission releases the partial owner" {
++    const budget = try Budget.create(std.testing.allocator, 4 << 20);
++    defer budget.destroy();
++    const before = budget.snapshot();
++    try std.testing.expectError(error.OutOfMemory, Owner.create(budget, .{ .lanes = 2, .workers = 4, .stack_size = 1 << 20 }));
++    const after = budget.snapshot();
++    try std.testing.expect(after.exceeded);
++    try std.testing.expectEqual(before.live_bytes, after.live_bytes);
++    try std.testing.expectEqual(before.external_live_bytes, after.external_live_bytes);
++}
++test "OM31 native PCS CPU lane pools retain stable ownership and release all reservations" {
++    const budget = try Budget.create(std.testing.allocator, 64 << 20);
++    defer budget.destroy();
++    const before = budget.snapshot();
++    {
++        const owner = try Owner.create(budget, .{ .lanes = 2, .workers = 7, .stack_size = 1 << 20 });
++        defer owner.destroy();
++        try std.testing.expectEqual(@as(usize, 4), owner.pools[0].workerCount());
++        try std.testing.expectEqual(@as(usize, 3), owner.pools[1].workerCount());
++        try std.testing.expectEqual(@as(usize, 27 << 20), budget.snapshot().external_live_bytes);
++    }
++    const after = budget.snapshot();
++    try std.testing.expectEqual(before.live_bytes, after.live_bytes);
++    try std.testing.expectEqual(before.external_live_bytes, after.external_live_bytes);
++}
++
++test "OM31 native PCS CPU fold admission drains leaves without reducing fold workers" {
++    var gate = WorkerGate{ .total = 16 };
++    gate.enter(8);
++    gate.enter(8);
++    try std.testing.expect(!gate.available(1));
++    gate.leave(8);
++    gate.exclusive_waiters = 1;
++    try std.testing.expect(!gate.available(8));
++    try std.testing.expect(!gate.available(16));
++    gate.leave(8);
++    try std.testing.expect(gate.available(16));
++    gate.exclusive_waiters = 0;
++    gate.enter(16);
++    try std.testing.expectEqual(@as(usize, 16), gate.active);
++    gate.leave(16);
++    try std.testing.expectEqual(@as(usize, 0), gate.active);
++}
+diff --git b/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig a/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
+index 46c276901..f9e2a2ef5 100644
+--- b/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
++++ a/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
+@@ -435,0 +436 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
++    if (!existing_only and factory == null) if (try CpuLanes.fromEnv(a)) |count| return runPreparedCpuParallel(prepared, arity, count);
+@@ -583 +583,0 @@ pub fn checkPolicyEnv() !void {
+-    if (std.posix.getenv("STWO_RV64_RECURSION_CPU_LANES") != null) return error.CpuRecursionLaneExperimentRetired;
+@@ -588,0 +589 @@ const Pools = @import("stwo_prover_engine").work_pool;
++const CpuLanes = @import("cpu_lanes.zig");
+@@ -615,0 +617,2 @@ const ParallelExecution = struct {
++    cpu_owner: ?*CpuLanes.Owner = null,
++    cpu_caller_pool: ?*Pools.WorkPool = null,
+@@ -627 +630,8 @@ const ParallelExecution = struct {
+-        var binding = Pools.ScopedPoolBinding.init(self.options.lanes[lane].pool) catch |err| {
++        const value = self.options.lanes[lane];
++        self.runBoundLane(lane, value.pool, value.factory, value.physical_device);
++    }
++    fn runCpuLane(self: *ParallelExecution, lane: usize) void {
++        self.runBoundLane(lane, &self.cpu_owner.?.pools[lane], null, null);
++    }
++    fn runBoundLane(self: *ParallelExecution, lane: usize, pool: *Pools.WorkPool, factory: ?Outer.Device.Factory, device: ?u32) void {
++        var binding: ?Pools.ScopedPoolBinding = if (self.cpu_owner == null) Pools.ScopedPoolBinding.init(pool) catch |err| {
+@@ -630,2 +640,2 @@ const ParallelExecution = struct {
+-        };
+-        defer binding.deinit();
++        } else null;
++        defer if (binding) |*value| value.deinit();
+@@ -634,3 +644,16 @@ const ParallelExecution = struct {
+-            const outcome = self.prove(id, self.options.lanes[lane].factory) catch |err| {
+-                self.dispatch.fail(id, err);
+-                return;
++            const outcome = blk: {
++                const cpu = self.cpu_owner;
++                const fold = !self.plan.nodes[id].isLeaf();
++                const selected_pool = if (cpu != null and fold) self.cpu_caller_pool.? else pool;
++                const workers = selected_pool.workerCount();
++                if (cpu) |owner| owner.gate.enter(workers);
++                defer if (cpu) |owner| owner.gate.leave(workers);
++                var job_binding: ?Pools.ScopedPoolBinding = if (cpu != null) Pools.ScopedPoolBinding.init(selected_pool) catch |err| {
++                    self.dispatch.fail(id, err);
++                    return;
++                } else null;
++                defer if (job_binding) |*value| value.deinit();
++                break :blk self.prove(id, factory) catch |err| {
++                    self.dispatch.fail(id, err);
++                    return;
++                };
+@@ -643 +666,6 @@ const ParallelExecution = struct {
+-            std.debug.print("RECURSION_NODE_TIMELINE node={d} kind={s} first_leaf={d} leaf_count={d} lane={d} device={d} taken_unix_ns={d} graph_ns={d} wrap_ns={d} serialize_ns={d} write_ns={d} published_unix_ns={d} restored={}\n", .{ id, if (spec.isLeaf()) "leaf" else "fold", spec.first_leaf, spec.leaf_count, lane, self.options.lanes[lane].physical_device, taken_ns, outcome.graph_ns, outcome.wrap_only_ns, outcome.serialize_ns, outcome.write_ns, std.time.nanoTimestamp(), outcome.restored });
++            if (device) |physical| {
++                std.debug.print("RECURSION_NODE_TIMELINE node={d} kind={s} first_leaf={d} leaf_count={d} lane={d} device={d} taken_unix_ns={d} graph_ns={d} wrap_ns={d} serialize_ns={d} write_ns={d} published_unix_ns={d} restored={}\n", .{ id, if (spec.isLeaf()) "leaf" else "fold", spec.first_leaf, spec.leaf_count, lane, physical, taken_ns, outcome.graph_ns, outcome.wrap_only_ns, outcome.serialize_ns, outcome.write_ns, std.time.nanoTimestamp(), outcome.restored });
++            } else {
++                const workers = if (spec.isLeaf()) pool.workerCount() else self.cpu_caller_pool.?.workerCount();
++                std.debug.print("RECURSION_CPU_NODE_TIMELINE node={d} kind={s} first_leaf={d} leaf_count={d} lane={d} pool_workers={d} taken_unix_ns={d} graph_ns={d} wrap_ns={d} serialize_ns={d} write_ns={d} published_unix_ns={d} restored={}\n", .{ id, if (spec.isLeaf()) "leaf" else "fold", spec.first_leaf, spec.leaf_count, lane, workers, taken_ns, outcome.graph_ns, outcome.wrap_only_ns, outcome.serialize_ns, outcome.write_ns, std.time.nanoTimestamp(), outcome.restored });
++            }
+@@ -786,0 +815,34 @@ fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions, pipel
++/// Explicit CPU experiment, never inferred from producer proof metadata. The
++/// strict receiver ignores scheduling and restores every original physical node.
++fn runPreparedCpuParallel(input: PreparedExecution, arity: usize, count: usize) !Report {
++    // Binary streaming uses historical node IDs; no scheduling experiment may
++    // silently select a different durable tree. Planned k-ary profiles only.
++    if (arity == 2) return error.CpuRecursionRequiresPlannedTree;
++    const a = input.allocator;
++    const budget = try @import("../../rv64_recursion_budget.zig").require(SharedBudget, a);
++    const caller = Pools.currentScopedPool() orelse return error.MissingCpuRecursionPool;
++    const workers = caller.workerCount();
++    const owner = try CpuLanes.Owner.create(budget, .{ .lanes = count, .workers = workers, .stack_size = caller.stackSize() });
++    defer owner.destroy();
++    const plan = try Dag.Plan.initArity(input.inventory.workers.len, arity);
++    const nodes = try a.alloc(Node, plan.count);
++    defer a.free(nodes);
++    var shared = ParallelExecution{ .input = input, .options = .{ .lanes = &.{}, .pool_worker_budget = workers }, .cpu_owner = owner, .cpu_caller_pool = caller, .plan = &plan, .dispatch = .{ .queue = try Dag.Queue.init(&plan, count, plan.minimumLimit(count)) }, .nodes = nodes };
++    defer for (shared.proofs[0..plan.count]) |proof| if (proof) |value| value.deinit(a);
++    var threads: [4]std.Thread = undefined;
++    var launched: usize = 0;
++    for (0..count) |lane| {
++        threads[lane] = std.Thread.spawn(.{ .stack_size = 8 << 20 }, ParallelExecution.runCpuLane, .{ &shared, lane }) catch |err| {
++            shared.dispatch.stop(err);
++            break;
++        };
++        launched += 1;
++    }
++    for (threads[0..launched]) |thread| thread.join();
++    try shared.dispatch.result();
++    const report = try finishPlanned(&shared, &plan, "cpu_parallel", null);
++    const receipt = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .backend = "cpu_parallel", .lanes = count, .workers = workers, .serialized_folds = true, .full_pool_folds = true, .peak_authority_slots = shared.dispatch.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
++    defer a.free(receipt);
++    try @import("publication.zig").write(input.dir, "scheduler-cpu.json", receipt);
++    return report;
++}
+diff --git b/src/integrations/riscv_cpu/rv64_recursion_test_root.zig a/src/integrations/riscv_cpu/rv64_recursion_test_root.zig
+index 3521a24e1..a05c2904f 100644
+--- b/src/integrations/riscv_cpu/rv64_recursion_test_root.zig
++++ a/src/integrations/riscv_cpu/rv64_recursion_test_root.zig
+@@ -15,0 +16,4 @@ test "rv64 recursion: transcript walkers compile and the digest is Blake2s of th
++test {
++    _ = @import("rv64_recursion/om31_native/cpu_lanes.zig");
++}
++

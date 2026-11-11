@@ -238,3 +238,48 @@ test "setup seam admits exactly one seal per component" {
     defer plain.deinit();
     try std.testing.expect(!plain.root_only);
 }
+
+test "large mixed-height identity-only and streaming fixed sources retain identical polynomials" {
+    const a = std.testing.allocator;
+    var pool: engine.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .backing_allocator = a });
+    defer pool.deinit();
+    var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    const logs = [_]u32{ 20, 20, 20, 16, 5 };
+    var columns: [logs.len]engine.pcs.ColumnEvaluation = undefined;
+    var initialized: usize = 0;
+    defer for (columns[0..initialized]) |column| a.free(column.values);
+    for (logs, &columns, 0..) |log, *column, c| {
+        const values = try a.alloc(M, @as(usize, 1) << @intCast(log));
+        for (values, 0..) |*value, i| value.* = M.fromCanonical(@intCast(switch (c) {
+            0 => (i * 7919 + i / 4096) % core.fields.m31.Modulus,
+            1 => if (i % 1024 == 0) i % 257 else 0,
+            2 => 1,
+            else => (i * i + 11) % 103,
+        }));
+        column.* = .{ .log_size = log, .values = values };
+        initialized += 1;
+    }
+    var sealed = try Key.sealWithSuite(a, &columns, Key.Suite.experimentalFold4());
+    defer sealed.deinit();
+    var identity = try Key.identityOnly(a, &columns, Key.Suite.experimentalFold4(), null);
+    defer identity.deinit();
+    for (sealed.tree.coefficients.?, identity.tree.coefficients.?, 0..) |x, y, c| {
+        try std.testing.expectEqual(x.log_size, y.log_size);
+        for (x.coeffs, y.coeffs, 0..) |left, right, i| if (!left.eql(right)) {
+            std.log.err("fixed coefficient parity: column={} index={} streaming={} identity={}", .{ c, i, left.v, right.v });
+            return error.TestExpectedEqual;
+        };
+    }
+    var cache = try Fixed.Cache.init(a, 512 << 20);
+    defer cache.deinit();
+    for ([_]u32{ 1, 2 }) |beta| {
+        var first = try cache.acquireFromKey(&sealed, .{ .log_blowup = beta });
+        defer first.deinit();
+        var second = try cache.acquireFromKey(&identity, .{ .log_blowup = beta });
+        defer second.deinit();
+        try std.testing.expectEqualSlices(u8, &first.key.identity, &second.key.identity);
+        try std.testing.expectEqualSlices(u8, &first.key.root, &second.key.root);
+    }
+}

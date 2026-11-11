@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/workspace/opstack-native-tools/bin/rv64-word16-ethereum-native",
+    "--security-profile",
+    "conjectured128_b2_q108_p20_fold4",
+    "produce-candidate",
+    "/workspace/opstack-runs/cpu-mainnet-user-4workers/request.json",
+    "-",
+    "/workspace/opstack-runs/cpu-mainnet-user-4workers/proof",
+    "0",
+    "/workspace/opstack-runs/cpu-mainnet-user-4workers/resources.json"
+  ],
+  "wall_ns": 268611112442,
+  "peak_rss_bytes": 4384141312,
+  "returncode": 0,
+  "timed_out": false
+}

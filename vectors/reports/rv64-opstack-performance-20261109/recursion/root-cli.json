@@ -1,0 +1,28 @@
+{
+  "schema": "op-r5-root-cli-qualification/v1",
+  "block": 120794432,
+  "build_mode": "ReleaseFast",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "native_proofs_verified": false,
+  "root_accepted": true,
+  "root_bytes": 667304,
+  "members": 3,
+  "cold_source_seconds": 47.723910209,
+  "root_verify_seconds": 0.026508333,
+  "process_wall_seconds": 48.2,
+  "peak_requested_bytes": 10457477677,
+  "peak_rss_bytes": 10449174528,
+  "final_live_bytes": 0,
+  "final_external_bytes": 0,
+  "config_sha256": "4fea61d0e5976b78d80d2ffcc92b144bb7cd403c6a169e14d44bf5cb0d07b639",
+  "root_sha256": "19b595ec802fd39046c8e7ba862a8318154443c1497443b409bc1e451c328596",
+  "receiver_executable_sha256": "7b7e8d3c0ded254d9b3575e9e20d66eb000f3cdbd49f4a5855d3a2363b8af6c7",
+  "qualification": "Standalone process accepts the retained root through the source-only receiver API. No new proof was produced. Production defaults unchanged.",
+  "limitations": [
+    "One small block; no heavy complete-root speedup established.",
+    "Cold setup remains included and expensive.",
+    "Earlier 68.949-second source qualification used ReleaseSafe and included additional attack controls; it is not a matched speed comparison."
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "schema": "op-detached-source-custody-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "scope": "actual complete small native proofs; no heavy run or latency multiplier claim",
+  "controls": {
+    "consume_memory_events": true,
+    "park_cpu_metadata": true,
+    "retire_source_auxiliaries": true
+  },
+  "qualification": {
+    "same_original_one_cpu_native_bundle_sha256": true,
+    "two_cpu_control_candidate_native_metadata_cells_byte_identical": true,
+    "fresh_native_receivers": true,
+    "ordered_typed_callbacks": true,
+    "intentional_callback_failure_cleans_up": true,
+    "final_requested_heap_zero": true,
+    "per_type_metadata_integrity_and_source_binding_preserved": true,
+    "unchanged_native_profile_manifest_and_equations": true,
+    "ethereum_default_unchanged": true
+  },
+  "runs": {
+    "one_cpu": {
+      "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-selected-custody-v1",
+      "cpu_count": 1,
+      "native_bytes": 5045776,
+      "native_sha256": "4e7c5dc1ca425a57754eae3f913932da9e69c8fab7a920dcb08a279b0b00e17f",
+      "producer_total_ns": 17542570708,
+      "prove_ns": 13871165041
+    },
+    "two_cpu_control": {
+      "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-selected-two-cpu-control-v1",
+      "cpu_count": 2,
+      "native_bytes": 6315160,
+      "native_sha256": "8e887225f69aa64fba796ad513240686a941a27f26b78492a5f2a1c5ce4244db",
+      "producer_total_ns": 27382211083,
+      "prove_ns": 21344240459
+    },
+    "two_cpu_custody": {
+      "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-selected-two-cpu-custody-v1",
+      "cpu_count": 2,
+      "native_bytes": 6315160,
+      "native_sha256": "8e887225f69aa64fba796ad513240686a941a27f26b78492a5f2a1c5ce4244db",
+      "producer_total_ns": 28406817125,
+      "prove_ns": 22184611083
+    }
+  },
+  "checks": {
+    "ReleaseSafe_native_CLI_semantic": 0,
+    "ReleaseFast_one_cpu_physical": 0,
+    "ReleaseFast_two_cpu_control": 0,
+    "ReleaseFast_two_cpu_custody": 0,
+    "Python_tests": 107
+  },
+  "memory_scope": "32GiB requested limit; peak/RSS not recorded in this gate, no measured memory saving claimed",
+  "remaining": [
+    "Parking begins after capture in this slice; capture peak still scales with total metadata",
+    "No heavy proof repeated",
+    "Optional custody does not expand source-suite admission"
+  ]
+}

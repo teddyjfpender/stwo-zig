@@ -1,0 +1,123 @@
+{
+  "schema": "stwo.opstack.solidity-packed-tower.v1",
+  "scope": "Internal canonical OM31 multiplication only; native wire, AIR authority and proof profiles unchanged",
+  "construction": "27 base products in native i^2=-1, u^2=2+i, v^2=u tower; packed half sums; eight final signed reductions",
+  "bounds": {
+    "canonical_input_limb": "0 <= x < 2^31-1",
+    "packed_half_sum": "at most 2P-2 < 2^32; no carry between 32-bit lanes",
+    "signed_intermediates": "absolute value below 2^80, well inside int256"
+  },
+  "control": [
+    {
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "compileMs": 33031
+    },
+    {
+      "packedBaseScalar": "0",
+      "multiplications": 64,
+      "gas": 52900
+    },
+    {
+      "packedBaseScalar": "1",
+      "multiplications": 64,
+      "gas": 55828
+    },
+    {
+      "packedBaseScalar": "2",
+      "multiplications": 64,
+      "gas": 108884
+    },
+    {
+      "packedBaseScalar": "2147483646",
+      "multiplications": 64,
+      "gas": 108920
+    },
+    {
+      "packedDenseMultiplications": 64,
+      "gas": 508926
+    },
+    {
+      "nativeMixedAirGas": 118117,
+      "nodes": 17,
+      "residuals": 4
+    },
+    {
+      "nativeMixedAirGas": 901414,
+      "nodes": 257,
+      "residuals": 4
+    },
+    {
+      "nativeMixedAirGas": 6783106,
+      "nodes": 2048,
+      "residuals": 4
+    },
+    {
+      "nativeInitialAirGas": 1064808,
+      "nodes": 177,
+      "residuals": 23
+    }
+  ],
+  "candidate": [
+    {
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "compileMs": 31854
+    },
+    {
+      "packedBaseScalar": "0",
+      "multiplications": 64,
+      "gas": 51965
+    },
+    {
+      "packedBaseScalar": "1",
+      "multiplications": 64,
+      "gas": 54893
+    },
+    {
+      "packedBaseScalar": "2",
+      "multiplications": 64,
+      "gas": 107949
+    },
+    {
+      "packedBaseScalar": "2147483646",
+      "multiplications": 64,
+      "gas": 107985
+    },
+    {
+      "packedDenseMultiplications": 64,
+      "gas": 192367
+    },
+    {
+      "nativeMixedAirGas": 86852,
+      "nodes": 17,
+      "residuals": 4
+    },
+    {
+      "nativeMixedAirGas": 557019,
+      "nodes": 257,
+      "residuals": 4
+    },
+    {
+      "nativeMixedAirGas": 4100021,
+      "nodes": 2048,
+      "residuals": 4
+    },
+    {
+      "nativeInitialAirGas": 637484,
+      "nodes": 177,
+      "residuals": 23
+    }
+  ],
+  "qualification": {
+    "independent_reference": "formal polynomial JavaScript model",
+    "second_reference": "original array-based NativeFriFold multiplication",
+    "vectors": "64 basis pairs, 25 dense edge pairs, 64 deterministic dense pairs, 12 ordered base-scalar pairs",
+    "scratch": "0/1/2/64/256 multiplications: unchanged free-memory pointer and live guard",
+    "full_settlement_suite": {
+      "passed": 24,
+      "failed": 0,
+      "external_fixture_skips": 3
+    },
+    "deployability": "EIP-170 deployment-size assertions pass; solc 0.8.30, viaIR, optimizer runs 100000, Shanghai"
+  },
+  "limitations": "Component gas result only. Complete worker PCS remains impractical for settlement; no complete settlement speed claim."
+}

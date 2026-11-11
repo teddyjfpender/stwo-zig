@@ -1,0 +1,80 @@
+{
+  "schema": "op-dense-reuse-qualified-v1",
+  "scope": "bounded square+multiply diagnostic and conditional source cost model",
+  "security_qualified": false,
+  "selected_guest_changed": false,
+  "full_heavy_execution_rerun": false,
+  "physical_proof_rerun": false,
+  "controls": [
+    {
+      "candidate": false,
+      "elf_sha256": "a6572bad8794f5bfbe3364f77dc3e7133b131e78f50c692f8dd42e67c10f776e",
+      "runner_sha256": "f8488a1e32e5325fadc8fe39ab1d3be156990b21951fdcf3ecd11784b420e85b",
+      "instructions": 19344,
+      "curve_calls": [
+        0,
+        0,
+        30,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sparse_calls": 0,
+      "service_ram_word_transitions": 1082,
+      "expected_output": "4f5044454e53453030303122e33f677d3fac48a44a1f57dded97e284f162651218a2da8c84b116012404f6",
+      "unicorn_exact_agreement": true
+    },
+    {
+      "candidate": true,
+      "elf_sha256": "ad5639814191bf03dff59029a7002d66c78584b6bee68d33fa4d7d14776f6114",
+      "runner_sha256": "f8488a1e32e5325fadc8fe39ab1d3be156990b21951fdcf3ecd11784b420e85b",
+      "instructions": 8988,
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sparse_calls": 6,
+      "service_ram_word_transitions": 876,
+      "expected_output": "4f5044454e53453030303122e33f677d3fac48a44a1f57dded97e284f162651218a2da8c84b116012404f6",
+      "unicorn_exact_agreement": true
+    }
+  ],
+  "active_field_cells": {
+    "control": 53220,
+    "candidate": 88632,
+    "candidate_regression_percent": 66.53889515219842
+  },
+  "heavy_nominal": {
+    "squares": 5439,
+    "seed_products": 1764,
+    "removed_fp2_calls_nominal": 97020,
+    "added_sparse_calls": 21609,
+    "old_sparse_calls": 22185,
+    "candidate_sparse_calls": 43794,
+    "old_fp2_calls": 331163,
+    "candidate_fp2_calls_nominal": 234143,
+    "miller_leaf_count_1023_cap": [
+      22,
+      43
+    ],
+    "field_cells_padded_scenario": [
+      1277345792,
+      1145602048
+    ],
+    "assumptions": "nominal FP2 removals; one FP2 tree; source capped1023 Miller shards, independent component logs; not actual new planner output"
+  },
+  "native_tests": [
+    "144 basis products",
+    "64 mixed cases",
+    "zero/one/p-1",
+    "nonunitary fixture",
+    "equal-valued operands/in-place square"
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/dense-service-v1"
+}

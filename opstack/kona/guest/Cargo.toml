@@ -1,0 +1,28 @@
+[package]
+name = "stwo-kona-rv64-guest"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+memory-service = ["stwo-rv64-mem/admitted-bulk"]
+brotli-probe = ["stwo-kona-execution/brotli-probe"]
+lazy-brotli = ["stwo-kona-execution/lazy-brotli"]
+canonical-fr = ["stwo-kona-execution/canonical-fr"]
+default = []
+transition-program = ["stwo-kona-execution/transition-program"]
+blob-eval-probe = ["stwo-kona-execution/blob-eval-probe"]
+montgomery-services = ["stwo-kona-execution/montgomery-services"]
+eager-preimages = []
+allocator-check = []
+precompile-services = ["stwo-kona-execution/precompile-services"]
+pairing-hints = ["precompile-services", "stwo-kona-execution/pairing-hints"]
+keccak-service = ["stwo-kona-execution/keccak-service"]
+services-v3 = ["keccak-service", "stwo-kona-execution/secp-lean"]
+sponge-service = ["services-v3"]
+sha-service = ["stwo-kona-execution/sha-service"]
+
+[dependencies]
+stwo-kona-execution = { path = ".." }
+stwo-rv64-mem = { path = "../../../guests/ethereum/rv64/mem" }
+critical-section = { version = "1.2", features = ["restore-state-bool"] }

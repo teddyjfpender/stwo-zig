@@ -1,0 +1,358 @@
+{
+  "schema": "op-pairing-main-integrated/v1",
+  "status": "qualified main branch complete finite positive provider",
+  "production_admitted": false,
+  "security_qualified": false,
+  "security_label": "128-bit security target under documented assumptions; no composed certification or VM/root admission",
+  "implementation_commit": "5eb3f8b04dc4e043d07325cd50d1f481cda695a0",
+  "source_cohort": {
+    "label": "v4 integrated explicit-kind and source-derived-count definition",
+    "difference_from_agent_v4": "Main includes 01ba4b5cb logical spec cleanup (derived counts and explicit enum mapping). Same arithmetic/ROM/FIXED; code-byte-bound statement identity differs. Do not compare proof bytes across those source cohorts.",
+    "source_files_sha256": {
+      "src/frontends/riscv/rv64/air/delegations/bn254_pairing/spec.zig": "2f54b86723e6b3d392fd3b8207d599040da4bab00fe12b24cf1eadd02ab61089",
+      "src/integrations/riscv_cpu/delegations/op_pairing_mac12/native.zig": "7a1daa348bbe0490f5927d3d54246097cc9301b85483ea15a223594159f54a0d",
+      "src/integrations/riscv_cpu/delegations/op_pairing_mac12/trace.zig": "6687a33320cb54123f19a2ed66a4ebf4bb2bb72ee04161eb1df7e61be64b7f7a"
+    }
+  },
+  "profile": {
+    "field": "OM31",
+    "pcs": "native Poseidon2 M31 Om31V2",
+    "root_bytes": 36,
+    "root_coordinates": 9,
+    "queries": 72,
+    "blowup": 4,
+    "fold_step": 4,
+    "pow_bits": 0,
+    "workers": 16
+  },
+  "scope": {
+    "pairs": 4,
+    "predicate": "finite positive pairing",
+    "residue_certificate_fields_supplied": 30,
+    "arbitrary_hint_generation_timed": false,
+    "VM_execution": false,
+    "RAM_Wire_closure": false,
+    "recursive_root": false
+  },
+  "validation": {
+    "all_nine_gates_both_modes": true,
+    "safe_fast_binary_files_identical": 12,
+    "scalar_parallel_proof_and_child_identical": true,
+    "q12_coherent_hint_plus_p_child_closes_physical_rejects": "OodsNotMatching",
+    "fresh_source_without_private_values": true,
+    "source_controls": 13,
+    "wrong_profile_and_suite_and_magic_reject": true,
+    "full_canonical_ninth_root_bound": true,
+    "poison_full_matrix_ownership_OOM_and_joined_errors": true,
+    "cap_bytes": 2147483648,
+    "p2_peak_requested_bytes": 1006517525,
+    "final_budget_bytes": 0
+  },
+  "observations": [
+    {
+      "optimize": "ReleaseSafe",
+      "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/pairing-main-integrated-v4-safe",
+      "cases": {
+        "four-pair-q72": {
+          "phase_seconds": {
+            "pairing.source_witness": 0.272593,
+            "pairing.lowering": 0.008586,
+            "pairing.normalized_values": 0.106102,
+            "pairing.diagnostic_check": 0.111003,
+            "pairing.columns": 0.23823,
+            "pairing.fixed_commit": 0.009645,
+            "pairing.main_commit": 0.161472,
+            "pairing.local_gkr": 0.894241,
+            "pairing.local_encode": 0.000142,
+            "pairing.local_verify": 0.007227,
+            "pairing.binding_witness": 0.033999,
+            "pairing.projection_check": 1.954236,
+            "pairing.binding_finish": 5e-06,
+            "pairing.inter_commit": 0.009484,
+            "pairing.native_stark": 0.201172,
+            "pairing.encode": 0.002824,
+            "pairing.fresh_receiver": 0.123157,
+            "pairing.adversaries": 0.83575
+          },
+          "producer_seconds_excluding_qualification_checks": 1.945722,
+          "fresh_receiver_seconds": 0.123157
+        },
+        "four-pair-q72-reference": {
+          "phase_seconds": {
+            "pairing.source_witness": 0.276327,
+            "pairing.lowering": 0.008475,
+            "pairing.normalized_values": 0.106811,
+            "pairing.diagnostic_check": 0.112614,
+            "pairing.columns": 0.254077,
+            "pairing.fixed_commit": 0.009776,
+            "pairing.main_commit": 0.161831,
+            "pairing.local_gkr": 0.893584,
+            "pairing.local_encode": 0.000137,
+            "pairing.local_verify": 0.007202,
+            "pairing.binding_witness": 0.032611,
+            "pairing.inter_commit": 0.009287,
+            "pairing.native_stark": 0.201967,
+            "pairing.encode": 0.002861,
+            "pairing.fresh_receiver": 0.123909,
+            "pairing.adversaries": 0.843452
+          },
+          "producer_seconds_excluding_qualification_checks": 1.964946,
+          "fresh_receiver_seconds": 0.123909
+        },
+        "four-pair-p2-q72": {
+          "phase_seconds": {
+            "pairing.source_witness": 0.278512,
+            "pairing.lowering": 0.008798,
+            "pairing.normalized_values": 0.10789,
+            "pairing.diagnostic_check": 0.113763,
+            "pairing.columns": 0.236592,
+            "pairing.fixed_commit": 0.033442,
+            "pairing.main_commit": 0.441325,
+            "pairing.local_gkr": 0.895894,
+            "pairing.local_encode": 0.000152,
+            "pairing.local_verify": 0.007238,
+            "pairing.binding_witness": 0.033837,
+            "pairing.projection_check": 1.997099,
+            "pairing.binding_finish": 7e-06,
+            "pairing.inter_commit": 0.038111,
+            "pairing.native_stark": 0.220893,
+            "pairing.encode": 0.003039,
+            "pairing.fresh_receiver": 0.168123,
+            "pairing.adversaries": 1.260354
+          },
+          "producer_seconds_excluding_qualification_checks": 2.30573,
+          "fresh_receiver_seconds": 0.168123
+        },
+        "four-pair-p2-q72-scalar-columns": {
+          "phase_seconds": {
+            "pairing.source_witness": 0.282849,
+            "pairing.lowering": 0.008956,
+            "pairing.normalized_values": 0.109512,
+            "pairing.diagnostic_check": 0.115695,
+            "pairing.columns": 1.119314,
+            "pairing.fixed_commit": 0.033276,
+            "pairing.main_commit": 0.440118,
+            "pairing.local_gkr": 0.908151,
+            "pairing.local_encode": 0.000129,
+            "pairing.local_verify": 0.007184,
+            "pairing.binding_witness": 0.032649,
+            "pairing.inter_commit": 0.038003,
+            "pairing.native_stark": 0.225278,
+            "pairing.encode": 0.002935,
+            "pairing.fresh_receiver": 0.167784,
+            "pairing.adversaries": 1.264759
+          },
+          "producer_seconds_excluding_qualification_checks": 3.208354,
+          "fresh_receiver_seconds": 0.167784
+        }
+      }
+    },
+    {
+      "optimize": "ReleaseFast",
+      "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/pairing-main-integrated-v4-fast",
+      "cases": {
+        "four-pair-q72": {
+          "phase_seconds": {
+            "pairing.source_witness": 0.277914,
+            "pairing.lowering": 0.007317,
+            "pairing.normalized_values": 0.11296,
+            "pairing.diagnostic_check": 0.11331,
+            "pairing.columns": 0.173221,
+            "pairing.fixed_commit": 0.008302,
+            "pairing.main_commit": 0.137005,
+            "pairing.local_gkr": 0.577617,
+            "pairing.local_encode": 0.000122,
+            "pairing.local_verify": 0.006091,
+            "pairing.binding_witness": 0.024097,
+            "pairing.projection_check": 0.707009,
+            "pairing.binding_finish": 5e-06,
+            "pairing.inter_commit": 0.008246,
+            "pairing.native_stark": 0.186534,
+            "pairing.encode": 0.002184,
+            "pairing.fresh_receiver": 0.110861,
+            "pairing.adversaries": 0.76471
+          },
+          "producer_seconds_excluding_qualification_checks": 1.5216150000000002,
+          "fresh_receiver_seconds": 0.110861
+        },
+        "four-pair-q72-reference": {
+          "phase_seconds": {
+            "pairing.source_witness": 0.280897,
+            "pairing.lowering": 0.007233,
+            "pairing.normalized_values": 0.114269,
+            "pairing.diagnostic_check": 0.114614,
+            "pairing.columns": 0.184275,
+            "pairing.fixed_commit": 0.008192,
+            "pairing.main_commit": 0.137008,
+            "pairing.local_gkr": 0.581311,
+            "pairing.local_encode": 0.000133,
+            "pairing.local_verify": 0.006109,
+            "pairing.binding_witness": 0.02453,
+            "pairing.inter_commit": 0.008202,
+            "pairing.native_stark": 0.186208,
+            "pairing.encode": 0.002291,
+            "pairing.fresh_receiver": 0.108047,
+            "pairing.adversaries": 0.762224
+          },
+          "producer_seconds_excluding_qualification_checks": 1.540658,
+          "fresh_receiver_seconds": 0.108047
+        },
+        "four-pair-p2-q72": {
+          "phase_seconds": {
+            "pairing.source_witness": 0.28174,
+            "pairing.lowering": 0.007387,
+            "pairing.normalized_values": 0.115304,
+            "pairing.diagnostic_check": 0.115473,
+            "pairing.columns": 0.173508,
+            "pairing.fixed_commit": 0.031284,
+            "pairing.main_commit": 0.403524,
+            "pairing.local_gkr": 0.578713,
+            "pairing.local_encode": 0.000136,
+            "pairing.local_verify": 0.00611,
+            "pairing.binding_witness": 0.024645,
+            "pairing.projection_check": 0.716214,
+            "pairing.binding_finish": 7e-06,
+            "pairing.inter_commit": 0.036598,
+            "pairing.native_stark": 0.206991,
+            "pairing.encode": 0.002567,
+            "pairing.fresh_receiver": 0.149774,
+            "pairing.adversaries": 1.176211
+          },
+          "producer_seconds_excluding_qualification_checks": 1.868514,
+          "fresh_receiver_seconds": 0.149774
+        },
+        "four-pair-p2-q72-scalar-columns": {
+          "phase_seconds": {
+            "pairing.source_witness": 0.285974,
+            "pairing.lowering": 0.007634,
+            "pairing.normalized_values": 0.117036,
+            "pairing.diagnostic_check": 0.117382,
+            "pairing.columns": 1.060649,
+            "pairing.fixed_commit": 0.03085,
+            "pairing.main_commit": 0.404347,
+            "pairing.local_gkr": 0.597259,
+            "pairing.local_encode": 0.000128,
+            "pairing.local_verify": 0.006107,
+            "pairing.binding_witness": 0.024582,
+            "pairing.inter_commit": 0.036719,
+            "pairing.native_stark": 0.206825,
+            "pairing.encode": 0.002527,
+            "pairing.fresh_receiver": 0.146991,
+            "pairing.adversaries": 1.159769
+          },
+          "producer_seconds_excluding_qualification_checks": 2.780637,
+          "fresh_receiver_seconds": 0.146991
+        }
+      }
+    }
+  ],
+  "binaries_identical_across_modes": [
+    {
+      "path": "four-pair/chain.gkr.bin",
+      "bytes": 48604,
+      "sha256": "dfe16b26a7f148a1e46aaa4606e6220803d6c6efaa25d476886f4853165a1b7a",
+      "physical_accepted": null,
+      "local_child_verified": true
+    },
+    {
+      "path": "four-pair/chain.proof.bin",
+      "bytes": 176248,
+      "sha256": "fbeaf87c090ff35b5165921e675fe5e961b33f434d8d00e485097b3db57697d7",
+      "physical_accepted": true,
+      "local_child_verified": null
+    },
+    {
+      "path": "four-pair/coherent-hint-plus-p.gkr.bin",
+      "bytes": 48604,
+      "sha256": "7ab644e238cc1fcd16e2c30f63421493df3b9ee5b855559c9cbdddf64b8aa25f",
+      "physical_accepted": null,
+      "local_child_verified": true
+    },
+    {
+      "path": "four-pair/coherent-hint-plus-p.unverified.proof.bin",
+      "bytes": 172920,
+      "sha256": "82d39c4049a21c3a98ebcc471c59d4002b5e92f7d13e644a34a4ef7a5aaeaad6",
+      "physical_accepted": false,
+      "local_child_verified": null
+    },
+    {
+      "path": "four-pair-p2-q72/chain.gkr.bin",
+      "bytes": 48604,
+      "sha256": "da3ef48405bc8618c3434960d5e88866e46f594bb10cb9c5c467f5af6888e7bc",
+      "physical_accepted": null,
+      "local_child_verified": true
+    },
+    {
+      "path": "four-pair-p2-q72/chain.proof.bin",
+      "bytes": 678856,
+      "sha256": "d8e1f911e0c3bc2a608dffbedcd4bd246bacff94eff9a3213fb7165570a63e77",
+      "physical_accepted": true,
+      "local_child_verified": null
+    },
+    {
+      "path": "four-pair-p2-q72-scalar-columns/chain.gkr.bin",
+      "bytes": 48604,
+      "sha256": "da3ef48405bc8618c3434960d5e88866e46f594bb10cb9c5c467f5af6888e7bc",
+      "physical_accepted": null,
+      "local_child_verified": true
+    },
+    {
+      "path": "four-pair-p2-q72-scalar-columns/chain.proof.bin",
+      "bytes": 678856,
+      "sha256": "d8e1f911e0c3bc2a608dffbedcd4bd246bacff94eff9a3213fb7165570a63e77",
+      "physical_accepted": true,
+      "local_child_verified": null
+    },
+    {
+      "path": "four-pair-q72/chain.gkr.bin",
+      "bytes": 48604,
+      "sha256": "67b0a45f3141a875c75c30535634aa2c7001667811aeb898db1826912147e3d6",
+      "physical_accepted": null,
+      "local_child_verified": true
+    },
+    {
+      "path": "four-pair-q72/chain.proof.bin",
+      "bytes": 659232,
+      "sha256": "0dc0c0a8d069fc4fc32ef1563967abccb6d05e6a1d576cb686361d0009d3c6ef",
+      "physical_accepted": true,
+      "local_child_verified": null
+    },
+    {
+      "path": "four-pair-q72-reference/chain.gkr.bin",
+      "bytes": 48604,
+      "sha256": "67b0a45f3141a875c75c30535634aa2c7001667811aeb898db1826912147e3d6",
+      "physical_accepted": null,
+      "local_child_verified": true
+    },
+    {
+      "path": "four-pair-q72-reference/chain.proof.bin",
+      "bytes": 659232,
+      "sha256": "0dc0c0a8d069fc4fc32ef1563967abccb6d05e6a1d576cb686361d0009d3c6ef",
+      "physical_accepted": true,
+      "local_child_verified": null
+    }
+  ],
+  "retained_actual_small_OP_root_regression": {
+    "block": 120794432,
+    "root_bytes": 1263064,
+    "root_sha256": "8cc0c6259801fd7939c94ac4fd8b44bcb519adf3876f86b47cd39f3ce8773d63",
+    "source_setup_ns": 3923693375,
+    "root_read_verify_ns": 9336041,
+    "receiver_total_including_nine_controls_ns": 5826657625,
+    "native_proof_bytes_read": 0,
+    "peak_requested_bytes": 4510553430,
+    "final_heap_bytes": 0,
+    "final_external_bytes": 0
+  },
+  "regression_gates": {
+    "OP_Python_tests": 110,
+    "OP_CI_contract_tests": 4
+  },
+  "limits": [
+    "Single observations; not quiet repeated benchmarks",
+    "Producer sums exclude qualification-only checks/receiver/attacks, not a standalone process wall measurement",
+    "Fixed four-pair input and given residue certificate, not arbitrary-input host hint generation",
+    "No complete OP block or recursive-provider speed claim",
+    "Heavy 3328.446s to332.845s target remains unqualified; no long heavy proof or replay run"
+  ]
+}

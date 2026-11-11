@@ -1,0 +1,75 @@
+{
+  "schema": "stwo.opstack.extension-inlining.v1",
+  "scope": "Opt-in RV64 compiler-policy experiment, not a measured complete proving speedup",
+  "control_elf_sha256": "4d15b8f6c7291bba4311b592f9f62153a4f52a7e1f6cb4f679f4c534a7e1b302",
+  "inline_elf_sha256": "65f9e43fb82542e2e44a5a0ea9da2907926f57e8109da8c75a494d7cd79515b9",
+  "rows": [
+    {
+      "block": 121065789,
+      "control_instructions": 425537671,
+      "inline_instructions": 372009211,
+      "instruction_change_pct": -12.579017945511106,
+      "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+      "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+      "curve_calls": [
+        19465,
+        31908,
+        678888,
+        0,
+        0,
+        0,
+        0
+      ],
+      "oracle_sha256": "00e0f9bd713f013b54b193995079cdc2b06b3478e28c479267b4c015da537ddf",
+      "output_steps_pc_registers_services_match": true
+    },
+    {
+      "block": 120794432,
+      "control_instructions": 796520,
+      "inline_instructions": 797178,
+      "instruction_change_pct": 0.08260935067543329,
+      "input_sha256": "610ca2169a1f3b8aa25f354a81325f2b448d1644947828bce6c5c3bfd3d42887",
+      "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "oracle_sha256": "e0f205552d43232c2759bf1c2359ac855c15dc78de4b8de2ea0a3d4f86d4ff09",
+      "output_steps_pc_registers_services_match": true
+    },
+    {
+      "block": 121057303,
+      "control_instructions": 5928533,
+      "inline_instructions": 5929482,
+      "instruction_change_pct": 0.01600733267403953,
+      "input_sha256": "7fd22876560553e94cc3e244b0adde554a471b9e446d7465c313d56f96b914e9",
+      "output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "oracle_sha256": "f7b2889f8c1eb49f316dbf70a3173ff7d9c86cb1cd3d87e43243f342982e0ffb",
+      "output_steps_pc_registers_services_match": true
+    }
+  ],
+  "control": "Fresh canonical-glv-hinted build exactly reproduces retained heavy 425537671 instructions",
+  "formulas_changed": false,
+  "service_calls_changed": false,
+  "physical_new_guest_proof_completed": false,
+  "raw_artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu",
+  "caveats": [
+    "Small no-pairing blocks regress by less than 0.1%; not a universal speedup.",
+    "The 678888 Fp2 service calls remain and retain their original proof cost.",
+    "Execution instruction counts are deterministic; overlapping workload wall times are not quiet benchmark evidence."
+  ]
+}

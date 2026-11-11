@@ -1,0 +1,38 @@
+{
+  "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+  "security_qualified": false,
+  "config": {
+    "pow_bits": 20,
+    "fri_config": {
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 108,
+      "fold_step": 4
+    },
+    "lifting_log_size": null
+  },
+  "fixed_setup": {
+    "limit_bytes": 1073741824,
+    "live_bytes": 275463536,
+    "peak_bytes": 793072016,
+    "keys": 13,
+    "hits": 0,
+    "seals": 13,
+    "loads": 0,
+    "refused": false,
+    "native_coefficients": {
+      "limit_bytes": 1073741824,
+      "retained_bytes": 181939200,
+      "native_backing_bytes": 181906560,
+      "groups": 254,
+      "hits": 1044,
+      "duplicate_native_bytes_released": 1074745600,
+      "observed_individual_owners": 1298,
+      "observed_backing_owners": 0,
+      "observed_spans": 1298,
+      "owner_leases": 14
+    }
+  },
+  "source_validations": 13,
+  "source_coefficient_cells": 314163040
+}

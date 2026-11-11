@@ -53,6 +53,10 @@ pub const Data = struct {
     eta: O,
     target_per_row: O,
     pub fn init(instance: Frame.Instance, pending: *const @import("child.zig").Pending, index: usize) !Data {
+        return initChecked(instance, .{ .artifact = &pending.artifact, .challenges = pending.challenges, .eta = pending.eta }, index);
+    }
+    pub fn initChecked(instance: Frame.Instance, pending: @import("terminal_view.zig").Checked, index: usize) !Data {
+        try pending.validate();
         if (index >= pending.artifact.claims_to_verify_by_instance.len) return error.LocalGkrProjectionShape;
         const claims = pending.artifact.claims_to_verify_by_instance[index];
         if (claims.len != 2) return error.LocalGkrProjectionShape;

@@ -1,0 +1,126 @@
+{
+  "schema": "op-terminal-blake-actual-selected-small-v1",
+  "scope": "isolated actual execution-source experiment; TEST ONLY, no production runtime/settlement selector",
+  "block": 120794432,
+  "instructions": 796406,
+  "native_members": {
+    "CPU_frontier": 1,
+    "detached_sponge": 1,
+    "local_GKR_Keccak": 1,
+    "classic_SHA256": 1
+  },
+  "native_bundle_bytes": 5045776,
+  "native_bundle_sha256": "4e7c5dc1ca425a57754eae3f913932da9e69c8fab7a920dcb08a279b0b00e17f",
+  "native_profile": "op_target_b4_q72_p0_fold4_v1",
+  "terminal_suite": "plain-blake2s256-merkle/raw-mod-OM31/b2-q144-P0-fold4/v1",
+  "root_bytes": 1278096,
+  "root_sha256": "ca4bbee8fa1c806099059209b4e04b14233999b4e8f6bfd2e2a20a409f0d6f08",
+  "terminal_source_identity": "fd2334cf34be75ca498ab349e3ab6eb6db3ec64a46dbcfba69ae6a8118867e47",
+  "genuine_inner_P2_source_identity": "6d9d9ff0bd4b41e1cfcfa64e0753399601f4f1785f7ed728b09568285d15d000",
+  "same_canonical_public_root_as_retained_P2": "1ad68e7f5072665ce26106685b2a8d4af0636f31b1db881bea370918ef0f602b80793f2d",
+  "source_model": {
+    "raw": [
+      73080,
+      11562353,
+      3451,
+      173939,
+      65536,
+      321145
+    ],
+    "rows": [
+      131072,
+      16777216,
+      4096,
+      262144,
+      65536,
+      524288
+    ],
+    "logs": [
+      17,
+      24,
+      12,
+      18,
+      16,
+      19
+    ],
+    "fixed_cells": 158412800,
+    "main_cells": 339296256,
+    "interaction_cells": 333021184,
+    "total_cells": 830730240
+  },
+  "timing_ns": {
+    "producer_total_native_freshcheck_source_and_both_FIXED_builds_proof_selfverify": 37096784875,
+    "prover": 19078214250,
+    "self_verify": 8629125,
+    "producer_real_cold_P2_source_and_FIXED": 11512844708,
+    "producer_additional_Blake_FIXED": 2007993000,
+    "fresh_source_walk_and_both_key_builds": 15376836209,
+    "fresh_root_read_verify": 9489083,
+    "fresh_P2_source_and_FIXED": 12513248875,
+    "fresh_additional_Blake_FIXED": 2648425750,
+    "fresh_process_total_including_nine_controls_and_P2_positive": 18954579417
+  },
+  "native_production_and_guest_execution_additional_not_rerun": true,
+  "stage_seconds": {
+    "terminal_blake.main_generation": 1.532509,
+    "terminal_blake.main_commit": 3.316226,
+    "terminal_blake.interaction_generation": 0.810307,
+    "terminal_blake.interaction_commit": 3.974084,
+    "draw_random_coeff": 1.2e-05,
+    "composition_trace_extract": 1.5e-05,
+    "composition_evaluation": 3.438848,
+    "composition_interpolate_and_split": 0.12934,
+    "composition_commit": 1.034721,
+    "oods_point_and_mask_points": 5.9e-05,
+    "sampled_value_evaluation": 0.306477,
+    "sampled_value_channel_mix": 0.000103,
+    "fri_quotient_build_and_commit": 2.606017,
+    "proof_of_work": 4e-06,
+    "fri_decommit": 0.190814,
+    "trace_decommit": 1.690652,
+    "constraint_check_and_assembly": 0.000113
+  },
+  "stage_CPU_and_fault_data": "stages.json includes capture_process_usage for each stage; retained outside git",
+  "memory": {
+    "producer_requested_peak_bytes": 12983498619,
+    "producer_max_RSS_bytes": 12801556480,
+    "fresh_receiver_requested_peak_bytes": 6573906685,
+    "cap_bytes": 34359738368,
+    "workers": 8,
+    "final_live": 0,
+    "final_external": 0
+  },
+  "qualification": {
+    "source_and_key_cost_model_before_proof": true,
+    "original_native_proofs_verified_once_in_process_with_existing_captures": true,
+    "all_four_selected_native_identities_ordinals_manifests_bound": true,
+    "exact_trace_numeric_circuit_P2_nativeOM_descriptors": true,
+    "independent_RootAdmission_RAM_KIO_Wire_and_pinned43B_Terminal_before_root_publication": true,
+    "root_persisted_only_after_physical_self_verification": true,
+    "separate_native_bin_absent_source_only_receiver_from_metadata_templates_cells": true,
+    "no_producer_key_used_by_fresh_receiver": true,
+    "nine_physical_output_key_corruption_coverage_order_receipt_balanced_debt_cross_format_controls": true,
+    "VALID_retained_P2_B2_root_positive_same_public_output_and_source_authority": true,
+    "valid_Blake_P2_format_substitutions_rejected_both_directions": true,
+    "restored_Blake_positive": true,
+    "all_costs_include_real_P2_FIXED_then_separate_Blake_FIXED": true
+  },
+  "controls": 9,
+  "P2_B2_control": {
+    "node_prove_persist_verify_ns": 46588560334,
+    "producer_wall_seconds": 62.63,
+    "root_bytes": 1341688,
+    "source_identity": "6d9d9ff0bd4b41e1cfcfa64e0753399601f4f1785f7ed728b09568285d15d000"
+  },
+  "measurement_scope": "Qualification observations during engineering, not quiet A/B or a heavy-block speedup claim. Native production and guest execution excluded; cold dual-FIXED cost included.",
+  "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-terminal-blake-physical-v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "remaining": [
+    "Independent hash/Fiat-Shamir query union review before promotion",
+    "No production runtime or Solidity admission",
+    "No R7 eight-role source support in this explicit R6 experiment",
+    "No heavy proof repeated; hard tenfold target unachieved"
+  ]
+}

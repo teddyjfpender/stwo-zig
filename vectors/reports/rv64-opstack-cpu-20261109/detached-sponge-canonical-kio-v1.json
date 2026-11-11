@@ -1,0 +1,158 @@
+{
+  "schema": "rv64-op-detached-sponge-canonical-kio-v1",
+  "date": "2026-11-09",
+  "scope": "Closed actual OP native source integration; not block benchmarking or production/recursion activation",
+  "production_admission_open": false,
+  "security_qualified": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "policy": "Existing canonical proof policy, reused unchanged: all direct Keccak calls in CPU order, then Sponge permutations in CPU/call order",
+  "source_authority": {
+    "allocator": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig:820",
+    "receiver": "src/integrations/riscv_cpu/word16_global_execution/services/protocol.zig:239",
+    "truth_advice_order": "src/integrations/riscv_cpu/word16_global_execution/services/roster.zig:854"
+  },
+  "correction": "Earlier compatibility warning conflated execution-session retirement IDs with proof IDs. Existing production allocation/advice order already agree. Only the provisional new join allocator needed correction.",
+  "new_API": {
+    "Plan.init": "readonly requests;<=256CPUs; max_inputs<p; exact source counts; bounded shallow copy passed to existing allocator",
+    "requireRequests": "exact CPU epochs/counts/canonical Sponge first IDs",
+    "requireFirstIds": "explicit CPU direct Keccak first IDs outside P.Request",
+    "requireTruthCoverage": "exact sorted nonempty complete partition; no duplicate/gap/omission",
+    "resolve": "zero-copy (direct|sponge,cpu,index) order",
+    "validateAdvice": "all actual vector lengths match authenticated counts",
+    "emit": "typed policy framing for new manifest/execution binding"
+  },
+  "checks": {
+    "ordinary_and_retirement_hole_physical_joins": true,
+    "fresh_independent_CPU_detached_Keccak_keys": true,
+    "all_MAIN_precede_manifest": true,
+    "physical_local_source_binding": true,
+    "RAM_KIO_Wire_closed": true,
+    "old_PerCPU_interleaved_allocator_not_used": true,
+    "duplicate_gap_omission_empty_truthspan_rejected": true,
+    "zero_calls_supported_by_policy": true,
+    "integer_count_overflow_and_limits_rejected": true,
+    "Sponge_first_ID_and_direct_first_ID_mutations_rejected": true,
+    "epoch_callcount_and_physical_global_claim_negatives_rejected": true
+  },
+  "fixtures": [
+    {
+      "name": "original",
+      "actual_execution_steps": 11,
+      "direct_spans": [
+        {
+          "first": 1,
+          "count": 1
+        },
+        {
+          "first": 2,
+          "count": 0
+        }
+      ],
+      "sponge_spans": [
+        {
+          "first": 2,
+          "count": 3
+        },
+        {
+          "first": 5,
+          "count": 2
+        }
+      ],
+      "CPU_columns_fixed_MAIN_INTER": [
+        [
+          136,
+          551,
+          360
+        ],
+        [
+          130,
+          485,
+          312
+        ]
+      ],
+      "CPU_native_cells": [
+        5548736,
+        5545088
+      ],
+      "proof_bytes_CPU0_CPU1_detached_Keccak": [
+        588120,
+        556052,
+        411248,
+        2785968
+      ],
+      "proof_sha256_same_order": [
+        "13d5fabb5e847915e6753d781aca9f753bfa44a9e2ffe70770ae32915a642bcc",
+        "e1f585665eec1ec9c29d36b8653df62bfdadb37f89945b07e921e9c1a28f8714",
+        "8be51254f5dc66c7ab29f442b029c005726e96fd9052068c0e9728eb7eaa2023",
+        "c7ae12f25ee21a283fb08894a58a33e6d06e25ffa004cc801cc9c6353c31274e"
+      ],
+      "producer_total_ns_qualification_only": 3804215875,
+      "requested_peak_bytes_not_RSS": 385401189,
+      "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-sponge-native-canonical-kio-v1",
+      "metadata_sha256": "a3ba1fd286fd2a3afa2ff3f28fd4b15f12fecd25b186635d9b1f5431b15a242a"
+    },
+    {
+      "name": "CPU1_direct_between_sponge_retirements",
+      "actual_execution_steps": 15,
+      "direct_spans": [
+        {
+          "first": 1,
+          "count": 1
+        },
+        {
+          "first": 2,
+          "count": 1
+        }
+      ],
+      "sponge_spans": [
+        {
+          "first": 3,
+          "count": 3
+        },
+        {
+          "first": 6,
+          "count": 2
+        }
+      ],
+      "CPU_columns_fixed_MAIN_INTER": [
+        [
+          136,
+          551,
+          360
+        ],
+        [
+          136,
+          551,
+          360
+        ]
+      ],
+      "CPU_native_cells": [
+        5548736,
+        5548736
+      ],
+      "proof_bytes_CPU0_CPU1_detached_Keccak": [
+        590964,
+        587460,
+        418664,
+        2782500
+      ],
+      "proof_sha256_same_order": [
+        "fb30d14b0aa9d168bc3a80c0415aace198978eff80aaf13d2e43230389a6a049",
+        "dc91aea5a50f8abb6b0336d707f9c60f53013d0eae180962187d9539226d9cd4",
+        "4368c6202fd90d0cd0a80fe6d81db46d53ac1ed2e7e180ab3e324a7563752d36",
+        "a896813db94aae8541bb1071871043b32828a541f138f11bbbd569600c25ae37"
+      ],
+      "producer_total_ns_qualification_only": 3835121000,
+      "requested_peak_bytes_not_RSS": 385963393,
+      "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-sponge-native-canonical-kio-v1/retirement-hole",
+      "metadata_sha256": "1392ff753c242602f115604042f14903c89a4ff382e55b6738891a7e1a6749e9"
+    }
+  ],
+  "remaining": [
+    "Integrate bounded source policy into production Suite/runtime/planner under explicit closed source flavor",
+    "Whole-worker retention/mass review and independently admitted terminal/block source authority",
+    "Recursive source statements/leaf/fold/root reception for the new CPU and detached roles",
+    "Retained heavy source census/representative probes without a complete heavy re-prove"
+  ],
+  "hard_10x_goal_achieved": false
+}

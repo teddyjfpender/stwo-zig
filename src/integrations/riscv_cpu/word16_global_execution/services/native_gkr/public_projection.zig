@@ -70,6 +70,7 @@ pub fn forSlot(slot: Legacy.Slot) !Policy {
             out.index = if (kind == .call) 0 else 1;
         },
         .dword => |part| out.rows = if (part == 0) .dword_head else .dword_tail,
+        .tower => return error.UnsupportedTowerCpuRecursion,
     }
     return out;
 }
@@ -84,6 +85,9 @@ pub const JUMP_TABLE_ROWS: u32 = @intCast(A.crypto.bulk_memory.types.TABLE_ENTRI
 
 test "native public projection pins span families, row capacities and inactive tails" {
     var slot = Legacy.Slot{ .origin = .{ .core = .ls }, .log = 18, .fixed_offset = 0, .main_offset = 0, .inter_offset = 0, .binding_index = null, .claim_offset = 0 };
+    slot.origin = .{ .tower = {} };
+    try std.testing.expectError(error.UnsupportedTowerCpuRecursion, forSlot(slot));
+    slot.origin = .{ .core = .ls };
     try std.testing.expectEqual(@as(u32, (1 << 18) - 1), (try forSlot(slot)).max_rows);
     slot.origin = .{ .bridge = .keccak };
     const bridge = try forSlot(slot);

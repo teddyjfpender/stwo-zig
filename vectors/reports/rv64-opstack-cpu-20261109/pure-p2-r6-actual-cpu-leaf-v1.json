@@ -1,0 +1,139 @@
+{
+  "schema": "op-r6-actual-source-physical-v1",
+  "kind": "CPU",
+  "bytes": 689252,
+  "key_ns": 7451647583,
+  "prove_ns": 30933552333,
+  "fresh_setup_ns": 7829232250,
+  "fresh_verify_ns": 35671292,
+  "sha256": "e80751cd103b4dca9e602590d21bb1b65771993f1a897ad2b0cc5aced90f88c6",
+  "source_identity": "08b8ba82d49d15b413a4a8aac76671dcb0f0712a0f6211bb22f1972173eb0d91",
+  "raw": [
+    30606,
+    3992911,
+    2258,
+    68060,
+    65536
+  ],
+  "logs": [
+    15,
+    22,
+    12,
+    17,
+    16
+  ],
+  "mul_log": 18,
+  "native_mul_calls": 132725,
+  "fresh_source": true,
+  "wrong_output_rejected": true,
+  "complete_execution": false,
+  "production_admission": false,
+  "block": 120794432,
+  "instructions": 796406,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "comparison_scope": "same retained native source bundle, profile, ReleaseSafe and eight workers; single sequential runs with different outer schema/storage; not a heavy-block result or statistically repeated A/B",
+  "r5_control": {
+    "source_commit": "bf90b4567",
+    "producer_including_graph_build_ns": 57846763708,
+    "summed_stages_s": 57.407892999999994,
+    "proof_bytes": 693916
+  },
+  "stage_comparison": [
+    {
+      "id": "op_p2.main_generation",
+      "r5_s": 0.762229,
+      "r6_s": 0.613349
+    },
+    {
+      "id": "op_p2.main_commit",
+      "r5_s": 16.321595,
+      "r6_s": 8.935399
+    },
+    {
+      "id": "op_p2.interaction_generation",
+      "r5_s": 0.654682,
+      "r6_s": 0.46967
+    },
+    {
+      "id": "op_p2.interaction_commit",
+      "r5_s": 16.299877,
+      "r6_s": 8.502428
+    },
+    {
+      "id": "draw_random_coeff",
+      "r5_s": 5e-06,
+      "r6_s": 5e-06
+    },
+    {
+      "id": "composition_trace_extract",
+      "r5_s": 1.4e-05,
+      "r6_s": 1.7e-05
+    },
+    {
+      "id": "composition_evaluation",
+      "r5_s": 7.718986,
+      "r6_s": 5.083531
+    },
+    {
+      "id": "composition_interpolate_and_split",
+      "r5_s": 0.056563,
+      "r6_s": 0.025795
+    },
+    {
+      "id": "composition_commit",
+      "r5_s": 8.306309,
+      "r6_s": 4.05177
+    },
+    {
+      "id": "oods_point_and_mask_points",
+      "r5_s": 0.000129,
+      "r6_s": 7.5e-05
+    },
+    {
+      "id": "sampled_value_evaluation",
+      "r5_s": 0.187611,
+      "r6_s": 0.095021
+    },
+    {
+      "id": "sampled_value_channel_mix",
+      "r5_s": 0.000759,
+      "r6_s": 0.000818
+    },
+    {
+      "id": "fri_quotient_build_and_commit",
+      "r5_s": 6.794744,
+      "r6_s": 2.308824
+    },
+    {
+      "id": "proof_of_work",
+      "r5_s": 7e-06,
+      "r6_s": 6e-06
+    },
+    {
+      "id": "fri_decommit",
+      "r5_s": 0.262262,
+      "r6_s": 0.119748
+    },
+    {
+      "id": "trace_decommit",
+      "r5_s": 0.041776,
+      "r6_s": 0.628874
+    },
+    {
+      "id": "constraint_check_and_assembly",
+      "r5_s": 0.000345,
+      "r6_s": 0.000361
+    }
+  ],
+  "r6_summed_stages_s": 30.835691,
+  "stage_speedup": 1.8617352534762395,
+  "r6_process_peak_resident_bytes": 7080574976,
+  "memory_caveat": "process-cumulative peak; different lifecycles, no controlled memory multiplier claimed",
+  "pending": [
+    "actual full-height heavy CPU shape",
+    "service-local GKR + R6 Keccak leaf",
+    "actual R6 complete root and fresh root-only adversarial receiver",
+    "matched heavy tenfold end-to-end requirement"
+  ]
+}

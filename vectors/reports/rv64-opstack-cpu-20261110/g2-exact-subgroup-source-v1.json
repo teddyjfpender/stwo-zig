@@ -1,0 +1,165 @@
+{
+  "schema": "op-G2-exact-subgroup-source-foundation/v1",
+  "scope": "Canonical non-infinity Q, explicit curve equation and exact[r-1]Q=-Q; source/witness only, no physical proof or admission",
+  "oracle": {
+    "oracle_sha256": "340a9899c91ff52a0307fe5b3ab40c8f64809d5a1baeaa208e7d94d12987da81",
+    "primary_Fr_sha256": "05bd67486b5fc6ed6ed5e70e2e6673794797502e671aaf0e9108e8ebb7f18fbf",
+    "r": 21888242871839275222246405745257275088548364400416034343698204186575808495617,
+    "doubles": 253,
+    "adds": 99,
+    "hints": 352,
+    "vectors": [
+      {
+        "name": "generator_1",
+        "q": [
+          [
+            10857046999023057135944570762232829481370756359578518086990519993285655852781,
+            11559732032986387107991004021392285783925812861821192530917403151452391805634
+          ],
+          [
+            8495653923123431417604973247489272438418190587263600148770280649306958101930,
+            4082367875863433681332203403145435568316851327593401208105741076214120093531
+          ]
+        ],
+        "final": [
+          [
+            10857046999023057135944570762232829481370756359578518086990519993285655852781,
+            11559732032986387107991004021392285783925812861821192530917403151452391805634
+          ],
+          [
+            13392588948715843804641432497768002650278120570034223513918757245338268106653,
+            17805874995975841540914202342111839520379459829704422454583296818431106115052
+          ]
+        ],
+        "hint_digest": "03bf66ea092fe3976dbdfe509da6c00c916ec446d257b094763edaee92ee820a",
+        "positive": true
+      },
+      {
+        "name": "generator_2",
+        "q": [
+          [
+            18029695676650738226693292988307914797657423701064905010927197838374790804409,
+            14583779054894525174450323658765874724019480979794335525732096752006891875705
+          ],
+          [
+            2140229616977736810657479771656733941598412651537078903776637920509952744750,
+            11474861747383700316476719153975578001603231366361248090558603872215261634898
+          ]
+        ],
+        "final": [
+          [
+            18029695676650738226693292988307914797657423701064905010927197838374790804409,
+            14583779054894525174450323658765874724019480979794335525732096752006891875705
+          ],
+          [
+            19748013254861538411588925973600541147097898505760744758912399974135273463833,
+            10413381124455574905769686591281697087093079790936575572130434022429964573685
+          ]
+        ],
+        "hint_digest": "23be03d1807a7d97f8bf9bd4b5b394900944d196e5223997e6ac75322aeea73b",
+        "positive": true
+      },
+      {
+        "name": "generator_5",
+        "q": [
+          [
+            20954117799226682825035885491234530437475518021362091509513177301640194298072,
+            4540444681147253467785307942530223364530218361853237193970751657229138047649
+          ],
+          [
+            21508930868448350162258892668132814424284302804699005394342512102884055673846,
+            11631839690097995216017572651900167465857396346217730511548857041925508482915
+          ]
+        ],
+        "final": [
+          [
+            20954117799226682825035885491234530437475518021362091509513177301640194298072,
+            4540444681147253467785307942530223364530218361853237193970751657229138047649
+          ],
+          [
+            379312003390925059987513077124460664412008352598818268346525791761170534737,
+            10256403181741280006228833093357107622838914811080093151140180852719717725668
+          ]
+        ],
+        "hint_digest": "a4f6f0a028ee906ef008debf6197a1a8694227238700c62a1d3f592459fecfca",
+        "positive": true
+      },
+      {
+        "name": "on_curve_non_subgroup",
+        "q": [
+          [
+            2,
+            1
+          ],
+          [
+            7292567877523311580221095596750716176434782432868683424513645834767876293070,
+            19659275751359636165940301690575149581329631496732780143538578556285923319774
+          ]
+        ],
+        "final": [
+          [
+            11748432361591946839708331528897997126769548696500280276526462527120649081998,
+            6861999651649350425858987230728226369186052811885044181359505748903018555398
+          ],
+          [
+            18544790867506196043978701160349091556959712710227583803251794566075463659569,
+            19324546572862306737078279123472964278031602210136373786613064285177709237621
+          ]
+        ],
+        "hint_digest": "31aa94ba9a1445c0ae6334ab08f331b9304ecce4543504159739470a596770d1",
+        "positive": false
+      }
+    ]
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/bn254_g2/subgroup/spec.zig": "780447a91312d285ea606da12771938bb1ffa7a336f97eefb76c4845ba25db34",
+    "src/frontends/riscv/rv64/air/delegations/bn254_g2/subgroup/witness.zig": "099d80e3ba868f4ab13980b674ec82a31a0f84dc5595d50d3ba844fc2de4dc1d",
+    "src/frontends/riscv/rv64/air/delegations/bn254_dense/row.zig": "c37f4d2264432fcaf7f8fa8ccb2b2a98f1500ae4663f0d5a10f4c5f5cd731049",
+    "opstack/tools/g2_subgroup/vectors.py": "10ae36bcbb788b1c1abb4d120e95eb25660e9a7d9e7296eb160c87912a2cd88d",
+    "opstack/kona/vendor/ark-bn254/src/fields/fr.rs": "05bd67486b5fc6ed6ed5e70e2e6673794797502e671aaf0e9108e8ebb7f18fbf"
+  },
+  "census": {
+    "nodes": 4390,
+    "arithmetic_rows": 4038,
+    "canonical_hint_writers": 352,
+    "literal_zero_assertions": 358,
+    "doubles": 253,
+    "additions": 99,
+    "arithmetic_MAIN": 530,
+    "arithmetic_BYTE_queries": 353,
+    "active_arithmetic_MAIN_cells_per_Q": 2140140,
+    "SSA_mass": 16434,
+    "max_fanout": 352,
+    "residual_positive_bound": 29810053,
+    "residual_negative_bound": 29809501
+  },
+  "qualification": {
+    "independent_exact_scalar_and_all_hint_digests": true,
+    "valid_G2_multiples": [
+      1,
+      2,
+      5
+    ],
+    "on_curve_non_subgroup_has_valid_arithmetic_but_final_assert_rejects": true,
+    "canonical_alias_offcurve_infinity_zerodenominator_negative": true,
+    "independent_expected_Q_binding": true,
+    "coherent_inverse_rows_valid_zero_assertion_rejects": true,
+    "coherent_slope_plus_p_carry_and_later_reads_rejects_canonicality": true,
+    "output_forgery_rejects": true,
+    "source_unique_writers_topological_IDs_fanout_and_hint_product_zero_mapping": true,
+    "allocation_failures_clean": true
+  },
+  "not_done": [
+    "physical canonical hint BYTE/distance/SSA writer AIR",
+    "physical zero assertions and local BYTE/SSA closure",
+    "external pairing input/global RAM/Wire/ID binding",
+    "infinity/universal pairing result policy",
+    "native/recursive service proof and soundness budget"
+  ],
+  "production_admission": false,
+  "physical_proof": false,
+  "security_qualified": false,
+  "performance_claim": false,
+  "log": "/private/tmp/op-g2-subgroup-safe.log",
+  "ReleaseSafe_tests_passed": 16
+}

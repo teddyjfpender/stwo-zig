@@ -1,0 +1,47 @@
+{
+  "schema": "stwo.op.detached-sponge-guest-qualification.v1",
+  "block": 120794432,
+  "scope": "isolated nonzero-sponge guest functional control; selected optimized guest unchanged",
+  "variant": "sponge",
+  "elf_sha256": "94843d063b5ed083660ee5f3963deb4e1773546b332f789071a2f37b0673e0d3",
+  "input_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+  "input_kind": "original unhinted OP witness",
+  "steps": 1317255,
+  "sponge_calls": 124,
+  "sponge_permutations": 338,
+  "sponge_bytes": 39532,
+  "direct_keccak_calls": 0,
+  "profile": "ethereum_services_op_v1",
+  "terminal_pc": 2070556,
+  "symbols": {
+    "input_start": 8388608,
+    "input_end": 25165824,
+    "halt_flag": 25165824,
+    "output_len": 25165828,
+    "output_data": 25165832,
+    "output_end": 29360128,
+    "stack_bottom": 29360128,
+    "stack_top": 46137344,
+    "heap_start": 46352912,
+    "heap_end": 268435456
+  },
+  "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+  "qualification": {
+    "native_completed": true,
+    "native_expected_output": true,
+    "independent_unicorn_2_1_4": true,
+    "exact_steps": true,
+    "all_32_registers": true,
+    "pc": true,
+    "output_43_bytes": true,
+    "sponge_calls_match": true
+  },
+  "performance_comparison": false,
+  "notes": [
+    "Sponge variant inherits services-v3; it does not enable all SHA/bulk/lean selected-guest flags. No instruction or proving speed comparison is claimed.",
+    "All ELF ABI symbols were re-extracted, including heap_start.",
+    "Hinted witness is not valid for a guest without pairing-hints; the original witness is independently pinned.",
+    "Execution/oracle evidence is not a STARK proof or production SourceSuite admission."
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-sponge-guest-small"
+}

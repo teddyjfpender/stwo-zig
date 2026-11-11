@@ -1,0 +1,8 @@
+{
+  "proof_verified": true,
+  "fresh_receiver_accepted": true,
+  "rehashed_corruption_rejected": "RootMismatch",
+  "restored_artifacts_sha256_match": true,
+  "cpu_proofs": 7,
+  "service_proofs": 7
+}

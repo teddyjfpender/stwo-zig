@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/workspace/opstack-tools/bin/rv64-word16-ethereum-gkr",
+    "--security-profile",
+    "conjectured128_b2_q108_p20_fold4",
+    "plan-candidate",
+    "/workspace/opstack-runs/cpu-small-1g/request.json",
+    "-",
+    "0",
+    "/workspace/opstack-runs/cpu-small-1g/resources.json"
+  ],
+  "wall_ns": 2361782972,
+  "peak_rss_bytes": 1094422528,
+  "returncode": 0
+}

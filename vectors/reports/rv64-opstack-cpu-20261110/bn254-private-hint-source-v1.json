@@ -1,0 +1,28 @@
+{
+  "schema": "bn254-private-canonical-hint-source-v1",
+  "scope": "Shared source/witness chip only; no physical proof/BYTE/SSA/admission",
+  "MAIN": 95,
+  "FIXED": 3,
+  "BYTE_queries": 64,
+  "constraints": 127,
+  "degree": 2,
+  "carry_bits": 31,
+  "integer_residual_abs_bound": 511,
+  "equation": "x_i+d_i+c_i-active*p_i-256*c_(i+1)=0, c0=active,c32=0",
+  "source_authority": "active,writerID,fanout immutable; namespace/call independently pinned bycaller",
+  "negative_controls": [
+    "modulus/maxu256 constructor",
+    "wrapped coherent+p alias lastcarry",
+    "every95MAIN column mutation",
+    "inactive nonzero bytes",
+    "nonBoolean carry"
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/bn254_hint/source.zig": "e021ba949a3efc2796027c4543d5cc190c6d6afe2fdb9f6fbf6dfbcf36d274f9",
+    "src/frontends/riscv/rv64/air/delegations/bn254_hint/witness.zig": "d9b69c522a442585834b30dd25fed190979e9ca329990327bc66a3aa6fafa3d4"
+  },
+  "ReleaseSafe_tests": 3,
+  "physical_proof": false,
+  "production_admission": false,
+  "log": "/private/tmp/op-bn254-hint-safe.log"
+}

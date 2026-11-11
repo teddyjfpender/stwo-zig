@@ -1,0 +1,91 @@
+{
+  "schema": "op-p2-intermediate-native4-baseline/v1",
+  "scope": "Tiny existing log16 seed-only 66column mixed10/12/16 reuse probe before four-state intermediate cache. No new fullblock/heavy proof.",
+  "source_base": "c44b0ef05",
+  "benchmark": [
+    {
+      "mode": 0,
+      "elapsed_ns": 391667500,
+      "stats": {
+        "final_log_size": 16,
+        "prefix_log_size": 1,
+        "prefix_column_count": 0,
+        "tail_column_count": 66,
+        "prefix_state_count": 2,
+        "prefix_state_bytes": 208,
+        "leaf_layer_bytes": 2359296,
+        "leaf_phase_peak_bytes": 2359504,
+        "tail_cache_bytes": 0,
+        "tail_absorptions": 4325376,
+        "repeated_tail_absorptions": 3167232
+      },
+      "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a"
+    },
+    {
+      "mode": 1,
+      "elapsed_ns": 171522333,
+      "stats": {
+        "final_log_size": 16,
+        "prefix_log_size": 1,
+        "prefix_column_count": 0,
+        "tail_column_count": 66,
+        "prefix_state_count": 2,
+        "prefix_state_bytes": 208,
+        "leaf_layer_bytes": 2359296,
+        "leaf_phase_peak_bytes": 2359504,
+        "tail_cache_bytes": 3632,
+        "tail_absorptions": 4325376,
+        "repeated_tail_absorptions": 3167232
+      },
+      "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a"
+    },
+    {
+      "mode": 2,
+      "elapsed_ns": 95051083,
+      "stats": {
+        "final_log_size": 16,
+        "prefix_log_size": 1,
+        "prefix_column_count": 0,
+        "tail_column_count": 66,
+        "prefix_state_count": 2,
+        "prefix_state_bytes": 208,
+        "leaf_layer_bytes": 2359296,
+        "leaf_phase_peak_bytes": 2359504,
+        "tail_cache_bytes": 19760,
+        "tail_absorptions": 1158144,
+        "repeated_tail_absorptions": 0
+      },
+      "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a"
+    }
+  ],
+  "semantic_work": {
+    "scalar_absorbed_words": 109568,
+    "native4_absorbed_words": 1048576,
+    "scalar_leaf_state_permutations": 10240,
+    "native4_leaf_state_permutations": 131072,
+    "binary_nodes": 65535,
+    "internal_state_permutations": 131070,
+    "stats": {
+      "final_log_size": 16,
+      "prefix_log_size": 1,
+      "prefix_column_count": 0,
+      "tail_column_count": 66,
+      "prefix_state_count": 2,
+      "prefix_state_bytes": 208,
+      "leaf_layer_bytes": 2359296,
+      "leaf_phase_peak_bytes": 2359504,
+      "tail_cache_bytes": 19760,
+      "tail_absorptions": 1158144,
+      "repeated_tail_absorptions": 0
+    },
+    "root": "36979c0f4855646f3f2ce14e44b2891544b8e76c17d2550d29dc270d2db3ab2861d6e16a",
+    "timing_claim": false
+  },
+  "interpretation": {
+    "scalar_intermediate_word_share": 0.09460654288240496,
+    "scalar_intermediate_permutation_share": 0.03759426100109405,
+    "node_permutation_share": 0.4811991981849021,
+    "timing_note": "Instrumentation separate from uninstrumented timing; one microqualification sample, not a whole-proof forecast."
+  },
+  "validation": "Existing equal/mixed every-Merkle-layer scalar/packed/reuse parity tests and4MiB budget gates pass in ReleaseFast; all OP P2 tests passed."
+}

@@ -1,0 +1,93 @@
+{
+  "produce": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+      "--security-profile",
+      "d2_native_b4_q54_p20_fold4",
+      "recurse-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/owned-monolithic-32g",
+      "2147483648",
+      "34359738368"
+    ],
+    "wall_ns": 38789923542,
+    "peak_rss_bytes": 29360914432,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 377.958288,
+    "system_cpu_s": 11.961017,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "receive": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+      "--security-profile",
+      "d2_native_b4_q54_p20_fold4",
+      "verify-recursion-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/owned-monolithic-32g",
+      "2147483648",
+      "25769803776"
+    ],
+    "wall_ns": 3951374958,
+    "peak_rss_bytes": 7322320896,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 21.734794,
+    "system_cpu_s": 0.665955,
+    "returncode": 0,
+    "timed_out": false
+  },
+  "proof_sha256": {
+    "leaf-000001.proof": "df09bdf115f10a9f9058ef92999f9e903ba0ef06a566abcb87ac5a7fa3ceff5a",
+    "fold-000003.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91",
+    "leaf-000000.proof": "797a56a58a4017398c208fe7c6399ce4dbd88e9f5c099a605310ac508ad57884",
+    "leaf-000002.proof": "2f3c39af1732cdaa0621bd374ea16d29d3e2b69e3a56ff9ad6fa06b9b680809a",
+    "root.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91"
+  },
+  "concurrent_guest_build": true,
+  "timing_scope": "qualification, not quiet A/B",
+  "schema": "stwo.opstack.owned-monolithic.v1",
+  "block": 120794432,
+  "security_qualified": false,
+  "production_requested_live_bytes": 34359738368,
+  "default_ingestion_policy_changed": false,
+  "qualification": [
+    "all PCS commitment tests, including every injected allocation failure and 129-column monolithic-vs-borrowed parity",
+    "focused actual OM31 circuit/witness/proof suites; five physical proof mutants rejected",
+    "same four recursive proofs and root copy byte-identical to M6 baseline",
+    "fresh receiver independently derives authority and admits pinned output"
+  ],
+  "method": "One complete cold qualification with guest compilation active; wall is not a quiet benchmark median. Native proving excluded.",
+  "summed_stage_seconds": {
+    "outer_witness": 0.854368,
+    "outer_main_commit": 3.4688719999999997,
+    "outer_interaction_witness": 7.532979000000001,
+    "outer_interaction_commit": 6.6423760000000005,
+    "draw_random_coeff": 1.9e-05,
+    "composition_trace_extract": 3e-05,
+    "composition_evaluation": 8.249555,
+    "composition_interpolate_and_split": 0.185519,
+    "composition_commit": 0.775182,
+    "oods_point_and_mask_points": 0.000359,
+    "sampled_value_evaluation": 0.965936,
+    "sampled_value_channel_mix": 0.000229,
+    "fri_quotient_build_and_commit": 2.944986,
+    "proof_of_work": 0.010843,
+    "fri_decommit": 0.172219,
+    "trace_decommit": 0.026473,
+    "constraint_check_and_assembly": 0.000422
+  },
+  "admission": {
+    "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+    "native_profile": "d2_native_b4_q54_p20_fold4",
+    "outer_profile": "stwo/circuit/native-om31/m6-diet-k4-cap3-q108-p20-fold4/lens-v1",
+    "root_digest": "9e73865a4057c1c2edd8a614ce4acc5ddb547fa138e0d74b4b13f812ad574670",
+    "root_authority": "507281efda90d9bc23a5fed6df931c6329e801748c7c7601d1482e5021d6bf7f",
+    "manifest": "e4b72df0653a849cd69c68919a85ff1b33be9282112eb9a03fc1b5833d21302e",
+    "root_proof_bytes": 745400,
+    "cpu_proofs": 1,
+    "service_proofs": 2,
+    "recursive_leaves": 3,
+    "recursive_folds": 1
+  }
+}

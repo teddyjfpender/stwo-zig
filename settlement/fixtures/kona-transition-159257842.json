@@ -1,0 +1,21 @@
+{
+  "statement": {
+    "anchor_hash": "d734e17668a3fe8ac3598bdd2e63a62f97a65ed5c3acb2c7e7fa874ed60ca96e",
+    "anchor_number": 26367973,
+    "block_hash": "bbc6c3ed0222bdfa398d6bf5936703f422b4610e5a50f9d5dfdd1eb34d2dfd72",
+    "chain_id": 10,
+    "l1_chain_id": 1,
+    "next_number": 159257842,
+    "next_origin_hash": "653dc40d0977da501699e8cced70878d13f47190c8e26d732bff838a13129f27",
+    "next_origin_number": 26367950,
+    "next_root": "01c601622573226359c533c0fd56cf0cf86daf5eb2de5a4808e833115eec6cdf",
+    "payload_commitment": "8fe69b7a7877b6684795a317f451f6a0908a5eddcec83ff50353868e2d1ce39b",
+    "previous_number": 159257841,
+    "previous_root": "99e5fab1a614943abc196e07643eb649bca6328d8d2d9d632dff6bc4e3fe69fc",
+    "schema": "stwo.opstack.anchored-transition.v1"
+  },
+  "native_and_rv64_output": "3c68ba4f99670164c5660cf8b46df57b4c70c5d1335dabdf539f887e0f991040010a000000000000004f44",
+  "execution_transport": "57ed55805c57889b7a8fce6fb01ecead6c931cb04637764526666d745b79751a010a000000000000004f50",
+  "input_sha256": "bae3a618357459a8a136b16c300e395841aa7c4f1c061886f71be8812eca4b25",
+  "elf_sha256": "dfa33fc10820dad3ee37807f8a93f3d6deb1c0b3f9d62f3eefd3d13a0742034f"
+}

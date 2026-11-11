@@ -1,0 +1,101 @@
+{
+  "schema": "stwo.opstack.solidity-packed-base-scalar.v1",
+  "scope": "Native OM31 internal multiplication; no wire, program authority or proof-profile change",
+  "baseline": [
+    {
+      "packedBaseScalar": "0",
+      "multiplications": 64,
+      "gas": 501088
+    },
+    {
+      "packedBaseScalar": "1",
+      "multiplications": 64,
+      "gas": 501100
+    },
+    {
+      "packedBaseScalar": "2",
+      "multiplications": 64,
+      "gas": 501100
+    },
+    {
+      "packedBaseScalar": "2147483646",
+      "multiplications": 64,
+      "gas": 501136
+    },
+    {
+      "packedDenseMultiplications": 64,
+      "gas": 505342
+    },
+    {
+      "nativeMixedAirGas": 125090,
+      "nodes": 17,
+      "residuals": 4
+    },
+    {
+      "nativeMixedAirGas": 905387,
+      "nodes": 257,
+      "residuals": 4
+    },
+    {
+      "nativeMixedAirGas": 6764679,
+      "nodes": 2048,
+      "residuals": 4
+    }
+  ],
+  "candidate": [
+    {
+      "packedBaseScalar": "0",
+      "multiplications": 64,
+      "gas": 52900
+    },
+    {
+      "packedBaseScalar": "1",
+      "multiplications": 64,
+      "gas": 55828
+    },
+    {
+      "packedBaseScalar": "2",
+      "multiplications": 64,
+      "gas": 108884
+    },
+    {
+      "packedBaseScalar": "2147483646",
+      "multiplications": 64,
+      "gas": 108920
+    },
+    {
+      "packedDenseMultiplications": 64,
+      "gas": 508926
+    },
+    {
+      "nativeMixedAirGas": 118117,
+      "nodes": 17,
+      "residuals": 4
+    },
+    {
+      "nativeMixedAirGas": 901414,
+      "nodes": 257,
+      "residuals": 4
+    },
+    {
+      "nativeMixedAirGas": 6783106,
+      "nodes": 2048,
+      "residuals": 4
+    },
+    {
+      "nativeInitialAirGas": 1064808,
+      "nodes": 177,
+      "residuals": 23
+    }
+  ],
+  "tests": {
+    "full_suite": {
+      "passed": 24,
+      "skipped": 3,
+      "failed": 0
+    },
+    "canonical_vectors": "64 basis pairs, edge values, 64 deterministic dense pairs, zero/base-scalar cases in both operand orders",
+    "scratch": "0,1,2,64,256 dense multiplies and 64 repeated base multiplies; free pointer unchanged and live guard preserved"
+  },
+  "tradeoff": "Dense 64-multiply gas increases 0.71%; 2048-node dense mixed AIR increases 0.27%. Base literal-heavy programs benefit; no complete settlement speed claim."
+}

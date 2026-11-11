@@ -61,6 +61,9 @@ pub const Ready = struct {
     /// Seal once before publishing; default capture retains its old behavior.
     seal_native: bool = false,
     native_segment: ?*const fn (*anyopaque, usize, *const Native, Collector.Shard, u64) void = null,
+    /// Synchronous geometry census. After success the planner owns only its
+    /// counts and this capture releases the shard's native witness buffers.
+    consume_shard: ?*const fn (*anyopaque, usize, *Native, Collector.Shard) anyerror!void = null,
     ram_stack_budget: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget = null,
     require_ram_stack_budget: bool = false,
 };
@@ -221,6 +224,13 @@ pub const Ordered = struct {
             if (ready.seal_native) _ = try @import("../../word16_execution/replay_capture.zig").sealCaptured(n);
             ready.call(ready.context, self.next_index, n, self.collector.lastEvents(), ledger_end);
             if (ready.native_segment) |call| call(ready.context, self.next_index, n, try self.collector.lastShard(), ledger_end);
+            if (ready.consume_shard) |consume| {
+                try consume(ready.context, self.next_index, n, try self.collector.lastShard());
+                self.collector.releaseLastShard();
+                _ = self.native.pop();
+                n.deinit();
+                a.destroy(n);
+            }
         }
         self.next_index += 1;
         if ((self.prefix_packets != 0 and self.next_index == self.prefix_packets) or (self.prefix_packets == 0 and self.pc == self.image.terminal_pc)) {

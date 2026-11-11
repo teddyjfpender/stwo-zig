@@ -26,6 +26,8 @@ test "native tape wire preserves full64bit advice and service packets independen
         try std.testing.expectEqualDeep(tape.secp_calls.items, loaded.secp_calls.items);
         try std.testing.expectEqualDeep(tape.sha256_calls.items, loaded.sha256_calls.items);
         try std.testing.expectEqualDeep(tape.arith256_mod_calls.items, loaded.arith256_mod_calls.items);
+        try std.testing.expectEqualDeep(tape.tower_calls.items, loaded.tower_calls.items);
+        try std.testing.expectEqual(tape.last_tower_id, loaded.last_tower_id);
         const second = try temp.dir.createFile("normalized", .{ .read = true });
         defer second.close();
         try W.write(second, &loaded);
@@ -142,7 +144,7 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
         call.pc += 4;
         try tape.appendService(call);
     }
-    if (profile == .ethereum_services_v1 or profile == .ethereum_services_v2 or rv.execution_profile.isV3(profile)) {
+    if (profile == .ethereum_services_v1 or profile == .ethereum_services_v2 or rv.execution_profile.hasV3Services(profile)) {
         for ([_]rv.ethereum_services.secp256k1.Kind{ .add, .double, .double }, 0..) |kind, i| {
             var call = rv.ethereum_services.SecpCall{ .kind = kind, .packet_format = if (profile != .ethereum_services_v1) .little_endian_words_v2 else .big_endian_bytes_v1, .call_id = if (kind == .add) 3 else i + 5, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
             for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |*before, *after, index| {
@@ -152,7 +154,7 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
             try tape.appendSecp(call);
         }
     }
-    if (rv.execution_profile.isV3(profile)) {
+    if (rv.execution_profile.hasV3Services(profile)) {
         for (0..3) |i| {
             var call = rv.ethereum_services.Arith256ModCall{ .call_id = 1 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
             for (&call.before, 0..) |*w, index| w.* = 0x0badc0ffee000000 +% index *% 0x9e3779b97f4a7c15;
@@ -173,6 +175,20 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
         try std.testing.expectError(error.InvalidTapeService, tape.appendSha256(sha));
         const arith = rv.ethereum_services.Arith256ModCall{ .call_id = 1, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
         try std.testing.expectError(error.InvalidTapeService, tape.appendArith256Mod(arith));
+    }
+    if (profile == .ethereum_services_op_v1) {
+        for (0..2) |i| {
+            var call = rv.ethereum_services.TowerCall{ .call_id = 41 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .output = @splat(0) };
+            call.before[0] = 1;
+            call.before[48] = 3;
+            call.before[56] = 5;
+            call.before[64] = 7;
+            call.before[72] = 2;
+            call.before[76] = 3;
+            const after = try rv.ethereum_services.tower.math.execute(&call.before);
+            call.output = after[0..rv.ethereum_services.tower.math.WRITTEN_WORDS].*;
+            try tape.appendTower(&call);
+        }
     }
     return tape;
 }
@@ -333,4 +349,55 @@ test "v3 tape curve records round-trip after arith256_mod records; curve-only ex
     defer reloaded.deinit();
     try std.testing.expectEqual(@as(usize, 0), reloaded.arith256_mod_calls.items.len);
     try std.testing.expectEqual(curve_only.curve_calls.items.len, reloaded.curve_calls.items.len);
+}
+
+test "OP tape v2 bounds and authenticates tower advice framing without changing legacy magic" {
+    var tape = try fixture(.ethereum_services_op_v1);
+    defer tape.deinit();
+    var temp = std.testing.tmpDir(.{});
+    defer temp.cleanup();
+    const file = try temp.dir.createFile("op", .{ .read = true });
+    defer file.close();
+    try W.write(file, &tape);
+    const bytes = try temp.dir.readFileAlloc(a, "op", 1 << 20);
+    defer a.free(bytes);
+    try std.testing.expectEqualStrings(W.MAGIC_OP, bytes[0..8]);
+    const record_bytes = 40 + 8 * (80 + 48);
+    const ext = bytes.len - 8 - record_bytes * 2;
+    const first = ext + 8;
+    try std.testing.expectEqual(@as(u32, 2), std.mem.readInt(u32, bytes[ext..][0..4], .little));
+    try std.testing.checkAllAllocationFailures(a, decodeAndRelease, .{file});
+    var changed = try a.dupe(u8, bytes);
+    defer a.free(changed);
+    // Version/profile pairing, section reserved word, operation and record
+    // reserved word, zero identity, duplicate identity, clock, pc and pointer.
+    for ([_]usize{ 7, ext + 4, first, first + 4, first + 8, first + record_bytes + 8, first + 16, first + 24, first + 32 }) |offset| {
+        @memcpy(changed, bytes);
+        changed[offset] ^= 1;
+        if (offset == first + 8) @memset(changed[offset..][0..8], 0);
+        try replace(file, changed);
+        const expected = if (offset == 7 or offset == ext + 4) error.InvalidTapeWireHeader else error.InvalidTapeWireService;
+        try std.testing.expectError(expected, W.readTail(a, file, .{}));
+    }
+    @memcpy(changed, bytes);
+    std.mem.writeInt(u32, changed[8..12], @intFromEnum(rv.execution_profile.Profile.ethereum_services_v3), .little);
+    try replace(file, changed);
+    try std.testing.expectError(error.InvalidTapeWireHeader, W.readTail(a, file, .{}));
+    @memcpy(changed, bytes);
+    std.mem.writeInt(u32, changed[ext..][0..4], std.math.maxInt(u32), .little);
+    try replace(file, changed);
+    try std.testing.expectError(error.InvalidTapeWireGeometry, W.readTail(a, file, .{}));
+    try replace(file, bytes);
+    try std.testing.expectError(error.InvalidTapeWireGeometry, W.readTail(a, file, .{ .bytes = bytes.len - 1 }));
+    for ([_]usize{ ext, ext + 4, first, bytes.len - 1 }) |length| {
+        try replace(file, bytes[0..length]);
+        try std.testing.expectError(error.TruncatedTapeWireData, W.readTail(a, file, .{}));
+    }
+    try replace(file, bytes);
+    try file.seekFromEnd(0);
+    try file.writeAll(&.{0});
+    try file.seekTo(0);
+    try std.testing.expectError(error.TrailingTapeWireData, W.readTail(a, file, .{}));
+    // Output values are witness advice, not codec authority: altered arithmetic
+    // must reach the admitted truth AIR, never be accepted as a native proof.
 }

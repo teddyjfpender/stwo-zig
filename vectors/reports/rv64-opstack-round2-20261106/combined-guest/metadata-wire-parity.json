@@ -1,0 +1,38 @@
+[
+  {
+    "case": "120794432",
+    "old_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+    "new_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+    "equal": true
+  },
+  {
+    "case": "121003241",
+    "old_sha256": "1bf7f4fdd524659e5a395da5493a15f40854323ad926cb4dde612f1ce4358906",
+    "new_sha256": "1bf7f4fdd524659e5a395da5493a15f40854323ad926cb4dde612f1ce4358906",
+    "equal": true
+  },
+  {
+    "case": "121049889",
+    "old_sha256": "9edba1df301e80664da4ab5fd0a6cef49532d449c0c21259bc44703812efc523",
+    "new_sha256": "9edba1df301e80664da4ab5fd0a6cef49532d449c0c21259bc44703812efc523",
+    "equal": true
+  },
+  {
+    "case": "121057303",
+    "old_sha256": "87ac02ac032049cd005303f28eda6694ebf79d3808c519371b410d01e09ff174",
+    "new_sha256": "87ac02ac032049cd005303f28eda6694ebf79d3808c519371b410d01e09ff174",
+    "equal": true
+  },
+  {
+    "case": "121065789",
+    "old_sha256": "582ec4bff66474b455ed8c5303068f2f662f192fe91ed268a9242587984b51eb",
+    "new_sha256": "582ec4bff66474b455ed8c5303068f2f662f192fe91ed268a9242587984b51eb",
+    "equal": true
+  },
+  {
+    "case": "121135704",
+    "old_sha256": "fa80c31e2f4cb7b2f1745c7dc88dfd1e27d6dfbcc8af7c4ac6e8dec4cf4201db",
+    "new_sha256": "fa80c31e2f4cb7b2f1745c7dc88dfd1e27d6dfbcc8af7c4ac6e8dec4cf4201db",
+    "equal": true
+  }
+]

@@ -1,0 +1,138 @@
+{
+  "status": "qualified closed whole87-line physical preparation fixture",
+  "production_admitted": false,
+  "security_qualified": false,
+  "profile": {
+    "field": "OM31",
+    "queries": 12,
+    "pow_bits": 0,
+    "log_blowup": 1,
+    "quotient_split": 1
+  },
+  "scope": "complete exact87-line preparation for one independently pinned canonical generator Q; not curve/subgroup/infinity, complete pairing, VM or recursion admission",
+  "proof_count": {
+    "composite_native": 1,
+    "GKR_child": 1,
+    "separately_wrapped_steps": 0
+  },
+  "source_program": {
+    "prefix_canonical_correction_writes": 10,
+    "double_transitions": 64,
+    "addition_transitions": 23,
+    "scalar_writes": 2052,
+    "global_values": 2065,
+    "source_owned_SSA_mass_each_sign": 8130,
+    "max_writer_fanout": 256,
+    "BYTE_query_mass": 724356,
+    "Q_independent": "IDs, order, polynomial ROM, exact fanout and line signs"
+  },
+  "roles": [
+    {
+      "role": "double/prefix",
+      "active_rows": 1546,
+      "log": 11,
+      "fixed": 44,
+      "main": 498,
+      "inter": 32
+    },
+    {
+      "role": "add",
+      "active_rows": 506,
+      "log": 9,
+      "fixed": 36,
+      "main": 626,
+      "inter": 32
+    },
+    {
+      "role": "initial/export",
+      "active_rows": 541,
+      "log": 10,
+      "fixed": 35,
+      "main": 33,
+      "inter": 16
+    },
+    {
+      "role": "BYTE table",
+      "active_rows": 256,
+      "log": 8,
+      "fixed": 1,
+      "main": 1,
+      "inter": 16
+    }
+  ],
+  "padded_main_inter_cells": 1476864,
+  "padded_fixed_cells": 144640,
+  "opening_columns": 1370,
+  "gkr": {
+    "instances": 6,
+    "variables": [
+      20,
+      18,
+      8,
+      15,
+      13,
+      10
+    ],
+    "padded_facts": 1352960,
+    "coefficient_encoding": "fixed4",
+    "bottom_storage": "streamed; checkpointed upper layers",
+    "closures": "BYTE double/add/table separate from SSA double/add/frontier; all output denominators nonzero"
+  },
+  "memory": {
+    "allocator_limit_bytes": 2147483648,
+    "measured_peak_requested_bytes": 59541610,
+    "not_RSS": true,
+    "includes": "whole composite fixture allocations through shared host budget, including prove and fresh receive",
+    "readonly_program_and_stack_excluded": true,
+    "deallocation": "std.testing.allocator ownership checks pass"
+  },
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/g2-preparation-physical-v3/generator",
+  "artifacts": [
+    {
+      "file": "chain.gkr.bin",
+      "bytes": 36340,
+      "sha256": "a3a107d66709369c2731fc99600af979e857e69b948ca8ee241d2b9c7e791000",
+      "acceptance": "local GKR child only; complete physical acceptance requires its native proof"
+    },
+    {
+      "file": "chain.proof.bin",
+      "bytes": 149848,
+      "sha256": "66c0c1d63376c6489328ff7003e71f24f435982afbcb1df9e4e5f140ea6967fa",
+      "acceptance": "fresh complete physical source verification"
+    },
+    {
+      "file": "temporary-plus-p.gkr.bin",
+      "bytes": 36340,
+      "sha256": "7b93d18ebf213fb5134894232b15c656d8e95390c3bb4527680960f8fcb2b66e",
+      "acceptance": "local GKR child only; complete physical acceptance requires its native proof"
+    },
+    {
+      "file": "temporary-plus-p.unverified.proof.bin",
+      "bytes": 152184,
+      "sha256": "c49c77a17ae2f24417bb2ec19f68e0f34b48ea81cea53b41068591a1eec52d72",
+      "acceptance": "rejected OodsNotMatching"
+    }
+  ],
+  "passed": [
+    "fresh independent source authority reconstructs FIXED+ordered public frontier; no producer VK authority",
+    "all87 original line normalizations and final state included; corrections are ten constrained canonical private writes",
+    "source bindings across actual mixed logs11/9/10/8 and correct global-domain masks",
+    "all complete component equations degree at most3",
+    "15 physical source/binding controls, including wrong initial ID/bytes, fanout, cross-state read ID, wrong/reordered line exports and coherently dropped export+writer fanout",
+    "balanced cross-family projective debt cannot cancel BYTE against SSA",
+    "coherent negativeQ prefix+p propagated into every later state/line yields locally accepted BYTE/SSA child and unchanged outputs; physical prover fails and captured proof rejects OodsNotMatching"
+  ],
+  "total_accepted_proof_bytes": 186188,
+  "source_identity": "explicitly pins baseG2 polynomial spec and shared BN254 curve/carry authority, plus preparation/row/projection/codec sources",
+  "input_specific_fixture_key": "publicQ/exports in FIXED is a conditional toy authority only, never a reusable production VK",
+  "commands": [
+    "zig build test-riscv64-op-dense-local-gkr -Doptimize=ReleaseSafe -Driscv-test-filter='G2 preparation'"
+  ],
+  "performance_claim": "none; no controlled wall timing or full-block measurement",
+  "remaining": [
+    "production canonicalQ MAIN and authenticated CPU/service Wire/RAM owner joins",
+    "curve/subgroup/infinity and complete positive pairing endpoints",
+    "source-only recursive leaf/root and128-target composed security/capacity qualification",
+    "real guest integration and total proving benchmark"
+  ]
+}

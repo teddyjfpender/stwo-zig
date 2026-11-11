@@ -460,6 +460,11 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             allocator: std.mem.Allocator,
             query_positions: []const usize,
         ) !vcs_lifted_prover.MerkleProverLifted(H).DecommitmentResult {
+            // Root/shape-only custody cannot supply coefficient openings.
+            // Refuse before collecting leaves or allocating opening scratch.
+            if (comptime @hasField(B.MerkleTree(H), "layers_parked")) {
+                if (self.commitment.layers_parked) return error.InvalidColumnSize;
+            }
             const QueryOrder = struct {
                 positions: []const usize,
 

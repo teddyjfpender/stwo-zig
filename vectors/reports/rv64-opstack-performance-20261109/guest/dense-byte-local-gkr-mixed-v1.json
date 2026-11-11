@@ -1,0 +1,102 @@
+{
+  "schema": "op-dense-byte-local-gkr-mixed-v1",
+  "scope": "closed public-packet BYTE argument, independently sized arithmetic and table, no runtime service admission",
+  "security_qualified": false,
+  "production_admission_open": false,
+  "profile": "OM31 q12/P0 correctness-only",
+  "source_recipe": {
+    "arithmetic_terms": 355,
+    "arithmetic_padded_lanes": 512,
+    "arithmetic_reserved_provider_numerator": "constrained zero obsolete MAIN.MULT; original denominator retained",
+    "table_terms": 1,
+    "table_log": 8,
+    "table_provider": "negative physically committed table MAIN[0], immutable fixed BYTE0..255",
+    "shared_beta": true,
+    "cross_instance_closure": true,
+    "positive_query_mass": 4248,
+    "characteristic": 2147483647,
+    "proof_magic": "DENSELG2"
+  },
+  "cases": {
+    "multiply-k8": {
+      "arith_log": 8,
+      "table_log": 8,
+      "arith_main": 1075,
+      "table_main": 1,
+      "arith_inter": 24,
+      "table_inter": 16,
+      "native_bytes": 116248,
+      "child_bytes": 21376,
+      "total_bytes": 137624,
+      "native_sha256": "9ce980e58462dbf40a5cfed92eec195d82419ac789b0a52fd9b7fa163f784b11",
+      "child_sha256": "94c71304a9f1a621377ac526b44fb55209e792dc7725d53ef7ec11c85dd63c1c",
+      "source_variables": [
+        17,
+        8
+      ],
+      "both_instance_numerators_nonzero": true,
+      "committed_main_inter_cells": 285696,
+      "padded_gkr_facts": 131328
+    },
+    "multiply-k9": {
+      "arith_log": 9,
+      "table_log": 8,
+      "arith_main": 1075,
+      "table_main": 1,
+      "arith_inter": 24,
+      "table_inter": 16,
+      "native_bytes": 120992,
+      "child_bytes": 23752,
+      "total_bytes": 144744,
+      "native_sha256": "9e619a08d7fa712e44ef4b8933d84db2454146fa774505edd647176803ec3cad",
+      "child_sha256": "d1acdd8bac336041fc4b100902f12df919c19c6c120f1b712461df509f03f1b4",
+      "source_variables": [
+        18,
+        8
+      ],
+      "both_instance_numerators_nonzero": true,
+      "committed_main_inter_cells": 567040,
+      "padded_gkr_facts": 262400
+    },
+    "square-k9": {
+      "arith_log": 9,
+      "table_log": 8,
+      "arith_main": 691,
+      "table_main": 1,
+      "arith_inter": 24,
+      "table_inter": 16,
+      "native_bytes": 84576,
+      "child_bytes": 23752,
+      "total_bytes": 108328,
+      "native_sha256": "2def06e06c9a550369b2c4691803c9f6e2895d39f277041c67356b41111ee845",
+      "child_sha256": "cbd6c59062eaa624647d3a4f060cfbc29815bcc406f4e1ec145d40a7c02ab11e",
+      "source_variables": [
+        18,
+        8
+      ],
+      "both_instance_numerators_nonzero": true,
+      "committed_main_inter_cells": 370432,
+      "padded_gkr_facts": 262400
+    }
+  },
+  "qualified": [
+    "sameonecall equal/mixed-log controls",
+    "source-derived GKR role/order/dimensions, no producer geometry",
+    "both final source masks authenticated on global lifted PCS domain",
+    "independent fresh FIXED key and partially verified child",
+    "arithmetic Eq/prefix/output and table Eq/prefix opening mutations",
+    "wrong row-MLE point and divergent table beta rejected",
+    "wrong public input scope, corrupt child and substituted source geometry rejected",
+    "degree<=3 finite difference test across both roles and bothclasses including publicauxiliary polynomials",
+    "hard whole allocator cap2GiB and ownership teardown",
+    "no classic interaction trace allocation"
+  ],
+  "pending": [
+    "production typedSSA/frontier/global RAM/CPU join",
+    "recursive concrete source factory",
+    "complete resource/security admission ledger",
+    "new runtime ABI/profile if chosen",
+    "wall-time benchmark"
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/dense-direct-split-local-gkr-v1"
+}

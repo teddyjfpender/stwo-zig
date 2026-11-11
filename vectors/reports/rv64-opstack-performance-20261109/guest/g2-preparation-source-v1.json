@@ -1,0 +1,16 @@
+{
+  "status":"qualified whole87-line immutable source/witness foundation; physical binding pending",
+  "production_admitted":false,
+  "security_qualified":false,
+  "scope":"conditional canonical Q arithmetic preparation only, not complete pairing/curve/subgroup/infinity/VM proof",
+  "source_program":{"double_transitions":64,"addition_transitions":23,"ordered_lines":87,"initial_fields":13,"variable_initial_fields":4,"literal_initial_fields":9,"canonical_correction_prefix_writes":10,"double_scalar_rows":1546,"addition_scalar_rows":506,"values":2065,"line_preimage_exports":522,"final_state_exports":6,"frontier_rows":541,"IDs":"source-owned unique topological u16 IDs, independent of Q","positive_negative_SSA_mass":8130,"max_writer_fanout":256,"BYTE_query_mass":724356},
+  "corrections":"ten source-owned canonical relations derive negative Qy, psiQ x/y, psi2Q x and negative psi2Q y; no Q-dependent correction is a free setup literal",
+  "planned_roles":[{"role":"double/prefix","active_rows":1546,"log":11,"main":498,"inter":32},{"role":"add","active_rows":506,"log":9,"main":626,"inter":32},{"role":"initial/export","active_rows":541,"log":10,"main":33,"inter":16},{"role":"BYTE table","active_rows":256,"log":8,"main":1,"inter":16}],
+  "planned_padded_main_inter_cells":1476864,
+  "planned_GKR":{"instances":6,"padded_facts":1352960,"source_checkpoint_model_bytes_at52":70353920,"whole_worker_memory_bound":false},
+  "passed":["full87-line generator and2G2 chains exactly match independently pinned existing-oracle line digests and final homogeneous points","all2052 scalar rows satisfy exact integer carry and canonical-output checks","allread IDs precede unique writers, exact fanout/SSA mass and source-fixed correction ordering","ten correction prefix output/quotient/carry mutations reject","prefix congruent result+p closes carries/ranges but fails canonical writer","common envelopes exactly equal qualified G2 double/add geometry"],
+  "test":"zig test src/frontends/riscv/rv64_bn254_g2_preparation_test_root.zig -O ReleaseSafe",
+  "test_count":14,
+  "performance_claim":"none",
+  "remaining":["mixed-height physical BYTE/SSA source bindings and separate closures","coherent internal and state/line ID/fanout adversarial proofs","whole-worker actual caps/security ledger","production Q MAIN plus authenticated Wire instead of input-specific fixture FIXED","curve/subgroup/infinity and complete pairing endpoints","recursive source leaf/root and real performance"]
+}

@@ -61,6 +61,12 @@ pub const crypto = struct {
     pub const arith256 = delegations.arith256;
     pub const keccak_sponge = delegations.keccak_sponge;
     pub const curves = delegations.curves;
+    pub const bn254_residue = delegations.bn254_residue;
+    pub const bn254_g2 = delegations.bn254_g2;
+    pub const bn254_mac12 = delegations.bn254_mac12;
+    pub const bn254_pairing_mac12 = delegations.bn254_pairing_mac12;
+    pub const bn254_dense = delegations.bn254_dense;
+    pub const bn254_tower = delegations.bn254_tower;
 };
 
 pub const memory = struct {

@@ -1,0 +1,150 @@
+{
+  "schema": "op-heavy-conditional-b2-cpu-control/v1",
+  "scope": "One genuine first-4,000,000-retirement conditional CPU fragment from selected OP121065789 guest. NOT complete prefix, execution, block or recursion acceptance. Prefix-only INIT excludes full-block touched memory.",
+  "profiles": {
+    "baseline": "op_target_b4_q72_p0_fold4_v1",
+    "control": "op_control_b2_q144_p0_fold4_v1",
+    "selection": "Existing typed allowlist in isolated qualification test only. No production selector, mixed suite, or incoming-proof profile selection."
+  },
+  "environment": {
+    "optimize": "ReleaseFast",
+    "workers": 16,
+    "host_cap_bytes": 34359738368,
+    "gkr_child_cap_bytes": 12884901888,
+    "samples": 1,
+    "measurement": "Sequential single baseline and control qualification, not repeated statistical benchmark. Source and caps match; protocol differs."
+  },
+  "source_equivalence": {
+    "compared_fields": [
+      "steps",
+      "final_pc",
+      "final_registers",
+      "cpu",
+      "request",
+      "init_words",
+      "terminal_words_proved",
+      "planned_unproved_truths",
+      "unproved_detached",
+      "gkr_facts",
+      "fixed_cells",
+      "main_cells",
+      "interaction_cells_excluding_frontier"
+    ],
+    "all_equal": true,
+    "retirements": 4000000,
+    "pc": 2488340,
+    "independent_oracle": "Unicorn2.1.4 PC/all32registers match before proof",
+    "gkr_facts": 149605184,
+    "prefix_init_words": 67326,
+    "native_trace_cells": 564103680,
+    "full_guest_instructions": 238226172,
+    "remaining_obligations": "RAM/Wire, detached sponge, truth providers, teardown and remaining execution. KIO debt is zero in this fragment."
+  },
+  "results": {
+    "B4": {
+      "native_seconds": 21.170132125,
+      "seal_seconds": 9.833568291,
+      "complete_seconds": 11.336563834,
+      "fresh_verify_seconds": 0.069207875,
+      "full_fixture_seconds": 27.218493708,
+      "full_fixture_scope": "Includes capture/setup/fresh source keys/verification; B2 also includes extra independent B4 key and both cross-profile controls.",
+      "requested_peak_bytes": 10093072140,
+      "pcs_bytes": 1333204,
+      "gkr_bytes": 113288,
+      "proof_sha256": {
+        "cpu.pcs.bin": "db731dc7bc725b68eca35ed7462cd3550dc691c42dab73a06ffe76f8301b8a70",
+        "cpu.gkr.bin": "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3"
+      },
+      "stage_summed_seconds": {
+        "streaming_commit_prepare": 3.5229459999999997,
+        "merkle_commit": 6.5491779999999995,
+        "local_gkr": 3.555241,
+        "composition_evaluation": 1.866699,
+        "composition_commit": 1.705325,
+        "fri_quotient_build_and_commit": 2.341024,
+        "trace_decommit": 0.90773
+      }
+    },
+    "B2": {
+      "native_seconds": 12.612239166,
+      "seal_seconds": 5.829239875,
+      "complete_seconds": 6.782999291,
+      "fresh_verify_seconds": 0.0964395,
+      "full_fixture_seconds": 18.569586375,
+      "full_fixture_scope": "Includes capture/setup/fresh source keys/verification; B2 also includes extra independent B4 key and both cross-profile controls.",
+      "requested_peak_bytes": 7350950804,
+      "pcs_bytes": 2411820,
+      "gkr_bytes": 113288,
+      "proof_sha256": {
+        "cpu.pcs.bin": "78f5d58c7f226ee60f374e840e29fc6f20bde3ddbb14e49c7ec31bca4316f7dc",
+        "cpu.gkr.bin": "67e3e79b6b51585113e4414f0de62c8c41908a0e895451073e0bd3c256a1c0a7"
+      },
+      "stage_summed_seconds": {
+        "streaming_commit_prepare": 0.844202,
+        "merkle_commit": 3.146561,
+        "local_gkr": 3.436536,
+        "gkr_source_tree_construction": 0.657254,
+        "gkr_sumcheck_traversal": 2.775879,
+        "gkr_terminal_receipt": 0.002971,
+        "gkr_terminal_binding": 0.365919,
+        "composition_evaluation": 1.720271,
+        "composition_commit": 0.828585,
+        "fri_quotient_build_and_commit": 1.136022,
+        "trace_decommit": 0.867963
+      },
+      "process": {
+        "wall_seconds": 18.59,
+        "user_seconds": 195.39,
+        "system_seconds": 6.25,
+        "minor_faults": 2808924,
+        "major_faults": 0,
+        "rss_peak_bytes": 7357612032,
+        "footprint_peak_bytes": 7359469832
+      }
+    }
+  },
+  "controls": {
+    "fresh_B2_source_key_verifies_B2": true,
+    "independently_source_rebuilt_B4_key_verifies_authentic_retained_B4": true,
+    "valid_B4_under_B2_rejected": "SpongeCpuProofScope",
+    "valid_B2_under_B4_rejected": "SpongeCpuProofScope",
+    "pinned_retained_B4_metadata_sha256": "860f231708c6e6f9ecce5f7a495e3989881e114c6f4f5102dd0302e09df8e998",
+    "all_focused_tests_passed": 69,
+    "requested_live_and_external_after_teardown": 0
+  },
+  "security": {
+    "accounting_profile": "op-detached-typed-source-security-preflight/v1",
+    "target": "128-bit security target under documented assumptions",
+    "raw_modulo_envelope_bits": 151,
+    "security_qualified": false,
+    "production_admission": false,
+    "scope": "conditional native algebraic envelope; P2/hash/FRI/Fiat-Shamir/recursion assumptions are not certified by this ledger"
+  },
+  "tradeoff": "B2 halves LDE heights while doubling queries (72 to144). Trace cells and localGKR shape unchanged; commitments/FRI cheaper, opening proof larger. This conditional experiment does not authorize mixing profiles in a block. A future versioned receiver-pinned suite must regenerate every manifest-bound proof and compose per-worker security/recursion accounting.",
+  "artifacts": {
+    "baseline": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-native-tiles-v1",
+    "control": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-b2-control-v1",
+    "log": "/private/tmp/op-b2-conditional-physical.log",
+    "configuration": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-v1/config.json",
+    "oracle": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-v1/oracle.json"
+  },
+  "reproduction": {
+    "build": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseFast -j1 -Driscv-test-filter='OP heavy selected conditional B2 CPU fragment control'",
+    "environment": {
+      "STWO_OP_HEAVY_PREFIX_CONFIG": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-v1/config.json",
+      "STWO_OP_HEAVY_PREFIX_ORACLE": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-v1/oracle.json",
+      "STWO_OP_HEAVY_PREFIX_OUT": "a new exclusive output directory",
+      "STWO_OP_HEAVY_PREFIX_RETAINED": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-native-tiles-v1",
+      "STWO_OP_HEAVY_PREFIX_MODE": "prove",
+      "STWO_ZIG_PCS_COLUMN_HISTOGRAM": "1"
+    }
+  },
+  "comparison": {
+    "native_speedup": 1.6785387468761548,
+    "native_reduction_percent": 40.42437198062597,
+    "requested_peak_reduction_percent": 27.168351696731264,
+    "pcs_size_increase_percent": 80.90404769262618,
+    "protocol_bytes_equal": false,
+    "local_GKR_same_length_but_different_values": true
+  }
+}

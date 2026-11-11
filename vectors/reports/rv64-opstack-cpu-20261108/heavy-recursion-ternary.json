@@ -1,0 +1,1372 @@
+{
+  "schema": "stwo.opstack.heavy-recursion-qualification.v1",
+  "scope": "Complete historical OP 121065789 execution-only recursive root; no authenticated L1 derivation, checkpoint accumulation or settlement",
+  "security_qualified": false,
+  "security_scope": "128-bit security target under documented assumptions",
+  "quiet_benchmark": false,
+  "overlap": "Guest builds and focused tests ran during production/reception",
+  "instructions": 425537671,
+  "native_cpu_proofs": 102,
+  "native_service_proofs": 24,
+  "recursive_leaves": 126,
+  "recursive_folds": 64,
+  "fold_arity": 3,
+  "root_only_receiver": false,
+  "strict_receiver_requires_all_native_and_recursive_proofs": true,
+  "requested_live_bytes": 55834574848,
+  "fixed_setup_bytes": 4294967296,
+  "qualifications": {
+    "scope": "Heavy OP execution-only ternary M6 recursion qualification; development may overlap, not a quiet benchmark",
+    "reused_leaf_candidates": 0,
+    "produce": {
+      "command": [
+        "/usr/bin/nice",
+        "-n",
+        "10",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-ternary-m6-prover",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "resume-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-ternary-m6-request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-ternary-m6",
+        "4294967296",
+        "55834574848"
+      ],
+      "wall_ns": 2536789418583,
+      "peak_rss_bytes": 33419689984,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 25801.447998,
+      "system_cpu_s": 833.904321,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "receive": {
+      "command": [
+        "/usr/bin/nice",
+        "-n",
+        "10",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-ternary-m6-prover",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-ternary-m6-request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-ternary-m6",
+        "4294967296",
+        "34359738368"
+      ],
+      "wall_ns": 193250103625,
+      "peak_rss_bytes": 11156963328,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 1179.473656,
+      "system_cpu_s": 26.216989,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "admission": {
+      "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+      "native_profile": "conjectured128_b2_q108_p20_fold4",
+      "outer_profile": "stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1",
+      "root_digest": "3547d8ea65a59fcae64e03f95c81dd9d267e5d66b1f05216d1b74abde947e735",
+      "root_authority": "06c20f7d7a852ad0e04b515fbfcffcf959224941568484525e1915e1958d7771",
+      "manifest": "70db35648611bacedfc25e113c525f7718d0fd18ed9530d943e9ad9327b046b2",
+      "root_proof_bytes": 749304,
+      "cpu_proofs": 102,
+      "service_proofs": 24,
+      "recursive_leaves": 126,
+      "recursive_folds": 64
+    }
+  },
+  "producer": {
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      255,
+      190,
+      186,
+      22,
+      117,
+      174,
+      144,
+      200,
+      52,
+      62,
+      75,
+      255,
+      238,
+      225,
+      20,
+      204,
+      4,
+      60,
+      127,
+      109,
+      98,
+      62,
+      43,
+      131,
+      30,
+      24,
+      73,
+      244,
+      222,
+      33,
+      37,
+      70,
+      1,
+      10,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      79,
+      80
+    ],
+    "native_profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+    "outer_profile": "stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1",
+    "security_qualified": false,
+    "security_scope": "128-bit target under documented assumptions; no whole-protocol certificate",
+    "load_and_setup_ns": 41173945333,
+    "setup_breakdown": {
+      "image_ns": 333034208,
+      "program_ns": 43418167,
+      "native_keys_ns": 20832022458,
+      "fixed_authority_ns": 19800306542,
+      "other_ns": 165141000
+    },
+    "recursive": {
+      "schema": 2,
+      "accepted": true,
+      "outer_backend": "cpu",
+      "leaf_proofs": 126,
+      "restored_leaves": 0,
+      "fold_proofs": 64,
+      "restored_folds": 0,
+      "peak_pending_authorities": 0,
+      "retired_preprocessed_bytes": 123016177664,
+      "gpu_new_leaf_proofs": 0,
+      "gpu_new_fold_proofs": 0,
+      "assignment_source": "cpu_circuit_builder",
+      "root_node": 189,
+      "root_digest": [
+        53,
+        71,
+        216,
+        234,
+        101,
+        165,
+        159,
+        202,
+        230,
+        78,
+        3,
+        249,
+        92,
+        129,
+        221,
+        157,
+        38,
+        126,
+        93,
+        102,
+        177,
+        240,
+        82,
+        22,
+        209,
+        183,
+        74,
+        189,
+        233,
+        71,
+        231,
+        53
+      ],
+      "root_authority": [
+        6,
+        194,
+        15,
+        125,
+        122,
+        133,
+        42,
+        208,
+        224,
+        75,
+        81,
+        95,
+        191,
+        207,
+        252,
+        249,
+        89,
+        34,
+        73,
+        65,
+        86,
+        132,
+        132,
+        82,
+        94,
+        25,
+        21,
+        225,
+        149,
+        141,
+        119,
+        113
+      ],
+      "manifest": [
+        112,
+        219,
+        53,
+        100,
+        134,
+        17,
+        186,
+        206,
+        223,
+        194,
+        94,
+        17,
+        60,
+        82,
+        95,
+        119,
+        24,
+        208,
+        253,
+        24,
+        237,
+        149,
+        48,
+        217,
+        67,
+        233,
+        173,
+        147,
+        39,
+        176,
+        70,
+        178
+      ],
+      "native_prove_ns": null,
+      "graph_ns": 54926204671,
+      "wrap_ns": 1540263252164,
+      "fold_ns": 897961314494,
+      "root_verify_ns": 148005500,
+      "total_ns": 2495394646334,
+      "root_proof_bytes": 749304,
+      "portable_root_key_admission": false,
+      "fold_arity": 3,
+      "outer_shape": "exact"
+    }
+  },
+  "receiver": {
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      255,
+      190,
+      186,
+      22,
+      117,
+      174,
+      144,
+      200,
+      52,
+      62,
+      75,
+      255,
+      238,
+      225,
+      20,
+      204,
+      4,
+      60,
+      127,
+      109,
+      98,
+      62,
+      43,
+      131,
+      30,
+      24,
+      73,
+      244,
+      222,
+      33,
+      37,
+      70,
+      1,
+      10,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      79,
+      80
+    ],
+    "native_profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+    "outer_profile": "stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1",
+    "security_qualified": false,
+    "security_scope": "128-bit target under documented assumptions; no whole-protocol certificate",
+    "shared_fresh_native_authority": true,
+    "native_verified_before_recursion": true,
+    "existing_recursive_proofs_only": true,
+    "trace_only_recursive_graphs": true,
+    "load_and_setup_ns": 40570756042,
+    "setup_breakdown": {
+      "image_ns": 339601709,
+      "program_ns": 44693958,
+      "native_keys_ns": 20280117334,
+      "fixed_authority_ns": 19642268625,
+      "other_ns": 264067417
+    },
+    "native_verify_ns": 2999975959,
+    "total_after_setup_ns": 152588610375,
+    "native": {
+      "accepted": true,
+      "completed_ethereum_block": true,
+      "security_profile": "conjectured128_b2_q108_p20_fold4",
+      "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+      "output": [
+        255,
+        190,
+        186,
+        22,
+        117,
+        174,
+        144,
+        200,
+        52,
+        62,
+        75,
+        255,
+        238,
+        225,
+        20,
+        204,
+        4,
+        60,
+        127,
+        109,
+        98,
+        62,
+        43,
+        131,
+        30,
+        24,
+        73,
+        244,
+        222,
+        33,
+        37,
+        70,
+        1,
+        10,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        79,
+        80
+      ],
+      "cpu_proofs": 102,
+      "truth_proofs": 24,
+      "verify_ns": 2999975959
+    },
+    "recursive": {
+      "schema": 2,
+      "accepted": true,
+      "outer_backend": "cpu_trace_only_receiver",
+      "leaf_proofs": 126,
+      "restored_leaves": 126,
+      "fold_proofs": 64,
+      "restored_folds": 64,
+      "peak_pending_authorities": 0,
+      "retired_preprocessed_bytes": 123016177664,
+      "gpu_new_leaf_proofs": 0,
+      "gpu_new_fold_proofs": 0,
+      "assignment_source": "none_receiver_trace_only",
+      "root_node": 189,
+      "root_digest": [
+        53,
+        71,
+        216,
+        234,
+        101,
+        165,
+        159,
+        202,
+        230,
+        78,
+        3,
+        249,
+        92,
+        129,
+        221,
+        157,
+        38,
+        126,
+        93,
+        102,
+        177,
+        240,
+        82,
+        22,
+        209,
+        183,
+        74,
+        189,
+        233,
+        71,
+        231,
+        53
+      ],
+      "root_authority": [
+        6,
+        194,
+        15,
+        125,
+        122,
+        133,
+        42,
+        208,
+        224,
+        75,
+        81,
+        95,
+        191,
+        207,
+        252,
+        249,
+        89,
+        34,
+        73,
+        65,
+        86,
+        132,
+        132,
+        82,
+        94,
+        25,
+        21,
+        225,
+        149,
+        141,
+        119,
+        113
+      ],
+      "manifest": [
+        112,
+        219,
+        53,
+        100,
+        134,
+        17,
+        186,
+        206,
+        223,
+        194,
+        94,
+        17,
+        60,
+        82,
+        95,
+        119,
+        24,
+        208,
+        253,
+        24,
+        237,
+        149,
+        48,
+        217,
+        67,
+        233,
+        173,
+        147,
+        39,
+        176,
+        70,
+        178
+      ],
+      "native_prove_ns": null,
+      "graph_ns": 21271101170,
+      "wrap_ns": 75176515584,
+      "fold_ns": 51978934004,
+      "root_verify_ns": 178901292,
+      "total_ns": 149581180250,
+      "root_proof_bytes": 749304,
+      "portable_root_key_admission": false,
+      "fold_arity": 3,
+      "outer_shape": "exact"
+    }
+  },
+  "negative_tests": [
+    {
+      "case": "physical-leaf",
+      "rejected": true,
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-ternary-m6-prover",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-ternary-m6-request.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-negative-physical-leaf",
+          "4294967296",
+          "34359738368"
+        ],
+        "wall_ns": 43463109250,
+        "peak_rss_bytes": 11194187776,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 256.561903,
+        "system_cpu_s": 1.732796,
+        "returncode": 1,
+        "timed_out": false
+      },
+      "error": "info: RECURSION_SETUP image_ns=325423125 program_ns=43786750 native_keys_ns=19665525916 fixed_authority_ns=18729546000 other_ns=174309417\ninfo: rv64 OM31 recursion m3 node 1/190: arity=0\nerror: RV64_OUTER_NODE_FAILED node=0 arity=0 error=ProofOfWork\nerror: ProofOfWork\n"
+    },
+    {
+      "case": "missing-final-fold",
+      "rejected": true,
+      "resources": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-ternary-m6-prover",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-ternary-m6-request.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-negative-missing-final-fold",
+          "4294967296",
+          "34359738368"
+        ],
+        "wall_ns": 42735777417,
+        "peak_rss_bytes": 6593609728,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 252.834536,
+        "system_cpu_s": 1.412117,
+        "returncode": 1,
+        "timed_out": false
+      },
+      "error": "info: RECURSION_SETUP image_ns=332510792 program_ns=45242958 native_keys_ns=20221619500 fixed_authority_ns=18722448750 other_ns=176443209\nerror: MissingRecursiveNodeProof\n"
+    }
+  ],
+  "recursive_artifact_files": {
+    "leaf-000027.proof": {
+      "bytes": 749368,
+      "sha256": "aca5fc38354bb6898b4290626b68baaa26822148faac5a9e650a026eae3f8227"
+    },
+    "leaf-000062.proof": {
+      "bytes": 746008,
+      "sha256": "ce235e6877dc4a5bc8613b08434596c71a61b9576802cfc78437c53bcfdc5b8b"
+    },
+    "fold-000007.proof": {
+      "bytes": 752824,
+      "sha256": "619c78a8f8c536af9193ff8f064af7971e12efb12c5e60b5b12820b7356ddb58"
+    },
+    "leaf-000107.proof": {
+      "bytes": 748632,
+      "sha256": "1c9f6d2b8020cb0e2b3d645b8967fd2afed0b69d8e885ed07dc08b40fc9a3193"
+    },
+    "leaf-000086.proof": {
+      "bytes": 751736,
+      "sha256": "9cf1280a21646e993638d256971fe1f6d86d207050b4ec8b4997416f141e54e5"
+    },
+    "fold-000186.proof": {
+      "bytes": 750840,
+      "sha256": "10d3070a35b790b4ae539b7ef5772430cffe66291b278b575972c412113f9169"
+    },
+    "leaf-000123.proof": {
+      "bytes": 709560,
+      "sha256": "fbe14f1f7457d685285928137a891289a536b88ae3ebdc393f2661eef8f6dd35"
+    },
+    "fold-000146.proof": {
+      "bytes": 745240,
+      "sha256": "f878789041cd750b4d94777e2f2964e9682797ca35e0938aace43a418f120577"
+    },
+    "leaf-000003.proof": {
+      "bytes": 749688,
+      "sha256": "fc64f728d947b117dd1560d4b74b795d203fe4a37c397821dc62f30fe6142be4"
+    },
+    "leaf-000046.proof": {
+      "bytes": 740888,
+      "sha256": "7f18559b7fe41f386e92f33746470e1863606fa3d69587102da03aeeaf6b2184"
+    },
+    "leaf-000001.proof": {
+      "bytes": 749112,
+      "sha256": "a2829b2136b5093394de019d97378c5570c4f22e767cddd314c67f376d0e0a34"
+    },
+    "leaf-000044.proof": {
+      "bytes": 746296,
+      "sha256": "14ca9483181dcfc42ff6352cf111b5f5bfa343012da21aba2ec42d0ea54f1c44"
+    },
+    "leaf-000084.proof": {
+      "bytes": 745144,
+      "sha256": "5f563475b4326bed5c32e9fa4b9df87a38b25bdf72a8c15221c2d4ce29d657dd"
+    },
+    "leaf-000079.proof": {
+      "bytes": 756792,
+      "sha256": "b7b90aca8f297688e6b546ea074e6a4f418d8b51f3132a1051e91e07ede44e48"
+    },
+    "fold-000064.proof": {
+      "bytes": 751160,
+      "sha256": "43b8ddfeae36a6af9c7738f82378cc134e08048215ffad365c23be4c65fe2358"
+    },
+    "leaf-000121.proof": {
+      "bytes": 700920,
+      "sha256": "ea1484ef17b39b001aa4ad54e3fbd34cca776fe20b768e679f0d3dc8849a34c0"
+    },
+    "leaf-000018.proof": {
+      "bytes": 745432,
+      "sha256": "ed51fc46452bcbf589dd901b8d16e12d67a36e32a1613bfa75d8099c1ae93e46"
+    },
+    "fold-000118.proof": {
+      "bytes": 741208,
+      "sha256": "2f8253e707e9f89bf6507c5ba34386b5b90919cc0fa50ceeb45e6a2112a3fc18"
+    },
+    "leaf-000105.proof": {
+      "bytes": 756984,
+      "sha256": "2e08e29c3385ea07377edbd7298ac92da91b2c3210c3fb56ca782228e15ab827"
+    },
+    "fold-000160.proof": {
+      "bytes": 744984,
+      "sha256": "643a827630d1233dd3c2f29e1c8fc3250ec90aab8e17810c15e55216409587fc"
+    },
+    "leaf-000025.proof": {
+      "bytes": 741848,
+      "sha256": "06cea6db03c9f1c0d494a1c8fe4df573323e312d197d99a592e673f6e4e84b87"
+    },
+    "fold-000038.proof": {
+      "bytes": 751672,
+      "sha256": "7812b87836805ce39c9a7c92a2955a4c664e8a0c62f910bf52c013781e842bfd"
+    },
+    "leaf-000060.proof": {
+      "bytes": 750392,
+      "sha256": "c8acc1996c150e16c47dc436d6fd4717fd82165c6ba07d70b91c18f75d27cbcd"
+    },
+    "fold-000159.proof": {
+      "bytes": 748344,
+      "sha256": "0d3ed4a975d07c93ea2e17b3b792996da49f444bd86d9a5e7cf19e8b19fe0b03"
+    },
+    "leaf-000101.proof": {
+      "bytes": 747896,
+      "sha256": "20de260db9e48b22ff93e28b1a2ff3a9dc9baa7dd51aef7bbb9bc1763c2ace3c"
+    },
+    "leaf-000059.proof": {
+      "bytes": 748984,
+      "sha256": "ec9255e242c2ad1701e562a0ceb97caf429c795af596b5ca6872e9afbca45c35"
+    },
+    "fold-000079.proof": {
+      "bytes": 751064,
+      "sha256": "19c0a902c06c2cb6e4afeb0207db628c58ebd349aa6c89658fbe9030062d2864"
+    },
+    "leaf-000021.proof": {
+      "bytes": 744088,
+      "sha256": "6b583c75698823eed33c4d38a74982f773a1be7af4d2a2776707e41a42244f37"
+    },
+    "leaf-000064.proof": {
+      "bytes": 754808,
+      "sha256": "a159397f783c3dae55e44959a415fa5f1ea96ade0877ff2b8b4ca0a9362c7737"
+    },
+    "leaf-000099.proof": {
+      "bytes": 749048,
+      "sha256": "e3b02bea44fad9b90fd2078b94a434d2194eeda3335e98f2ee4b2bd7371a106b"
+    },
+    "fold-000164.proof": {
+      "bytes": 748952,
+      "sha256": "9cde5efee98abecbba86df5e0a2b556decec80dfe7eda079797cbe18401cd293"
+    },
+    "leaf-000005.proof": {
+      "bytes": 753784,
+      "sha256": "ab0badfc23333eafd9e03456ce5e36f2873193985ef0cbcefad5dc8772f37a3b"
+    },
+    "leaf-000040.proof": {
+      "bytes": 754360,
+      "sha256": "4b711c39a9450e4c41df4ec89409e0fb842d409a9b90c21221b834b8006686b0"
+    },
+    "leaf-000118.proof": {
+      "bytes": 710008,
+      "sha256": "5fcd2c66fde0535bc237fff9909a38884ee39ac83410ac1270dde1621b2ab34b"
+    },
+    "fold-000105.proof": {
+      "bytes": 747928,
+      "sha256": "b4dad7b23e98b812e0a5697982c960791ceb643d364ab618dca0770acae0168c"
+    },
+    "leaf-000125.proof": {
+      "bytes": 710008,
+      "sha256": "4be2193423875c016137bb96b36cd8e0f995b3bc7c9553a31b7b615b84659015"
+    },
+    "fold-000025.proof": {
+      "bytes": 746488,
+      "sha256": "b2ddd96703d80bd8955f6a9f66b46f92c44717b2483a194ec8d1de82a04b3ccc"
+    },
+    "leaf-000038.proof": {
+      "bytes": 757912,
+      "sha256": "8a0eba652591f6c984a3fccf59737d5a67a07ec3f67ac842562e588f62497b06"
+    },
+    "fold-000060.proof": {
+      "bytes": 750872,
+      "sha256": "68a35ec64d965cdb27c51e447a2b759949f6c28b239f7869189169f8703abdb6"
+    },
+    "leaf-000080.proof": {
+      "bytes": 738232,
+      "sha256": "42228c76235669bc8a25b5dce0402495e5c65f42f15fa0af26ac00ff83a4bd8a"
+    },
+    "leaf-000082.proof": {
+      "bytes": 750200,
+      "sha256": "cfdf8843ef99caf81f115fb6db101b45b3847acc3ccda5d4b5a2e0221d9486f6"
+    },
+    "leaf-000007.proof": {
+      "bytes": 745656,
+      "sha256": "2d68c1f3be11d3049276f0858fe702582db5387082e33d218cf230893a5caef2"
+    },
+    "leaf-000042.proof": {
+      "bytes": 754968,
+      "sha256": "b835ccc35d38d85af7c26b7c329c425ec27cd1d84ebbd1125bf5356c55faffd0"
+    },
+    "leaf-000023.proof": {
+      "bytes": 746456,
+      "sha256": "2d53663b9be5c0af8f763465e29912699c37b70974c10b7b1ab6a3eb10a30318"
+    },
+    "leaf-000066.proof": {
+      "bytes": 747224,
+      "sha256": "b7aeaf53d49ba1c76f9d15ca1652547a233216452d000e9902723588c0f43dd8"
+    },
+    "leaf-000103.proof": {
+      "bytes": 740056,
+      "sha256": "68ac3f94d2217fe8584d97cc7461be4151131bb9f9aa929b5c40aacb36a61012"
+    },
+    "fold-000003.proof": {
+      "bytes": 743928,
+      "sha256": "642efaedb486a98b768d5819054422fee4ea3292e06f7343c81593f0c913e42a"
+    },
+    "leaf-000120.proof": {
+      "bytes": 714232,
+      "sha256": "b52c6d79e150e0b3830e218a904df3cff3b7a01356357067ed87e2b31f30a615"
+    },
+    "fold-000185.proof": {
+      "bytes": 748024,
+      "sha256": "b7c00cc59bdcc3fc0dbea5312829dd9ce600234433302a963e020faff6420a1f"
+    },
+    "leaf-000085.proof": {
+      "bytes": 740536,
+      "sha256": "5647c687febc75577037dd4c1ab9416a8e26769d68b54a9c59682ba862a9954a"
+    },
+    "fold-000065.proof": {
+      "bytes": 745432,
+      "sha256": "7bf1d1c33eb387f423e5608ca24ff84a505343c5cfd91fa0d67dbb092e8bffbb"
+    },
+    "leaf-000078.proof": {
+      "bytes": 745528,
+      "sha256": "2b5fde1fb28ef3d66bc5f5928c98f5c3f05e20ffafab13baa86f4367fc384c0d"
+    },
+    "fold-000020.proof": {
+      "bytes": 755288,
+      "sha256": "4ce23eb3665a434205ea61dfdbd55b64978d009c24e4c412edc43951bbc6d40a"
+    },
+    "leaf-000045.proof": {
+      "bytes": 752280,
+      "sha256": "f5f8744aa85ed5d9dbfd97539a048af10e88d6662ba9074915895b49cd66e2d6"
+    },
+    "leaf-000000.proof": {
+      "bytes": 751448,
+      "sha256": "22581f020ac48fb58591e87cb77fe5ca7ed1771085a638d397ff49d11fc1813d"
+    },
+    "fold-000100.proof": {
+      "bytes": 744824,
+      "sha256": "74f151136996a841991318b291703de99cb8a9c4cd857d9fb3a619e12e95d419"
+    },
+    "fold-000145.proof": {
+      "bytes": 754232,
+      "sha256": "2c660c5868881fe6506f97d171cb6c471bfc52f7d8f2cba4d5479a770772b62e"
+    },
+    "fold-000039.proof": {
+      "bytes": 746008,
+      "sha256": "8690b10d5f1d57bd78c077debf516bbea6740e1d1e9312fd44eb934d604680eb"
+    },
+    "leaf-000061.proof": {
+      "bytes": 742392,
+      "sha256": "c57ea0984dcc1513318e09d108f80c16907a40e599e48d7b0a0d7ea68f36b0c0"
+    },
+    "leaf-000024.proof": {
+      "bytes": 754456,
+      "sha256": "01825703a302ccd1877aacf28f6e197cffe8c3c325f874953993e27f3c994459"
+    },
+    "fold-000124.proof": {
+      "bytes": 741560,
+      "sha256": "35051f62954d493c6a5390cfba69f607501103a2a0e496eff99b84194349e930"
+    },
+    "leaf-000104.proof": {
+      "bytes": 741560,
+      "sha256": "1a0b803275fb270fb1088f03dc87ebb18d9be4c7f3a386bf64d965c9d9f3f63f"
+    },
+    "fold-000119.proof": {
+      "bytes": 750296,
+      "sha256": "111ec88f77025690ff0e373ef8cb1c3ca922c9f52e380ea34b58fa6537832b3c"
+    },
+    "leaf-000019.proof": {
+      "bytes": 743736,
+      "sha256": "1301381071834fc95d0a16b3ab4723b9d5a71989aee5f2b95ab7c98aebbb94bd"
+    },
+    "leaf-000106.proof": {
+      "bytes": 748312,
+      "sha256": "9951d0f2e536817244b5f81728d49bd75d741ef9b24cc38f1258a6b4ae568abf"
+    },
+    "fold-000043.proof": {
+      "bytes": 751160,
+      "sha256": "2c3003aed0f26bdf38a7d6960cbf41a5f5436d5e978ea116031f029f071db978"
+    },
+    "leaf-000063.proof": {
+      "bytes": 750808,
+      "sha256": "d515f10abcfb18066579b0c3a48b0c982accdb486d160cdb2b3bae75a0f5259b"
+    },
+    "leaf-000026.proof": {
+      "bytes": 753048,
+      "sha256": "c283f0115fd40ab0860292933c4c7354ed3a27dc9428508ca8e23e3b854f99f7"
+    },
+    "fold-000083.proof": {
+      "bytes": 752952,
+      "sha256": "58d158b59495ccf36d9358ae7c3fcc014e6dc9b0defb8cddb1b1b36c5cabcded"
+    },
+    "leaf-000047.proof": {
+      "bytes": 748120,
+      "sha256": "2d674bf1e67ae2bd1d8ff9dd9c1ac33e2bd12122fa9db099a0ee6393429e3784"
+    },
+    "leaf-000002.proof": {
+      "bytes": 751288,
+      "sha256": "c01841d42661251203372b0dcd2ecac65a07fc8cf42715dbcbf16b9330f7ec38"
+    },
+    "fold-000187.proof": {
+      "bytes": 755096,
+      "sha256": "bdcfd0a25665b86a5ad3bf7582cf84584acf560802c0db0af9159a111547add0"
+    },
+    "leaf-000122.proof": {
+      "bytes": 710200,
+      "sha256": "2ceebc0561745ec74fb821bf5c9eb69fdc63e1e56bb4a7ea92cc5a63bb836f8f"
+    },
+    "leaf-000087.proof": {
+      "bytes": 747192,
+      "sha256": "a99233d2fe575c3a1f5a8efcf49b4d4548265808b788c08a486fc329cb2407f7"
+    },
+    "leaf-000043.proof": {
+      "bytes": 755608,
+      "sha256": "1b3a03d5a0b2c3478f9d25b11533e4ba04815bfd6424c002f3df573dc22a95d6"
+    },
+    "leaf-000006.proof": {
+      "bytes": 750296,
+      "sha256": "7f72985985293d36fe1ac3346eb3c131114c4b2e244dc85685e15251e1e99942"
+    },
+    "leaf-000083.proof": {
+      "bytes": 756824,
+      "sha256": "3c50a2c8d845a666220319b606e9b7f2a7c0a840172aed89c72a1b5a2b1dffc8"
+    },
+    "fold-000047.proof": {
+      "bytes": 747608,
+      "sha256": "b157985b321a42591e35c20a87f3aa918c0e98738443f9cf233a5c280e078f63"
+    },
+    "leaf-000102.proof": {
+      "bytes": 744536,
+      "sha256": "10ff849edbf39b250a63c3e55b96ed19e05da34ce42c840de7e4bcc51995b5da"
+    },
+    "fold-000087.proof": {
+      "bytes": 744088,
+      "sha256": "86873290d308b727a0f2214af0dff4bd66dbb036a0d55ac3d07aebd0382d4dde"
+    },
+    "leaf-000067.proof": {
+      "bytes": 744600,
+      "sha256": "c0c2f67aca2ab4540ca63380504fce11af28692b289576e90064ac982490d5f3"
+    },
+    "leaf-000022.proof": {
+      "bytes": 742392,
+      "sha256": "649459a8381547ed29c0ad306eaf6e7df32314f345d2b78400f97ff7fef369ef"
+    },
+    "fold-000120.proof": {
+      "bytes": 752216,
+      "sha256": "04adbd830f84e22f697973520dac06d12f55296400d372a47ae3f3f9be088dfd"
+    },
+    "leaf-000065.proof": {
+      "bytes": 746872,
+      "sha256": "b8029d53f8c3718969359b178198b207cddd583295310ed2aeaedeb024b7d38b"
+    },
+    "fold-000078.proof": {
+      "bytes": 750552,
+      "sha256": "d3781ffa4eb435540c2869dd207d3d8650db6032f77d58d605f0861ec9682a20"
+    },
+    "leaf-000020.proof": {
+      "bytes": 751032,
+      "sha256": "88857d63090a9ebb4d339f6d535f88806d7d535f158eae57803887a701632adf"
+    },
+    "leaf-000098.proof": {
+      "bytes": 744984,
+      "sha256": "84356708706c2e51433f558b3dc8aac879d96a05fc2620d58c99545a30f42684"
+    },
+    "leaf-000058.proof": {
+      "bytes": 749208,
+      "sha256": "c4e05c06df48efad994257427b897fc20a9356c5f70f9ce51b98c4e332b6b78f"
+    },
+    "fold-000158.proof": {
+      "bytes": 751960,
+      "sha256": "aae8e61539cd3adc8884a383cb69c3203ca248afb1df749bd2eaa38ffc6fd14a"
+    },
+    "leaf-000100.proof": {
+      "bytes": 745080,
+      "sha256": "18bebcf4591ec4345755e4ae2afb0f5d035874a322db6f63398758568776f2f4"
+    },
+    "leaf-000039.proof": {
+      "bytes": 748600,
+      "sha256": "1a4aac85fc9112dd8defc48276f335e855a5b4c25bafa43296a2fcb67061f5d0"
+    },
+    "fold-000024.proof": {
+      "bytes": 747704,
+      "sha256": "a52084150d0e4b76cb313e2564fab5f31e2e42f4e9c9a47c69f98a5a89b1b443"
+    },
+    "leaf-000081.proof": {
+      "bytes": 747864,
+      "sha256": "ed272bac2df8db87cdcf5498771a7979fe92f089d5beeeb4e39de6a523fed0c3"
+    },
+    "fold-000181.proof": {
+      "bytes": 739736,
+      "sha256": "b7ce5b9b24e9dd942932aa1681c16731b18a783b62c3e5fc83364888e43bcd23"
+    },
+    "leaf-000124.proof": {
+      "bytes": 708440,
+      "sha256": "031f5193357aad463b19036f5c7c25afc420da6eea25c74860348da90f51a2f0"
+    },
+    "fold-000104.proof": {
+      "bytes": 748152,
+      "sha256": "d18693f7c54912d082b0bf2ec574eee7f1079567a150353ee251dd2fa8104b02"
+    },
+    "leaf-000119.proof": {
+      "bytes": 710584,
+      "sha256": "ae05025c8192504f4e20d32644c8b38f07fb26f404a76ddec61eca6c6036f595"
+    },
+    "fold-000141.proof": {
+      "bytes": 749304,
+      "sha256": "a21221c800bf30b38813451ac8d3d46caa9dc428e8929497845d1631c7c08ac2"
+    },
+    "leaf-000041.proof": {
+      "bytes": 744792,
+      "sha256": "a2a4092977ad611d961514576af21fa3d54f3897c9b11aeac25b8a715ecf02b9"
+    },
+    "leaf-000004.proof": {
+      "bytes": 758296,
+      "sha256": "58c53cd625de22f6d42e4798ab2f9d9008c8c881e56b5fce9bc1094c74d54864"
+    },
+    "leaf-000115.proof": {
+      "bytes": 711352,
+      "sha256": "eb51653a551c8e8983e1df6e4eda06461e13ad76ebf404512c53fe7adcd1ccac"
+    },
+    "leaf-000008.proof": {
+      "bytes": 754616,
+      "sha256": "b4628645f2977971ba0d121a636d2b5941cf92de61b647681834d71d74f42695"
+    },
+    "leaf-000035.proof": {
+      "bytes": 746040,
+      "sha256": "d9b982e909cc349b9aab051a86fdbcb1ab72551c4f42856f3e1372b4a641cf24"
+    },
+    "leaf-000070.proof": {
+      "bytes": 743928,
+      "sha256": "7f9bf41cd62d7e5a7bcf6bf39e9f475e76ccff161f0057e33a8b2a366cf9b65d"
+    },
+    "leaf-000011.proof": {
+      "bytes": 753048,
+      "sha256": "32263fd8ffea31e594952806752db0d7018cff07649b69886850816e71239bb8"
+    },
+    "leaf-000054.proof": {
+      "bytes": 745528,
+      "sha256": "0473a584dc16e3590e5b109c2055de60e35e83a97648606e2e926907d11df945"
+    },
+    "fold-000154.proof": {
+      "bytes": 734840,
+      "sha256": "5f3048469777d2a0f726d6f0f083a498771fcc3867d520bebfb1a6fc3638b2ba"
+    },
+    "leaf-000069.proof": {
+      "bytes": 742680,
+      "sha256": "7759e165ba78d8d82551a7e8f24fe77a21bd2cdb1b186557bb0c2292a789d5c5"
+    },
+    "leaf-000094.proof": {
+      "bytes": 757464,
+      "sha256": "f2f18b1cac945929e9a89675de2cc77ea18280f73cfbdd7d5c9bb3875d3d73d8"
+    },
+    "leaf-000096.proof": {
+      "bytes": 750936,
+      "sha256": "31e97efd1c13c7ac92a8f22b7206f85925f299915add9b03b5f0e1e61b832d86"
+    },
+    "fold-000033.proof": {
+      "bytes": 756600,
+      "sha256": "5b80deaa6b87f4b377ad210434d67e081a14c6560fc7bd1861a1a921d1270713"
+    },
+    "leaf-000013.proof": {
+      "bytes": 743416,
+      "sha256": "ef4bec5af526a4a3d0b0429ce5820f665173be21b22e742e53f9c30cea729bcc"
+    },
+    "leaf-000056.proof": {
+      "bytes": 744984,
+      "sha256": "4b7b3c61669ac6d7c6694964aa1ec64bc2c517b4138aaab771f177c657c3ad35"
+    },
+    "fold-000113.proof": {
+      "bytes": 741752,
+      "sha256": "bcf694c490c1d0f6f6de57ec67b364b4caf470a59b557512f06d957803077b53"
+    },
+    "fold-000092.proof": {
+      "bytes": 740728,
+      "sha256": "781b08962dba0a1bfb1957370223f8f69d1fb84f875a2824f2ea244008bc17b1"
+    },
+    "leaf-000037.proof": {
+      "bytes": 748728,
+      "sha256": "6cfd7a09f1ecc83b17271f3c8fc184aa2496b6eb11101eb3ddd688e39b8e901c"
+    },
+    "leaf-000072.proof": {
+      "bytes": 751064,
+      "sha256": "e0e50cf7513f90d8b150646c043de08cd6771aaa25f0296b5a22d896e13a8c4a"
+    },
+    "fold-000172.proof": {
+      "bytes": 757144,
+      "sha256": "1ff15c453f27fb8d8f3f089a7c9355229b6135c407ad3e1838cd10f786970d34"
+    },
+    "fold-000137.proof": {
+      "bytes": 748760,
+      "sha256": "e7826e1abcb9f13d28570e52294512c70b8c9482e151ef8b20b6a84403e2c24c"
+    },
+    "leaf-000117.proof": {
+      "bytes": 706680,
+      "sha256": "57b37e96edba458e0b3a15f618037706ad2c2616b09d00e93cf2ba4c2db6f9fc"
+    },
+    "fold-000052.proof": {
+      "bytes": 754328,
+      "sha256": "c7099818ee13b522b8f48b323796fcb259f673f584507ca174c124235aef9015"
+    },
+    "fold-000133.proof": {
+      "bytes": 747288,
+      "sha256": "f3e61374a4f14ab2a1b122dc6ddef1a13818a59d251a88d48fa5ed3559589661"
+    },
+    "leaf-000033.proof": {
+      "bytes": 748824,
+      "sha256": "28be42c52dd8d98c10aa7abb3d491e9b9f63d8d6e1185fcb4cd599c5b2a30659"
+    },
+    "leaf-000076.proof": {
+      "bytes": 750072,
+      "sha256": "e5d185160f11964e20c303e02a6efe16e0a823137afab67d3e4a1550aad7837b"
+    },
+    "fold-000096.proof": {
+      "bytes": 755576,
+      "sha256": "13f3f46e31dbfae8eeaeebb536bd9c05dd5d36ff5e7072db9c2271887a8989eb"
+    },
+    "fold-000056.proof": {
+      "bytes": 748248,
+      "sha256": "c12b1db67ee77abfd81169f01df466cd53ca3bafb5068de39225ede4fa1a7304"
+    },
+    "leaf-000113.proof": {
+      "bytes": 706264,
+      "sha256": "68dd3bfb0c69c640448102696ce04f172b8a0a8c97679124e73e5929fd646c3c"
+    },
+    "fold-000037.proof": {
+      "bytes": 748920,
+      "sha256": "8d59652bfa82c8d418a025023bcaf9028471592ad9e5c2bcb25df170d3a15030"
+    },
+    "leaf-000092.proof": {
+      "bytes": 747448,
+      "sha256": "c491b69c840b87a94aad72c13c525ec991efe588ceec8a314fea1c8eb323a2b6"
+    },
+    "fold-000117.proof": {
+      "bytes": 742744,
+      "sha256": "2b78eee9b084e463c1ac4892de9a784bd5579e300b8b73643b3dfdbee1b41cb7"
+    },
+    "leaf-000017.proof": {
+      "bytes": 744344,
+      "sha256": "18ff2ca40da52502be933b6f6596c17ca7c68074b65aa0693d312b27d4c01676"
+    },
+    "leaf-000052.proof": {
+      "bytes": 753112,
+      "sha256": "8607f5d58a19062bb72f5de756d2e6c8671a122f4c690d8e0f2553fd247a5f42"
+    },
+    "leaf-000108.proof": {
+      "bytes": 718392,
+      "sha256": "3ccd66cc832a140ed88af452f3f03388fe98d46fe7c1d46d2d1c3e5ff12f4d1a"
+    },
+    "fold-000150.proof": {
+      "bytes": 746360,
+      "sha256": "e4129b750554d5790b66ab4f2af41c411b1aff5a219b3d91086a0e2ae9c53b79"
+    },
+    "leaf-000015.proof": {
+      "bytes": 751704,
+      "sha256": "3563c997c6e4d9288257e2e87117ab66c1543f5b47d22220623d992713cb1103"
+    },
+    "leaf-000050.proof": {
+      "bytes": 757176,
+      "sha256": "40f08414b32a4e0c3933ce8a6058813b145533d2ff247f3f298252dc38347557"
+    },
+    "leaf-000090.proof": {
+      "bytes": 747864,
+      "sha256": "c220a0854843dc94a9ba1b9133a7c65d7ba5f6997ecfdcd2d21f84d8b57e4f8c"
+    },
+    "leaf-000028.proof": {
+      "bytes": 750872,
+      "sha256": "cadb3658c96b294aec0850d018d5c4d5cabcf8f29b51a9fc5c2b506ac42ab57b"
+    },
+    "fold-000128.proof": {
+      "bytes": 754296,
+      "sha256": "327fb9e2465a87b54eff32cd0f189a9920d1d11d9d1b074cbf1430d1f987070e"
+    },
+    "leaf-000049.proof": {
+      "bytes": 748920,
+      "sha256": "473a54aac9d84c2f0848018bb6f0ecd5e45d022f9cef1eb5e7bbba0b830ce207"
+    },
+    "fold-000011.proof": {
+      "bytes": 751960,
+      "sha256": "9b4b36b337d50462175a36b72ed11b7cfa707c56bfc60af64bc6532af85fa8b6"
+    },
+    "leaf-000111.proof": {
+      "bytes": 663544,
+      "sha256": "ca521e2333b9623d4f4d72071ad7692be4ba4781d4ed34f58f39a67301d29519"
+    },
+    "fold-000189.proof": {
+      "bytes": 749304,
+      "sha256": "ad39f1fbbf276fa43498927b5d734c4c94383f2cdffb7db70fd96c8dabad76e5"
+    },
+    "leaf-000089.proof": {
+      "bytes": 749976,
+      "sha256": "a9648543e0b224f04f0c86dd5b98e88612967550bf7c7a825c10cbb95cdd48d5"
+    },
+    "fold-000069.proof": {
+      "bytes": 750680,
+      "sha256": "78057504c3227138b9506fa355883ebeca0ac7bef33a7f1ed69db40b6a7d2b4d"
+    },
+    "leaf-000031.proof": {
+      "bytes": 753720,
+      "sha256": "4775ed9b08ec2bd5567f490ebfa841509da79cea3d8bf2cfc75d5093c70df4be"
+    },
+    "leaf-000074.proof": {
+      "bytes": 747960,
+      "sha256": "6fafa4eddda0622af5484c331df12ffc36c45252f92859cf696cb99749cdca8d"
+    },
+    "leaf-000057.proof": {
+      "bytes": 752504,
+      "sha256": "8cbebee48ee9df8fcf0f31fccf018bfc77537016f43755215e92b9a167960304"
+    },
+    "leaf-000012.proof": {
+      "bytes": 745432,
+      "sha256": "c0e8de32dbdea37145a8f88606b08ecc30041939837aba17e1e8d29676cc062f"
+    },
+    "leaf-000097.proof": {
+      "bytes": 741080,
+      "sha256": "7e2ab9f62695ab155b6de0ae84f053a13cc17d8cd9de1552dc09d5ce1065b1cf"
+    },
+    "fold-000077.proof": {
+      "bytes": 748728,
+      "sha256": "fb26850095062bf0acadf6149f7caef070bbc5074882bf0a4072828f2cc75a05"
+    },
+    "fold-000016.proof": {
+      "bytes": 748120,
+      "sha256": "3d58e91396d51e99fef10418e46575cf0eb49ff7215074bf9b23ca6dbdec0e7f"
+    },
+    "leaf-000116.proof": {
+      "bytes": 706040,
+      "sha256": "be0547500da2fdd5d528ba9e9f4b5f9e3e69f331189ef31ff54dc98df771abdd"
+    },
+    "fold-000173.proof": {
+      "bytes": 749304,
+      "sha256": "4c91d10007d1cca4b32cd177d03fb4fc22836e8c146daf7ff6624ce54424faa1"
+    },
+    "leaf-000073.proof": {
+      "bytes": 748664,
+      "sha256": "0a574afc047f2df08ac347fd22c4c510167e620cf4c0aa9848c9d471eb2ddb32"
+    },
+    "leaf-000036.proof": {
+      "bytes": 742616,
+      "sha256": "29f1724c33adddf7a2b1c8444b228a026b76e98f392f5181bc3c69dfa20cf789"
+    },
+    "fold-000029.proof": {
+      "bytes": 741016,
+      "sha256": "e98339a9e6848b6be4359a06fecc6f3e6e7376483fb2401a20f949de670f4d58"
+    },
+    "leaf-000071.proof": {
+      "bytes": 747736,
+      "sha256": "387331e34230ee8d8cab10cb2c033778622ffeb853873db63a5295b47841b0fe"
+    },
+    "leaf-000034.proof": {
+      "bytes": 750520,
+      "sha256": "303821152f9a2dc1715c5012b4f381faf2a5557eae2e759cc6a81b2d8d5e0a7f"
+    },
+    "fold-000091.proof": {
+      "bytes": 756344,
+      "sha256": "5c7709f3ae03052ed9438c1516aafd6eddd503659583f95ea67f95f77e55d9ef"
+    },
+    "root.proof": {
+      "bytes": 749304,
+      "sha256": "ad39f1fbbf276fa43498927b5d734c4c94383f2cdffb7db70fd96c8dabad76e5"
+    },
+    "leaf-000009.proof": {
+      "bytes": 750200,
+      "sha256": "86b454c23f895e25387bd0ddc3c5454d3fe599936860552f442d25a04e7e2ec9"
+    },
+    "fold-000051.proof": {
+      "bytes": 749016,
+      "sha256": "77b421f0b7e3eed163f7c0e5abaf3b314b25a637ae72722791fe0dcb7fbcf80d"
+    },
+    "leaf-000114.proof": {
+      "bytes": 708664,
+      "sha256": "2ff67a2f440990ffa0c1a736702c62b55de7405ae6f5aaad9d00e053a062f21f"
+    },
+    "fold-000109.proof": {
+      "bytes": 749112,
+      "sha256": "76b093c9cb5258daeba83da03a87122c01cd28dc0927c2a40a350504b542d1c3"
+    },
+    "leaf-000068.proof": {
+      "bytes": 748760,
+      "sha256": "075fc232273a4459c8aa9b98d3c0e936d1657f50bdd843952f90926baaef9c4a"
+    },
+    "leaf-000095.proof": {
+      "bytes": 752408,
+      "sha256": "4b8b18d190f4aa2a4afc57b7e6e59eb65de304cada4932b0d04d54f439a32e9c"
+    },
+    "fold-000168.proof": {
+      "bytes": 747640,
+      "sha256": "eb40294a8bce7a42c5118f0192f8abc34ce37b5b2960057f876a8319395f51bc"
+    },
+    "leaf-000055.proof": {
+      "bytes": 750232,
+      "sha256": "4a00b8de4ecbbd55323552ed688b4663e9049b3b2d1c232903f0c4ea433d098d"
+    },
+    "leaf-000010.proof": {
+      "bytes": 747704,
+      "sha256": "db8834451aeed47d87dbab4395d45eb7d8ddca178026308a5b5cecfc4e70aef2"
+    },
+    "leaf-000091.proof": {
+      "bytes": 743864,
+      "sha256": "6945fd4f698524ef844da042713141ea2a588eec49abb3b30ee03b1842f523b3"
+    },
+    "leaf-000029.proof": {
+      "bytes": 739672,
+      "sha256": "d64f4c81c259a4d37a2abe2c56758c2ebacb83b86f949ed075575d3b23926713"
+    },
+    "leaf-000051.proof": {
+      "bytes": 753368,
+      "sha256": "117b0c6369127a52b88881e83766ddd509e159d93774b2f9682954d29dfabc0f"
+    },
+    "leaf-000014.proof": {
+      "bytes": 751576,
+      "sha256": "a2a70ba8160e17977f3fb10e8760fe34941230c4abb0b018855dd00395523b58"
+    },
+    "leaf-000109.proof": {
+      "bytes": 713208,
+      "sha256": "09f30a58710b5582f08914aaf3ef18e18e226e474ccb33a6f55ce211d74f8ab2"
+    },
+    "leaf-000088.proof": {
+      "bytes": 746072,
+      "sha256": "783624d0419c42ec9020462b25e8c1b330df0ae0da13145d88097714fa91e19f"
+    },
+    "leaf-000075.proof": {
+      "bytes": 746456,
+      "sha256": "ab6f6d695f91d979ba639b215a748231380a49b19e70d2d81d1525d1114a8007"
+    },
+    "leaf-000030.proof": {
+      "bytes": 739832,
+      "sha256": "5a1f792f1c619e6086b28a41c309d2153a12fb0c0ad683b56d8162bb47525647"
+    },
+    "fold-000188.proof": {
+      "bytes": 747128,
+      "sha256": "965e5b4c248f7f91a944c51ee9ecc04cf3a77f26b5222ed4caf7b523638473ec"
+    },
+    "leaf-000110.proof": {
+      "bytes": 745816,
+      "sha256": "b45115666bf53fd78cee59f6a4e0da48c5ab407ead15e561daa4d98675e9b8c6"
+    },
+    "leaf-000048.proof": {
+      "bytes": 746968,
+      "sha256": "6088aa14570178e515e18a75dcc5da4188e025de7be3f770c59eb912b4a91d44"
+    },
+    "leaf-000112.proof": {
+      "bytes": 670264,
+      "sha256": "c5d4332cf8ed5ed74d21dea6eb5e73a1b88bdc551d80f1c43db3aa517a7c6aab"
+    },
+    "fold-000012.proof": {
+      "bytes": 738072,
+      "sha256": "9b04da4ff584086dabb0580253b0ff6688a07bec68081e7b65ec401fe39ecad5"
+    },
+    "leaf-000077.proof": {
+      "bytes": 739640,
+      "sha256": "2e56741564dc723eaef665d2300720ff86f7c7f29d9226320f0c7bfd56b5fe9c"
+    },
+    "leaf-000032.proof": {
+      "bytes": 747064,
+      "sha256": "ca74e94f6d87ff1ad04a5e5b64cbad0ff8841b1f58e60103e351d0834ba6bea5"
+    },
+    "fold-000132.proof": {
+      "bytes": 747128,
+      "sha256": "e08faf74f08d0a050e2db82301dac9450dd15227c00e51f54c67470980fe15b2"
+    },
+    "fold-000177.proof": {
+      "bytes": 746680,
+      "sha256": "1cb009b6f3af0e49660522ceb33f1fa13366b542ad782077cbd51713462b9984"
+    },
+    "leaf-000053.proof": {
+      "bytes": 751672,
+      "sha256": "91dc70334e9667e78e78daea96a2c65e94f12e3c7a2c28bc70538c5cb5cc3b14"
+    },
+    "leaf-000016.proof": {
+      "bytes": 753080,
+      "sha256": "0f1144ce416dc36ed759f87d89ed85c373330f9ce6dec636b6a1e6a6aab40af5"
+    },
+    "fold-000073.proof": {
+      "bytes": 758392,
+      "sha256": "1f2404e3473b6396a1604b50c0d58686ff8d877d7d5df92570115d3f21f86a78"
+    },
+    "leaf-000093.proof": {
+      "bytes": 753752,
+      "sha256": "0c6d7f40dcd7e5173616a8f283db0ff75617883507595c157ce6800881b72a0e"
+    }
+  },
+  "recursive_proof_files_bytes": 142220360,
+  "frozen_executable_sha256": "6d515bb35c9c9c8f8f0d2ca3b36a721f9388eaf1e11b14abcb13870cafdbfc75",
+  "previous_failed_m7_arity4": {
+    "scope": "Partial failed heavy recursion, no complete root accepted",
+    "accepted": false,
+    "fold_arity": 4,
+    "requested_live_bytes": 55834574848,
+    "produce": {
+      "command": [
+        "/usr/bin/nice",
+        "-n",
+        "10",
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "recurse-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-recursion-workers16.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native-52g/proof",
+        "4294967296",
+        "55834574848"
+      ],
+      "wall_ns": 1340341601291,
+      "peak_rss_bytes": 46647263232,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 12741.493511,
+      "system_cpu_s": 852.215281,
+      "returncode": 1,
+      "timed_out": false
+    },
+    "retained_native_leaves": 0,
+    "error": "OutOfMemory at four-child node 84/169; no ceiling raised",
+    "copied_leaves": {}
+  },
+  "binary_m7_override_refused": "Om31ProfileFoldArityMismatch; pinned profile unchanged",
+  "limitations": [
+    "Native production (1723.236 s) is additional to recursion (2536.789 s).",
+    "Small-block ~22 s group result does not extrapolate to this 126-member roster.",
+    "749304-byte root alone is not a portable independently keyed checkpoint.",
+    "Strict receiver independently reconstructs/checks all 190 recursion nodes plus 126 native proofs.",
+    "The M7 four-child attempt failed under the live admission. Ternary M6 closes functionality; it is not a controlled M7 performance comparison."
+  ]
+}

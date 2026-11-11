@@ -1,0 +1,44 @@
+{
+  "schema": "op-streaming-capture-custody-v1",
+  "scope": "complete selected real small native block split into two CPU shards, not heavy proving",
+  "block": 120794432,
+  "instructions": 796406,
+  "cpu_shards": 2,
+  "detached_sponge_shards": 1,
+  "truth_shards": 2,
+  "batch_steps": 524287,
+  "native_bytes": 6315160,
+  "native_sha256": "8e887225f69aa64fba796ad513240686a941a27f26b78492a5f2a1c5ce4244db",
+  "capture_parked_metadata_bytes": 44613632,
+  "producer_ns": 26714251500,
+  "prove_ns": 20811820958,
+  "physical_qualification": {
+    "all_native_proofs_metadata_public_cells_byte_identical_to_control": true,
+    "fresh_independent_native_receivers": true,
+    "typed_callback_order_and_complete": true,
+    "callback_failure_cleanup": true,
+    "capture_failure_after_park_releases_reserved_disk_and_all_heap_external": true,
+    "captured_metadata_immutable_digest_and_source_descriptor_rechecked_before_restore": true,
+    "store_disk_quota_shared_with_MAIN": true,
+    "ownership_transferred_only_after_chronological_advice_and_raw_capture_retirement": true,
+    "release_files_after_worker_sources": true,
+    "ReleaseSafe_CLI_semantic_check": 0,
+    "ReleaseFast_two_cpu_complete_and_failure_tests": 0
+  },
+  "metadata_only_models_bytes": {
+    "small_all_retirements": 44598736,
+    "small_largest_shard": 29360072,
+    "heavy_selected_all_retirements": 13340665632,
+    "heavy_largest_shard": 234880968,
+    "note": "CPU metadata payload only, excludes transient tape, other prepared facts, events, keys, MAIN/GKR/PCS and disk/mapping retention. Not a measured RSS reduction."
+  },
+  "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-selected-streaming-custody-v1",
+  "security_qualified": false,
+  "production_admission": false,
+  "ethereum_default_unchanged": true,
+  "remaining": [
+    "No heavy or full anchored proof rerun",
+    "Roster cap remains256; this does not qualify >=733-shard derivation",
+    "Measure full-worker RSS separately before claiming memory multiplier"
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "schema": "op-dense-direct-source-v2",
+  "scope": "source polynomial/carry/witness qualification only; physical AIR and joins pending",
+  "production_admission_open": false,
+  "security_qualified": false,
+  "equations": "source-owned12-coordinate schoolbook, i\u00b2=-1,v\u00b3=9+i,w\u00b2=v",
+  "shared_envelope": {
+    "coefficient_mass_rule": "maximum positive/negative sum across12source equations, rawu256 operands",
+    "quotient_bytes": 34,
+    "groups": 65,
+    "group_byte_stride": 1,
+    "carry_count": 64,
+    "carry_bits": 21,
+    "carry_bytes": 3,
+    "carry_offset": 883205,
+    "strict_residual_positive": 429152039,
+    "strict_residual_negative": 429141826,
+    "characteristic": 2147483647
+  },
+  "square": {
+    "inputs": 12,
+    "outputs": 12,
+    "rows_per_call": 12,
+    "main_per_row": 691,
+    "byte_queries_per_row": 354,
+    "gkr_byte_lanes": 512,
+    "gkr_ssa_lanes": 16,
+    "planned_binding_inter": 32,
+    "frontier_rows_per_call": 12,
+    "planned_frontier_main_inter": [
+      33,
+      24
+    ],
+    "planned_active_cells": 9456,
+    "planned_padded_gkr_facts_per_call": 6348,
+    "planned_global_wire_inter": 8,
+    "planned_total_inter": 40
+  },
+  "multiply": {
+    "inputs": 24,
+    "outputs": 12,
+    "rows_per_call": 12,
+    "main_per_row": 1075,
+    "byte_queries_per_row": 354,
+    "gkr_byte_lanes": 512,
+    "gkr_ssa_lanes": 32,
+    "planned_binding_inter": 32,
+    "frontier_rows_per_call": 24,
+    "planned_frontier_main_inter": [
+      33,
+      24
+    ],
+    "planned_active_cells": 14748,
+    "planned_padded_gkr_facts_per_call": 6552,
+    "planned_global_wire_inter": 8,
+    "planned_total_inter": 40
+  },
+  "square_then_multiply": {
+    "classic_fp2_cells": 53220,
+    "three_sparse_reuse_cells": 88632,
+    "direct_cells_planned": 24204,
+    "planned_direct_vs_classic_reduction": 0.5452085682074408
+  },
+  "heavy_source_model_1023_cap": {
+    "squares": {
+      "shards": 6,
+      "arithmetic_rows": 86016,
+      "frontier_rows": 86016,
+      "cells": 67780608
+    },
+    "multiply": {
+      "shards": 2,
+      "arithmetic_rows": 32768,
+      "frontier_rows": 65536,
+      "cells": 40271872
+    },
+    "resource_cap_qualified": false,
+    "existing_miller_unchanged": true
+  },
+  "qualified": [
+    "all144 basis pairs perkind",
+    "16edge/mixed input sets perkind incl0,p-1,rawu256max",
+    "independent nestedFp2/Fp6/Fp12 reference",
+    "all12canonical result writers percase",
+    "quotient/output/carry/borrow/activity mutations",
+    "zero padding witness",
+    "common strict coefficient/carry bounds"
+  ],
+  "pending": [
+    "source-owned ROM AIRdegree gate",
+    "BYTEprovider MAINmultiplicity binding",
+    "typed call/value SSA and packet frontiers",
+    "physical proof and fresh receiver",
+    "GKR terminal projection degree and authenticated masks",
+    "retention/source mass/resource cap ledger",
+    "guest ABI/service/profile choice after total-cost review"
+  ],
+  "supersedes": "v1 planned ledger omitted8 global Wire columns per arithmetic row; source polynomials/bounds remain unchanged",
+  "range_authority": "inputs are rawu256 with authenticated bytes; modulo-p output must be canonical; no unproved input<p assumption",
+  "global_wire_placement": "frontier consumes before-input Wire; arithmetic emits final output Wire; no redundant localSSA output copy"
+}

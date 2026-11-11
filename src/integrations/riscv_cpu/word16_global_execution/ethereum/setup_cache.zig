@@ -239,6 +239,8 @@ pub const Cache = struct {
         self.built.broadcast();
         return ptr;
     }
+    pub const build_thread_stack_bytes = 64 << 20;
+
     /// Runs `func(ctx, i)` for i in 0..count on up to `max_threads` threads,
     /// each bound to the caller's work pool. Returns the first error.
     pub fn parallel(count: usize, max_threads: usize, ctx: anytype, comptime func: fn (@TypeOf(ctx), usize) anyerror!void) !void {
@@ -272,7 +274,7 @@ pub const Cache = struct {
         var spawned: usize = 0;
         const target = @min(@min(count, max_threads), threads.len + 1);
         while (spawned + 1 < target) : (spawned += 1) {
-            threads[spawned] = std.Thread.spawn(.{ .stack_size = 64 << 20 }, Shared.work, .{&shared}) catch break;
+            threads[spawned] = std.Thread.spawn(.{ .stack_size = build_thread_stack_bytes }, Shared.work, .{&shared}) catch break;
         }
         // The caller thread keeps its existing binding.
         while (!shared.failed.load(.acquire)) {
@@ -657,7 +659,7 @@ const Artifact = struct {
             .identity = self.vk.identity,
             .root = self.vk.root,
             .cells = self.vk.cells,
-            .source = .{ .root = self.vk.source_root, .pcs = pcs, .columns = self.vk.source_logs.len },
+            .source = Fixed.SourceTag.fromLogs(self.vk.source_root, pcs, self.vk.source_logs),
             .tree = tree,
             .root_only = self.digests.len == 0,
             .column_digests = self.digests,

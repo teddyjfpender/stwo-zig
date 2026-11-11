@@ -1,0 +1,30 @@
+{
+  "schema": "stwo.opstack.fixed-setup-refusal.v1",
+  "scope": "Full heavy selected guest D2 native experiment; failed setup, no accepted proof",
+  "accepted": false,
+  "profile": "d2_native_b4_q54_p20_fold4",
+  "block": 121065789,
+  "produce": {
+    "command": [
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/fixed-diagnostic-native-prover",
+      "--security-profile",
+      "d2_native_b4_q54_p20_fold4",
+      "produce-candidate",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-selected-d2-diagnostic/request.json",
+      "-",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-selected-d2-diagnostic/proof",
+      "0",
+      "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-selected-d2-diagnostic/resources.json"
+    ],
+    "wall_ns": 86946869709,
+    "peak_rss_bytes": 43545575424,
+    "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+    "user_cpu_s": 355.377307,
+    "system_cpu_s": 38.471815,
+    "returncode": 1,
+    "timed_out": false
+  },
+  "stderr": "error: producer fixed setup failed: error=OutOfMemory limit_bytes=4294967296 live_bytes=1946203648 peak_bytes=4290789456 keys=26 refused=true\nerror: OutOfMemory\n",
+  "diagnostic": "The synchronized fixed-key cache refused its 4 GiB admission, not an unbounded host allocation. Cache accounting includes sealing scratch; all incomplete owners are retired by error cleanup.",
+  "default_unchanged": true
+}

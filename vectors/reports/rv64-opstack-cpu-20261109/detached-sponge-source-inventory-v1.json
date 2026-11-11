@@ -1,0 +1,43 @@
+{
+  "schema": "op-detached-sponge-source-inventory-v1",
+  "production_admission": false,
+  "security_qualified": false,
+  "scope": "Independent closed-source metadata inventory and shared complete execution admission; physical source-suite promotion remains closed",
+  "authority": [
+    "CPU source key and actual typed roster are rebuilt from supplied independent setup and requests",
+    "Exact aggregate sponge calls/permutations and contiguous detached/truth suffix coverage",
+    "CPU adjacency, program/image, genesis/terminal and all existing service/truth checks use original shared admission authority",
+    "Classic/local catalog and Miller source keys checked independently with exact tower coverage",
+    "Per-relation unsigned mass including all frontier Wire events remains below characteristic"
+  ],
+  "advisory_metadata": "Per-CPU permutation count/first-ID partition is a deterministic planning convention. Frontier physically authenticates per-CPU calls/full OWNER/epoch/clock; detached aggregate P and full global KIO supply semantic authority. No claim that this inventory proves that advisory partition.",
+  "ownership": "Only bounded request views, typed source rosters, IDs and KIO metadata retained; no copied execution witness or retained wide FIXED trees",
+  "checks": [
+    {
+      "command": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='sponge CPU complete two-shard detached physical join' -j1",
+      "exit": 0,
+      "source_statement_parity": true,
+      "CPU_discontinuity_rejected": true,
+      "detached_ID_gap_rejected": true,
+      "truth_omission_rejected": true,
+      "original_route_still_refuses_missing_classic_bridge": true,
+      "fresh_native_physical_join": true
+    },
+    {
+      "command": "zig build test-riscv64-word16-sponge-services -Doptimize=ReleaseSafe -Driscv-test-filter='v3 Keccak sponge: CPU bridges' -j1",
+      "exit": 0,
+      "Ethereum_legacy_fresh_receiver_wire_and_adversaries": true
+    }
+  ],
+  "regression_repair": {
+    "trigger": "Earlier OP fixture extraction changed the default Ethereum captured program ROM identity to v3 while its independent setup remained default v2",
+    "repair": "Restore exact historical Program.init for non-OP fixtures; keep explicit OP profile only on initForOp paths. Runtime session/tape v3 behavior unchanged.",
+    "production_Ethereum_profile_changed": false
+  },
+  "remaining": [
+    "Full concrete local-GKR/security resource ledger and preflight before wide keys",
+    "Independent receiver-owned wire/source-suite selection and complete native runtime",
+    "Complete recursive execution root using this source inventory",
+    "Actual OP block qualification and heavy speedup measurement"
+  ]
+}

@@ -1,0 +1,212 @@
+{
+  "schema": "stwo.opstack.cpu-performance-comparison.v1",
+  "scope": "native execution and service STARK bundles for pinned OP Mainnet blocks",
+  "cpu": "Intel Xeon Platinum 8573C, 9 visible logical CPUs, Linux x86_64",
+  "aggregate_stage_note": "summed physical-leaf wall samples may overlap",
+  "rows": {
+    "121057303-1m-tuned": {
+      "proof_verified": true,
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "batch_steps": 1048575,
+      "guest_instructions": 5926093,
+      "service_schedule": {
+        "lanes": 2,
+        "workers_per_lane": 4,
+        "memory_cap_bytes": 4294967296,
+        "heaviest_first": true
+      },
+      "setup_build_workers": 2,
+      "native_pool_workers": 8,
+      "gkr_storage": "default",
+      "receiver_source_keys": "identity-only",
+      "runner_sha256": "dfc699ba3797436d57bf6802229ba84bb8b6295acfca9c83379e89c890f73ca4",
+      "harness_sha256": "b6b7650739aa8c02f96a5fb0e0a9e8ab3cf9a52806922aa3782533122b25bfb2",
+      "request_sha256": "eb3ff155110e13909383df02c7fc7aee721c84e9ed90ba7b62e09493486c0c41",
+      "elf_sha256": "84af344e80a36bfb8cdfba3f034d31c086a5383a632a27a3d0a136e0f3063935",
+      "input_sha256": "87ac02ac032049cd005303f28eda6694ebf79d3808c519371b410d01e09ff174",
+      "resources": {
+        "gkr_bytes": 3221225472,
+        "global_bytes": 1073741824,
+        "retained_frontend_bytes": 5368709120,
+        "disk_bytes": 8589934592,
+        "fixed_setup_bytes": 2147483648,
+        "park_main": true,
+        "recycler_cache_bytes": 67108864,
+        "keccak_max_log": 16,
+        "capture_options": {
+          "execution_workers": 0
+        },
+        "schedule": {
+          "lanes": 2,
+          "workers_per_lane": 4,
+          "memory_cap_bytes": 4294967296,
+          "heaviest_first": true
+        }
+      },
+      "stages": {
+        "plan": {
+          "wall_ns": 6215832328,
+          "peak_rss_bytes": 1421254656,
+          "user_cpu_s": 5.545967,
+          "system_cpu_s": 4.570697,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "produce": {
+          "wall_ns": 172101542558,
+          "peak_rss_bytes": 5236178944,
+          "user_cpu_s": 601.75506,
+          "system_cpu_s": 99.446989,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "wall_ns": 23593480312,
+          "peak_rss_bytes": 2639081472,
+          "user_cpu_s": 40.296015,
+          "system_cpu_s": 6.038371,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "tamper": {
+          "wall_ns": 1972245503,
+          "peak_rss_bytes": 600309760,
+          "user_cpu_s": 1.3834710000000001,
+          "system_cpu_s": 0.552994,
+          "returncode": 1,
+          "timed_out": false
+        },
+        "tamper-rehashed": {
+          "wall_ns": 25548929440,
+          "peak_rss_bytes": 2640113664,
+          "user_cpu_s": 44.464403,
+          "system_cpu_s": 6.456327,
+          "returncode": 1,
+          "timed_out": false
+        }
+      },
+      "geometry": {
+        "cpu_proofs": 6,
+        "service_proofs": 7,
+        "main_interaction_bits": 32232733600,
+        "max_trace_log": 21
+      },
+      "native_stages": {
+        "capture_ns": 6078815531,
+        "setup_ns": 15219858571,
+        "prove_ns": 149793219857,
+        "same_process_verify_ns": 311048310,
+        "gkr_tree_policy": {
+          "checkpointed": true,
+          "tight_admission": true,
+          "stream_bottom": true
+        }
+      },
+      "aggregate_physical_stage_seconds": {
+        "local_gkr_prove": 63.577766209,
+        "composition_evaluation": 56.839716232,
+        "fri_quotient_build_and_commit": 30.877972918,
+        "streaming_commit_prepare": 22.097616420999994,
+        "source_construction": 7.616566298999999,
+        "sampled_value_evaluation": 7.467097902000001,
+        "composition_commit": 6.79259783,
+        "trace_decommit": 6.114286765999999,
+        "interaction_generation": 5.975101025,
+        "merkle_commit": 3.0258067579999994,
+        "composition_interpolate_and_split": 1.2180060189999997,
+        "fri_decommit": 0.682621431,
+        "proof_of_work": 0.293997317,
+        "constraint_check_and_assembly": 0.09515402499999999,
+        "oods_point_and_mask_points": 0.040873596,
+        "sampled_value_channel_mix": 0.020169977000000006,
+        "composition_trace_extract": 0.004301643,
+        "binding_finalize": 0.000147274,
+        "draw_random_coeff": 4.2721e-05
+      },
+      "receiver": {
+        "accepted": true,
+        "completed_ethereum_block": true,
+        "load_and_setup_ns": 22988227842,
+        "setup_breakdown": {
+          "image_ns": 2694832493,
+          "program_ns": 199818193,
+          "native_keys_ns": 13034021979,
+          "fixed_authority_ns": 6902771772,
+          "other_ns": 156762052
+        },
+        "verify_ns": 429369554,
+        "physical_verify_workers": 8,
+        "source_validations": 12
+      },
+      "accepted_output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+      "proof_binaries": {
+        "cells.bin": {
+          "bytes": 7056370,
+          "sha256": "899b3b8c81cd95c8a26dd08785b6f806581cef7a851b69820e81fd47173bb4ef"
+        },
+        "cpu-0.bin": {
+          "bytes": 2955384,
+          "sha256": "47c59e80a8c2e6a8858e5ac8b84284f92cf9772c87045ca332d4ded0ede64693"
+        },
+        "cpu-1.bin": {
+          "bytes": 2684440,
+          "sha256": "4d4cbe655566c07ed61b501b6dbf28140f902cebf5e07fc5ae3ffc4c2af127f0"
+        },
+        "cpu-2.bin": {
+          "bytes": 2779688,
+          "sha256": "277525e99b6e76ae0194e4655a8bfe265836a811ed4c02c3c2b8d70a764c0fb8"
+        },
+        "cpu-3.bin": {
+          "bytes": 2833632,
+          "sha256": "afeaf192a9da2d843ddcd372941eed5bf9c930ee82315ab1b36dd53c4b2c6473"
+        },
+        "cpu-4.bin": {
+          "bytes": 2644704,
+          "sha256": "69cda862f61a37c5065322a0eac4629a8e0a859c4d25d6a7af95885d96fb5226"
+        },
+        "cpu-5.bin": {
+          "bytes": 2542840,
+          "sha256": "88234e1747b75b2264e40551b358bee1f5b80e97911afa6b3338c8325768d1c2"
+        },
+        "stage-one.bin": {
+          "bytes": 612860,
+          "sha256": "a686c03a26ebf51c899f499b1534f83727051f92ac251092552f4c959032b0d6"
+        },
+        "truth-0.bin": {
+          "bytes": 2351976,
+          "sha256": "9d5f62ab6c25ef9f846dce143b2767715bae11aef2ab51decb45a3b1c201981d"
+        },
+        "truth-1.bin": {
+          "bytes": 2345288,
+          "sha256": "6f957f7951c803ecad0c28735f82677a0dd58a7e17e02110ca0490a5d4bb1b90"
+        },
+        "truth-2.bin": {
+          "bytes": 3858520,
+          "sha256": "b9526348a091373623f956910e0b2aa2094295a1071acd01a2b83c3a9552390d"
+        },
+        "truth-3.bin": {
+          "bytes": 3264752,
+          "sha256": "2790f5b1ddeb1127a9b625da1b0a8ae9545151273ff34d113c49fd01932e97bc"
+        },
+        "truth-4.bin": {
+          "bytes": 2619992,
+          "sha256": "086440e8870352c9b499bde711712e489464076fd16e37424d12464c26319ae9"
+        },
+        "truth-5.bin": {
+          "bytes": 2360720,
+          "sha256": "63e2dee10f045cf2207a7a399d80d57a032a3ee70be050f9e2a6e0e6562e1aea"
+        },
+        "truth-6.bin": {
+          "bytes": 635900,
+          "sha256": "a57084418223220a194386f77b8079435cc69bd1352ce8353632b5cfde10ab3d"
+        }
+      },
+      "rejections": {
+        "tamper": "WideBundleFileChanged",
+        "tamper-rehashed": "RootMismatch"
+      },
+      "source_commit": "117942bdc558d13552f29763faee43ad8863858b",
+      "binary_artifacts_matching_control": 15
+    }
+  }
+}

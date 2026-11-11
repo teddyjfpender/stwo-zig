@@ -1,0 +1,11 @@
+[package]
+name = "op-capture-kzg"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+c-kzg = "=2.1.8"
+sha2 = "=0.10.9"

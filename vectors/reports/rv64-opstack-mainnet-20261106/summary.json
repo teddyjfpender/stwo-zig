@@ -1,0 +1,123 @@
+{
+  "schema": "stwo.opstack.mainnet-report.v1",
+  "network": "OP Mainnet",
+  "chain_id": 10,
+  "coverage": "six historical Ecotone execution witnesses; no L1 derivation or chain-head authentication",
+  "gpu_base_at_measurement": "2b7eceb8cf93c185637e91762742f91a3412ee82",
+  "final_gpu_base": "bf2b6c072d51341f1c733f05f870d70b4c15834b",
+  "local_code_commit": "13d14f3b7b5df9229c74b8004f485d1c50a8f8d6",
+  "remote_code_commit": "79afd3a1e00481291dc3bf16c8c53fd3af13bbe4",
+  "security_qualified": false,
+  "snark_wrap": false,
+  "physical_gpu_benchmarked": false,
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "rows": [
+    {
+      "block": 120794432,
+      "gas": 43851,
+      "transactions": 1,
+      "instructions": {
+        "frontier": 1106822,
+        "sha": 979555,
+        "arithmetic": 979638,
+        "full": 821721,
+        "bn254-packet": 823363
+      },
+      "frontier_to_bn254_reduction": 0.25610170379699715,
+      "bn254_service_calls": 0,
+      "bn254_service_ram_words": 111134
+    },
+    {
+      "block": 121003241,
+      "gas": 1243355,
+      "transactions": 10,
+      "instructions": {
+        "frontier": 19331400,
+        "sha": 18825627,
+        "arithmetic": 18815046,
+        "full": 16499533,
+        "bn254-packet": 16510963
+      },
+      "frontier_to_bn254_reduction": 0.14589926234002715,
+      "bn254_service_calls": 0,
+      "bn254_service_ram_words": 1767194
+    },
+    {
+      "block": 121049889,
+      "gas": 329122,
+      "transactions": 3,
+      "instructions": {
+        "frontier": 6761716,
+        "sha": 6554319,
+        "arithmetic": 6555460,
+        "full": 5706703,
+        "bn254-packet": 5707677
+      },
+      "frontier_to_bn254_reduction": 0.1558833586030528,
+      "bn254_service_calls": 0,
+      "bn254_service_ram_words": 656516
+    },
+    {
+      "block": 121057303,
+      "gas": 423281,
+      "transactions": 4,
+      "instructions": {
+        "frontier": 7661045,
+        "sha": 7449590,
+        "arithmetic": 7444804,
+        "full": 6394106,
+        "bn254-packet": 6395123
+      },
+      "frontier_to_bn254_reduction": 0.16524142594123914,
+      "bn254_service_calls": 0,
+      "bn254_service_ram_words": 744096
+    },
+    {
+      "block": 121065789,
+      "gas": 27255387,
+      "transactions": 13,
+      "instructions": {
+        "frontier": 2520725903,
+        "sha": 2517248966,
+        "arithmetic": 2517236848,
+        "full": 2500418167,
+        "bn254-packet": 1376966523
+      },
+      "frontier_to_bn254_reduction": 0.4537420663780912,
+      "bn254_service_calls": 6432694,
+      "bn254_service_ram_words": 162809929
+    },
+    {
+      "block": 121135704,
+      "gas": 1885913,
+      "transactions": 18,
+      "instructions": {
+        "frontier": 24329539,
+        "sha": 23752173,
+        "arithmetic": 23749622,
+        "full": 20767823,
+        "bn254-packet": 20770017
+      },
+      "frontier_to_bn254_reduction": 0.14630453951470268,
+      "bn254_service_calls": 0,
+      "bn254_service_ram_words": 2297566
+    }
+  ],
+  "complete_cpu_blocks": [
+    120794432,
+    121057303
+  ],
+  "user_block_cpu": {
+    "block": 121057303,
+    "transactions": 4,
+    "gas": 423281,
+    "instructions": 6394106,
+    "cpu_proofs": 7,
+    "service_proofs": 7,
+    "producer_wall_s": 268.611112442,
+    "fresh_receiver_wall_s": 34.897274294,
+    "producer_peak_rss_bytes": 4384141312,
+    "proof_and_sidecar_bytes": 41101146,
+    "rehashed_corruption_rejected": true
+  }
+}

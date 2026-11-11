@@ -1,6 +1,6 @@
 //! Outer LogUp-GKR, named profile `outer_gkr_om31_strict_v1` (stream outer-gkr, M5 iteration of
-//! the M7 lever). OFF BY DEFAULT: no outer prover, circuit or receiver selects it until canon-vk
-//! wires the flag-gated hook agreed in /workspace/m3/M5-INTERFACES.md (section outer-gkr).
+//! the M7 lever). M7 remains explicit opt-in. Its CPU/device producers and
+//! independent native/in-circuit receivers share these class constants.
 //!
 //! What the profile fixes (all of it is a class constant, never a proof value):
 //! - the transcript domain (identity string below), mixed before any GKR draw;

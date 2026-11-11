@@ -1,0 +1,100 @@
+{
+  "schema": "op-native-source-prepare/v1",
+  "proof_verified": false,
+  "production_admitted": false,
+  "steps": 238226172,
+  "cpu_workers": 57,
+  "truth_workers": 13,
+  "miller_workers": 22,
+  "cpu_fixed_classes": 36,
+  "actual_immutable_fixed_disk_bytes": 11006001152,
+  "actual_fixed_mapping_bytes": 0,
+  "planned_combined_disk_upper_bytes": 195375932288,
+  "max_cpu_main_restore_bytes": 2599431260,
+  "capture_heap": {
+    "live_bytes": 24290622270,
+    "peak_live_bytes": 24871224894,
+    "host_live_bytes": 24290622270,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 24871224894,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "prepared_heap": {
+    "live_bytes": 25238122100,
+    "peak_live_bytes": 27792760776,
+    "host_live_bytes": 25238122100,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 27792760776,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "declared_limits": {
+    "consume_memory_events": true,
+    "live_bytes": 34359738368,
+    "disk_bytes": 206158430208,
+    "mapped_bytes": 12884901888,
+    "gkr_bytes": 12884901888,
+    "global_bytes": 2147483648,
+    "truth_live_bytes": 8589934592,
+    "truth_main_bytes": 2147483648,
+    "truth_interaction_bytes": 4294967296,
+    "truth_advice_bytes": 268435456,
+    "proof_bytes": 67108864,
+    "bundle_bytes": 2147483648
+  },
+  "source_cells": [
+    3349459232,
+    18554338528,
+    12930500096
+  ],
+  "image_ns": 366169667,
+  "program_ns": 249701708,
+  "capture_ns": 18427148667,
+  "setup_and_admission_ns": 421689127250,
+  "caveat": "Source and immutable-setup admission only; no MAIN, GKR or execution proof. Active source/prover scratch remains subject to hard budgets. Parked files are retired on exit.",
+  "qualification": "complete-heavy-source-prepare-only-no-execution-proof",
+  "block": 121065789,
+  "process_exit_code": 0,
+  "wall_seconds": 440.97,
+  "user_seconds": 3322.83,
+  "system_seconds": 34.03,
+  "max_rss_bytes": 27842838528,
+  "cpu_fixed_plus_main_upper_bytes": 154607035956,
+  "remaining_requested_heap_after_setup_bytes": 9121616268,
+  "final_teardown_counters_recorded": false,
+  "cleanup_evidence": [
+    "successful process exit",
+    "parked files have no retained directory entries",
+    "mixed physical fixture separately checks parked custody and allocator leak cleanup"
+  ],
+  "missing_data": [
+    "unique physical P2 and legacy FIXED root distributions were not instrumented in this binary; scalar-only helper added for the next necessary source reconstruction",
+    "direct post-runtime heap/external-zero counters were not instrumented in this binary; unconditional success-path check added for the next necessary source pass"
+  ],
+  "interpretation": [
+    "all36 immutable CPU class setups fit the32GiB hard host cap without holding their wide trees resident",
+    "cold setup421.689s is a measured remaining bottleneck, not proof time",
+    "MAIN/GKR/prover scratch still needs independent bounded admission; no heavy execution proof has been produced",
+    "source-derived195.376GB combined disk upper is conservative because physical FIXED constants use smaller native logs"
+  ],
+  "sampling": {
+    "seconds": 2,
+    "path": "/private/tmp/op-native-heavy-fixed-prepare.sample.txt",
+    "scope": "short diagnostic sample during setup; not an integrated stage breakdown",
+    "top_runnable_samples": {
+      "poseidon_w24_permute": 3329,
+      "poseidon_w24_external": 677,
+      "poseidon_w24_permute_specialized": 228,
+      "fft_forward": 463,
+      "fft_inverse": 119,
+      "blake_parallel4_compress": 439
+    }
+  },
+  "artifacts": {
+    "directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-heavy-fixed-prepare",
+    "log": "/private/tmp/op-native-heavy-fixed-prepare.log"
+  }
+}

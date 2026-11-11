@@ -1,0 +1,303 @@
+{
+  "schema": "stwo.opstack.cpu-proof.v1",
+  "security_qualified": false,
+  "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "runner_sha256": "d00860da4feedca6fe795ac816a1bca2c64872c7821684f7f4c4ee129b398573",
+  "request_sha256": "5174dd2f4d93ccb6fe8374b175297962b53b72b930fcd4a1acda942a8b7a1de0",
+  "elf_sha256": "04dac8540992cd08f6bdbdb556c960053d5e52255028862c34ba008598c2c7e0",
+  "input_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+  "proof_verified": true,
+  "stages": {
+    "plan": {
+      "command": [
+        "/workspace/opstack-tools/bin/rv64-word16-ethereum-gkr",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "plan-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-full/request.json",
+        "-",
+        "0",
+        "/workspace/opstack-runs/cpu-mainnet-full/resources.json"
+      ],
+      "wall_ns": 3882747949,
+      "peak_rss_bytes": 1068412928,
+      "returncode": 0
+    },
+    "produce": {
+      "command": [
+        "/workspace/opstack-tools/bin/rv64-word16-ethereum-gkr",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "produce-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-full/request.json",
+        "-",
+        "/workspace/opstack-runs/cpu-mainnet-full/proof",
+        "0",
+        "/workspace/opstack-runs/cpu-mainnet-full/resources.json"
+      ],
+      "wall_ns": 286520984484,
+      "peak_rss_bytes": 2902917120,
+      "returncode": 0
+    },
+    "receive": {
+      "command": [
+        "/workspace/opstack-tools/bin/rv64-word16-ethereum-gkr",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-full/request.json",
+        "/workspace/opstack-runs/cpu-mainnet-full/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 34937831472,
+      "peak_rss_bytes": 2358104064,
+      "returncode": 0
+    },
+    "tamper": {
+      "command": [
+        "/workspace/opstack-tools/bin/rv64-word16-ethereum-gkr",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-full/request.json",
+        "/workspace/opstack-runs/cpu-mainnet-full/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 1670718715,
+      "peak_rss_bytes": 474894336,
+      "returncode": 1
+    },
+    "tamper-rehashed": {
+      "command": [
+        "/workspace/opstack-tools/bin/rv64-word16-ethereum-gkr",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-full/request.json",
+        "/workspace/opstack-runs/cpu-mainnet-full/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 34484795939,
+      "peak_rss_bytes": 2346930176,
+      "returncode": 1
+    }
+  },
+  "receiver": {
+    "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+    "security_qualified": false,
+    "security_target": {
+      "label": "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
+      "target_bits": 128,
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "assumption_set": "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v2-boundary23",
+      "conjectured_fri_bits": 128,
+      "scope": "native proof bundle; recursion excluded",
+      "proven_bound": false,
+      "independent_security_audit_complete": false,
+      "whole_protocol_128_certified": false
+    },
+    "security_profile": "conjectured128_b2_q108_p20_fold4",
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      102,
+      249,
+      209,
+      65,
+      38,
+      76,
+      222,
+      71,
+      157,
+      168,
+      232,
+      174,
+      248,
+      118,
+      213,
+      76,
+      241,
+      24,
+      25,
+      53,
+      116,
+      44,
+      40,
+      84,
+      62,
+      217,
+      102,
+      186,
+      141,
+      131,
+      182,
+      203,
+      1,
+      10,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      79,
+      80
+    ],
+    "cpu_proofs": 4,
+    "truth_proofs": 2,
+    "load_and_setup_ns": 33290389038,
+    "setup_breakdown": {
+      "image_ns": 1388318897,
+      "program_ns": 163183732,
+      "native_keys_ns": 18712140101,
+      "fixed_authority_ns": 13001058743,
+      "other_ns": 25687345
+    },
+    "verify_ns": 1387718118,
+    "fixed_setup": {
+      "limit_bytes": 1073741824,
+      "live_bytes": 221794320,
+      "peak_bytes": 715646624,
+      "keys": 6,
+      "hits": 0,
+      "seals": 6,
+      "loads": 0,
+      "refused": false,
+      "native_coefficients": {
+        "limit_bytes": 1073741824,
+        "retained_bytes": 171403520,
+        "native_backing_bytes": 171382656,
+        "groups": 162,
+        "hits": 547,
+        "duplicate_native_bytes_released": 478190720,
+        "observed_individual_owners": 709,
+        "observed_backing_owners": 0,
+        "observed_spans": 709,
+        "owner_leases": 7
+      }
+    },
+    "source_validations": 6,
+    "source_coefficient_cells": 162393344,
+    "source_accounting_profile": "rv64-source-derived-services-v3-lookup/v1",
+    "source_shape": {
+      "native_proofs": 6,
+      "max_trace_log": 21,
+      "max_public_boundary_log": 15,
+      "max_columns": 7444,
+      "max_constraints": 7751,
+      "max_samples_per_column": 5,
+      "max_air_degree": 5,
+      "max_local_instances": 28,
+      "max_tuple_arity": 35,
+      "max_gkr_variables": 22,
+      "native_trace_cells": [
+        162393344,
+        89314528,
+        163214336
+      ]
+    },
+    "source_lookup_only_conditional_degrees": {
+      "tuple_collision": 872369791672848,
+      "rational_identity": 47067712,
+      "local_rational_identity": 45523008,
+      "global_rational_identity": 1544704,
+      "poles": 47067712
+    },
+    "receiver_budget": {
+      "live_bytes": 1030420494,
+      "peak_live_bytes": 1524272798,
+      "host_live_bytes": 1030420494,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 1524272798,
+      "peak_external_bytes": 0,
+      "limit": 6442450944,
+      "exceeded": false
+    },
+    "receiver_recycler_cache_cap_bytes": 4294967296,
+    "receiver_worker_stack_upper_bound_bytes": 1048576
+  },
+  "artifacts": {
+    "proof/bundle.json": {
+      "bytes": 32952,
+      "sha256": "28a89681ca7e7109b1d1b0409db11c85db875ff7dd2a061f7ea61d55e4c01de6"
+    },
+    "proof/candidate-fixed-setup.json": {
+      "bytes": 963,
+      "sha256": "a64e9fefe063b8b303d00b5894800a8b46334cd221731ca057294cb814e6214a"
+    },
+    "proof/candidate-source-bounds.json": {
+      "bytes": 17654,
+      "sha256": "ff32071a97d5110f840cf9b00cb0cd4cc4b230bd675de3bb6b1c4fbfedb41c16"
+    },
+    "proof/cells.bin": {
+      "bytes": 1410836,
+      "sha256": "4ebcfa3b03416a077011b97595fb30ea58b7938a75619126302a20db1cb1d5fb"
+    },
+    "proof/cpu-0.bin": {
+      "bytes": 2524136,
+      "sha256": "790b25365ba9fadf01288f5a4080f070c530df963bad19a6a7beea25ae1ee04e"
+    },
+    "proof/cpu-1.bin": {
+      "bytes": 2465752,
+      "sha256": "8d6ff1644e02d21ebdc68c8511a2c1a76eab6d94a030189fb23f5b4d84861179"
+    },
+    "proof/cpu-2.bin": {
+      "bytes": 2421696,
+      "sha256": "0f65bdde58d91d3917099a7a66002108c09a39fad5dba7f427f28ee32d25ca8b"
+    },
+    "proof/cpu-3.bin": {
+      "bytes": 2545400,
+      "sha256": "83a70cf18d332f9320e07f3058da9960c981d7fa69676fd6738429d00974d6bf"
+    },
+    "proof/physical-0000.stages.json": {
+      "bytes": 187733,
+      "sha256": "93b3d0eb4627731d338b638866ef6931088cb9626c5995c2031fd6ebe6f25676"
+    },
+    "proof/physical-0001.stages.json": {
+      "bytes": 182385,
+      "sha256": "39c6d1e7d6ca2da41bf697a78b44682521dba657a1b4f11595c9a97739eda14d"
+    },
+    "proof/physical-0002.stages.json": {
+      "bytes": 179806,
+      "sha256": "7b4251d7f59c8cacf2b5f25413664638a6b6a0b7465b35d0ce79f0a8c457122f"
+    },
+    "proof/physical-0003.stages.json": {
+      "bytes": 187445,
+      "sha256": "3846471fd7340b3bf7de6f7059637933333000d24e799cb09398d8e39cb232b0"
+    },
+    "proof/physical-0004.stages.json": {
+      "bytes": 157571,
+      "sha256": "d5e7971e23ef5d0a181d736e8ee9f6f0dc93679a2d7133e897ba76d2b976c323"
+    },
+    "proof/physical-0005.stages.json": {
+      "bytes": 309003,
+      "sha256": "c7c4687141157dc7141e8413d7bf87e18b041f50c5ec3d7c76b09bfb73825d30"
+    },
+    "proof/report.json": {
+      "bytes": 14707,
+      "sha256": "cfc72bc5665ca1889da29ba526854477e307ecaa080dd85f8ca1d65dedb677da"
+    },
+    "proof/schedule.json": {
+      "bytes": 2958,
+      "sha256": "806b3f8dd0510b1610da38f2f96d03c831fad9e8ab596798974395e0199ff240"
+    },
+    "proof/stage-one.bin": {
+      "bytes": 334296,
+      "sha256": "9a7f76d77aa5e890a93a47cdb7ab9b3b8e4315954cc52a44a83a29d3899f9d54"
+    },
+    "proof/truth-0.bin": {
+      "bytes": 2339304,
+      "sha256": "91240f81069e17973ec7e89e6e4cb61facabf95248b7b7937cbd8c78cf6819ce"
+    },
+    "proof/truth-1.bin": {
+      "bytes": 2538928,
+      "sha256": "f3110db261f70c228195a814ebfd9efcf925e6361a3fdb9c9c74149d6a79a153"
+    }
+  },
+  "tampered_proof_rejected": true
+}

@@ -1,0 +1,72 @@
+{
+  "schema": "op-brotli-lazy-native-v1",
+  "native_only": true,
+  "whole_rv64_transition_executed": false,
+  "security_qualified": false,
+  "reference": {
+    "node": "v22.22.3",
+    "brotli": "1.1.0"
+  },
+  "rows": [
+    {
+      "channel": 0,
+      "compressed_sha256": "dfaea7a4f873aaa86378f0f2f99cb67e10ccf9ec3a99f9c104ddb3849f19f323",
+      "output_sha256": "fb232c8f8f50df099548e7602a00f10a860669b35aaf28727f7856380f106c20",
+      "compressed_bytes": 649905,
+      "output_bytes": 2157153,
+      "control_upfront_zeroed_bytes": 54525952,
+      "candidate_initialized_bytes": 4389588,
+      "candidate_peak_bytes": 4389588,
+      "control_setup_ns": 2174667,
+      "candidate_setup_ns": 4583,
+      "independent_c_reference": true
+    },
+    {
+      "channel": 1,
+      "compressed_sha256": "b2e2c97089343872336987b140ecfee634aba4afb8e7da1759a05ae4e9061a31",
+      "output_sha256": "e9e7d1651a60b0fcaa9c5843b807b894076c809a46c9a73f60cda68f8f740e3f",
+      "compressed_bytes": 649082,
+      "output_bytes": 2029466,
+      "control_upfront_zeroed_bytes": 54525952,
+      "candidate_initialized_bytes": 2335822,
+      "candidate_peak_bytes": 2335822,
+      "control_setup_ns": 2826166,
+      "candidate_setup_ns": 7750,
+      "independent_c_reference": true
+    },
+    {
+      "channel": 2,
+      "compressed_sha256": "d8a73cfc6e7d6edc6e4c8222a2c733d53caf46eb551709c624cc27273c96fe0c",
+      "output_sha256": "17a9fb94cedcbd08479fb7820fe2f5d5498558a645c3390c79d7eb0747e375f2",
+      "compressed_bytes": 649391,
+      "output_bytes": 2003553,
+      "control_upfront_zeroed_bytes": 54525952,
+      "candidate_initialized_bytes": 2309805,
+      "candidate_peak_bytes": 2309805,
+      "control_setup_ns": 1434041,
+      "candidate_setup_ns": 4292,
+      "independent_c_reference": true
+    }
+  ],
+  "claim": "genuine anchored OP Mainnet transition 159321793 -> 159321794",
+  "input_sha256": "6037c7df72f4deb15f7309ab312c39e95ea909bdecf5cda86060e2c4d4bf45ee",
+  "native_statement_equal": true,
+  "native_transition_accepted": true,
+  "whole_rv64_instruction_count": null,
+  "physical_proof_generated": false,
+  "default_guest_changed": false,
+  "scope": "safe demand initialized Brotli allocator only; no service/protocol change",
+  "native_policy_tests": [
+    "zero-output truncation",
+    "all 15 golden output caps",
+    "all 13 compressed prefix lengths",
+    "3 malformed padding cases"
+  ],
+  "allocator_tests": [
+    "capacity/reuse/owner lifetime",
+    "foreign free refusal",
+    "initialization panic reservation rollback"
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/brotli-lazy",
+  "next_gate": "isolated bounded RV64 Brotli probe and independent Unicorn agreement; no whole-transition speed claim"
+}

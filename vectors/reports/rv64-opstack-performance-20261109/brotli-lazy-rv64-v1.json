@@ -1,0 +1,46 @@
+{
+  "schema": "op-brotli-rv64-qualified-v1",
+  "scope": "isolated short Brotli probes, not complete transition execution/proving",
+  "default_features_unchanged": true,
+  "security_qualified": false,
+  "control": {
+    "elf_sha256": "350e87393d6b2bbc0baacf951eeb3d13d2a46fcbe3a280622e6b004abe2f5e71",
+    "golden_status": "step_limit",
+    "instructions_lower_bound": 4000000,
+    "max_steps": 4000000
+  },
+  "candidate": {
+    "elf_sha256": "77eb4b50afacc97fdf55e0368b48ccb882a3898f774593549bb7269a30e7a4aa",
+    "cases": [
+      {
+        "case": "golden",
+        "instructions": 48493,
+        "status": "completed",
+        "output": "6ee4deac55518020e88cb20dfcaec085225761ff6dbbb8c6db7ad55682853e9c42525031010a0000004250",
+        "unicorn_agreement": "exact output, PC, all registers and instruction count",
+        "unicorn_instructions": 48493
+      },
+      {
+        "case": "cap-five",
+        "instructions": 48507,
+        "status": "completed",
+        "output": "d1b7ce303fd38b430b11e2426e16141a4f90d50edf308d651924b04585ab6c214252503101050000004250",
+        "unicorn_agreement": "exact output, PC, all registers and instruction count",
+        "unicorn_instructions": 48507
+      },
+      {
+        "case": "malformed",
+        "instructions": 46982,
+        "status": "completed",
+        "output": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8554252503100000000004250",
+        "unicorn_agreement": "exact output, PC, all registers and instruction count",
+        "unicorn_instructions": 46982
+      }
+    ]
+  },
+  "golden_isolated_instruction_ratio_lower_bound": 82.4861320190543,
+  "whole_transition_instruction_count": null,
+  "physical_proof_generated": false,
+  "native_full_transition_receipt": "brotli-lazy-native-v1.json",
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/brotli-probes"
+}

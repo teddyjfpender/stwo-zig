@@ -1,0 +1,273 @@
+{
+  "schema": "op-direct-native-group4-physical-v1",
+  "scope": "four_native_verifiers_directly_proved_pending_fixture_not_OP_block_admission",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "members": 4,
+  "recursive_child_proofs_verified": 0,
+  "intermediate_fold_proofs": 0,
+  "bytes": 711340,
+  "sha256": "4299fc7a4956510d86ee3dbe35afe2bbe0db3641cbfa6a19d8c15c0141b230fa",
+  "source_identity": "b3ebce998901eff1625fd8781e4dfb0473c9fa501a65e776cc379f89303b24e1",
+  "source_key_ns": 12919974042,
+  "prove_ns": 44983677458,
+  "fresh_key_ns": 11440078625,
+  "verify_and_negative_ns": 156774083,
+  "baseline_source_key_ns": 18610371875,
+  "model": {
+    "raw": [
+      73265,
+      7675778,
+      4612,
+      126549,
+      65536,
+      193384
+    ],
+    "rows": [
+      131072,
+      8388608,
+      8192,
+      131072,
+      65536,
+      262144
+    ],
+    "logs": [
+      17,
+      23,
+      13,
+      17,
+      16,
+      18
+    ],
+    "fixed_cells": 79388672,
+    "main_cells": 169967616,
+    "interaction_cells": 167444480,
+    "total_cells": 416800768
+  },
+  "baseline_seven_models": [
+    {
+      "raw": [
+        20073,
+        1463044,
+        1788,
+        31728,
+        65536,
+        38623
+      ],
+      "rows": [
+        32768,
+        2097152,
+        2048,
+        32768,
+        65536,
+        65536
+      ],
+      "logs": [
+        15,
+        21,
+        11,
+        15,
+        16,
+        16
+      ],
+      "fixed_cells": 19896320,
+      "main_cells": 42541056,
+      "interaction_cells": 42254336,
+      "total_cells": 104691712
+    },
+    {
+      "raw": [
+        19934,
+        1375507,
+        1728,
+        30766,
+        65536,
+        35952
+      ],
+      "rows": [
+        32768,
+        2097152,
+        2048,
+        32768,
+        65536,
+        65536
+      ],
+      "logs": [
+        15,
+        21,
+        11,
+        15,
+        16,
+        16
+      ],
+      "fixed_cells": 19896320,
+      "main_cells": 42541056,
+      "interaction_cells": 42254336,
+      "total_cells": 104691712
+    },
+    {
+      "raw": [
+        18168,
+        1081888,
+        820,
+        26490,
+        65536,
+        22653
+      ],
+      "rows": [
+        32768,
+        2097152,
+        1024,
+        32768,
+        65536,
+        32768
+      ],
+      "logs": [
+        15,
+        21,
+        10,
+        15,
+        16,
+        15
+      ],
+      "fixed_cells": 19598336,
+      "main_cells": 41750528,
+      "interaction_cells": 41443328,
+      "total_cells": 102792192
+    },
+    {
+      "raw": [
+        15090,
+        3758136,
+        276,
+        37556,
+        65536,
+        96156
+      ],
+      "rows": [
+        16384,
+        4194304,
+        512,
+        65536,
+        65536,
+        131072
+      ],
+      "logs": [
+        14,
+        22,
+        9,
+        16,
+        16,
+        17
+      ],
+      "fixed_cells": 39618048,
+      "main_cells": 84805632,
+      "interaction_cells": 83505152,
+      "total_cells": 207928832
+    },
+    {
+      "raw": [
+        41652,
+        2563062,
+        268,
+        69079,
+        65536,
+        27396
+      ],
+      "rows": [
+        65536,
+        4194304,
+        512,
+        131072,
+        65536,
+        32768
+      ],
+      "logs": [
+        16,
+        22,
+        9,
+        17,
+        16,
+        15
+      ],
+      "fixed_cells": 43615744,
+      "main_cells": 113838080,
+      "interaction_cells": 94121984,
+      "total_cells": 251575808
+    },
+    {
+      "raw": [
+        42262,
+        2602905,
+        268,
+        70303,
+        65536,
+        27572
+      ],
+      "rows": [
+        65536,
+        4194304,
+        512,
+        131072,
+        65536,
+        32768
+      ],
+      "logs": [
+        16,
+        22,
+        9,
+        17,
+        16,
+        15
+      ],
+      "fixed_cells": 43615744,
+      "main_cells": 113838080,
+      "interaction_cells": 94121984,
+      "total_cells": 251575808
+    },
+    {
+      "raw": [
+        42872,
+        2642699,
+        268,
+        71527,
+        65536,
+        27724
+      ],
+      "rows": [
+        65536,
+        4194304,
+        512,
+        131072,
+        65536,
+        32768
+      ],
+      "logs": [
+        16,
+        22,
+        9,
+        17,
+        16,
+        15
+      ],
+      "fixed_cells": 43615744,
+      "main_cells": 113838080,
+      "interaction_cells": 94121984,
+      "total_cells": 251575808
+    }
+  ],
+  "baseline_total_cells": 1274831872,
+  "same_canonical_root_as_retained_seven_node_proof": true,
+  "fresh_source_receiver": true,
+  "wrong_output_corruption_and_valid_wrong_source_proof_rejected": true,
+  "timings_are_qualification_not_quiet_block_benchmark": true,
+  "requested_peak_bytes_not_RSS": 9296996721,
+  "requested_budget_bytes": 34359738368,
+  "final_live_bytes": 0,
+  "baseline_seven_node_prove_persist_verify_ns": 156261000000,
+  "baseline_time_caveat": "Earlier concurrent qualification; not a matched quiet A/B. Native and cold source setup excluded.",
+  "cell_reduction_ratio": 3.0586120992944044,
+  "command": "STWO_OP_NATIVE_GROUP_PHYSICAL_OUT=OUT STWO_OP_NATIVE_GROUP_BASELINE_ROOT=RETAINED_ROOT zig build test-riscv64-op-native-group -Doptimize=ReleaseFast -j1",
+  "exit": 0
+}

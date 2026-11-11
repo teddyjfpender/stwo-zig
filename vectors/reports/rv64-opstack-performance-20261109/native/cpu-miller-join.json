@@ -1,0 +1,67 @@
+{
+  "schema": "stwo.opstack.pure-p2-native-cpu-miller-join.v1",
+  "status": "focused physical native join qualified; production admission closed",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions; not certified whole protocol",
+  "fixture": {
+    "cpu_retirements": 1,
+    "opcode": "ECALL",
+    "tag": "0x00040001",
+    "packet_bytes": 640,
+    "packet_input_words": 80,
+    "packet_written_words": 48,
+    "readonly_tail_words": 32,
+    "cpu_proof_bytes": 599024,
+    "miller_truth_proof_bytes": 555856,
+    "claims": "local OWNER/U16/U8 closed in source-bound CPU GKR; two physical proofs freshly verify and global RAM/Wire claims close",
+    "fresh_receiver": "independently rebuilds program/setup/fixed keys, local roster, exact OP statement span and manifest"
+  },
+  "gate": {
+    "command": "zig build test-riscv64-op-native-join -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP '",
+    "passed": true,
+    "log": "/private/tmp/op-native-and-legacy-safe.log",
+    "log_sha256": "67a3af0b95cb1e306162ac296f787798d9f1e228f8dcac0df87f0afb7f01feff",
+    "also_qualified": "existing two-CPU five-step pure-P2 fixture, independent native receiver, RAM/KIO/Wire closure",
+    "legacy_cpu_proof_bytes": [
+      703072,
+      701476
+    ],
+    "legacy_cpu_proof_sha256": [
+      "35f497dbd22c041c7e224a0dabc7dd13bb7be90e68d60cc4322810fd06a4fdb3",
+      "66e2a2fb6417573c41ea61cb8feb245873c5b07781fd9e3485f773ed2c6bdb88"
+    ]
+  },
+  "rejected_controls": [
+    "one-byte local GKR budget before MAIN ownership",
+    "legacy Key.init on OP setup",
+    "legacy CPU.verify on OP setup",
+    "wrong OP first_id",
+    "zero OP span with present bridge",
+    "wrong receiver profile",
+    "omitted local GKR provider instance",
+    "missing global truth provider claims",
+    "changed manifest source mass",
+    "changed physical claim",
+    "changed manifest digest"
+  ],
+  "architecture": {
+    "immutable_key": "explicit OP mode/domain, program/fixed roots, complete ordered source and interaction geometry; no request calls/first_id in key",
+    "request_statement": "distinct domain binds OP calls/first_id/tower log plus complete legacy CPU statement and immutable OP key identity",
+    "pipeline": "one shared CPU worker implementation, explicit OP source/Plan/Set adapters, legacy entrypoints reject OP",
+    "mass": "source-derived extra160 RAM and32 Wire messages per call; local OWNER remains in GKR and is not exported as an unbound debt",
+    "limits": {
+      "local_gkr_and_binding_bytes": 1073741824,
+      "classic_global_buffers_bytes": 1073741824,
+      "mechanism": "source-checkpoint retention plan plus synchronized heap-owned SharedHostBudget across numerical result lifetime and terminal binding; separate global allocator",
+      "exclusions": "immutable setup, capture/source construction, commitment trees, PCS/FFT scratch, thread stacks; no total RSS claim"
+    }
+  },
+  "remaining": [
+    "complete pure-P2 truth catalog for actual guest services",
+    "complete independently admitted block inventory and durable CPU bundle framing",
+    "real OP block native proof and fresh process receiver",
+    "recursive OP source role/leaf/fold admission and complete root receiver",
+    "controlled full-heavy OP CPU/root timings versus pinned baseline"
+  ],
+  "performance": "correctness qualification under concurrent engineering; no wall-time speedup claim"
+}

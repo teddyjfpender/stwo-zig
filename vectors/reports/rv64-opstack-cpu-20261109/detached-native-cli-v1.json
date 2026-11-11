@@ -1,0 +1,32 @@
+{
+  "schema": "op-detached-native-cli-v1",
+  "selector": "--detached-sponge",
+  "default_legacy_selection_unchanged": true,
+  "incoming_metadata_cannot_select_route": true,
+  "classic_local_flags_conflict": true,
+  "capture_prepare_combinations_refused": true,
+  "parser_tests": 3,
+  "semantic_check_exit": 0,
+  "native_CLI_build_exit": 0,
+  "actual_selected_native_receiver": {
+    "CPU": 1,
+    "detached": 1,
+    "catalog": 2,
+    "bundle_bytes": 5045776,
+    "requested_peak_bytes": 2302088100,
+    "final_heap_bytes": 0,
+    "final_external_bytes": 0
+  },
+  "retained_original_suite3_receiver": {
+    "steps": 796406,
+    "CPU": 1,
+    "truth": 2,
+    "Miller": 0,
+    "requested_peak_bytes": 2293210523,
+    "final_heap_bytes": 0,
+    "final_external_bytes": 0
+  },
+  "new_execution_or_proof_generated": false,
+  "security_qualified": false,
+  "production_admission": false
+}

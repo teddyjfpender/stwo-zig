@@ -1,0 +1,112 @@
+{
+  "schema": "op-sidecar-export-qualified-v1",
+  "date": "2026-11-09",
+  "export": {
+    "schema": "op-native-kv-export-v1",
+    "transport_namespaces": {
+      "2": 117225,
+      "4": 15,
+      "5": 61455
+    },
+    "transport_rows": 178695,
+    "transport_decoded_bytes": 38019764,
+    "ordinary_records": 55770,
+    "ordinary_payload_bytes": 31135844,
+    "blob_sidecars": 15,
+    "removed_exact_oracle_blob_helpers": 61455,
+    "preimage_hashes_verified": true,
+    "kzg_verified": true,
+    "trusted_setup_sha256": "d39b9f2d047cc9dca2de58f264b6a09448ccd34db967881a6713eacacf0f26b7",
+    "checker_sha256": "406c306c8c97bc9ea646666250d2d94ec59124342345f3266e4ebe39fb5117fa",
+    "sidecar_bundle_sha256": "a7bdcf20e1f1873d33959934240263b5d3dfdbb75fab957467f244c6e88a5b4b",
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false
+  },
+  "standard_KZG_physical": {
+    "schema": "op-standard-kzg-qualification-v1",
+    "sidecars": 15,
+    "positive": {
+      "verified_standard_sidecars": 15,
+      "trusted_setup_sha256": "d39b9f2d047cc9dca2de58f264b6a09448ccd34db967881a6713eacacf0f26b7",
+      "kzg_verified": true
+    },
+    "controls": [
+      {
+        "name": "blob_byte",
+        "status": "rejected",
+        "input_sha256": "29212b8c1fd20d9e0d5c31a2ee8d5826b215443037fb6a9667ba6a657237b2d2",
+        "stderr_sha256": "d2d794e8ef8ab199c4eaae38e03b9e6fe1f024897858907e40249225bbc0d864"
+      },
+      {
+        "name": "proof_byte",
+        "status": "rejected",
+        "input_sha256": "00e0e0b7ae25851607ba8ab8cce4870b21d991d1c650bc2b40df668048ec1b06",
+        "stderr_sha256": "fae1dc593bc5d473a821f02eb1e931e11b4c3c83b7b439fe0c896021681ca307"
+      },
+      {
+        "name": "swapped_valid_proofs",
+        "status": "rejected",
+        "input_sha256": "92f8cd74509a1b3e09d8f0595a4508d453a169cbed35518ea9371610f3b22602",
+        "stderr_sha256": "25aefc6001eda5d5b9446882cdd512c7eb6addbeb25c2c7b9ec6616335615e43"
+      },
+      {
+        "name": "truncated",
+        "status": "rejected",
+        "input_sha256": "145bc2814f2c3bf48fa9084171fe5149715c115edb25d41c28b988a026b09d8c",
+        "stderr_sha256": "fd40f4667d04584afc4fc06c60b61806754363f75ff2e7014255d9da682f08ee"
+      },
+      {
+        "name": "oversized_count",
+        "status": "rejected",
+        "input_sha256": "a0454a24dd4bc418448ca19320519ea3fe544fa1a910868b62ca210614f119f8",
+        "stderr_sha256": "fd40f4667d04584afc4fc06c60b61806754363f75ff2e7014255d9da682f08ee"
+      },
+      {
+        "name": "duplicate_commitment",
+        "status": "rejected",
+        "input_sha256": "76786f70bb7736dc0d926cfb91dde5cf739eb25315f0af8d5e2dd2ca2f720c4a",
+        "stderr_sha256": "97cb2acb80276b1b63973bc2898c6f2a53eb94bd826a90f25dbaf302cdccb83a"
+      },
+      {
+        "name": "trusted_setup_byte",
+        "status": "rejected",
+        "input_sha256": "06b9f51af9a2f498a1b01815cf57a3b2e979712e1c0a9b607f04396214c6c334"
+      }
+    ],
+    "checker_sha256": "15f75872f7654c30ee4e5cd84f8b44d0f8ca79915f205ef9da615623dea369cd",
+    "sidecar_bundle_sha256": "a7bdcf20e1f1873d33959934240263b5d3dfdbb75fab957467f244c6e88a5b4b",
+    "complete_witness": false,
+    "derivation_accepted": false,
+    "proof_verified": false
+  },
+  "source": "pinned official Kona blob-oracle layout;4096 bit-reversed roots plus4096th proof slot; no manufactured proofs",
+  "scope": "Sidecars and preimages qualified; full native transition witness/derivation/proof admission still incomplete",
+  "artifact_hashes": {
+    "export-attempt4/records.json": {
+      "bytes": 66398669,
+      "sha256": "34424160c4a58a72cbb36bb409bc5e174bd182133cb8a73862c5a15ddf0ebd7d"
+    },
+    "export-attempt4/sidecars.json": {
+      "bytes": 3935836,
+      "sha256": "cc93476c899695eb9ba7eaf1f3167d7b2ce5c89f25cefff0f344bdeb711d534c"
+    },
+    "export-attempt4/sidecars.bin": {
+      "bytes": 1967524,
+      "sha256": "a7bdcf20e1f1873d33959934240263b5d3dfdbb75fab957467f244c6e88a5b4b"
+    },
+    "kzg-qualification.json": {
+      "bytes": 2223,
+      "sha256": "99afc194f476066ff0afd40a1516487072d87de6b2eab5ebca5f166cc2df30ac"
+    }
+  },
+  "validation": {
+    "Python_blob_scaffold_unit": "passed",
+    "actual_sidecars_checked": 15,
+    "physical_mutation_rejections": 7,
+    "trusted_setup_bytes_verified_before_parse": true
+  },
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false
+}

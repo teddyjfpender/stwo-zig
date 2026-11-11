@@ -1,0 +1,311 @@
+> Current experimental protocol is R7-v2 with eight roles; earlier seven-role sections are historical. No R7 production/root admission.
+
+# Experimental OM31-by-M31 dot accumulator
+
+This isolated prototype targets the DEEP numerator `sum(weight * queried_base_value)`. No live DEEP emitter, Context hook, source roster, receiver, protocol or R6 default uses it. Its standalone physical STARK gate is now qualified; it remains outside every live R5/R6 roster and is not R7 admission.
+
+The row has 17 MAIN, 10 FIXED and 24 OM31 interaction base columns. Eight weight coordinates, one base scalar and eight inclusive sums are committed. Source-owned fixed columns hold three input IDs, two last-output IDs, their independently supplied whole-graph use counts, enabled/first/last selectors. Every call resets on its first row and exposes the last inclusive sum as two complete QM31 Var tuples. A zero-length call has one explicit zero-input row and two fresh zero outputs. Scalar membership is `(GateTag, id, scalar, 0, 0, 0)`; higher coordinates cannot be silently ignored.
+
+Eight recurrence equations and three paired-LogUp equations have degree at most three. Five actual Var fractions pair with one zero-weight dummy into three OM31 accumulators. Source compilation rejects out-of-range/aliased/reused outputs, cyclic references and characteristic-bound violations; it hashes the complete independently compiled fixed topology. The caller must still establish the *whole circuit* producer/consumer census, including exactly one producer per new output. Local compilation is not a substitute for that production admission gate.
+
+ReleaseSafe tests cover inclusive sums, independent call resets, explicit empty-call behavior, all eight mutated accumulator outputs, malformed/nonbase scalar values, changed output values, source/fanout identity, cyclic/duplicate producer controls, exact complete-Var multisets, hidden scalar coordinates, cyclic paired-prefix witness closure, interaction mutations and finite-difference degree-three checks. The source-fed cost test takes the current OM31-field P2 widths (QM31 arithmetic 12 MAIN / 8 FIXED / 16 INTER), rather than the legacy QM31-field frontend's interaction width.
+
+## What the source counter actually found
+
+A temporary observational counter wrapped only the numerator loop of the existing witness-free source-class model. It was removed afterward. Both native source identities, complete raw censuses and every phase counter exactly match the frozen control. No heavy guest execution, native proof or recursive proof was performed.
+
+| Source class | Dot terms | Dots over 72 queries | Actual QM31 rows in numerator | Remaining QM31 rows | New dot log |
+|---|---:|---:|---:|---:|---:|
+| 3, widest retained opening class | 566,208 | 2,520 | 2,259,648 | 2,549,964 | 20 |
+| 20, representative Miller-heavy class | 527,184 | 1,944 | 2,104,704 | 2,450,138 | 20 |
+
+The naive 6,881-samples × 72 estimate missed the periodicity entry inserted for every two-mask column by `SamplePlan.init`. Source class 3 has 7,864 actual terms per query; class 20 has 7,322. Both therefore need **log 20**, not log 19. The exact generic row count also includes structural zero/add elisions: class 3 emits 1,132,344 multiplications and 1,127,304 additions, while class 20 emits 1,054,296 and 1,050,408. Neither loop emits native full OM31 products.
+
+Under the isolated replacement model, generic arithmetic falls from log 23 to 22. Adding the log-20 dot component changes total native cells from 415,756,288 to 318,238,720: 97,517,568 fewer cells, or 23.46%. MAIN+INTER saves 74,448,896 cells. This is a geometry projection, not a measured prover speedup, and final graph fanout/finalization changes require an integrated source census.
+
+The added chip contributes 57 nonfixed OODS samples: 17 current MAIN plus eight previous accumulators, and 24 current interaction plus eight previous-prefix coordinates. It also adds ten fixed columns. Thus it does not make the opening vector narrower on its own. The prospective maximum commitment log drops 23→22 for these two classes; whether that wins after lifting, hashing and recursion must be measured.
+
+## Standalone physical qualification
+
+The source-pinned dot/Var-debt gate produces a 38,956-byte proof with dot log 4 and a separate nonconstant auxiliary chip at log 6. A fresh independently constructed source key and typed external statement accept it after the producer key is destroyed. The mixed-height adapter exercises eight previous-MAIN accumulator masks and eight previous-prefix coordinate masks; explicit mask counts are 25 MAIN and 32 INTER samples. Each component evaluates on 2n, with degree at most three. The complete allocation/proving/reception/mutation fixture runs under a 2 GiB hard numerical budget, peaks at 423,029 requested bytes, and retires all heap/external ownership. This is not RSS or a performance benchmark.
+
+External Var debt is computed by the receiver from source-fixed input/output IDs, independently derived fanouts and canonical caller-pinned full QM31 values. The witness's MAIN is never its own authority. Internal Var IDs cancel through that same relation. Missing/duplicate bindings fail source admission. Both request and immutable identity enter the transcript, but request values do not change immutable setup identity; replay under a changed statement is rejected.
+
+A locally consistent wrong-input witness and a hidden high-coordinate scalar statement each produce STARK fragments that a test-only checker validates **with debt explicitly pending**. The complete receiver rejects both against its independently pinned debt. The pending checker is unavailable in production builds. An altered empty-dot output with zero fanout preserves Var debt but fails the arithmetic constraints, proving that lookup closure alone is insufficient. Mutated accumulator, prefix and auxiliary-column witnesses likewise fail `ConstraintsNotSatisfied`. Truncation, reordered calls, wrong source identity, noncanonical claims and statement replay are rejected.
+
+Physical MAIN uses the same bounded row iterator as the numerical witness tests and writes directly into final column-major allocations. Raw MAIN is retired after fraction generation and raw INTER after its commitment; no wide logical-row copy is kept for proving.
+
+Run `zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP native dot'` for this family, or filter `OP native dot physical standalone` for the actual STARK gate.
+
+## Remaining gates
+
+- Explicit Context/source-multiplicity hook with no generic QM31 duplicate rows, complete producer coverage and independently derived source keys.
+- Bind the qualified standalone component/domain/OODS authority into the explicit R7 roster with independently derived global column offsets and source geometry.
+- Physical proof of the joined R7 source graph and fresh receiver, beyond the already-qualified standalone external-statement fixture.
+- Actual source-class graph/cell/opening census, then a short representative physical benchmark. No heavy complete proof is authorized by this prototype.
+- Source-bound/security-ledger accounting for the new relation family, including characteristic masses and complete lookup scope.
+- A named protocol/receiver/recursive-source authority change before any production admission. Current R5/R6 defaults stay unchanged.
+
+Run `zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP native dot isolated'`. Set `STWO_OP_DOT_COST_OUTPUT` to persist the source-fed cost JSON.
+
+## Live source lowering, still closed for proof admission
+
+[live-source.json](live-source.json) records the next R7 source milestone.
+An explicit thread-local scope replaces only the **whole DEEP numerator dot**.
+With no scope, DEEP emits the original arithmetic. Scalars keep complete
+`(id, value, 0, 0, 0)` Var tuples in the physical dot, not unrestricted QM31
+multipliers. Context records every input, owns its term list, reserves exactly
+two output producers, and derives usage jointly with generic, P2 and OMUL gates.
+An empty dot still owns an explicit zero row and zero outputs.
+
+R7 finalization is a separate capability. It sets `native_dot_finalized` while
+leaving legacy `finalized` false; protected R5 and R6 key constructors therefore
+refuse **before any allocation**. Every shared mutation/close API checks either
+capability. No legacy source API can publish a finalized graph omitting dot debt.
+
+Five focused ReleaseSafe tests qualify the actual DEEP front door against
+ordinary arithmetic, numerical/trace-only source parity, unique producers,
+joint fanout, legacy omission/duplicate producer attacks, hidden scalar limbs,
+nested/error scope restoration, and allocation-failure custody. This does not
+qualify a live R7 proof: the seven-role key, shared PCS/Var closure, transcript,
+physical receiver and recursive root are separate remaining gates. The prior
+heavy source model remains a model; no heavy execution/proof was rerun.
+
+## Seven-role physical fixture
+
+[combined-physical.json](combined-physical.json) qualifies the combined R7 PCS,
+not a dot fragment. Equality, generic arithmetic, conversions, Poseidon2, U16,
+native OM31 multiplication and dot share one transcript and one Var/range
+closure. Six external field inputs and four results are pinned independently
+by native field arithmetic. The producer key is destroyed before a fresh
+source key verifies the proof. The 546,224-byte proof stays under a 2 GiB
+allocator cap (155,159,239-byte observed peak; zero final live/external bytes).
+Small fixture timings are qualification telemetry, not controlled benchmarks.
+
+The R7 key hashes its own domain, every role's ordered geometry, full FIXED
+root and dot source topology. Wire magic `STP27D01` carries seven claims; each
+claim enters the transcript. The legacy R6 receiver rejects it before any
+allocation. A different independently compiled dot source with the same fanout,
+a changed FIXED root and a changed public input all fail reception. Hidden
+QM31 coordinates, a forged native product, changed dot weights/scalars,
+nonlast accumulator, internal reset, empty result, prefix and balanced false
+claims are rejected. Omitting the seventh provider is rejected as a shape
+mismatch. Full-storage and early-retirement paths produce identical bytes.
+
+R7 MAIN collection reads canonical source FIXED IDs directly. It never flips
+legacy finalization flags. The unchanged typed P2 and OMUL components are
+reused only at their exact original offsets; the dot role has its own offsets,
+previous-accumulator masks and native-height circle ordering. Raw MAIN and
+INTER are retired after their last consumers. This constructor/collector glue
+lives outside protected R5 files and outside R6 topology/root-runtime code.
+
+Actual execution leaf factories, recursive seven-role verification and final
+root admission remain separate gates. No selected guest, CPU route or root
+protocol is switched by this fixture, and no heavy block was rerun.
+
+The new dot domain evaluator already uses 16-row M31 SIMD for its eight
+arithmetic roots. Only shared-Var challenge compression, prefixes and random
+accumulation use packed OM31; OODS stays scalar. The scalar-domain control
+produces **exactly the same full proof bytes**. A separate randomized test
+compares all eleven roots across every SIMD lane, including arbitrary current
+and previous accumulator values. This is not a measured large-domain speedup.
+
+## Actual small CPU source: padding regression, no promotion
+
+[actual-small-cpu-source.json](actual-small-cpu-source.json) uses the retained
+native bundle for OP block 120,794,432. The shared `ShapeView.emitInto` now owns
+the common CPU verifier emission; callers retain their Context, scopes and
+finalization policy. Its returned statement handle keeps teardown at the same
+point as before. The old R6 source identity and complete 689,252-byte golden
+proof (`e80751cd…88c6`) remain **byte-identical** after extraction.
+
+R7 reuses that emitter and qualifies the same public result and joint source
+usage. Actual generic rows fall **3,992,911 → 2,135,023**, with **465,408** dot
+rows over **1,800** calls. This leaves generic arithmetic **37,871 rows above**
+the next power-of-two boundary: its padded log stays 22, and dot adds log 19.
+Total native cells consequently **increase 264,302,592 → 291,041,280 (10.12%)**.
+R7 is refused for this class; no actual R7 CPU leaf proof was attempted.
+
+Declared mask counts are `[96,521,320,16] → [106,546,352,16]`; sample references
+are `1001 → 1084`, including the new previous-accumulator/prefix periodicity
+samples. These counts come from the actual old source geometry plus the
+qualified physical dot layout, without building a wide R7 key. No block
+execution/native proof was regenerated. A fresh native receiver admits the
+retained complete bundle before the report is written. The 32 GiB allocator
+cap records 5.79 GB peak and zero final live allocation.
+
+Heavier source classes may cross the padding boundary and win, as the earlier
+frozen source model predicts, but must be checked independently. A production
+choice between R6 and R7 must be source-derived and receiver-authorized;
+producer-selected geometry or a blanket switch is insufficient.
+
+## Frozen heavy source classes cross the threshold
+
+[heavy-class-source.json](heavy-class-source.json) checks classes 3 and 20 with
+actual R7 lowering rather than subtracting estimated costs. The fixture pins
+both config/metadata hashes and the independently derived native source keys.
+A borrowed-class callback shares the existing fixture's image, setup, key and
+legal-width-four skeleton construction. Its original R6 counters remain exact.
+
+| Class | R6 generic rows | R7 generic rows | Dot rows | Generic padded log | Total native cells |
+|---|---:|---:|---:|---|---|
+| 3 | 4,809,612 | 2,549,964 | 566,208 | 23 → 22 | 415,756,288 → 318,238,720 |
+| 20 | 4,554,842 | 2,450,138 | 527,184 | 23 → 22 | 415,756,288 → 318,238,720 |
+
+Both save **97,517,568 cells (23.46%)** despite adding the dot component at log
+20. Peak allocation was 3.66 GB under a 12 GiB cap, with zero final live bytes.
+This is **witness-free source construction only**: it supplies a legal skeleton,
+not an actual native proof. It executes no guest, proves no block/outer leaf,
+and establishes no proving-time speedup. The small-class regression remains;
+these two wider classes do not justify enabling R7 for every request.
+
+## Current closed prototype: R7-v2, eight roles
+
+[free-input-v2.json](free-input-v2.json) supersedes the seven-role prototype;
+its reports above remain historical evidence. There is one current R7 decoder:
+`STP27I02`, eight claims, 296-byte header. It rejects the former seven-role
+wire. No production/R6 route is switched.
+
+The eighth chip removes tautological QM31 guess self-yields. Its row has
+**4 MAIN / 2 FIXED / 8 INTER** columns, a complete four-coordinate Var value,
+source-fixed ID/fanout and one prefix fraction. Arithmetic remains degree two
+on 2n; domain preparation/column custody are shared with dot. Domain work uses
+M31 SIMD; only challenge compression/prefix/accumulation uses packed OM31.
+
+This is **not** a missing-producer repair rule. A default-null builder sink
+runs only on `.qm31` entries in the genuine typed guess registry, after the
+unchanged constant pass. It validates the exact algebra context, rejects
+constants/sentinels/generic or dedicated producers and duplicate origins, and
+seals the source-owned IDs. Joint source usage/yields and characteristic bounds
+are recomputed. M31 pointwise and U16 conversion/range constraints remain.
+
+ZERO, ONE and all constants stay anchored: `0+0=0`, `1+0=1`, `U*1=U`, the
+independently pinned public U output and the original constant/basis chain are
+retained. Physical coherent Var0/Var1/constant reassignment closes the shared
+lookup claims but fails the AIR. Typed M31 and U16 forgeries also fail. Nineteen
+physical mutations require their exact expected rejection; a missing mutation
+fixture cannot accidentally count as a successful negative test.
+
+[Actual small CPU source v2](actual-small-cpu-source-v2.json) records **129,248**
+genuine QM31 inputs moved to log 17. Generic rows become **2,005,775**, crossing
+the padding boundary to log 21. All eight roles total **217,378,816 cells**,
+versus R6's **264,302,592**: **17.75% fewer**. Declared masks are
+`[108,550,368,16]`; sampled references 1114. The default-null path still produces
+the entire old R6 golden proof byte-for-byte. This is actual source/cost
+qualification, not an R7 CPU proof or block speed measurement.
+
+### Actual small R7-v2 CPU physical leaf
+
+`actual-small-cpu-physical-v2.json` qualifies the retained 796,406-step block's
+CPU wrapper, using the same nine public output words as R6. The producer key
+and witness are destroyed before a new trace-only source and key are compiled
+and the durable proof is verified. Altering the expected public output is
+rejected. This is one CPU outer leaf, not the complete block or a root proof.
+
+The proof is 681,484 bytes. Its producer spends 17.907 s proving, 4.425 s in
+cold setup, and 0.306 s constructing the source. Independent receiver source
+and setup take 4.645 s; fresh verification takes 0.035 s. Peak accounted live
+memory is 4,490,503,353 bytes under a 32 GiB cap, and final live allocation is
+zero. Per-stage wall/user/system data are committed in the receipt. MAIN and
+INTER commitments remain the largest stages at 5.949 s and 5.353 s. Concurrent
+engineering was allowed: these numbers qualify behavior and identify work,
+but are not a controlled speedup measurement.
+
+To reproduce the physical gate, set `STWO_OP_R7_CPU_CONFIG`,
+`STWO_OP_R7_CPU_NATIVE`, `STWO_OP_R7_CPU_REPORT`, and a **new** output directory
+in `STWO_OP_R7_CPU_PHYSICAL`, then run the focused `OP R7 actual small CPU
+source` test. Omitting the last variable retains the source-only gate. The
+separate `OP R7 persisted CPU physical artifact opening census` test reads
+`STWO_OP_R7_CPU_AUDIT` and only decodes existing artifacts; it never re-proves.
+
+The original CPU-only slice left root admission closed; the complete-root
+qualification below supersedes that status. The old R6 golden stays byte-qualified;
+R7 intentionally uses a distinct eight-role authority and wire protocol.
+
+### Current eight-role frozen heavy source model
+
+`heavy-class-source-v2.json` refreshes classes 3 and 20 from the same pinned
+configuration, metadata and independently derived native source keys. No
+heavy guest executes and no heavy proof is supplied or produced. The current
+eight-role shape is 321,908,736 cells in each class versus 415,756,288 for R6
+(22.57% fewer). Genuine-input producers add a log-18 table; generic arithmetic
+remains log 22. This supersedes the historical seven-role figure of
+318,238,720 cells. Source-only peak is 3,655,278,362 accounted bytes under a
+12 GiB cap, with zero live allocations at teardown. It is a representation
+cost model, not a heavy execution acceptance or timing forecast.
+
+### Closed R7 recursive statement and pending parents
+
+The R7 statement reuses the exact six-role R6 evaluator through two additive
+helpers. The original R6 wrappers pass the original six claims and preserve
+operation order. R7 sums and mixes **all eight** claims, then appends DOT and
+INPUT roots at the eight-role global lifted height. Its source key, ordered
+geometry, wire magic and fold digest domain are distinct. The ordinary R6
+fold/trace control still matches the retained 2,108,321 generic rows and
+25,276 native multiplications.
+
+`recursive-parent-v2.json` qualifies a physical parent over two independently
+compiled nine-word child proofs. One child has DOT log 17 above its six-role
+core log 16, exercising lifted-mask and vanishing semantics. The parent has
+144,096,768 cells, a 680,332-byte proof and independently reconstructed source
+receiver. Balanced claims, swapped public frames, zeroed second public frame
+and child MAIN-root transcript corruption each fail physical authenticated Var
+closure with `PoseidonGlobalLookupSum`. These are **not** described as parser
+failures or composition-AIR rejections. Wrong source keys and swapped expected
+parent frames are separately rejected.
+
+`actual-cpu-parent-v2.json` folds the retained actual 681,484-byte CPU leaf with
+the independently reconstructed tiny fixture. The CPU proof is read unchanged;
+it is never regenerated. This parent is 678,412 bytes over 144,555,520 cells,
+with 17.892 s proving, 5.091 s fresh source/key reconstruction and 0.045 s fresh
+verification in a qualification run. The known actual source identity remains
+`612e27325c59ed2b715cf582f9cfa1f0fe10638d8f83e7611bce390921e79138`.
+
+Physical synthetic-parent reproduction explicitly sets a **new**
+`STWO_OP_R7_RECURSIVE_ARTIFACTS` directory on the `OP R7 recursive eight claim
+statement` test; without it the gate stops after numerical/source checks.
+The retained actual pair uses `STWO_OP_R7_CPU_FOLD`, `STWO_OP_R7_CPU_LEAF` and
+`STWO_OP_R7_TINY_LEAF` alongside the existing small CPU config/native paths.
+Neither pair authenticates complete execution coverage, adjacency, terminal
+state or manifest closure. These are pending parents. At that slice, final execution-root admission remained closed; see the later
+complete-root qualification. Composed security certification remains unclaimed.
+
+### Complete actual small execution root (R7 opt-in)
+
+`complete-small-execution-root-v2.json` supersedes the earlier **pending pair**
+status. Block 120,794,432 (796,406 instructions) now closes its entire admitted
+inventory: one R7 CPU leaf, the existing R6 Keccak and SHA leaves, and two R7
+parents. The final root is **680,116 bytes**. A fresh receiver reconstructs
+source authority from pinned ELF/input/ABI and source metadata/public RAM only;
+its directory contains no `native-op.bin`. Missing, duplicate and reordered
+leaves, balanced service debt, terminal/halt/length/PC changes, canonical root
+claim corruption and a valid same-profile proof of an unrelated circuit are
+rejected. This is complete functional execution authentication, not a pending
+pair or a claim of security certification.
+
+This run uses the **CLASSIC native truth bundle (metadata schema 1)**. The
+current 139-second R6 control uses schema 2/3 local-truth GKR, so no full-root
+R7/R6 speed ratio is claimed.
+
+The qualification deliberately reuses the previously proved 681,484-byte CPU
+outer leaf, fresh-verifying its exact source key, manifest and nine public
+words. The two service leaves and two parents are newly proved. Incremental
+recursive production is 164.625 s; it starts with an existing native bundle
+and one retained CPU outer proof, so it **is not full fresh block latency**.
+The classic Keccak wrapper alone spends 60.115 summed stage seconds (18.241 s
+MAIN commit, 19.060 s INTER commit), versus 27.493 s for SHA and 17.196/17.072 s
+for the two parents. These are qualification timings, not a controlled A/B.
+
+Fresh source-only reception and all attack controls pass in ReleaseSafe, with
+39.721 s source reconstruction and 0.382 s root verification plus controls.
+The ReleaseFast CLI independently accepts the same root in 30.97 s wall;
+accounted peak is 5.583 GB under 32 GiB, with zero live/external teardown.
+The existing 687,908-byte R6 root and its full attack corpus still pass.
+
+Use `rv64-op-root --r7 prove ...` and `rv64-op-root --r7 verify ...` explicitly.
+Historical commands and `--r6` retain their previous authority. Combining
+`--r6` with `--r7`, selecting unsupported cache flags, or passing a proof for a
+different source is rejected. Native SourceSuite remains the v3 control;
+detached-sponge admission is a separate workstream. Whole-protocol security
+composition, matched heavy-block measurements and performance promotion remain
+unclaimed; no heavy execution or proving was rerun.

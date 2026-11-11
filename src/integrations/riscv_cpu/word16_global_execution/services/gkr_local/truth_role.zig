@@ -299,9 +299,19 @@ pub fn emitShape(descriptor: Shape, program: ?*const S.program.Program, comptime
         previous[c] = F.zero();
         if (self.shifts(2, c).len > 1) previous[c] = try samples.get(2, c, -1);
     }
+    var local = Local.SinkFor(F){ .challenges = &params.local, .current = current[0..self.localWidth()], .out = sink, .width = Local.packing(self.kind) };
+    return emitShapeWithLocal(descriptor, program, F, samples, sink, workspace, params, current[0..width[2]], previous[0..width[2]], self.localWidth(), &local);
+}
+/// Original MAIN and global equations with an injected proof-local fraction
+/// sink. Classic and opt-in terminal projections share this exact row body and
+/// emission order; no alternate cryptographic equations are copied.
+pub fn emitShapeWithLocal(descriptor: Shape, program: ?*const S.program.Program, comptime F: type, samples: anytype, sink: *E.SinkFor(F), workspace: *Component.Workspace(F), params: Component.ParametersFor(E.ConstFor(F)), current: []const F, previous: []const F, local_width: usize, local: anytype) !void {
+    const self = &descriptor;
+    const width = self.widths();
+    const fixed = &workspace.fixed;
+    const main = &workspace.main;
     const first = fixed[self.firstColumn()];
     const last = try samples.last();
-    var local = Local.SinkFor(F){ .challenges = &params.local, .current = current[0..self.localWidth()], .out = sink, .width = Local.packing(self.kind) };
     switch (self.kind) {
         .keccak => {
             const shifted = &workspace.shifted;
@@ -313,24 +323,24 @@ pub fn emitShape(descriptor: Shape, program: ?*const S.program.Program, comptime
             for (header, 0..) |*v, c| v.* = try samples.get(1, K.layout.ACTIVE_A + c, -1);
             const row = K.equations.RowFor(F){ .fixed = fixed[0..K.layout.FIXED], .main = main[0..K.layout.MAIN], .previous_header = header, .state_minus_two = &shifted[0], .state_minus_one = &shifted[1], .state_plus_one = &shifted[2], .state_plus_two = &shifted[3] };
             if (self.keccak_policy.geometry() == .pair27) K.equations.emitDirectR27For(F, row, params.span, sink) else K.equations.emitDirectFor(F, row, params.span, sink, true);
-            TF.keccakForPolicy(F, self.keccak_policy, row, &local);
-            try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
-            try Globals.keccakForPolicy(F, self.keccak_policy, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, params.global_claim, params.kio, sink);
+            TF.keccakForPolicy(F, self.keccak_policy, row, local);
+            try local.finish(self.instance(), previous[0..local_width], first, last, params.claim);
+            try Globals.keccakForPolicy(F, self.keccak_policy, row, current[local_width..current.len], previous[local_width..current.len], first, last, params.global_claim, params.kio, sink);
         },
         .product, .linear => {
             const row = S.equations.RowFor(F){ .fixed = fixed[0..S.layout.FIXED], .main = main[0..width[1]], .previous_active = try samples.get(1, 0, -1), .previous_id = try samples.get(1, S.layout.base(self.secpKind()), -1) };
             S.equations.emitMainFor(F, self.secpKind(), row, params.local.polynomial, params.span, sink);
-            TF.secpFor(F, self.secpKind(), self.byte_policy, row.main, &local);
-            try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
-            try Globals.secpFor(F, self.secpKind(), program.?, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, params.global_claim, params.wire, sink);
+            TF.secpFor(F, self.secpKind(), self.byte_policy, row.main, local);
+            try local.finish(self.instance(), previous[0..local_width], first, last, params.claim);
+            try Globals.secpFor(F, self.secpKind(), program.?, row, current[local_width..current.len], previous[local_width..current.len], first, last, params.global_claim, params.wire, sink);
         },
         .chi, .xor5 => {
-            TF.keccakTableFor(F, if (self.kind == .chi) .chi else .xor5, fixed[0..6].*, main[0], &local);
-            try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
+            TF.keccakTableFor(F, if (self.kind == .chi) .chi else .xor5, fixed[0..6].*, main[0], local);
+            try local.finish(self.instance(), previous[0..local_width], first, last, params.claim);
         },
         .bytes => {
-            TF.byteTableFor(F, fixed[0], main[0], &local);
-            try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
+            TF.byteTableFor(F, fixed[0], main[0], local);
+            try local.finish(self.instance(), previous[0..local_width], first, last, params.claim);
         },
     }
 }

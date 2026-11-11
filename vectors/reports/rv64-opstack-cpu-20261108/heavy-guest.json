@@ -1,0 +1,239 @@
+{
+  "schema": "stwo.opstack.heavy-guest-requalification.v1",
+  "block": 121065789,
+  "scope": "complete guest execution and independent machine oracle; not a full STARK proof",
+  "proof_verified": false,
+  "unhinted": {
+    "instructions": 621480160,
+    "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+    "pc": 3100,
+    "execution_ns": 3978983334,
+    "curve_calls": [
+      19465,
+      31908,
+      928200,
+      0,
+      0,
+      0,
+      0
+    ],
+    "sha256_calls": 952,
+    "arith256_mod_calls": 155373,
+    "sponge_calls": 6852,
+    "secp_add_calls": 3237,
+    "secp_double_calls": 2760
+  },
+  "hinted": {
+    "instructions": 425537671,
+    "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+    "pc": 3600,
+    "execution_ns": 2870315625,
+    "curve_calls": [
+      19465,
+      31908,
+      678888,
+      0,
+      0,
+      0,
+      0
+    ],
+    "sha256_calls": 952,
+    "arith256_mod_calls": 131037,
+    "sponge_calls": 6852,
+    "secp_add_calls": 3237,
+    "secp_double_calls": 2760
+  },
+  "hinted_oracle": {
+    "schema": "stwo.opstack.unicorn.v1",
+    "oracle": "Unicorn2.1.4",
+    "completed": true,
+    "proof_verified": false,
+    "services": {
+      "jumpdest_calls": 18,
+      "jumpdest_bytes": 138024,
+      "curve_calls": [
+        19465,
+        31908,
+        678888,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sha256_calls": 952,
+      "arith256_mod_calls": 131037,
+      "keccak_calls": 0,
+      "secp_add_calls": 3237,
+      "secp_double_calls": 2760,
+      "sponge_calls": 6852,
+      "bulk_memcpy_calls": 245041,
+      "bulk_memcpy_unaligned_calls": 88807,
+      "bulk_memset_calls": 43116,
+      "bulk_memcmp_calls": 292918,
+      "bulk_memcpy_bytes": 40588592,
+      "bulk_memcpy_unaligned_bytes": 2670728,
+      "bulk_memset_bytes": 7012312,
+      "bulk_memcmp_bytes": 2683800
+    },
+    "sha256_oracle": "OpenSSL 3.6.5 29 Sep 2026",
+    "exact_steps_verified": 425537671,
+    "elapsed_ns": 18462716917,
+    "elf_sha256": "4d15b8f6c7291bba4311b592f9f62153a4f52a7e1f6cb4f679f4c534a7e1b302",
+    "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+    "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+    "post_store_pc": 3600,
+    "final_registers": [
+      0,
+      3496,
+      46136896,
+      46139392,
+      0,
+      46252280,
+      219348,
+      46136904,
+      46136928,
+      25165832,
+      1,
+      25165308,
+      43,
+      25165316,
+      0,
+      0,
+      32,
+      196609,
+      10,
+      1543,
+      61720,
+      706164,
+      8449896,
+      8511616,
+      8388612,
+      706164,
+      0,
+      0,
+      46116400,
+      6580234530807194575,
+      9223372036837998592,
+      11272192
+    ],
+    "oracle_source_sha256": "acd9744406337626f644f3206e3eb6274e9adc2c8705bbca6ce84f35408ac7ac"
+  },
+  "build": {
+    "variant": "canonical-glv-hinted",
+    "source_head": "0aa9b546b1c2e6059aa6287226b5038cef273d79",
+    "tracked_diff_sha256": "a44c461998b6cabaeeb2d9dbd8fd5b17129e611e0f03292fbd46fc68066b1e2e",
+    "guest": {
+      "bytes": 3245464,
+      "sha256": "4d15b8f6c7291bba4311b592f9f62153a4f52a7e1f6cb4f679f4c534a7e1b302"
+    },
+    "host": {
+      "bytes": 3581168,
+      "sha256": "058b7cb2652c9fb5b32374000d059c9c63ec10d1f8e2f6d4dc76bda0b8b768f8"
+    },
+    "runner": {
+      "bytes": 697040,
+      "sha256": "4cb99a2851cc87f64e585e85371b8b7f6de52aee151f1c4c9ca9f9c6e859798e"
+    },
+    "compiler": "rustc 1.99.0-nightly (1a98b1e13 2026-08-07)",
+    "zig_version": "0.15.2",
+    "compile_sources_unchanged": true
+  },
+  "first_native_attempt": {
+    "schema": "stwo.opstack.cpu-proof.v1",
+    "security_qualified": false,
+    "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
+    "profile": "conjectured128_b2_q108_p20_fold4",
+    "producer_setup": "ephemeral",
+    "gkr_storage": "default",
+    "setup_build_workers": 2,
+    "native_pool_workers": 8,
+    "batch_steps": 4194303,
+    "batch_steps_source": "explicit override",
+    "guest_instructions": 425537671,
+    "service_schedule": {
+      "lanes": 1,
+      "workers_per_lane": 8,
+      "memory_cap_bytes": 8589934592,
+      "heaviest_first": true
+    },
+    "receiver_setup": "independently rebuilt; no producer cache",
+    "receiver_source_keys": "identity-only",
+    "receiver_setup_workers": 4,
+    "receiver_requested_live_bytes": 25769803776,
+    "runner_sha256": "4855cbdff1c52f43a84b8021b0cb39a72532a6988b29e5df556d8338c7714ff6",
+    "harness_sha256": "3a14593b6daaa8e3c538c3333661c7d43c47d14f3a92819ee797fdf41962a2e4",
+    "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+    "logical_cpus": 18,
+    "request_sha256": "85f51feb433b340de3f5b46264c5d3b013efd2b770baf66ef86096621ac23fa3",
+    "elf_sha256": "4d15b8f6c7291bba4311b592f9f62153a4f52a7e1f6cb4f679f4c534a7e1b302",
+    "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+    "proof_verified": false,
+    "stages": {
+      "plan": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "plan-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native/request.json",
+          "-",
+          "0",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native/resources.json"
+        ],
+        "wall_ns": 124692795417,
+        "peak_rss_bytes": 44602916864,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 47.064772,
+        "system_cpu_s": 31.341895,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "produce-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native/request.json",
+          "-",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native/proof",
+          "0",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-native/resources.json"
+        ],
+        "wall_ns": 163658735500,
+        "peak_rss_bytes": 47394783232,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 240.593329,
+        "system_cpu_s": 33.334579,
+        "returncode": 1,
+        "timed_out": false
+      }
+    }
+  },
+  "next_admission": {
+    "gkr_bytes": 8589934592,
+    "global_bytes": 4294967296,
+    "retained_frontend_bytes": 55834574848,
+    "disk_bytes": 274877906944,
+    "fixed_setup_bytes": 4294967296,
+    "park_main": true,
+    "recycler_cache_bytes": 67108864,
+    "keccak_max_log": 16,
+    "capture_options": {
+      "execution_workers": 0,
+      "max_inflight_packets": 1,
+      "spill": {
+        "directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/heavy-capture-scratch",
+        "bytes": 274877906944
+      }
+    },
+    "schedule": {
+      "lanes": 1,
+      "workers_per_lane": 8,
+      "memory_cap_bytes": 8589934592,
+      "heaviest_first": true
+    },
+    "defer_local_binding": true
+  },
+  "retention_note": "The first full producer refused a 51,853,871,529-byte represented retained inventory at the 48 GiB component admission; no proof was accepted. The subsequent 52 GiB admission run is not a completed qualification at this checkpoint."
+}

@@ -155,7 +155,13 @@ pub const PackedOmSecure = struct {
         const weight = wide.splat(scalar);
         inline for (0..PACKS) |i| self.packs[i] = self.packs[i].add(weight.mulBase(value.raw.packs[i]));
     }
-    pub fn mulBase(x: @This(), y: PackedOmBase) @This() {
+    /// Match the base residual path: accumulate one native pack directly,
+    /// without a 512-byte splatted weight and a second weighted temporary.
+    pub fn addScaledSecure(self: *@This(), scalar: O, value: *const @This()) void {
+        const weight = wide.splat(scalar);
+        inline for (0..PACKS) |i| self.packs[i] = self.packs[i].add(wide.mul(weight, value.packs[i]));
+    }
+    pub inline fn mulBase(x: @This(), y: PackedOmBase) @This() {
         var out: @This() = undefined;
         inline for (0..PACKS) |i| out.packs[i] = x.packs[i].mulBase(y.raw.packs[i]);
         return out;

@@ -441,7 +441,11 @@ pub const SharedHostBudget = struct {
     /// allocator users joined. Raw pointer copies do not acquire leases.
     pub fn destroy(self: *SharedHostBudget) void {
         if (self.references.fetchSub(1, .acq_rel) != 1) return;
-        if (self.snapshot().live_bytes != 0) @panic("destroying live heap/external allocation budget");
+        const final = self.snapshot();
+        if (final.live_bytes != 0) {
+            std.debug.print("HOST_BUDGET_UNRELEASED heap={} external={} peak={} limit={} exceeded={}\n", .{ final.host_live_bytes, final.external_live_bytes, final.peak_live_bytes, final.limit, final.exceeded });
+            @panic("destroying live heap/external allocation budget");
+        }
         const child = self.child;
         const parent = self.backing_owner;
         child.destroy(self);

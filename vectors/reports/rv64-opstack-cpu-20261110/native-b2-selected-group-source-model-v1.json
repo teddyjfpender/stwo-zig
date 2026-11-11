@@ -1,0 +1,129 @@
+{
+  "schema": "op-native-CPU-B2-selected-fourmember-source-model/v1",
+  "scope": "Exact complete R7 source emission from freshly verified retained selected four-member bundle: CPU,detached,localKeccak338,classicSHA34. Counterfactual CPU PCSshape only; no new key/profile/proof/admission.",
+  "models": [
+    {
+      "scope": "ACTUAL_selected_fourmember_R7_complete_group_source_emission_only_not_admitted",
+      "hypothetical_CPU_B2": false,
+      "other_three_members_B4": true,
+      "cost": {
+        "raw": [
+          73080,
+          5173527,
+          3451,
+          173939,
+          65536,
+          321145,
+          1515168,
+          335498
+        ],
+        "rows": [
+          131072,
+          8388608,
+          4096,
+          262144,
+          65536,
+          524288,
+          2097152,
+          524288
+        ],
+        "logs": [
+          17,
+          23,
+          12,
+          18,
+          16,
+          19,
+          21,
+          19
+        ],
+        "fixed_cells": 113324032,
+        "main_cells": 276381696,
+        "interaction_cells": 253329408,
+        "total_cells": 643035136,
+        "dot_calls": 3384,
+        "dot_terms": 1515168
+      },
+      "p2_permutations": 173939,
+      "source_normalization_intentionally_not_admitted": true,
+      "new_key_or_profile": false,
+      "physical_proof": false
+    },
+    {
+      "scope": "ACTUAL_selected_fourmember_R7_complete_group_source_emission_only_not_admitted",
+      "hypothetical_CPU_B2": true,
+      "other_three_members_B4": true,
+      "cost": {
+        "raw": [
+          91926,
+          6153803,
+          3451,
+          212468,
+          65536,
+          326545,
+          1789776,
+          428270
+        ],
+        "rows": [
+          131072,
+          8388608,
+          4096,
+          262144,
+          65536,
+          524288,
+          2097152,
+          524288
+        ],
+        "logs": [
+          17,
+          23,
+          12,
+          18,
+          16,
+          19,
+          21,
+          19
+        ],
+        "fixed_cells": 113324032,
+        "main_cells": 276381696,
+        "interaction_cells": 253329408,
+        "total_cells": 643035136,
+        "dot_calls": 5040,
+        "dot_terms": 1789776
+      },
+      "p2_permutations": 212468,
+      "source_normalization_intentionally_not_admitted": true,
+      "new_key_or_profile": false,
+      "physical_proof": false
+    }
+  ],
+  "baseline_matches_retained_actual_group_raw_exactly": true,
+  "CPU_raw_delta": [
+    18846,
+    980276,
+    0,
+    38529,
+    0,
+    5400,
+    274608,
+    92772
+  ],
+  "padded_role_logs_identical": true,
+  "total_cells_ratio": 1.0,
+  "raw_QM_ratio": 1.1894792469431397,
+  "P2_permutations_ratio": 1.2215086898280432,
+  "dot_terms_ratio": 1.1812393081163277,
+  "qualification": {
+    "ReleaseSafe_semantic": true,
+    "ReleaseSafe_source_gate": true,
+    "native_bundle_fresh_verifier_and_global_RAM_KIO_Wire_terminal_accept": true,
+    "no_new_proof": true,
+    "candidate_source_normalization_not_admitted": true,
+    "production_profile_guard_override": false,
+    "new_profile_or_key": false
+  },
+  "native_cpu_cost_scope": "LDE cell halving from previous CPU shape model remains arithmetic model, not measured native wall/RSS/bytes. Query buffers double.",
+  "conclusion": "Selected mixed four-member padding plateau hides CPU-only B2 wrapper delta; standalone1.95x cells is not the group cost. This supports only a bounded future mixed-profile investigation, not implementation/promotion: raw circuit work still rises, no valid B2 native proof/suite/security framing exists, homogeneous CPU groups/heavy class cliffs unmeasured.",
+  "security": "Nominal144 FRI bits per shape only.128-bit target under documented assumptions would need a newly reviewed mixed-suite ledger and independently pinned source-key/FS policy. No certification.",
+  "log": "/private/tmp/op-native-b2-group-model.log"
+}

@@ -1,0 +1,157 @@
+{
+  "schema": "op-brotli-lazy-bulk-v1",
+  "security_qualified": false,
+  "scope": "opt-in reuse of admitted v3 memory tags; no service/AIR change",
+  "default_features_unchanged": true,
+  "lz_backreference_source_unchanged": true,
+  "full_rv64_transition_executed": false,
+  "physical_proof_generated": false,
+  "bounded_steps": 4000000,
+  "tiny_probes": [
+    {
+      "case": "golden",
+      "instructions": 39112,
+      "unicorn_exact_steps": 39112,
+      "output": "6ee4deac55518020e88cb20dfcaec085225761ff6dbbb8c6db7ad55682853e9c42525031010a0000004250",
+      "unicorn_agreement": "output, PC, all registers, steps and all service counts"
+    },
+    {
+      "case": "cap-five",
+      "instructions": 39122,
+      "unicorn_exact_steps": 39122,
+      "output": "d1b7ce303fd38b430b11e2426e16141a4f90d50edf308d651924b04585ab6c214252503101050000004250",
+      "unicorn_agreement": "output, PC, all registers, steps and all service counts"
+    },
+    {
+      "case": "malformed",
+      "instructions": 37606,
+      "unicorn_exact_steps": 37606,
+      "output": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8554252503100000000004250",
+      "unicorn_agreement": "output, PC, all registers, steps and all service counts"
+    }
+  ],
+  "actual_channel_prefixes": [
+    {
+      "mode": "lazy",
+      "status": "step_limit",
+      "instructions": 4000000,
+      "verified_output": false,
+      "elf_sha256": "77eb4b50afacc97fdf55e0368b48ccb882a3898f774593549bb7269a30e7a4aa",
+      "input_sha256": "c0d5d37ac53173b8d7d14c9ea2d5f1bf6a6a96539bbf19f23583946d74a691d8",
+      "pc_outside": 0,
+      "pc_unmapped": 0,
+      "top_symbols": [
+        {
+          "symbol": "brotli_decompressor::decode::ProcessCommandsInternal::<kona_protocol::brotli_alloc::Heap<u8>, kona_protocol::brotli_alloc::Heap<u32>, kona_protocol::brotli_alloc::Heap<brotli_decompressor::huffman::HuffmanCode>>",
+          "instructions": 2167345
+        },
+        {
+          "symbol": "memset",
+          "instructions": 1071120
+        },
+        {
+          "symbol": "brotli_decompressor::huffman::BrotliBuildHuffmanTable",
+          "instructions": 259529
+        },
+        {
+          "symbol": "brotli_decompressor::decode::ReadHuffmanCode::<kona_protocol::brotli_alloc::Heap<u8>, kona_protocol::brotli_alloc::Heap<u32>, kona_protocol::brotli_alloc::Heap<brotli_decompressor::huffman::HuffmanCode>>",
+          "instructions": 215326
+        },
+        {
+          "symbol": "<kona_protocol::brotli_alloc::Heap<brotli_decompressor::huffman::HuffmanCode> as alloc_no_stdlib::stack_allocator::Allocator<brotli_decompressor::huffman::HuffmanCode>>::alloc_cell",
+          "instructions": 194760
+        },
+        {
+          "symbol": "brotli_decompressor::huffman::BrotliBuildCodeLengthsHuffmanTable",
+          "instructions": 25588
+        },
+        {
+          "symbol": "brotli_decompressor::decode::DecodeContextMap::<kona_protocol::brotli_alloc::Heap<u8>, kona_protocol::brotli_alloc::Heap<u32>, kona_protocol::brotli_alloc::Heap<brotli_decompressor::huffman::HuffmanCode>>",
+          "instructions": 22717
+        },
+        {
+          "symbol": "memmove",
+          "instructions": 13435
+        }
+      ],
+      "bulk_counters": {
+        "bulk_memcpy_calls": 0,
+        "bulk_memset_calls": 0,
+        "bulk_memcpy_bytes": 0,
+        "bulk_memset_bytes": 0,
+        "bulk_memcpy_unaligned_calls": 0,
+        "bulk_memcpy_unaligned_bytes": 0,
+        "bulk_memcmp_calls": 0,
+        "bulk_memcmp_bytes": 0
+      }
+    },
+    {
+      "mode": "lazy-bulk",
+      "status": "step_limit",
+      "instructions": 4000000,
+      "verified_output": false,
+      "elf_sha256": "83f02b41d00b07afe3a82bc4bb05ffb1fb1abec3ebc97f9d1e16e1d8751287d0",
+      "input_sha256": "c0d5d37ac53173b8d7d14c9ea2d5f1bf6a6a96539bbf19f23583946d74a691d8",
+      "pc_outside": 0,
+      "pc_unmapped": 0,
+      "top_symbols": [
+        {
+          "symbol": "brotli_decompressor::decode::ProcessCommandsInternal::<kona_protocol::brotli_alloc::Heap<u8>, kona_protocol::brotli_alloc::Heap<u32>, kona_protocol::brotli_alloc::Heap<brotli_decompressor::huffman::HuffmanCode>>",
+          "instructions": 3237042
+        },
+        {
+          "symbol": "brotli_decompressor::huffman::BrotliBuildHuffmanTable",
+          "instructions": 259529
+        },
+        {
+          "symbol": "brotli_decompressor::decode::ReadHuffmanCode::<kona_protocol::brotli_alloc::Heap<u8>, kona_protocol::brotli_alloc::Heap<u32>, kona_protocol::brotli_alloc::Heap<brotli_decompressor::huffman::HuffmanCode>>",
+          "instructions": 215326
+        },
+        {
+          "symbol": "<kona_protocol::brotli_alloc::Heap<brotli_decompressor::huffman::HuffmanCode> as alloc_no_stdlib::stack_allocator::Allocator<brotli_decompressor::huffman::HuffmanCode>>::alloc_cell",
+          "instructions": 194760
+        },
+        {
+          "symbol": "brotli_decompressor::huffman::BrotliBuildCodeLengthsHuffmanTable",
+          "instructions": 25588
+        },
+        {
+          "symbol": "brotli_decompressor::decode::DecodeContextMap::<kona_protocol::brotli_alloc::Heap<u8>, kona_protocol::brotli_alloc::Heap<u32>, kona_protocol::brotli_alloc::Heap<brotli_decompressor::huffman::HuffmanCode>>",
+          "instructions": 22717
+        },
+        {
+          "symbol": "memmove",
+          "instructions": 13662
+        },
+        {
+          "symbol": "brotli_decompressor::decode::SafeReadSymbol",
+          "instructions": 11161
+        }
+      ],
+      "bulk_counters": {
+        "bulk_memcpy_calls": 3,
+        "bulk_memset_calls": 105,
+        "bulk_memcpy_bytes": 4304,
+        "bulk_memset_bytes": 4883624,
+        "bulk_memcpy_unaligned_calls": 16,
+        "bulk_memcpy_unaligned_bytes": 552,
+        "bulk_memcmp_calls": 0,
+        "bulk_memcmp_bytes": 0
+      }
+    }
+  ],
+  "bulk_elf_sha256": "83f02b41d00b07afe3a82bc4bb05ffb1fb1abec3ebc97f9d1e16e1d8751287d0",
+  "native_fr_brotli_matrix": {
+    "control_mont_eager": "brotli-lazy-native-v1.json",
+    "control_canonical_eager": "canonical-fr255-v1.json",
+    "candidate_mont_lazy": "brotli-lazy-native-v1.json",
+    "candidate_canonical_lazy": {
+      "host_sha256": "ca81451a6a7bed471260038a203f41c5e2b424d06f844fa9120fd8a581b6652a",
+      "accepted_same_anchored_statement": true,
+      "all_channels_equal_independent_c_reference": true,
+      "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/brotli-canonical-lazy"
+    }
+  },
+  "memory_library_tests": "9 existing admitted-bulk tests passed, including overlapping memmove and all small alignments/lengths",
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/brotli-probes"
+}

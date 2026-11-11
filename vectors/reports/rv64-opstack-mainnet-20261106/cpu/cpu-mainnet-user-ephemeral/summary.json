@@ -1,0 +1,51 @@
+{
+  "schema": "stwo.opstack.cpu-proof.v1",
+  "security_qualified": false,
+  "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "producer_setup": "ephemeral",
+  "receiver_setup": "independently rebuilt; no producer cache",
+  "runner_sha256": "56d3e5dd2d6832e66db9a952fce890fb7cfb30bdf4ed20a6ae22fbbc46841c8a",
+  "harness_sha256": "0f1ce21dc1e2e00d6582420f0f79a098ae5300ec6021a4f1096b6319406613ae",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "logical_cpus": 9,
+  "request_sha256": "4c5b82cf377040e6070d2072493eadea57d3765dc8042cba73e27cdec4c2d890",
+  "elf_sha256": "04dac8540992cd08f6bdbdb556c960053d5e52255028862c34ba008598c2c7e0",
+  "input_sha256": "87ac02ac032049cd005303f28eda6694ebf79d3808c519371b410d01e09ff174",
+  "proof_verified": false,
+  "stages": {
+    "plan": {
+      "command": [
+        "/workspace/opstack-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "plan-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-user-ephemeral/request.json",
+        "-",
+        "0",
+        "/workspace/opstack-runs/cpu-mainnet-user-ephemeral/resources.json"
+      ],
+      "wall_ns": 4070889574,
+      "peak_rss_bytes": 1784094720,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "produce": {
+      "command": [
+        "/workspace/opstack-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "produce-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-user-ephemeral/request.json",
+        "-",
+        "/workspace/opstack-runs/cpu-mainnet-user-ephemeral/proof",
+        "0",
+        "/workspace/opstack-runs/cpu-mainnet-user-ephemeral/resources.json"
+      ],
+      "wall_ns": 131118856289,
+      "peak_rss_bytes": 3043639296,
+      "returncode": 1,
+      "timed_out": false
+    }
+  }
+}

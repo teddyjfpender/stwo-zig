@@ -193,8 +193,12 @@ pub fn valuesSha256(values: []const QM31) [32]u8 {
     var hasher = Sha256.init(.{});
     hasher.update("STWO_CIRCUIT_VALUES_V1\x00");
     hasher.update(&std.mem.toBytes(std.mem.nativeToLittle(u64, values.len)));
-    for (values) |v| {
-        for (builder.ivalue.limbs(v)) |limb| hasher.update(&std.mem.toBytes(std.mem.nativeToLittle(u32, limb)));
+    // Hash from the original storage. Optimized by-value QM31 copies have
+    // miscompiled under Zig 0.15.2 (see QM31.eql); do not route these loads
+    // through a by-value field adapter. The oracle's limb order is unchanged.
+    for (values) |*value| {
+        const limbs = [_]u32{ value.c0.a.v, value.c0.b.v, value.c1.a.v, value.c1.b.v };
+        for (limbs) |limb| hasher.update(&std.mem.toBytes(std.mem.nativeToLittle(u32, limb)));
     }
     return hasher.finalResult();
 }

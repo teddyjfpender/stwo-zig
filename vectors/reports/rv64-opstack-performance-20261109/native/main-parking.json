@@ -1,0 +1,14 @@
+{
+  "schema": "op-pure-p2-main-parking/v1",
+  "status": "physical-small-execution-qualified",
+  "production_admitted": false,
+  "root_bytes": 36,
+  "payload": "source-owned compact coefficients and all retained Merkle layers",
+  "construction": "one original witness and commitment; direct sequential unlinked-file write; no witness rebuild or rehash",
+  "admission": ["aggregate rounded disk bytes", "aggregate restored mapping bytes"],
+  "restore_integrity": "SHA256 of complete source-owned payload before publication",
+  "negative_controls": ["disk cap before ownership transfer", "mapped cap before restore", "corrupted parked payload", "tree alias and descriptor shape validation"],
+  "physical_gate": {"steps":19,"cpu_proofs":2,"truth_proofs":2,"all_four_MAINs_parked":true,"native_proof_bytes":3915744,"fresh_durable_receiver":true,"live_mappings_after_prove":0,"reserved_files_after_prove":0},
+  "validation": ["zig build test-riscv64-op-native-join -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP parking'", "zig build test-riscv64-op-native-join -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP complete mixed'"],
+  "limits": "Only parked payload is covered. Capture, immutable keys, local child metadata, PCS scratch and final encoded bytes need separate admission. This is not a total RSS claim or full-block timing."
+}

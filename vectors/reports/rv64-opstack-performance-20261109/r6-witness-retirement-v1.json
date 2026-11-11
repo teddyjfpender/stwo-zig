@@ -1,0 +1,33 @@
+{
+  "schema": "op-r6-witness-retirement-v1",
+  "scope": "R6 compact outer prover only; R5 and Ethereum defaults unchanged",
+  "change": [
+    "Release raw MAIN evaluations after interaction generation, their last consumer.",
+    "Release raw INTER evaluations immediately after commitment; preserve scalar claims and PCS-owned coefficient/tree state.",
+    "Retain old full-storage control lifetime as a differential oracle.",
+    "Reset released owners to empty slices so every deferred/error cleanup remains valid."
+  ],
+  "qualification": {
+    "command": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='OP R6 physical six-component' -j1",
+    "passed": true,
+    "proof_bytes": 530608,
+    "compact_full_storage_exact_parity": true,
+    "pool_two_workers_exact_parity": true,
+    "fresh_independent_key_acceptance": true,
+    "retired_key_acceptance": true,
+    "recursive_verifier_and_wrong_output_controls": true,
+    "physical_claim_and_prefix_mutations_rejected": true,
+    "testing_allocator_leak_free": true
+  },
+  "small_cpu_geometry_only": {
+    "raw_main_bytes": 476905472,
+    "raw_inter_bytes": 397803520,
+    "removed_after_both_commitments_bytes": 874708992
+  },
+  "caveats": [
+    "Geometry arithmetic is raw witness payload, not measured process RSS or peak-memory reduction.",
+    "No heavy execution/proof rerun or new complete-block timing.",
+    "The 138.898-second complete small run predates this lifetime-only change."
+  ],
+  "log": "/private/tmp/op-r6-retire-witness-physical.log"
+}
