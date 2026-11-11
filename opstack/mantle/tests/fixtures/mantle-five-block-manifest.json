@@ -1,10 +1,10 @@
 {
   "schema": "stwo.mantle.execution-regression-inputs-manifest.v1",
   "file": "mantle-five-block-inputs.json.zlib",
-  "compressed_bytes": 218560,
-  "compressed_sha256": "1821b2ddb7f774950e76fcbcddc7f5234d1fe0da971ed90c3b2759e7f4c00fb3",
-  "uncompressed_bytes": 484987,
-  "uncompressed_sha256": "8104c5665d7b232cc31c9b9ace1fc8a2a6bbec122ce45ce0c813f2486971d073",
+  "compressed_bytes": 224368,
+  "compressed_sha256": "b26315fdbc8ed86c7af2434c95caee8638f3a58f61cf240ae88be69139522d62",
+  "uncompressed_bytes": 496660,
+  "uncompressed_sha256": "6fa2e819488e6e282cbc30f1ae06062d82a678d09a6d9066a07418d833fd7eb3",
   "decompression_byte_limit": 1048576,
   "block_count": 5,
   "blocks": [
@@ -44,9 +44,9 @@
       "block_hash": "0x81454e31170e10cc452e2a7f6fa58faffac92c362e1713beb8d57445651bb9e2",
       "block_number": 103133753,
       "config_sha256": "0xb9583f9b493763c945cc961535b9298070c92d538be1af77523b27053f4a23de",
-      "expected_output": "b09a30846ef0e3b0479e5acae5eb23d0fe7005accd2e7bd26cc8a4d8d219da440188130000000000004d45",
-      "input_bytes": 122784,
-      "input_sha256": "f4c73e5751a7f02fe2f2b19afdf7b2ac9a568c2ee3d245d2f46ce4ec67a68613"
+      "expected_output": "6aee58515e60ea6633ba75b64fdde76e0f57d32db3ca6f82593139493314c3120188130000000000004d45",
+      "input_bytes": 128162,
+      "input_sha256": "400d985d21dbaac1e929a32e11ad0e0c496fd981723e3ee3f9e3fd0905779f02"
     }
   ],
   "secret_pattern_checks": 25,

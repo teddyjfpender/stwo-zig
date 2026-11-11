@@ -18,7 +18,7 @@ def qualification_inputs():
         packed = stream.read((256 << 10) + 1)
     if (
         hashlib.sha256(packed).hexdigest()
-        != "1821b2ddb7f774950e76fcbcddc7f5234d1fe0da971ed90c3b2759e7f4c00fb3"
+        != "b26315fdbc8ed86c7af2434c95caee8638f3a58f61cf240ae88be69139522d62"
     ):
         raise ValueError("Mantle qualification fixture identity")
     decoder = zlib.decompressobj()
@@ -32,7 +32,7 @@ def qualification_inputs():
         raise ValueError("Mantle qualification decompression bound")
     if (
         hashlib.sha256(raw).hexdigest()
-        != "8104c5665d7b232cc31c9b9ace1fc8a2a6bbec122ce45ce0c813f2486971d073"
+        != "6fa2e819488e6e282cbc30f1ae06062d82a678d09a6d9066a07418d833fd7eb3"
     ):
         raise ValueError("Mantle qualification decoded identity")
     rows = json.loads(raw)["blocks"]
@@ -98,6 +98,30 @@ class MantleInputTests(unittest.TestCase):
                     self.assertEqual(value, int(entry['value'], 16))
                 for node in proof['accountProof'] + [n for e in proof['storageProof'] for n in e['proof']]:
                     self.assertEqual(records['0x' + C.keccak(C.unhex(node)).hex()], node)
+
+    def test_created_account_absence_is_authenticated_before_execution(self):
+        C = M.C
+        row = next(r for r in qualification_inputs() if r['block_number'] == 103133753)
+        data = json.loads(row['guest_input_utf8'])
+        tx = C.unhex(data['fixture']['payload']['transactions'][1])
+        self.assertEqual(C.keccak(tx).hex(), 'de50d8c9f92057c87a064dc6493f04049008072c8a4f773a0a4b5f7829e8f85e')
+        self.assertEqual(tx[0], 2)
+        decoded = C.decode_rlp(tx[1:])
+        self.assertEqual(decoded[5], b'')
+        self.assertEqual(decoded[1], b'\x1f')
+        address = C.keccak(C.rlp([C.unhex('20d20835cf7f583d32c1eed9cd5746954d00640c'), decoded[1]]))[-20:]
+        proof = row['creation_absence_proof']
+        self.assertEqual(C.unhex(proof['address'], 20), address)
+        root = C.unhex(data['fixture']['parent_header']['stateRoot'])
+        # RPC returns all-zero code/storage hashes for absence. Those fields
+        # are not state authority: the secure-key trie proof must prove absence.
+        self.assertIsNone(C.verify_trie_value(root, C.keccak(address),
+                                             proof['accountProof'], allow_absence=True))
+        records = {n['hash']: n['data'] for n in data['preimages']}
+        for node in proof['accountProof']:
+            self.assertEqual(records['0x' + C.keccak(C.unhex(node)).hex()], node)
+        with self.assertRaises(ValueError):
+            C.verify_trie_value(root, C.keccak(address), proof['accountProof'][1:], allow_absence=True)
 
     def test_wrong_nested_types_reject_before_execution(self):
         for field in ("fixture", "expected", "preimages"):

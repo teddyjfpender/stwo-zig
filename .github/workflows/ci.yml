@@ -32,13 +32,23 @@ on:
           - mantle-software
           - mantle-services
         default: mantle-software
+      mantle_block:
+        description: Pinned block for the single Mantle qualification
+        type: choice
+        options:
+          - '103132217'
+          - '103132921'
+          - '103133433'
+          - '103133561'
+          - '103133753'
+        default: '103132217'
       mantle_suite:
         description: Authenticated Mantle workload coverage
         type: choice
         options:
           - single
           - five-block
-          - five-block-replay
+          - replay
         default: single
 
 permissions:
@@ -46,7 +56,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}-${{ inputs.mantle_variant }}-${{ inputs.mantle_suite }}
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}-${{ inputs.mantle_variant }}-${{ inputs.mantle_suite }}-${{ inputs.mantle_block }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
 
 jobs:
@@ -581,7 +591,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        block: ${{ fromJSON(inputs.mantle_suite != 'single' && '[103132217,103132921,103133433,103133561,103133753]' || '[103132217]') }}
+        block: ${{ fromJSON(inputs.mantle_suite == 'five-block' && '[103132217,103132921,103133433,103133561,103133753]' || format('[{0}]', inputs.mantle_block || '103132217')) }}
     env:
       MANTLE_BLOCK: ${{ matrix.block }}
     steps:
@@ -635,7 +645,7 @@ jobs:
             --host /tmp/stwo-mantle-build/host --guest /tmp/stwo-mantle-build/guest.elf \
             --runner /tmp/stwo-mantle-build/rv64-execution --blocks "$MANTLE_BLOCK" --samples 1 --oracle
       - name: Build the frozen CPU implementation for explicit portable ISA
-        if: inputs.mantle_suite != 'five-block-replay'
+        if: inputs.mantle_suite != 'replay'
         run: |
           python3 - <<'PY'
           import hashlib, json, platform, subprocess
@@ -660,7 +670,7 @@ jobs:
           }, indent=2))
           PY
       - name: Prove and freshly verify every native execution
-        if: inputs.mantle_suite != 'five-block-replay'
+        if: inputs.mantle_suite != 'replay'
         run: |
           BLOCK="$MANTLE_BLOCK"
           python3 opstack/cpu.py \
