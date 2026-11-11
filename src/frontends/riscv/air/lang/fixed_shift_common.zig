@@ -53,11 +53,11 @@ pub fn Evaluator(comptime S: type) type {
             }
         };
 
-        pub noinline fn derive(row: Row) Derived {
+        pub fn derive(row: Row) Derived {
             var bit_multiplier = S.zero();
             var bit_shift = S.zero();
             var bit_marker_sum = S.zero();
-            for (row.bit_markers, 0..) |marker, index| {
+            inline for (row.bit_markers, 0..) |marker, index| {
                 bit_multiplier = bit_multiplier.add(
                     marker.mul(ops.q(@as(u64, 1) << @intCast(index))),
                 );
@@ -66,7 +66,7 @@ pub fn Evaluator(comptime S: type) type {
             }
             var limb_shift = S.zero();
             var limb_marker_sum = S.zero();
-            for (row.limb_markers, 0..) |marker, index| {
+            inline for (row.limb_markers, 0..) |marker, index| {
                 limb_shift = limb_shift.add(marker.mul(ops.q(index)));
                 limb_marker_sum = limb_marker_sum.add(marker);
             }
