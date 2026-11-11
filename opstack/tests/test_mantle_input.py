@@ -6,9 +6,54 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import zlib
 from opstack.mantle import input as M
 
 F = Path(__file__).parents[1] / "mantle/tests/fixtures"
+
+
+def qualification_inputs():
+    """Pinned public regression inputs; successful replay/proofs are separate gates."""
+    with (F / "mantle-five-block-inputs.json.zlib").open("rb") as stream:
+        packed = stream.read((256 << 10) + 1)
+    if (
+        hashlib.sha256(packed).hexdigest()
+        != "975739424aae3f22b7aae2b3d73cbcdd48752c531f3d00c881c64f2d6175beab"
+    ):
+        raise ValueError("Mantle qualification fixture identity")
+    decoder = zlib.decompressobj()
+    raw = decoder.decompress(packed, (1 << 20) + 1)
+    if (
+        len(raw) > 1 << 20
+        or not decoder.eof
+        or decoder.unconsumed_tail
+        or decoder.unused_data
+    ):
+        raise ValueError("Mantle qualification decompression bound")
+    if (
+        hashlib.sha256(raw).hexdigest()
+        != "8ca5e565fc10a1f424e3756c4945a283510315a536735c9e3fe260ab87891615"
+    ):
+        raise ValueError("Mantle qualification decoded identity")
+    rows = json.loads(raw)["blocks"]
+    if [row["block_number"] for row in rows] != [
+        103132217,
+        103132921,
+        103133433,
+        103133561,
+        103133753,
+    ]:
+        raise ValueError("Mantle qualification coverage")
+    for row in rows:
+        data = row["guest_input_utf8"].encode()
+        if (
+            len(data) != row["input_bytes"]
+            or hashlib.sha256(data).hexdigest() != row["input_sha256"]
+        ):
+            raise ValueError("Mantle qualification input identity")
+        if M.statement(data).hex() != row["expected_output"]:
+            raise ValueError("Mantle qualification statement")
+    return rows
 
 
 def fixture():
@@ -24,6 +69,9 @@ def fixture():
 
 
 class MantleInputTests(unittest.TestCase):
+    def test_five_authenticated_qualification_inputs(self):
+        self.assertEqual(len(qualification_inputs()), 5)
+
     def test_wrong_nested_types_reject_before_execution(self):
         for field in ("fixture", "expected", "preimages"):
             value = fixture()

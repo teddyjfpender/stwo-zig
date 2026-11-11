@@ -32,13 +32,20 @@ on:
           - mantle-software
           - mantle-services
         default: mantle-software
+      mantle_suite:
+        description: Authenticated Mantle workload coverage
+        type: choice
+        options:
+          - single
+          - five-block
+        default: single
 
 permissions:
   actions: read
   contents: read
 
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}-${{ inputs.mantle_variant }}
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}-${{ inputs.mantle_variant }}-${{ inputs.mantle_suite }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
 
 jobs:
@@ -570,6 +577,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.gate == 'mantle-cpu-qualification'
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      MANTLE_SUITE_CHOICE: ${{ inputs.mantle_suite }}
     steps:
       - name: Checkout frozen source
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -608,17 +617,23 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          from opstack.tests.test_mantle_input import fixture
-          target = Path('/tmp/stwo-mantle-fixtures/block-103132217')
-          target.mkdir(parents=True)
-          (target / 'guest-input.json').write_text(json.dumps(fixture(), sort_keys=True, separators=(',', ':')))
+          from opstack.tests.test_mantle_input import qualification_inputs
+          for row in qualification_inputs():
+              target = Path('/tmp/stwo-mantle-fixtures') / ('block-' + str(row['block_number']))
+              target.mkdir(parents=True)
+              (target / 'guest-input.json').write_bytes(row['guest_input_utf8'].encode())
           PY
       - name: Match native, RV64 and independent execution
         run: |
+          case "$MANTLE_SUITE_CHOICE" in
+            single) BLOCKS=(103132217);;
+            five-block) BLOCKS=(103132217 103132921 103133433 103133561 103133753);;
+            *) exit 2;;
+          esac
           python3 opstack/benchmark.py --network mantle --profile ethereum_services_v3 \
             --fixtures /tmp/stwo-mantle-fixtures --artifacts /tmp/stwo-mantle-execution \
             --host /tmp/stwo-mantle-build/host --guest /tmp/stwo-mantle-build/guest.elf \
-            --runner /tmp/stwo-mantle-build/rv64-execution --blocks 103132217 --samples 1 --oracle
+            --runner /tmp/stwo-mantle-build/rv64-execution --blocks "${BLOCKS[@]}" --samples 1 --oracle
       - name: Fetch the frozen CPU prover artifact
         continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -662,19 +677,54 @@ jobs:
               'scope': 'frozen generic CPU prover; guest/image/input authority remains independent'
           }, indent=2))
           PY
-      - name: Prove and freshly verify complete execution and recursion
+      - name: Prove and freshly verify every native execution
         run: |
-          python3 opstack/cpu.py \
-            --request /tmp/stwo-mantle-execution/103132217-proof-config.json \
-            --execution /tmp/stwo-mantle-execution/103132217-rv64.json \
+          case "$MANTLE_SUITE_CHOICE" in
+            single) BLOCKS=(103132217);;
+            five-block) BLOCKS=(103132217 103132921 103133433 103133561 103133753);;
+            *) exit 2;;
+          esac
+          for BLOCK in "${BLOCKS[@]}"; do
+            python3 opstack/cpu.py \
+            --request "/tmp/stwo-mantle-execution/${BLOCK}-proof-config.json" \
+            --execution "/tmp/stwo-mantle-execution/${BLOCK}-rv64.json" \
             --runner /tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion \
-            --recursive-runner /tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion \
             --native-profile d2_native_b4_q54_p20_fold4 \
-            --recursive-profile m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 \
-            --workers 2 --recursive-workers 2 --batch-steps 262143 --timeout 1800 \
-            --receiver-bytes 12884901888 --recursive-live-bytes 12884901888 \
-            --recursive-receiver-bytes 12884901888 --artifacts /tmp/stwo-mantle-proof
+            --workers 2 --batch-steps 262143 --timeout 1800 \
+            --receiver-bytes 12884901888 --artifacts "/tmp/stwo-mantle-proof/${BLOCK}"
+          done
           git diff --exit-code
+      - name: Produce and freshly receive the first Mantle execution root
+        run: |
+          python3 - <<'PYROOT'
+          import argparse, json, os
+          from pathlib import Path
+          from opstack import cpu_recursion
+          from opstack.cpu import measured
+          root = Path('/tmp/stwo-mantle-proof/103132217')
+          native = json.loads((root / 'summary.json').read_text())
+          if native.get('proof_verified') is not True:
+              raise ValueError('root requires independently admitted native execution')
+          args = argparse.Namespace(
+              recursive_runner=Path('/tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion'),
+              recursive_profile='m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1',
+              native_profile='d2_native_b4_q54_p20_fold4',
+              workers=2, recursive_workers=2, timeout=1800,
+              recursive_live_bytes=12884901888, recursive_receiver_bytes=12884901888,
+          )
+          report = {'scope': 'Mantle execution root; no L1 derivation',
+                    'recursive_root_verified': False, 'security_qualified': False, 'stages': {}}
+          path = root / 'recursive-summary.json'
+          def record(name, row):
+              report['stages'][name] = row
+              path.write_text(json.dumps(report, indent=2) + '\n')
+          path.write_text(json.dumps(report, indent=2) + '\n')
+          report['recursive'] = cpu_recursion.run(
+              args, json.loads((root / 'request.json').read_text()), root, 1 << 30,
+              dict(os.environ, STWO_ZIG_RV64_SETUP_BUILD_THREADS='1'), measured, record)
+          report['recursive_root_verified'] = True
+          path.write_text(json.dumps(report, indent=2) + '\n')
+          PYROOT
       - name: Retain complete Mantle qualification evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -73,3 +73,20 @@ wrong-block and missing-witness rejection; all 41 existing OP Rust tests also
 passed. This is native correctness evidence, not a proving-time benchmark.
 Mantle RV64 execution, proof/recursive reception and timing-model validation
 remain unqualified; the existing OP chain-10 admission guard remains in force.
+
+The five-block qualification input bundle in `tests/fixtures/` retains blocks
+103132217, 103132921, 103133433, 103133561 and 103133753. The manifest records
+raw-input, compressed and decoded SHA256 identities. The bounded Python loader
+pins both bundle hashes and checks every input statement before materializing
+it. These are live public header, transaction, bytecode and authenticated state
+inputs, not benchmark receipts. Retain them while this regression is supported;
+replacement requires reviewed identity pins and fresh native/proof admission.
+No RPC credential is needed to execute the suite. Native replay must establish
+witness completeness; capture authentication alone does not establish it.
+
+The hosted CPU qualification first independently receives each native proof and
+runs corruption trials. Recursion follows as a separate gate, preserving native
+results if folding fails. The initial four-child M7 attempt exhausted its 12 GiB
+live budget; the next root gate uses the existing three-child M6 diet profile
+under the same budget. These outer profiles must be reported separately; this
+is not a security-profile equivalence claim or a raised memory ceiling.
