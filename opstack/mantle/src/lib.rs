@@ -40,6 +40,7 @@ pub struct Receipt {
     pub schema: &'static str,
     pub scope: &'static str,
     pub proof_verified: bool,
+    pub derivation_verified: bool,
     pub chain_id: u64,
     pub config_sha256: B256,
     pub parent_hash: B256,
@@ -156,8 +157,6 @@ fn validate_source(
     }
     Ok(transactions.len())
 }
-/// Every record is authenticated even when this block never reads it. Expected
-/// config/block pins belong to the independent fixture publisher/caller.
 pub fn execute(
     fixture: Fixture,
     expected: Expected,
@@ -193,6 +192,7 @@ pub fn execute(
         schema: "stwo.mantle.native-execution.v1",
         scope: "native EVM execution only; no L1 derivation, RV64 execution or proof acceptance",
         proof_verified: false,
+        derivation_verified: false,
         chain_id: 5000,
         config_sha256: expected.config_sha256,
         parent_hash,

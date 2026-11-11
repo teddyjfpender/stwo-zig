@@ -17,7 +17,7 @@ alloy-op-evm = { git = "https://github.com/mantle-xyz/mantle-v2", rev = "305d78b
 op-alloy-rpc-types-engine = { git = "https://github.com/mantle-xyz/mantle-v2", rev = "305d78b348748e47bd0fe2d4d95bb29ddb10f9ba", default-features = false, features = ["serde"] }
 alloy-consensus = { version = "=2.0.4", default-features = false, features = ["serde", "k256"] }
 alloy-primitives = { version = "=1.5.6", default-features = false, features = ["serde", "rlp"] }
-alloy-rlp = "=0.3.13"
+alloy-rlp = "=0.3.15"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "=0.10.9"
