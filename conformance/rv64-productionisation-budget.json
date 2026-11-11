@@ -1027,6 +1027,16 @@
       "scripts_added_budget": 0,
       "positive_growth_justification": "Route existing OP pairing, Horner and typed-projection roots through the canonical package developer entrypoint, preserving exact minimum discovery counts and semantic-check-only behavior. Avoid the full integration build for edits to these owners. No protocol, package contract or fixture is changed.",
       "rollback": "Revert focused routing and registration together; retain all existing root tests and top-level gates."
+    },
+    {
+      "id": "op_retired_analysis_launchers",
+      "net_code_budget": -659,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "scripts_removed_target": 3,
+      "scope": "Retire rejected diagonal benchmark launcher/helper and frozen-only segmentation/retained-owner model launchers. Their embedded diagnostic tests retire with the scripts; live production parity and physical proof tests remain.",
+      "archive_commit": "cbccb102b577bf48debf38bf6559cff80fc874b3",
+      "ownership_rule": "No live import/build/test consumers; retain historical receipts byte-for-byte and link fixed archive sources in the existing reviews."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

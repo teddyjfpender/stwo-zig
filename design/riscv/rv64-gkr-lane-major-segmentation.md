@@ -140,11 +140,14 @@ format/worker/receiver/recursion switch has been implemented by this design.
    Only then compare a real conditional4M child, followed by a separately
    authorized complete block. No heavy execution/proof is needed for this gate.
 
-`scripts/rv64_gkr_lane_segment_report.py --self-test` checks canonical covers,
+The [archived segmentation model](https://github.com/teddyjfpender/stwo-zig/blob/cbccb102b577bf48debf38bf6559cff80fc874b3/scripts/rv64_gkr_lane_segment_report.py)
+checked canonical covers,
 MSB/LSB row-suffix semantics and late-aggregation multilinear identities over
 base-field samples. These are algebra/source-order tests, not physical proof
 rejections or security certification. The committed receipt records the
 source-only capture and reproduction paths.
+The frozen-only launcher and its embedded tests are retired together; live
+physical GKR binding and rejection tests remain with their implementation.
 
 ## Reader feasibility and small prototype boundary
 
