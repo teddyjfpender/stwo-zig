@@ -1,31 +1,39 @@
-# Mantle native replay
+# Mantle execution and CPU proving
 
-Private, host-only execution adapter owned by the OP integration. This is the
-native replay gate in [issue #377](https://github.com/teddyjfpender/stwo-zig/issues/377).
-It does not admit Mantle to the RV64 prover, recursive receiver or settlement.
+Private Mantle execution owner for [issue #377](https://github.com/teddyjfpender/stwo-zig/issues/377).
+Its workspace, lockfile and pinned consensus/EVM dependencies are separate from
+ordinary OP/Ethereum execution. It accepts an execution only when the complete
+computed header matches an independently supplied expected block hash. This
+proves execution under a pinned parent/configuration, not L1 derivation,
+finality or settlement.
 
-The ordinary OP workspace remains independent. This crate has its own workspace,
-lockfile and pinned Mantle consensus/EVM dependency graph. It authenticates every
-supplied preimage, requires independent configuration and expected-block pins,
-and accepts execution only when the complete resulting header hash matches.
-A receipt explicitly reports `proof_verified=false` and
-`derivation_verified=false`.
-
-On a build host, run the locked crate tests through the existing `opstack_kona`
-CPU CI lane. The native executable takes four positional arguments:
+The host supports the original four-position native replay command and the
+versioned guest-input envelope:
 
 ```text
 stwo-mantle-native FIXTURE.json PREIMAGES.json EXPECTED_CONFIG_SHA256 EXPECTED_BLOCK_HASH
+stwo-mantle-native guest-input INPUT.json
 ```
 
-The caller supplies both pins independently of the fixture. Config SHA256 is
-computed over the raw configuration JSON with recursively sorted object keys,
-compact separators and no trailing newline. Preimages are an array of
-`{"hash":"0x…","data":"0x…"}` records. Missing data fails execution; trace-derived
-access lists are capture advice, never state authority. Malformed or duplicate
-records reject. Resource limits are enforced before execution, including CLI
-file-size bounds. Errors do not publish an accepted receipt; retry requires
-correcting the input, never weakening the expected hash.
+Native execution receipts explicitly report no STARK/derivation acceptance.
+`build.py --variant mantle-services --guest-opt-level s` builds the alloc-only
+RV64 guest using existing v3 Keccak-sponge/SHA services; `mantle-software` is the
+software control. Use the existing `opstack/benchmark.py --network mantle` and
+`opstack/cpu.py` entrypoints for agreement and complete CPU proof reception.
+No new AIR, service opcode, proof wire or top-level launcher is introduced.
+
+The guest's 43-byte public statement is
+`SHA256("stwo/mantle/execution/v1\0" || SHA256(raw_input) || computed_block_hash)`
+followed by success byte 1, little-endian chain ID 5000 and `ME`. The computed
+hash must first equal the independent block pin. Program/image, exact input,
+terminal state and output remain authenticated by the generic prover/receiver.
+An arbitrary program emitting ME43 is not Mantle execution authority.
+
+Config SHA256 uses recursively sorted JSON object keys, compact separators and
+no trailing newline. Preimages are an array of `{"hash":"0x…","data":"0x…"}`
+records. Missing, malformed, hash-invalid or duplicate records reject. Trace
+access suggestions never establish state authority. Correct an incomplete input;
+never weaken the expected header or proof checks.
 
 ## Sources and fixture provenance
 
@@ -62,67 +70,55 @@ derivation or a live node's exported rollup configuration. Its pinned SHA256 is
 Payload attributes come from the authenticated child header and raw transactions;
 Jovian fee parameters/minimum come from its exact 17-byte extraData.
 
-Capture identity checks already pass for 32 sampled blocks. Native execution,
-guest agreement, proofs and timing-model validation require their own gates;
-none follows from codec or dependency-resolution success.
+## Capture completeness and regression inputs
 
-The native gate passed on source `e0f4ceb5356955fe39cbeb2976728dbbd56f6686`:
-[hosted CPU run 43026706096](https://github.com/teddyjfpender/stwo-zig/actions/runs/43026706096).
-Both Mantle tests passed, including exact real-block replay and wrong-config,
-wrong-block and missing-witness rejection; all 41 existing OP Rust tests also
-passed. This is native correctness evidence, not a proving-time benchmark.
-Mantle RV64 execution, proof/recursive reception and timing-model validation
-remain unqualified; the existing OP chain-10 admission guard remains in force.
+The bounded, hash-pinned archive in `tests/fixtures/` retains blocks 103132217,
+103132921, 103133433, 103133561 and 103133753. Its manifest pins each exact raw
+input and both compressed/decoded identities. It contains public state/code,
+headers and transactions, with no RPC credentials. Retain it while the regression
+is supported; replacements require reviewed identity pins and fresh execution
+and proof admission. Benchmark receipts and durable proofs stay outside source.
 
-The five-block qualification input bundle in `tests/fixtures/` retains blocks
-103132217, 103132921, 103133433, 103133561 and 103133753. The manifest records
-raw-input, compressed and decoded SHA256 identities. The bounded Python loader
-pins both bundle hashes and checks every input statement before materializing
-it. These are live public header, transaction, bytecode and authenticated state
-inputs, not benchmark receipts. Retain them while this regression is supported;
-replacement requires reviewed identity pins and fresh native/proof admission.
-No RPC credential is needed to execute the suite. Native replay must establish
-witness completeness; capture authentication alone does not establish it.
+Opcode traces omit the VM's intrinsic fee reads. Pinned Mantle revm
+`835cb4e`, `crates/op-revm/src/{l1block,constants}.rs`, reads GasPriceOracle
+slot 0 (token ratio), L1Block slots 1/3/5/6/7/8 and fee-recipient accounts for
+normal transactions. Their parent-state proofs and bytecode are included and
+tested independently against the expected parent root.
 
-The hosted CPU qualification first independently receives each native proof and
-runs corruption trials. Recursion follows as a separate gate, preserving native
-results if folding fails. Both the four-child M7 and three-child M6 attempts exhausted their 12 GiB
-live budget at the first fold. The native suite remains independent of root
-qualification. Outer profiles are reported separately; a reduced arity is not
-a security-profile equivalence claim or a raised memory ceiling.
+Block 103133753 creates a contract. Capture also needs the parent-state absence
+proof at CREATE(sender, nonce), even when the prestate tracer omits that new
+account. Tests bind the actual transaction/nonce, derived address and retained
+nodes. RPC all-zero absent-account metadata is ignored; authenticated secure-key
+trie absence is the authority. No shared proof validator is relaxed.
 
-Normal (non-deposit) transactions additionally read GasPriceOracle slot 0
-(token ratio), L1Block slots 1/3/5/6/7/8, and fee-recipient accounts through the
-VM's intrinsic fee handler. These reads occur outside opcode tracing. The
-source authority is pinned Mantle revm `835cb4e`,
-`crates/op-revm/src/{l1block,constants}.rs`. The two non-deposit sample inputs
-retain those authenticated parent-state proofs and code; regression tests
-verify their account, storage, bytecode and retained-node identities. Missing
-witnesses remain fatal. The raw-input statement changes with the supplement,
-while the independently expected block header remains unchanged.
+## Qualification and reproduction
 
-The five-block suite now measures native qualification independently. `single`
-also attempts a root; both M7 four-child and M6 three-child attempts exhausted
-their 12 GiB budget at the first fold. A native success therefore does not imply
-a completed root. Prover builds use explicit `x86_64_v3` and record host CPU
-features; a native-target binary hash alone does not establish portability.
+All five inputs have native/RV64/Unicorn agreement and complete native CPU proofs
+accepted by fresh receivers on the user-authorized 64 GiB M5 Max. Both native
+transport corruption and a rehashed corrupted proof reject. Block 103132217 also
+has a freshly accepted M7 recursive execution root; changing a root byte rejects
+with `RecursiveReceiverArtifactMismatch` (an artifact-integrity test).
 
-The next bounded root experiment uses the existing R1 binary-fold profile
-(`r1_b2_q108_p20_fold4`), with the same 108 queries/20-bit PoW assumption target
-and a separately bound transcript. Unlike the canonical M5 shape, R1 retains
-exact node shapes; two-child folds can avoid the log-23 Blake row bank of the
-failed three-child run. This is an allocation hypothesis, not a measured saving.
-The 12 GiB producer/receiver budgets remain enforced. Per-node outer stages are
-captured by the existing profiling facility; fresh strict root reception remains
-mandatory and no witness/proof is regenerated by a receiver.
+[PR #372](https://github.com/teddyjfpender/stwo-zig/pull/372) records the measured
+table, exact source/binary/input identities and external report/receipt manifest.
+The local cohort uses 16 workers, one lane, 1,048,575-step batches, native
+`d2_native_b4_q54_p20_fold4` and outer
+`m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1`. Operator runtime admissions are
+4 GiB fixed setup, 16 GiB native lane, 32 GiB native receiver and 48 GiB recursive
+producer/receiver; the repository ceilings are unchanged. These are individual
+qualification observations, not quiet-run medians or hosted/Mac speedup claims.
+The failed 12 GiB hosted folds are a separate, insufficient-capacity cohort.
 
-Block 103133753 deploys a contract. Its prestate trace omits the new account;
-capture must retain a parent-root absence proof for CREATE(sender, nonce), not
-only proofs for accounts already present in the trace. The pinned creation
-transaction/nonce, derived address, absence proof and retained node hashes are
-covered by a regression test. RPC all-zero absent-account metadata is not used
-as state authority; no shared proof validator is weakened. The guest still
-independently executes the signed transaction and checks the final block hash.
-The single-block hosted gate can select any of the five pinned inputs, allowing
-this repair to be qualified without rebuilding all other blocks. Root testing
-remains confined to the original first-block experiment.
+The existing `mantle-cpu-qualification` workflow reproduces the build, fixture
+materialization, agreement and strict proof commands. `mantle_suite=five-block`
+runs independent native jobs; `single` selects a pinned `mantle_block` and tests
+a root only for 103132217; `replay` stops after execution agreement. Hosted prover
+builds pin `x86_64_v3` and record CPU features. Native-target artifacts must not
+be reused on a different CPU from their byte hash alone. Benchmark the Mac
+cohort locally using its pinned native binary and recorded resources.
+
+The security label is **128-bit target under documented assumptions**, not
+certified whole-protocol security. Other four recursive roots, broader sample
+coverage and L1-anchored Mantle derivation remain open. The five-point multivariate
+native timing fit fails leave-one-block-out validation and must not forecast
+new blocks. The OP chain-10 guard and default Ethereum route remain unchanged.
