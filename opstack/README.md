@@ -9,6 +9,11 @@ The current CPU-first [delivery gates](COMPLETION.md) distinguish execution,
 anchored transition proofs, recursive closure and complete settlement. Historical
 replay measurements do not close those later gates.
 
+The isolated [Mantle execution owner](mantle/README.md) additionally qualifies
+five complete native execution proofs and one recursive execution root on the
+M5 Max. It retains separate dependencies and ME43 framing. These measurements
+do not close OP/Mantle L1 derivation, accumulation or settlement gates.
+
 The [CPU tuning record](CPU_TUNING.md) links current actual guest-to-root
 measurements, bounded heavy-fragment profiles and their exact qualification
 limits. The experimental [terminal development loop](../src/integrations/riscv_cpu/poseidon2_outer/native_group/terminal_blake/DEV_LOOP.md)
