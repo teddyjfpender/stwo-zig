@@ -1,6 +1,7 @@
 //! Literal RV64 test inventory, collected by the package inventory and checked
 //! together with it. Focused roots retain their independent test-count floors.
 test {
+    _ = @import("rv64/mod.zig");
     _ = @import("rv64/air/memory/native_frontier_wire_test.zig");
     _ = @import("rv64/tests/frequent_operations_test.zig");
     _ = @import("rv64/air/program/packed_control_test.zig");
@@ -137,15 +138,16 @@ test {
     _ = @import("rv64/candidate_isa_test.zig");
     _ = @import("rv64/ethereum_contract.zig");
     _ = @import("rv64/ethereum_execution.zig");
-    _ = @import("rv64/ethereum_services/arith256.zig");
+    _ = @import("rv64/service_primitives/arith256.zig");
+    _ = @import("rv64/ethereum_services/arith256_candidate_test.zig");
     _ = @import("rv64/ethereum_services/bulk_memory.zig");
     _ = @import("rv64/ethereum_services/candidate_curves.zig");
     _ = @import("rv64/ethereum_services/candidate_jumpdest.zig");
     _ = @import("rv64/ethereum_services/candidate_services.zig");
     _ = @import("rv64/ethereum_services/curves.zig");
     _ = @import("rv64/ethereum_services/keccak_sponge.zig");
-    _ = @import("rv64/ethereum_services/secp256k1.zig");
-    _ = @import("rv64/ethereum_services/sha256.zig");
+    _ = @import("rv64/service_primitives/secp256k1.zig");
+    _ = @import("rv64/service_primitives/sha256.zig");
     _ = @import("rv64/isa_audit.zig");
     _ = @import("rv64/ram_word_set.zig");
     _ = @import("rv64/tests/fast_execution_test.zig");

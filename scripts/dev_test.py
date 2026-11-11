@@ -24,6 +24,8 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv64/service_primitives", "test-rv64-math-ownership"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv64/ethereum_services/arith256_candidate_test.zig", "test-rv64-math-ownership"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/vm_composition_program_test.zig", "test-retained-typed-components"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/recursive_segment_detached_child_transcript.zig", "test-detached-child-capture"),

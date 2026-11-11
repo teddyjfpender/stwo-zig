@@ -977,6 +977,36 @@
         ]
       ]
     },
+    "riscv_math_ownership": {
+      "host": "linux",
+      "description": "Explicit canonical RV64 mathematical ownership and original independent-oracle execution; full frontend remains mandatory",
+      "commands": [
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-rv64-math-ownership",
+          "-Doptimize=Debug",
+          "-j1",
+          "--summary",
+          "all",
+          "--verbose"
+        ],
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-rv64-math-ownership",
+          "-Doptimize=ReleaseFast",
+          "-j1",
+          "--summary",
+          "all",
+          "--verbose"
+        ]
+      ]
+    },
     "riscv_retained_contracts": {
       "host": "linux",
       "description": "Retained native projection, transcript and VM composition contract diagnostic; full frontend remains mandatory",
