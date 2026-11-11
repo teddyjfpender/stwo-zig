@@ -634,49 +634,29 @@ jobs:
             --fixtures /tmp/stwo-mantle-fixtures --artifacts /tmp/stwo-mantle-execution \
             --host /tmp/stwo-mantle-build/host --guest /tmp/stwo-mantle-build/guest.elf \
             --runner /tmp/stwo-mantle-build/rv64-execution --blocks "$MANTLE_BLOCK" --samples 1 --oracle
-      - name: Fetch the frozen CPU prover artifact
-        if: inputs.mantle_suite != 'five-block-replay'
-        continue-on-error: true
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          github-token: ${{ github.token }}
-          run-id: 43048646967
-          name: mantle-cpu-qualification-66f08a7af2e4fe769fcfec7a04ba48c0b2791377
-          path: /tmp/mantle-prover-seed
-      - name: Verify independent CPU binary and unchanged proof implementation
+      - name: Build the frozen CPU implementation for explicit portable ISA
         if: inputs.mantle_suite != 'five-block-replay'
         run: |
           python3 - <<'PY'
-          import hashlib, json, shutil, subprocess
+          import hashlib, json, platform, subprocess
           from pathlib import Path
           source = '66f08a7af2e4fe769fcfec7a04ba48c0b2791377'
-          # Guest inputs/programs may change; the reused prover implementation may not.
           subprocess.run(['git', 'diff', '--exit-code', source, 'HEAD', '--',
                           'src', 'build_support', 'build.zig', 'build.zig.zon',
                           'vectors', 'conformance', 'tools'], check=True)
-          binary = Path('/tmp/mantle-prover-seed/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion')
-          target = Path('/tmp/stwo-mantle-prover/bin')
-          if binary.is_file():
-              digest = hashlib.sha256(binary.read_bytes()).hexdigest()
-              assert digest == 'd74f5dd6faefbd4f20d4df51c7b7c51b87cf39786033ec67fbfe05a6a553ba23'
-              target.mkdir(parents=True)
-              output = target / binary.name
-              shutil.copyfile(binary, output)
-              output.chmod(0o755)
-              origin = 'pinned compiler artifact'
-          else:
-              # Artifact retention may expire; rebuild the same admitted source,
-              # never regenerate or substitute a receiver's missing proof.
-              subprocess.run(['zig', 'build', 'rv64-word16-ethereum-gkr-recursion',
-                              '-Doptimize=ReleaseFast', '-j1', '--prefix',
-                              '/tmp/stwo-mantle-prover'], check=True)
-              output = target / 'rv64-word16-ethereum-gkr-recursion'
-              digest = hashlib.sha256(output.read_bytes()).hexdigest()
-              origin = 'fresh build of unchanged pinned proof implementation'
-          (target.parent / 'authority.json').write_text(json.dumps({
-              'source_commit': source, 'binary_sha256': digest,
-              'binary_origin': origin,
-              'scope': 'frozen generic CPU prover; guest/image/input authority remains independent'
+          # The old artifact used -mcpu=native and cannot be admitted on an
+          # arbitrary hosted CPU from its byte hash alone (SIGILL observed).
+          subprocess.run(['zig', 'build', 'rv64-word16-ethereum-gkr-recursion',
+                          '-Doptimize=ReleaseFast', '-Dcpu=x86_64_v3', '-j1',
+                          '--prefix', '/tmp/stwo-mantle-prover'], check=True)
+          binary = Path('/tmp/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion')
+          (binary.parent.parent / 'authority.json').write_text(json.dumps({
+              'source_commit': source,
+              'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(),
+              'binary_origin': 'fresh build of unchanged admitted proof implementation',
+              'cpu_target': 'x86_64_v3', 'platform': platform.platform(),
+              'lscpu': json.loads(subprocess.check_output(['lscpu', '--json'], text=True)),
+              'scope': 'generic CPU prover; guest/image/input authority remains independent'
           }, indent=2))
           PY
       - name: Prove and freshly verify every native execution
