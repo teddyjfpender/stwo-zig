@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "runtime_selector_replay_diagnostic",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue330 comment6805045179: isolate the existing seeded runtime polynomial active-selector assertion through the maintained focused catalog, serial build and hosted CPU entrypoint. Preserve the exact assertion, RNG, family coverage and full frontend floors; failure-only output names the mismatched operands. No production implementation/API/protocol change, copied test or launcher. The diagnostic is not full acceptance; rollback removes its root, catalog/lane and logging together."
+    },
+    {
       "id": "worktree_consolidation",
       "net_code_budget": 0,
       "flags_added_budget": 0,

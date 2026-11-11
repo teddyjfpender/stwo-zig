@@ -247,6 +247,8 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_optimized_ci_reproduction_covers_focused_and_broad_routes(self) -> None:
         for path, step in (
+            ("src/frontends/riscv/air/extract/runtime_program.zig", "test-runtime-selector"),
+            ("src/frontends/riscv/runtime_selector_test_root.zig", "test-runtime-selector"),
             ("src/frontends/riscv/retained_fri_frontier_test_root.zig", "test-retained-fri-frontier"),
             ("src/integrations/riscv_cpu/blake3_proof_tests/blake3_memory_path_proof_test.zig", "test-blake3-proof-contracts"),
             ("src/integrations/riscv_cpu/blake3_proof_contract_test_root.zig", "test-blake3-proof-contracts"),

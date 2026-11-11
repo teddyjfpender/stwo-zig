@@ -326,8 +326,11 @@ test "runtime polynomial export replays the production active selector" {
                 semantic_eval.BaseScalar.fromBase(inputs[main_column_count]),
             );
             try std.testing.expectEqual(expected.len, direct.len);
-            for (expected.values[0..expected.len], direct.values[0..direct.len]) |want, root|
+            for (expected.values[0..expected.len], direct.values[0..direct.len], 0..) |want, root, constraint_index| {
+                if (!want.value.eql(replayed[root.id]))
+                    std.debug.print("runtime selector mismatch family={s} active={d} constraint={d} root={d} expected={d} actual={d}\n", .{ @tagName(family), active, constraint_index, root.id, want.value.toU32(), replayed[root.id].toU32() });
                 try std.testing.expect(want.value.eql(replayed[root.id]));
+            }
         }
     }
 }

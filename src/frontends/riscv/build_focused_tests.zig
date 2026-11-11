@@ -17,6 +17,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-runtime-selector",
+        .description = "Diagnose the existing active-selector replay without replacing full frontend acceptance",
+        .root = "runtime_selector_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"runtime polynomial export replays the production active selector"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-releasefast-acceptance",
         .description = "Diagnose the four full-suite ReleaseFast correctness failures without replacing the complete gate",
         .root = "releasefast_acceptance_test_root.zig",
