@@ -53,7 +53,7 @@ pub fn Evaluator(comptime S: type) type {
             }
         };
 
-        pub fn derive(row: Row) Derived {
+        pub noinline fn derive(row: Row) Derived {
             var bit_multiplier = S.zero();
             var bit_shift = S.zero();
             var bit_marker_sum = S.zero();
