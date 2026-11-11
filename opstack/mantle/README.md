@@ -98,6 +98,8 @@ accepted by fresh receivers on the user-authorized 64 GiB M5 Max. Both native
 transport corruption and a rehashed corrupted proof reject. Block 103132217 also
 has a freshly accepted M7 recursive execution root; changing a root byte rejects
 with `RecursiveReceiverArtifactMismatch` (an artifact-integrity test).
+Changing both the root alias and final-fold proof together also rejects with
+`RootMismatch` at cryptographic verification. Both controls restore exact bytes.
 
 [PR #372](https://github.com/teddyjfpender/stwo-zig/pull/372) records the measured
 table, exact source/binary/input identities and external report/receipt manifest.
