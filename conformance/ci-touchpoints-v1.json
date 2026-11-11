@@ -977,6 +977,36 @@
         ]
       ]
     },
+    "riscv_native_graph": {
+      "host": "linux",
+      "description": "Explicit captured-native-proof graph parity diagnostic; full integration and frontend suites remain mandatory",
+      "commands": [
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/integrations/riscv_cpu",
+          "test-segment-v2-native-proof",
+          "-Doptimize=Debug",
+          "-j1",
+          "--summary",
+          "all",
+          "--verbose"
+        ],
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/integrations/riscv_cpu",
+          "test-segment-v2-native-proof",
+          "-Doptimize=ReleaseFast",
+          "-j1",
+          "--summary",
+          "all",
+          "--verbose"
+        ]
+      ]
+    },
     "riscv_retained_contracts": {
       "host": "linux",
       "description": "Retained native projection, transcript and VM composition contract diagnostic; full frontend remains mandatory",
