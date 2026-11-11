@@ -146,7 +146,7 @@ pub fn def(comptime op: Op) Def {
 /// one-call-per-row truth: the selectable `row_v1` replacement of the RCB
 /// product/linear providers (`secp256k1/layout.zig`). It is not an execution
 /// op: the packet ABI, tags and Wire35 IDs are the secp service's own
-/// (`ethereum_services/secp256k1.zig`, `word16_bridge/types.zig`), and every
+/// (`service_primitives/secp256k1.zig`, `word16_bridge/types.zig`), and every
 /// output equals that program's canonical result.
 pub const secp = @import("../../../service_primitives/secp256k1.zig");
 pub const SecpKind = secp.Kind;
