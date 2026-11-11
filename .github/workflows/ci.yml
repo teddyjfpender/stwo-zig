@@ -596,7 +596,7 @@ jobs:
         run: |
           rustup toolchain install nightly-2026-08-08 --profile minimal --component rust-src
           python3 -m pip install pycryptodome==4.3.0 unicorn==2.1.4
-          python3 opstack/build.py --variant '${{ inputs.mantle_variant }}' --artifacts /tmp/stwo-mantle-build --jobs 2
+          python3 opstack/build.py --variant '${{ inputs.mantle_variant }}' --guest-opt-level s --artifacts /tmp/stwo-mantle-build --jobs 2
       - name: Preserve the bounded Rust compiler cache
         if: always() && steps.mantle-rust-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -619,21 +619,49 @@ jobs:
             --fixtures /tmp/stwo-mantle-fixtures --artifacts /tmp/stwo-mantle-execution \
             --host /tmp/stwo-mantle-build/host --guest /tmp/stwo-mantle-build/guest.elf \
             --runner /tmp/stwo-mantle-build/rv64-execution --blocks 103132217 --samples 1 --oracle
-      - name: Restore the isolated CPU prover compiler cache
-        id: mantle-zig-cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+      - name: Fetch the frozen CPU prover artifact
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          path: .zig-cache
-          key: mantle-zig-linux-0.15.2-${{ hashFiles('build.zig.zon') }}-${{ github.sha }}
-          restore-keys: mantle-zig-linux-0.15.2-${{ hashFiles('build.zig.zon') }}-
-      - name: Build the existing CPU native and recursive prover
-        run: zig build rv64-word16-ethereum-gkr-recursion -Doptimize=ReleaseFast -j1 --prefix /tmp/stwo-mantle-prover
-      - name: Preserve the CPU prover compiler cache
-        if: always() && steps.mantle-zig-cache.outputs.cache-hit != 'true' && steps.mantle-zig-cache.outputs.cache-primary-key != ''
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: .zig-cache
-          key: ${{ steps.mantle-zig-cache.outputs.cache-primary-key }}
+          github-token: ${{ github.token }}
+          run-id: 43048646967
+          name: mantle-cpu-qualification-66f08a7af2e4fe769fcfec7a04ba48c0b2791377
+          path: /tmp/mantle-prover-seed
+      - name: Verify independent CPU binary and unchanged proof implementation
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, shutil, subprocess
+          from pathlib import Path
+          source = '66f08a7af2e4fe769fcfec7a04ba48c0b2791377'
+          # Guest inputs/programs may change; the reused prover implementation may not.
+          subprocess.run(['git', 'diff', '--exit-code', source, 'HEAD', '--',
+                          'src', 'build_support', 'build.zig', 'build.zig.zon',
+                          'vectors', 'conformance', 'tools'], check=True)
+          binary = Path('/tmp/mantle-prover-seed/stwo-mantle-prover/bin/rv64-word16-ethereum-gkr-recursion')
+          target = Path('/tmp/stwo-mantle-prover/bin')
+          if binary.is_file():
+              digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+              assert digest == 'd74f5dd6faefbd4f20d4df51c7b7c51b87cf39786033ec67fbfe05a6a553ba23'
+              target.mkdir(parents=True)
+              output = target / binary.name
+              shutil.copyfile(binary, output)
+              output.chmod(0o755)
+              origin = 'pinned compiler artifact'
+          else:
+              # Artifact retention may expire; rebuild the same admitted source,
+              # never regenerate or substitute a receiver's missing proof.
+              subprocess.run(['zig', 'build', 'rv64-word16-ethereum-gkr-recursion',
+                              '-Doptimize=ReleaseFast', '-j1', '--prefix',
+                              '/tmp/stwo-mantle-prover'], check=True)
+              output = target / 'rv64-word16-ethereum-gkr-recursion'
+              digest = hashlib.sha256(output.read_bytes()).hexdigest()
+              origin = 'fresh build of unchanged pinned proof implementation'
+          (target.parent / 'authority.json').write_text(json.dumps({
+              'source_commit': source, 'binary_sha256': digest,
+              'binary_origin': origin,
+              'scope': 'frozen generic CPU prover; guest/image/input authority remains independent'
+          }, indent=2))
+          PY
       - name: Prove and freshly verify complete execution and recursion
         run: |
           python3 opstack/cpu.py \
@@ -657,7 +685,7 @@ jobs:
             /tmp/stwo-mantle-execution/
             /tmp/stwo-mantle-fixtures/
             /tmp/stwo-mantle-proof/
-            /tmp/stwo-mantle-prover/bin/
+            /tmp/stwo-mantle-prover/
           if-no-files-found: warn
           retention-days: 7
           compression-level: 1
