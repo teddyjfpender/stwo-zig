@@ -31,32 +31,12 @@ const Capture = @import("capture.zig");
 const Walk = @import("../../rv64_ethereum_native_prepare.zig").Walk;
 const Segments = @import("../../rv64_ethereum_segments.zig");
 const Collector = @import("../services/collector.zig");
-/// M8 capture concurrency overrides (`STWO_RV64_M8_CAPTURE_INFLIGHT`,
-/// `STWO_RV64_M8_CAPTURE_WORKERS`; unset = the caller's options). Producer
-/// scheduling only. Measured A/B [M, rv64-capture-bench, pod load 11-38,
-/// capture s, production workers 8 unless noted; receipts in
-/// vectors/reports/rv64-m8-20261106/opt-T1-capture-parallel/]:
-///   26235159 serial ledger: inflight 4 8.53 (median of 3) / 8 6.99,7.29 /
-///     16 6.11 (median of 3); workers 16: 6.27,6.39 at inflight 16, 24: 7.07.
-///   26235159 + STWO_RV64_M8_CAPTURE_LOCAL_LEDGER=1: inflight 4 9.07 (slower:
-///     phase 1 lengthens the job-bound window) / 8 6.87,6.92 / 12 6.10,6.26 /
-///     16 5.76 (median of 3), 5.85,5.75 / 24 6.30,5.88 / 32 6.32,6.19 (cap
-///     raised for the probe only); workers 4: 6.36,6.71.
-///   24628607 and 26235156: flat within noise at every setting (1.73-1.97,
-///     1.56-1.70): 7 and 5 segments never fill a window of 4.
-/// Recommended pair: INFLIGHT=16 with LOCAL_LEDGER=1.
-fn envCount(name: []const u8, max: u8) ?u8 {
-    const text = std.posix.getenv(name) orelse return null;
-    const value = std.fmt.parseUnsigned(u8, text, 10) catch return null;
-    if (value == 0 or value > max) return null;
-    return value;
-}
+/// Preserve the concurrency selected by the request owner.
 pub fn inflightOverride(inflight: u8) u8 {
-    return envCount("STWO_RV64_M8_CAPTURE_INFLIGHT", MAX_INFLIGHT) orelse inflight;
+    return inflight;
 }
 pub fn workersOverride(workers: u8) u8 {
-    if (workers == 0) return 0;
-    return envCount("STWO_RV64_M8_CAPTURE_WORKERS", Segments.MAX_WORKERS) orelse workers;
+    return workers;
 }
 pub const MAX_INFLIGHT = @import("capture_prefetch.zig").MAX_INFLIGHT;
 pub const Stats = struct {
@@ -163,7 +143,6 @@ const Job = struct {
         // takes all its range helpers (M6; `STWO_RV64_CAPTURE_CRITICAL=0` off).
         if (self.index == 0 and criticalFirst()) @import("../../word16_execution/cpu_source.zig").critical_capture = true;
         defer @import("../../word16_execution/cpu_source.zig").critical_capture = false;
-        lowerJobPriority();
         var timer = std.time.Timer.start() catch null;
         const tape = self.tape.?;
         self.tape = null;
@@ -223,20 +202,11 @@ const Job = struct {
     }
 };
 fn criticalFirst() bool {
-    const text = std.posix.getenv("STWO_RV64_CAPTURE_CRITICAL") orelse return true;
-    return !std.mem.eql(u8, text, "0");
+    return true;
 }
 /// `STWO_RV64_CAPTURE_JOB_NICE=N` (1..19): run batch admission/capture (and
 /// the range threads it spawns, which inherit it) at nice N, so the serial
 /// ordered ledger and the segment walks win CPU under a quota. Scheduling only.
-fn lowerJobPriority() void {
-    if (@import("builtin").os.tag != .linux) return;
-    const text = std.posix.getenv("STWO_RV64_CAPTURE_JOB_NICE") orelse return;
-    const nice = std.fmt.parseInt(u5, text, 10) catch return;
-    if (nice == 0 or nice > 19) return;
-    // setpriority(PRIO_PROCESS, 0 = calling thread on Linux, nice).
-    _ = std.os.linux.syscall3(.setpriority, 0, 0, nice);
-}
 /// Bounded in-order hand-over between the executing thread and the consumer.
 const Queue = struct {
     mutex: std.Thread.Mutex = .{},
@@ -413,7 +383,7 @@ pub const Started = struct {
         const self = try a.create(Started);
         errdefer a.destroy(self);
         self.* = .{ .allocator = a, .config = config, .walk_config = walk_config, .prefix_packets = prefix_packets, .segment_workers = workersOverride(segment_workers), .ready = null, .authority_provider = provider };
-        const async_start = if (std.posix.getenv("STWO_RV64_CAPTURE_ASYNC_START")) |v| !std.mem.eql(u8, v, "0") else true;
+        const async_start = true;
         if (async_start) {
             if (std.Thread.spawn(.{}, bootThread, .{self})) |t| {
                 self.boot_thread = t;

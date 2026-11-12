@@ -1,10 +1,8 @@
 //! Bounded producer-only replay launch policy. Speculation starts only later
 //! checkpoint waiters; the next required checkpoint retains ordered admission.
 const std = @import("std");
-pub const FLAG = "STWO_RV64_CAPTURE_REPLAY_AHEAD";
 pub fn enabled() bool {
-    const value = std.posix.getenv(FLAG) orelse return false;
-    return std.mem.eql(u8, value, "1");
+    return false;
 }
 pub const Decision = enum { launch, wait_checkpoint, stop };
 pub const State = struct {

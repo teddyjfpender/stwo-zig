@@ -436,7 +436,7 @@ pub fn main() !void {
     const name = try std.fmt.bufPrint(&name_buf, "{d}", .{block});
     const item = manifest.blocks.map.get(name) orelse return error.MissingResidentBatchBlock;
     const request_path = try std.fs.path.resolve(a, &.{ std.fs.path.dirname(argv[1]) orelse ".", item.request });
-    const run_legacy = !std.mem.eql(u8, env("STWO_RV64_M8_GN_SHAPE_LEGACY") orelse "1", "0");
+    const run_legacy = !std.mem.eql(u8, "1", "0");
 
     var libs = try jobs.ops.Libraries.open(library, addon);
     defer libs.close();
@@ -525,7 +525,7 @@ pub fn main() !void {
     var factory = S2.Factory{ .a = a, .sym = &s2sym, .identity = @splat(0) };
     defer factory.deinit();
     // Production pool size: instances_per_device x 2 GPUs.
-    const framing_instances = std.fmt.parseUnsigned(usize, env("STWO_RV64_M8_GN_SHAPE_FRAMING_INSTANCES") orelse "4", 10) catch return error.InvalidParityEnvironment;
+    const framing_instances = std.fmt.parseUnsigned(usize, "4", 10) catch return error.InvalidParityEnvironment;
     var builder = NCB.Builder{ .a = a, .env = build_env, .registry = &registry, .factory = &factory, .framing_instances = framing_instances, .fixed_setup_bytes = fixed_setup_bytes };
     defer builder.deinit();
     var native = ND.Native{ .stage1_hooks = registry.hooks(), .stage2_hooks = factory.hooks(), .shape_hooks = builder.hooks() };

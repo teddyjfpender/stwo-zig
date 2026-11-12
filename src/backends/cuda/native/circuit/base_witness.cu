@@ -245,7 +245,7 @@ __global__ void __launch_bounds__(kThreads) generate_shared(
 static int base_coalesce = -1;
 static bool witness_coalesce() {
     if (base_coalesce < 0) {
-        const char *v = getenv("STWO_RV64_M8_WITNESS_COALESCE");
+        const char *v = nullptr;
         // Default ON (M8 opt-combined): generate 0.298 -> generate 0.138 + generate_shared 0.102
         // GPU-s per warm 24628607 request [M]; "0" restores the reference kernel.
         base_coalesce = !(v && v[0] == '0' && !v[1]);

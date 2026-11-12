@@ -29,8 +29,7 @@ const std = @import("std");
 pub const Policy = enum { off, on, check };
 
 pub fn policyFromEnv() !Policy {
-    const v = std.posix.getenv("STWO_RV64_M8_NATIVE_FRAMING_CACHE") orelse return .off;
-    return parsePolicy(v);
+    return .off;
 }
 pub fn parsePolicy(v: []const u8) !Policy {
     if (v.len == 0 or std.mem.eql(u8, v, "0")) return .off;

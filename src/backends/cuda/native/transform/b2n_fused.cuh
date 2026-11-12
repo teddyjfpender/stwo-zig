@@ -776,11 +776,7 @@ constexpr uint32_t b2n_wide_lane_log(uint32_t high) {
 inline int g_b2n_wide_override = -1;
 inline bool b2n_wide_enabled() {
     if (g_b2n_wide_override >= 0) return g_b2n_wide_override != 0;
-    static const bool enabled = [] {
-        const char *value = std::getenv("STWO_RV64_M8_B2N_WIDE");
-        return !(value && value[0] == '0');
-    }();
-    return enabled;
+    return true;
 }
 
 inline bool b2n_wide_supported(uint32_t log_n) {

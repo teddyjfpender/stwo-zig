@@ -170,11 +170,7 @@ cudaError_t join_lanes(StwoNativeCudaContext *context) {
 // return, pinned or pageable), so the host join only ordered device work
 // across lanes, which the barrier preserves. Proof bytes cannot change.
 bool device_sync_mode() {
-    static const bool device = [] {
-        const char *v = getenv("STWO_RV64_EXEC_SYNC");
-        return v != nullptr && strcmp(v, "device") == 0;
-    }();
-    return device;
+    return false;
 }
 
 cudaError_t barrier_lanes(StwoNativeCudaContext *context) {

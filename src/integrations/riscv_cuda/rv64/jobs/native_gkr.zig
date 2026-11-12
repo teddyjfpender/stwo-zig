@@ -114,28 +114,15 @@ pub const Symbols = struct {
         }
         const n = &out.numerical;
         const batch_available = n.stwo_rv64_batch_sum_on != null and n.stwo_rv64_batch_fold_on != null;
-        const explicit_batch = std.posix.getenv("STWO_RV64_GKR_BATCH_ORACLES") != null;
-        const explicit_serial = std.posix.getenv("STWO_RV64_GKR_SERIAL_ORACLES") != null;
+        const explicit_batch = false;
+        const explicit_serial = false;
         if (explicit_batch and explicit_serial) return error.ConflictingCudaGkrOracleModes;
         if (explicit_batch and !batch_available) return error.MissingCudaBatchedOracleSymbol;
         out.batched_oracles = batch_available and !explicit_serial;
-        if (std.posix.getenv("STWO_RV64_GKR_BATCH_TREES")) |v| {
-            if (!std.mem.eql(u8, v, "0")) {
-                if (!std.mem.eql(u8, v, "1")) return error.InvalidCudaGkrTreeMode;
-                if (n.stwo_rv64_batch_layer_on == null) return error.MissingCudaBatchedTreeSymbol;
-                out.batched_trees = true;
-            }
-        }
-        out.batched_tail = std.posix.getenv("STWO_RV64_GKR_BATCH_TAIL") != null;
+
+        out.batched_tail = false;
         if (out.batched_tail and (!out.batched_oracles or n.stwo_rv64_batch_tail_on == null)) return error.MissingCudaBatchedTailSymbol;
-        if (std.posix.getenv("STWO_RV64_GKR_BATCH_FOLD_SUM")) |v| {
-            if (!std.mem.eql(u8, v, "0")) {
-                if (!std.mem.eql(u8, v, "1")) return error.InvalidCudaBatchedFoldSumMode;
-                if (!out.batched_oracles or n.stwo_rv64_batch_fold_sum_on == null) return error.MissingCudaBatchedFoldSumSymbol;
-                if (out.batched_tail) return error.ConflictingCudaGkrFusions;
-                out.batched_fold_sum = true;
-            }
-        }
+
         return out;
     }
 };

@@ -611,22 +611,6 @@ pub const InFlight = struct {
 
     /// Failed runs only. Copies already-landed mirrors without a device read
     /// or a publication hook; the filename and metadata retain rejection.
-    fn dumpRejected(self: *InFlight, mirrors: []const []const u32) !void {
-        const path = std.posix.getenv("STWO_RV64_M8_NATIVE_REJECT_DUMP") orelse return;
-        try std.fs.cwd().makePath(path);
-        var dir = try std.fs.cwd().openDir(path, .{});
-        defer dir.close();
-        for (self.layout.?.segments, mirrors) |segment, mirror| {
-            var name_buf: [128]u8 = undefined;
-            const name = try std.fmt.bufPrint(&name_buf, "rejected-{d}-{d}-{d}.bin", .{ self.req.block, self.req.id, segment.device });
-            try dir.writeFile(.{ .sub_path = name, .data = std.mem.sliceAsBytes(mirror) });
-            const metadata = try std.json.Stringify.valueAlloc(self.alloc(), .{ .accepted = false, .block = self.req.block, .request = self.req.id, .device = segment.device, .words = segment.words, .entries = segment.entries, .ids = segment.ids, .checks = segment.checks }, .{});
-            defer self.alloc().free(metadata);
-            const meta_name = try std.fmt.bufPrint(&name_buf, "rejected-{d}-{d}-{d}.json", .{ self.req.block, self.req.id, segment.device });
-            try dir.writeFile(.{ .sub_path = meta_name, .data = metadata });
-        }
-    }
-
     fn complete(self: *InFlight) !Outcome {
         const drv = &self.driver.resources;
         const final = self.dag.?.final_device;
@@ -707,7 +691,6 @@ pub const InFlight = struct {
                     if (word != G.Verdict.accepted) std.log.warn("M8 GPU-native verdict request={d} device={d} kind={s} ordinal={d} check={s} word=0x{x:0>8}", .{ self.req.id, segment.device, @tagName(id.kind), id.ordinal, @tagName(segment.checks[entry.first_check + k]), word });
                 };
             }
-            self.dumpRejected(mirrors) catch |dump_err| std.log.err("M8 rejected mirror dump failed: {s}", .{@errorName(dump_err)});
             return err;
         };
         var n: usize = 0;

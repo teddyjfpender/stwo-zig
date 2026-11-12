@@ -501,11 +501,7 @@ inline int g_n2b_wide_rows_highs_override = -1;
 inline uint32_t n2b_wide_rows_highs() {
     if (g_n2b_wide_rows_highs_override >= 0)
         return uint32_t(g_n2b_wide_rows_highs_override);
-    static const uint32_t highs = [] {
-        const char *value = std::getenv("STWO_RV64_M8_N2B_WIDE_ROWS");
-        return value && value[0] == '0' ? 0u : uint32_t(STWO_N2B_WIDE_ROWS_HIGHS);
-    }();
-    return highs;
+    return uint32_t(STWO_N2B_WIDE_ROWS_HIGHS);
 }
 
 #ifndef STWO_N2B_WIDE_MIN_LOG
@@ -516,13 +512,7 @@ inline uint32_t n2b_wide_rows_highs() {
 inline uint32_t n2b_wide_min_log() {
     if (g_n2b_wide_min_log_override >= 0)
         return uint32_t(g_n2b_wide_min_log_override);
-    static const uint32_t min_log = [] {
-        const char *value = std::getenv("STWO_RV64_M8_N2B_WIDE_MIN_LOG");
-        const unsigned long parsed = value ? std::strtoul(value, nullptr, 10) : 0ul;
-        return parsed >= 19ul && parsed <= 25ul ? uint32_t(parsed)
-                                                : uint32_t(STWO_N2B_WIDE_MIN_LOG);
-    }();
-    return min_log;
+    return uint32_t(STWO_N2B_WIDE_MIN_LOG);
 }
 inline bool n2b_wide_supported(uint32_t log_n) {
     const uint32_t min_log = n2b_wide_min_log();
@@ -538,11 +528,7 @@ inline bool n2b_wide_supported(uint32_t log_n) {
 inline int g_n2b_wide_override = -1;
 inline bool n2b_wide_enabled() {
     if (g_n2b_wide_override >= 0) return g_n2b_wide_override != 0;
-    static const bool enabled = [] {
-        const char *value = std::getenv("STWO_RV64_N2B_WIDE");
-        return !(value && value[0] == '0');
-    }();
-    return enabled;
+    return true;
 }
 
 // Runs stages 1..log_n (or 1..log_n-1 without the circle stage) as two

@@ -78,8 +78,7 @@ pub const Ledgers = struct {
 /// rv64-resident-source-audit-20261103.md). `STWO_RV64_CORE_SINGLE_STREAM=0`
 /// restores the joined two-lane ingress.
 fn singleStreamDefault() bool {
-    const value = std.posix.getenv("STWO_RV64_CORE_SINGLE_STREAM") orelse return true;
-    return !std.mem.eql(u8, value, "0");
+    return true;
 }
 pub const Context = struct {
     service: *Service.Context,

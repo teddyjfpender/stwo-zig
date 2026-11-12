@@ -160,3 +160,15 @@ follow-up, alongside circuit-oracle provenance and current source-bound audit
 receipts. Shared-runner benchmark failures remain non-blocking measurements;
 the LS-D64 projection denominator failure remains an actual integration failure
 tracked in #358. None is converted into a passing qualification.
+
+## Integrated flag handoff
+
+The completed #342 handoff at `5c4f5ff24` merges without conflicts over the
+owned package graph. It removes 149 live controls and 1,315 net source lines:
+249 live flags become 100. Its exact absent-variable defaults, live stronger
+artifact settings, fault/rejection coverage and deferred promotion gates stay
+intact. Registry/reference checks, 86 flag/CUDA/build-policy contracts and
+workspace closure pass locally; 71 changed Zig roots pass formatting. GPU
+execution remains unrun. The under-60 C1 target is not met. The maintained
+native ambient-reader exception shrinks from seventeen exact files to five;
+no new policy ABI or launcher is introduced.

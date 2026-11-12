@@ -76,7 +76,7 @@ pub const Context = struct {
     twiddles: @import("global_twiddle_cache.zig").Table(engine.poly.twiddles.TwiddleTree([]M)) = @splat(null),
     mutex: std.Thread.Mutex = .{},
     pub fn init(service: *Service.Context) !Context {
-        return .{ .service = service, .profile_ingress = std.process.hasEnvVarConstant("STWO_RV64_GLOBAL_PROFILE"), .api = .{
+        return .{ .service = service, .profile_ingress = false, .api = .{
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,

@@ -461,7 +461,7 @@ def produce_job(plan, job):
     environment = {k: v for k, v in os.environ.items() if not k.startswith("STWO_RV64_")}
     environment.update(plan["resident_environment"])
     environment = B.worker_environment(worker, environment)
-    for key in ("STWO_RV64_GPU_HOST_RETAINED", "STWO_RV64_DEEP_TIMING", "STWO_RV64_DEEP_COORDINATES", "STWO_RV64_PCS_PHASE_TIMING"):
+    for key in ("STWO_RV64_GPU_HOST_RETAINED"):
         environment.pop(key, None)
     environment["STWO_RV64_GPU_LIBRARY"] = plan["assets"]["library"]
     with gpu_lease(plan):

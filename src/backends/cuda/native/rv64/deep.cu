@@ -725,7 +725,7 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
       cudaMemsetAsync(j.coefficients, 0, j.coefficient_words * 4, c.stream));
   if (cleared)
     return cleared;
-  const char *timing_env = std::getenv("STWO_RV64_DEEP_TIMING");
+  const char *timing_env = nullptr;
   const bool timing = timing_env && std::strcmp(timing_env, "1") == 0;
   DeepTimings spans;
   if (timing) {
@@ -754,7 +754,7 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
   // STWO_RV64_DEEP_COORDINATES selects the aggregation kernel for A/B runs:
   // unset or "2" = row-major (default), "1" = per-coordinate warps (M3),
   // "0" = OM31 per-thread. All three produce identical coefficients.
-  const char *coordinate_env = std::getenv("STWO_RV64_DEEP_COORDINATES");
+  const char *coordinate_env = nullptr;
   if (coordinate_env && std::strcmp(coordinate_env, "0") != 0 &&
       std::strcmp(coordinate_env, "1") != 0 &&
       std::strcmp(coordinate_env, "2") != 0)

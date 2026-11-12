@@ -378,7 +378,7 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
         std.debug.print("GPU_M8_GN_BIND identity=none error={s} (flat native policy: no chain IV)\n", .{@errorName(err)});
         break :blk @splat(0);
     };
-    var fallback_state = Fallbacks{ .truths = @intCast(try envUnsigned("STWO_RV64_M8_GPU_NATIVE_TRUTHS", 5)) };
+    var fallback_state = Fallbacks{ .truths = @intCast(5) };
     const binding = try B.Binding.init(a, &libs, workers[0..made], .{ .identity = identity }, fallback_state.hooks());
     defer binding.deinit();
     // gn-shape: the install-time native class builder (shape + class_of_block).
@@ -429,10 +429,10 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
         .pool_current = libs.base.lookup(*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int, "stwo_exec_context_pool_current"),
         .fixed_pool = if (std.posix.getenv("STWO_RV64_DEVICE_ARENA")) |v| !std.mem.eql(u8, v, "0") else true,
         .prewarm_resources = (try envUnsigned("STWO_RV64_M9_CLASS_PACKED_INGRESS", 0)) == 1,
-        .slab_words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES", default_slab_bytes) / 4,
-        .batch_pinned_words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES", default_batch_pinned_bytes) / 4,
+        .slab_words = default_slab_bytes / 4,
+        .batch_pinned_words = default_batch_pinned_bytes / 4,
     };
-    const ring = S.RingConfig{ .buffers = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS", default_ring_buffers), .words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_RING_BYTES", default_ring_bytes) / 4 };
+    const ring = S.RingConfig{ .buffers = default_ring_buffers, .words = default_ring_bytes / 4 };
     const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {
         std.debug.print("GPU_M8_GN_BIND install_failed error={s}\n", .{@errorName(err)});
         binding.reportStage1();

@@ -85,7 +85,7 @@ pub const Owner = struct {
         defer observed.deinit();
         if (self.raw.words == null) return 0;
         const cache = self.backend.service.immutable_setup orelse return 0;
-        if (std.process.hasEnvVarConstant("STWO_RV64_OUTER_FIXED_ADOPT_OFF")) return 0;
+        if (false) return 0;
         var root_scope = self.scope;
         root_scope.fixed = self.tree.root;
         const source_scope = Id.identity(self.scope);

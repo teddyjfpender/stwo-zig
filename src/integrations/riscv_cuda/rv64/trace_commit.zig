@@ -28,11 +28,6 @@ const LiveLeases = *const fn (*anyopaque, *[5]u64, *u64) callconv(.c) c_int;
 /// STWO_RV64_TRACE_STREAM_CHUNK_WORDS bounds one evaluation chunk. Neither
 /// changes any committed word: the root is schedule-independent.
 fn streamBudget() ?usize {
-    if (std.posix.getenv("STWO_RV64_TRACE_STREAM")) |v| if (std.mem.eql(u8, v, "0")) return null;
-    if (std.posix.getenv("STWO_RV64_TRACE_STREAM_CHUNK_WORDS")) |v| {
-        const words = std.fmt.parseInt(usize, v, 10) catch return StreamPlan.default_chunk_words;
-        return if (words == 0) StreamPlan.default_chunk_words else words;
-    }
     return StreamPlan.default_chunk_words;
 }
 const B2n = *const fn ([*]const u32, usize, [*]u32, usize, u32, u32, [*]const u32, u32, u32, *anyopaque, *u32) callconv(.c) c_int;
@@ -75,7 +70,7 @@ pub const Context = struct {
     pub fn init(service: *Service.Context) !Context {
         const compact = (try Service.allocationOptions()).compact_eager;
         const compact_call = if (compact) try sym(MixedCompact, &service.library, "stwo_blake2s_mixed_seeded_eager_compact_on") else null;
-        return .{ .mixed_compact = compact_call, .freeze_allocation_plan = if (std.posix.getenv("STWO_RV64_EARLY_NATIVE_MAIN")) |value| std.mem.eql(u8, value, "1") else false, .service = service, .api = .{
+        return .{ .mixed_compact = compact_call, .freeze_allocation_plan = false, .service = service, .api = .{
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,

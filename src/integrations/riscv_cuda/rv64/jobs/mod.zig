@@ -34,13 +34,6 @@ fn envBytes(name: []const u8, default: usize) !usize {
     return std.fmt.parseUnsigned(usize, text, 10) catch error.InvalidM8JobsEnvironment;
 }
 
-fn envFlag(name: []const u8, default: bool) !bool {
-    const text = std.posix.getenv(name) orelse return default;
-    if (std.mem.eql(u8, text, "1")) return true;
-    if (std.mem.eql(u8, text, "0")) return false;
-    return error.InvalidM8JobsEnvironment;
-}
-
 pub const Config = struct {
     devices: [8]u32 = undefined,
     device_count: usize = 0,
@@ -54,7 +47,7 @@ pub const Config = struct {
         var c = Config{
             .arena_words = std.mem.alignBackward(usize, try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 8 << 30) / 4, worker.Arena.granule),
             .pinned_slot_words = try envBytes("STWO_RV64_M8_JOBS_PINNED_BYTES", 256 << 20) / 4,
-            .pinned_lazy = try envFlag("STWO_RV64_M8_JOBS_PINNED_LAZY", false),
+            .pinned_lazy = false,
         };
         var it = std.mem.tokenizeScalar(u8, std.posix.getenv("STWO_RV64_GPU_DEVICES") orelse "0", ',');
         while (it.next()) |d| {
@@ -136,7 +129,7 @@ pub const WorkerSet = struct {
     /// lazy (grow-only to what jobs stage) unless STWO_RV64_M8_JOBS_PINNED_LAZY=0.
     pub fn startParked(a: std.mem.Allocator, library: []const u8, config_in: Config) !*WorkerSet {
         var config = config_in;
-        config.pinned_lazy = try envFlag("STWO_RV64_M8_JOBS_PINNED_LAZY", true);
+        config.pinned_lazy = true;
         const self = try startWith(a, library, config);
         errdefer self.stop(a);
         _ = try self.park(.{});
@@ -218,7 +211,6 @@ pub const WorkerSet = struct {
         self.libs.close();
     }
     pub fn stop(self: *WorkerSet, a: std.mem.Allocator) void {
-        if (std.posix.getenv("STWO_RV64_M8_JOBS_PLAN_OUT")) |path| writePlans(a, self.slice(), path) catch |err| std.log.err("M8 class plan output failed: {s}", .{@errorName(err)});
         self.stopWorkers();
         a.destroy(self);
     }

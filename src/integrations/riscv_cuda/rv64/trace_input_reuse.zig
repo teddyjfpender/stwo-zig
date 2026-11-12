@@ -5,7 +5,7 @@ const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const Native = @import("pcs_native_abi.zig");
 
 pub fn enabled() bool {
-    return if (std.posix.getenv("STWO_RV64_RC_INTER_REUSE")) |v| std.mem.eql(u8, v, "1") else false;
+    return false;
 }
 
 pub const Layout = struct {

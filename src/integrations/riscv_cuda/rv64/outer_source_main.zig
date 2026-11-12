@@ -126,9 +126,6 @@ const FusedShadowFn = *const fn ([*]const u32, u32, [*]const [*]const u32, u32, 
 const FUSED_WORKSPACE_ROWS: u64 = 4096;
 
 fn fusedBlakeFlags() ?u32 {
-    const mode = std.posix.getenv("STWO_RV64_FUSED_BLAKE") orelse return null;
-    if (std.mem.eql(u8, mode, "shadow")) return 0;
-    if (std.mem.eql(u8, mode, "check")) return 1;
     return null;
 }
 

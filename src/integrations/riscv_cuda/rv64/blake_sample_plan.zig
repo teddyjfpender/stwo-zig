@@ -57,7 +57,7 @@ test "sample prefill retains non-GG tasks and all surviving barriers" {
 /// counting-sort by level. No primitive, variable or seed value changes.
 pub const Diagnostic = struct { ctx_address: usize, sample_first: u32, sample_count: u32 };
 pub fn relevel(comptime S: type, a: std.mem.Allocator, ctx: anytype, plan: *S.Plan, diagnostic: ?Diagnostic) !void {
-    const inspect = if (std.posix.getenv("STWO_RV64_ASSIGNMENT_CRITICAL_CENSUS")) |v| std.mem.eql(u8, v, "1") else false;
+    const inspect = false;
     const producers: ?[]u32 = if (inspect) try a.alloc(u32, ctx.circuit.n_vars) else null;
     defer if (producers) |values| a.free(values);
     if (producers) |values| @memset(values, std.math.maxInt(u32));

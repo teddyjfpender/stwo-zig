@@ -118,14 +118,8 @@ pub const Kernels = struct {
     }
 };
 
-fn compactEager(base: *std.DynLib) !bool {
-    const v = std.posix.getenv("STWO_RV64_COMPACT_EAGER_STATE") orelse return false;
-    if (!std.mem.eql(u8, v, "1")) return false;
-    const Capability = *const fn () callconv(.c) c_int;
-    const capability = base.lookup(Capability, "stwo_rv64_compact_eager_state_capability") orelse return error.MissingCompactEagerPcsCapability;
-    if (capability() != 1) return error.MissingCompactEagerPcsCapability;
-    _ = try Kernels.sym(MixedCompact, base, "stwo_blake2s_mixed_seeded_eager_compact_on");
-    return true;
+fn compactEager(_: *std.DynLib) !bool {
+    return false;
 }
 
 /// Node phases a measurement attributes the heap peak to (outer_heap.zig).

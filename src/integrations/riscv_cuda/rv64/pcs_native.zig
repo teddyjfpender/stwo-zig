@@ -20,27 +20,16 @@ const LiveLeases = *const fn (*anyopaque, *[5]u64, *u64) callconv(.c) c_int;
 /// geometry only; STWO_RV64_PCS_HOST_GEOMETRY_BYTES overrides (0 = M5 cap).
 pub const resident_host_geometry_bytes: usize = 512 << 20;
 fn hostGeometryBytes() usize {
-    const text = std.posix.getenv("STWO_RV64_PCS_HOST_GEOMETRY_BYTES") orelse return resident_host_geometry_bytes;
-    const bytes = std.fmt.parseInt(usize, text, 10) catch return resident_host_geometry_bytes;
-    return if (bytes == 0) Export.GeometryCache.default_bytes else bytes;
+    return resident_host_geometry_bytes;
 }
 pub fn allocationOptions() !AllocationCost.Options {
     var result: AllocationCost.Options = .{};
-    if (std.posix.getenv("STWO_RV64_PCS_PHASE_BOUND")) |v| result.phase_retirement = std.mem.eql(u8, v, "1");
     if (result.phase_retirement) {
         const cap = std.posix.getenv("STWO_RV64_PCS_IDLE_CACHE_BYTES") orelse return error.PcsPhaseBoundNeedsZeroIdleCache;
         if (!std.mem.eql(u8, cap, "0")) return error.PcsPhaseBoundNeedsZeroIdleCache;
     }
-    if (std.posix.getenv("STWO_RV64_COMPACT_EAGER_STATE")) |v| result.compact_eager = std.mem.eql(u8, v, "1");
     if (std.posix.getenv("STWO_RV64_PCS_ROLLING_BETA2")) |v| result.rolling_beta2 = std.mem.eql(u8, v, "1");
-    if (std.posix.getenv("STWO_RV64_PCS_STREAM")) |v| if (std.mem.eql(u8, v, "0")) {
-        result.stream_chunk_words = 0;
-        return result;
-    };
-    if (std.posix.getenv("STWO_RV64_PCS_STREAM_CHUNK_WORDS")) |v| {
-        const n = std.fmt.parseInt(usize, v, 10) catch return error.InvalidPcsStreamBudget;
-        if (n != 0) result.stream_chunk_words = n;
-    }
+
     return result;
 }
 pub const Context = struct {

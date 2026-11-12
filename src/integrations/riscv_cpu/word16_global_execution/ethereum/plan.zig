@@ -241,7 +241,7 @@ pub fn truthSplitEnabled() bool {
 }
 /// Same predicate gkr_main uses to pad declarations to canonical rungs.
 fn canonRungsEnabled() bool {
-    return @import("../../word16_execution/native_policy.zig").strictRoster() or envFlag("STWO_RV64_CANON_RUNGS");
+    return @import("../../word16_execution/native_policy.zig").strictRoster();
 }
 pub fn keccakTruthPolicyFor(options: KeccakTruthOptions, log: u32) KeccakPolicy {
     if (!options.v3) return .triple_v2;

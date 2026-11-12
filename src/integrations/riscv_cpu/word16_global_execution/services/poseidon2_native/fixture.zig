@@ -142,23 +142,6 @@ pub fn exerciseWithAllocator(a: std.mem.Allocator, comptime Hook: type) !void {
         } else |_| {}
     }
     if (comptime @hasDecl(Hook, "runWithStages")) try Hook.runWithStages(a, &receiver_ptrs, &requests, &receiver_keys, &receiver_inventory, &receiver, &proofs, &native, &capture, decoded.stages) else try Hook.run(a, &receiver_ptrs, &requests, &receiver_keys, &receiver_inventory, &receiver, &proofs, &native, &capture);
-    if (std.posix.getenv("STWO_RV64_P2_NATIVE_OUT_DIR")) |path| {
-        var dir = try std.fs.cwd().makeOpenPath(path, .{ .iterate = true });
-        defer dir.close();
-        try dir.writeFile(.{ .sub_path = "manifest.raw-blake.binary", .data = manifest_bytes });
-        for (proofs, 0..) |proof, i| {
-            var name_buf: [64]u8 = undefined;
-            const name = try std.fmt.bufPrint(&name_buf, "cpu-{}.p2v2.binary", .{i});
-            try dir.writeFile(.{ .sub_path = name, .data = proof.bytes });
-            const container = try Container.encode(a, profile, @intCast(i), &proof);
-            defer a.free(container);
-            const container_name = try std.fmt.bufPrint(&name_buf, "cpu-{}.worker.binary", .{i});
-            try dir.writeFile(.{ .sub_path = container_name, .data = container });
-        }
-        const metadata = try std.json.Stringify.valueAlloc(a, .{ .status = "fixtureP0;mixedPCS-P2v2/localGKR-manifest-rawBlake;no128claim", .profile = profile, .identity = profile.identity(), .execution = inventory.execution_identity, .requests = requests, .expected = .{ .total_steps = expected.total_steps, .max_total_steps = expected.max_total_steps, .final_pc = expected.final_pc, .final_registers = expected.final_registers, .program_identity = expected.program_identity, .image_identity = expected.admission.image_identity }, .fixed_roots = .{ keys[0].root, keys[1].root }, .fixed_ids = .{ keys[0].identity, keys[1].identity }, .workers = inventory.workers, .claims = .{ proofs[0].claims, proofs[1].claims } }, .{});
-        defer a.free(metadata);
-        try dir.writeFile(.{ .sub_path = "source-publics.json", .data = metadata });
-    }
     std.debug.print("P2_NATIVE_FULL_CPU_FIXTURE physical=2 steps=5 hash_words=9 local_gkr=rawBlake manifest=rawBlake physical_fs=P2v2 beta=2 q=54 pow=0 fresh_receiver=true global_closure=true capture=true mutants=4 bytes=[{},{}] certified=false\n", .{ proofs[0].bytes.len, proofs[1].bytes.len });
 }
 test "P2 native complete CPU fixture fresh receiver closure and capture" {
