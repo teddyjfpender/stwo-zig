@@ -3412,8 +3412,8 @@
     },
     {
       "path": "vectors/riscv_csp/recursion-shape-audit-v2.json",
-      "sha256": "daad8c1693db7c49f1f4e781022c973ae793eb70ac07853716b0195e20d9892c",
-      "bytes": 24048,
+      "sha256": "34ba24a1393750da6a25028e7480f39a41f4c4a717362a7ab374b3b1ad134838",
+      "bytes": 24234,
       "group": "vectors/riscv_csp"
     },
     {
