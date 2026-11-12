@@ -66,11 +66,14 @@ class NativeCpuProductCheckTest(unittest.TestCase):
             self.assertEqual(source, modules[name])
             self.assertTrue((root / source).is_file())
         from dataclasses import replace
-        manifest = Manifest("aggregate-cpu", ("src/products/cairo/aggregate/cpu.zig",),
-                            tuple(NamedImport(name, path) for name, path in modules.items()),
-                            frozenset({"std", "builtin", "aggregate_capabilities", "typed_air_artifacts",
+        def literals(name):
+            return re.findall(r'^    "([^"\n]+)"', descriptor.split("const " + name, 1)[1].split("\n};", 1)[0], re.M)
+        manifest = Manifest("aggregate-cpu", ("src/products/cairo/aggregate/cpu.zig", "src/products/stwo/tools/prove/main.zig"),
+                            tuple(NamedImport(name, path) for name, path in modules.items()) + (NamedImport("stwo", "src/products/cairo/aggregate/cpu.zig"),),
+                            frozenset({"std", "builtin", "build_identity", "product_identity", "aggregate_capabilities", "typed_air_artifacts",
                                        "typed_air_h009_artifacts", "typed_air_h010_artifacts"}),
-                            frozenset(), ("src",))
+                            frozenset(literals("common_allowed_files") + ["src/products/cairo/aggregate/cpu.zig"]),
+                            tuple(literals("common_allowed_prefixes")))
         graph = raw_inspect_sources(root, manifest)
         self.assertIn("src/frontends/riscv/isa/mod.zig", graph.relative_sources())
         incomplete = replace(manifest, named_imports=tuple(

@@ -151,6 +151,8 @@ fn sourceClosure(comptime metal: bool) policy.SourceClosure {
         // module; neither aggregate executable constructs or consumes them.
         .generated_imports = &.{
             "aggregate_capabilities",
+            "build_identity",
+            "product_identity",
             "typed_air_artifacts",
             "typed_air_h009_artifacts",
             "typed_air_h010_artifacts",
