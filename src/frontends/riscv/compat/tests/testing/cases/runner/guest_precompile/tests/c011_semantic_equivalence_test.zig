@@ -1,7 +1,7 @@
 //! C-011 native-scalar versus profile-labelled CUSTOM-0 semantic corpus.
 
 const std = @import("std");
-const runner = @import("stwo_riscv_frontend").runner;
+const runner = @import("../../../../../../../runner/mod.zig");
 const execution_profile = @import("stwo_riscv_isa").execution_profile;
 const reference = @import("stwo_riscv_precompiles").testing.runner.c011_scalar_reference_test_support;
 const elf_support = @import("stwo_riscv_precompiles").testing.runner.c011_elf_test_support;

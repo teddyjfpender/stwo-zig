@@ -1,5 +1,5 @@
 //! Stable base facade over shared full-width profile artifact framing.
-const Base = @import("stwo_riscv_frontend").prover_mod.blake3_profile_artifact.ForProfile(false);
+const Base = @import("blake3_profile_artifact.zig").ForProfile(false);
 pub const MAGIC = Base.MAGIC;
 pub const HEADER_BYTES = Base.HEADER_BYTES;
 pub const Limits = Base.Limits;

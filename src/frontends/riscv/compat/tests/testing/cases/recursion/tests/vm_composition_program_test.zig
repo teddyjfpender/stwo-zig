@@ -14,7 +14,7 @@ const keccak_witness = @import("stwo_riscv_precompiles").air.keccakf_witness;
 const secp_config =
     @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_config;
 const ethereum_statement =
-    @import("stwo_riscv_frontend").air.guest_precompile.ethereum_statement;
+    @import("../../../../../../air/guest_precompile/ethereum_statement.zig");
 const lookup_batch = @import("stwo_riscv_rv32").air.lang.lookup_batch_execution;
 const lookup_manifest_mod =
     @import("stwo_riscv_rv32").air.lang.lookup_physical_manifest;

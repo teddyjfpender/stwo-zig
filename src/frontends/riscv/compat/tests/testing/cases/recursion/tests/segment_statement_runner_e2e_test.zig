@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const runner = @import("stwo_riscv_frontend").runner;
+const runner = @import("../../../../../../runner/mod.zig");
 const public_data_v2 = @import("stwo_riscv_rv32").air.public_data_v2;
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;

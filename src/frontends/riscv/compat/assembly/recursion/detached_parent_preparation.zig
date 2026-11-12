@@ -8,12 +8,12 @@ const recursion = struct {
 };
 const std = @import("std");
 const core = @import("stwo_core");
-const child_mod = @import("stwo_riscv_frontend").recursion.detached_child_capture_v1;
-const prefix_mod = @import("stwo_riscv_frontend").recursion.detached_prefix_preparation_v1;
+const child_mod = @import("detached_child_capture.zig");
+const prefix_mod = @import("detached_prefix_preparation.zig");
 const transcript_mod = @import("detached_pcs_rows.zig");
 const pcs_mod = @import("stwo_riscv_recursion").detached_pcs_preparation;
 const boundary_mod = @import("detached_boundary_preparation.zig");
-const composition_mod = @import("stwo_riscv_frontend").recursion.detached_composition_preparation_v1;
+const composition_mod = @import("detached_composition_preparation.zig");
 const statement_mod = @import("detached_parent_statement_preparation.zig");
 const arithmetic_mod = @import("detached_parent_arithmetic.zig");
 const base_mod = @import("detached_parent_base_rows.zig");

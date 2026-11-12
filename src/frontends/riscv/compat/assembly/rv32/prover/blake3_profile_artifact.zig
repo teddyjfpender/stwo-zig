@@ -16,7 +16,7 @@ pub fn ForExecutionProfile(comptime profile: @import("stwo_riscv_isa").execution
         const manifest = if (sha) @import("stwo_riscv_rv32").prover.blake3_extension_manifest.ForProfile(@import("../../../../prover/blake3_ethereum_sha_profile.zig")) else if (ethereum) @import("../../../../prover/blake3_ethereum_manifest.zig") else if (extended) @import("stwo_riscv_rv32").prover.blake3_poseidon_manifest else @import("stwo_riscv_rv32").prover.blake3_execution_manifest;
         const source_api = @import("stwo_riscv_rv32").prover.blake3_execution_source;
         const codec = if (sha) @import("../../../../prover/blake3_ethereum_sha_proof.zig").codec else if (ethereum) @import("../../../../prover/blake3_ethereum_codec.zig") else if (extended) @import("stwo_riscv_rv32").prover.blake3_poseidon_proof.codec else @import("stwo_riscv_rv32").prover.blake3_execution_codec;
-        const proof_api = if (sha) @import("../../../../prover/blake3_ethereum_sha_proof.zig") else if (ethereum) @import("stwo_riscv_frontend").prover_mod.blake3_ethereum_proof else if (extended) @import("stwo_riscv_rv32").prover.blake3_poseidon_proof else @import("stwo_riscv_rv32").prover.blake3_execution_proof;
+        const proof_api = if (sha) @import("../../../../prover/blake3_ethereum_sha_proof.zig") else if (ethereum) @import("../../../../prover/blake3_ethereum_proof.zig") else if (extended) @import("stwo_riscv_rv32").prover.blake3_poseidon_proof else @import("stwo_riscv_rv32").prover.blake3_execution_proof;
         pub const MAGIC = if (sha) "B3SVART1" else if (ethereum) "B3EVART1" else if (extended) "B3PVART1" else "B3RVART1";
         pub const HEADER_BYTES: usize = 28;
         pub const Limits = struct {

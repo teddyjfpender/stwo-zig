@@ -323,7 +323,7 @@ fn findOracleScript(allocator: std.mem.Allocator) ![]u8 {
 // Tests
 // ---------------------------------------------------------------------------
 
-const runner = @import("stwo_riscv_frontend").runner;
+const runner = @import("../../runner/mod.zig");
 
 // Where the two tests below run, and why it took a dedicated step.
 //

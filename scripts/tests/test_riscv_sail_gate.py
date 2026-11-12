@@ -198,7 +198,7 @@ class ScopeTest(unittest.TestCase):
             "src/products/riscv/cpu/tests/malicious_prover_forged_output_test.zig",
             "src/products/riscv/cpu/tests/malicious_prover_skipped_test.zig",
             "src/products/riscv/cpu/tests/malicious_prover_stale_read_test.zig",
-            "src/frontends/riscv/testing/cases/sail_oracle_test_root.zig",
+            "src/frontends/riscv/focused_product_sail_oracle_test_root.zig",
         ):
             required, matched = gate.live_scope([path])
             self.assertTrue(required, path)

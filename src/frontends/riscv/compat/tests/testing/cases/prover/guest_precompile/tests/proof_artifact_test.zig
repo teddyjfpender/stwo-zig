@@ -12,6 +12,7 @@ const merkle_node = @import("stwo_riscv_memory").air.merkle_node;
 const poseidon2_air = @import("stwo_riscv_memory").air.poseidon2_air;
 const opcode_entries = @import("stwo_riscv_rv32").air.lookups.opcode_entries;
 const access_clock = @import("stwo_riscv_isa").access_clock;
+const IoEntries = public_data.IoEntries;
 const public_data = @import("stwo_riscv_rv32").air.public_data;
 const base_statement = @import("stwo_riscv_rv32").air.statement;
 const base_types = @import("stwo_riscv_rv32").prover.types;
@@ -696,4 +697,20 @@ fn blake3AllocationCase(a: std.mem.Allocator, input: subject.Blake3.EncodeInput)
 
 comptime {
     _ = @import("../../../../../../../prover/guest_precompile/ethereum_segment_proof_artifact_wire.zig");
+}
+
+test "public input byte binding rejects changed bytes lengths and padding" {
+    var words = [_]u32{ 0x04030201, 5 };
+    var io = IoEntries{ .input_start = 0, .input_len = 5, .input_words = &words, .output_len = 0, .output_len_addr = 0, .output_data_addr = 0, .output_words = &.{} };
+    try io.validateInputBytes(&.{ 1, 2, 3, 4, 5 });
+    try std.testing.expectError(error.InputLengthMismatch, io.validateInputBytes(&.{ 1, 2, 3, 4 }));
+    try std.testing.expectError(error.InputDigestMismatch, io.validateInputBytes(&.{ 1, 2, 3, 4, 6 }));
+    words[1] |= 0x100;
+    try std.testing.expectError(error.NonCanonicalInputPadding, io.validateInputBytes(&.{ 1, 2, 3, 4, 5 }));
+    io.input_len = 4;
+    io.input_words = words[0..1];
+    try io.validateInputBytes(&.{ 1, 2, 3, 4 });
+    io.input_len = 0;
+    io.input_words = &.{};
+    try io.validateInputBytes(&.{});
 }

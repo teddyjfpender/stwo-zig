@@ -98,7 +98,7 @@ fn memoryValueMask(width: u3) u32 {
 // Tests
 // ---------------------------------------------------------------------------
 
-const runner = @import("stwo_riscv_frontend").runner;
+const runner = @import("../../../../runner/mod.zig");
 
 /// Build a minimal in-memory ELF with the given instructions at vaddr 0x10000.
 /// Test support only; shared with `sail_oracle.zig` so the two files exercise

@@ -1,6 +1,6 @@
 test {
     _ = @import("stwo_riscv_rv32");
-    _ = @import("stwo_riscv_frontend").host;
+    _ = @import("../../../host/mod.zig");
     _ = @import("stwo_riscv_air_lang");
     _ = @import("stwo_riscv_testing");
     _ = @import("stwo_riscv_testing");
@@ -23,7 +23,7 @@ test {
     _ = @import("runner/guest_precompile/tests/c011_semantic_equivalence_test.zig");
     _ = @import("stwo_riscv_precompiles");
     _ = @import("../../../../runner/guest_precompile/tests/ethereum_runner_test.zig");
-    _ = @import("stwo_riscv_frontend").runner.guest_precompile;
+    _ = @import("../../../../runner/guest_precompile/mod.zig");
     _ = @import("stwo_riscv_rv32");
     _ = @import("stwo_riscv_testing");
     _ = @import("runner/guest_precompile/tests/runner_test.zig");
@@ -57,7 +57,7 @@ test {
     _ = @import("stwo_riscv_isa");
     _ = @import("stwo_riscv_rv32");
     _ = @import("stwo_riscv_rv32");
-    _ = @import("stwo_riscv_frontend").runner;
+    _ = @import("../../../../runner/mod.zig");
     _ = @import("stwo_riscv_rv32");
     _ = @import("stwo_riscv_isa");
     _ = @import("stwo_riscv_rv32");

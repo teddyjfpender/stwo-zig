@@ -283,6 +283,7 @@ pub const specs = [_]Spec{
         .step = "test-air-runtime-profile",
         .description = "Run the authenticated typed-AIR/runtime profile join tests",
         .root = "testing/focused_air_runtime_profile_test_root.zig",
+        .partition_roots = &.{ "testing/focused_air_runtime_profile_test_root.zig", "air_lang/focused_runtime_profile_symbolic.zig", "isa/focused_runtime_profile_decode.zig" },
         .minimum = 8,
     },
     .{

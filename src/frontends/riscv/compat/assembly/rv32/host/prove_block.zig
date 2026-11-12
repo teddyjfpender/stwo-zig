@@ -5,8 +5,8 @@
 
 const std = @import("std");
 const canonical_host_mod_3be441 = @import("stwo_riscv_rv32").host.runtime;
-const runner_mod = @import("stwo_riscv_frontend").runner;
-const prover_mod = @import("stwo_riscv_frontend").prover_mod;
+const runner_mod = @import("../../../../runner/mod.zig");
+const prover_mod = @import("../../../../prover.zig");
 const pcs_core = @import("stwo_core").pcs;
 const BlockInput = @import("stwo_riscv_rv32").host.block_input.BlockInput;
 

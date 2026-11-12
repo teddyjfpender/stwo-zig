@@ -55,7 +55,24 @@ pub fn addRiscVFrontendImport(
     const postcard = frontend.import_table.get("interop_postcard") orelse
         @panic("canonical RISC-V frontend is missing interop_postcard");
     consumer.addImport("interop_postcard", postcard);
+    bindOwnedImports(b, frontend, consumer);
     return frontend;
+}
+
+/// A package-owned tool/test root uses the same declared predecessor modules
+/// as its canonical owner, including the caller-selected protocol identities.
+fn bindOwnedImports(b: *std.Build, frontend: *std.Build.Module, consumer: *std.Build.Module) void {
+    const source = consumer.root_source_file orelse return;
+    const path = std.fs.path.resolve(b.allocator, &.{source.getPath(b)}) catch @panic("out of memory");
+    for (0..family.len + 1) |index| {
+        const provider = if (index < family.len) frontend.import_table.get(family[index].name).? else frontend;
+        const directory = std.fs.path.dirname(provider.root_source_file.?.getPath(b)).?;
+        const normalized = std.fs.path.resolve(b.allocator, &.{directory}) catch @panic("out of memory");
+        if (!std.mem.startsWith(u8, path, normalized) or path.len <= normalized.len or path[normalized.len] != std.fs.path.sep) continue;
+        for (provider.import_table.keys(), provider.import_table.values()) |name, dependency|
+            consumer.addImport(name, dependency);
+        return;
+    }
 }
 
 // Exact reviewed family order; dependencies are read from each owned contract,

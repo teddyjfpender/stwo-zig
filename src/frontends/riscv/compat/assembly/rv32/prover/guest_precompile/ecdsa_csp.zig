@@ -6,20 +6,20 @@ const core = @import("stwo_core");
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const canonical_runner_fdc1cc = @import("stwo_riscv_isa").machine.cpu;
 const canonical_runner_a174c4 = @import("stwo_riscv_rv32").execution.elf_loader;
-const canonical_runner_9565a2 = @import("stwo_riscv_frontend").runner.ethereum;
+const canonical_runner_9565a2 = @import("../../../../../runner/ethereum.zig");
 const canonical_runner_af5aa8 = @import("stwo_riscv_isa").machine.memory;
 const canonical_runner_686ec4 = @import("stwo_riscv_isa").machine.memory_state;
-const canonical_runner_b82b34 = @import("stwo_riscv_frontend").runner.result_mod;
+const canonical_runner_b82b34 = @import("../../../../../runner/result.zig");
 const canonical_runner_e76cf6 = @import("stwo_riscv_isa").machine.state_chain;
 const public_mod = @import("stwo_riscv_rv32").air.public_data;
 const statement_mod = @import("stwo_riscv_rv32").air.statement;
 const program_commitment = @import("stwo_riscv_rv32").air.program.commitment;
 const memory_boundary = @import("stwo_riscv_memory").air.boundary;
 const recover = @import("stwo_riscv_rv32").execution.guest_precompile.secp256k1_recover;
-const artifact_mod = @import("stwo_riscv_frontend").prover_mod.guest_precompile.ethereum_proof_artifact;
-const orchestration = @import("stwo_riscv_frontend").prover_mod.guest_precompile.ethereum_orchestration;
-const verifier = @import("stwo_riscv_frontend").prover_mod.guest_precompile.ethereum_verifier;
-const admission = @import("stwo_riscv_frontend").prover_mod;
+const artifact_mod = @import("../../../../../prover/guest_precompile/ethereum_proof_artifact.zig");
+const orchestration = @import("../../../../../prover/guest_precompile/ethereum_orchestration.zig");
+const verifier = @import("../../../../../prover/guest_precompile/ethereum_verifier.zig");
+const admission = @import("../../../../../prover.zig");
 
 pub fn recoveryId(input: []const u8) ?u32 {
     if (input.len != 161 or input[32] != 4) return null;

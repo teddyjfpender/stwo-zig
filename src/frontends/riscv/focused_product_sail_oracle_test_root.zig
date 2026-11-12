@@ -25,5 +25,5 @@
 //! `zig build test` cover it too.
 
 test {
-    _ = @import("stwo_riscv_rv32");
+    _ = @import("compat/qualification/sail_oracle.zig");
 }

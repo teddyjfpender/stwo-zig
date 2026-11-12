@@ -3,7 +3,7 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const authority = @import("stwo_riscv_frontend").recursion.segment_leaf_authority_v2;
+const authority = @import("stwo_riscv_recursion").segment_leaf_authority_v2;
 const public_data_v2 = @import("stwo_riscv_rv32").air.public_data_v2;
 const public_logup_v2 = @import("stwo_riscv_rv32").air.public_logup_v2;
 const relations_mod = @import("stwo_riscv_air_lang").evaluation.relation_challenges;

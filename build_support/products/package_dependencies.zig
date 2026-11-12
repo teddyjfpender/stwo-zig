@@ -46,8 +46,17 @@ pub const native_protocol_package_roots = &.{
     "dependency:../src/engine/prover:native/runner.zig",
 };
 
-pub const riscv_frontend_package_roots = &.{
+pub const riscv_frontend_package_roots = &[_][]const u8{
     "dependency:../src/frontends/riscv:mod.zig",
+    "dependency:../src/frontends/riscv/air_lang:mod.zig",
+    "dependency:../src/frontends/riscv/isa:mod.zig",
+    "dependency:../src/frontends/riscv/memory:mod.zig",
+    "dependency:../src/frontends/riscv/precompiles:mod.zig",
+    "dependency:../src/frontends/riscv/recursion:mod.zig",
+    "dependency:../src/frontends/riscv/recursion_air:mod.zig",
+    "dependency:../src/frontends/riscv/rv32:mod.zig",
+    "dependency:../src/frontends/riscv/rv64:mod.zig",
+    "dependency:../src/frontends/riscv/testing:mod.zig",
 };
 
 pub const cairo_frontend_package_roots = &.{
@@ -186,49 +195,45 @@ pub const cairo_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/backends/metal/session:mod.zig",
 };
 
-pub const riscv_protocol_package_roots = &.{
+pub const riscv_protocol_package_roots = &([_][]const u8{
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/waist/core:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
-pub const frontend_protocol_package_roots = &.{
+pub const frontend_protocol_package_roots = &([_][]const u8{
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/waist/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
-pub const frontend_cpu_protocol_package_roots = &.{
+pub const frontend_cpu_protocol_package_roots = &([_][]const u8{
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/waist/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
-pub const frontend_metal_cpu_protocol_package_roots = &.{
+pub const frontend_metal_cpu_protocol_package_roots = &([_][]const u8{
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/metal:mod.zig",
     "dependency:../src/waist/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
-pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
+pub const frontend_cuda_metal_cpu_protocol_package_roots = &([_][]const u8{
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
     "dependency:../src/backends/metal/session:mod.zig",
@@ -238,7 +243,6 @@ pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
     "dependency:../src/frontends/cairo:interop/felt_json.zig",
     "dependency:../src/frontends/cairo:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/cairo_cuda:mod.zig",
     "dependency:../src/integrations/cairo_metal:mod.zig",
@@ -250,9 +254,9 @@ pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/waist/proof_wire:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
-pub const metal_tools_package_roots = &.{
+pub const metal_tools_package_roots = &([_][]const u8{
     "dependency:../src/engine/artifact_store:mod.zig",
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
@@ -262,7 +266,6 @@ pub const metal_tools_package_roots = &.{
     "dependency:../src/waist/core:mod.zig",
     "dependency:../src/products/native/examples:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/cairo_cuda:mod.zig",
     "dependency:../src/integrations/cairo_metal:mod.zig",
@@ -272,39 +275,36 @@ pub const metal_tools_package_roots = &.{
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/backends/metal/session:mod.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
 pub const riscv_cpu_protocol_package_roots = @import("riscv_cpu_dependencies.zig").roots;
 
-pub const riscv_metal_protocol_package_roots = &.{
+pub const riscv_metal_protocol_package_roots = &([_][]const u8{
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/backends/metal:mod.zig",
     "dependency:../src/waist/core:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/riscv_metal:mod.zig",
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
-pub const riscv_cuda_protocol_package_roots = &.{
+pub const riscv_cuda_protocol_package_roots = &([_][]const u8{
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
     "dependency:../src/waist/core:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/riscv_cuda:mod.zig",
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
-pub const native_riscv_protocol_package_roots = &.{
+pub const native_riscv_protocol_package_roots = &([_][]const u8{
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/waist/core:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/engine/prover:native/resource_admission.zig",
     "dependency:../src/engine/prover:native/runner.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
 pub const native_cpu_protocol_package_roots = &.{
     "dependency:../src/backends/cpu_scalar:mod.zig",
@@ -334,12 +334,11 @@ pub const native_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/engine/prover:native/runner.zig",
 };
 
-pub const native_riscv_cpu_protocol_package_roots = &.{
+pub const native_riscv_cpu_protocol_package_roots = &([_][]const u8{
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/waist/core:mod.zig",
     "dependency:../src/products/native/examples:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
     "dependency:../src/waist/proof_wire:mod.zig",
@@ -347,9 +346,9 @@ pub const native_riscv_cpu_protocol_package_roots = &.{
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/engine/prover:native/resource_admission.zig",
     "dependency:../src/engine/prover:native/runner.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
-pub const compatibility_package_roots = &.{
+pub const compatibility_package_roots = &([_][]const u8{
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
     "dependency:../src/backends/metal/session:mod.zig",
@@ -363,7 +362,6 @@ pub const compatibility_package_roots = &.{
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/frontends/cairo:tests/mod.zig",
     "dependency:../src/frontends/cairo:witness/composition_bundle.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/cairo_cuda:mod.zig",
     "dependency:../src/integrations/cairo_metal:mod.zig",
@@ -376,11 +374,11 @@ pub const compatibility_package_roots = &.{
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/waist/recursion_wire:mod.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
-};
+} ++ riscv_frontend_package_roots.*);
 
 // The retained public `stwo` compatibility facade binds these existing
 // modules in addition to the focused core/prover products.
-pub const public_package_roots = &.{
+pub const public_package_roots = &([_][]const u8{
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
     "dependency:../src/backends/metal/session:mod.zig",
@@ -395,7 +393,6 @@ pub const public_package_roots = &.{
     "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
     "dependency:../src/frontends/cairo:interop/felt_json.zig",
     "dependency:../src/frontends/cairo:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/cairo_cuda:mod.zig",
     "dependency:../src/integrations/cairo_metal:mod.zig",
@@ -414,4 +411,4 @@ pub const public_package_roots = &.{
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/waist/recursion_wire:mod.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
-};
+} ++ riscv_frontend_package_roots.*);

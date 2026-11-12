@@ -1,7 +1,7 @@
 //! End-to-end extension-runner tests with exact admission metadata.
 
 const std = @import("std");
-const runner = @import("stwo_riscv_frontend").runner;
+const runner = @import("../../../../../../../runner/mod.zig");
 const test_elf = @import("stwo_riscv_rv32").testing.execution.guest_precompile.test_elf;
 
 test "explicit extension runner retires one custom call outside the base trace" {

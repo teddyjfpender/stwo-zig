@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest import mock
 from scripts.repo import check_product_closure as command
 from scripts.native import check_native_cpu_product
-from scripts.repo.product_closure.graph import ClosureError, inspect_sources
+from scripts.repo.product_closure.graph import ClosureError
 from scripts.repo.product_closure.linkage import (
     DynamicLinkage,
     check_dynamic,
@@ -18,7 +18,7 @@ from scripts.repo.product_closure.linkage import (
     inspect_elf,
 )
 from scripts.repo.product_closure.model import Manifest, NamedImport
-from scripts.tests.product_closure_recursion_cases import RecursionOwnershipTest
+from scripts.tests.product_closure_recursion_cases import RecursionOwnershipTest, inspect_sources
 
 
 class NativeCpuProductCheckTest(unittest.TestCase):

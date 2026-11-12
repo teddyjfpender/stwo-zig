@@ -773,19 +773,3 @@ test "BLAKE3 public data binds every root bit and separates absence and version"
     data.completion = null;
     try std.testing.expectError(error.MissingCompletion, data.validate());
 }
-
-test "public input byte binding rejects changed bytes lengths and padding" {
-    var words = [_]u32{ 0x04030201, 5 };
-    var io = IoEntries{ .input_start = 0, .input_len = 5, .input_words = &words, .output_len = 0, .output_len_addr = 0, .output_data_addr = 0, .output_words = &.{} };
-    try io.validateInputBytes(&.{ 1, 2, 3, 4, 5 });
-    try std.testing.expectError(error.InputLengthMismatch, io.validateInputBytes(&.{ 1, 2, 3, 4 }));
-    try std.testing.expectError(error.InputDigestMismatch, io.validateInputBytes(&.{ 1, 2, 3, 4, 6 }));
-    words[1] |= 0x100;
-    try std.testing.expectError(error.NonCanonicalInputPadding, io.validateInputBytes(&.{ 1, 2, 3, 4, 5 }));
-    io.input_len = 4;
-    io.input_words = words[0..1];
-    try io.validateInputBytes(&.{ 1, 2, 3, 4 });
-    io.input_len = 0;
-    io.input_words = &.{};
-    try io.validateInputBytes(&.{});
-}

@@ -6,7 +6,7 @@ const recursion = struct {
     const pcs_transcript_program_v1 = @import("stwo_riscv_recursion").pcs_transcript_program;
     const poseidon2_channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
     const recording_poseidon_channel_v4 = @import("stwo_riscv_recursion").recording_poseidon_channel;
-    const recursion_air_composition_circuit_v3 = @import("stwo_riscv_frontend").recursion.recursion_air_composition_circuit_v3;
+    const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
     const segment_leaf_authority_v2 = @import("stwo_riscv_recursion").segment_leaf_authority_v2;
     const segment_transcript_outer_source_v2 = @import("stwo_riscv_recursion").segment_transcript_outer_source_v2;
 };

@@ -1,6 +1,7 @@
 //! Complete literal discovery for this owner; original focused exclusions are retained.
 test {
     _ = @import("../circuit_layout.zig");
+    _ = @import("../focused_runtime_profile_symbolic.zig");
     _ = @import("../focused_test_air_function_frames_0_1.zig");
     _ = @import("../focused_test_air_semantics_0.zig");
     _ = @import("../focused_test_air_semantics_1.zig");

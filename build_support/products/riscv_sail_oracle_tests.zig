@@ -61,7 +61,7 @@ pub const STEP_NAME = "test-riscv-sail-oracle";
 pub const DESCRIPTION =
     "Run the sail_oracle self-check and forged-trace rejection against the pinned Sail oracle";
 
-const ROOT_SOURCE_FILE = "src/frontends/riscv/testing/cases/sail_oracle_test_root.zig";
+const ROOT_SOURCE_FILE = "src/frontends/riscv/focused_product_sail_oracle_test_root.zig";
 
 /// Declares `test-riscv-sail-oracle` and returns the step to depend on, so a
 /// caller can also fold it into a broader product test step.

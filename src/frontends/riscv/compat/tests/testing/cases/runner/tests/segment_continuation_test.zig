@@ -1,8 +1,8 @@
 //! Segmented runner parity and continuation-integrity tests.
 
 const std = @import("std");
-const result_mod = @import("stwo_riscv_frontend").runner.result_mod;
-const segment_session = @import("stwo_riscv_frontend").runner.segment_session;
+const result_mod = @import("../../../../../../runner/result.zig");
+const segment_session = @import("../../../../../../runner/segment_session.zig");
 
 const CompletionReason = result_mod.CompletionReason;
 const ContinuationToken = result_mod.ContinuationToken;

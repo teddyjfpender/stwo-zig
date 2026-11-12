@@ -80,7 +80,6 @@ test {
     _ = @import("compat/tests/testing/cases/runner/tests/segment_continuation_test.zig");
     _ = @import("compat/tests/testing/cases/runner_test_root.zig");
     _ = @import("compat/tests/testing/cases/rv64/execution_test_root.zig");
-    _ = @import("compat/tests/testing/cases/rv64_execution_test_root.zig");
     _ = @import("compat/tests/testing/cases/secp256k1_precompile_test_root.zig");
     _ = @import("compat/tests/testing/cases/stack_swap_candidate_test_root.zig");
     _ = @import("compat/tests/testing/cases/vm_air_profile_authority_test_root.zig");
@@ -92,8 +91,11 @@ test {
     _ = @import("ethereum_minimal_trace_test_root.zig");
     _ = @import("ethereum_narrow_poseidon_proof_test_root.zig");
     _ = @import("focused_benchmark_minimal_trace_parallel_replay_0.zig");
+    _ = @import("focused_product_rv64_execution_test_root.zig");
+    _ = @import("focused_product_sail_oracle_test_root.zig");
     _ = @import("focused_retained_authority_contract_test_root.zig");
     _ = @import("focused_segment_publication_input_provider_authority_test_root.zig");
+    _ = @import("focused_statement_wire_test_root.zig");
     _ = @import("focused_test_bulk_memcpy_candidate_0.zig");
     _ = @import("focused_test_ethereum_runner_0.zig");
     _ = @import("focused_test_execution_session_0.zig");

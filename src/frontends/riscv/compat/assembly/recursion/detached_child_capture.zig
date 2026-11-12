@@ -10,7 +10,7 @@ const recursion = struct {
     const poseidon2_channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
     const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
     const recording_poseidon_channel_v4 = @import("stwo_riscv_recursion").recording_poseidon_channel;
-    const recursion_air_composition_circuit_v3 = @import("stwo_riscv_frontend").recursion.recursion_air_composition_circuit_v3;
+    const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
     const span_statement = @import("stwo_riscv_rv32").recursion.span_statement;
 };
 const air = struct {

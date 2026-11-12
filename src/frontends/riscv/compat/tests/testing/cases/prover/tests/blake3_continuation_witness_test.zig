@@ -7,7 +7,7 @@ test "BLAKE3 memory update proves runner snapshot conversion agrees with full ro
     const instructions = [_]u32{ 0x00500093, 0x00708093, 0x00100137, 0x00012223, 0x0000006f };
     var elf = @import("stwo_riscv_rv32").testing.execution.guest_precompile.test_elf.buildProgram(instructions.len, &instructions, 4, .rv32im_zkvm_v1);
     declareInput(&elf);
-    var run = try @import("stwo_riscv_frontend").runner.runWithInput(a, &elf, &.{ 1, 2, 3, 255 }, 100);
+    var run = try @import("../../../../../../runner/mod.zig").runWithInput(a, &elf, &.{ 1, 2, 3, 255 }, 100);
     defer run.deinit();
     const outputs = try a.alloc(public.OutputWord, run.output_words.len);
     defer a.free(outputs);

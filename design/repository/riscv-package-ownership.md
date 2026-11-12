@@ -101,3 +101,31 @@ The hardware gate is unrun on the laptop: its synced-pod guard refuses local
 execution. No GPU qualification, performance claim, default promotion or
 whole-restructuring completion follows from this package split. The broader
 C1/C2/C4 and D1–D5 work retains its own gates and merge requirements.
+
+## Product consumer qualification
+
+The product-side collectors also run from their canonical owners. Twenty-three
+single-owner RV64 collectors retain their original subject imports; the mixed
+execution collector is three real binaries with its original aggregate floor
+of 67. The statement-wire contract keeps its six cases in one owned codec
+suite, including the unchanged public-input padding assertion. Root module
+construction binds the owner's declared predecessor modules from the caller's
+existing frontend instance. No independent protocol universe is introduced.
+
+The build catalog reuses the exact ten-root RISC-V family closure across
+protocol scopes. The CPU scope declares 225 roots; a bounded construction run
+matches that declaration exactly with no foreign dependency, constructor, tool
+or runtime-probe addition. The 30 build-policy cases include the aggregate
+counter and its missing-execution-metadata refusal.
+
+Two retained LS-D64 parity fixtures allocated 256 KiB stacks despite the
+existing Debug kernel contract requiring 1 MiB. They now request the kernel's
+canonical mode-specific minimum. Worker count, serial/parallel equality and
+production stack refusal remain unchanged.
+
+P-003's current source-authority ledger follows the physical ownership moves;
+its sixteen families, twenty-three sites, classifications and schema do not
+change. Historical receipts are not rewritten or re-pinned. Replaying a
+source-bound historical blocker against the changed current ledger still
+requires the explicit source-binding follow-up; it is not accepted as current
+qualification. The source-binding and formal gates in #328 remain open.

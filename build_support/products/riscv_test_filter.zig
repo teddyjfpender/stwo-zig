@@ -87,6 +87,16 @@ pub fn addRun(b: *std.Build, tests: *std.Build.Step.Compile) *std.Build.Step {
 /// the step, and demanding one per artifact would fail a correct focus run
 /// simply because the other artifact holds no test of that name.
 pub fn addSuites(b: *std.Build, suites: []const Suite) *std.Build.Step {
+    return addSuitesWithTotal(b, suites, 0);
+}
+
+/// One formerly contiguous suite may span several canonical source owners.
+/// Its original floor applies to all executed partitions together.
+pub fn addCombinedSuites(b: *std.Build, suites: []const Suite, minimum: usize) *std.Build.Step {
+    return addSuitesWithTotal(b, suites, minimum);
+}
+
+fn addSuitesWithTotal(b: *std.Build, suites: []const Suite, total_minimum: usize) *std.Build.Step {
     const runs = b.allocator.alloc(*std.Build.Step.Run, suites.len) catch
         @panic("out of memory");
     // Retained, not borrowed: callers pass an anonymous array literal, whose
@@ -94,7 +104,7 @@ pub fn addSuites(b: *std.Build, suites: []const Suite) *std.Build.Step {
     // first draft read that memory and demanded 12297829382473034410 tests.
     const retained = b.allocator.dupe(Suite, suites) catch @panic("out of memory");
     const filter = read(b);
-    var guarded = filter != null;
+    var guarded = filter != null or total_minimum != 0;
     for (suites, runs) |suite, *run| {
         run.* = b.addRunArtifact(suite.tests);
         // Production ReleaseFast proving avoids re-evaluating the direct AIR
@@ -128,6 +138,7 @@ pub fn addSuites(b: *std.Build, suites: []const Suite) *std.Build.Step {
         .suites = retained,
         .runs = runs,
         .filter = filter,
+        .total_minimum = total_minimum,
     };
     for (runs) |run| guard.step.dependOn(&run.step);
     return &guard.step;
@@ -140,10 +151,17 @@ const SelectionGuard = struct {
     suites: []const Suite,
     runs: []const *std.Build.Step.Run,
     filter: ?[]const u8,
+    total_minimum: usize,
 
     fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) anyerror!void {
         const guard: *SelectionGuard = @fieldParentPtr("step", step);
         if (guard.filter) |filter| return guard.checkSelection(step, filter);
+        if (guard.total_minimum != 0) {
+            const count = executedCount(guard.runs) catch
+                return step.fail("partition reported no executed test names", .{});
+            if (count < guard.total_minimum)
+                return step.fail("partitions executed {d} tests; the complete suite requires {d}", .{ count, guard.total_minimum });
+        }
         for (guard.suites, guard.runs) |suite, run| {
             if (suite.minimum == 0) continue;
             const metadata = run.cached_test_metadata orelse return step.fail(
@@ -186,6 +204,23 @@ const SelectionGuard = struct {
         , .{filter});
     }
 };
+
+fn executedCount(runs: []const *std.Build.Step.Run) error{MissingTestMetadata}!usize {
+    var count: usize = 0;
+    for (runs) |run| count += (run.cached_test_metadata orelse return error.MissingTestMetadata).names.len;
+    return count;
+}
+
+test "partition floors count every real run and reject absent execution metadata" {
+    var first: std.Build.Step.Run = undefined;
+    var second: std.Build.Step.Run = undefined;
+    first.cached_test_metadata = .{ .names = &.{ 0, 0 }, .string_bytes = "case\x00" };
+    second.cached_test_metadata = .{ .names = &.{ 0, 0, 0 }, .string_bytes = "case\x00" };
+    try std.testing.expectEqual(@as(usize, 5), try executedCount(&.{ &first, &second }));
+    try std.testing.expectEqual(@as(usize, 0), try executedCount(&.{}));
+    second.cached_test_metadata = null;
+    try std.testing.expectError(error.MissingTestMetadata, executedCount(&.{ &first, &second }));
+}
 
 /// `std.Build.option` panics if the same option name is declared twice and
 /// every test step routes through `apply`, so the flag is read once and the

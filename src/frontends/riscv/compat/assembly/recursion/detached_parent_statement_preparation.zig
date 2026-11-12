@@ -59,7 +59,7 @@ pub const OwnedV1 = opaque {
     pub fn initParents(allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1, mode: continuation.Mode) !*OwnedV1 {
         return initFor(.parent, allocator, left, right, mode);
     }
-    fn initFor(comptime family: @import("stwo_riscv_frontend").recursion.detached_child_capture_v1.Family, allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1, mode: continuation.Mode) !*OwnedV1 {
+    fn initFor(comptime family: @import("detached_child_capture.zig").Family, allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1, mode: continuation.Mode) !*OwnedV1 {
         const children = [_]*const boundary.OwnedV1{ left, right };
         for (children) |child| if (child.family() != family) return error.DetachedParentBoundaryFamilyMismatch;
         var words: [3]Words = undefined;

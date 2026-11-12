@@ -4,7 +4,7 @@
 //! role, including deriving the public boundary from its expected statement.
 const recursion = struct {
     const detached_parent_components_v1 = @import("stwo_riscv_recursion").detached_parent_components;
-    const recursion_air_composition_circuit_v3 = @import("stwo_riscv_frontend").recursion.recursion_air_composition_circuit_v3;
+    const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
 };
 const air = struct {
     const composition_circuit = @import("stwo_riscv_rv32").recursion.air.composition_circuit;

@@ -14,7 +14,7 @@ const subject = @import("stwo_riscv_rv32").recursion.vm_leaf_context_v2;
 
 test "Ethereum selected base claim admission shares context order and binds mutations" {
     const allocator = std.testing.allocator;
-    const transcript = @import("stwo_riscv_frontend").prover_mod.guest_precompile.ethereum_transcript;
+    const transcript = @import("../../../../../../prover/guest_precompile/ethereum_transcript.zig");
     const Channel = @import("stwo_riscv_memory").recursion.poseidon2_channel.Channel;
     var fixture = try Fixture.init(allocator);
     defer fixture.deinit();

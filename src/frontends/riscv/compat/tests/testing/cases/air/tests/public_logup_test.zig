@@ -4,7 +4,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const public_data_v2 = @import("stwo_riscv_rv32").air.public_data_v2;
 const public_logup_v2 = @import("stwo_riscv_rv32").air.public_logup_v2;
 const relation_challenges = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
-const runner_result = @import("stwo_riscv_frontend").runner.result_mod;
+const runner_result = @import("../../../../../../runner/result.zig");
 const support = @import("stwo_riscv_rv32").testing.air.public_data_test_support;
 
 test "public LogUp V2 compensation is the inverse of exact boundary transitions" {

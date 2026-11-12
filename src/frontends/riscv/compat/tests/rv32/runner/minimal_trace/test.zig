@@ -5,7 +5,7 @@ const generated = @import("stwo_riscv_rv32").execution.generated_retirement;
 const Memory = @import("stwo_riscv_isa").machine.memory.Memory;
 const StateChainTracker = @import("stwo_riscv_isa").machine.state_chain.StateChainTracker;
 const trace_mod = @import("stwo_riscv_rv32").execution.trace;
-const minimal = @import("stwo_riscv_frontend").runner.minimal_trace;
+const minimal = @import("../../../../assembly/rv32/runner/minimal_trace/mod.zig");
 
 const entry_pc: u32 = 0x1000;
 const data_address: u32 = 0x0200;

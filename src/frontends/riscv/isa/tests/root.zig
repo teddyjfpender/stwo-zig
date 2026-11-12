@@ -8,6 +8,8 @@ test {
     _ = @import("../decode.zig");
     _ = @import("../execution_profile.zig");
     _ = @import("../focused_benchmark_minimal_trace_parallel_replay_0.zig");
+    _ = @import("../focused_product_rv64_execution_test_root.zig");
+    _ = @import("../focused_runtime_profile_decode.zig");
     _ = @import("../focused_test_bulk_memcpy_candidate_0.zig");
     _ = @import("../focused_test_ethereum_runner_0.zig");
     _ = @import("../focused_test_execution_session_0.zig");

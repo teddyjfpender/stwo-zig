@@ -1,7 +1,7 @@
 //! Host-syscall runner integration tests kept separate from the hot loop.
 
 const std = @import("std");
-const runner = @import("stwo_riscv_frontend").runner;
+const runner = @import("../../../../../../runner/mod.zig");
 const host_mod = runner.host_mod;
 
 test "runner: runWithHost HALT syscall" {

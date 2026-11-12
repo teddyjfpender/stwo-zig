@@ -7,7 +7,7 @@ pub fn For(comptime leaf_outer: type, comptime core_mod: type) type {
 
         const QM31 = stwo_core.fields.qm31.QM31;
         const m31 = stwo_core.fields.m31;
-        const composition_v3 = @import("stwo_riscv_frontend").recursion.recursion_air_composition_circuit_v3;
+        const composition_v3 = @import("recursion_air_composition_circuit_v3.zig");
         const manifest_mod = @import("stwo_riscv_recursion").air.segment_outer_adapter_manifest;
         const cohort_protocol = @import("stwo_riscv_recursion").segment_outer_cohort;
 

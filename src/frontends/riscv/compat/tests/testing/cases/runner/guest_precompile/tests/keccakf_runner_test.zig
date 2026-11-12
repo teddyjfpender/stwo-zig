@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const authority = @import("stwo_riscv_precompiles").air.keccakf_authority;
-const runner = @import("stwo_riscv_frontend").runner;
+const runner = @import("../../../../../../../runner/mod.zig");
 const test_elf = @import("stwo_riscv_rv32").testing.execution.guest_precompile.test_elf;
 
 fn fixtureInput() authority.State {
