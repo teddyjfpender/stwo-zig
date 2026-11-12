@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Mapping
@@ -61,6 +62,93 @@ class Package:
     name: str
     directory: str
     dependencies: frozenset[str]
+    consumer_roots: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ConsumerContract:
+    id: str
+    root: str
+    route: str
+    imports: tuple[str, ...]
+    tests: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ContractMetadata:
+    """Parsed shape only, never source ownership, coverage or execution evidence."""
+
+    consumers: tuple[ConsumerContract, ...] = ()
+    budget: dict[str, int] | None = None
+
+
+def parse_contract_metadata(payload: Any, label: str) -> ContractMetadata:
+    """Extension shape only; base validation and workspace v3 admission stay separate."""
+    required = {"schema", "package", "version", "layer", "owner", "public_modules",
+                "dependencies", "injected_modules", "api_surface", "api_contract", "ci"}
+    optional = {"consumer_subdirs"}
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label}: contract must be an object")
+    schema = payload.get("schema")
+    if schema == "stwo-zig-package-contract-v3":
+        required.add("consumers")
+        optional.add("budget")
+    elif schema != "stwo-zig-package-contract-v2":
+        raise ValueError(f"{label}: unknown contract schema {schema!r}")
+    if not required <= payload.keys() or payload.keys() - required - optional:
+        raise ValueError(f"{label}: contract fields differ")
+    if schema == "stwo-zig-package-contract-v2":
+        return ContractMetadata()
+
+    def strings(value: Any, field: str) -> tuple[str, ...]:
+        if (not isinstance(value, list) or not value
+                or any(not isinstance(v, str) or not v.strip() or v != v.strip()
+                       or any(ord(c) < 32 for c in v) for v in value)
+                or value != sorted(set(value))):
+            raise ValueError(f"{label}: {field} must be nonempty, sorted and unique")
+        return tuple(value)
+
+    raw = payload["consumers"]
+    if not isinstance(raw, list):
+        raise ValueError(f"{label}: consumers must be an array")
+    consumers = []
+    for row in raw:
+        if not isinstance(row, dict) or set(row) != {"id", "root", "route", "imports", "tests"}:
+            raise ValueError(f"{label}: consumer fields differ")
+        identity, root, route = row["id"], row["root"], row["route"]
+        if not isinstance(identity, str) or not re.fullmatch(
+            r"(?:package:[a-z][a-z0-9_]*|product:[a-z][a-z0-9_-]*)", identity,
+        ):
+            raise ValueError(f"{label}: invalid consumer identity")
+        if (not isinstance(root, str) or not root.startswith("src/") or not root.endswith(".zig")
+                or "\\" in root or any(part in {".", "..", ""} for part in root.split("/"))
+                or any(ord(c) < 32 for c in root)):
+            raise ValueError(f"{label}: invalid consumer root")
+        if identity.startswith("product:"):
+            valid_route = route == identity
+        else:
+            valid_route = isinstance(route, str) and re.fullmatch(
+                r"(?:dependency|injected):[a-z][a-z0-9_]*", route,
+            )
+        if not valid_route:
+            raise ValueError(f"{label}: invalid consumer route")
+        imports = strings(row["imports"], "consumer imports")
+        if any(name == "std" or not re.fullmatch(r"[a-z][a-z0-9_]*", name) for name in imports):
+            raise ValueError(f"{label}: invalid named consumer import")
+        consumers.append(ConsumerContract(identity, root, route, imports, strings(row["tests"], "consumer tests")))
+    identities = [row.id for row in consumers]
+    if identities != sorted(set(identities)):
+        raise ValueError(f"{label}: consumer identities must be sorted and unique")
+    budget = None
+    if "budget" in payload:
+        budget = payload["budget"]
+        keys = {"code_files", "code_lines", "generated_code_files", "generated_code_lines",
+                "script_files", "api_entries", "dependencies", "rv64_registry_flags", "versioned_files"}
+        if (not isinstance(budget, dict) or set(budget) != keys
+                or any(type(value) is not int or value < 0 for value in budget.values())):
+            raise ValueError(f"{label}: budget must contain exactly nine nonnegative integer maxima")
+        budget = dict(budget)
+    return ContractMetadata(tuple(consumers), budget)
 
 
 def _posix(path: Path, root: Path) -> str:
@@ -76,9 +164,10 @@ def load_packages(root: Path) -> dict[str, Package]:
     """
     directories: dict[str, str] = {}
     raw: dict[str, dict[str, str]] = {}
+    consumer_roots: dict[str, tuple[str, ...]] = {}
     for contract_path in sorted((root / CONTRACT_ROOT).rglob(CONTRACT_NAME)):
         try:
-            payload = json.loads(contract_path.read_text(encoding="utf-8"))
+            payload = load_contract_payload(contract_path)
         except (OSError, json.JSONDecodeError) as error:
             raise GraphError(f"unreadable package contract {contract_path}: {error}") from error
         if not isinstance(payload, dict):
@@ -97,6 +186,8 @@ def load_packages(root: Path) -> dict[str, Package]:
         directory = _posix(contract_path.parent, root)
         directories[name] = directory
         raw[name] = dict(dependencies)
+        extensions = parse_contract_metadata(payload, str(contract_path)) if "consumers" in payload or "budget" in payload or payload.get("schema") == "stwo-zig-package-contract-v3" else ContractMetadata()
+        consumer_roots[name] = tuple(row.root for row in extensions.consumers)
 
     if not directories:
         raise GraphError(f"no package contracts found under {root / CONTRACT_ROOT}")
@@ -116,7 +207,7 @@ def load_packages(root: Path) -> dict[str, Package]:
                     f"package {name} depends on {relative}, which is not a package directory"
                 )
             resolved.add(dependency)
-        packages[name] = Package(name, directories[name], frozenset(resolved))
+        packages[name] = Package(name, directories[name], frozenset(resolved), consumer_roots[name])
     return packages
 
 
@@ -223,6 +314,7 @@ def selection(
     Unowned paths are returned rather than ignored: the caller decides the
     fail-open policy for them.
     """
+    changed_paths = tuple(changed_paths)
     seeds: set[str] = set()
     unowned: set[str] = set()
     for path in changed_paths:
@@ -235,6 +327,7 @@ def selection(
         return frozenset(), frozenset(unowned)
     affected = reverse_closure(packages, seeds)
     lanes = {lane for lane, package in bindings.items() if package in affected}
+    lanes |= {lane for lane, package in bindings.items() if set(changed_paths) & set(packages[package].consumer_roots)}
     return frozenset(lanes), frozenset(unowned)
 
 
@@ -366,3 +459,136 @@ def validate_dependency_layers(repository, contracts, packages, allowed_layers, 
             target = packages.get(dependency)
             if target is not None and target.layer not in allowed_layers[contract.layer] and (contract.package, dependency) not in family:
                 failures.append(f"{contract.package}: {contract.layer} layer cannot depend on {target.layer} package {dependency}")
+
+
+def package_owner(contracts: Mapping[str, Any], source: Path) -> Any | None:
+    """Unique longest package prefix, then consumer exclusions; no import-based ownership.
+
+    Callers supply all validated contracts and check tracked regular-file eligibility.
+    An unowned source remains a gap, not an empty package or a zero global census.
+    """
+    directories = {contract.directory.resolve(): contract for contract in contracts.values()}
+    if len(directories) != len(contracts):
+        raise GraphError("package ownership: duplicate registered directory")
+    source = source.resolve()
+    matches = [directory for directory in directories if source.is_relative_to(directory)]
+    if not matches:
+        return None
+    directory = max(matches, key=lambda value: len(value.parts))
+    owner = directories[directory]
+    relative = source.relative_to(directory)
+    if any(Path(*relative.parts[:depth]).as_posix() in owner.consumer_subdirs
+           for depth in range(1, len(relative.parts))):
+        return None
+    return owner
+
+def read_product_declarations(repository: Path, *, include_constructed: bool = False) -> dict[str, dict[str, str | None]]:
+    from scripts.repo import check_build_configure_closure as construction
+    try:
+        return construction.read_product_declarations(repository, include_constructed=include_constructed)
+    except construction.ProductDeclarationError as error:
+        raise GraphError(str(error)) from error
+
+
+def validate_package_consumer_sources(repository: Path, provider: Any, metadata: ContractMetadata,
+                                      contracts: Mapping[str, Any], tracked: set[str]) -> list[str]:
+    """Static root consistency only; never builder/Module identity or execution proof.
+
+    tracked is the caller's authoritative regular-file inventory for this source.
+    Unsupported product/injected routes remain errors until their full validation exists.
+    """
+    from scripts.repo import check_build_configure_closure as construction
+    repository = repository.resolve()
+    failures = []
+    waist_modules = {module for contract in contracts.values()
+                     if contract.layer in {"protocol", "contract", "api", "interchange"}
+                     for module in contract.public_modules}
+    for entry in metadata.consumers:
+        try:
+            if not entry.id.startswith("package:"):
+                raise GraphError("product owner/closure validation is pending")
+            owner = contracts.get(entry.id.removeprefix("package:"))
+            if owner is None:
+                raise GraphError("unknown consumer package")
+            source = repository / entry.root
+            if (entry.root not in tracked or source.is_symlink() or not source.is_file()
+                    or source.resolve() != source or not source.is_relative_to(repository)):
+                raise GraphError("consumer root is not a canonical tracked regular source")
+            if package_owner(contracts, source) is not owner:
+                raise GraphError("consumer source belongs to another or excluded owner")
+            if source.relative_to(owner.directory.resolve()).as_posix() != f"contract_tests/{provider.package}_test.zig":
+                raise GraphError("consumer root does not use its provider-owned test basename")
+            route, module = entry.route.split(":", 1)
+            if module not in provider.public_modules:
+                raise GraphError("route does not name this public provider")
+            if route == "injected":
+                if module not in owner.injected_modules:
+                    raise GraphError("undeclared provider injection")
+                raise GraphError("injected provider builder binding validation is pending")
+            relative = owner.dependencies.get(module)
+            if route != "dependency" or relative is None or (owner.directory / relative).resolve() != provider.directory.resolve():
+                raise GraphError("consumer does not declare this provider dependency")
+            allowed = (set(owner.dependencies) | set(owner.injected_modules)) & waist_modules
+            allowed |= set(owner.public_modules)  # Only the owning public module may be a type witness.
+            if module not in entry.imports or not set(entry.imports) <= allowed:
+                raise GraphError("consumer imports undeclared or nonpublic provider/witness modules")
+            tokens = construction.source_tokens(source.read_text(encoding="utf-8"))
+            imports, tests, depth = [], [], 0
+            for index, token in enumerate(tokens):
+                if tokens[index:index + 3] == ["@", "import", "("]:
+                    value = tokens[index + 3:index + 5]
+                    if len(value) != 2 or not value[0].startswith('"') or value[1] != ")":
+                        raise GraphError("consumer import must be a literal public module")
+                    imports.append(json.loads(value[0]))
+                if depth == 0 and token == "test":
+                    if index + 2 >= len(tokens) or not tokens[index + 1].startswith('"') or tokens[index + 2] != "{":
+                        raise GraphError("consumer tests must be named top-level cases")
+                    tests.append(json.loads(tokens[index + 1]))
+                depth += (token == "{") - (token == "}")
+            if set(imports) != set(entry.imports) | {"std"}:
+                raise GraphError("consumer imports differ from the exact registration")
+            if tuple(sorted(tests)) != entry.tests or len(tests) != len(set(tests)):
+                raise GraphError("consumer test discovery differs from the exact registration")
+        except (ValueError, OSError) as error:
+            failures.append(f"{provider.package} CDC {entry.id}: {error}")
+    return failures
+
+
+def load_contract_payload(path: Path) -> dict[str, Any]:
+    def unique(pairs):
+        result = dict(pairs)
+        if len(result) != len(pairs):
+            raise GraphError(f"{path}: duplicate contract field")
+        return result
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique)
+
+
+def tracked_regular_sources(repository: Path) -> set[str]:
+    output = subprocess.check_output(["git", "ls-files", "--stage", "-z"], cwd=repository, text=True, timeout=10)
+    records = [value.split("\t", 1) for value in output.split("\0") if value]
+    return {path for header, path in records if header.split()[0] in {"100644", "100755"} and header.split()[2] == "0"}
+
+
+def consumer_ci_errors(provider: Any, policy: Mapping[str, Any]) -> list[str]:
+    commands = policy.get("lanes", {}).get(provider.ci_lane, {}).get("commands", [])
+    target = "test-cdc-" + provider.package.replace("_", "-")
+    return [f"{provider.package}: missing executed {mode} consumer command" for mode in ("Debug", "ReleaseFast")
+            if ["zig", "build", target, "-Doptimize=" + mode, "-j2"] not in commands]
+
+
+def validate_registered_consumers(repository: Path, contracts: Mapping[str, Any]) -> list[str]:
+    active = [contract for contract in contracts.values() if contract.metadata is not None]
+    if not active:
+        return []
+    try:
+        tracked = tracked_regular_sources(repository)
+        policy = json.loads((repository / "conformance/ci-touchpoints-v1.json").read_text())
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        return [f"CDC source/policy inventory failed: {error}"]
+    failures = []
+    for provider in active:
+        if not provider.metadata.consumers:
+            failures.append(f"{provider.package}: v3 provider has no registered consumer tests")
+        failures.extend(validate_package_consumer_sources(repository, provider, provider.metadata, contracts, tracked))
+        failures.extend(consumer_ci_errors(provider, policy))
+    return failures

@@ -20,6 +20,48 @@ PINNED_ACTION_RE = re.compile(r"^\s*uses:\s*[^@\s]+@[0-9a-f]{40}(?:\s+#.*)?$")
 
 
 class CiTests(unittest.TestCase):
+    def test_core_cdc_receipt_rejects_missing_execution_even_when_binary_exits_zero(self):
+        from types import SimpleNamespace
+        from scripts.repo import check_package_workspace
+        source = (ROOT / ".github/workflows/ci.yml").read_text().split("- name: Retain Core consumer execution receipts", 1)[1]
+        code = textwrap.dedent(source.split("<<'PYCDC'\n", 1)[1].split("          PYCDC", 1)[0])
+        tests = ("consumer inverse", "consumer refusal")
+        consumer = SimpleNamespace(id="package:stwo_cpu_backend", root="src/consumer.zig", tests=tests)
+        provider = SimpleNamespace(metadata=SimpleNamespace(consumers=[consumer]))
+        for fault in (False, True):
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                (root / "src/waist/core").mkdir(parents=True)
+                (root / "src/waist/core/package.contract.json").write_text("{}")
+                (root / consumer.root).write_text("registered source")
+                (root / "zig-out/bin").mkdir(parents=True)
+                for mode in ("Debug", "ReleaseFast"):
+                    (root / "zig-out/bin" / ("cdc-stwo-core-stwo_cpu_backend-" + mode)).write_bytes(mode.encode())
+                calls = []
+                def run(command, **kwargs):
+                    self.assertEqual(120, kwargs["timeout"])
+                    self.assertFalse(kwargs["check"])
+                    calls.append(command)
+                    names = tests[:1] if fault and command[0].endswith("ReleaseFast") else tests
+                    kwargs["stderr"].write(("\n".join(names) + "\n").encode())
+                    return SimpleNamespace(returncode=0)
+                def output(command, **kwargs):
+                    self.assertEqual({"text": True, "timeout": 10}, kwargs)
+                    return "" if "status" in command else "1" * 40
+                with mock.patch.object(Path, "cwd", return_value=root), mock.patch.dict(os.environ, {"RUNNER_TEMP": str(root / "out"), "GITHUB_SHA": "1" * 40}), mock.patch.object(check_package_workspace, "load_contract", return_value=provider), mock.patch.object(subprocess, "run", side_effect=run), mock.patch.object(subprocess, "check_output", side_effect=output):
+                    if fault:
+                        with self.assertRaisesRegex(AssertionError, "Core consumer execution failed"):
+                            exec(compile(code, "core-cdc-ci", "exec"), {})
+                    else:
+                        exec(compile(code, "core-cdc-ci", "exec"), {})
+                directory = root / "out/focused-ci/core-consumer-contracts"
+                receipt = json.loads((directory / "matrix.json").read_text())
+                self.assertEqual("FAIL" if fault else "PASS", receipt["status"])
+                self.assertEqual(2, len(calls))
+                self.assertEqual(2, len(receipt["cases"]))
+                self.assertEqual(0 if fault else 1, receipt["cases"][1]["executed_name_counts"][tests[1]])
+                self.assertTrue(list(directory.glob("*.stderr")))
+
     def test_cpu_golden_check_rejects_changed_proof_without_verifying_or_passing(self):
         from scripts.cuda.cuda_proof_parity_gate import UPSTREAM_COMMIT, EXCHANGE_MODE, EXPECTED_CONFIG
         source = (ROOT / ".github/workflows/ci.yml").read_text().split("- name: Compare fresh Native CPU proof with the frozen golden", 1)[1]
@@ -331,7 +373,7 @@ class CiTests(unittest.TestCase):
     def test_frontend_releasefast_has_only_the_approved_timeout_exception(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         focused_linux = workflow.split("  focused-linux:", 1)[1].split("  focused-macos:", 1)[0]
-        self.assertIn("timeout-minutes: ${{ matrix.lane == 'riscv_frontend_releasefast' && 90 || 30 }}", focused_linux)
+        self.assertIn("timeout-minutes: ${{ (matrix.lane == 'riscv_frontend_releasefast' || matrix.lane == 'riscv_retained_contracts_releasefast') && 90 || 30 }}", focused_linux)
 
     def test_focused_cairo_cpu_primes_its_offline_cargo_build(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

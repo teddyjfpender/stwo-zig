@@ -362,5 +362,324 @@ const owned = @import(
             }))
 
 
+class ConsumerMetadataGrammarTests(unittest.TestCase):
+    """Shape-only checkpoint; source ownership and execution are separate gates."""
+
+    def payload(self, schema="stwo-zig-package-contract-v3"):
+        import json
+        value = json.loads((ROOT / "src/waist/backend/package.contract.json").read_text())
+        value["schema"] = schema
+        if schema.endswith("v3"):
+            value["consumers"] = [{"id": "package:stwo_cpu_backend",
+                                   "root": "src/backends/cpu_scalar/contract_tests/stwo_backend_contracts_test.zig",
+                                   "route": "dependency:stwo_backend_contracts",
+                                   "imports": ["stwo_backend_contracts", "stwo_core"],
+                                   "tests": ["cdc: CPU column contract preserves field ownership"]}]
+        return value
+
+    def parse(self, payload):
+        return subject.ci_package_graph.parse_contract_metadata(payload, "fixture")
+
+    def test_duplicate_json_fields_are_rejected_for_both_supported_schemas(self):
+        import json
+        for schema in ("stwo-zig-package-contract-v2", "stwo-zig-package-contract-v3"):
+            payload = self.payload(schema)
+            encoded = json.dumps(payload)
+            duplicate = encoded.replace('"schema": ' + json.dumps(schema), '"schema": ' + json.dumps(schema) + ', "schema": ' + json.dumps(schema), 1)
+            with TemporaryDirectory() as raw:
+                path = Path(raw) / "package.contract.json"
+                path.write_text(duplicate)
+                with self.subTest(schema=schema), self.assertRaisesRegex(ValueError, "duplicate contract field"):
+                    subject.load_contract(path)
+
+    def test_closed_v2_is_retained_without_extension_metadata(self):
+        actual = self.parse(self.payload("stwo-zig-package-contract-v2"))
+        self.assertEqual((), actual.consumers)
+        self.assertIsNone(actual.budget)
+        for key, value in (("consumers", []), ("budget", {}), ("unknown", 0)):
+            payload = self.payload("stwo-zig-package-contract-v2")
+            payload[key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                self.parse(payload)
+
+    def test_v3_registration_preserves_exact_owned_metadata_without_claiming_execution(self):
+        actual = self.parse(self.payload())
+        self.assertEqual("package:stwo_cpu_backend", actual.consumers[0].id)
+        self.assertEqual(("stwo_backend_contracts", "stwo_core"), actual.consumers[0].imports)
+        self.assertEqual(("cdc: CPU column contract preserves field ownership",), actual.consumers[0].tests)
+        self.assertIsNone(actual.budget)
+        payload = self.payload()
+        payload["consumers"] = []
+        self.assertEqual((), self.parse(payload).consumers)  # shape only, not live-census coverage
+        payload["consumers"] = [{**self.payload()["consumers"][0], "id": "product:stwo-native-cpu", "route": "product:stwo-native-cpu"}]
+        self.assertEqual("product:stwo-native-cpu", self.parse(payload).consumers[0].id)
+
+    def test_unknown_schema_extra_missing_fields_and_wrong_containers_fail(self):
+        for key, value in (("schema", "stwo-zig-package-contract-v4"), ("schema", None),
+                           ("unknown", []), ("consumers", {}), ("consumers", [None])):
+            payload = self.payload()
+            payload[key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                self.parse(payload)
+        for key in ("consumers", "api_contract", "owner"):
+            payload = self.payload()
+            del payload[key]
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                self.parse(payload)
+        for payload in (None, [], "v3"):
+            with self.subTest(payload=payload), self.assertRaises(ValueError):
+                self.parse(payload)
+
+    def test_consumer_records_are_closed_unique_sorted_and_nonempty(self):
+        original = self.payload()["consumers"][0]
+        for key, value in (("id", "unknown:cpu"), ("id", "package:../cpu"), ("id", ""),
+                           ("route", "unknown:backend"), ("route", "product:stwo-native-cpu"),
+                           ("imports", []), ("imports", ["std"]), ("imports", ["private.zig"]),
+                           ("imports", ["stwo_core", "stwo_backend_contracts"]),
+                           ("imports", ["stwo_core", "stwo_core"]), ("tests", []),
+                           ("tests", [" "]), ("tests", ["b", "a"]), ("tests", ["a", "a"]),
+                           ("tests", ["bad\nname"]), ("root", "/tmp/test.zig"),
+                           ("root", "src/../outside/test.zig"), ("root", "src//test.zig"),
+                           ("root", "src/owner/test.py"), ("root", "src\\owner\\test.zig"),
+                           ("extra", True)):
+            payload = self.payload()
+            payload["consumers"] = [{**original, key: value}]
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                self.parse(payload)
+        for key in original:
+            payload = self.payload()
+            del payload["consumers"][0][key]
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                self.parse(payload)
+        for records in ([original, original], [{**original, "id": "package:zzz"}, original]):
+            payload = self.payload()
+            payload["consumers"] = records
+            with self.subTest(records=records), self.assertRaises(ValueError):
+                self.parse(payload)
+        payload = self.payload()
+        payload["consumers"][0].update(id="product:stwo-native-cpu", route="product:other")
+        with self.assertRaises(ValueError):
+            self.parse(payload)
+
+    def test_nine_budget_dimensions_are_closed_integer_maxima_and_absence_is_distinct(self):
+        keys = ("code_files", "code_lines", "generated_code_files", "generated_code_lines",
+                "script_files", "api_entries", "dependencies", "rv64_registry_flags", "versioned_files")
+        payload = self.payload()
+        payload["budget"] = dict.fromkeys(keys, 0)
+        self.assertEqual(dict.fromkeys(keys, 0), self.parse(payload).budget)
+        for key in keys:
+            for value in (-1, True, False, 0.5, "1", None):
+                payload["budget"] = {**dict.fromkeys(keys, 0), key: value}
+                with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                    self.parse(payload)
+            payload["budget"] = {k: 0 for k in keys if k != key}
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                self.parse(payload)
+        for value in (None, [], {**dict.fromkeys(keys, 0), "unmeasured_metric": 1}):
+            payload["budget"] = value
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.parse(payload)
+        payload.pop("budget")
+        self.assertIsNone(self.parse(payload).budget)
+
+    def test_v3_shape_loading_is_separate_from_source_and_execution_admission(self):
+        import json
+        with TemporaryDirectory() as raw:
+            path = Path(raw) / "package.contract.json"
+            path.write_text(json.dumps(self.payload()))
+            loaded = subject.load_contract(path)
+            self.assertIsNotNone(loaded.metadata)
+            failures = subject.ci_package_graph.validate_package_consumer_sources(Path(raw), loaded, loaded.metadata, {loaded.package: loaded}, set())
+            self.assertTrue(failures)
+
+
+class ProductDeclarationSourceTests(unittest.TestCase):
+    """Literal source facts, distinct from fresh build/catalog qualification."""
+
+    def resolve(self):
+        return subject.ci_package_graph.read_product_declarations(ROOT)
+
+    def test_real_primary_declarations_follow_aliases_and_actual_builders(self):
+        actual = self.resolve()
+        self.assertEqual("build_support/products/aggregate_cli.zig", actual["stwo-zig"]["builder_source"])
+        self.assertEqual("build_support/graph/product_spec.zig", actual["stwo-core"]["identity_source"])
+        self.assertEqual("build_support/products/prover.zig", actual["stwo-prover"]["builder_source"])
+        self.assertEqual("build_support/products/riscv_cpu_executables.zig", actual["stwo-riscv-cpu"]["identity_source"])
+        self.assertEqual("native_cpu", actual["stwo-native-cpu"]["scope"])
+        self.assertEqual("build_support/products/native_cpu.zig", actual["stwo-native-cpu"]["builder_source"])
+        self.assertEqual("unavailable", actual["stwo-riscv-cuda"]["constructor"])
+        self.assertIsNone(actual["stwo-riscv-cuda"]["builder_source"])
+        self.assertNotIn("stwo", actual)  # SDK is a constructed scope product, not a primary descriptor.
+
+    def test_comment_string_and_unrelated_product_names_do_not_create_identities(self):
+        from unittest import mock
+        path = ROOT / "build_support/products/native_cpu.zig"
+        original = Path.read_text
+        extra = '\n// .name = "comment-forgery"\nconst ignored = "string-forgery";\nconst unrelated = .{ .name = "unreachable-forgery" };\n'
+        with mock.patch.object(Path, "read_text", lambda p, *a, **k: original(p, *a, **k) + extra if p == path else original(p, *a, **k)):
+            actual = self.resolve()
+        for name in ("comment-forgery", "string-forgery", "unreachable-forgery"):
+            self.assertNotIn(name, actual)
+        self.assertIn("stwo-native-cpu", actual)
+
+    def test_unsupported_identity_aliases_builders_and_paths_fail_with_source_location(self):
+        from unittest import mock
+        cases = [
+            ("product_specs.zig", ".descriptor = native_cpu.descriptor(.cli)", ".descriptor = core.descriptor"),
+            ("product_specs.zig", ".constructor = .native_cpu,", ".constructor = .foreign,"),
+            ("product_specs.zig", '.scope = .native_cpu,', '.scope = "native_cpu",'),
+            ("product_specs.zig", '@import("native_cpu.zig")', '@import("missing.zig")'),
+            ("product_specs.zig", '@import("native_cpu.zig")', '@import("../../../../outside.zig")'),
+            ("native_cpu.zig", '.name = "stwo-native-cpu"', '.name = external_name'),
+            ("native_cpu.zig", ".product = product(role),", ".product = product(role) + 1,"),
+            ("native_cpu.zig", 'fn product(role: graph.Role) graph.Product {\n    return .{', 'fn product(role: graph.Role) graph.Product {\n    return product(role);\n}\nfn unused() graph.Product {\n    return .{'),
+            ("native_cpu.zig", 'pub fn addProduct(context: Context)', 'fn addProduct(context: Context)'),
+            ("matrix.zig", '.native_cpu => native_cpu.addProduct', '.native_cpu => missing.addProduct'),
+        ]
+        original = Path.read_text
+        for relative, before, after in cases:
+            path = ROOT / "build_support/products" / relative
+            text = original(path)
+            self.assertIn(before, text)
+            with self.subTest(relative=relative, before=before), mock.patch.object(
+                Path, "read_text", lambda p, *a, **k: text.replace(before, after, 1) if p == path else original(p, *a, **k),
+            ), self.assertRaisesRegex(subject.ci_package_graph.GraphError, r"\.zig::"):
+                self.resolve()
+
+    def test_source_declaration_reading_never_runs_a_compiler_or_uses_catalog_outputs(self):
+        from unittest import mock
+        import subprocess
+        original = Path.read_text
+        def read(path, *args, **kwargs):
+            self.assertNotIn("zig-out", path.parts)
+            return original(path, *args, **kwargs)
+        with mock.patch.object(Path, "read_text", new=read), mock.patch.object(
+            subprocess, "run", side_effect=AssertionError("source reading must not compile"),
+        ), mock.patch.object(subprocess, "check_output", side_effect=AssertionError("no generated catalog")):
+            self.assertIn("stwo-native-cpu", self.resolve())
+
+
+class ConsumerSourceOwnershipTests(unittest.TestCase):
+    def test_longest_owner_and_consumer_exclusions_match_existing_ownership_rule(self):
+        original = subject.load_contract(ROOT / "src/waist/core/package.contract.json")
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            parent = replace(original, package="parent", directory=root / "src/parent", consumer_subdirs=("external",))
+            child = replace(original, package="child", directory=parent.directory / "child", consumer_subdirs=("tools",))
+            child.directory.mkdir(parents=True)
+            (child.directory / "package.contract.json").write_text("{}")
+            contracts = {c.package: c for c in (parent, child)}
+            cases = [(parent.directory / "mod.zig", parent),
+                     (parent.directory / "external/source.zig", None),
+                     (parent.directory / "externality/source.zig", parent),
+                     (child.directory / "mod.zig", child),
+                     (child.directory / "tools/consumer.zig", None),
+                     (root / "src/parental/source.zig", None),
+                     (root / "scripts/task.py", None)]
+            for path, expected in cases:
+                with self.subTest(path=path):
+                    actual = subject.ci_package_graph.package_owner(contracts, path)
+                    self.assertIs(expected, actual)
+                    oracle = [c for c in contracts.values() if path.is_relative_to(c.directory) and subject.owned_by(c, path)]
+                    self.assertEqual([expected] if expected else [], oracle)
+            child = replace(child, consumer_subdirs=("tools/deferred",))
+            contracts["child"] = child
+            self.assertIs(child, subject.ci_package_graph.package_owner(contracts, child.directory / "tools/kept.zig"))
+            self.assertIsNone(subject.ci_package_graph.package_owner(contracts, child.directory / "tools/deferred/test.zig"))
+
+    def test_duplicate_owner_directories_are_errors_and_unowned_sources_remain_gaps(self):
+        original = subject.load_contract(ROOT / "src/waist/core/package.contract.json")
+        duplicate = replace(original, package="duplicate")
+        with self.assertRaises(subject.ci_package_graph.GraphError):
+            subject.ci_package_graph.package_owner({original.package: original, duplicate.package: duplicate}, original.directory / "mod.zig")
+        self.assertIsNone(subject.ci_package_graph.package_owner({}, ROOT / "scripts/dev_test.py"))
+        contracts = {original.package: original}
+        self.assertIs(original, subject.ci_package_graph.package_owner(contracts, original.directory / "fields/m31.zig"))
+        self.assertIsNone(subject.ci_package_graph.package_owner(contracts, ROOT / "scripts/dev_test.py"))
+
+
+class ConstructedProductDeclarationTests(unittest.TestCase):
+    def test_sdk_resolves_through_maintained_scope_and_actual_recorded_product(self):
+        actual = subject.ci_package_graph.read_product_declarations(ROOT, include_constructed=True)
+        self.assertEqual("package", actual["stwo"]["scope"])
+        self.assertEqual("products/libraries.addProducts", actual["stwo"]["constructor"])
+        self.assertEqual("build_support/products/libraries.zig", actual["stwo"]["builder_source"])
+        self.assertEqual("build_support/products/libraries.zig", actual["stwo"]["identity_source"])
+        self.assertEqual("build_support/products/core.zig", actual["stwo-core"]["builder_source"])
+
+    def test_constructed_identity_requires_real_scope_builder_and_observer_call(self):
+        from unittest import mock
+        cases = [("products/catalog.zig", '.product_id = "stwo",', '.product_id = "forged-sdk",'),
+                 ("products/catalog.zig", '"products/libraries.addProducts"', '"products/missing.addProducts"'),
+                 ("internal_build.zig", '@import("products/libraries.zig").addProducts', '@import("products/libraries.zig").other'),
+                 ("products/libraries.zig", 'construction_observer.recordProduct(context.b, sdkProduct());', '_ = sdkProduct;'),
+                 ("products/libraries.zig", '.name = "stwo",', '.name = "other-sdk",'),
+                 ("products/libraries.zig", '@import("../graph/construction_observer.zig")', '@import("../graph/modules.zig")')]
+        original = Path.read_text
+        for relative, before, after in cases:
+            path = ROOT / "build_support" / relative
+            text = original(path)
+            self.assertIn(before, text)
+            with self.subTest(relative=relative, before=before), mock.patch.object(
+                Path, "read_text", lambda p, *a, **k: text.replace(before, after, 1) if p == path else original(p, *a, **k),
+            ), self.assertRaises(subject.ci_package_graph.GraphError):
+                subject.ci_package_graph.read_product_declarations(ROOT, include_constructed=True)
+
+    def test_graph_metadata_import_and_literal_product_resolution_do_not_run_builds(self):
+        from unittest import mock
+        import subprocess
+        from scripts.repo import check_build_configure_closure
+        with mock.patch.object(subprocess, "run", side_effect=AssertionError("source-only stage")), mock.patch.object(
+            subprocess, "check_output", side_effect=AssertionError("no output catalog"),
+        ):
+            self.assertIn("stwo", check_build_configure_closure.read_product_declarations(ROOT, include_constructed=True))
+
+
+class ConsumerRootBindingTests(unittest.TestCase):
+    def exercise(self, mutation=None):
+        import json
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            provider = replace(subject.load_contract(ROOT / "src/waist/core/package.contract.json"), directory=root / "src/provider")
+            owner = replace(subject.load_contract(ROOT / "src/backends/cpu_scalar/package.contract.json"), directory=root / "src/consumer", dependencies={"stwo_core": "../provider"}, consumer_subdirs=())
+            relative = "src/consumer/contract_tests/stwo_core_test.zig"
+            row = {"id": "package:stwo_cpu_backend", "root": relative, "route": "dependency:stwo_core", "imports": ["stwo_core", "stwo_cpu_backend"], "tests": ["cdc: one", "cdc: two"]}
+            source = 'const std = @import("std"); const core = @import("stwo_core"); const witness = @import("stwo_cpu_backend");\ntest "cdc: one" {}\ntest "cdc: two" {}\n'
+            tracked = {relative}
+            if mutation:
+                row, source, owner, tracked = mutation(row, source, owner, tracked)
+            path = root / row["root"]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(source)
+            payload = json.loads((ROOT / "src/waist/core/package.contract.json").read_text())
+            payload.update(schema="stwo-zig-package-contract-v3", consumers=[row])
+            metadata = subject.ci_package_graph.parse_contract_metadata(payload, "fixture")
+            return subject.ci_package_graph.validate_package_consumer_sources(root, provider, metadata, {provider.package: provider, owner.package: owner}, tracked)
+
+    def test_actual_owner_route_imports_and_named_tests_are_source_consistent(self):
+        self.assertEqual([], self.exercise())
+        extra = '\n// @import("forged"); test "forged" {}\nconst ignored = "test \\"forged\\" {}";\n\\\\ @import("also_forged"); test "not_a_test" {}\n'
+        self.assertEqual([], self.exercise(lambda r, s, o, t: (r, s + extra, o, t)))
+
+    def test_source_mutations_reject_private_unregistered_or_disconnected_contracts(self):
+        mutations = [lambda r,s,o,t: (r,s,o,set()),
+                     lambda r,s,o,t: ({**r,"id":"package:unknown"},s,o,t),
+                     lambda r,s,o,t: (r,s,replace(o,dependencies={"stwo_core":"../other"}),t),
+                     lambda r,s,o,t: (r,s,replace(o,consumer_subdirs=("contract_tests",)),t),
+                     lambda r,s,o,t: (r,s.replace('@import("stwo_core")','@import("../private.zig")'),o,t),
+                     lambda r,s,o,t: (r,s.replace('@import("stwo_cpu_backend")','@import("other_consumer")'),o,t),
+                     lambda r,s,o,t: (r,s.replace('test "cdc: two"','test "cdc: one"'),o,t),
+                     lambda r,s,o,t: (r,s.replace('test "cdc: two" {}','const nested = struct { test "cdc: two" {} };'),o,t),
+                     lambda r,s,o,t: (r,s.replace('test "cdc: two"','test'),o,t),
+                     lambda r,s,o,t: ({**r,"route":"injected:stwo_core"},s,o,t),
+                     lambda r,s,o,t: ({**r,"route":"injected:stwo_core"},s,replace(o,injected_modules=frozenset({"stwo_core"})),t)]
+        for index, mutation in enumerate(mutations):
+            with self.subTest(index=index):
+                self.assertTrue(self.exercise(mutation))
+
+    def test_unimplemented_product_owner_routes_fail_closed(self):
+        self.assertTrue(self.exercise(lambda r,s,o,t: ({**r,"id":"product:stwo-native-cpu","route":"product:stwo-native-cpu"},s,o,t)))
+
+
 if __name__ == "__main__":
     unittest.main()

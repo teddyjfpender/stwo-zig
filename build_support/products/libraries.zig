@@ -248,6 +248,28 @@ pub fn addProducts(context: Context) Result {
         context.optimize,
         stwo,
     );
+    const cdc = @import("package_dependencies.zig");
+    const consumer_step = context.b.step("test-cdc-stwo-core", "Run registered consumer-owned Core contracts");
+    const source_check = context.b.addSystemCommand(&.{ "python3", "scripts/repo/check_package_workspace.py" });
+    source_check.setCwd(context.b.path("."));
+    for (cdc.coreConsumers(context.b)) |registration| {
+        if (!std.mem.startsWith(u8, registration.id, "package:")) @panic("unsupported consumer kind");
+        const owner_name = registration.id["package:".len..];
+        const owner = stwo.import_table.get(owner_name) orelse @panic("missing actual consumer module");
+        const provider = owner.import_table.get("stwo_core") orelse @panic("consumer missing canonical Core");
+        if (provider != prover.protocol.core) @panic("consumer/provider Core module identity mismatch");
+        const root = graph.create(context.b, .{ .product = sdkProduct(), .root_source_file = registration.root, .target = context.target, .optimize = context.optimize });
+        for (registration.imports) |name| root.addImport(name, stwo.import_table.get(name) orelse @panic("unbound consumer public import"));
+        const name = context.b.fmt("cdc-stwo-core-{s}-{s}", .{ owner_name, @tagName(context.optimize) });
+        const artifact = context.b.addTest(.{ .name = name, .root_module = root });
+        artifact.step.dependOn(&source_check.step);
+        const run = context.b.addRunArtifact(artifact);
+        run.setCwd(context.b.path("."));
+        consumer_step.dependOn(&run.step);
+        const install = context.b.addInstallArtifact(artifact, .{ .dest_sub_path = name });
+        consumer_step.dependOn(&install.step);
+    }
+
     const native_examples = graph.addNativeExamplesImport(
         context.b,
         prover.protocol,

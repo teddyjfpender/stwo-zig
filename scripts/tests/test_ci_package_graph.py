@@ -23,8 +23,8 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # The workspace validator's edge count. A change here means a real dependency
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
-EXPECTED_PACKAGES = 27
-EXPECTED_EDGES = 107
+EXPECTED_PACKAGES = 36
+EXPECTED_EDGES = 170
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
@@ -442,6 +442,56 @@ class PlanIntegrationTest(unittest.TestCase):
             ["README.md", "src/waist/core/a.zig"], self.catalog, POLICY, self.packages
         )
         self.assertEqual(first, second)
+
+
+class CoreConsumerExecutionContractTests(unittest.TestCase):
+    def data(self):
+        payload = json.loads((ROOT / "src/waist/core/package.contract.json").read_text())
+        return payload, payload["consumers"][0]
+
+    def test_core_registers_real_cpu_owned_root_and_preserves_provider_commands(self):
+        payload, entry = self.data()
+        self.assertEqual("stwo-zig-package-contract-v3", payload["schema"])
+        self.assertEqual("package:stwo_cpu_backend", entry["id"])
+        self.assertEqual("src/backends/cpu_scalar/contract_tests/stwo_core_test.zig", entry["root"])
+        self.assertEqual(["stwo_core", "stwo_cpu_backend"], entry["imports"])
+        self.assertEqual(3, len(entry["tests"]))
+        policy = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text())
+        commands = policy["lanes"]["core"]["commands"]
+        for mode in ("Debug", "ReleaseFast"):
+            self.assertIn(["zig", "build", "test-cdc-stwo-core", "-Doptimize=" + mode, "-j2"], commands)
+        self.assertTrue(any(command[:3] == ["zig", "build", "test-fields"] for command in commands))
+        self.assertTrue(any(command[:3] == ["zig", "build", "test-stwo-core"] for command in commands))
+        self.assertTrue(any("--build-file" in command and command[2] == "test" for command in commands))
+
+    def test_developer_entrypoint_runs_registered_modes_and_defers_check_only(self):
+        from scripts import dev_test
+        _, entry = self.data()
+        expected = [["zig", "build", "test-cdc-stwo-core", "-Doptimize=" + mode, "-j1"] for mode in ("Debug", "ReleaseFast")]
+        self.assertEqual(expected, dev_test.commands_for_paths(ROOT, [entry["root"]]))
+        deferred = []
+        self.assertEqual([], dev_test.commands_for_paths(ROOT, [entry["root"]], check_only=True, deferred=deferred))
+        self.assertTrue(deferred)
+
+    def test_consumer_root_changes_select_provider_and_existing_owner_closure(self):
+        _, entry = self.data()
+        packages = graph.load_packages(ROOT)
+        policy = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text())
+        lanes, unowned = graph.selection([entry["root"]], packages, graph.lane_packages(policy, packages))
+        self.assertFalse(unowned)
+        self.assertTrue({"core", "cpu_backend"} <= lanes)
+
+    def test_registered_core_mode_cannot_be_dropped_or_replaced_by_a_compile_only_command(self):
+        from scripts.repo import check_package_workspace
+        provider = check_package_workspace.load_contract(ROOT / "src/waist/core/package.contract.json")
+        policy = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text())
+        self.assertEqual([], graph.consumer_ci_errors(provider, policy))
+        for mode in ("Debug", "ReleaseFast"):
+            altered = json.loads(json.dumps(policy))
+            command = ["zig", "build", "test-cdc-stwo-core", "-Doptimize=" + mode, "-j2"]
+            altered["lanes"]["core"]["commands"].remove(command)
+            altered["lanes"]["core"]["commands"].append([*command, "-Dcheck-only=true"])
+            self.assertTrue(graph.consumer_ci_errors(provider, altered))
 
 
 if __name__ == "__main__":

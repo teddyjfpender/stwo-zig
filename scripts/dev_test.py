@@ -352,6 +352,19 @@ def commands_for_paths(
     policy = ci_scope_plan.strict_json(root / "conformance/ci-touchpoints-v1.json")
     ci_scope_plan.validate_policy(policy)
     bindings = ci_package_graph.lane_packages(policy, packages)
+    consumer_paths = {path: package for package in packages.values() for path in package.consumer_roots}
+    for path in paths:
+        if path not in consumer_paths:
+            continue
+        provider = consumer_paths[path]
+        if check_only:
+            if deferred is None:
+                raise DevTestError("consumer contracts require execution, not check-only")
+            deferred.append(provider.name + " consumer contracts (execution required)")
+        else:
+            for mode in ((optimize,) if optimize else ("Debug", "ReleaseFast")):
+                commands.append(["zig", "build", "test-cdc-" + provider.name.replace("_", "-"), "-Doptimize=" + mode, "-j1"])
+    paths = [path for path in paths if path not in consumer_paths]
     selected: dict[str, list[str]] = {}
     extra_lanes: set[str] = set()
     unowned: list[str] = []

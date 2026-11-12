@@ -118,6 +118,20 @@
           "src/waist/core/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-core",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-core",
+          "-Doptimize=ReleaseFast",
+          "-j2"
         ]
       ]
     },

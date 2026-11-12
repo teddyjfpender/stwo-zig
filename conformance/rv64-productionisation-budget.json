@@ -1044,6 +1044,20 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Strict private CPU smoke consumers for retained legacy schema pairs and the actual full-width BLAKE3 producer/verifier, source-pinned hosted report fixtures, identity/PCS/phase/ambiguity negatives, separate CLI admission/proof release metadata and independent workload-input binding. No producer, public API, proof suite/default, pin, corpus, floor or timeout changes. Issue #349."
+    },
+    {
+      "id": "waist_consumer_contracts_366_367",
+      "net_code_budget": 2400,
+      "validator_build_code_budget": 650,
+      "consumer_negative_test_code_budget": 1750,
+      "initial_metadata_stage_net_budget": 300,
+      "runtime_public_api_added_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "top_level_scripts_added_budget": 0,
+      "positive_growth_justification": "Approved RFC367 consumer-owned waist behavior, strict v2/v3 metadata and real source ownership/module identity/discovery gates; initial schema-only checkpoint does not admit unvalidated v3 registrations. Full D3 and populated/enforced D5 remain open.",
+      "scope": "Existing metadata/build/CI owners and consumer test roots only. Preserve provider commands/versions, proof bytes, actual rejection checks and all D2/D4 gates; no GPU execution or new launcher.",
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/367#issuecomment-6752608217"
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

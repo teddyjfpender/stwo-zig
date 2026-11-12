@@ -97,6 +97,7 @@ class Contract:
     # Sub-directories that live beside the package but are not part of it
     # (product tools, benchmarks, system tests that consume the package).
     consumer_subdirs: tuple[str, ...] = ()
+    metadata: ci_package_graph.ContractMetadata | None = None
 
 
 def _object(value: Any, label: str) -> dict[str, Any]:
@@ -131,29 +132,8 @@ def owned_by(contract: Contract, source: Path) -> bool:
 
 
 def load_contract(path: Path) -> Contract:
-    payload = _object(json.loads(path.read_text(encoding="utf-8")), str(path))
-    expected_fields = {
-        "schema",
-        "package",
-        "version",
-        "layer",
-        "owner",
-        "public_modules",
-        "dependencies",
-        "injected_modules",
-        "api_surface",
-        "api_contract",
-        "ci",
-    }
-    optional_fields = {"consumer_subdirs"}
-    if not expected_fields <= set(payload) or set(payload) - expected_fields - optional_fields:
-        raise ValueError(
-            f"{path}: contract fields differ: "
-            f"missing={sorted(expected_fields - set(payload))}, "
-            f"extra={sorted(set(payload) - expected_fields - optional_fields)}"
-        )
-    if payload["schema"] != SCHEMA:
-        raise ValueError(f"{path}: unknown schema {payload['schema']!r}")
+    payload = _object(ci_package_graph.load_contract_payload(path), str(path))
+    metadata = ci_package_graph.parse_contract_metadata(payload, str(path))
     package = payload["package"]
     version = payload["version"]
     layer = payload["layer"]
@@ -232,6 +212,7 @@ def load_contract(path: Path) -> Contract:
             invariant_tests=tuple(invariant_tests),
         ),
         consumer_subdirs=tuple(consumer_subdirs),
+        metadata=metadata if payload["schema"] == "stwo-zig-package-contract-v3" else None,
         ci_lane=ci["lane"],
         ci_host=ci["host"],
         ci_command=tuple(command),
@@ -801,6 +782,7 @@ def check_repository(repository: Path) -> list[str]:
     _validate_aggregate_manifests(repository, contracts, failures)
     _validate_ownership_projection(repository, contracts, failures)
     _validate_ci_contracts(repository, contracts, failures)
+    failures.extend(ci_package_graph.validate_registered_consumers(repository, {c.package: c for c in contracts}))
     return failures
 
 
