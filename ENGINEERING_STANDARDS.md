@@ -1,15 +1,21 @@
 # Engineering Standards
 
 Status: **normative**. This document is the contribution specification for the
-repository. Every change, whether written by a person, an agent, or both, MUST
-conform to it. A pull request that violates a rule marked *enforced* is rejected;
-a pull request that violates a rule marked *planned* is rejected at review once
-that rule's phase begins, and SHOULD conform before then.
+repository. Every contributor, human or agent, MUST follow its collaboration,
+boundary, evidence and review rules. Automation is only one enforcement method;
+an absent CI check does not authorize a new violation. Existing rollout gaps
+remain explicit in section 11 and MUST NOT be presented as completed work.
 
 [CONTRIBUTING.md](CONTRIBUTING.md) holds the domain engineering practice (Zig,
 memory, SIMD, GPU, cryptographic parity, benchmarking) that implements this
 standard. Where the two disagree, this document wins and CONTRIBUTING.md is
 corrected.
+
+Source: the maintainer-supplied **Engineering Collaboration.docx**
+(SHA-256 `066a32ddc38e7325648ae5745838bd5edf4a624f2543098447c6482af5b880d1`).
+This standard makes that document's collaboration model operational for this
+repository, together with the maintainer's delivery rules. The Word document
+need not be installed or available to contribute; the requirements are here.
 
 The key words MUST, MUST NOT, REQUIRED, SHOULD, SHOULD NOT and MAY are to be
 interpreted as described in RFC 2119.
@@ -22,11 +28,15 @@ Each rule names how it is checked:
 | --- | --- |
 | **Enforced** | A gate in this repository fails the change today. |
 | **Review** | Checked by the reviewer against the checklist in section 9; no automated gate yet. |
-| **Phase N** | Becomes a blocking gate in Phase N of [the restructure plan](design/repository/restructure-plan.md). Until then it is a review rule. |
+| **Phase N** | Rollout work in Phase N of [the restructure plan](design/repository/restructure-plan.md). Review applies now; automated coverage is incomplete and must not be claimed. |
 
 The phases are: **Phase 0** trunk and gates; **Phase 1** thin waist;
 **Phase 2** complexity paydown; **Phase 3** evidence out, process in.
 Section 11 lists the current gaps honestly. A gap is not a waiver.
+Any exception MUST name the invariant owner, exact affected scope, reason,
+expiry or removal condition, retained safety checks and rollback in a GitHub
+issue. A temporary exception does not exempt unrelated code or silently change
+a gate. An approved follow-up is not evidence that the deferred work passed.
 
 ## 2. Model of collaboration
 
@@ -52,6 +62,21 @@ Three principles govern every change:
 3. **No cross-boundary leaks.** Representation, policy and concurrency details
    stay behind the boundary that owns them.
 
+Contributors MAY choose their own tooling and internal process. They MUST NOT
+require another contributor to understand that process, a private representation
+or an undeclared configuration convention to use a package. The collaboration
+surface is the declared contract and its executable specification.
+
+The invariant owner decides changes to that surface. A contributor or agent
+MUST NOT infer approval from silence, a passing implementation test, ownership
+of a product roadmap, or the ability to edit a contract file. Delegation must be
+explicit in the issue; a delegated decision must identify itself as such.
+
+People own decomposition, contract design and review for correctness, security
+and taste. Agents implement, exercise edge cases and refactor within the agreed
+boundary. Generated code, confident explanations and agreement between agents
+do not replace contract tests, independent verification or human accountability.
+
 ## 3. Thin-waist architecture
 
 The repository has a narrow, boring, stable core interface with fast-moving
@@ -75,10 +100,10 @@ Rules:
   (`protocol` depends on nothing; `contract`/`api`/`interchange` on `protocol`;
   `engine` on the waist; `frontend` and `backend` on the waist and `engine`;
   `integration` composes). Checked by `scripts/repo/check_package_workspace.py`
-  (`zig build package-workspace`). *Phase 0*: the checker exists but reports
-  830 findings at `51897dc26` (374 undeclared imports, 215 stale contract
-  entries, 50 loose `src/` roots reaching into packages) and runs only in the
-  release workflow; it becomes passing and blocking on every PR in Phase 0.
+  (`zig build package-workspace`). *Enforced*: the `Package workspace contracts`
+  PR check is required following PR #339. Its zero-finding result covers the
+  checker's declared workspace; it does not certify every legacy placement or
+  undeclared product boundary elsewhere in the repository.
 - **TW-3.** Generic prover code MUST NOT name or branch on a concrete backend,
   and backend runtime details (Objective-C, MSL, CUDA) MUST NOT cross into
   waist types. *Review*; import edges checked by TW-2.
@@ -86,7 +111,7 @@ Rules:
 ## 4. Boundaries are contracts
 
 A boundary is not a document. It is a schema, a set of tests and a
-compatibility rule. Each of the 27 packages under `src/` declares its boundary
+compatibility rule. Each of the 36 packages under `src/` declares its boundary
 in `package.contract.json` (schema `stwo-zig-package-contract-v2`: `package`,
 `version`, `layer`, `owner`, `public_modules`, `dependencies`,
 `injected_modules`, `api_surface`, `api_contract`, `ci`) and its build closure
@@ -100,14 +125,14 @@ Every boundary MUST have:
 
 | ID | Requirement | How it is checked |
 | --- | --- | --- |
-| BC-1 | **Schema / types.** The public module and exact top-level API are declared (`public_modules`, `api_surface`). | Checked by `check_package_workspace.py` (fails when the public declarations differ from `api_surface`); not yet passing or PR-blocking, see TW-2. *Phase 0.* |
-| BC-2 | **Error model.** Each public operation documents which errors it returns, when, and whether a retry is safe; error sets are part of the API. Where a boundary is a process or wire boundary, errors carry stable codes; retry, idempotency and timeout semantics are stated. | *Phase 1.* No stable error-code model exists today. |
-| BC-3 | **Executable invariants.** Signature and invariant tests are listed in `api_contract` and resolve to exactly one test reachable from the public module. | Checked by `check_package_workspace.py`; not yet passing or PR-blocking, see TW-2. *Phase 0.* |
-| BC-4 | **Consumer-driven contract tests.** Each consumer of a waist package owns tests, run in the provider's lane, that pin the behavior it relies on. A failing CDC test means a collaboration rule was broken. | *Phase 1.* Not present today. |
-| BC-5 | **Property tests** for core invariants (field laws, transcript determinism, serialization round-trips, fold/commit equivalence), with fixed seeds. | *Phase 2.* Coverage is sparse today. |
+| BC-1 | **Schema / types.** The public module and exact top-level API are declared (`public_modules`, `api_surface`). | *Enforced* by the required workspace check; public declarations must match `api_surface`. |
+| BC-2 | **Error model.** Each public operation documents which errors it returns, when, and whether a retry is safe; error sets are part of the API. Where a boundary is a process or wire boundary, errors carry stable codes; retry, idempotency and timeout semantics are stated. | *Phase 1.* The origin-specific circuit decoder stage is qualified; coverage of the remaining boundaries is incomplete. |
+| BC-3 | **Executable invariants.** Signature and invariant tests are listed in `api_contract` and resolve to exactly one test reachable from the public module. | *Enforced* for declaration/reachability by the required workspace check; actual behavior still requires execution of the owning suite. |
+| BC-4 | **Consumer-driven contract tests.** Each consumer of a waist package owns tests, run in the provider's lane, that pin the behavior it relies on. A failing CDC test means a collaboration rule was broken. | *Phase 1.* CPU-owned Core contracts execute in both provider modes; the remaining consumer obligations are open. |
+| BC-5 | **Property tests** for core invariants (field laws, transcript determinism, serialization round-trips, fold/commit equivalence), with fixed seeds. | *Phase 2.* Fixed-seed field, FRI, Merkle and wire properties are installed; complete boundary/fuzz coverage is open. |
 | BC-6 | **Golden vectors** for trusted behavior: proofs and transcripts that MUST stay byte-identical unless the protocol revision changes. | *Enforced*: committed vectors under `vectors/`, `zig build vectors`, Rust-oracle parity (`conformance/upstream.md`), and `scripts/rv64_gate.sh` (frozen D2 golden fingerprints, fresh CPU receivers, semantic negative corpus). |
-| BC-7 | **Explicit compatibility policy.** `version` follows semantic versioning: a removed or changed public symbol or behavior is a major bump; an addition is a minor bump. | *Phase 1.* All packages are at `0.1.0` and versions are not yet checked against API diffs. |
-| BC-8 | **Named owner.** `owner` names the invariant owner role (section 6) for the boundary. | *Enforced* (field required); role resolution *Phase 0*. |
+| BC-7 | **Explicit compatibility policy.** `version` follows semantic versioning: a removed or changed public symbol or behavior is a major bump; an addition is a minor bump. | *Phase 1.* Five waist surfaces have an unpublished `1.0.0-rc.1` candidate; full API-diff compatibility and release qualification remain incomplete. |
+| BC-8 | **Named owner.** `owner` names the invariant owner role (section 6) for the boundary. | *Enforced* for declared roles and exact CODEOWNERS routes by the workspace check. Review routing does not itself grant an RFC decision or configure branch protection. |
 
 Rules for contributors:
 
@@ -122,6 +147,13 @@ Rules for contributors:
   classification MUST NOT be relaxed to obtain a passing result. *Review*;
   golden and corpus gates *enforced*.
 
+Contract coverage MUST exercise the behavior consumers actually use, including
+failure and cleanup paths. A schema parser, declaration search or compile-only
+test MUST NOT be reported as executed consumer behavior. Stable error codes at
+process/wire boundaries, retry and idempotency rules, timeout ownership and
+failure timing belong to the contract. A new side effect or timing guarantee
+is a contract change even if a function signature stays the same.
+
 ## 5. Repository structure
 
 - **RS-1. No loose source files in high-level directories.** Every directory
@@ -129,8 +161,9 @@ Rules for contributors:
   `package.contract.json`, `build.zig.zon` and one declared root module) or a
   *container of packages* that holds no source of its own. Test roots, CLIs and
   code generators live inside the package that owns what they exercise.
-  *Phase 0* (structure gate in the package-workspace audit). Today `src/` holds
-  ~36 loose files and `tests/` holds loose Zig roots; Phase 0 removes them.
+  *Phase 0* (structure checks in the package-workspace audit). Remaining legacy
+  and product-placement work is tracked in the restructure plan; a passing
+  workspace audit MUST NOT be used as a claim that all such work is complete.
 - **RS-2. Relative imports MUST NOT enter another package.** Cross-package use
   goes through the declared module name. *Enforced* by
   `check_package_workspace.py` (current violations are tracked by RS-1).
@@ -185,6 +218,13 @@ When a contract change is believed necessary:
    4. deprecate the old form with a dated removal plan, then remove it in a
       later change once no consumer uses it.
 
+Use the team's discussion channel for discussion when applicable, and copy the
+decision back to the issue. An agent sends messages to other people only when
+explicitly authorized; this rule is not permission to post automatically.
+Record affected consumers, migration order and the test evidence for removal.
+The default is compatibility first, not a simultaneous break that forces every
+consumer to follow a moving implementation.
+
 Rules:
 
 - **AC-1.** A PR that changes a contract (BC-R2) MUST link an approved RFC
@@ -210,13 +250,16 @@ flag fails the source conformance check. Other flag families are not yet
 registered (*Phase 2*). *Enforced* (`zig build source-conformance`,
 `scripts/repo/check_source_conformance.py`); per-PR budget comparison *Phase 0*.
 
-**Module budget.** Each package tracks: public surface (`api_surface` size),
-dependency count and allowed dependency layers, file size and control-flow
-depth ceilings (source conformance ratchets), and, where relevant, allocation
-and latency ceilings. Surface and dependencies are *enforced* as exact
-ledgers; per-package numeric budgets are *Phase 2*.
+**Module budget.** Track public surface (`api_surface` size), dependency count
+and allowed dependency classes, cyclomatic complexity on hot paths, and
+allocation counts and latency ceilings where relevant. File-size and nesting
+ratchets are useful proxies; they do not prove cyclomatic, allocation or latency
+bounds. Surface and dependencies are *enforced* as exact ledgers. Complete
+per-package numeric and runtime-budget enforcement remains rollout work;
+measurement and owner review are required when spending complexity now.
 
-**CB-1.** Every PR MUST report its complexity budget in this format:
+**CB-1.** Set a subtraction budget before editing. Every commit and PR MUST
+report the measured delta in this format:
 
 ```text
 Complexity budget
@@ -238,22 +281,31 @@ Complexity budget
 - **CB-3.** "Clean it up later" is not a plan. A slice is finished when its
   temporary code, flags and exploratory exports are gone. Known follow-up work
   goes in a linked issue, not in the code. *Review*.
+- **CB-4.** Do not build a permanent ABI, schema or configuration layer merely
+  to preserve controls already scheduled for retirement. Delete obsolete
+  behavior with its exclusively retired tests; retain tests for live behavior.
+  Any temporary exception follows section 1 and keeps the remaining check
+  strict. A new flag needs an owner, default, status and expiry/removal plan;
+  it is not the default rollback mechanism for every change. *Review*.
 
 ## 8. Way of working
 
 - **WW-1. Executable specification first.** Feature work starts from an issue
   (the *Feature / vertical slice* template) that states the contract and the
   failing tests or vectors that define done. *Review*.
-- **WW-2. Trunk-based integration.** Changes integrate into `main` in small,
-  complete slices behind flags where necessary; long-lived branches and
-  integration stacks are not a delivery mechanism. A flag has an owner, a
-  default and a removal date in the flag registry. *Phase 0*: `main` became the
-  trunk when the long-lived integration stack merged (PR #314); keeping it that
-  way is a review rule until branch-age checks exist, and ~297 RV64 flags are registered (~260 live) against a live
-  target of 59.
+- **WW-2. Trunk-based integration.** Start a short-lived branch from current
+  `main`, one coherent item or mechanical sweep per PR; merge when its stated
+  gates pass. Long-lived integration stacks are not a delivery mechanism.
+  Push after each green slice and keep at most two unpushed commits. Preserve
+  necessary incomplete work on an explicitly unqualified backup ref, with its
+  missing gates; a backup is not merge evidence. *Review*.
 - **WW-3. Tests are the arbiter.** Agents and people do not argue
   correctness; the contract suites, golden vectors and verifiers decide.
-  RED → GREEN → REFACTOR is the loop.
+  For correctness work, reproduce the failure and protect the invariant before
+  repairing it. Mechanical moves/deletions use existing ownership, discovery,
+  CPU and byte-identity gates; they do not require invented per-line evidence.
+  RED → GREEN → REFACTOR describes the feedback loop, not a reason to add tests
+  that only mirror an implementation. *Review*.
 - **WW-4. Division of labor.** People own decomposition, contract design and
   review for correctness, security and taste. Agents implement, enumerate edge
   cases and refactor *within* a boundary. An agent MUST NOT change a contract
@@ -263,6 +315,25 @@ Complexity budget
   regression basket (`scripts/rv64_m8_bench15.py`) for performance claims.
   Local gate receipts are the merge evidence where hosted CI cannot run a lane.
   *Enforced* by the pre-push hook for touched products; *Review* for receipts.
+- **WW-6. Bound execution.** Heavy compiler or complete-block work MUST NOT
+  run on the laptop. Use hosted CPU CI or the qualified host. Small local
+  checks require `memguard` or an equivalent enforced memory cap; `-j1` alone
+  is not a memory limit. Freeze source for builds/measurements and use the
+  shared build lock; hardware harnesses own the GPU lock. Hardware spending
+  and GPU execution remain subject to the user's authorization. *Review*.
+- **WW-7. Stop and hand over.** An explicit stop/pause ends new work
+  immediately. If preservation is requested, limit it to committing/pushing
+  existing changes and recording exact heads, receipts, failures and next
+  gates. Stop owned workers/measurements, verify their terminal state, and
+  disclose any ordinary CI left running. Do not add fixes during wrap-up or
+  resume a paused campaign without a new instruction. *Review*.
+- **WW-8. Set the merge bar.** State affected suites, CPU acceptance, selected
+  frozen byte-identity reference and required negative corpus before a PR
+  grows. Check the final head and keep scope fixed. Infrastructure timeouts
+  may be repaired without changing commands, floors, thresholds or audits.
+  Classify inherited failures against an exact baseline and record any
+  owner-approved follow-up; do not suppress a correctness failure or describe
+  a partially green workflow as wholly green. *Review*.
 
 ## 9. Review checklist: no complexity leaks
 
@@ -291,6 +362,12 @@ Boundary-specific (apply those that fit the change):
 - [ ] Does anything rely on behavior not covered by the provider's contract
       suite?
 
+Before approving, verify the issue and any RFC decision, affected consumers,
+error/compatibility semantics, measured benefit and containment for budget
+growth, rollback/removal plan, and the exact scope of executed evidence.
+Reviewers MUST request changes when a requirement is violated; fluent prose or
+an unrelated green lane is not a substitute for these checks.
+
 ## 10. Determinism, reproducibility and security
 
 Reproducibility is an invariant, not a convenience:
@@ -306,6 +383,12 @@ Reproducibility is an invariant, not a convenience:
 - **DR-5.** No hidden machine state: results depend only on pinned source,
   binaries, runtime and workload, recorded in the receipt. *Enforced* for RV64
   gate receipts; *Review* elsewhere.
+- **DR-6.** Report PASS, FAIL, UNRUN, CANCELLED or DEFERRED for each required
+  gate, with the exact source, command, environment and receipt. Compile-only,
+  host/fake-device, hardware correctness, physical memory and qualified timing
+  are distinct evidence. Preserve negative results. Verify proof bytes and
+  independent acceptance before trusting timing; component tests and warm
+  timings do not qualify a complete production path or a default flip. *Review*.
 
 Agents increase supply-chain and leakage risk, so these gates run
 automatically ([`.github/workflows/standards.yml`](.github/workflows/standards.yml)):
@@ -327,21 +410,27 @@ automatically ([`.github/workflows/standards.yml`](.github/workflows/standards.y
 
 ## 11. Known gaps
 
-These are the places where the repository does not yet meet this standard.
-Each is owned by a phase of [the restructure plan](design/repository/restructure-plan.md).
+This is an implementation-status ledger, not an exception to the rules above.
+Read the current contracts, workflows and linked issues when claiming closure;
+unmerged branches and draft prototypes are not installed enforcement.
+
+The required workspace gate landed in PR #339; named owner routing is recorded
+in issue #341, and branch archival/deletion landed in PR #337. CODEOWNERS routes
+the invariant-owner roles to `@teddyjfpender`. It routes review, not approval.
+These results do not establish complete boundary, security or release coverage.
 
 | Gap | Rules | Phase |
 | --- | --- | --- |
-| Trunk-based development only just started (the integration stack merged into `main` in PR #314); ~538 remote branches remain. | WW-2 | 0 |
-| Package-workspace audit is not blocking on PRs and currently reports 830 findings (undeclared imports, stale contract entries, loose `src/` roots). | TW-2, RS-1, RS-2 | 0 |
-| No toolchain pin files. | DR-2 | 0 |
-| Contract-change ownership is not enforced by CODEOWNERS (owners are roles, not people). | BC-8, AC-1 | 0 |
-| No stable error-code model at process and wire boundaries. | BC-2 | 1 |
-| No consumer-driven contract tests. | BC-4 | 1 |
-| All 27 packages at `0.1.0`; versions not checked against API diffs. | BC-7 | 1 |
-| ~297 registered RV64 environment flags (~260 live) against a live target of 59; other flag families unregistered. | WW-2, CB-2 | 2 |
-| Little property or fuzz testing. | BC-5, SL-3 | 2 |
-| Evidence, receipts and source snapshots stored inside the source tree. | RS-4 | 3 |
+| Branch lifetime/push discipline is reviewed; no blanket automated branch-age or two-unpushed-commit check is claimed. | WW-2 | 0 |
+| Remaining RISC-V subpackage and Ethereum product ownership work; zero workspace findings do not prove every product boundary. | TW-2, RS-1, RS-3; issues #335, #336 | 0 |
+| Complete reproducible setup across all pinned toolchains and supported hosts. CI version checks alone are insufficient. | DR-1, DR-2 | 0 |
+| Stable process/wire error codes and semantics across all waist boundaries remain incomplete. | BC-2; issue #359 | 1 |
+| Consumer-owned execution across all five waist providers remains incomplete; one candidate consumer is not full coverage. | BC-4; issue #366 | 1 |
+| Waist release-candidate freeze and API-diff compatibility enforcement remain incomplete. | BC-7; issue #354 | 1 |
+| Populated, blocking per-package complexity budgets, hot-path complexity and runtime ceilings remain incomplete. | CB-1, CB-2; issue #370 | 1/2 |
+| RV64 live-flag target remains below 60; other flag families also need complete registration. Read the registry for current counts. | CB-4; issue #332 | 2 |
+| Complete property/fuzz coverage, including both Debug and ReleaseFast for numerical invariants. | BC-5, SL-3; issue #347 | 1/2 |
+| Remaining vector ownership and historical evidence/source-snapshot extraction. | RS-4; issue #362 | 3 |
 
 ## 12. The short form
 
