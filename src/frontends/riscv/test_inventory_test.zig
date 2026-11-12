@@ -30,6 +30,12 @@ const inventories = [_]struct { prefix: []const u8, module: []const u8, source: 
 
 /// Files that hold tests and are deliberately absent from the inventory.
 const excluded = [_]struct { path: []const u8, why: []const u8 }{
+    .{ .path = "testing/cases/air/lang/tests/typed_base_alu_imm_witness_performance_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
+    .{ .path = "testing/cases/air/lang/tests/typed_base_alu_reg_witness_performance_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
+    .{ .path = "testing/cases/air/lang/tests/typed_mulh_witness_performance_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
+    .{ .path = "testing/cases/air/lang/tests/typed_shifts_reg_witness_performance_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
+    .{ .path = "compat/benchmarks/typed_legacy_benchmark_registration_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
+    .{ .path = "focused_legacy_benchmarks_test_root.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
     .{ .path = "testing/focused_test_typed_witness_benchmarks_0.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
     .{ .path = "testing/cases/air/lang/tests/typed_branch_eq_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
     .{ .path = "testing/cases/air/lang/tests/typed_branch_lt_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },

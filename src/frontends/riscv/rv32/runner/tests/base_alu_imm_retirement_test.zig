@@ -268,7 +268,7 @@ test "E-020 BASE_ALU_IMM cold reserve rejects external-clock reentrancy" {
     try exec_trace.validateClockRange(0, 1, 1);
 }
 
-test "E-020 BASE_ALU_IMM retirement retains paired legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try subject.authenticateCanonical(std.testing.allocator);
     // Prime code pages and allocator capacity classes outside the paired

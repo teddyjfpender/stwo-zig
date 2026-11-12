@@ -430,6 +430,25 @@ pub const testing = struct {
         pub const guest_precompile = struct {
             pub const test_elf = @import("runner/guest_precompile/test_elf.zig");
         };
+        pub const tests = struct {
+            pub const auipc_retirement_test = @import("runner/tests/auipc_retirement_test.zig");
+            pub const base_alu_imm_retirement_test = @import("runner/tests/base_alu_imm_retirement_test.zig");
+            pub const base_alu_reg_retirement_test = @import("runner/tests/base_alu_reg_retirement_test.zig");
+            pub const branch_eq_retirement_test = @import("runner/tests/branch_eq_retirement_test.zig");
+            pub const branch_lt_retirement_test = @import("runner/tests/branch_lt_retirement_test.zig");
+            pub const div_retirement_test = @import("runner/tests/div_retirement_test.zig");
+            pub const fence_retirement_test = @import("runner/tests/fence_retirement_test.zig");
+            pub const jal_retirement_test = @import("runner/tests/jal_retirement_test.zig");
+            pub const jalr_retirement_test = @import("runner/tests/jalr_retirement_test.zig");
+            pub const load_store_retirement_test = @import("runner/tests/load_store_retirement_test.zig");
+            pub const lt_imm_retirement_test = @import("runner/tests/lt_imm_retirement_test.zig");
+            pub const lt_reg_retirement_test = @import("runner/tests/lt_reg_retirement_test.zig");
+            pub const lui_retirement_test = @import("runner/tests/lui_retirement_test.zig");
+            pub const mul_retirement_test = @import("runner/tests/mul_retirement_test.zig");
+            pub const mulh_retirement_test = @import("runner/tests/mulh_retirement_test.zig");
+            pub const shifts_imm_retirement_test = @import("runner/tests/shifts_imm_retirement_test.zig");
+            pub const shifts_reg_retirement_test = @import("runner/tests/shifts_reg_retirement_test.zig");
+        };
         pub const witness = struct {
             pub const auipc_legacy_test_oracle = @import("runner/witness/auipc_legacy_test_oracle.zig");
             pub const base_alu_imm_legacy_test_oracle = @import("runner/witness/base_alu_imm_legacy_test_oracle.zig");
@@ -453,6 +472,9 @@ pub const testing = struct {
     pub const inventory_source = @embedFile("tests/root.zig");
     pub const prover = struct {
         pub const test_witness_hook = @import("prover/test_witness_hook.zig");
+        pub const tests = struct {
+            pub const interaction_trace_plan_performance_test = @import("prover/tests/interaction_trace_plan_performance_test.zig");
+        };
     };
     pub const recursion = struct {
         pub const span_statement_blake3_test_fixture = @import("recursion/span_statement_blake3_test_fixture.zig");

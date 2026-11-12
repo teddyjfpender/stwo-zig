@@ -243,7 +243,7 @@ test "typed LUI production authority is singular and allocation-free by construc
     }
 }
 
-test "typed LUI authority hot rows retain paired legacy throughput and scaling" {
+pub fn benchmarkLegacyThroughput() !void {
     // Correctness and allocation-shaped execution run in every mode above.
     // Wall-clock admission is intentionally ReleaseFast-only: Debug/Safe
     // instrumentation measures a different program and is too noisy to be a

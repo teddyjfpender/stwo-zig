@@ -272,7 +272,7 @@ test "typed AUIPC warm fused path performs no allocation" {
     try std.testing.expectEqual(@as(usize, iterations), tracker.accesses.items.len);
 }
 
-test "typed AUIPC retirement retains at least 97 percent legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try authenticatedAuthority();
     const samples = 9;

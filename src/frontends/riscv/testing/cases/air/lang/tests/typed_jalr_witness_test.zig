@@ -279,7 +279,7 @@ test "typed JALR production authority is singular and allocation-free by constru
     }
 }
 
-test "typed JALR authority hot rows retain paired legacy throughput and scaling" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
 
     const allocator = std.testing.allocator;

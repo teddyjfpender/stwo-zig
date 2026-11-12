@@ -280,7 +280,7 @@ test "SHIFTS_REG cold allocation failure is atomic and warm path allocates nothi
     try std.testing.expect(@sizeOf(subject.Prepared) <= subject.MAX_PREPARED_BYTES);
 }
 
-test "SHIFTS_REG retirement retains at least 0.97x legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try subject.authenticateCanonical(std.testing.allocator);
     const samples = 11;

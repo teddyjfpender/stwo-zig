@@ -64,3 +64,5 @@ The compatibility umbrella continues to assemble the old module names for one mi
 `regressions`.
 
 These names expose canonical domain owners. The `testing` namespace, when present, is an unstable qualification interface. Production request admission and product orchestration remain in the umbrella.
+
+`benchmarks` exposes only the named comparative-measurement callables owned by their fixtures, for the non-blocking benchmark runner.

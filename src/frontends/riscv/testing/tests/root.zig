@@ -73,12 +73,10 @@ test {
     _ = @import("../cases/air/lang/tests/typed_auipc_witness_test.zig");
     _ = @import("../cases/air/lang/tests/typed_base_alu_imm_authority_test.zig");
     _ = @import("../cases/air/lang/tests/typed_base_alu_imm_witness_adversarial_test.zig");
-    _ = @import("../cases/air/lang/tests/typed_base_alu_imm_witness_performance_test.zig");
     _ = @import("../cases/air/lang/tests/typed_base_alu_imm_witness_test.zig");
     _ = @import("../cases/air/lang/tests/typed_base_alu_reg_authority_test.zig");
     _ = @import("../cases/air/lang/tests/typed_base_alu_reg_test.zig");
     _ = @import("../cases/air/lang/tests/typed_base_alu_reg_witness_adversarial_test.zig");
-    _ = @import("../cases/air/lang/tests/typed_base_alu_reg_witness_performance_test.zig");
     _ = @import("../cases/air/lang/tests/typed_base_alu_reg_witness_test.zig");
     _ = @import("../cases/air/lang/tests/typed_branch_eq_authority_test.zig");
     _ = @import("../cases/air/lang/tests/typed_branch_eq_test.zig");
@@ -122,7 +120,6 @@ test {
     _ = @import("../cases/air/lang/tests/typed_mulh_authority_test.zig");
     _ = @import("../cases/air/lang/tests/typed_mulh_test.zig");
     _ = @import("../cases/air/lang/tests/typed_mulh_witness_adversarial_test.zig");
-    _ = @import("../cases/air/lang/tests/typed_mulh_witness_performance_test.zig");
     _ = @import("../cases/air/lang/tests/typed_mulh_witness_test.zig");
     _ = @import("../cases/air/lang/tests/typed_native_boundary_test.zig");
     _ = @import("../cases/air/lang/tests/typed_poseidon2_compact_test.zig");
@@ -138,7 +135,6 @@ test {
     _ = @import("../cases/air/lang/tests/typed_shifts_reg_authority_test.zig");
     _ = @import("../cases/air/lang/tests/typed_shifts_reg_test.zig");
     _ = @import("../cases/air/lang/tests/typed_shifts_reg_witness_adversarial_test.zig");
-    _ = @import("../cases/air/lang/tests/typed_shifts_reg_witness_performance_test.zig");
     _ = @import("../cases/air/lang/tests/typed_shifts_reg_witness_test.zig");
     _ = @import("../cases/air/memory_commitment/blake3_subtree_test.zig");
     _ = @import("../cases/air/memory_commitment/hash_component_prepared_test.zig");

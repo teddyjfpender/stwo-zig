@@ -1030,6 +1030,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Pre-edit issue361: pin the exact already-shipped RISC-V Metal protocol manifest including typed ECDSA recovery; retain strict single-registration checks. Regenerate stale proof-independent shape coverage only with the existing pinned CPU inspector/audit entrypoints, complete16-case matrix and source identity; no hand-edited hash or performance/proof/GPU reclassification. Code growth is limited to the existing test contract; metadata/receipts reported separately."
+    },
+    {
+      "id": "a3_remaining_nonblocking_frontend_benchmark_ownership",
+      "net_code_budget": 240,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue330 comments6751095616 and6751132519 extend the complete shared-runner timing separation to52 exact cases, including17 retirement and2 split/scheduler comparisons. Preserve every name, assertion body, threshold and helper in the existing nonblocking lane; mandatory correctness floors, functional/negative tests and frozen proof pins stay unchanged. Growth owns only test registration/filter metadata and test-only fixture signatures, not production optimization. Earlier180-line allowance covered33 cases; full bounded allowance240, no runtime flag or launcher."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

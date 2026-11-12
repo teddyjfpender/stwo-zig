@@ -275,7 +275,7 @@ test "LT_IMM authority construction releases every allocation failure" {
     );
 }
 
-test "LT_IMM production direct and lookup paths strictly preserve legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const admitted = try authenticatedAuthority();
     const row_count = 1 << 10;

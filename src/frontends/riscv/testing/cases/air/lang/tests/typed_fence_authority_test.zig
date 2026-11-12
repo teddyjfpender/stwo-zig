@@ -239,7 +239,7 @@ test "E-019 typed FENCE fixed witness facade is exact and rejection atomic" {
     try actual.expectAll(sentinel);
 }
 
-test "E-019 typed FENCE fixed direct and lookup hot paths retain production throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
 
     const benchmark_row_count = 1 << 12;

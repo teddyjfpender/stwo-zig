@@ -145,7 +145,6 @@ test {
     _ = @import("../prover/tests/interaction_columns_test.zig");
     _ = @import("../prover/tests/interaction_trace_execution_policy_test.zig");
     _ = @import("../prover/tests/interaction_trace_plan_core_test.zig");
-    _ = @import("../prover/tests/interaction_trace_plan_performance_test.zig");
     _ = @import("../prover/tests/interaction_trace_plan_test.zig");
     _ = @import("../prover/tests/main_trace_lifecycle_test.zig");
     _ = @import("../prover/tests/main_trace_plan_execution_production_arena_test.zig");

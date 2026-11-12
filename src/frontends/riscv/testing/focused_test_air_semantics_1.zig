@@ -6,13 +6,13 @@ test {
     _ = @import("cases/air/lang/tests/typed_addi_witness_test.zig");
     _ = @import("cases/air/lang/tests/typed_base_alu_imm_witness_test.zig");
     _ = @import("cases/air/lang/tests/typed_base_alu_imm_witness_adversarial_test.zig");
-    _ = @import("cases/air/lang/tests/typed_base_alu_imm_witness_performance_test.zig");
+
     _ = @import("cases/air/lang/tests/typed_base_alu_imm_authority_test.zig");
     _ = @import("cases/air/lang/tests/typed_base_alu_reg_test.zig");
     _ = @import("cases/air/lang/tests/typed_base_alu_reg_authority_test.zig");
     _ = @import("cases/air/lang/tests/typed_base_alu_reg_witness_test.zig");
     _ = @import("cases/air/lang/tests/typed_base_alu_reg_witness_adversarial_test.zig");
-    _ = @import("cases/air/lang/tests/typed_base_alu_reg_witness_performance_test.zig");
+
     _ = @import("cases/air/lang/tests/typed_auipc_test.zig");
     _ = @import("cases/air/lang/tests/typed_auipc_witness_test.zig");
     _ = @import("cases/air/lang/tests/typed_auipc_witness_adversarial_test.zig");

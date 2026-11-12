@@ -202,14 +202,25 @@ class PlannerContractTests(unittest.TestCase):
     def test_timing_benchmarks_are_separate_and_nonblocking(self):
         package = ROOT / "src/frontends/riscv"
         catalog = (package / "build_focused_tests.zig").read_text()
-        spec = catalog.split('.step = "test-typed-witness-benchmarks",', 1)[1].split('.minimum = 8,', 1)[0]
+        spec = catalog.split('.step = "test-typed-witness-benchmarks",', 1)[1].split('\n    },', 1)[0]
+        self.assertIn('.minimum = 52,', spec)
         filters = re.findall(r'"([^"\n]+)"', re.search(r'\.filters = &\.\{(.*?)\}', spec, re.S)[1])
-        imports = re.findall(r'@import\("([^"]+)"\)', (package / "testing/focused_test_typed_witness_benchmarks_0.zig").read_text())
-        self.assertEqual(8, len(set(filters)))
-        self.assertEqual(8, len(set(imports)))
-        for path in imports:
-            self.assertNotIn('@import("../' + path + '")', (package / "testing/tests/root.zig").read_text())
-            self.assertIn('.path = "testing/' + path + '"', (package / "test_inventory_test.zig").read_text())
+        roots = re.findall(r'"([^"\n]+)"', re.search(r'\.partition_roots = &\.\{(.*?)\}', spec, re.S)[1])
+        subjects = [(package / source).parent / name for source in roots
+                    for name in re.findall(r'@import\("([^"\n]+\.zig)"\)', (package / source).read_text())]
+        names = [name for path in subjects for name in re.findall(r'test "([^"\n]+)"', path.read_text())]
+        self.assertEqual(52, len(set(filters)))
+        self.assertEqual(52, len(names))
+        self.assertEqual(set(filters), set(names))
+        for path in subjects:
+            relative = path.resolve().relative_to(package)
+            if relative.parts[0] == "testing":
+                inventory = package / "testing/tests/root.zig"
+                quoted = "../" + relative.relative_to("testing").as_posix()
+            else:
+                inventory, quoted = package / "test_inventory.zig", relative.as_posix()
+            self.assertNotIn('@import("' + quoted + '")', inventory.read_text())
+            self.assertIn('.path = "' + relative.as_posix() + '"', (package / "test_inventory_test.zig").read_text())
         commands = self.policy["lanes"]["riscv_witness_benchmarks"]["commands"]
         self.assertEqual([["zig", "build", "test-typed-witness-benchmarks", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=" + mode, "-j2", "--verbose", "--summary", "all"] for mode in ("ReleaseFast", "Debug")], commands)
         self.assertIn("continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' }}", (ROOT / ".github/workflows/ci.yml").read_text())

@@ -386,7 +386,7 @@ test "SHIFTS_IMM cold allocation failure is atomic and warm path allocates nothi
     try std.testing.expectEqual(@as(usize, 16), @sizeOf(subject.Prepared));
 }
 
-test "SHIFTS_IMM retirement strictly preserves paired legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try subject.authenticateCanonical(std.testing.allocator);
     _ = try measureFixed(&authority, 1 << 10);

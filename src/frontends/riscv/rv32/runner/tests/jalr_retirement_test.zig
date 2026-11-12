@@ -283,7 +283,7 @@ test "typed JALR capacity failures expose no logical prefix and warm path alloca
     try std.testing.expect(!failing.has_induced_failure);
 }
 
-test "typed JALR retirement retains at least 97 percent legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try authenticatedAuthority();
     const samples = 13;

@@ -169,7 +169,7 @@ test "E-020 BASE_ALU_REG one authority owns every result x0 witness and AIR row"
     try std.testing.expectError(error.InvalidImmediate, admitted.retire(invalid, 7, 9));
 }
 
-test "E-020 BASE_ALU_REG fixed direct evaluator retains at least 0.97x legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const admitted = try authenticatedAuthority();
     const row_count = 1 << 10;

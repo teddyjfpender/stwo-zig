@@ -311,7 +311,7 @@ test "E-020 BASE_ALU_REG cold allocation failure is atomic and warm path allocat
     );
 }
 
-test "E-020 BASE_ALU_REG retirement retains at least 0.97x legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try subject.authenticateCanonical(std.testing.allocator);
     const samples = 11;

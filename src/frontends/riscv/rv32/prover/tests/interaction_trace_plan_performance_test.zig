@@ -400,7 +400,7 @@ fn median(samples: *[3]u64) u64 {
     return samples[1];
 }
 
-test "interaction trace epoch: paired scheduler performance sample" {
+pub fn benchmarkLegacyThroughput() !void {
     const iterations: usize = switch (builtin.mode) {
         .Debug => 100_000,
         .ReleaseSafe => 400_000,

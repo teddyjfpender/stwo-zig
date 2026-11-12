@@ -246,7 +246,7 @@ test "BRANCH_LT authority rejects forged rows atomically and releases allocation
     );
 }
 
-test "BRANCH_LT production direct and lookup evaluators retain legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const row_count = 1 << 10;
     const rows = try std.testing.allocator.alloc(
