@@ -191,6 +191,20 @@ def validate_blocker_receipt(
     expected = _build_blocker_receipt(
         matrix_path, validate_matrix(matrix_path), preflight
     )
+    # The released legacy blocker binds a logical source location. Preserve
+    # that exact context after C3's physical relocation; this grants no current
+    # capture authority and never changes the historical receipt or its pin.
+    if receipt != expected and preflight_value.get("schema") == LEGACY_PREFLIGHT_SCHEMA:
+        relocation = exact_object(
+            _load_json(DEFAULT_MATRIX.parent / "source-relocation-v1.json", "source relocation"),
+            {"schema", "previous", "current"}, "source relocation",
+        )
+        if (relocation["schema"] == "stwo.source-location-equivalence.v1"
+                and expected["matrix"] == relocation["current"]):
+            expected["matrix"] = exact_object(
+                relocation["previous"], {"path", "schema", "sha256"}, "previous matrix context",
+            )
+            expected["content_sha256"] = content_digest(expected)
     if receipt != expected:
         raise CompletionError("P-003 blocker receipt differs from independent recomputation")
     return receipt

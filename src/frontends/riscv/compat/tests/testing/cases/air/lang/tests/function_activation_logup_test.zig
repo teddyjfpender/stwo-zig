@@ -685,14 +685,14 @@ test "F-014 live activation is the sole function LogUp lowering authority" {
     const declaration_source = @import("stwo_riscv_air_lang").testing.assets.functions_zig;
     const frame_source = @import("stwo_riscv_air_lang").testing.assets.function_frames_zig;
     const activation_authority_source = @import("stwo_riscv_air_lang").testing.assets.function_activation_authority_zig;
-    const language_source = @import("stwo_riscv_frontend").assets.compat_air_lang_mod_zig;
+    const language_source = @import("../../../../../../../assets.zig").compat_air_lang_mod_zig;
 
     try std.testing.expectEqual(
         @as(usize, 1),
         std.mem.count(
             u8,
             activation_source,
-            "const logup = @import(\"../logup.zig\");",
+            "const logup = @import(\"stwo_riscv_air_lang\").evaluation.logup;",
         ),
     );
     try std.testing.expect(std.mem.indexOf(
@@ -708,12 +708,12 @@ test "F-014 live activation is the sole function LogUp lowering authority" {
     try std.testing.expect(std.mem.indexOf(
         u8,
         activation_source,
-        "@import(\"function_activation_authority.zig\")",
+        "@import(\"stwo_riscv_air_lang\").function_activation_authority",
     ) != null);
     try std.testing.expect(std.mem.indexOf(
         u8,
         language_source,
-        "pub const function_activation_logup = @import(\"function_activation_logup.zig\");",
+        "pub const function_activation_logup = @import(\"stwo_riscv_rv32\").air.lang.function_activation_logup;",
     ) != null);
 }
 

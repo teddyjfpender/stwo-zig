@@ -120,12 +120,14 @@ counter and its missing-execution-metadata refusal.
 
 Two retained LS-D64 parity fixtures allocated 256 KiB stacks despite the
 existing Debug kernel contract requiring 1 MiB. They now request the kernel's
-canonical mode-specific minimum. Worker count, serial/parallel equality and
+production default worker stack (16 MiB). The 1 MiB minimum compiled but
+was insufficient for the Debug fused-pair fixture on hosted execution. Worker count, serial/parallel equality and
 production stack refusal remain unchanged.
 
 P-003's current source-authority ledger follows the physical ownership moves;
 its sixteen families, twenty-three sites, classifications and schema do not
-change. Historical receipts are not rewritten or re-pinned. Replaying a
-source-bound historical blocker against the changed current ledger still
-requires the explicit source-binding follow-up; it is not accepted as current
-qualification. The source-binding and formal gates in #328 remain open.
+change. Historical receipts are not rewritten or re-pinned. An explicit relocation ledger preserves the released legacy blocker only
+when the current matrix context matches exactly. Independent recomputation
+still binds every other receipt field, and changed matrix hashes and seal
+claims are rejected. Legacy preflight remains inadmissible for new capture;
+this replay compatibility is not current qualification. The source-binding and formal gates in #328 remain open.

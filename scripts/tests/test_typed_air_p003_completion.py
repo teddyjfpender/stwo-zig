@@ -188,6 +188,22 @@ class P003CompletionTests(unittest.TestCase):
         with self.assertRaisesRegex(CaptureError, "host-preflight authority changed"):
             build_blocker_receipt(DEFAULT_MATRIX, receipt["host_preflight"])
 
+    def test_legacy_relocation_does_not_authorize_changed_receipts(self) -> None:
+        from scripts.typed_air.typed_air_r006_capture_lib.codec import content_digest
+
+        original = json.loads((DEFAULT_MATRIX.parent / "scaling-blocker-v1.json").read_bytes())
+        for field in ("matrix", "terminal_v4_seal_authorized"):
+            changed = copy.deepcopy(original)
+            if field == "matrix":
+                changed[field]["sha256"] = "0" * 64
+            else:
+                changed[field] = True
+            changed["content_sha256"] = content_digest(changed)
+            path = self.scratch / "changed-blocker.json"
+            path.write_bytes(canonical_bytes(changed))
+            with self.assertRaisesRegex(CompletionError, "independent recomputation"):
+                validate_blocker_receipt(DEFAULT_MATRIX, path)
+
     def test_cli_emits_create_only_blocker_and_replays_it(self) -> None:
         preflight = self.scratch / "preflight.json"
         preflight.write_bytes(canonical_bytes(self._preflight(admitted=False)))

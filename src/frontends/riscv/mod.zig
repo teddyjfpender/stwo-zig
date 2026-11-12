@@ -69,7 +69,7 @@ test "api signature: RISC-V facade preserves runner and prover entry points" {
         if (Memory != @import("stwo_riscv_isa").machine.memory.Memory) @compileError("Memory canonical owner drifted");
         if (HostInterface != @import("stwo_riscv_isa").host.interface.HostInterface) @compileError("HostInterface canonical owner drifted");
         if (rv64.machine.Cpu != @import("stwo_riscv_rv64").machine.Cpu) @compileError("RV64 Cpu canonical owner drifted");
-        if (air.lang.ir.Arena != @import("stwo_riscv_air_lang").ir.Arena) @compileError("AIR arena canonical owner drifted");
+        if (@import("compat/air/lang/mod.zig").ir.Arena != @import("stwo_riscv_air_lang").ir.Arena) @compileError("AIR arena canonical owner drifted");
         if (recursion.vm_air_profile_v2.ProfileV2 != @import("stwo_riscv_rv32").recursion.vm_air_profile_v2.ProfileV2) @compileError("VM profile canonical owner drifted");
         if (Opcode != runner.Opcode) @compileError("Opcode facade alias drifted");
         switch (@typeInfo(@TypeOf(runWithInput))) {
