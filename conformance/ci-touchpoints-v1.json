@@ -1121,20 +1121,13 @@
     "riscv_profile_partition": {
       "host": "linux",
       "local": "hosted",
-      "description": "Manual bounded diagnostic of existing profile partition and exact proof-pool parity; never substitutes for the complete CPU product lane",
+      "description": "Manual bounded Debug execution of existing profile partition and exact proof-pool recovery",
       "commands": [
         [
           "zig",
           "build",
           "test-riscv-profile-partition",
           "-Doptimize=Debug",
-          "-j2"
-        ],
-        [
-          "zig",
-          "build",
-          "test-riscv-profile-partition",
-          "-Doptimize=ReleaseFast",
           "-j2"
         ]
       ]
@@ -1426,6 +1419,20 @@
           "test",
           "--build-file",
           "src/frontends/riscv/rv64/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_profile_partition_releasefast": {
+      "host": "linux",
+      "local": "hosted",
+      "description": "Manual bounded ReleaseFast execution of existing profile partition and exact proof-pool recovery",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-riscv-profile-partition",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]

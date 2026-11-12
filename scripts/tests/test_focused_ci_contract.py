@@ -150,13 +150,11 @@ class PlannerContractTests(unittest.TestCase):
             self.assertEqual(["zig", "build", step, "--build-file", "src/frontends/riscv/build.zig", f"-Doptimize={mode}", "-j2"] + (["--verbose", "--summary", "all"] if step == "test" else []), command)
 
     def test_profile_diagnostic_reuses_both_existing_targets_without_replacing_cpu_gate(self):
-        lane = self.policy["lanes"]["riscv_profile_partition"]
-        self.assertEqual([
-            ["zig", "build", "test-riscv-profile-partition", "-Doptimize=" + mode, "-j2"]
-            for mode in ("Debug", "ReleaseFast")
-        ], lane["commands"])
-        self.assertEqual(["riscv_profile_partition"],
-                         ci_scope_plan.manual_cpu_selection("riscv_profile_partition", self.policy)[0])
+        for suffix, mode in (("", "Debug"), ("_releasefast", "ReleaseFast")):
+            name = "riscv_profile_partition" + suffix
+            self.assertEqual([["zig", "build", "test-riscv-profile-partition", "-Doptimize=" + mode, "-j2"]],
+                             self.policy["lanes"][name]["commands"])
+            self.assertEqual([name], ci_scope_plan.manual_cpu_selection(name, self.policy)[0])
         self.assertTrue(any("test-riscv-profile-partition" in command
                             for command in self.policy["lanes"]["riscv_cpu"]["commands"]))
         source = (ROOT / "build_support/products/riscv_cpu.zig").read_text()

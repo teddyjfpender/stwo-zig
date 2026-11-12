@@ -157,7 +157,7 @@ jobs:
       needs.focused-plan.outputs.linux_count != '0'
     runs-on: ubuntu-latest
     # Bounded full-suite host allowance; commands, floors and audits stay unchanged.
-    timeout-minutes: ${{ (matrix.lane == 'riscv_frontend' || matrix.lane == 'riscv_frontend_releasefast' || matrix.lane == 'riscv_retained_contracts_releasefast') && 90 || 30 }}
+    timeout-minutes: ${{ ((matrix.lane == 'riscv_frontend' || matrix.lane == 'riscv_profile_partition') || matrix.lane == 'riscv_frontend_releasefast' || matrix.lane == 'riscv_retained_contracts_releasefast') && 90 || 30 }}
     # Owner-directed performance diagnostics never determine PR acceptance.
     continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' }}
     strategy:
