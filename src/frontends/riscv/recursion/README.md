@@ -19,50 +19,62 @@ graph LR
 
 ## Public API
 
-`@import("stwo_riscv_recursion")` exposes these consumed canonical source interfaces:
+`@import("stwo_riscv_recursion")` exposes these canonical domain interfaces:
 
-- `air_blake3_native_challenge_links`
-- `air_blake3_native_openings`
-- `air_blake3_native_parent_roster`
-- `air_blake3_native_parent_rows`
-- `air_blake3_native_payload_links`
-- `air_blake3_native_pcs_challenges`
-- `air_blake3_native_public_links`
-- `air_blake3_native_public_sources`
-- `air_blake3_native_queries`
-- `air_blake3_native_sample_links`
-- `air_blake3_native_terminal_encoding`
-- `air_blake3_projection_links`
-- `air_blake3_query_links`
-- `air_blake3_stark_paths`
-- `air_detached_pcs_opening_plan`
-- `air_pcs_deep_circuit`
-- `air_segment_boundary_components`
-- `air_segment_leaf_catalog`
-- `air_segment_outer_adapter_manifest`
-- `air_segment_outer_adapter_manifest_proof_gate`
-- `air_segment_outer_manifest_contract`
-- `air_segment_outer_typed_catalog`
-- `air_segment_publication_input_provider`
-- `air_segment_publication_input_provider_component`
-- `air_segment_publication_input_provider_relation`
-- `air_segment_publication_input_provider_witness`
+- `air`
 - `arithmetic_circuit`
-- `blake3_native_parent_artifact`
-- `blake3_native_parent_codec`
-- `blake3_native_parent_pipeline`
-- `blake3_native_parent_producer`
-- `blake3_native_parent_protocol`
-- `blake3_native_parent_verifier`
-- `blake3_native_parent_worker`
+- `binary_fri_outer_bundle`
+- `binary_fri_outer_source`
+- `binary_global_closure_outer_source`
+- `binary_inactive_outer_source`
+- `binary_transcript_outer_source`
+- `binary_verified_publication`
+- `canonical_proof_identity`
+- `captured_fri`
+- `compact_tuple_ledger`
+- `detached_child_views`
+- `detached_leaf_cohort_diagnostics`
+- `detached_leaf_noncore_owner`
+- `detached_leaf_tuple_diagnostic`
+- `detached_memory_profile`
+- `detached_native_leaf_preparation`
+- `detached_parent_command`
 - `detached_parent_components`
 - `detached_parent_contract`
 - `detached_parent_definitions`
 - `detached_parent_prepared`
+- `detached_parent_protocol`
+- `detached_parent_verifier`
 - `detached_parent_verifier_components`
+- `detached_pcs_preparation`
+- `detached_recording_draws`
+- `detached_recording_verifier`
+- `detached_section_profile`
 - `detached_segment_admission`
-- `implementation`
+- `detached_segment_authority_boundary`
+- `detached_segment_command`
+- `detached_segment_definitions`
+- `detached_segment_protocol`
+- `detached_segment_protocol_fixture`
+- `detached_segment_public_inputs`
+- `detached_segment_verifier`
+- `detached_segment_verifier_components`
+- `engine`
+- `fixed_wire_adapter`
+- `fri_profile_frontier`
+- `leaf_interaction_generator`
+- `leaf_profile`
+- `native_scheduled_channel`
+- `outer_parent_child_admission`
+- `outer_parent_statement_air_source`
+- `pair_node`
+- `pcs_transcript_program`
+- `proof_ingress`
+- `recording_poseidon_channel`
+- `recursion_air_composition_segment_recorder_complete_segment_cohort`
 - `sample_point_layout`
+- `segment_core_outer_components`
+- `segment_leaf_authority`
 - `segment_leaf_authority_v2`
 - `segment_leaf_local_authority`
 - `segment_leaf_local_projection`
@@ -70,25 +82,48 @@ graph LR
 - `segment_leaf_outer_air`
 - `segment_leaf_outer_authority`
 - `segment_leaf_outer_bundle`
+- `segment_leaf_parameters`
 - `segment_leaf_statement_contract`
+- `segment_outer_cohort`
+- `segment_outer_transaction`
+- `segment_outer_wire_geometry`
+- `segment_public_claim_hash_authority`
 - `segment_public_native_sum_authority`
 - `segment_public_outer_components`
 - `segment_public_outer_source`
 - `segment_public_outer_source_v2`
-- `segment_public_outer_test_support`
 - `segment_publication_input_provider_authority`
-- `segment_publication_input_provider_test_support`
+- `segment_range_authority`
+- `segment_range_authority_v2`
+- `segment_shared_poseidon_schedule`
 - `segment_statement_outer_components`
 - `segment_statement_outer_source`
 - `segment_statement_outer_source_v2`
+- `segment_transcript_outer_components`
+- `segment_transcript_outer_source`
 - `segment_transcript_outer_source_v2`
+- `segment_transcript_witness`
+- `segment_verified_artifact`
+- `segment_verified_publication`
+- `span_continuation`
 - `statement_semantics_circuit`
 - `temporal_pair_node`
-- `tests_segment_leaf_outer_authority_test`
-- `tests_segment_statement_outer_source_v2_test`
+- `testing`
+- `transaction_storage`
+- `transcript_frame_rows`
+- `transcript_logical_rows`
+- `transcript_payload_kind`
+- `transcript_program`
+- `transcript_program_v2`
+- `transcript_row_checks`
+- `universal_component_owner`
+- `verifier_tree`
 - `vm_air_composition_circuit`
-- `vm_air_composition_circuit_circuit`
-- `vm_composition_preparation`
+- `vm_air_composition_circuit_parallel`
+- `vm_air_composition_prepared`
+- `vm_composition_graph_base`
+- `vm_composition_graph_support`
+- `vm_composition_transcript_aggregates`
 - `vm_public_semantics_circuit`
 - `vm_selected_lookup_compiler`
 
@@ -126,8 +161,9 @@ Request owners retain the original allocation and failure rules. Validate untrus
 
 The compatibility umbrella continues to assemble the old module names for one minor version. Product-selecting orchestration stays above generic children. Complete Debug and ReleaseFast owner suites, preserved focused-test counts and frozen CPU proof bytes are the acceptance evidence. Syntax checks, a source-tree audit or a successful package build alone do not certify the complete proving pipeline or any GPU path.
 
-## Typed domain interfaces
+## Interface stability
 
-`air`, `arithmetic_circuit`, `binary_fri_outer_bundle`, `binary_fri_outer_source`, `binary_global_closure_outer_source`, `binary_inactive_outer_source`, `binary_transcript_outer_source`, `binary_verified_publication`, `canonical_proof_identity`, `captured_fri`, `compact_tuple_ledger`, `detached_boundary_continuation`, `detached_boundary_identity`, `detached_child_views`, `detached_leaf_cohort_diagnostics`, `detached_leaf_noncore_owner`, `detached_leaf_tuple_diagnostic`, `detached_memory_profile`, `detached_native_leaf_preparation`, `detached_parent_command`, `detached_parent_components`, `detached_parent_contract`, `detached_parent_definitions`, `detached_parent_prepared`, `detached_parent_protocol`, `detached_parent_verifier`, `detached_parent_verifier_components`, `detached_pcs_preparation`, `detached_recording_draws`, `detached_recording_verifier`, `detached_section_profile`, `detached_segment_admission`, `detached_segment_authority_boundary`, `detached_segment_command`, `detached_segment_definitions`, `detached_segment_protocol`, `detached_segment_protocol_fixture`, `detached_segment_public_inputs`, `detached_segment_verifier`, `detached_segment_verifier_components`, `engine`, `fixed_wire_adapter`, `fri_profile_frontier`, `leaf_interaction_generator`, `leaf_profile`, `native_scheduled_channel`, `outer_parent_child_admission`, `outer_parent_statement_air_source`, `pair_node`, `pcs_transcript_program`, `proof_ingress`, `recording_poseidon_channel`, `recursion_air_composition_segment_recorder_complete_segment_cohort`, `sample_point_layout`, `segment_core_outer_components`, `segment_leaf_authority`, `segment_leaf_authority_v2`, `segment_leaf_local_authority`, `segment_leaf_local_projection`, `segment_leaf_local_verified_link`, `segment_leaf_outer_air`, `segment_leaf_outer_authority`, `segment_leaf_outer_bundle`, `segment_leaf_parameters`, `segment_leaf_statement_contract`, `segment_outer_cohort`, `segment_outer_transaction`, `segment_outer_wire_geometry`, `segment_public_claim_hash_authority`, `segment_public_native_sum_authority`, `segment_public_outer_components`, `segment_public_outer_source`, `segment_public_outer_source_v2`, `segment_publication_input_provider_authority`, `segment_range_authority`, `segment_range_authority_v2`, `segment_shared_poseidon_schedule`, `segment_statement_outer_components`, `segment_statement_outer_source`, `segment_statement_outer_source_v2`, `segment_transcript_outer_components`, `segment_transcript_outer_source`, `segment_transcript_outer_source_v2`, `segment_transcript_witness`, `segment_verified_artifact`, `segment_verified_publication`, `span_continuation`, `statement_semantics_circuit`, `temporal_pair_node`, `testing`, `transaction_storage`, `transcript_frame_rows`, `transcript_logical_rows`, `transcript_payload_kind`, `transcript_program`, `transcript_program_v2`, `transcript_row_checks`, `universal_component_owner`, `verifier_tree`, `vm_air_composition_circuit`, `vm_air_composition_circuit_parallel`, `vm_air_composition_prepared`, `vm_composition_graph_base`, `vm_composition_graph_support`, `vm_composition_transcript_aggregates`, `vm_public_semantics_circuit`, `vm_selected_lookup_compiler`.
-
-These names expose canonical domain owners. The `testing` namespace, when present, is an unstable qualification interface. Production request admission and product orchestration remain in the umbrella.
+The Public API list above follows the package contract. These names expose
+canonical domain owners; `testing`, when present, is an unstable qualification
+interface. Production admission and product orchestration remain above the
+native children.

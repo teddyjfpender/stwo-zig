@@ -19,9 +19,11 @@ graph LR
 
 ## Public API
 
-`@import("stwo_riscv_testing")` exposes these consumed canonical source interfaces:
+`@import("stwo_riscv_testing")` exposes these canonical domain interfaces:
 
-- `compatibility`
+- `benchmarks`
+- `regressions`
+- `testing`
 
 ## Dependencies
 
@@ -59,10 +61,9 @@ Request owners retain the original allocation and failure rules. Validate untrus
 
 The compatibility umbrella continues to assemble the old module names for one minor version. Product-selecting orchestration stays above generic children. Complete Debug and ReleaseFast owner suites, preserved focused-test counts and frozen CPU proof bytes are the acceptance evidence. Syntax checks, a source-tree audit or a successful package build alone do not certify the complete proving pipeline or any GPU path.
 
-## Typed domain interfaces
+## Interface stability
 
-`regressions`.
-
-These names expose canonical domain owners. The `testing` namespace, when present, is an unstable qualification interface. Production request admission and product orchestration remain in the umbrella.
-
-`benchmarks` exposes only the named comparative-measurement callables owned by their fixtures, for the non-blocking benchmark runner.
+The Public API list above follows the package contract. These names expose
+canonical domain owners; `testing`, when present, is an unstable qualification
+interface. Production admission and product orchestration remain above the
+native children.

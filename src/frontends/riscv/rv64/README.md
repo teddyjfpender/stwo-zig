@@ -19,21 +19,23 @@ graph LR
 
 ## Public API
 
-`@import("stwo_riscv_rv64")` exposes these consumed canonical source interfaces:
+`@import("stwo_riscv_rv64")` exposes these canonical domain interfaces:
 
 - `access_census`
-- `air_mod`
+- `air`
 - `candidate_isa`
+- `compact_tape_wire`
+- `decode_cache`
 - `elf`
-- `ethereum_services_candidate_services`
-- `ethereum_services_session`
+- `ethereum_services`
+- `execution`
 - `execution_profile`
 - `frequent_operations`
-- `implementation`
 - `machine`
 - `memory`
 - `service_session`
 - `session`
+- `testing`
 
 ## Dependencies
 
@@ -66,8 +68,9 @@ Request owners retain the original allocation and failure rules. Validate untrus
 
 The compatibility umbrella continues to assemble the old module names for one minor version. Product-selecting orchestration stays above generic children. Complete Debug and ReleaseFast owner suites, preserved focused-test counts and frozen CPU proof bytes are the acceptance evidence. Syntax checks, a source-tree audit or a successful package build alone do not certify the complete proving pipeline or any GPU path.
 
-## Typed domain interfaces
+## Interface stability
 
-`access_census`, `air`, `candidate_isa`, `compact_tape_wire`, `decode_cache`, `elf`, `ethereum_services`, `execution`, `execution_profile`, `frequent_operations`, `machine`, `memory`, `service_session`, `session`.
-
-These names expose canonical domain owners. The `testing` namespace, when present, is an unstable qualification interface. Production request admission and product orchestration remain in the umbrella.
+The Public API list above follows the package contract. These names expose
+canonical domain owners; `testing`, when present, is an unstable qualification
+interface. Production admission and product orchestration remain above the
+native children.

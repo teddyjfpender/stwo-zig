@@ -19,7 +19,7 @@ graph LR
 
 ## Public API
 
-`@import("stwo_riscv_isa")` exposes these consumed canonical source interfaces:
+`@import("stwo_riscv_isa")` exposes these canonical domain interfaces:
 
 - `access_clock`
 - `authority`
@@ -28,20 +28,17 @@ graph LR
 - `custom0`
 - `decode`
 - `execution_profile`
-- `host_interface`
-- `implementation`
+- `host`
+- `instruction_set`
+- `machine`
 - `opcode_manifest`
 - `profile`
-- `runner_cpu`
-- `runner_decode`
-- `runner_execution_boundary`
-- `runner_memory`
-- `runner_memory_state`
-- `runner_state_chain`
-- `runner_trace_row`
+- `segment_wire_layout`
 - `sha256_compression`
+- `span_word_geometry`
 - `stack_swap_candidate`
 - `stack_swap_private_registry`
+- `testing`
 
 ## Dependencies
 
@@ -69,8 +66,9 @@ Request owners retain the original allocation and failure rules. Validate untrus
 
 The compatibility umbrella continues to assemble the old module names for one minor version. Product-selecting orchestration stays above generic children. Complete Debug and ReleaseFast owner suites, preserved focused-test counts and frozen CPU proof bytes are the acceptance evidence. Syntax checks, a source-tree audit or a successful package build alone do not certify the complete proving pipeline or any GPU path.
 
-## Typed domain interfaces
+## Interface stability
 
-`access_clock`, `authority`, `bulk_memcpy_candidate`, `bulk_memcpy_private_registry`, `custom0`, `decode`, `execution_profile`, `host`, `instruction_set`, `machine`, `opcode_manifest`, `profile`, `segment_wire_layout`, `sha256_compression`, `span_word_geometry`, `stack_swap_candidate`, `stack_swap_private_registry`.
-
-These names expose canonical domain owners. The `testing` namespace, when present, is an unstable qualification interface. Production request admission and product orchestration remain in the umbrella.
+The Public API list above follows the package contract. These names expose
+canonical domain owners; `testing`, when present, is an unstable qualification
+interface. Production admission and product orchestration remain above the
+native children.

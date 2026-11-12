@@ -19,66 +19,13 @@ graph LR
 
 ## Public API
 
-`@import("stwo_riscv_precompiles")` exposes these consumed canonical source interfaces:
+`@import("stwo_riscv_precompiles")` exposes these canonical domain interfaces:
 
-- `air_bulk_memcpy_caller_candidate`
-- `air_bulk_memcpy_word_candidate`
-- `air_caller_component_mask`
-- `air_identity_hash`
-- `air_keccakf_authority`
-- `air_keccakf_lookup_tuples`
-- `air_keccakf_multiplicities`
-- `air_keccakf_relations`
-- `air_keccakf_table_component`
-- `air_keccakf_table_interaction`
-- `air_keccakf_tables`
-- `air_keccakf_throughput_tables`
-- `air_keccakf_witness`
-- `air_main_trace_test_support`
-- `air_mask_layout`
-- `air_mod`
-- `air_relation_challenges`
-- `air_relation_event`
-- `air_relation_registry`
-- `air_secp256k1_affine`
-- `air_secp256k1_component`
-- `air_secp256k1_component_interaction`
-- `air_secp256k1_component_trace`
-- `air_secp256k1_ecdsa`
-- `air_secp256k1_ecdsa_direct`
-- `air_secp256k1_field`
-- `air_secp256k1_linear_direct`
-- `air_secp256k1_mul_direct`
-- `air_secp256k1_point_direct`
-- `air_secp256k1_recovery`
-- `air_secp256k1_recovery_direct`
-- `air_secp256k1_relations`
-- `air_secp256k1_scalar_direct`
-- `air_secp256k1_split_direct`
-- `air_secp256k1_table_direct`
-- `air_sha256_compression`
-- `air_sha256_compression_graph`
-- `air_sha256_compression_rows`
-- `air_sha256_memory_record`
-- `air_sha256_packed_arithmetic`
-- `air_sha256_packed_call`
-- `air_sha256_packed_source`
-- `air_sha256_relations`
-- `air_sha256_word_program`
-- `air_stack_swap_caller_candidate`
-- `air_stack_swap_word_candidate`
-- `air_tests_secp256k1_affine_test`
-- `runner_bulk_memcpy_call_buffer`
-- `runner_bulk_memcpy_session_tape`
-- `runner_c011_elf_test_support`
-- `runner_c011_scalar_reference_test_support`
-- `runner_call_buffer`
-- `runner_keccakf_call_buffer`
-- `runner_secp256k1_recover_call_buffer`
-- `runner_stack_swap_session_tape`
-- `rv64_services_arith256`
-- `rv64_services_secp256k1`
-- `rv64_services_sha256`
+- `air`
+- `primitives`
+- `recovery_abi`
+- `runner`
+- `testing`
 
 ## Dependencies
 
@@ -110,8 +57,9 @@ Request owners retain the original allocation and failure rules. Validate untrus
 
 The compatibility umbrella continues to assemble the old module names for one minor version. Product-selecting orchestration stays above generic children. Complete Debug and ReleaseFast owner suites, preserved focused-test counts and frozen CPU proof bytes are the acceptance evidence. Syntax checks, a source-tree audit or a successful package build alone do not certify the complete proving pipeline or any GPU path.
 
-## Typed domain interfaces
+## Interface stability
 
-`air`, `primitives`, `recovery_abi`, `runner`, `testing`.
-
-These names expose canonical domain owners. The `testing` namespace, when present, is an unstable qualification interface. Production request admission and product orchestration remain in the umbrella.
+The Public API list above follows the package contract. These names expose
+canonical domain owners; `testing`, when present, is an unstable qualification
+interface. Production admission and product orchestration remain above the
+native children.
