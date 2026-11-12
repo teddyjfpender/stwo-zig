@@ -5,7 +5,7 @@ const E = @import("execution.zig");
 const G = @import("../word16_execution/geometry.zig");
 const F = @import("fixture.zig");
 const Cell = @import("../word16_execution/memory/statement.zig").Cell;
-const Receipt = @import("../rv64_ethereum_batch_receipt.zig");
+const Receipt = @import("../rv64_proof_artifact_support.zig");
 const a = std.testing.allocator;
 fn opaqueTransport(allocator: std.mem.Allocator, dir: std.fs.Dir, cells: []const Cell) !void {
     const geometries = [_]G.Geometry{ .{ .cpu_log = 5, .boundary_log = 12 }, .{ .cpu_log = 5, .boundary_log = 12 } };

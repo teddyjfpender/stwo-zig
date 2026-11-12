@@ -2,7 +2,7 @@
 //! This is a diagnostic artifact, never an accepted proof or chain checkpoint.
 const std = @import("std");
 const A = @import("rv64_authenticated_execution.zig");
-const Receipt = @import("rv64_ethereum_batch_receipt.zig");
+const Receipt = @import("rv64_proof_artifact_support.zig");
 const Recorder = @import("stwo_prover_api").stage_profile.Recorder;
 pub fn write(a: std.mem.Allocator, directory: std.fs.Dir, index: u32, first_step: u64, public: A.Public, cells: Receipt.SourceCells, recorder: *Recorder, failure: anyerror) !void {
     var profile = try recorder.snapshot(a);

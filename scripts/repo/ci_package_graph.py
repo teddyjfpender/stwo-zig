@@ -461,6 +461,31 @@ def validate_dependency_layers(repository, contracts, packages, allowed_layers, 
                 failures.append(f"{contract.package}: {contract.layer} layer cannot depend on {target.layer} package {dependency}")
 
 
+_PRODUCT_NAMES = ("ethereum", "opstack", "starknet", "tensor")
+
+
+def check_product_placement(repository: Path, contracts) -> list[str]:
+    """Keep product paths and public identifiers above frontend/integration owners."""
+    failures = []
+    for layer in ("frontends", "integrations"):
+        directory = repository / "src" / layer
+        if not directory.is_dir():
+            continue
+        for source in sorted(directory.rglob("*")):
+            if source.is_file() and any(name in source.relative_to(directory).as_posix().lower()
+                                        for name in _PRODUCT_NAMES):
+                failures.append("package workspace: product-owned path below " + layer + ": " +
+                                source.relative_to(repository).as_posix())
+    for contract in contracts:
+        if contract.layer not in {"frontend", "integration"}:
+            continue
+        for name in sorted(contract.api_surface):
+            if any(product in name.lower() for product in _PRODUCT_NAMES):
+                failures.append(f"{contract.package}: product-owned public identifier {name!r}")
+    return failures
+
+
+
 def package_owner(contracts: Mapping[str, Any], source: Path) -> Any | None:
     """Unique longest package prefix, then consumer exclusions; no import-based ownership.
 

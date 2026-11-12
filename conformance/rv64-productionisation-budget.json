@@ -1122,6 +1122,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Two origin-specific stable decoder codes, immediately consumed by the circuit verifier and existing CPU CLI, with exact code/class/unknown/foreign-origin/OOM/diagnostic-failure contracts. All remaining five-waist D2 boundaries remain explicit; no global anyerror mapping or proof-byte/error/exit change. Approved RFC360."
+    },
+    {
+      "id": "c4_ethereum_product_extraction",
+      "net_code_budget": 800,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue336 / RFC352: one complete Ethereum product boundary with canonical shared types, explicit compatibility component identity and strict product-placement/dependency rejection. The single +800 source allowance includes private service-call/artifact ownership cuts, the already-approved three mathematical providers, product/build/consumer wiring and tests; moves receive no subtraction credit. Preserve original algorithms, protocol/profile identities, named discovery, errors, publication and teardown. Additional public providers/signature changes require their exact recorded RFC amendment before publication. Rollback the complete source/consumer/test transaction; no new flags or launchers."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

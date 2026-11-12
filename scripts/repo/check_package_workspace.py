@@ -29,6 +29,7 @@ LAYERS = {
     "integration",
     "interchange",
     "protocol",
+    "product",
     "service",
 }
 ALLOWED_DEPENDENCY_LAYERS = {
@@ -41,7 +42,8 @@ ALLOWED_DEPENDENCY_LAYERS = {
     "interchange": {"protocol"},
     "example": {"api", "backend", "engine", "interchange", "protocol"},
     "service": {"service"},
-    "integration": LAYERS,
+    "integration": LAYERS - {"product"},
+    "product": LAYERS - {"product", "service", "example"},
 }
 IMPORT_RE = re.compile(
     r'@import\(\s*"([^"]+)"\s*,?\s*\)',

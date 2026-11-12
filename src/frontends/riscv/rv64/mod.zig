@@ -1,5 +1,8 @@
 //! Canonical typed domain interfaces; test hooks are explicitly unstable.
 
+pub const arith256_mod = @import("stwo_riscv_precompiles").primitives.arith256;
+pub const secp256k1_rcb = @import("stwo_riscv_precompiles").primitives.secp256k1;
+pub const sha256_compression = @import("stwo_riscv_precompiles").primitives.sha256;
 pub const access_census = @import("access_census.zig");
 pub const air = struct {
     pub const api = @import("air/mod.zig");

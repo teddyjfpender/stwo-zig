@@ -4,7 +4,7 @@
 const std = @import("std");
 const Memory = @import("memory.zig").Memory;
 const Retirement = @import("machine.zig").Retirement;
-const Event = @import("ethereum_services/session.zig").Event;
+const Event = @import("services/call_abi.zig").Event;
 pub const Cell = struct { address: u64, initial: u64, final: u64, terminal_clock: u32, rights: u2 };
 const Transition = struct { address: u64, before: u64, after: u64, writable_required: bool };
 /// A captured word without its address (implied by its page block slot).

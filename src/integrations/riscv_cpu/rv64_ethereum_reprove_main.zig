@@ -7,6 +7,7 @@ const rv = A.frontend.rv64;
 const Request = @import("rv64_ethereum_request.zig");
 const Native = @import("rv64_ethereum_batch.zig");
 const Receipt = @import("rv64_ethereum_batch_receipt.zig");
+const physical_artifact_support = @import("rv64_proof_artifact_support.zig");
 const Receiver = @import("rv64_ethereum_verify_chain.zig");
 const Chain = @import("rv64_ethereum_chain.zig");
 const BatchProof = @import("rv64_ethereum_prove_batch.zig");
@@ -74,7 +75,7 @@ pub fn main() !void {
     // Exclusive creation also prevents accidental publication into the control.
     const request_json = try std.json.Stringify.valueAlloc(a, config, .{ .whitespace = .indent_2 });
     defer a.free(request_json);
-    try Receipt.writeExclusive(directory, "request.json", request_json);
+    try physical_artifact_support.writeExclusive(directory, "request.json", request_json);
     var tape = try rv.compact_tape.Tape.init(a, expected.cpu.statement.steps, cpu.pc, cpu.retired, .ethereum_services_v2);
     defer tape.deinit();
     var capture = try rv.boundary_capture.Capture.init(a, cpu.retired, expected.cpu.statement.steps, 1 << 24);
@@ -97,7 +98,7 @@ pub fn main() !void {
     const result = .{ .schema = "rv64-ethereum-retained-batch-reprove-v1", .baseline_complete_chain_verified = accepted.full_block_proof_verified, .full_block_reproved = false, .target_batch = target, .proof_bytes_equal = true, .proof_sha256 = std.fmt.bytesToHex(Request.sha(candidate), .lower), .baseline_receiver_ns = baseline_receiver_ns, .native_prefix_replay_ns = replay_ns, .metrics = metrics };
     const json = try std.json.Stringify.valueAlloc(a, result, .{ .whitespace = .indent_2 });
     defer a.free(json);
-    try Receipt.writeExclusive(directory, "reprove.json", json);
+    try physical_artifact_support.writeExclusive(directory, "reprove.json", json);
     try std.fs.File.stdout().writeAll(json);
     try std.fs.File.stdout().writeAll("\n");
 }

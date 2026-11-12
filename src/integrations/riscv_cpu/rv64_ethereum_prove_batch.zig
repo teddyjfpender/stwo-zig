@@ -8,6 +8,7 @@ const R = A.R;
 const Native = @import("rv64_ethereum_batch.zig");
 const Request = @import("rv64_ethereum_request.zig");
 const Receipt = @import("rv64_ethereum_batch_receipt.zig");
+const physical_artifact_support = @import("rv64_proof_artifact_support.zig");
 const Chain = @import("rv64_ethereum_chain.zig");
 const Memory = @import("rv64_batch_memory.zig");
 const MainArena = @import("rv64_authenticated_main_arena.zig").MainArena;
@@ -20,7 +21,7 @@ pub const Metrics = struct {
     keccak_calls: u32,
     secp_add_calls: u32,
     secp_double_calls: u32,
-    source_cells: Receipt.SourceCells,
+    source_cells: physical_artifact_support.SourceCells,
     proof_bytes: usize,
     native_ns: u64,
     openings_ns: u64,
@@ -170,7 +171,7 @@ pub fn provePrepared(a: std.mem.Allocator, context: PreparedContext, config: Req
     const public = A.Public{ .cpu = finished.public, .geometry = .chunk512, .before = before, .after = if (ram) |*value| value.witness.after else before, .policy_identity = context.policy.identity, .ram = layout.ram };
     if (roots.expected_after) |expected| if (!std.mem.eql(u32, &expected, &public.after)) return error.EthereumPublishedRootMismatch;
     try cursor.check(public, cursor.batches, tape.initial_clock, config.max_steps);
-    const cells = try Receipt.sourceCells(a, &setup, public);
+    const cells = try physical_artifact_support.sourceCells(a, &setup, public);
     const boundary = A.Full.Trace.PrivateBoundary{ .cells = finished.cells, .memory_clocks = finished.memory_clocks };
     var full = if (arena) |*value| try A.Full.Trace.initWithPrivateTapeBorrowedMain(a, tape, public.cpu.first_call_id, public.cpu.secp.firstIds(), public.cpu.statement, boundary, &setup.cpu.base.program, &setup.cpu.base.plan, try value.cpuMain()) else try A.Full.Trace.initWithPrivateTape(a, tape, public.cpu.first_call_id, public.cpu.secp.firstIds(), public.cpu.statement, boundary, &setup.cpu.base.program, &setup.cpu.base.plan);
     var owns_full = true;
@@ -213,7 +214,7 @@ pub fn provePrepared(a: std.mem.Allocator, context: PreparedContext, config: Req
         defer a.free(json);
         const name = try std.fmt.allocPrint(a, "batch-{d:0>6}.stages.json", .{cursor.batches});
         defer a.free(name);
-        try Receipt.writeExclusive(directory, name, json);
+        try physical_artifact_support.writeExclusive(directory, name, json);
     }
     const write_ns = timer.lap();
     try context.frontier.publish(roots, public, if (ram) |*value| value else null);

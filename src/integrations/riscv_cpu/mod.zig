@@ -394,4 +394,5 @@ test {
 // Concrete CPU proof tests are owned here; generic frontend helpers stay neutral.
 test {
     _ = @import("blake3_proof_contract_test_root.zig");
+    _ = @import("rv64_proof_artifact_support.zig");
 }

@@ -11,6 +11,78 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PackageWorkspaceTests(unittest.TestCase):
+    def test_product_placement_rejects_every_product_path_without_generated_exemptions(self):
+        from types import SimpleNamespace
+        graph = subject.ci_package_graph
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            directory = root / "src/frontends/riscv"
+            directory.mkdir(parents=True)
+            contract = SimpleNamespace(package="riscv", layer="frontend", api_surface=["ExecutionProfile"])
+            (directory / "execution_profile.zig").write_text(
+                "pub const ExecutionProfile = enum(u8) { ethereum = 3, ethereum_sha = 4 };\n"
+            )
+            self.assertEqual([], graph.check_product_placement(root, [contract]))
+            for relative in ("frontends/riscv/generated/EthereumDriver.zig",
+                             "frontends/riscv/private/opstack.zig",
+                             "integrations/riscv_cpu/starknet/reader.zig",
+                             "integrations/riscv_cuda/tensor_layout.json"):
+                with self.subTest(path=relative):
+                    source = root / "src" / relative
+                    source.parent.mkdir(parents=True, exist_ok=True)
+                    source.write_text("{}")
+                    failures = graph.check_product_placement(root, [contract])
+                    self.assertEqual(1, len(failures))
+                    self.assertIn(relative, failures[0])
+                    source.unlink()
+
+    def test_product_placement_rejects_product_public_contracts_on_lower_layers(self):
+        from types import SimpleNamespace
+        graph = subject.ci_package_graph
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            for layer in ("frontend", "integration"):
+                for name in ("proveEthereumWithEngine", "OpStackStatement", "starknet_public", "TensorPlan"):
+                    with self.subTest(layer=layer, identifier=name):
+                        contract = SimpleNamespace(package="lower", layer=layer, api_surface=[name])
+                        failures = graph.check_product_placement(root, [contract])
+                        self.assertEqual(1, len(failures))
+                        self.assertIn(name, failures[0])
+
+    def test_product_placement_accepts_explicit_product_owners_and_preserves_protocol_tags(self):
+        from types import SimpleNamespace
+        graph = subject.ci_package_graph
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            product = root / "src/products/ethereum/statement"
+            product.mkdir(parents=True)
+            (product / "ethereum.zig").write_text("pub const profile_id: u8 = 3;\n")
+            contracts = [SimpleNamespace(package="ethereum_statement", layer="product",
+                                         api_surface=["EthereumStatement"]),
+                         SimpleNamespace(package="riscv", layer="frontend",
+                                         api_surface=["ExecutionProfile", "HostInterface"])]
+            self.assertEqual([], graph.check_product_placement(root, contracts))
+
+    def test_product_layer_has_only_downward_composition_edges(self):
+        from types import SimpleNamespace
+        product = SimpleNamespace(package="product", layer="product", dependencies={})
+        frontend = SimpleNamespace(package="frontend", layer="frontend", dependencies={})
+        integration = SimpleNamespace(package="integration", layer="integration", dependencies={})
+        packages = {item.package: item for item in (product, frontend, integration)}
+        for layer in ("frontend", "integration", "backend", "engine", "protocol", "api", "contract", "interchange"):
+            with self.subTest(layer=layer):
+                lower = SimpleNamespace(package="lower", layer=layer, dependencies={"product": "../product"})
+                failures = []
+                subject._validate_layers([lower], packages, failures)
+                self.assertEqual(1, len(failures))
+        product.dependencies = {"frontend": "../frontend", "integration": "../integration"}
+        failures = []
+        subject._validate_layers([product], packages, failures)
+        self.assertEqual([], failures)
+        product.dependencies = {"product": "."}
+        subject._validate_layers([product], packages, failures)
+        self.assertEqual(1, len(failures))
+
     def test_semver_candidates_preserve_strict_version_encoding(self):
         payload = json.loads((ROOT / "src/waist/core/package.contract.json").read_text())
         with TemporaryDirectory() as raw:

@@ -1,7 +1,7 @@
 //! First-pass RAM word keys only. No mutable guest values, instruction fetches,
 //! register state or proof authority. Zero-valued words remain present.
 const std = @import("std");
-const Event = @import("ethereum_services/session.zig").Event;
+const Event = @import("services/call_abi.zig").Event;
 const Retirement = @import("machine.zig").Retirement;
 const Block = struct { page: u64, bits: [8]u64 = @splat(0) };
 pub const Set = struct {

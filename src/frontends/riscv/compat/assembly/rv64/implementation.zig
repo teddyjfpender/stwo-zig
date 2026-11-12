@@ -17,3 +17,7 @@ pub const ethereum_contract = @import("../../product_tree/rv64/ethereum_contract
 pub const fast_execution = native.fast_execution;
 pub const ram_word_set = native.ram_word_set;
 pub const checkpoint = native.checkpoint;
+
+pub const arith256_mod = @import("stwo_riscv_rv64").arith256_mod;
+pub const secp256k1_rcb = @import("stwo_riscv_rv64").secp256k1_rcb;
+pub const sha256_compression = @import("stwo_riscv_rv64").sha256_compression;

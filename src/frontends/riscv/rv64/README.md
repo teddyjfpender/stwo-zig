@@ -2,7 +2,7 @@
 
 | Fact | Value |
 | --- | --- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `frontend` |
 | Owner | `riscv-frontend` |
 | Focused CI host | Linux |
@@ -22,6 +22,7 @@ graph LR
 `@import("stwo_riscv_rv64")` exposes these canonical domain interfaces:
 
 - `access_census`
+- `arith256_mod`
 - `air`
 - `candidate_isa`
 - `compact_tape_wire`
@@ -33,8 +34,10 @@ graph LR
 - `frequent_operations`
 - `machine`
 - `memory`
+- `secp256k1_rcb`
 - `service_session`
 - `session`
+- `sha256_compression`
 - `testing`
 
 ## Dependencies

@@ -5,7 +5,7 @@ const std = @import("std");
 const Request = @import("rv64_ethereum_request.zig");
 const Expected = @import("rv64_ethereum_worker_expected.zig");
 const Receiver = @import("rv64_ethereum_verify_chain.zig");
-const Receipt = @import("rv64_ethereum_batch_receipt.zig");
+const Receipt = @import("rv64_proof_artifact_support.zig");
 const Packet = @import("rv64_prepared_work_packet.zig");
 const Collection = @import("rv64_ethereum_native_prepare.zig").Summary;
 pub fn run(a: std.mem.Allocator, config: Request.Config) !Receiver.Result {

@@ -7,6 +7,7 @@ const Native = @import("rv64_ethereum_batch.zig");
 const BatchProof = @import("rv64_ethereum_prove_batch.zig");
 const Chain = @import("rv64_ethereum_chain.zig");
 const Receipt = @import("rv64_ethereum_batch_receipt.zig");
+const physical_artifact_support = @import("rv64_proof_artifact_support.zig");
 const Terminal = @import("rv64_ram_terminal.zig");
 // Large column buffers are recycled across batch proofs instead of being
 // mapped and page-faulted again for every batch.
@@ -59,7 +60,7 @@ fn prove(a: std.mem.Allocator, config: Request.Config, is_resume: bool) !void {
     defer directory.close();
     const request_json = try std.json.Stringify.valueAlloc(a, config, .{ .whitespace = .indent_2 });
     defer a.free(request_json);
-    if (!is_resume) try Receipt.writeExclusive(directory, "request.json", request_json);
+    if (!is_resume) try physical_artifact_support.writeExclusive(directory, "request.json", request_json);
     var reports = if (is_resume) try directory.openFile("batches.jsonl", .{ .mode = .write_only }) else try directory.createFile("batches.jsonl", .{ .exclusive = true });
     if (is_resume) try reports.seekFromEnd(0);
     defer reports.close();
@@ -107,14 +108,14 @@ fn prove(a: std.mem.Allocator, config: Request.Config, is_resume: bool) !void {
         const bytes = try Terminal.prove(a, public, &request.initial_cache, &request.loaded.memory);
         defer a.free(bytes);
         try Terminal.verify(a, public, bytes);
-        try Receipt.writeExclusive(directory, "terminal.proof", bytes);
+        try physical_artifact_support.writeExclusive(directory, "terminal.proof", bytes);
         terminal_ns = timer.read();
         proof_bytes += bytes.len;
     }
     const summary = .{ .schema = "rv64-ethereum-authenticated-execution-v1", .completed = completed, .full_block_proof_verified = false, .fresh_process_receiver_required = true, .verified_batches = cursor.batches, .instructions = cursor.steps, .calls = cursor.calls, .initial_root = initial_root, .final_root = cursor.root, .initial_pc = request.loaded.info.entry, .final_pc = cursor.pc, .elf_sha256 = config.elf_sha256, .input_sha256 = config.input_sha256, .proof_bytes = proof_bytes, .immutable_setup_ns = immutable_setup_ns, .terminal_ns = terminal_ns, .total_ns = total.read(), .recursive_aggregation = false, .resumed = is_resume, .resume_ns = resume_ns, .workers = try Request.effectiveWorkers(config) };
     const json = try std.json.Stringify.valueAlloc(a, summary, .{ .whitespace = .indent_2 });
     defer a.free(json);
-    try Receipt.replaceSummary(directory, json);
+    try physical_artifact_support.replaceSummary(directory, json);
     try std.fs.File.stdout().writeAll(json);
     try std.fs.File.stdout().writeAll("\n");
 }

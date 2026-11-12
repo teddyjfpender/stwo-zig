@@ -8,7 +8,7 @@ const machine = @import("machine.zig");
 const Word = @import("word.zig").Word;
 const memory = @import("memory_types.zig");
 const services = @import("service_session.zig");
-const ethereum = @import("ethereum_services/session.zig");
+const ethereum = @import("services/call_abi.zig");
 pub const NO_MEMORY = std.math.maxInt(u32);
 // The last ordinary RAM timestamp is 4*steps, strictly below 2^24.
 /// One CPU segment: up to 2^23-1 steps (log-23 wide-clock CPU).

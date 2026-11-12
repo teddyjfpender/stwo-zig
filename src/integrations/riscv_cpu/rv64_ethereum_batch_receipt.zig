@@ -2,6 +2,7 @@
 //! is supplied independently by the receiver; it is never repeated in receipts.
 const std = @import("std");
 const A = @import("rv64_authenticated_execution.zig");
+const artifact_support = @import("rv64_proof_artifact_support.zig");
 const request = @import("rv64_ethereum_request.zig");
 pub const Receipt = struct {
     schema: []const u8 = "rv64-authenticated-ethereum-batch-v1",
@@ -22,20 +23,8 @@ pub const Receipt = struct {
         return result;
     }
 };
-pub const SourceCells = struct { fixed: u64, main: u64, interaction: u64 };
-pub fn sourceCells(a: std.mem.Allocator, setup: *const A.Prepared, public: A.Public) !SourceCells {
-    const fixed = try setup.fixedColumns(a);
-    defer a.free(fixed);
-    const main = try setup.logs(a, public, 1);
-    defer a.free(main);
-    const inter = try setup.logs(a, public, 2);
-    defer a.free(inter);
-    var result = SourceCells{ .fixed = 0, .main = 0, .interaction = 0 };
-    for (fixed) |column| result.fixed += @as(u64, 1) << @intCast(column.log_size);
-    for (main) |log| result.main += @as(u64, 1) << @intCast(log);
-    for (inter) |log| result.interaction += @as(u64, 1) << @intCast(log);
-    return result;
-}
+pub const SourceCells = artifact_support.SourceCells;
+pub const sourceCells = artifact_support.sourceCells;
 pub fn write(a: std.mem.Allocator, directory: std.fs.Dir, index: u32, first: u64, public: A.Public, bundle: *const A.Bundle) !usize {
     const wire = @import("stwo_proof_wire");
     const bytes = try wire.encodeProofBytesBinary(a, bundle.proof);
@@ -55,13 +44,7 @@ pub fn writeEncoded(a: std.mem.Allocator, directory: std.fs.Dir, index: u32, fir
     try writeExclusive(directory, meta_name, json);
     return bytes.len;
 }
-pub fn writeExclusive(directory: std.fs.Dir, name: []const u8, bytes: []const u8) !void {
-    var file = try directory.createFile(name, .{ .exclusive = true });
-    errdefer directory.deleteFile(name) catch {};
-    defer file.close();
-    try file.writeAll(bytes);
-    try file.sync();
-}
+pub const writeExclusive = artifact_support.writeExclusive;
 
 /// A crash leaves a verifiable durable prefix, never a claimed complete block.
 /// Only publish after proof+receipt files have synced and receiver accepted them.
@@ -70,14 +53,4 @@ pub fn checkpoint(a: std.mem.Allocator, directory: std.fs.Dir, cursor: @import("
     defer a.free(json);
     try replaceSummary(directory, json);
 }
-pub fn replaceSummary(directory: std.fs.Dir, json: []const u8) !void {
-    var file = try directory.createFile("summary.pending", .{});
-    var open = true;
-    defer if (open) file.close();
-    errdefer directory.deleteFile("summary.pending") catch {};
-    try file.writeAll(json);
-    try file.sync();
-    file.close();
-    open = false;
-    try directory.rename("summary.pending", "summary.json");
-}
+pub const replaceSummary = artifact_support.replaceSummary;

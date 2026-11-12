@@ -3,7 +3,7 @@ const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const K = @import("stwo_riscv_frontend").rv64_air.crypto.keccak;
 const Fixture = @import("pair2n_fixture.zig");
-const Receipt = @import("../../rv64_ethereum_batch_receipt.zig");
+const Receipt = @import("../../rv64_proof_artifact_support.zig");
 const Metadata = struct { schema: u32 = 1, calls: u32, log: u32, claims: Fixture.Claims, proof_bytes: u64, proof_sha256: [32]u8 };
 fn hash(bytes: []const u8) [32]u8 {
     var digest: [32]u8 = undefined;
