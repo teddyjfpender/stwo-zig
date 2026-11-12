@@ -78,7 +78,8 @@ Two exclusion entries already referred to absent files in the starting tree;
 those stale entries are removed. No live named assertion is removed.
 Redundant anonymous collectors are retired after their subjects and focused
 partitions have canonical owners. The full source audit retains all 3,334
-original named Zig test declarations and adds nine signature identity cases.
+original named Zig test declarations and adds nine signature identity cases
+and one strict collector-parser regression (3,344 named cases in total).
 Counts alone do not qualify test execution.
 
 Experimental H-009/H-010 authoring interfaces remain under explicit unstable
@@ -131,3 +132,31 @@ when the current matrix context matches exactly. Independent recomputation
 still binds every other receipt field, and changed matrix hashes and seal
 claims are rejected. Legacy preflight remains inadmissible for new capture;
 this replay compatibility is not current qualification. The source-binding and formal gates in #328 remain open.
+
+## Qualification checkpoint, 2026-11-12
+
+The complete frontend Debug and ReleaseFast lanes both passed at `731748325`
+([run 43204561808](https://github.com/teddyjfpender/stwo-zig/actions/runs/43204561808)).
+The focused transcript command passed in both modes with its original minimum
+of 236 ([run 43204545052](https://github.com/teddyjfpender/stwo-zig/actions/runs/43204545052)).
+Separate RV64 build-mode jobs retain both exact commands; ReleaseFast also
+passed independently at `334489a53`. These results qualify those source
+revisions, not every subsequent edit.
+
+Native proof bytes and complete native/product circuit graph receipts match
+retained references. Four CPU smoke workloads freshly verify and reject wrong
+statements. The remaining CPU profile-partition failures are being repaired
+under #368: source checks now bind the live full-width transaction; explicit
+one-worker requests must retain their proof-owned pool without helper threads
+or legacy global-pool discovery. The final hosted parity/failure-recovery gate
+must confirm that repair before acceptance.
+
+The live formal candidate at `cb7be561b` exported fresh AIR and passed the full
+Lean theorem build. Its generated Sail composition bridge then rejected FENCE
+and LUI source-content identities in
+[run 43215529913](https://github.com/teddyjfpender/stwo-zig/actions/runs/43215529913).
+No candidate pins were adopted. This remains the explicitly permitted #328
+follow-up, alongside circuit-oracle provenance and current source-bound audit
+receipts. Shared-runner benchmark failures remain non-blocking measurements;
+the LS-D64 projection denominator failure remains an actual integration failure
+tracked in #358. None is converted into a passing qualification.

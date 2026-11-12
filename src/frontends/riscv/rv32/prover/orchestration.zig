@@ -161,8 +161,7 @@ pub const ProofExecutionPool = struct {
     ) !void {
         self.* = .{};
         const explicit = request orelse return;
-        const budget = try work_pool.WorkerBudget.init(explicit.worker_count);
-        if (budget.count == 1) return;
+        _ = try work_pool.WorkerBudget.init(explicit.worker_count);
 
         try self.pool.initInPlaceWithOptions(.{
             .worker_count = explicit.worker_count,

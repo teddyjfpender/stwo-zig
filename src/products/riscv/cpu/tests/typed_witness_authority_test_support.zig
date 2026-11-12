@@ -269,16 +269,16 @@ fn expectProofPoolAudit(
     expect_injected_failure: bool,
 ) !void {
     errdefer std.debug.print("proof pool audit N={d}: {any}\n", .{ worker_count, receipt });
-    const expected_pool_address = if (worker_count > 1) receipt.pool_address else 0;
+    const expected_pool_address = receipt.pool_address;
     try std.testing.expectEqual(
-        @as(usize, if (worker_count > 1) 1 else 0),
+        @as(usize, 1),
         receipt.pool_init_count,
     );
     try std.testing.expectEqual(receipt.pool_init_count, receipt.pool_deinit_count);
     // Coordinator plus deferred commitment worker bind the same owned pool.
     try std.testing.expectEqual(receipt.pool_init_count * 2, receipt.binding_init_count);
     try std.testing.expectEqual(receipt.binding_init_count, receipt.binding_deinit_count);
-    if (worker_count > 1) try std.testing.expect(receipt.pool_address != 0);
+    try std.testing.expect(receipt.pool_address != 0);
 
     for (receipt.stage_observations, receipt.stage_pool_addresses) |observations, address| {
         try std.testing.expect(observations >= 1);
@@ -300,7 +300,7 @@ fn expectProofPoolAudit(
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_saw_pool_count);
         try std.testing.expectEqual(@as(usize, 1), receipt.nested_binding_denied_count);
     } else {
-        try std.testing.expectEqual(@as(usize, 0), receipt.lease_acquire_count);
+        try std.testing.expectEqual(@as(usize, 2), receipt.lease_acquire_count);
         try std.testing.expectEqual(@as(usize, 0), receipt.structured_submitted);
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_probe_count);
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_saw_pool_count);

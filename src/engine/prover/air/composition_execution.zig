@@ -41,7 +41,7 @@ pub const Execution = struct {
     ) !Execution {
         if (request) |explicit| {
             const worker_budget = try work_pool.WorkerBudget.init(explicit.worker_count);
-            const pool = if (worker_budget.count == 1) null else work_pool.getGlobalPool();
+            const pool = if (worker_budget.count == 1) work_pool.currentScopedPool() else work_pool.getGlobalPool();
             try work_pool.observeProofPoolStageForTest(.composition, pool);
             return .{
                 .preparation = explicit.preparation,
@@ -225,6 +225,16 @@ test "explicit serial execution never resolves a shared pool" {
     });
     try std.testing.expect(execution.pool == null);
     try std.testing.expectEqual(@as(usize, 1), execution.worker_budget.count);
+    var pool: work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 1 });
+    defer pool.deinit();
+    var binding = try work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    const bound = try Execution.resolve(.{ .worker_count = 1, .host_byte_budget = 1024 });
+    try std.testing.expect(bound.pool.? == &pool);
+    try std.testing.expectEqual(@as(usize, 0), bound.worker_budget.helperCount());
+    try std.testing.expectEqual(@as(usize, 0), try bound.helperResidentBytes());
+    try bound.validateCapacity();
 }
 
 test "strict over-capacity stays exact while compatibility becomes serial" {

@@ -180,7 +180,7 @@ class R006Fixture(unittest.TestCase):
             "schema_version": 1,
             "matrix": {
                 "path": (
-                    "src/frontends/riscv/air/lang/artifacts/"
+                    "src/frontends/riscv/air_lang/artifacts/"
                     "p003-work-profile-closure-v1/matrix-v1.json"
                 ),
                 "schema": "stwo.typed-air.p003-work-profile-closure-matrix.v1",

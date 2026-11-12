@@ -42,7 +42,7 @@ CALLERS = {
     # is how every SP1-style guest terminates -- reached the prover and failed
     # there instead of at the entry point.
     "hosted block proving pipeline": (
-        ROOT / "src" / "frontends" / "riscv" / "host" / "prove_block.zig",
+        ROOT / "src" / "frontends" / "riscv" / "compat" / "assembly" / "rv32" / "host" / "prove_block.zig",
         "prover_mod.admitRunForProving(&run_result)",
     ),
 }
