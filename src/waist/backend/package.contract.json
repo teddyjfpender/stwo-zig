@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_backend_contracts",
-  "version": "0.1.0",
+  "version": "1.0.0-rc.1",
   "layer": "contract",
   "owner": "backend-contracts",
   "public_modules": {

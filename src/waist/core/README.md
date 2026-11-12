@@ -7,7 +7,7 @@ contains no prover orchestration and has no dependency on a compute backend.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `1.0.0-rc.1` |
 | Layer | `protocol` |
 | Owner | `protocol-core` |
 | Public Zig module | `stwo_core` |

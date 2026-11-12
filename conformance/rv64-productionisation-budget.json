@@ -1065,6 +1065,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue #347: at most800 net test-source lines for bounded fixed-seed field laws, FRI polynomial/linearity/composition properties, frozen Merkle membership/mutation checks and codec round trips in Debug and ReleaseFast. Reuse existing roots, independent integer/polynomial/frozen expectations and exact CM31 corpus; retain its noinline workaround. No runtime/public API, flags, launcher, golden or performance claims."
+    },
+    {
+      "id": "waist_rc_freeze_354_355",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Strict existing version-parser prerelease recognition and rejection tests permit the user-directed five-package 1.0.0-rc.1 metadata transaction, preserving all existing runtime/API/wire/error/source/dependency behavior. RC is separate from D2/D3/D5 and final Phase1 exit; RFC355."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

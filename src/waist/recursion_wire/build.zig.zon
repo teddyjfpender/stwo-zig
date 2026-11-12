@@ -1,7 +1,7 @@
 .{
     .fingerprint = 0x2f2de48a9ee7c83e,
     .name = .stwo_circuit_recursion_wire,
-    .version = "0.1.0",
+    .version = "1.0.0-rc.1",
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{

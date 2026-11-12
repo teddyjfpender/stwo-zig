@@ -140,8 +140,10 @@ def load_contract(path: Path) -> Contract:
     owner = payload["owner"]
     if not isinstance(package, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", package):
         raise ValueError(f"{path}: invalid package name")
+    prerelease = r"(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
     if not isinstance(version, str) or not re.fullmatch(
-        r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)",
+        r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
+        rf"(?:-{prerelease}(?:\.{prerelease})*)?",
         version,
     ):
         raise ValueError(f"{path}: invalid semantic version")

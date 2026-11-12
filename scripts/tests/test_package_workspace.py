@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unittest
 from dataclasses import replace
 from tempfile import TemporaryDirectory
@@ -10,6 +11,34 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PackageWorkspaceTests(unittest.TestCase):
+    def test_semver_candidates_preserve_strict_version_encoding(self):
+        payload = json.loads((ROOT / "src/waist/core/package.contract.json").read_text())
+        with TemporaryDirectory() as raw:
+            path = Path(raw) / "package.contract.json"
+            for version in ("0.0.0", "1.0.0", "1.0.0-rc.1", "1.0.0-alpha.0", "1.0.0-1", "1.0.0-01a", "1.0.0-alpha-beta"):
+                with self.subTest(valid=version):
+                    path.write_text(json.dumps(payload | {"version": version}))
+                    self.assertEqual(version, subject.load_contract(path).version)
+            for version in (None, 1, True, "01.0.0", "1.01.0", "1.0.01", "1.0", "1.0.0-", "1.0.0-rc..1",
+                            "1.0.0-rc.01", "1.0.0-01", "1.0.0-rc_1", "1.0.0-rc.1 ", "v1.0.0", "1.0.0-rc.1+"):
+                with self.subTest(invalid=version):
+                    path.write_text(json.dumps(payload | {"version": version}))
+                    with self.assertRaisesRegex(ValueError, "invalid semantic version"):
+                        subject.load_contract(path)
+
+    def test_manifest_keeps_exact_release_candidate_identity(self):
+        contract = subject.load_contract(ROOT / "src/waist/core/package.contract.json")
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            contract = replace(contract, directory=root, version="1.0.0-rc.1")
+            (root / "build.zig").write_text('b.addModule("stwo_core", .{});')
+            (root / "mod.zig").touch()
+            for version in ("1.0.0", "1.0.0-rc.2"):
+                (root / "build.zig.zon").write_text('.{ .name = .stwo_core, .version = "' + version + '", .dependencies = .{} }')
+                failures = []
+                subject._validate_manifest(contract, failures)
+                self.assertTrue(any("manifest version differs" in error for error in failures))
+
     def test_repository_contracts_pass(self) -> None:
         self.assertEqual([], subject.check_repository(ROOT))
 
