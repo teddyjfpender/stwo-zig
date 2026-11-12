@@ -587,7 +587,7 @@ pub const specs = [_]Spec{
         .root = "framework_interaction_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{"R-012 framework"},
-        .minimum = 3,
+        .minimum = 5,
     },
     .{
         .step = "test-recursion-framework-export",

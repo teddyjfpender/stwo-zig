@@ -757,7 +757,7 @@ test "R-012 framework interaction is source-exact, two-allocation, and failure a
     const std_testing = std.testing;
     const control = @import("control.zig");
     const control_relation = @import("control_relation.zig");
-    const control_witness = @import("control_witness.zig");
+    const control_witness = @import("control_row.zig");
     const proof_kind = @import("proof_kind.zig");
 
     var definition = try control.build(std_testing.allocator);
@@ -847,7 +847,7 @@ test "R-012 framework workspace is equivalent, zero-allocation, fail-atomic, and
     const std_testing = std.testing;
     const control = @import("control.zig");
     const control_relation = @import("control_relation.zig");
-    const control_witness = @import("control_witness.zig");
+    const control_witness = @import("control_row.zig");
     const proof_kind = @import("proof_kind.zig");
     const Framework = Runtime(control_relation.Runtime);
     const log_size: u32 = 4;
@@ -1069,7 +1069,7 @@ test "R-012 framework tiled owned output preserves columns and releases partial 
     const a = std.testing.allocator;
     const control = @import("control.zig");
     const relation = @import("control_relation.zig");
-    const witness = @import("control_witness.zig");
+    const witness = @import("control_row.zig");
     const kind = @import("proof_kind.zig").ProofKind;
     const F = Runtime(relation.Runtime);
     var definition = try control.build(a);

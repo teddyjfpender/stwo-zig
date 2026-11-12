@@ -19,6 +19,13 @@
       "positive_growth_justification": "Issue330 comments6805045179/6805442223: keep the existing seeded runtime polynomial active-selector assertion reachable through the maintained focused catalog, serial build and hosted CPU entrypoint. Specialize the existing fixed8/4 shift coefficients at compile time, preserving arithmetic/iteration order; the original test file, assertion, RNG, family coverage and full frontend floors stay exact. No field algorithm, public API/protocol change, copied test or launcher. Temporary traces and the ineffective noinline experiment are removed. Full frontend/proof gates remain independent; rollback the focused plumbing and private kernel change together without removing the original regression."
     },
     {
+      "id": "c3_private_control_row_ownership_rfc344",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Private prerequisite within the approved C3 <=4000 total, charged once: canonical control row/encoder below schedule and allocation ownership. Preserve exact old aliases and three existing framework test bodies, add row/selector and nominal identity coverage, retain all discovery and floors. No public API, numerical, wire or protocol change; rollback moves canonical definitions and imports together."
+    },
+    {
       "id": "worktree_consolidation",
       "net_code_budget": 0,
       "flags_added_budget": 0,

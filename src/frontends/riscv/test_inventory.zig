@@ -123,6 +123,7 @@ test {
     _ = @import("recursion/air/universal_shared_provider_composition.zig");
     _ = @import("recursion/air/control_component.zig");
     _ = @import("recursion/air/tests/control_test.zig");
+    _ = @import("recursion/air/control_row.zig");
     _ = @import("recursion/air/control_witness.zig");
     _ = @import("recursion/air/direct_constraint_program.zig");
     _ = @import("recursion/air/framework_interaction.zig");

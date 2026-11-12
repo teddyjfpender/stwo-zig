@@ -264,6 +264,7 @@ class DevTestPlanTests(unittest.TestCase):
             ("src/frontends/riscv/retained_authority_contract_test_root.zig", "test-retained-authority-contracts"),
             ("src/integrations/riscv_cpu/division_contract_test_root.zig", "test-division-contracts"),
             ("src/integrations/riscv_cpu/services_truth_contract_test_root.zig", "test-services-truth-contracts"),
+            ("src/frontends/riscv/recursion/air/control_row.zig", "test-recursion-framework-interaction"),
             ("src/frontends/riscv/test_inventory_test.zig", "test-inventory"),
             ("src/frontends/riscv/test_inventory.zig", "test-inventory"),
             ("src/frontends/riscv/rv64_test_inventory.zig", "test-inventory"),
