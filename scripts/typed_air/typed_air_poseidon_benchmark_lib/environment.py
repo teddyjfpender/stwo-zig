@@ -24,7 +24,7 @@ ARTIFACT_PATH = Path(
 )
 SOURCE_MANIFEST = Manifest(
     product="h010-authenticated-poseidon-layout-runner-v1",
-    entry_roots=("src/frontends/riscv/poseidon_layout_benchmark_tool.zig",),
+    entry_roots=("src/frontends/riscv/compat/assembly/rv32/poseidon_layout_benchmark_tool.zig",),
     named_imports=(
         NamedImport("stwo_backend_contracts", "src/waist/backend/mod.zig"),
         NamedImport("stwo_core", "src/waist/core/mod.zig"),
@@ -32,11 +32,11 @@ SOURCE_MANIFEST = Manifest(
         NamedImport("stwo_prover_engine", "src/engine/prover/mod.zig"),
         NamedImport(
             "typed_air_h009_artifacts",
-            "src/frontends/riscv/air/lang/artifacts/h009_embedded.zig",
+            "src/frontends/riscv/air_lang/artifacts/h009_embedded.zig",
         ),
         NamedImport(
             "typed_air_h010_artifacts",
-            "src/frontends/riscv/air/lang/artifacts/h010_embedded.zig",
+            "src/frontends/riscv/air_lang/artifacts/h010_embedded.zig",
         ),
     ),
     generated_imports=frozenset(

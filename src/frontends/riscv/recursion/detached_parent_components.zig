@@ -4,14 +4,14 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const air = struct {
-    const detached_parent_catalog_v1 = @import("air/detached_parent_catalog.zig");
-    const range_check_8_8_bridge = @import("air/range_check_8_8_bridge.zig");
-    const universal_adapter_manifest = @import("air/universal_adapter_manifest.zig");
-    const universal_catalog = @import("air/universal_catalog_entry.zig");
-    const universal_challenges = @import("air/universal_challenges.zig");
-    const universal_relation_binding = @import("air/universal_relation_binding.zig");
-    const universal_shared_provider = @import("air/universal_shared_provider.zig");
-    const universal_typed_component = @import("air/universal_typed_component.zig");
+    const detached_parent_catalog_v1 = @import("stwo_riscv_recursion_air").detached.parent_catalog;
+    const range_check_8_8_bridge = @import("stwo_riscv_rv32").recursion.air.range_check_8_8_bridge;
+    const universal_adapter_manifest = @import("stwo_riscv_air_lang").framework.universal_adapter_manifest;
+    const universal_catalog = @import("stwo_riscv_recursion_air").universal_catalog_entry;
+    const universal_challenges = @import("stwo_riscv_air_lang").framework.universal_challenges;
+    const universal_relation_binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
+    const universal_shared_provider = @import("stwo_riscv_rv32").recursion.air.universal_shared_provider;
+    const universal_typed_component = @import("stwo_riscv_air_lang").framework.universal_typed_component;
 };
 pub const manifest_mod = air.universal_adapter_manifest;
 const provider = air.universal_shared_provider;

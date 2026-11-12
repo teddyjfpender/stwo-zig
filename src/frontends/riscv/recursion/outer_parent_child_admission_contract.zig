@@ -9,14 +9,14 @@ pub const M31 = stwo_core.fields.m31.M31;
 pub const QM31 = stwo_core.fields.qm31.QM31;
 pub const CirclePointQM31 = stwo_core.circle.CirclePointQM31;
 
-pub const channel = @import("poseidon2_channel.zig");
-pub const engine = @import("engine_protocol.zig");
-pub const fixed_profile = @import("fixed_profile.zig");
-pub const fixed_wire = @import("fixed_wire.zig");
+pub const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
+pub const engine = @import("stwo_riscv_recursion_air").protocol.recursion.engine_protocol;
+pub const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
+pub const fixed_wire = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_wire;
 pub const pair_node = @import("pair_node.zig");
-pub const protocol = @import("protocol.zig");
+pub const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 pub const sample_point_layout = @import("sample_point_layout.zig");
-pub const roster = @import("air/universal_roster.zig");
+pub const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 
 pub const ProofCapture = stwo_core.pcs.verifier.VerifiedProofCapture(engine.Hasher);
 

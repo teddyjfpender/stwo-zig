@@ -3,26 +3,26 @@
 const std = @import("std");
 const core_component = @import("stwo_core").air.components.Component;
 const prover_component = @import("stwo_prover_engine").air.component_prover.ComponentProver;
-const keccak_component = @import("../../air/guest_precompile/keccakf_component.zig");
-const keccak_table_component = @import("../../air/guest_precompile/keccakf_table_component.zig");
-const secp_bundle = @import("../../air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_component = @import("../../air/guest_precompile/secp256k1_component.zig");
-const secp_config = @import("../../air/guest_precompile/secp256k1_component_config.zig");
-const secp_trace = @import("../../air/guest_precompile/secp256k1_component_trace.zig");
-const component_order = @import("../../air/component_order.zig");
-const merkle_node = @import("../../air/memory_commitment/merkle_node.zig");
-const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
-const program_commitment = @import("../../air/program/commitment.zig");
-const base_statement = @import("../../air/statement.zig");
-const statement_v2 = @import("../../air/statement_v2.zig");
+const keccak_component = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_component;
+const keccak_table_component = @import("stwo_riscv_precompiles").air.keccakf_table_component;
+const secp_bundle = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_bundle;
+const secp_component = @import("stwo_riscv_precompiles").air.secp256k1_component;
+const secp_config = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_config;
+const secp_trace = @import("stwo_riscv_precompiles").air.secp256k1_component_trace;
+const component_order = @import("stwo_riscv_rv32").air.component_order;
+const merkle_node = @import("stwo_riscv_memory").air.merkle_node;
+const poseidon2_air = @import("stwo_riscv_memory").air.poseidon2_air;
+const lookup_physical_v2 = @import("stwo_riscv_rv32").air.lang.lookup_physical_manifest;
+const program_commitment = @import("stwo_riscv_rv32").air.program.commitment;
+const base_statement = @import("stwo_riscv_rv32").air.statement;
+const statement_v2 = @import("stwo_riscv_rv32").air.statement_v2;
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
-const infra = @import("../../infra_trace.zig");
-const trace_mod = @import("../../runner/trace.zig");
-const proof_workspace = @import("../proof_workspace.zig");
+const infra = @import("stwo_riscv_rv32").trace_layout.api;
+const trace_mod = @import("stwo_riscv_rv32").execution.trace;
+const proof_workspace = @import("stwo_riscv_rv32").prover.proof_workspace;
 const relations_mod = @import("ethereum_transcript.zig");
 const types = @import("ethereum_types.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
+const native_provider_omit = @import("../../compat/assembly/rv32/prover/memory_provider_shards/native_provider_omit.zig");
 
 pub const Direction = enum { prover, verifier };
 pub const extension_component_count: usize = statement_mod.component_count;
@@ -103,7 +103,7 @@ pub fn Assembly(comptime direction: Direction) type {
             claim: *const types.ExtensionClaim,
             manifest: *const lookup_physical_v2.Manifest,
             authenticated: *const lookup_physical_v2.AuthenticatedStatement,
-            circuit_profile: @import("../ethereum_circuit_profile.zig").CircuitProfileV1,
+            circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1,
         ) !*Self {
             try extension.validateV2WithCircuitProfileV1(native, circuit_profile);
             const core = &native.core;
@@ -161,7 +161,7 @@ pub fn Assembly(comptime direction: Direction) type {
             base: []const Handle,
             claim: *const types.ExtensionClaim,
             base_interaction_columns: usize,
-            circuit_profile: @import("../ethereum_circuit_profile.zig").CircuitProfileV1,
+            circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1,
         ) !*Self {
             try extension.validateStructure(core);
             try claim.validate(extension);
@@ -179,7 +179,7 @@ pub fn Assembly(comptime direction: Direction) type {
             allocator: std.mem.Allocator,
             native: *const base_statement.Blake3ExecutionStatement,
             extension: *const statement_mod.Statement,
-            pin: @import("../blake3_commitment_plan.zig").Admission,
+            pin: @import("stwo_riscv_rv32").prover.blake3_commitment_plan.Admission,
             hash_logs: @import("../blake3_ethereum_statement.zig").HashLogs,
             relations: *const relations_mod.Relations,
             base: []const Handle,
@@ -192,12 +192,12 @@ pub fn Assembly(comptime direction: Direction) type {
             allocator: std.mem.Allocator,
             native: *const base_statement.Blake3ExecutionStatement,
             extension: *const statement_mod.Statement,
-            pin: @import("../blake3_commitment_plan.zig").Admission,
+            pin: @import("stwo_riscv_rv32").prover.blake3_commitment_plan.Admission,
             hash_logs: @import("../blake3_ethereum_statement.zig").HashLogs,
             relations: *const relations_mod.Relations,
             base: []const Handle,
             claim: *const types.ExtensionClaim,
-            ranges: ?@import("../../recursion/air/compact_range_geometry.zig").Plan,
+            ranges: ?@import("stwo_riscv_air_lang").framework.compact_range_geometry.Plan,
         ) !*Self {
             try @import("../blake3_ethereum_statement.zig").validate(extension, native, pin, hash_logs);
             const origin = try blake3OffsetsWithRanges(native, ranges);
@@ -210,12 +210,12 @@ pub fn Assembly(comptime direction: Direction) type {
             allocator: std.mem.Allocator,
             native: *const base_statement.Blake3ExecutionStatement,
             extension: *const @import("../blake3_ethereum_sha_statement.zig").Statement,
-            pin: @import("../blake3_commitment_plan.zig").Admission,
+            pin: @import("stwo_riscv_rv32").prover.blake3_commitment_plan.Admission,
             hash_logs: @import("../blake3_ethereum_statement.zig").HashLogs,
             relations: *const relations_mod.Relations,
             base: []const Handle,
             claim: *const types.ExtensionClaim,
-            ranges: ?@import("../../recursion/air/compact_range_geometry.zig").Plan,
+            ranges: ?@import("stwo_riscv_air_lang").framework.compact_range_geometry.Plan,
         ) !*Self {
             try extension.validate(allocator, native, pin, hash_logs);
             const origin = try blake3OffsetsWithRanges(native, ranges);
@@ -226,7 +226,7 @@ pub fn Assembly(comptime direction: Direction) type {
         /// occupy these roots; program/memory/machine requests remain open for
         /// the common B5SS global providers. No native or custody offset enters
         /// this component placement.
-        fn createPlaced(allocator: std.mem.Allocator, extension: *const statement_mod.Statement, relations: *const relations_mod.Relations, base: []const Handle, claim: *const types.ExtensionClaim, placements: Placements, circuit_profile: @import("../ethereum_circuit_profile.zig").CircuitProfileV1) !*Self {
+        fn createPlaced(allocator: std.mem.Allocator, extension: *const statement_mod.Statement, relations: *const relations_mod.Relations, base: []const Handle, claim: *const types.ExtensionClaim, placements: Placements, circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1) !*Self {
             try claim.validate(extension);
             if (base.len > proof_workspace.MAX_COMPONENT_HANDLES) return error.TooManyComponentHandles;
             const self = try allocator.create(Self);
@@ -437,7 +437,7 @@ const Placements = struct {
 /// Extension placement follows native execution and the full BLAKE3 roster.
 pub fn blake3Offsets(native: *const base_statement.Blake3ExecutionStatement) !PlacementDescriptor {
     var result = PlacementDescriptor{ .preprocessed_offset = native.nPreprocessedColumns(), .main_offset = native.nMainColumns(), .interaction_offset = native.nInteractionColumns() };
-    inline for (@import("../blake3_commitment_components.zig").Airs) |Air| {
+    inline for (@import("stwo_riscv_rv32").prover.blake3_commitment_components.Airs) |Air| {
         result.preprocessed_offset = try add(result.preprocessed_offset, Air.PREPROCESSED_COLUMN_COUNT);
         result.main_offset = try add(result.main_offset, Air.PHYSICAL_MAIN_COLUMN_COUNT);
         result.interaction_offset = try add(result.interaction_offset, Air.INTERACTION_COLUMN_COUNT);
@@ -584,11 +584,11 @@ fn retainedSegmentZeroRows(family: trace_mod.OpcodeFamily) u32 {
     };
 }
 
-pub fn blake3OffsetsWithRanges(native: *const base_statement.Blake3ExecutionStatement, ranges: ?@import("../../recursion/air/compact_range_geometry.zig").Plan) !PlacementDescriptor {
+pub fn blake3OffsetsWithRanges(native: *const base_statement.Blake3ExecutionStatement, ranges: ?@import("stwo_riscv_air_lang").framework.compact_range_geometry.Plan) !PlacementDescriptor {
     var origin = try blake3Offsets(native);
     if (ranges) |compact| {
         try compact.validate();
-        inline for (@import("../../recursion/air/compact_range_roster.zig").Roster.Airs) |Air| {
+        inline for (@import("stwo_riscv_air_lang").framework.compact_range_roster.Roster.Airs) |Air| {
             origin.main_offset = try add(origin.main_offset, Air.PHYSICAL_MAIN_COLUMN_COUNT);
             origin.interaction_offset = try add(origin.interaction_offset, Air.INTERACTION_COLUMN_COUNT);
         }

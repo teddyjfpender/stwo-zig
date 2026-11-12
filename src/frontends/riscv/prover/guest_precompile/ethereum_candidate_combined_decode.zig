@@ -1,8 +1,8 @@
 //! Declared-program decoder for the ordered two-member candidate registry.
 
-const program_decode = @import("../../air/program/decode.zig");
+const program_decode = @import("stwo_riscv_rv32").air.program.decode;
 const authority_mod =
-    @import("../../isa/ethereum_candidate_combined_authority.zig");
+    @import("../../compat/product_tree/isa/ethereum_candidate_combined_authority.zig");
 
 pub const production_active = false;
 
@@ -81,7 +81,7 @@ comptime {
 
 test "combined decoder admits both private words and delegates Ethereum" {
     const std = @import("std");
-    const custom0 = @import("../../isa/custom0.zig");
+    const custom0 = @import("stwo_riscv_isa").custom0;
     var digest = [_]u8{0} ** 32;
     digest[0] = 1;
     const authority = try authority_mod.Authority.create(digest);

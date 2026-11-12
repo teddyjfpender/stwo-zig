@@ -3,9 +3,9 @@ const std = @import("std");
 const circuit = @import("vm_air_composition_circuit.zig");
 const Scalar = circuit.Scalar;
 const Builder = circuit.Builder;
-const component_order = @import("../air/component_order.zig");
-const statement_mod = @import("../air/statement.zig");
-const transcript_claims = @import("../air/transcript/claims.zig");
+const component_order = @import("stwo_riscv_rv32").air.component_order;
+const statement_mod = @import("stwo_riscv_rv32").air.statement;
+const transcript_claims = @import("stwo_riscv_rv32").air.transcript.claims;
 pub const BASE_TRANSCRIPT_CLAIM_COUNT = transcript_claims.COMPONENT_COUNT;
 pub fn ForProfile(comptime Profile: type, comptime RangeIndex: type) type {
     if (RangeIndex != usize and RangeIndex != u32) @compileError("unsupported claim range index");

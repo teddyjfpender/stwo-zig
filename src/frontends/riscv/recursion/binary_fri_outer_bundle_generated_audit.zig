@@ -1,10 +1,10 @@
 //! Independent claim replay and domain audit for a generated binary bundle.
 
 const std = @import("std");
-const relation_interaction = @import("air/relation_interaction.zig");
-const universal = @import("air/universal_challenges.zig");
-const shared_provider = @import("air/universal_shared_provider.zig");
-const poseidon_air = @import("../air/memory_commitment/poseidon2_air.zig");
+const relation_interaction = @import("stwo_riscv_air_lang").framework.relation_interaction;
+const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
+const shared_provider = @import("stwo_riscv_rv32").recursion.air.universal_shared_provider;
+const poseidon_air = @import("stwo_riscv_memory").air.poseidon2_air;
 
 pub fn audit(
     self: anytype,

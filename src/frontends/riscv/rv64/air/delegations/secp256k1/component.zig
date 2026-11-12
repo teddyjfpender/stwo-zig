@@ -11,7 +11,7 @@ const L = @import("layout.zig");
 const E = @import("equations.zig");
 const Eval = @import("../../evaluation.zig");
 const geometry = @import("../../geometry.zig");
-const points = @import("../../../../air/component_point_support.zig");
+const points = @import("stwo_riscv_air_lang").evaluation.component_point_support;
 const lane = @import("../../lane.zig");
 pub const Offsets = struct { fixed: usize = 0, main: usize = 0, interaction: usize = 0 };
 pub fn ComponentFor(comptime Lane: type) type {

@@ -291,13 +291,13 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
     """Bind the certificates to the exact shipped relations and guards."""
 
     m31_path = repo_root / "src/waist/core/fields/m31.zig"
-    common_path = repo_root / "src/frontends/riscv/air/semantics/common.zig"
-    entry_path = repo_root / "src/frontends/riscv/air/lookups/entry.zig"
-    admission_path = repo_root / "src/frontends/riscv/prover/statement_validation.zig"
-    tracker_path = repo_root / "src/frontends/riscv/runner/state_chain.zig"
-    component_path = repo_root / "src/frontends/riscv/air/clock_update_component.zig"
-    interaction_path = repo_root / "src/frontends/riscv/air/clock_update_interaction.zig"
-    access_clock_path = repo_root / "src/frontends/riscv/access_clock.zig"
+    common_path = repo_root / "src/frontends/riscv/air_lang/shared/air/semantics/common.zig"
+    entry_path = repo_root / "src/frontends/riscv/air_lang/shared/air/lookups/entry.zig"
+    admission_path = repo_root / "src/frontends/riscv/rv32/prover/statement_validation.zig"
+    tracker_path = repo_root / "src/frontends/riscv/isa/runner/state_chain.zig"
+    component_path = repo_root / "src/frontends/riscv/rv32/air/clock_update_component.zig"
+    interaction_path = repo_root / "src/frontends/riscv/rv32/air/clock_update_interaction.zig"
+    access_clock_path = repo_root / "src/frontends/riscv/isa/access_clock.zig"
 
     m31_source = m31_path.read_text(encoding="utf-8")
     common_source = _compact(common_path.read_text(encoding="utf-8"))
@@ -316,11 +316,11 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         raise AssertionError("could not locate the production M31 modulus")
     source_modulus = int(modulus_match.group(1), 0)
 
-    statement_path = repo_root / "src/frontends/riscv/air/statement.zig"
+    statement_path = repo_root / "src/frontends/riscv/rv32/air/statement.zig"
     statement_source = statement_path.read_text(encoding="utf-8")
     geometry_path = statement_path.with_name("statement_geometry.zig")
     source_max_components = _decimal_constant(geometry_path.read_text(encoding="utf-8"), "MAX_COMPONENTS")
-    types_source = _compact((repo_root / "src/frontends/riscv/prover/types.zig").read_text(encoding="utf-8"))
+    types_source = _compact((repo_root / "src/frontends/riscv/rv32/prover/types.zig").read_text(encoding="utf-8"))
     aliases = (
         (_compact(statement_source), 'pub const MAX_COMPONENTS = @import("statement_geometry.zig").MAX_COMPONENTS;'),
         (types_source, "pub const MAX_COMPONENTS = statement_mod.MAX_COMPONENTS;"),

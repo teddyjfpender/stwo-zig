@@ -22,13 +22,13 @@ SCHEMA_VERSION = 2
 SHAPE_AUDITED_SOURCES = (
     "src/products/riscv/tools/recursive_csp_shape_inspector/main.zig",
     "src/products/riscv/tools/recursive_csp_producer/profile_registry.zig",
-    "src/frontends/riscv/prover/statement_shape_inspection.zig",
-    "src/frontends/riscv/prover/commitment_witness.zig",
-    "src/frontends/riscv/prover/statement_geometry.zig",
-    "src/frontends/riscv/prover/statement_validation.zig",
-    "src/frontends/riscv/air/statement.zig",
-    "src/frontends/riscv/recursion/segment_profile.zig",
-    "src/frontends/riscv/air/program/circuit_layout.zig",
+    "src/frontends/riscv/rv32/prover/statement_shape_inspection.zig",
+    "src/frontends/riscv/rv32/prover/commitment_witness.zig",
+    "src/frontends/riscv/rv32/prover/statement_geometry.zig",
+    "src/frontends/riscv/rv32/prover/statement_validation.zig",
+    "src/frontends/riscv/rv32/air/statement.zig",
+    "src/frontends/riscv/rv32/recursion/segment_profile.zig",
+    "src/frontends/riscv/air_lang/circuit_layout.zig",
 )
 
 

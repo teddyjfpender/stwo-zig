@@ -1,0 +1,11 @@
+//! Canonical immutable asset ownership.
+pub const framework_control_zig = @embedFile("framework/control.zig");
+pub const framework_linear_ops_zig = @embedFile("framework/linear_ops.zig");
+pub const framework_qm31_inv_zig = @embedFile("framework/qm31_inv.zig");
+pub const framework_qm31_mul_zig = @embedFile("framework/qm31_mul.zig");
+pub const function_activation_authority_zig = @embedFile("function_activation_authority.zig");
+pub const function_frames_zig = @embedFile("function_frames.zig");
+pub const functions_zig = @embedFile("functions.zig");
+pub const polynomial_replay_zig = @embedFile("polynomial_replay.zig");
+pub const shared_air_logup_equations_zig = @embedFile("shared/air/logup_equations.zig");
+pub const shared_air_lookups_entry_zig = @embedFile("shared/air/lookups/entry.zig");

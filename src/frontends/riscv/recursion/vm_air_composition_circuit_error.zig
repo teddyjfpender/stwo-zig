@@ -22,45 +22,45 @@ pub const canonic = stwo_core.poly.circle.canonic;
 
 pub const verifier_types = stwo_core.verifier_types;
 
-pub const clock_component = @import("../air/clock_update_component.zig");
+pub const clock_component = @import("stwo_riscv_rv32").air.clock_update_component;
 
-pub const clock_interaction = @import("../air/clock_update_interaction.zig");
+pub const clock_interaction = @import("stwo_riscv_rv32").air.clock_update_interaction;
 
-pub const component_order = @import("../air/component_order.zig");
+pub const component_order = @import("stwo_riscv_rv32").air.component_order;
 
-pub const logup = @import("../air/logup.zig");
+pub const logup = @import("stwo_riscv_air_lang").evaluation.logup;
 
-pub const memory_interaction = @import("../air/memory_commitment/interaction.zig");
+pub const memory_interaction = @import("stwo_riscv_memory").air.interaction;
 
-pub const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
+pub const merkle_node = @import("stwo_riscv_memory").air.merkle_node;
 
-pub const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
+pub const poseidon2_air = @import("stwo_riscv_memory").air.poseidon2_air;
 
-pub const opcode_entries = @import("../air/lookups/opcode_entries.zig");
+pub const opcode_entries = @import("stwo_riscv_rv32").air.lookups.opcode_entries;
 
-pub const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
+pub const opcode_interaction = @import("stwo_riscv_rv32").air.lookups.opcode_interaction;
 
-pub const table_interaction = @import("../air/lookups/tables/interaction.zig");
+pub const table_interaction = @import("stwo_riscv_rv32").air.lookups.tables.interaction;
 
-pub const table_schema = @import("../air/lookups/tables/schema.zig");
+pub const table_schema = @import("stwo_riscv_air_lang").evaluation.lookups.tables.schema;
 
-pub const program_commitment = @import("../air/program/commitment.zig");
+pub const program_commitment = @import("stwo_riscv_rv32").air.program.commitment;
 
-pub const program_interaction = @import("../air/program/interaction.zig");
+pub const program_interaction = @import("stwo_riscv_rv32").air.program.interaction;
 
-pub const semantic_eval = @import("../air/semantic_eval.zig");
+pub const semantic_eval = @import("stwo_riscv_rv32").air.semantic_eval;
 
-pub const statement_mod = @import("../air/statement.zig");
+pub const statement_mod = @import("stwo_riscv_rv32").air.statement;
 
-pub const trace_mod = @import("../runner/trace.zig");
+pub const trace_mod = @import("stwo_riscv_rv32").execution.trace;
 
-pub const graph_mod = @import("air/composition_circuit.zig");
+pub const graph_mod = @import("stwo_riscv_rv32").recursion.air.composition_circuit;
 
-pub const row18_witness = @import("air/vm_air_composition_input_witness.zig");
+pub const row18_witness = @import("stwo_riscv_rv32").recursion.air.vm_air_composition_input_witness;
 
-pub const vm_leaf_context = @import("vm_leaf_context.zig");
+pub const vm_leaf_context = @import("stwo_riscv_rv32").recursion.vm_leaf_context;
 
-pub const transcript_claims = @import("../air/transcript/claims.zig");
+pub const transcript_claims = @import("stwo_riscv_rv32").air.transcript.claims;
 
 pub const Sha256 = std.crypto.hash.sha2.Sha256;
 

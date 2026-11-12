@@ -2,10 +2,10 @@
 //! This planner is experimental and is not yet a production lowering authority.
 const std = @import("std");
 const pcs = @import("pcs_deep_circuit.zig");
-const graph = @import("composition_circuit.zig");
-const opening = @import("detached_opening_accumulation_plan.zig");
-const lowering = @import("verifier_arithmetic_lowering.zig");
-const component = @import("detached_pcs_opening4.zig");
+const graph = @import("stwo_riscv_rv32").recursion.air.composition_circuit;
+const opening = @import("stwo_riscv_rv32").recursion.air.detached_opening_accumulation_plan;
+const lowering = @import("stwo_riscv_rv32").recursion.air.verifier_arithmetic_lowering;
+const component = @import("stwo_riscv_recursion_air").detached.pcs_opening4;
 
 pub const Candidate = struct {
     opening: opening.Match,

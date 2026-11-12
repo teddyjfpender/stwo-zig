@@ -5,17 +5,17 @@
 //! value whose deinitializer mirrors construction order exactly.
 
 const std = @import("std");
-const keccak_calls_mod = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
-const keccak_rows_mod = @import("../../runner/guest_precompile/keccakf.zig");
-const recovery_calls_mod = @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const recovery_rows_mod = @import("../../runner/guest_precompile/secp256k1_recover.zig");
-const keccak_caller = @import("../../air/guest_precompile/keccakf_caller.zig");
-const keccak_counters = @import("../../air/guest_precompile/keccakf_multiplicities.zig");
-const keccak_trace = @import("../../air/guest_precompile/keccakf_trace.zig");
-const recovery_caller = @import("../../air/guest_precompile/secp256k1_recovery_caller.zig");
-const recovery = @import("../../air/guest_precompile/secp256k1_recovery.zig");
-const secp_affine = @import("../../air/guest_precompile/secp256k1_affine.zig");
-const secp_bundle = @import("../../air/guest_precompile/secp256k1_component_bundle.zig");
+const keccak_calls_mod = @import("stwo_riscv_precompiles").runner.keccakf_call_buffer;
+const keccak_rows_mod = @import("stwo_riscv_rv32").execution.guest_precompile.keccakf;
+const recovery_calls_mod = @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer;
+const recovery_rows_mod = @import("stwo_riscv_rv32").execution.guest_precompile.secp256k1_recover;
+const keccak_caller = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_caller;
+const keccak_counters = @import("stwo_riscv_precompiles").air.keccakf_multiplicities;
+const keccak_trace = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_trace;
+const recovery_caller = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_recovery_caller;
+const recovery = @import("stwo_riscv_precompiles").air.secp256k1_recovery;
+const secp_affine = @import("stwo_riscv_precompiles").air.secp256k1_affine;
+const secp_bundle = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_bundle;
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
 
 pub const Witness = struct {
@@ -26,7 +26,7 @@ pub const Witness = struct {
     secp: secp_bundle.Bundle,
     recovery_caller: secp_bundle.RecoveryCallerTrace,
     recovery_caller_local_zero: ?secp_bundle.RecoveryCallerLocalZeroTrace = null,
-    circuit_profile: @import("../ethereum_circuit_profile.zig").CircuitProfileV1 = .legacy_v4,
+    circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1 = .legacy_v4,
     /// Column-staged witnesses own no affine construction tape. Their logical
     /// count comes from the independently retained, root-recommitted statement.
     staged_signer_count: ?u32 = null,
@@ -49,7 +49,7 @@ pub const Witness = struct {
         recovery_calls: []const recovery_calls_mod.Record,
         recovery_rows: []const recovery_rows_mod.ExecutionRow,
         total_steps: u32,
-        circuit_profile: @import("../ethereum_circuit_profile.zig").CircuitProfileV1,
+        circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1,
     ) !Witness {
         try keccak_caller.preflight(keccak_calls, keccak_rows, total_steps);
         try recovery_caller.preflight(recovery_calls, recovery_rows, total_steps);

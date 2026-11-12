@@ -1,0 +1,14 @@
+//! Canonical span word counts shared by V1/V2 wire projections.
+
+pub fn For(comptime DIGEST_WORD_COUNT: usize, comptime HEADER_WORD_COUNT: usize) type {
+    return struct {
+        pub const MACHINE_STATE_CANONICAL_WORDS: usize = 67 + 2 * DIGEST_WORD_COUNT;
+        pub const COMPLETE_EXECUTION_CANONICAL_WORDS: usize = 5 + 4 * DIGEST_WORD_COUNT + 2 * MACHINE_STATE_CANONICAL_WORDS;
+        pub const JOB_CONTEXT_CANONICAL_WORDS: usize = 4 + COMPLETE_EXECUTION_CANONICAL_WORDS;
+        pub const SLOT_SPAN_CANONICAL_WORDS: usize = 6;
+        pub const EDGE_CLAIM_CANONICAL_WORDS: usize = 1 + DIGEST_WORD_COUNT;
+        pub const EXECUTED_SPAN_CANONICAL_WORDS: usize = 13 + 2 * MACHINE_STATE_CANONICAL_WORDS + 2 * EDGE_CLAIM_CANONICAL_WORDS;
+        pub const SPAN_BODY_CANONICAL_WORDS: usize = 1 + EXECUTED_SPAN_CANONICAL_WORDS;
+        pub const SPAN_STATEMENT_CANONICAL_WORDS: usize = HEADER_WORD_COUNT + JOB_CONTEXT_CANONICAL_WORDS + SLOT_SPAN_CANONICAL_WORDS + SPAN_BODY_CANONICAL_WORDS;
+    };
+}

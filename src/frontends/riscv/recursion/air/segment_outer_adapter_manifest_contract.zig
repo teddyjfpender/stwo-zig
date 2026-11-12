@@ -51,7 +51,7 @@ pub const checkedAdd = pure.checkedAdd;
 pub const componentBit = pure.componentBit;
 pub const requireNativeDigest = pure.requireNativeDigest;
 pub const allZero = pure.allZero;
-pub const base = @import("universal_adapter_manifest.zig");
+pub const base = @import("stwo_riscv_air_lang").framework.universal_adapter_manifest;
 pub const boundary_v2 = @import("../segment_leaf_outer_authority.zig");
 pub const provider_authority_v2 =
     @import("../segment_publication_input_provider_authority.zig");

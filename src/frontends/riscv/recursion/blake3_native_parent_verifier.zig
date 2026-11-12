@@ -1,9 +1,9 @@
 //! Witness-independent native-child BLAKE3 parent verification and capture.
 const std = @import("std");
 const core = @import("stwo_core");
-const suite = @import("blake3_engine_protocol.zig");
+const suite = @import("stwo_riscv_recursion_air").protocol.recursion.blake3_engine_protocol;
 const artifact = @import("blake3_native_parent_artifact.zig");
-const universal = @import("air/universal_challenges.zig");
+const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 pub const Verified = struct {
     allocator: std.mem.Allocator,
     allocation_budget: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget = null,
@@ -18,10 +18,10 @@ pub const Verified = struct {
     pub fn identity(self: *const Verified) ![32]u8 {
         try self.relations.validate();
         var channel = suite.Channel{};
-        const mix = @import("../prover/blake3_execution_protocol.zig").mixDigest;
+        const mix = @import("stwo_riscv_rv32").prover.blake3_execution_protocol.mixDigest;
         channel.mixU32s(&.{ 0x42335052, 1 });
         mix(&channel, self.key_id);
-        mix(&channel, @import("../prover/proof_capture_sha256.zig").compute(&self.capture));
+        mix(&channel, @import("stwo_riscv_rv32").prover.proof_capture_sha256.compute(&self.capture));
         channel.mixFelts(&self.claims);
         for (self.relations.elements) |element| channel.mixFelts(&.{ element.z, element.alpha });
         mix(&channel, self.channel.digestBytes());

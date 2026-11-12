@@ -12,14 +12,14 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
 
-const poseidon2 = @import("../air/memory_commitment/poseidon2.zig");
-const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
-const relation = @import("../air/lang/relation.zig");
+const poseidon2 = @import("stwo_riscv_memory").air.poseidon2;
+const poseidon2_air = @import("stwo_riscv_memory").air.poseidon2_air;
+const relation = @import("stwo_riscv_air_lang").relation;
 const authority = @import("segment_leaf_authority_v2.zig");
 const public_source = @import("segment_public_outer_source_v2.zig");
-const air = @import("air/vm_public_claim_hash_authority.zig");
-const roster = @import("air/universal_roster.zig");
-const universal = @import("air/universal_challenges.zig");
+const air = @import("stwo_riscv_recursion_air").vm_public_claim_hash_authority;
+const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
+const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 
 pub const FORMAT_VERSION: u16 = 3;
 pub const SCHEMA_VERSION: u16 = 2;

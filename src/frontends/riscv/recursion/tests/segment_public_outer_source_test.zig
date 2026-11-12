@@ -6,12 +6,12 @@ const stwo_core = @import("stwo_core");
 const m31 = stwo_core.fields.m31;
 const M31 = m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const relation = @import("../../air/lang/relation.zig");
+const relation = @import("stwo_riscv_air_lang").relation;
 const source_v2 = @import("../segment_leaf_authority_v2.zig");
 const subject = @import("../segment_public_outer_source_v2.zig");
 const fixture_support = @import("../segment_public_outer_test_support.zig");
-const control_air_v2 = @import("../air/vm_public_logup_control_v2.zig");
-const control_witness_v2 = @import("../air/vm_public_logup_control_witness.zig");
+const control_air_v2 = @import("stwo_riscv_recursion_air").vm_public_logup_control_v2;
+const control_witness_v2 = @import("stwo_riscv_recursion_air").vm_public_logup_control_witness;
 const register_bytes = @import("../segment_register_byte_layout.zig");
 
 const Fixture = fixture_support.Fixture;
@@ -38,7 +38,7 @@ test "V2 public spine writes exact recursion-local bridge rows" {
         counts.control_relation_events,
     );
     try std.testing.expectEqual(
-        @as(usize, prepared.authority_hash_plan.poseidon_call_count) * (1 + @import("../air/vm_public_claim_hash_authority.zig").CALL_WIRE_GROUP_COUNT) +
+        @as(usize, prepared.authority_hash_plan.poseidon_call_count) * (1 + @import("stwo_riscv_recursion_air").vm_public_claim_hash_authority.CALL_WIRE_GROUP_COUNT) +
             subject.AUTHORITY_BIND_EVENT_COUNT,
         counts.authority_relation_events,
     );

@@ -2,10 +2,10 @@
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const table_counter = @import("../lookups/tables/counter.zig");
-const table_schema = @import("../lookups/tables/schema.zig");
-const keccak_calls = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
-const recovery_calls = @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig");
+const table_counter = @import("stwo_riscv_air_lang").evaluation.lookups.tables.counter;
+const table_schema = @import("stwo_riscv_air_lang").evaluation.lookups.tables.schema;
+const keccak_calls = @import("stwo_riscv_precompiles").runner.keccakf_call_buffer;
+const recovery_calls = @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer;
 
 pub const Context = struct {
     keccak: []const keccak_calls.Record,

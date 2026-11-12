@@ -5,6 +5,16 @@
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{
+        .stwo_riscv_isa = .{ .path = "../src/frontends/riscv/isa" },
+        .stwo_riscv_air_lang = .{ .path = "../src/frontends/riscv/air_lang" },
+        .stwo_riscv_memory = .{ .path = "../src/frontends/riscv/memory" },
+        .stwo_riscv_recursion_air = .{ .path = "../src/frontends/riscv/recursion_air" },
+        .stwo_riscv_precompiles = .{ .path = "../src/frontends/riscv/precompiles" },
+        .stwo_riscv_rv32 = .{ .path = "../src/frontends/riscv/rv32" },
+        .stwo_riscv_rv64 = .{ .path = "../src/frontends/riscv/rv64" },
+        .stwo_riscv_recursion = .{ .path = "../src/frontends/riscv/recursion" },
+        .stwo_riscv_testing = .{ .path = "../src/frontends/riscv/testing" },
+
         .stwo_core = .{ .path = "../src/waist/core" },
         .stwo_backend_contracts = .{ .path = "../src/waist/backend" },
         .stwo_prover_api = .{ .path = "../src/waist/prover_api" },

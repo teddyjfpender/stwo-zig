@@ -1,6 +1,6 @@
 //! Statement routing geometry projected solely from the owning typed AIRs.
-const roster = @import("air/universal_roster.zig");
-const row10_air = @import("air/statement_input.zig");
+const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
+const row10_air = @import("stwo_riscv_recursion_air").statement.input;
 const air_v2 = @import("segment_leaf_outer_air.zig");
 const Air = air_v2.StatementSemanticsV2;
 const Sha256Digest = [32]u8;

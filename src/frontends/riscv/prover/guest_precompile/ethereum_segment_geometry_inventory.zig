@@ -6,21 +6,21 @@
 //! provider planning, closure, and proof authority remain outside this API.
 
 const std = @import("std");
-const component_order = @import("../../air/component_order.zig");
-const base_statement = @import("../../air/statement.zig");
-const lookup_table_schema = @import("../../air/lookups/tables/schema.zig");
-const merkle_node = @import("../../air/memory_commitment/merkle_node.zig");
-const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
-const sparse_merkle = @import("../../air/memory_commitment/sparse_merkle.zig");
-const program_commitment = @import("../../air/program/commitment.zig");
-const execution_profile = @import("../../isa/profile.zig");
-const infra = @import("../../infra_trace.zig");
-const memory_state = @import("../../runner/memory_state.zig");
+const component_order = @import("stwo_riscv_rv32").air.component_order;
+const base_statement = @import("stwo_riscv_rv32").air.statement;
+const lookup_table_schema = @import("stwo_riscv_air_lang").evaluation.lookups.tables.schema;
+const merkle_node = @import("stwo_riscv_memory").air.merkle_node;
+const poseidon2_air = @import("stwo_riscv_memory").air.poseidon2_air;
+const sparse_merkle = @import("stwo_riscv_memory").air.sparse_merkle;
+const program_commitment = @import("stwo_riscv_rv32").air.program.commitment;
+const execution_profile = @import("stwo_riscv_isa").profile;
+const infra = @import("stwo_riscv_rv32").trace_layout.api;
+const memory_state = @import("stwo_riscv_isa").machine.memory_state;
 const runner_result = @import("../../runner/result.zig");
-const trace_mod = @import("../../runner/trace.zig");
-const segment_v2 = @import("../../recursion/segment_statement.zig");
-const statement_validation = @import("../statement_validation.zig");
-const base_types = @import("../types.zig");
+const trace_mod = @import("stwo_riscv_rv32").execution.trace;
+const segment_v2 = @import("stwo_riscv_rv32").recursion.segment_statement;
+const statement_validation = @import("stwo_riscv_rv32").prover.statement_validation;
+const base_types = @import("stwo_riscv_rv32").prover.types;
 
 pub const format_version: u16 = 1;
 const inventory_identity_domain =

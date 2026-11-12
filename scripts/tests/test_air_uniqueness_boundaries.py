@@ -13,8 +13,8 @@ from scripts.riscv.riscv_air_ir_lib import ir, tables
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "air_uniqueness"
-SCHEMA_ZIG = ROOT / "src/frontends/riscv/air/lookups/tables/schema_definition.zig"
-ENTRY_ZIG = ROOT / "src/frontends/riscv/air/lookups/entry.zig"
+SCHEMA_ZIG = ROOT / "src/frontends/riscv/air_lang/shared/air/lookups/tables/schema_definition.zig"
+ENTRY_ZIG = ROOT / "src/frontends/riscv/air_lang/shared/air/lookups/entry.zig"
 UNDER_CONSTRAINED = FIXTURES / "sign_load_underconstrained.json"
 FIXED = FIXTURES / "sign_load_fixed.json"
 TIMEOUT_MS = 20_000

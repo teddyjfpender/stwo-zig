@@ -292,10 +292,10 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
     m31_path = repo_root / "src/waist/core/fields/m31.zig"
     merkle_path = (
         repo_root
-        / "src/frontends/riscv/air/memory_commitment/merkle_node.zig"
+        / "src/frontends/riscv/memory/air/merkle_node.zig"
     )
     admission_path = (
-        repo_root / "src/frontends/riscv/prover/statement_validation.zig"
+        repo_root / "src/frontends/riscv/rv32/prover/statement_validation.zig"
     )
     m31_source = m31_path.read_text(encoding="utf-8")
     merkle_source = _compact(merkle_path.read_text(encoding="utf-8"))

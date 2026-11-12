@@ -1,23 +1,23 @@
 //! Fixed leaf verifier parameters shared with source preparation.
 const M31 = @import("stwo_core").fields.m31.M31;
-const geometry = @import("air/universal_typed_geometry.zig");
-const public_air = @import("air/segment_public_outer_air.zig");
-const proof_kind = @import("air/proof_kind.zig");
-const tags = @import("air/verifier_parameter_tags.zig");
-const native_parameters = @import("air/verifier_component_parameters.zig");
+const geometry = @import("stwo_riscv_air_lang").framework.universal_typed_geometry;
+const public_air = @import("stwo_riscv_recursion_air").segment_public_outer_air;
+const proof_kind = @import("stwo_riscv_air_lang").framework.proof_kind;
+const tags = @import("stwo_riscv_recursion_air").verifier_parameter_tags;
+const native_parameters = @import("stwo_riscv_recursion_air").verifier_component_parameters;
 const AdmissionParametersV1 = @import("detached_segment_admission.zig").AdmissionParametersV1;
 
 pub const TranscriptParameters = struct {
-    control: [geometry.parameterColumnCount(@import("air/control.zig"))]M31,
-    transcript_air: [geometry.parameterColumnCount(@import("air/transcript_air.zig"))]M31,
-    transcript_binding: [geometry.parameterColumnCount(@import("air/transcript_binding.zig"))]M31,
-    transcript_state: [geometry.parameterColumnCount(@import("air/transcript_state.zig"))]M31,
-    transcript_word: [geometry.parameterColumnCount(@import("air/transcript_word.zig"))]M31,
-    transcript_payload: [geometry.parameterColumnCount(@import("air/transcript_payload.zig"))]M31,
-    pow_check: [geometry.parameterColumnCount(@import("air/pow_check.zig"))]M31,
-    pow_frame: [geometry.parameterColumnCount(@import("air/pow_frame.zig"))]M31,
-    relation_challenge: [geometry.parameterColumnCount(@import("air/relation_challenge.zig"))]M31,
-    verifier_randomness: [geometry.parameterColumnCount(@import("air/verifier_randomness.zig"))]M31,
+    control: [geometry.parameterColumnCount(@import("stwo_riscv_air_lang").framework.control)]M31,
+    transcript_air: [geometry.parameterColumnCount(@import("stwo_riscv_recursion_air").transcript.air)]M31,
+    transcript_binding: [geometry.parameterColumnCount(@import("stwo_riscv_recursion_air").transcript.binding)]M31,
+    transcript_state: [geometry.parameterColumnCount(@import("stwo_riscv_recursion_air").transcript.state)]M31,
+    transcript_word: [geometry.parameterColumnCount(@import("stwo_riscv_recursion_air").transcript.word)]M31,
+    transcript_payload: [geometry.parameterColumnCount(@import("stwo_riscv_recursion_air").transcript.payload)]M31,
+    pow_check: [geometry.parameterColumnCount(@import("stwo_riscv_recursion_air").pow.check)]M31,
+    pow_frame: [geometry.parameterColumnCount(@import("stwo_riscv_recursion_air").pow.frame)]M31,
+    relation_challenge: [geometry.parameterColumnCount(@import("stwo_riscv_recursion_air").relation.challenge)]M31,
+    verifier_randomness: [geometry.parameterColumnCount(@import("stwo_riscv_recursion_air").verifier_randomness)]M31,
 
     pub fn segmentV2() TranscriptParameters {
         const selectors = proof_kind.ProofKind.segment_leaf.selectors();

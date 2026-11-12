@@ -1140,6 +1140,222 @@
           "all"
         ]
       ]
+    },
+    "riscv_isa_package": {
+      "host": "linux",
+      "description": "Owned isa contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/isa/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/isa/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_air_lang_package": {
+      "host": "linux",
+      "description": "Owned air lang contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/air_lang/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/air_lang/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_memory_package": {
+      "host": "linux",
+      "description": "Owned memory contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/memory/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/memory/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_recursion_air_package": {
+      "host": "linux",
+      "description": "Owned recursion air contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/recursion_air/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/recursion_air/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_precompiles_package": {
+      "host": "linux",
+      "description": "Owned precompiles contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/precompiles/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/precompiles/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_rv32_package": {
+      "host": "linux",
+      "description": "Owned rv32 contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/rv32/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/rv32/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_rv64_package": {
+      "host": "linux",
+      "description": "Owned rv64 contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/rv64/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/rv64/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_recursion_package": {
+      "host": "linux",
+      "description": "Owned recursion contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/recursion/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/recursion/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_testing_package": {
+      "host": "linux",
+      "description": "Owned testing contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/testing/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/testing/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
     }
   },
   "product_scope_lanes": {
@@ -1953,8 +2169,8 @@
     },
     {
       "prefixes": [
-        "src/frontends/riscv/air/lang/tests/runtime_profile_test.zig",
-        "src/frontends/riscv/air_runtime_profile_test_root.zig"
+        "src/frontends/riscv/testing/cases/air/lang/tests/runtime_profile_test.zig",
+        "src/frontends/riscv/testing/focused_air_runtime_profile_test_root.zig"
       ],
       "lanes": [
         "riscv_runtime_profile"
@@ -1962,10 +2178,10 @@
     },
     {
       "prefixes": [
-        "src/frontends/riscv/recursion/tests/segment_leaf_local_projection_test.zig",
-        "src/frontends/riscv/recursion/tests/vm_composition_program_test.zig",
-        "src/frontends/riscv/retained_transcript_contract_test_root.zig",
-        "src/frontends/riscv/retained_typed_component_test_root.zig"
+        "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig",
+        "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/vm_composition_program_test.zig",
+        "src/frontends/riscv/focused_test_retained_transcript_contracts_0.zig",
+        "src/frontends/riscv/focused_test_retained_typed_components_0.zig"
       ],
       "lanes": [
         "riscv_retained_contracts",

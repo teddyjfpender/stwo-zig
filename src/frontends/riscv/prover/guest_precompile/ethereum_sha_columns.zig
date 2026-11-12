@@ -1,17 +1,17 @@
 //! Shared Ethereum prefix followed by SHA columns in canonical AIR order.
 const std = @import("std");
 const Column = @import("stwo_prover_engine").pcs.ColumnEvaluation;
-const sha = @import("../../air/guest_precompile/sha256_component_profile.zig");
+const sha = @import("stwo_riscv_rv32").air.guest_precompile.sha256_component_profile;
 const Statement = @import("../blake3_ethereum_sha_statement.zig").Statement;
 const ethereum_main = @import("ethereum_main_columns.zig");
 const ethereum_interaction = @import("ethereum_interaction.zig");
-const sha_interaction = @import("sha256_interaction.zig");
+const sha_interaction = @import("stwo_riscv_rv32").prover.guest_precompile.sha256_interaction;
 
 pub fn preprocessed(a: std.mem.Allocator, statement: *const Statement) ![]Column {
     try statement.sha.validateForRecipe(statement.sha.call_count, statement.ethereum.localZeroCustody());
     var columns = std.ArrayList(Column).fromOwnedSlice(try @import("ethereum_preprocessed.zig").generateExtension(a, &statement.ethereum));
     errdefer free(a, &columns);
-    try @import("../../air/guest_precompile/sha256_preprocessed.zig").append(a, statement.sha.call_count, true, &columns);
+    try @import("stwo_riscv_rv32").air.guest_precompile.sha256_preprocessed.append(a, statement.sha.call_count, true, &columns);
     return columns.toOwnedSlice(a);
 }
 pub const Main = struct {
@@ -31,7 +31,7 @@ pub fn main(a: std.mem.Allocator, witness: anytype) !Main {
     var columns: std.ArrayList(Column) = .empty;
     errdefer free(a, &columns);
     const rows = witness.sha_rows.tuple();
-    inline for (sha.AirsForRecipe(@TypeOf(witness.sha_rows).local_zero_custody), 0..) |Air, i| try @import("../../recursion/air/blake3_row_columns.zig").project(Air, a, rows[i], witness.sha_rows.geometry.logs[i], 1, &columns);
+    inline for (sha.AirsForRecipe(@TypeOf(witness.sha_rows).local_zero_custody), 0..) |Air, i| try @import("stwo_riscv_air_lang").framework.blake3_row_columns.project(Air, a, rows[i], witness.sha_rows.geometry.logs[i], 1, &columns);
     return .{ .columns = try join(a, ethereum.columns, columns.items), .ethereum = ethereum, .sha_columns = columns };
 }
 pub const Interaction = struct {

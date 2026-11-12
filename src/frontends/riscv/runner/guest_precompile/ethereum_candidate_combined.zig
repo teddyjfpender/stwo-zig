@@ -2,23 +2,23 @@
 
 const std = @import("std");
 
-const custom0 = @import("../../isa/custom0.zig");
+const custom0 = @import("stwo_riscv_isa").custom0;
 const authority_mod =
-    @import("../../isa/ethereum_candidate_combined_authority.zig");
-const Cpu = @import("../cpu.zig").Cpu;
-const Memory = @import("../memory.zig").Memory;
-const MemoryLayout = @import("../memory_state.zig").MemoryLayout;
-const StateChainTracker = @import("../state_chain.zig").StateChainTracker;
-const Trace = @import("../trace.zig").Trace;
-const bulk_call_buffer = @import("bulk_memcpy_call_buffer.zig");
-const bulk_runner = @import("bulk_memcpy.zig");
-const bulk_tape = @import("bulk_memcpy_session_tape.zig");
+    @import("../../compat/product_tree/isa/ethereum_candidate_combined_authority.zig");
+const Cpu = @import("stwo_riscv_isa").machine.cpu.Cpu;
+const Memory = @import("stwo_riscv_isa").machine.memory.Memory;
+const MemoryLayout = @import("stwo_riscv_isa").machine.memory_state.MemoryLayout;
+const StateChainTracker = @import("stwo_riscv_isa").machine.state_chain.StateChainTracker;
+const Trace = @import("stwo_riscv_rv32").execution.trace.Trace;
+const bulk_call_buffer = @import("stwo_riscv_precompiles").runner.bulk_memcpy_call_buffer;
+const bulk_runner = @import("stwo_riscv_rv32").execution.guest_precompile.bulk_memcpy;
+const bulk_tape = @import("stwo_riscv_precompiles").runner.bulk_memcpy_session_tape;
 const dispatcher_mod = @import("ethereum_candidate_combined_dispatch.zig");
-const keccakf_v1 = @import("keccakf.zig");
-const recovery_v1 = @import("secp256k1_recover.zig");
+const keccakf_v1 = @import("stwo_riscv_rv32").execution.guest_precompile.keccakf;
+const recovery_v1 = @import("stwo_riscv_rv32").execution.guest_precompile.secp256k1_recover;
 const session_state = @import("session_state.zig");
-const swap_runner = @import("stack_swap.zig");
-const swap_tape = @import("stack_swap_session_tape.zig");
+const swap_runner = @import("stwo_riscv_rv32").execution.guest_precompile.stack_swap;
+const swap_tape = @import("stwo_riscv_precompiles").runner.stack_swap_session_tape;
 
 pub const production_active = false;
 

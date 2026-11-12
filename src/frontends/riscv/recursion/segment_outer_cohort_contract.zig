@@ -6,13 +6,13 @@ pub const stwo_core = @import("stwo_core");
 pub const M31 = stwo_core.fields.m31.M31;
 pub const QM31 = stwo_core.fields.qm31.QM31;
 
-pub const digest = @import("../air/lang/digest.zig");
-pub const relation = @import("../air/lang/relation.zig");
+pub const digest = @import("stwo_riscv_air_lang").digest;
+pub const relation = @import("stwo_riscv_air_lang").relation;
 pub const manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
 pub const catalog_mod = @import("air/segment_outer_typed_catalog.zig");
-pub const roster = @import("air/universal_roster.zig");
-pub const universal = @import("air/universal_challenges.zig");
-pub const relation_interaction = @import("air/relation_interaction.zig");
+pub const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
+pub const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
+pub const relation_interaction = @import("stwo_riscv_air_lang").framework.relation_interaction;
 
 // These imports deliberately make landed implementation surfaces part of the
 // compile-time contract without treating their current `PRODUCTION_ACTIVATION`

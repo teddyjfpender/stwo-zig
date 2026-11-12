@@ -1,5 +1,5 @@
 """Reader for `zig-out/committed-trace/*.json`, the export written by
-`src/frontends/riscv/prover/test_trace_dump.zig`.
+`src/frontends/riscv/rv32/prover/test_trace_dump.zig`.
 
 Every field is validated on the way in.  A checker that silently accepted a
 short column or an unknown schema would report "satisfied" about a trace it had

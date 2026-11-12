@@ -1,9 +1,9 @@
 //! Sizing for native hash columns, not proof or capture admission.
 const std = @import("std");
 const core = @import("stwo_core");
-const suite = @import("blake3_engine_protocol.zig");
-const group = @import("air/blake3_merkle_group_witness.zig");
-pub const Counts = @import("air/blake3_draw_hash_layout.zig").Counts;
+const suite = @import("stwo_riscv_recursion_air").protocol.recursion.blake3_engine_protocol;
+const group = @import("stwo_riscv_recursion_air").blake3.merkle_group_witness;
+pub const Counts = @import("stwo_riscv_recursion_air").blake3.draw_hash_layout.Counts;
 pub const Layout = struct {
     transcript: Counts,
     paths: Counts,

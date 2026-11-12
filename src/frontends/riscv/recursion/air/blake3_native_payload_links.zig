@@ -1,16 +1,16 @@
 //! Scalar native composition inputs -> QM31 packing -> transcript felt bytes.
 const std = @import("std");
 const vm = @import("../vm_air_composition_circuit.zig");
-const native = @import("blake3_native_transcript.zig");
-const recorder = @import("blake3_native_recorder.zig");
-const claims = @import("../../air/transcript/claims.zig");
-const scalar = @import("scalar_wire_source.zig");
-const pack = @import("qm31_pack_wire.zig");
-const encoding = @import("blake3_field_bytes.zig");
-const lower = @import("verifier_arithmetic_lowering.zig");
-const payload_rows = @import("blake3_scalar_payload_rows.zig");
+const native = @import("stwo_riscv_rv32").recursion.air.blake3_native_transcript;
+const recorder = @import("stwo_riscv_recursion_air").blake3.native_recorder;
+const claims = @import("stwo_riscv_rv32").air.transcript.claims;
+const scalar = @import("stwo_riscv_air_lang").framework.scalar_wire_source;
+const pack = @import("stwo_riscv_air_lang").framework.qm31_pack_wire;
+const encoding = @import("stwo_riscv_air_lang").framework.blake3_field_bytes;
+const lower = @import("stwo_riscv_rv32").recursion.air.verifier_arithmetic_lowering;
+const payload_rows = @import("stwo_riscv_recursion_air").blake3.scalar_payload_rows;
 pub const PACK_CIRCUIT: u32 = 5_000_010;
-pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{ 12, 11, 10 });
+pub const Columns = @import("stwo_riscv_recursion_air").blake3.upstream_source_columns.ForSlots(.{ 12, 11, 10 });
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     nodes: [][4]u32,

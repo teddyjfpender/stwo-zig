@@ -10,13 +10,19 @@
   "dependencies": {
     "stwo_core": "../../waist/core",
     "stwo_prover_api": "../../waist/prover_api",
-    "stwo_prover_engine": "../../engine/prover"
+    "stwo_prover_engine": "../../engine/prover",
+    "stwo_riscv_isa": "isa",
+    "stwo_riscv_air_lang": "air_lang",
+    "stwo_riscv_memory": "memory",
+    "stwo_riscv_recursion_air": "recursion_air",
+    "stwo_riscv_precompiles": "precompiles",
+    "stwo_riscv_rv32": "rv32",
+    "stwo_riscv_rv64": "rv64",
+    "stwo_riscv_recursion": "recursion",
+    "stwo_riscv_testing": "testing"
   },
   "injected_modules": [
-    "interop_postcard",
-    "typed_air_artifacts",
-    "typed_air_h009_artifacts",
-    "typed_air_h010_artifacts"
+    "interop_postcard"
   ],
   "api_surface": [
     "Cpu",

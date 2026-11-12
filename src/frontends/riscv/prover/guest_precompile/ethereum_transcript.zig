@@ -2,12 +2,12 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const transcript = @import("../../air/transcript/mod.zig");
-const base_relations = @import("../../air/relation_challenges.zig");
-const keccak_relations = @import("../../air/guest_precompile/keccakf_relations.zig");
-const secp_relations = @import("../../air/guest_precompile/secp256k1_relations.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
-const base_statement = @import("../../air/statement.zig");
+const transcript = @import("stwo_riscv_rv32").air.transcript.api;
+const base_relations = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
+const keccak_relations = @import("stwo_riscv_precompiles").air.keccakf_relations;
+const secp_relations = @import("stwo_riscv_precompiles").air.secp256k1_relations;
+const lookup_physical_v2 = @import("stwo_riscv_rv32").air.lang.lookup_physical_manifest;
+const base_statement = @import("stwo_riscv_rv32").air.statement;
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
 const types = @import("ethereum_types.zig");
 
@@ -191,12 +191,12 @@ pub const SelectedBaseClaimsV3 = struct {
         authenticated: *const lookup_physical_v2.AuthenticatedStatement,
         claim: *const base_statement.RiscVInteractionClaim,
     ) !SelectedBaseClaimsV3 {
-        const selected_count = try @import("../selected_base_claims_v3.zig").count(core, manifest, authenticated, claim);
+        const selected_count = try @import("stwo_riscv_rv32").prover.selected_base_claims.count(core, manifest, authenticated, claim);
         return .{ .core = core, .manifest = manifest, .claim = claim, .count = selected_count };
     }
 
     pub fn write(self: SelectedBaseClaimsV3, destination: []QM31) !void {
-        return @import("../selected_base_claims_v3.zig").write(self.core, self.manifest, self.claim, self.count, destination);
+        return @import("stwo_riscv_rv32").prover.selected_base_claims.write(self.core, self.manifest, self.claim, self.count, destination);
     }
 
     pub fn mix(self: SelectedBaseClaimsV3, allocator: std.mem.Allocator, channel: anytype) !void {

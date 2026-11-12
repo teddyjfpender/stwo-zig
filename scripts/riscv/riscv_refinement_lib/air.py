@@ -227,7 +227,7 @@ def _validate_packaging(payload: dict[str, Any], family: str) -> None:
         raise RefinementError(f"{family}: production binding schema drifted")
     if (
         binding["level"] != "level-1-exact-shape-normalizer"
-        or binding["extractor"] != "src/frontends/riscv/air/extract/mod.zig"
+        or binding["extractor"] != "src/frontends/riscv/rv32/air/extract/mod.zig"
         or binding["differential_trials_per_family"] != 8
         or not isinstance(binding["source_ir_sha256"], str)
         or len(binding["source_ir_sha256"]) != 64
@@ -651,7 +651,7 @@ def package_air(
                 "source_closure_sha256": codec.sha256_bytes(
                     codec.canonical_bytes(source_digests)
                 ),
-                "extractor": "src/frontends/riscv/air/extract/mod.zig",
+                "extractor": "src/frontends/riscv/rv32/air/extract/mod.zig",
                 "differential_trials_per_family": 8,
             },
             "projection": {

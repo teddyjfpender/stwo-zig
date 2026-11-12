@@ -225,7 +225,7 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
         owners = re.findall(r'\.owner = "([^"]+)",', coverage_block)
 
         transcript_source = (
-            REPO_ROOT / "src/frontends/riscv/air/transcript/claims.zig"
+            REPO_ROOT / "src/frontends/riscv/rv32/air/transcript/claims.zig"
         ).read_text()
         component_block = transcript_source.split(
             "pub const Component = enum(u8) {", 1

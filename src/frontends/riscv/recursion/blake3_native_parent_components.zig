@@ -4,18 +4,18 @@ const core = @import("stwo_core");
 const artifact = @import("blake3_native_parent_artifact.zig");
 const native = @import("air/blake3_native_parent_rows.zig");
 const Roster = @import("air/blake3_native_parent_roster.zig").Roster;
-const binding = @import("air/universal_relation_binding.zig");
-const typed = @import("air/universal_typed_verifier_component.zig");
-const universal = @import("air/universal_challenges.zig");
-const schema = @import("../air/lookups/tables/schema.zig");
-const Table = @import("../air/lookups/tables/verifier.zig").LookupTableVerifier;
+const binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
+const typed = @import("stwo_riscv_air_lang").framework.universal_typed_verifier_component;
+const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
+const schema = @import("stwo_riscv_air_lang").evaluation.lookups.tables.schema;
+const Table = @import("stwo_riscv_rv32").air.lookups.tables.verifier.LookupTableVerifier;
 const KINDS = [_]schema.Kind{ .bitwise, .range_check_8_8 };
 fn Components() type {
     var types: [Roster.Airs.len]type = undefined;
     for (Roster.Airs, &types) |Air, *T| T.* = typed.ComponentForManifest(Air, binding.Binding(Air), Roster);
     return std.meta.Tuple(&types);
 }
-const Providers = @import("air/universal_provider_relations.zig").SharedProviderRelations;
+const Providers = @import("stwo_riscv_air_lang").framework.universal_provider_relations.SharedProviderRelations;
 pub const Owned = struct {
     allocator: std.mem.Allocator,
     arena: std.heap.ArenaAllocator,
@@ -66,13 +66,13 @@ pub const Owned = struct {
         inline for (Roster.Airs, 0..) |Air, i| {
             const parameters = if (@hasDecl(Air, "PROOF_KIND_PARAMETER_COUNT")) native.selectors else [0]core.fields.m31.M31{};
             self.components[i] = try typed.ComponentForManifest(Air, binding.Binding(Air), Roster).init(&self.definitions[i], self.plans[i], &manifest, @enumFromInt(i), self.logs[i], parameters, &self.relations, claims[i]);
-            self.verifiers[i] = try @import("air/roster_composition_geometry.zig").ForAirs(Roster.Airs).component(Air, self.components[i].asVerifierComponent());
+            self.verifiers[i] = try @import("stwo_riscv_recursion_air").roster_composition_geometry.ForAirs(Roster.Airs).component(Air, self.components[i].asVerifierComponent());
         }
         for (&self.tables, KINDS, self.table_pp, 0..) |*table, kind, offset, i| {
             var tuple: [schema.MAX_ARITY]usize = undefined;
             for (tuple[0..schema.arity(kind)], 0..) |*column, j| column.* = offset + 1 + j;
             table.* = try Table.initVerifier(kind, offset, tuple[0..schema.arity(kind)], self.table_main + i, self.table_interaction + 4 * i, &self.providers.native, claims[Roster.Airs.len + i]);
-            self.verifiers[Roster.Airs.len + i] = try @import("air/roster_composition_geometry.zig").ForAirs(Roster.Airs).table(table.asVerifierComponent());
+            self.verifiers[Roster.Airs.len + i] = try @import("stwo_riscv_recursion_air").roster_composition_geometry.ForAirs(Roster.Airs).table(table.asVerifierComponent());
         }
     }
     pub fn deinit(self: *Owned) void {

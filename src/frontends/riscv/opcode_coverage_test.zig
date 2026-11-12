@@ -2,14 +2,14 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const opcode_manifest = @import("opcode_manifest.zig");
-const witness_layout = @import("witness_layout.zig");
-const trace = @import("runner/trace.zig");
-const component_order = @import("air/component_order.zig");
-const lookup_entries = @import("air/lookups/opcode_entries.zig");
-const lookup_entry = @import("air/lookups/entry.zig");
-const semantic_component = @import("air/semantic_component.zig");
-const semantic_eval = @import("air/semantic_eval.zig");
+const opcode_manifest = @import("stwo_riscv_isa").opcode_manifest;
+const witness_layout = @import("stwo_riscv_rv32").witness_layout;
+const trace = @import("stwo_riscv_rv32").execution.trace;
+const component_order = @import("stwo_riscv_rv32").air.component_order;
+const lookup_entries = @import("stwo_riscv_rv32").air.lookups.opcode_entries;
+const lookup_entry = @import("stwo_riscv_air_lang").evaluation.lookups.entry;
+const semantic_component = @import("stwo_riscv_rv32").air.semantic_component;
+const semantic_eval = @import("stwo_riscv_rv32").air.semantic_eval;
 
 fn selectorColumn(comptime opcode: opcode_manifest.Opcode) []const u8 {
     return switch (opcode) {

@@ -5,7 +5,7 @@
 //! that both raise sites emit them -- are pinned inside the package that owns
 //! them, in `src/frontends/riscv/air/tests/diagnostic_hints_test.zig`. Those pins used
 //! to live here, reaching into that package with
-//! `@embedFile("../../../../frontends/riscv/air/opcode_memory.zig")`, because no gate
+//! `@embedFile("../../../../frontends/riscv/rv32/air/opcode_memory.zig")`, because no gate
 //! compiled a `test` written inside the frontend module (issue #152 item 11).
 //! The reasoning was sound -- a pin that does not run is not a pin -- but the
 //! embed crossed a package boundary and `scripts/repo/check_package_workspace.py`

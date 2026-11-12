@@ -7,19 +7,19 @@ pub const m31 = stwo_core.fields.m31;
 pub const M31 = m31.M31;
 pub const QM31 = stwo_core.fields.qm31.QM31;
 
-pub const public_data_v2 = @import("../air/public_data_v2.zig");
-pub const public_logup_v2 = @import("../air/public_logup_v2.zig");
-pub const native_relations = @import("../air/relation_challenges.zig");
-pub const statement_v1 = @import("../air/statement.zig");
-pub const statement_v2 = @import("../air/statement_v2.zig");
-pub const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
-pub const poseidon2 = @import("../air/memory_commitment/poseidon2.zig");
-pub const relation = @import("../air/lang/relation.zig");
-pub const channel = @import("poseidon2_channel.zig");
-pub const protocol = @import("protocol.zig");
-pub const segment_v2 = @import("segment_statement.zig");
+pub const public_data_v2 = @import("stwo_riscv_rv32").air.public_data_v2;
+pub const public_logup_v2 = @import("stwo_riscv_rv32").air.public_logup_v2;
+pub const native_relations = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
+pub const statement_v1 = @import("stwo_riscv_rv32").air.statement;
+pub const statement_v2 = @import("stwo_riscv_rv32").air.statement_v2;
+pub const poseidon2_air = @import("stwo_riscv_memory").air.poseidon2_air;
+pub const poseidon2 = @import("stwo_riscv_memory").air.poseidon2;
+pub const relation = @import("stwo_riscv_air_lang").relation;
+pub const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
+pub const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
+pub const segment_v2 = @import("stwo_riscv_rv32").recursion.segment_statement;
 pub const temporal = @import("temporal_pair_node.zig");
-pub const roster = @import("air/universal_roster.zig");
+pub const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 
 const contract = @import("segment_leaf_statement_contract.zig");
 

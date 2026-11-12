@@ -3,18 +3,18 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const prover_pcs = @import("stwo_prover_engine").pcs;
-const keccak_component = @import("../../air/guest_precompile/keccakf_component.zig");
-const keccak_table_component = @import("../../air/guest_precompile/keccakf_table_component.zig");
-const keccak_tables = @import("../../air/guest_precompile/keccakf_tables.zig");
-const keccak_trace = @import("../../air/guest_precompile/keccakf_trace.zig");
-const keccak_witness = @import("../../air/guest_precompile/keccakf_witness.zig");
-const secp_trace = @import("../../air/guest_precompile/secp256k1_component_trace.zig");
-const base_statement = @import("../../air/statement.zig");
+const keccak_component = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_component;
+const keccak_table_component = @import("stwo_riscv_precompiles").air.keccakf_table_component;
+const keccak_tables = @import("stwo_riscv_precompiles").air.keccakf_tables;
+const keccak_trace = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_trace;
+const keccak_witness = @import("stwo_riscv_precompiles").air.keccakf_witness;
+const secp_trace = @import("stwo_riscv_precompiles").air.secp256k1_component_trace;
+const base_statement = @import("stwo_riscv_rv32").air.statement;
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
-const base_preprocessed = @import("../preprocessed.zig");
-const statement_v2 = @import("../../air/statement_v2.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
-const external_tree = @import("external_profile_tree.zig");
+const base_preprocessed = @import("stwo_riscv_rv32").prover.preprocessed;
+const statement_v2 = @import("stwo_riscv_rv32").air.statement_v2;
+const native_provider_omit = @import("../../compat/assembly/rv32/prover/memory_provider_shards/native_provider_omit.zig");
+const external_tree = @import("../../compat/assembly/rv32/prover/guest_precompile/external_profile_tree.zig");
 
 pub const extension_column_count: usize =
     keccak_component.preprocessed_column_count +

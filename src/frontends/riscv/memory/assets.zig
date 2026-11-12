@@ -1,0 +1,10 @@
+//! Canonical immutable asset ownership.
+pub const air_poseidon2_air_runtime_zig = @embedFile("air/poseidon2_air_runtime.zig");
+pub const air_poseidon2_air_zig = @embedFile("air/poseidon2_air.zig");
+pub const air_poseidon2_constants_zig = @embedFile("air/poseidon2_constants.zig");
+pub const air_poseidon2_degree3_schedule_zig = @embedFile("air/poseidon2_degree3_schedule.zig");
+pub const air_poseidon2_matrix_zig = @embedFile("air/poseidon2_matrix.zig");
+pub const air_poseidon2_universal_equations_zig = @embedFile("air/poseidon2_universal_equations.zig");
+pub const air_poseidon2_universal_layout_zig = @embedFile("air/poseidon2_universal_layout.zig");
+pub const typed_typed_poseidon2_compact_zig = @embedFile("typed/typed_poseidon2_compact.zig");
+pub const typed_typed_poseidon2_zig = @embedFile("typed/typed_poseidon2.zig");

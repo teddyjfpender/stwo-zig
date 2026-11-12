@@ -48,9 +48,9 @@ REQUIRED_WORKFLOWS = {
 }
 REQUIRED_ARTIFACTS = (
     "src/frontends/riscv/air/lang/artifacts/m3-compat-v1/index-v1.tsv",
-    "src/frontends/riscv/air/lang/artifacts/p003-work-profile-closure-v1/matrix-v1.json",
-    "src/frontends/riscv/air/lang/artifacts/r006-csp-closeout-v1/receipt-v1.json",
-    "src/frontends/riscv/air/lang/artifacts/recursive-temporal-parent-v1/receipt-v1.json",
+    "src/frontends/riscv/air_lang/artifacts/p003-work-profile-closure-v1/matrix-v1.json",
+    "src/frontends/riscv/air_lang/artifacts/r006-csp-closeout-v1/receipt-v1.json",
+    "src/frontends/riscv/air_lang/artifacts/recursive-temporal-parent-v1/receipt-v1.json",
     "formal/riscv-refinement/generated-manifest.json",
     "formal/riscv-refinement/refinement-receipt.json",
 )

@@ -6,10 +6,10 @@
 //! the same leaf. It contains no witness or proof material.
 
 const std = @import("std");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
-const global_v3 = @import("../../recursion/segment_leaf_local_authority.zig");
-const base_wire = @import("proof_artifact_wire.zig");
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const lookup_physical_v2 = @import("stwo_riscv_rv32").air.lang.lookup_physical_manifest;
+const global_v3 = @import("stwo_riscv_recursion").segment_leaf_local_authority;
+const base_wire = @import("stwo_riscv_rv32").prover.guest_precompile.proof_artifact_wire;
 const metadata_wire = @import("ethereum_segment_artifact_metadata_wire.zig");
 
 pub const magic = [8]u8{ 'S', 'T', 'W', 'E', 'S', 'G', '3', '1' };

@@ -4,13 +4,13 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 
 const admission = @import("outer_parent_child_admission.zig");
-const channel = @import("poseidon2_channel.zig");
+const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 const engine = @import("engine.zig");
-const fixed_wire = @import("fixed_wire.zig");
+const fixed_wire = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_wire;
 const pair_node = @import("pair_node.zig");
-const protocol = @import("protocol.zig");
-const span_statement = @import("span_statement.zig");
-const roster = @import("air/universal_roster.zig");
+const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
+const span_statement = @import("stwo_riscv_rv32").recursion.span_statement;
+const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 const source = @import("outer_parent_transcript_source.zig");
 
 const M31 = stwo_core.fields.m31.M31;

@@ -4,7 +4,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const verifier = @import("detached_segment_verifier.zig");
 const M31 = core.fields.m31.M31;
-const PublicData = @import("../air/public_data_v2.zig").PublicDataV2;
+const PublicData = @import("stwo_riscv_rv32").air.public_data_v2.PublicDataV2;
 pub const MAX_KEY_BYTES: usize = 64 * 1024 * 1024;
 pub const MAX_INPUT_BYTES = @import("detached_segment_expected.zig").MAX_INPUT_BYTES;
 const VERSION: u32 = 1;
@@ -147,16 +147,16 @@ pub const SingleRootReceiptV1 = struct {
     recursive_parent_proof: bool = false,
     native_inputs_used: bool = false,
     child: ReceiptV1,
-    root: @import("span_statement.zig").RootStatement,
+    root: @import("stwo_riscv_rv32").recursion.span_statement.RootStatement,
 };
 
 /// Statement admission only. A valid leaf is a root only when its authenticated
 /// job has one segment and the shared root contract admits complete coverage.
-pub fn singleRootStatement(expected: *const PublicData) !@import("span_statement.zig").RootStatement {
+pub fn singleRootStatement(expected: *const PublicData) !@import("stwo_riscv_rv32").recursion.span_statement.RootStatement {
     const metadata = try expected.metadata();
     if (metadata.segment_count != 1) return error.DetachedSingleSegmentRequired;
     const view = try expected.authenticatedView();
-    return @import("span_statement.zig").RootStatement.init(try view.statement.base());
+    return @import("stwo_riscv_rv32").recursion.span_statement.RootStatement.init(try view.statement.base());
 }
 
 fn reloadVerifiedExpected(allocator: std.mem.Allocator, path: []const u8, receipt: ReceiptV1) !OwnedExpectedV1 {
@@ -180,8 +180,8 @@ pub const PairReceiptV1 = struct {
     recursive_parent_proof: bool = false,
     native_inputs_used: bool = false,
     children: [2]ReceiptV1,
-    adjacency: @import("segment_statement_wire.zig").AdjacentReceiptV2,
-    root: @import("span_statement.zig").RootStatement,
+    adjacency: @import("stwo_riscv_rv32").recursion.segment_statement_wire.AdjacentReceiptV2,
+    root: @import("stwo_riscv_rv32").recursion.span_statement.RootStatement,
 };
 
 /// Verify each proof independently, then authenticate exact sparse memory,
@@ -200,7 +200,7 @@ pub fn verifyPair(allocator: std.mem.Allocator, inputs: [2]ArgumentsV1) !PairRec
     const adjacency = try PublicData.authenticateAdjacent(&expected[0].data, &expected[1].data);
     const left = try expected[0].data.authenticatedView();
     const right = try expected[1].data.authenticatedView();
-    const span = @import("span_statement.zig");
+    const span = @import("stwo_riscv_rv32").recursion.span_statement;
     const folded = try span.SpanStatement.fold(try left.statement.base(), try right.statement.base());
     return .{ .children = receipts, .adjacency = adjacency, .root = try span.RootStatement.init(folded) };
 }

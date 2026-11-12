@@ -1,7 +1,7 @@
 const std = @import("std");
-const profile = @import("../../../isa/execution_profile.zig");
-const sha = @import("../../../isa/sha256_compression.zig");
-const fixture = @import("../test_elf.zig");
+const profile = @import("stwo_riscv_isa").execution_profile;
+const sha = @import("stwo_riscv_isa").sha256_compression;
+const fixture = @import("stwo_riscv_rv32").testing.execution.guest_precompile.test_elf;
 const runner = @import("../../mod.zig");
 
 test "SHA profile exact admission and declared program operands preserve legacy identities" {
@@ -11,18 +11,18 @@ test "SHA profile exact admission and declared program operands preserve legacy 
     std.crypto.hash.sha2.Sha256.hash("riscv.ethereum.keccakf_1600.secp256k1_recover.sha256_compress.v1", &digest, .{});
     try std.testing.expectEqualDeep(digest, profile.ethereum_sha_semantic_digest);
     const elf = fixture.buildEthereumSha(.rv32im_zkvm_ethereum_sha_v1);
-    try std.testing.expectEqual(profile.ExecutionProfile.rv32im_zkvm_ethereum_sha_v1, try @import("../../elf_admission.zig").parseAfterIdentityValidation(&elf));
+    try std.testing.expectEqual(profile.ExecutionProfile.rv32im_zkvm_ethereum_sha_v1, try @import("stwo_riscv_rv32").execution.elf_admission.parseAfterIdentityValidation(&elf));
     const descriptor = std.mem.indexOf(u8, &elf, profile.admission.descriptor_magic).?;
     var invalid = elf;
     invalid[descriptor + 12] ^= 8;
-    try std.testing.expectError(error.UnsupportedRequiredCapabilities, @import("../../elf_admission.zig").parseAfterIdentityValidation(&invalid));
+    try std.testing.expectError(error.UnsupportedRequiredCapabilities, @import("stwo_riscv_rv32").execution.elf_admission.parseAfterIdentityValidation(&invalid));
     invalid = elf;
     invalid[descriptor + 20] ^= 2;
-    try std.testing.expectError(error.UnsupportedEthereumShaAbi, @import("../../elf_admission.zig").parseAfterIdentityValidation(&invalid));
+    try std.testing.expectError(error.UnsupportedEthereumShaAbi, @import("stwo_riscv_rv32").execution.elf_admission.parseAfterIdentityValidation(&invalid));
     invalid = elf;
     invalid[descriptor + 24] ^= 1;
-    try std.testing.expectError(error.EthereumShaSemanticDigestMismatch, @import("../../elf_admission.zig").parseAfterIdentityValidation(&invalid));
-    const program = @import("../../../air/program/decode.zig");
+    try std.testing.expectError(error.EthereumShaSemanticDigestMismatch, @import("stwo_riscv_rv32").execution.elf_admission.parseAfterIdentityValidation(&invalid));
+    const program = @import("stwo_riscv_rv32").air.program.decode;
     for (0..32) |s| for (0..32) |b| {
         const word = sha.encode(@intCast(s), @intCast(b));
         try std.testing.expectEqualDeep(program.ProgramValues{ 50, 0, @intCast(s), @intCast(b) }, try program.decodeProgramWordForProfile(.rv32im_zkvm_ethereum_sha_v1, word));

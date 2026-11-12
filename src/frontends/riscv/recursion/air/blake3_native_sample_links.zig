@@ -1,16 +1,16 @@
 //! One scalar source shared by composition, transcript encoding and DEEP.
 const std = @import("std");
 const core = @import("stwo_core");
-const claims = @import("../../air/transcript/claims.zig");
+const claims = @import("stwo_riscv_rv32").air.transcript.claims;
 const vm = @import("../vm_air_composition_circuit.zig");
 const payload = @import("blake3_native_payload_links.zig");
 const native_deep = @import("blake3_native_deep.zig");
 const links = @import("blake3_sample_links.zig");
-const scalar = @import("scalar_wire_source.zig");
-const lower = @import("verifier_arithmetic_lowering.zig");
+const scalar = @import("stwo_riscv_air_lang").framework.scalar_wire_source;
+const lower = @import("stwo_riscv_rv32").recursion.air.verifier_arithmetic_lowering;
 const M31 = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
-pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{12});
+pub const Columns = @import("stwo_riscv_recursion_air").blake3.upstream_source_columns.ForSlots(.{12});
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     /// Replace payload's scalar rows with these; do not include both producers.

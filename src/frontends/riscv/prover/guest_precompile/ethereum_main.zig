@@ -3,20 +3,20 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const stage_profile = @import("stwo_prover_api").stage_profile;
-const keccak_component = @import("../../air/guest_precompile/keccakf_component.zig");
-const secp_bundle = @import("../../air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_config = @import("../../air/guest_precompile/secp256k1_component_config.zig");
-const secp_trace = @import("../../air/guest_precompile/secp256k1_component_trace.zig");
+const keccak_component = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_component;
+const secp_bundle = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_bundle;
+const secp_config = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_config;
+const secp_trace = @import("stwo_riscv_precompiles").air.secp256k1_component_trace;
 const lookup_registration = @import("../../air/guest_precompile/ethereum_lookup_registration.zig");
-const base_statement = @import("../../air/statement.zig");
-const state_chain = @import("../../runner/state_chain.zig");
-const trace_mod = @import("../../runner/trace.zig");
-const commitment_witness = @import("../commitment_witness.zig");
-const proof_workspace = @import("../proof_workspace.zig");
-const statement_geometry = @import("../statement_geometry.zig");
-const external_tree = @import("external_profile_tree.zig");
+const base_statement = @import("stwo_riscv_rv32").air.statement;
+const state_chain = @import("stwo_riscv_isa").machine.state_chain;
+const trace_mod = @import("stwo_riscv_rv32").execution.trace;
+const commitment_witness = @import("stwo_riscv_rv32").prover.commitment_witness;
+const proof_workspace = @import("stwo_riscv_rv32").prover.proof_workspace;
+const statement_geometry = @import("stwo_riscv_rv32").prover.statement_geometry;
+const external_tree = @import("../../compat/assembly/rv32/prover/guest_precompile/external_profile_tree.zig");
 const ethereum_witness = @import("ethereum_witness.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
+const native_provider_omit = @import("../../compat/assembly/rv32/prover/memory_provider_shards/native_provider_omit.zig");
 
 const CommitmentWitness = commitment_witness.CommitmentWitness;
 const Geometry = statement_geometry.Geometry;
@@ -34,8 +34,8 @@ pub fn commit(
     geometry: Geometry,
     opt_chain: ?*const state_chain.StateChainTracker,
     extension: *const ethereum_witness.Witness,
-    keccak_calls: []const @import("../../runner/guest_precompile/keccakf_call_buffer.zig").Record,
-    recovery_calls: []const @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig").Record,
+    keccak_calls: []const @import("stwo_riscv_precompiles").runner.keccakf_call_buffer.Record,
+    recovery_calls: []const @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer.Record,
 ) !external_tree.MainRetained {
     return commitInternal(
         Engine,
@@ -69,8 +69,8 @@ pub fn commitWithoutNativePoseidon(
     full_geometry: Geometry,
     opt_chain: ?*const state_chain.StateChainTracker,
     extension: *const ethereum_witness.Witness,
-    keccak_calls: []const @import("../../runner/guest_precompile/keccakf_call_buffer.zig").Record,
-    recovery_calls: []const @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig").Record,
+    keccak_calls: []const @import("stwo_riscv_precompiles").runner.keccakf_call_buffer.Record,
+    recovery_calls: []const @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer.Record,
     projection: *const native_provider_omit.ProjectionV1,
 ) !external_tree.MainRetained {
     return commitInternal(
@@ -109,8 +109,8 @@ pub fn commitWithExternalBlocks(
     geometry: Geometry,
     opt_chain: ?*const state_chain.StateChainTracker,
     extension: *const ethereum_witness.Witness,
-    keccak_calls: []const @import("../../runner/guest_precompile/keccakf_call_buffer.zig").Record,
-    recovery_calls: []const @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig").Record,
+    keccak_calls: []const @import("stwo_riscv_precompiles").runner.keccakf_call_buffer.Record,
+    recovery_calls: []const @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer.Record,
     additional_blocks: []const external_tree.BorrowedBlock,
 ) !external_tree.MainRetained {
     return commitInternal(
@@ -151,8 +151,8 @@ pub fn commitWithoutNativePoseidonWithExternalBlocks(
     full_geometry: Geometry,
     opt_chain: ?*const state_chain.StateChainTracker,
     extension: *const ethereum_witness.Witness,
-    keccak_calls: []const @import("../../runner/guest_precompile/keccakf_call_buffer.zig").Record,
-    recovery_calls: []const @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig").Record,
+    keccak_calls: []const @import("stwo_riscv_precompiles").runner.keccakf_call_buffer.Record,
+    recovery_calls: []const @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer.Record,
     projection: *const native_provider_omit.ProjectionV1,
     additional_blocks: []const external_tree.BorrowedBlock,
     additional_registration: ?external_tree.LookupRegistration,
@@ -189,8 +189,8 @@ fn commitInternal(
     geometry: Geometry,
     opt_chain: ?*const state_chain.StateChainTracker,
     extension: *const ethereum_witness.Witness,
-    keccak_calls: []const @import("../../runner/guest_precompile/keccakf_call_buffer.zig").Record,
-    recovery_calls: []const @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig").Record,
+    keccak_calls: []const @import("stwo_riscv_precompiles").runner.keccakf_call_buffer.Record,
+    recovery_calls: []const @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer.Record,
     projection: ?*const native_provider_omit.ProjectionV1,
     additional_blocks: []const external_tree.BorrowedBlock,
     additional_registration: ?external_tree.LookupRegistration,
@@ -368,7 +368,7 @@ const CombinedLookupRegistration = struct {
 
     fn erased(
         context: *const anyopaque,
-        counters: *@import("../../air/lookups/tables/counter.zig").Set,
+        counters: *@import("stwo_riscv_air_lang").evaluation.lookups.tables.counter.Set,
     ) anyerror!void {
         const self: *const CombinedLookupRegistration = @ptrCast(@alignCast(context));
         try self.ethereum.register(counters);

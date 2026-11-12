@@ -3,20 +3,20 @@ const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const stage_profile = engine.stage_profile;
-const suite = @import("blake3_engine_protocol.zig");
+const suite = @import("stwo_riscv_recursion_air").protocol.recursion.blake3_engine_protocol;
 const native_protocol = @import("blake3_native_parent_protocol.zig");
 const artifact = @import("blake3_native_parent_artifact.zig");
 const native = @import("air/blake3_native_parent_rows.zig");
 const FixedGuard = @import("blake3_parent_fixed_row_guard.zig");
 const Roster = @import("air/blake3_native_parent_roster.zig").Roster;
-const row_columns = @import("air/blake3_row_columns.zig");
-const binding = @import("air/universal_relation_binding.zig");
-const framework = @import("air/framework_interaction.zig");
+const row_columns = @import("stwo_riscv_air_lang").framework.blake3_row_columns;
+const binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
+const framework = @import("stwo_riscv_air_lang").framework.framework_interaction;
 const device = @import("blake3_native_parent_device_interactions.zig");
-const universal = @import("air/universal_challenges.zig");
-const schema = @import("../air/lookups/tables/schema.zig");
-const Counter = @import("../air/lookups/tables/counter.zig").Counter;
-const Table = @import("../air/lookups/tables/component.zig").LookupTableComponent;
+const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
+const schema = @import("stwo_riscv_air_lang").evaluation.lookups.tables.schema;
+const Counter = @import("stwo_riscv_air_lang").evaluation.lookups.tables.counter.Counter;
+const Table = @import("stwo_riscv_rv32").air.lookups.tables.component.LookupTableComponent;
 const M = core.fields.m31.M31;
 const Column = engine.pcs.ColumnEvaluation;
 pub const Workspace = @import("blake3_native_parent_workspace.zig").Workspace;
@@ -204,7 +204,7 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
             var main: std.ArrayList(Column) = .empty;
             var main_starts: [Roster.Airs.len]usize = undefined;
             const interaction_count = comptime blk: {
-                var count: usize = 2 * @import("../air/lookups/tables/interaction.zig").N_COLUMNS;
+                var count: usize = 2 * @import("stwo_riscv_rv32").air.lookups.tables.interaction.N_COLUMNS;
                 for (Roster.Airs) |Air| count += Air.INTERACTION_COLUMN_COUNT;
                 break :blk count;
             };
@@ -221,7 +221,7 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
                 main_starts[i] = main.items.len;
                 try main.appendSlice(temp, prepared.main[i]);
                 const view = try row_columns.compactColumnView(Air, main.items[main_starts[i]..][0..Air.PHYSICAL_MAIN_COLUMN_COUNT], std.mem.bytesAsSlice(M, std.mem.sliceAsBytes(prepared.fixed[i])), rows[i].len, log);
-                try @import("air/blake3_parallel_lookup_counts.zig").register(Air, a, &self.plans[i], view, log, &counters);
+                try @import("stwo_riscv_air_lang").framework.blake3_parallel_lookup_counts.register(Air, a, &self.plans[i], view, log, &counters);
                 const size = @as(usize, 1) << @intCast(log);
                 try row_columns.registerRepeated(Air, &self.plans[i], padding[i], size - rows[i].len, &counters);
             }
@@ -252,12 +252,12 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
             if (std.process.hasEnvVarConstant("STWO_RISCV_PARENT_MONOLITHIC_MAIN")) {
                 try scheme.commit(a, main.items, &channel);
             } else {
-                try scheme.commitBorrowedStreamingWithRecorder(a, main.items, @import("../prover/blake3_coefficient_retention.zig").streamingBatchColumns(), diagnostic, &channel);
+                try scheme.commitBorrowedStreamingWithRecorder(a, main.items, @import("stwo_riscv_rv32").prover.blake3_coefficient_retention.streamingBatchColumns(), diagnostic, &channel);
             }
             phase.end();
             phase = try stage_profile.StageScope.begin(diagnostic, "parent.interaction_generation", "Interaction generation");
             const relations = try universal.UniversalRelations.draw(temp, &channel);
-            const providers = try @import("air/universal_provider_relations.zig").SharedProviderRelations.init(&relations);
+            const providers = try @import("stwo_riscv_air_lang").framework.universal_provider_relations.SharedProviderRelations.init(&relations);
             workspace.phase = .interaction_generation;
             engine.host_budget_allocator.SharedHostBudget.reportStage(a, "parent.interaction_generation");
             var claims: artifact.Claims = undefined;
@@ -290,7 +290,7 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
             if (consumed) |source| source.releaseRows();
             const table_interaction = interaction.items.len;
             for (&counters, KINDS, Roster.Airs.len..) |*counter, kind, i| {
-                const generated = try @import("../air/lookups/tables/interaction.zig").generate(a, counter, &providers.native);
+                const generated = try @import("stwo_riscv_rv32").air.lookups.tables.interaction.generate(a, counter, &providers.native);
                 claims[i] = generated.claim;
                 for (generated.columns) |column| interaction.appendAssumeCapacity(.{ .log_size = schema.logSize(kind), .values = column });
             }
@@ -305,7 +305,7 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
             engine.host_budget_allocator.SharedHostBudget.reportStage(a, "parent.interaction_commitment");
             // Bound preparation even for backends preferring monolithic commits.
             // The streaming PCS preserves original column indices and tree roots.
-            try scheme.commitOwnedStreamingWithRecorder(a, try interaction.toOwnedSlice(a), @import("../prover/blake3_coefficient_retention.zig").streamingBatchColumns(), diagnostic, &channel);
+            try scheme.commitOwnedStreamingWithRecorder(a, try interaction.toOwnedSlice(a), @import("stwo_riscv_rv32").prover.blake3_coefficient_retention.streamingBatchColumns(), diagnostic, &channel);
             // Both commitments own their columns. Relations/providers are inline
             // values; only offsets and claims survive from staging into the core.
             phase.end();
@@ -317,14 +317,14 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
                 components[i].relations = &relations;
                 components[i].claimed_sum = claims[i];
                 components[i].claimed_sum_shift = try claims[i].divM31(M.fromU64(@as(u64, 1) << @intCast(admission.key.log_sizes[i])));
-                provers[i] = try @import("air/roster_composition_geometry.zig").ForAirs(Roster.Airs).component(Air, components[i].asProverComponent());
+                provers[i] = try @import("stwo_riscv_recursion_air").roster_composition_geometry.ForAirs(Roster.Airs).component(Air, components[i].asProverComponent());
             }
             var tables: [2]Table = undefined;
             for (&tables, KINDS, self.table_pp, 0..) |*table, kind, offset, i| {
                 var tuple: [schema.MAX_ARITY]usize = undefined;
                 for (tuple[0..schema.arity(kind)], 0..) |*column, j| column.* = offset + 1 + j;
                 table.* = try Table.initProver(kind, offset, tuple[0..schema.arity(kind)], table_main + i, table_interaction + 4 * i, &providers.native, claims[Roster.Airs.len + i]);
-                provers[Roster.Airs.len + i] = try @import("air/roster_composition_geometry.zig").ForAirs(Roster.Airs).table(table.asProverComponent());
+                provers[Roster.Airs.len + i] = try @import("stwo_riscv_recursion_air").roster_composition_geometry.ForAirs(Roster.Airs).table(table.asProverComponent());
             }
             workspace.phase = .core_proof;
             engine.host_budget_allocator.SharedHostBudget.reportStage(a, "parent.core_proof");

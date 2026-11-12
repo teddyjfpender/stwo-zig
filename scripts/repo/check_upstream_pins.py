@@ -485,13 +485,13 @@ def _text_pins(ledger: PinLedger) -> tuple[TextPin, ...]:
             legacy_riscv,
         ),
         TextPin(
-            "src/frontends/riscv/opcode_manifest.zig",
+            "src/frontends/riscv/isa/opcode_manifest.zig",
             "Sail semantic-authority revision",
             rf'^pub const semantic_authority_revision = "({REVISION_RE})";$',
             ledger.riscv_sail_revision,
         ),
         TextPin(
-            "src/frontends/riscv/opcode_manifest.zig",
+            "src/frontends/riscv/isa/opcode_manifest.zig",
             "legacy Stark-V protocol revision",
             rf'^pub const legacy_layout_revision = "({REVISION_RE})";$',
             legacy_riscv,

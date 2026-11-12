@@ -7,7 +7,7 @@
 //! provider.
 
 const base = @import("binary_fri_outer_bundle.zig");
-const fixed_wire = @import("fixed_wire.zig");
+const fixed_wire = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_wire;
 const manifest_v2 = @import("air/segment_outer_adapter_manifest.zig");
 const shared_schedule = @import("segment_shared_poseidon_schedule.zig");
 

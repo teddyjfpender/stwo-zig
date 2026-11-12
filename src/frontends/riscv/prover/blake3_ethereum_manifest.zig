@@ -1,4 +1,4 @@
-const Manifest = @import("blake3_extension_manifest.zig").ForProfile(@import("blake3_ethereum_profile.zig"));
+const Manifest = @import("stwo_riscv_rv32").prover.blake3_extension_manifest.ForProfile(@import("blake3_ethereum_profile.zig"));
 pub const MAGIC = Manifest.MAGIC;
 pub const PREFIX_BYTES = Manifest.PREFIX_BYTES;
 pub const HEADER_BYTES = Manifest.HEADER_BYTES;

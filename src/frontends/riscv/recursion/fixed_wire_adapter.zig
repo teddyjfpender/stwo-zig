@@ -8,16 +8,16 @@
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const statement_mod = @import("../air/statement.zig");
+const statement_mod = @import("stwo_riscv_rv32").air.statement;
 const engine = @import("engine.zig");
-const fixed_profile = @import("fixed_profile.zig");
-const fixed_wire = @import("fixed_wire.zig");
-const protocol = @import("protocol.zig");
+const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
+const fixed_wire = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_wire;
+const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const ProofCapture = stwo_core.pcs.verifier.VerifiedProofCapture(engine.Hasher);
-const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
+const opcode_interaction = @import("stwo_riscv_rv32").air.lookups.opcode_interaction;
 
 pub const Error = fixed_wire.Error || error{
     CaptureShapeMismatch,
@@ -424,6 +424,6 @@ fn validateDigest(digest: engine.Hasher.Hash) Error!void {
 }
 
 comptime {
-    if (engine.Hasher.Hash != @import("poseidon2_channel.zig").Digest)
+    if (engine.Hasher.Hash != @import("stwo_riscv_memory").recursion.poseidon2_channel.Digest)
         @compileError("fixed-wire adapter requires canonical Poseidon M31 digests");
 }

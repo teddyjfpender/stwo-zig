@@ -1,6 +1,6 @@
 //! Small execution kernels, not a proving benchmark. Setup is outside timers.
 const std = @import("std");
-const rv = @import("mod.zig");
+const rv = @import("execution.zig");
 const alloc = std.heap.page_allocator;
 const Sample = struct { workload: []const u8, operations: u64, elapsed_ns: u64, checksum: u64 };
 

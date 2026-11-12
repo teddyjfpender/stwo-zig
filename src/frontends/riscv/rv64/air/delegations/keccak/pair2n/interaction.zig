@@ -8,8 +8,8 @@ const L = @import("layout.zig");
 const E = @import("../equations.zig");
 const T = @import("trace.zig");
 const I = @import("../interaction.zig");
-const tables = @import("../../../../../air/guest_precompile/keccakf_tables.zig");
-const tuples = @import("../../../../../air/guest_precompile/keccakf_lookup_tuples.zig");
+const tables = @import("stwo_riscv_precompiles").air.keccakf_tables;
+const tuples = @import("stwo_riscv_precompiles").air.keccakf_lookup_tuples;
 const physical = @import("../../../witness.zig").physical;
 pub fn generate(trace: *T.Trace, ch: E.Challenges) !Q {
     if (trace.interaction.len != 0) return error.KeccakInteractionAlreadyGenerated;

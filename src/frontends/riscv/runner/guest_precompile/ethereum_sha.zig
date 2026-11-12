@@ -3,22 +3,22 @@
 const std = @import("std");
 const session = @import("session_state.zig");
 const ethereum = @import("ethereum.zig");
-const sha = @import("sha256_compression.zig");
-const custom0 = @import("../../isa/custom0.zig");
-const Cpu = @import("../cpu.zig").Cpu;
-const Memory = @import("../memory.zig").Memory;
-const Layout = @import("../memory_state.zig").MemoryLayout;
-const Tracker = @import("../state_chain.zig").StateChainTracker;
-const Trace = @import("../trace.zig").Trace;
+const sha = @import("stwo_riscv_rv32").execution.guest_precompile.sha256_compression;
+const custom0 = @import("stwo_riscv_isa").custom0;
+const Cpu = @import("stwo_riscv_isa").machine.cpu.Cpu;
+const Memory = @import("stwo_riscv_isa").machine.memory.Memory;
+const Layout = @import("stwo_riscv_isa").machine.memory_state.MemoryLayout;
+const Tracker = @import("stwo_riscv_isa").machine.state_chain.StateChainTracker;
+const Trace = @import("stwo_riscv_rv32").execution.trace.Trace;
 
 pub const production_active = sha.production_active;
 
 /// Proof-owned tapes. Freezing moves their backing allocations unchanged.
 pub const Frozen = struct {
-    keccakf_calls: @import("keccakf_call_buffer.zig").Frozen,
-    keccakf_execution_rows: @import("keccakf.zig").FrozenExecutionRows,
-    signer_recovery_calls: @import("secp256k1_recover_call_buffer.zig").Frozen,
-    signer_recovery_execution_rows: @import("secp256k1_recover.zig").FrozenExecutionRows,
+    keccakf_calls: @import("stwo_riscv_precompiles").runner.keccakf_call_buffer.Frozen,
+    keccakf_execution_rows: @import("stwo_riscv_rv32").execution.guest_precompile.keccakf.FrozenExecutionRows,
+    signer_recovery_calls: @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer.Frozen,
+    signer_recovery_execution_rows: @import("stwo_riscv_rv32").execution.guest_precompile.secp256k1_recover.FrozenExecutionRows,
     sha_calls: sha.Frozen,
 
     pub fn deinit(self: *Frozen) void {

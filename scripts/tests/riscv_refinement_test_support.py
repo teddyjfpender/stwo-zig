@@ -220,7 +220,7 @@ def air_ir_v2_fixture() -> dict[str, object]:
             "next_pc": 2,
         },
         "source_identity": {
-            "builder": "src/frontends/riscv/air/constraint_program.zig",
+            "builder": "src/frontends/riscv/rv32/air/constraint_program.zig",
             "files": files,
             "source_closure_sha256": codec.sha256_bytes(
                 codec.canonical_bytes(files)

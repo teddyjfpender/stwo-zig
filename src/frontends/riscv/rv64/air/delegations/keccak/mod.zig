@@ -10,8 +10,8 @@ pub const tables = @import("tables.zig");
 pub const throughput_counts = @import("throughput_counts.zig");
 pub const batch_policy = @import("batch_policy.zig");
 /// Shared semantic authority and RV32 throughput table schema (reused, not copied).
-pub const authority = @import("../../../../air/guest_precompile/keccakf_authority.zig");
-pub const throughput_tables = @import("../../../../air/guest_precompile/keccakf_throughput_tables.zig");
+pub const authority = @import("stwo_riscv_precompiles").air.keccakf_authority;
+pub const throughput_tables = @import("stwo_riscv_precompiles").air.keccakf_throughput_tables;
 pub const bridge = struct {
     pub const layout = @import("bridge/layout.zig");
     pub const equations = @import("bridge/equations.zig");

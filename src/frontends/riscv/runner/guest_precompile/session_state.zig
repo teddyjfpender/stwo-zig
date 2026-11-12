@@ -1,80 +1,22 @@
 //! Profile-local extension storage for one execution segment.
+const generic_state = @import("stwo_riscv_rv32").execution.guest_precompile.generic_session_state;
 
 const std = @import("std");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const call_buffer = @import("call_buffer.zig");
-const keccakf_call_buffer = @import("keccakf_call_buffer.zig");
-const keccakf_v1 = @import("keccakf.zig");
-const poseidon2_v1 = @import("poseidon2.zig");
-const secp256k1_recover_call_buffer = @import("secp256k1_recover_call_buffer.zig");
-const secp256k1_recover_v1 = @import("secp256k1_recover.zig");
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const call_buffer = @import("stwo_riscv_precompiles").runner.call_buffer;
+const keccakf_call_buffer = @import("stwo_riscv_precompiles").runner.keccakf_call_buffer;
+const keccakf_v1 = @import("stwo_riscv_rv32").execution.guest_precompile.keccakf;
+const poseidon2_v1 = @import("stwo_riscv_rv32").execution.guest_precompile.poseidon2;
+const secp256k1_recover_call_buffer = @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer;
+const secp256k1_recover_v1 = @import("stwo_riscv_rv32").execution.guest_precompile.secp256k1_recover;
 
 pub const ExecutionProfile = execution_profile.ExecutionProfile;
 
-pub const ExternalCounts = struct {
-    calls: usize,
-    rows: usize,
-};
+pub const ExternalCounts = generic_state.ExternalCounts;
 
-pub const Poseidon2 = struct {
-    calls: call_buffer.Builder,
-    rows: poseidon2_v1.ExecutionRowsBuilder,
-    external_step_origin: usize,
+pub const Poseidon2 = generic_state.Poseidon2;
 
-    pub fn init(allocator: std.mem.Allocator, budget: usize, origin: usize) !Poseidon2 {
-        const limit = @min(budget, call_buffer.max_calls);
-        return .{
-            .calls = try .init(allocator, limit),
-            .rows = try .init(allocator, limit),
-            .external_step_origin = origin,
-        };
-    }
-
-    pub fn deinit(self: *Poseidon2) void {
-        self.calls.deinit();
-        self.rows.deinit();
-        self.* = undefined;
-    }
-
-    pub fn externalCounts(self: *const Poseidon2) !ExternalCounts {
-        return .{ .calls = self.calls.len(), .rows = self.rows.len() };
-    }
-
-    pub fn validateExternalCount(self: *const Poseidon2, expected: usize) bool {
-        const counts = self.externalCounts() catch return false;
-        return counts.calls == expected and counts.rows == expected;
-    }
-};
-
-pub const Keccakf = struct {
-    calls: keccakf_call_buffer.Builder,
-    rows: keccakf_v1.ExecutionRowsBuilder,
-    external_step_origin: usize,
-
-    pub fn init(allocator: std.mem.Allocator, budget: usize, origin: usize) !Keccakf {
-        const limit = @min(budget, keccakf_call_buffer.max_calls);
-        return .{
-            .calls = try .init(allocator, limit),
-            .rows = try .init(allocator, limit),
-            .external_step_origin = origin,
-        };
-    }
-
-    pub fn deinit(self: *Keccakf) void {
-        self.calls.deinit();
-        self.rows.deinit();
-        self.* = undefined;
-    }
-
-    pub fn externalCounts(self: *const Keccakf) !ExternalCounts {
-        return .{ .calls = self.calls.len(), .rows = self.rows.len() };
-    }
-
-    pub fn validateExternalCount(self: *const Keccakf, expected: usize) bool {
-        const counts = self.externalCounts() catch return false;
-        return counts.calls == expected and counts.rows == expected;
-    }
-};
+pub const Keccakf = generic_state.Keccakf;
 
 pub const Ethereum = struct {
     keccakf_calls: keccakf_call_buffer.Builder,
@@ -141,20 +83,7 @@ pub const Ethereum = struct {
     }
 };
 
-pub const Empty = struct {
-    pub fn init(_: std.mem.Allocator, _: usize, _: usize) !Empty {
-        return .{};
-    }
-    pub fn deinit(_: *Empty) void {}
-
-    pub fn externalCounts(_: *const Empty) !ExternalCounts {
-        return .{ .calls = 0, .rows = 0 };
-    }
-
-    pub fn validateExternalCount(_: *const Empty, expected: usize) bool {
-        return expected == 0;
-    }
-};
+pub const Empty = generic_state.Empty;
 
 pub fn State(comptime profile: ExecutionProfile) type {
     return switch (profile) {

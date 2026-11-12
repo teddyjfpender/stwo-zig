@@ -128,7 +128,7 @@ class PlannerContractTests(unittest.TestCase):
         self.assertNotIn("core", selected)
 
     def test_riscv_frontend_has_an_independent_package_lane(self) -> None:
-        selected = self.lanes_for("src/frontends/riscv/air/semantic_eval.zig")
+        selected = self.lanes_for("src/frontends/riscv/rv32/air/semantic_eval.zig")
         self.assertTrue(
             {
                 "static",
@@ -156,26 +156,29 @@ class PlannerContractTests(unittest.TestCase):
                 self.assertEqual(parent in rule["lanes"], companion in rule["lanes"])
             for lanes in self.policy["product_scope_lanes"].values():
                 self.assertEqual(parent in lanes, companion in lanes)
-            selected = self.lanes_for("src/frontends/riscv/retained_typed_component_test_root.zig")
+            selected = self.lanes_for("src/frontends/riscv/focused_test_retained_typed_components_0.zig")
             self.assertTrue({parent, companion}.issubset(selected))
             self.assertIn(companion, ci_scope_plan.MANUAL_CPU_LANES)
 
     def test_releasefast_failure_diagnostic_retains_four_correctness_cases_and_full_gate(self):
         package = ROOT / "src/frontends/riscv"
         catalog = (package / "build_focused_tests.zig").read_text()
-        spec = catalog.split('.step = "test-releasefast-acceptance",', 1)[1].split('.minimum = 4,', 1)[0]
-        filters = re.findall(r'"([^"\n]+)"', spec.split('.filters = &.{', 1)[1])
-        imports = re.findall(r'@import\("([^"]+)"\)', (package / "releasefast_acceptance_test_root.zig").read_text())
+        spec = catalog.split('.step = "test-releasefast-acceptance",', 1)[1].split('\n    },', 1)[0]
+        filters = re.findall(r'"([^"\n]+)"', re.search(r'\.filters = &\.\{(.*?)\}', spec, re.S)[1])
+        parts = re.search(r'\.partition_roots = &\.\{(.*?)\}', spec, re.S)
+        roots = re.findall(r'"([^"\n]+)"', parts[1]) if parts else re.findall(r'\.root = "([^"\n]+)"', spec)
+        imports = [str((package / source).parent / name) for source in roots
+                   for name in re.findall(r'@import\("([^"\n]+\.zig)"\)', (package / source).read_text())]
         self.assertEqual(4, len(set(filters)))
         self.assertEqual(4, len(set(imports)))
-        declared = [name for path in imports for name in re.findall(r'test "([^"]+)"', (package / path).read_text())]
+        declared = [name for path in imports for name in re.findall(r'test "([^"]+)"', Path(path).read_text())]
         self.assertTrue(all(sum(name == selected for name in declared) == 1 for selected in filters))
         self.assertIn('.error_tracing = true,', spec)
         self.assertIn('.strip = false,', spec)
         lane = "riscv_frontend_acceptance"
         self.assertEqual([["zig", "build", "test-releasefast-acceptance", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2", "--verbose", "--summary", "all"]], self.policy["lanes"][lane]["commands"])
         self.assertIn(lane, ci_scope_plan.MANUAL_CPU_LANES)
-        selected = self.lanes_for("src/frontends/riscv/releasefast_acceptance_test_root.zig")
+        selected = self.lanes_for("src/frontends/riscv/testing/focused_test_releasefast_acceptance_0.zig")
         self.assertTrue({lane, "riscv_frontend_releasefast"}.issubset(selected))
 
     def test_package_workspace_has_a_dedicated_failing_pr_gate(self):
@@ -200,13 +203,13 @@ class PlannerContractTests(unittest.TestCase):
         package = ROOT / "src/frontends/riscv"
         catalog = (package / "build_focused_tests.zig").read_text()
         spec = catalog.split('.step = "test-typed-witness-benchmarks",', 1)[1].split('.minimum = 8,', 1)[0]
-        filters = re.findall(r'"([^"\n]+)"', spec.split('.filters = &.{', 1)[1])
-        imports = re.findall(r'@import\("([^"]+)"\)', (package / "typed_witness_benchmark_test_root.zig").read_text())
+        filters = re.findall(r'"([^"\n]+)"', re.search(r'\.filters = &\.\{(.*?)\}', spec, re.S)[1])
+        imports = re.findall(r'@import\("([^"]+)"\)', (package / "testing/focused_test_typed_witness_benchmarks_0.zig").read_text())
         self.assertEqual(8, len(set(filters)))
         self.assertEqual(8, len(set(imports)))
         for path in imports:
-            self.assertNotIn('@import("' + path + '")', (package / "test_inventory.zig").read_text())
-            self.assertIn('.path = "' + path + '"', (package / "test_inventory_test.zig").read_text())
+            self.assertNotIn('@import("../' + path + '")', (package / "testing/tests/root.zig").read_text())
+            self.assertIn('.path = "testing/' + path + '"', (package / "test_inventory_test.zig").read_text())
         commands = self.policy["lanes"]["riscv_witness_benchmarks"]["commands"]
         self.assertEqual([["zig", "build", "test-typed-witness-benchmarks", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=" + mode, "-j2", "--verbose", "--summary", "all"] for mode in ("ReleaseFast", "Debug")], commands)
         self.assertIn("continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' }}", (ROOT / ".github/workflows/ci.yml").read_text())

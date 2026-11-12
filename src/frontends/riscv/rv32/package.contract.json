@@ -1,0 +1,57 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_rv32",
+  "version": "0.1.0",
+  "layer": "frontend",
+  "owner": "riscv-frontend",
+  "public_modules": {
+    "stwo_riscv_rv32": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../../waist/core",
+    "stwo_prover_api": "../../../waist/prover_api",
+    "stwo_prover_engine": "../../../engine/prover",
+    "stwo_riscv_air_lang": "../air_lang",
+    "stwo_riscv_isa": "../isa",
+    "stwo_riscv_memory": "../memory",
+    "stwo_riscv_precompiles": "../precompiles",
+    "stwo_riscv_recursion_air": "../recursion_air"
+  },
+  "injected_modules": [
+    "interop_postcard"
+  ],
+  "api_surface": [
+    "aggregation",
+    "air",
+    "diagnostics",
+    "execution",
+    "host",
+    "owned_statement",
+    "prover",
+    "recursion",
+    "testing",
+    "trace_layout",
+    "witness_layout"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "tests/contracts.zig::C3 canonical API identity: native results and statement types"
+    ],
+    "invariant_tests": [
+      "witness_layout.zig::witness layout digest matches the Sail-authoritative schema receipt"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_rv32_package",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/riscv/rv32/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

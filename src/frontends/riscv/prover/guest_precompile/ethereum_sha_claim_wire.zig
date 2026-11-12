@@ -1,6 +1,6 @@
 //! Strict combined claim payload for the shared BLAKE3 artifact codec.
 const std = @import("std");
-const wire = @import("proof_artifact_wire.zig");
+const wire = @import("stwo_riscv_rv32").prover.guest_precompile.proof_artifact_wire;
 const ethereum = @import("ethereum_proof_artifact_wire.zig");
 const types = @import("ethereum_sha_types.zig");
 const Statement = @import("../blake3_ethereum_sha_statement.zig").Statement;

@@ -733,7 +733,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skip_manifest_check:
         verify_manifest(
             inventory,
-            REPOSITORY_ROOT / "src/frontends/riscv/opcode_manifest.zig",
+            REPOSITORY_ROOT / "src/frontends/riscv/isa/opcode_manifest.zig",
         )
 
     report = render_json(inventory) if args.json else render_text(inventory)

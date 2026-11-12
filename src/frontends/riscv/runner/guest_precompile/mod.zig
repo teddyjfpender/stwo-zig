@@ -1,13 +1,13 @@
 //! Runner-owned guest precompile execution state.
 
-pub const call_buffer = @import("call_buffer.zig");
-pub const bulk_memcpy_v1 = @import("bulk_memcpy.zig");
+pub const call_buffer = @import("stwo_riscv_precompiles").runner.call_buffer;
+pub const bulk_memcpy_v1 = @import("stwo_riscv_rv32").execution.guest_precompile.bulk_memcpy;
 pub const ethereum_v1 = @import("ethereum.zig");
-pub const keccakf_call_buffer = @import("keccakf_call_buffer.zig");
-pub const keccakf_v1 = @import("keccakf.zig");
-pub const poseidon2_v1 = @import("poseidon2.zig");
-pub const secp256k1_recover_call_buffer = @import("secp256k1_recover_call_buffer.zig");
-pub const secp256k1_recover_v1 = @import("secp256k1_recover.zig");
+pub const keccakf_call_buffer = @import("stwo_riscv_precompiles").runner.keccakf_call_buffer;
+pub const keccakf_v1 = @import("stwo_riscv_rv32").execution.guest_precompile.keccakf;
+pub const poseidon2_v1 = @import("stwo_riscv_rv32").execution.guest_precompile.poseidon2;
+pub const secp256k1_recover_call_buffer = @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer;
+pub const secp256k1_recover_v1 = @import("stwo_riscv_rv32").execution.guest_precompile.secp256k1_recover;
 pub const session_state = @import("session_state.zig");
 
 test {

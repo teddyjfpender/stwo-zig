@@ -1,23 +1,23 @@
 //! Independent typed replay of one compact Ethereum leaf.
 
 const std = @import("std");
-const isa_profile = @import("../../isa/profile.zig");
-const custom0 = @import("../../isa/custom0.zig");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const recovery_abi = @import("../../isa/ethereum_signer_recovery.zig");
-const Cpu = @import("../cpu.zig").Cpu;
-const DecodedInst = @import("../decode.zig").DecodedInst;
-const decode = @import("../decode.zig");
-const generated = @import("../generated_retirement.zig");
+const isa_profile = @import("stwo_riscv_isa").profile;
+const custom0 = @import("stwo_riscv_isa").custom0;
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const recovery_abi = @import("stwo_riscv_precompiles").recovery_abi;
+const Cpu = @import("stwo_riscv_isa").machine.cpu.Cpu;
+const DecodedInst = @import("stwo_riscv_isa").machine.decode.DecodedInst;
+const decode = @import("stwo_riscv_isa").machine.decode;
+const generated = @import("stwo_riscv_rv32").execution.generated_retirement;
 const ethereum_v1 = @import("../guest_precompile/ethereum.zig");
 const session_state = @import("../guest_precompile/session_state.zig");
-const Memory = @import("../memory.zig").Memory;
-const MemoryLayout = @import("../memory_state.zig").MemoryLayout;
-const segment_capacity = @import("../segment_capacity.zig");
-const StateChainTracker = @import("../state_chain.zig").StateChainTracker;
-const Trace = @import("../trace.zig").Trace;
-const trace_mod = @import("../trace.zig");
-const base_replay = @import("replay.zig");
+const Memory = @import("stwo_riscv_isa").machine.memory.Memory;
+const MemoryLayout = @import("stwo_riscv_isa").machine.memory_state.MemoryLayout;
+const segment_capacity = @import("stwo_riscv_rv32").execution.segment_capacity;
+const StateChainTracker = @import("stwo_riscv_isa").machine.state_chain.StateChainTracker;
+const Trace = @import("stwo_riscv_rv32").execution.trace.Trace;
+const trace_mod = @import("stwo_riscv_rv32").execution.trace;
+const base_replay = @import("stwo_riscv_rv32").execution.minimal_trace.replay;
 const types = @import("ethereum_types.zig");
 
 pub const RequestV1 = struct {
@@ -44,10 +44,10 @@ pub const ResultV1 = struct {
     execution_trace: Trace,
     state_chain_tracker: StateChainTracker,
     touched_memory: Memory,
-    keccakf_calls: @import("../guest_precompile/keccakf_call_buffer.zig").Frozen,
-    keccakf_execution_rows: @import("../guest_precompile/keccakf.zig").FrozenExecutionRows,
-    signer_recovery_calls: @import("../guest_precompile/secp256k1_recover_call_buffer.zig").Frozen,
-    signer_recovery_execution_rows: @import("../guest_precompile/secp256k1_recover.zig").FrozenExecutionRows,
+    keccakf_calls: @import("stwo_riscv_precompiles").runner.keccakf_call_buffer.Frozen,
+    keccakf_execution_rows: @import("stwo_riscv_rv32").execution.guest_precompile.keccakf.FrozenExecutionRows,
+    signer_recovery_calls: @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer.Frozen,
+    signer_recovery_execution_rows: @import("stwo_riscv_rv32").execution.guest_precompile.secp256k1_recover.FrozenExecutionRows,
 
     pub fn deinit(self: *ResultV1) void {
         self.keccakf_calls.deinit();
@@ -195,7 +195,7 @@ pub fn replay(
 
         const instruction = DecodedInst.decode(inst_word) catch
             return error.InvalidProgramInstruction;
-        if (@import("types.zig").isUnretiredSelfLoop(instruction, cpu))
+        if (@import("stwo_riscv_rv32").execution.minimal_trace.types.isUnretiredSelfLoop(instruction, cpu))
             return error.UnretiredSelfLoop;
         if (decode.isLoad(instruction.opcode) or decode.isStore(instruction.opcode)) {
             const address = cpu.readReg(instruction.rs1) +%
@@ -288,7 +288,7 @@ fn validateCompletion(
                 return error.CompletionObservationMismatch;
             const instruction = DecodedInst.decode(inst_word) catch
                 return error.CompletionObservationMismatch;
-            if (!@import("types.zig").isUnretiredSelfLoop(instruction, cpu) or
+            if (!@import("stwo_riscv_rv32").execution.minimal_trace.types.isUnretiredSelfLoop(instruction, cpu) or
                 value.address != cpu.pc or value.value != inst_word or
                 value.clock != 0)
             {

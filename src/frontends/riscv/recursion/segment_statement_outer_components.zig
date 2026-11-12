@@ -18,14 +18,14 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-const row10_air = @import("air/statement_input.zig");
-const relation_binding = @import("air/universal_relation_binding.zig");
-const direct_program = @import("air/direct_constraint_program.zig");
-const framework = @import("air/framework_interaction.zig");
+const row10_air = @import("stwo_riscv_recursion_air").statement.input;
+const relation_binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
+const direct_program = @import("stwo_riscv_air_lang").framework.direct_constraint_program;
+const framework = @import("stwo_riscv_air_lang").framework.framework_interaction;
 const manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
-const relation_interaction = @import("air/relation_interaction.zig");
-const typed_component = @import("air/universal_typed_component.zig");
-const universal = @import("air/universal_challenges.zig");
+const relation_interaction = @import("stwo_riscv_air_lang").framework.relation_interaction;
+const typed_component = @import("stwo_riscv_air_lang").framework.universal_typed_component;
+const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 const statement = @import("segment_statement_outer_source_v2.zig");
 
 pub const FORMAT_VERSION: u16 = 1;
@@ -371,7 +371,7 @@ pub fn fillInteractionInto(
     relations: *const universal.UniversalRelations,
     destination: []const []M31,
 ) !ClaimsV2 {
-    const generator = @import("air/interaction_generator.zig").Host{};
+    const generator = @import("stwo_riscv_recursion_air").interaction_generator.Host{};
     return fillInteractionIntoWithGenerator(authority, workspace, prepared, logical_rows, manifest, relations, destination, &generator);
 }
 

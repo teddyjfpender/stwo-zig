@@ -7,12 +7,12 @@
 //! a typed witness.
 
 const std = @import("std");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const ethereum_abi = @import("../../isa/ethereum_signer_recovery.zig");
-const Cpu = @import("../cpu.zig").Cpu;
-const keccak_calls = @import("../guest_precompile/keccakf_call_buffer.zig");
-const recovery_calls = @import("../guest_precompile/secp256k1_recover_call_buffer.zig");
-const base_types = @import("types.zig");
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const ethereum_abi = @import("stwo_riscv_precompiles").recovery_abi;
+const Cpu = @import("stwo_riscv_isa").machine.cpu.Cpu;
+const keccak_calls = @import("stwo_riscv_precompiles").runner.keccakf_call_buffer;
+const recovery_calls = @import("stwo_riscv_precompiles").runner.secp256k1_recover_call_buffer;
+const base_types = @import("stwo_riscv_rv32").execution.minimal_trace.types;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;

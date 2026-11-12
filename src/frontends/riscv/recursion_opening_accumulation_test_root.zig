@@ -1,4 +1,0 @@
-//! Focused opening AIR/lowering loop, without the detached producer graph.
-test {
-    _ = @import("recursion/air/tests/detached_opening_accumulate4_test.zig");
-}

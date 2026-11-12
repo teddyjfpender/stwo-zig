@@ -4,10 +4,10 @@ const std = @import("std");
 const core = @import("stwo_core");
 const ethereum = @import("blake3_ethereum_statement.zig");
 const geometry = @import("../air/guest_precompile/ethereum_statement.zig");
-const sha = @import("../air/guest_precompile/sha256_component_profile.zig");
-const native_protocol = @import("blake3_execution_protocol.zig");
-const Native = @import("../air/statement.zig").Blake3ExecutionStatement;
-const Pin = @import("blake3_commitment_plan.zig").Admission;
+const sha = @import("stwo_riscv_rv32").air.guest_precompile.sha256_component_profile;
+const native_protocol = @import("stwo_riscv_rv32").prover.blake3_execution_protocol;
+const Native = @import("stwo_riscv_rv32").air.statement.Blake3ExecutionStatement;
+const Pin = @import("stwo_riscv_rv32").prover.blake3_commitment_plan.Admission;
 pub const format_version: u32 = 1;
 pub const Statement = struct {
     ethereum: ethereum.Statement,

@@ -2,9 +2,9 @@
 const std = @import("std");
 const M = @import("stwo_core").fields.m31.M31;
 const Column = @import("stwo_prover_engine").pcs.ColumnEvaluation;
-const frame = @import("air/blake3_frame_witness.zig");
-const g = @import("air/blake3_g_call.zig");
-const xor = @import("air/blake3_xor_call.zig");
+const frame = @import("stwo_riscv_air_lang").framework.blake3_frame_witness;
+const g = @import("stwo_riscv_air_lang").framework.blake3_g_call;
+const xor = @import("stwo_riscv_air_lang").framework.blake3_xor_call;
 const Layout = @import("blake3_native_hash_layout.zig").Layout;
 const Counts = @import("blake3_native_hash_layout.zig").Counts;
 pub const Owner = struct {
@@ -14,8 +14,8 @@ pub const Owner = struct {
     first: [2]usize = .{ 0, 0 },
     capacity: [2]usize,
     main: [2][]Column = @splat(&.{}),
-    g_metadata: []@import("air/blake3_hash_metadata.zig").Row(g) = &.{},
-    xor_metadata: []@import("air/blake3_hash_metadata.zig").Row(xor) = &.{},
+    g_metadata: []@import("stwo_riscv_air_lang").framework.blake3_hash_metadata.Row(g) = &.{},
+    xor_metadata: []@import("stwo_riscv_air_lang").framework.blake3_hash_metadata.Row(xor) = &.{},
 
     pub fn init(a: std.mem.Allocator, layout: Layout) !Owner {
         try layout.validateEmitted(layout.transcript, layout.paths);
@@ -30,8 +30,8 @@ pub const Owner = struct {
                 column.values = values;
             }
         }
-        self.g_metadata = try a.alloc(@import("air/blake3_hash_metadata.zig").Row(g), layout.total.g);
-        self.xor_metadata = try a.alloc(@import("air/blake3_hash_metadata.zig").Row(xor), layout.total.xor);
+        self.g_metadata = try a.alloc(@import("stwo_riscv_air_lang").framework.blake3_hash_metadata.Row(g), layout.total.g);
+        self.xor_metadata = try a.alloc(@import("stwo_riscv_air_lang").framework.blake3_hash_metadata.Row(xor), layout.total.xor);
         if (std.process.hasEnvVarConstant("STWO_RISCV_RECURSIVE_PARENT_PROFILE")) {
             const full_bytes = layout.total.g * @sizeOf(g.Row) + layout.total.xor * @sizeOf(xor.Row);
             const compact_bytes = std.mem.sliceAsBytes(self.g_metadata).len + std.mem.sliceAsBytes(self.xor_metadata).len;

@@ -258,7 +258,7 @@ class UpstreamPinTests(unittest.TestCase):
 
         joined = "\n".join(errors)
         self.assertIn("src/frontends/riscv/isa/authority.zig", joined)
-        self.assertIn("src/frontends/riscv/opcode_manifest.zig", joined)
+        self.assertIn("src/frontends/riscv/isa/opcode_manifest.zig", joined)
         self.assertIn("vectors/riscv_elfs/trace_vectors.json", joined)
         self.assertIn("conformance/riscv/rv32im-sail-profile.json", joined)
         self.assertNotIn("scripts/riscv/riscv_equivalence.py", joined)

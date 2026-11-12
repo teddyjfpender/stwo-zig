@@ -3,11 +3,11 @@
 const std = @import("std");
 
 const authority_mod =
-    @import("../isa/ethereum_candidate_combined_authority.zig");
+    @import("../compat/product_tree/isa/ethereum_candidate_combined_authority.zig");
 const result_mod = @import("result.zig");
 const combined_state = @import("guest_precompile/ethereum_candidate_combined.zig");
-const bulk_tape = @import("guest_precompile/bulk_memcpy_session_tape.zig");
-const swap_tape = @import("guest_precompile/stack_swap_session_tape.zig");
+const bulk_tape = @import("stwo_riscv_precompiles").runner.bulk_memcpy_session_tape;
+const swap_tape = @import("stwo_riscv_precompiles").runner.stack_swap_session_tape;
 
 pub const production_active = false;
 

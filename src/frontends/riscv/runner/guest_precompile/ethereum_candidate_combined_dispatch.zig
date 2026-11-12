@@ -1,11 +1,11 @@
 //! Exact two-member CUSTOM-0 classifier for the combined candidate session.
 
 const authority_mod =
-    @import("../../isa/ethereum_candidate_combined_authority.zig");
+    @import("../../compat/product_tree/isa/ethereum_candidate_combined_authority.zig");
 const registry_mod =
-    @import("../../isa/ethereum_candidate_private_registry.zig");
-const bulk_dispatch = @import("bulk_memcpy_candidate_dispatch.zig");
-const swap_dispatch = @import("stack_swap_candidate_dispatch.zig");
+    @import("../../compat/product_tree/isa/ethereum_candidate_private_registry.zig");
+const bulk_dispatch = @import("stwo_riscv_rv32").execution.guest_precompile.bulk_memcpy_candidate_dispatch;
+const swap_dispatch = @import("stwo_riscv_rv32").execution.guest_precompile.stack_swap_candidate_dispatch;
 
 pub const production_active = false;
 

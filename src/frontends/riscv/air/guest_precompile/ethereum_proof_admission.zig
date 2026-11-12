@@ -1,10 +1,10 @@
 //! Fail-closed pre-transcript admission for the combined Ethereum profile.
 
 const statement_mod = @import("ethereum_statement.zig");
-const base_statement = @import("../statement.zig");
-const statement_v2 = @import("../statement_v2.zig");
-const statement_validation = @import("../../prover/statement_validation.zig");
-const prover_types = @import("../../prover/types.zig");
+const base_statement = @import("stwo_riscv_rv32").air.statement;
+const statement_v2 = @import("stwo_riscv_rv32").air.statement_v2;
+const statement_validation = @import("stwo_riscv_rv32").prover.statement_validation;
+const prover_types = @import("stwo_riscv_rv32").prover.types;
 
 pub const Error = statement_mod.Error || prover_types.ProverError;
 
@@ -61,7 +61,7 @@ pub fn validateV2(
 
 /// Explicit Ethereum fixed-program/narrow provider counterpart. Legacy callers
 /// remain on validateV2 and therefore retain their original width admission.
-pub fn validateV2WithCircuitProfileV1(native: *const statement_v2.RiscVStatementV2, extension: *const statement_mod.Statement, policy: statement_validation.AdmissionPolicy, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!void {
+pub fn validateV2WithCircuitProfileV1(native: *const statement_v2.RiscVStatementV2, extension: *const statement_mod.Statement, policy: statement_validation.AdmissionPolicy, circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1) Error!void {
     try extension.validateV2WithCircuitProfileV1(native, circuit_profile);
     try statement_validation.validateV2WithRetirementSupplementAndCircuitLayout(native, policy, .{
         .rows = extension.counts.external_retirements,

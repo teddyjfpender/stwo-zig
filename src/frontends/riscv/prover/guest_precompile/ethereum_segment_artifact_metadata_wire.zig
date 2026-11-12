@@ -4,11 +4,12 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
-const global_v3 = @import("../../recursion/segment_leaf_local_authority.zig");
-const segment_v2 = @import("../../recursion/segment_statement.zig");
-const span = @import("../../recursion/span_statement.zig");
+const global_v3 = @import("stwo_riscv_recursion").segment_leaf_local_authority;
+const canonical_segment_v2_440fbb = @import("stwo_riscv_memory").recursion.poseidon2_channel;
+const canonical_segment_v2_51c663 = @import("stwo_riscv_rv32").recursion.segment_statement_contract;
+const span = @import("stwo_riscv_rv32").recursion.span_statement;
 const runner_result = @import("../../runner/result.zig");
-const base_wire = @import("proof_artifact_wire.zig");
+const base_wire = @import("stwo_riscv_rv32").prover.guest_precompile.proof_artifact_wire;
 
 pub const schema_version: u16 = 1;
 pub const encoded_size: usize = 2111;
@@ -109,14 +110,14 @@ fn decodeBoundary(cursor: *base_wire.Cursor) !global_v3.BoundaryV3 {
     return result;
 }
 
-fn writeDigest(writer: anytype, digest: segment_v2.Digest) !void {
+fn writeDigest(writer: anytype, digest: canonical_segment_v2_440fbb.Digest) !void {
     for (digest) |word| {
         if (word >= m31.Modulus) return error.NonCanonicalDigest;
         try base_wire.writeInt(writer, u32, word);
     }
 }
 
-fn readDigest(cursor: *base_wire.Cursor, digest: *segment_v2.Digest) !void {
+fn readDigest(cursor: *base_wire.Cursor, digest: *canonical_segment_v2_440fbb.Digest) !void {
     for (digest) |*word| {
         word.* = try cursor.readInt(u32);
         if (word.* >= m31.Modulus) return error.NonCanonicalDigest;
@@ -135,8 +136,8 @@ fn readM31s(cursor: *base_wire.Cursor, words: []M31) !void {
     }
 }
 
-fn knownCompletionKind(raw: u32) !segment_v2.CompletionKindV2 {
-    inline for (std.meta.fields(segment_v2.CompletionKindV2)) |field| {
+fn knownCompletionKind(raw: u32) !canonical_segment_v2_51c663.CompletionKindV2 {
+    inline for (std.meta.fields(canonical_segment_v2_51c663.CompletionKindV2)) |field| {
         if (raw == field.value) return @enumFromInt(raw);
     }
     return error.InvalidEnumTag;

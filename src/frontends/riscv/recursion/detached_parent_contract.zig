@@ -4,13 +4,13 @@ const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const air = struct {
-    const universal_catalog = @import("air/universal_catalog_entry.zig");
+    const universal_catalog = @import("stwo_riscv_recursion_air").universal_catalog_entry;
 };
-pub const manifest_mod = @import("air/universal_manifest_contract.zig");
-pub const Relations = @import("air/universal_challenges.zig").UniversalRelations;
-pub const LOGICAL_ROWS = @import("air/detached_parent_catalog.zig").LOGICAL_ROWS;
-const geometry = @import("air/universal_typed_geometry.zig");
-const shared = @import("air/universal_shared_geometry.zig");
+pub const manifest_mod = @import("stwo_riscv_air_lang").framework.universal_manifest_contract;
+pub const Relations = @import("stwo_riscv_air_lang").framework.universal_challenges.UniversalRelations;
+pub const LOGICAL_ROWS = @import("stwo_riscv_recursion_air").detached.parent_catalog.LOGICAL_ROWS;
+const geometry = @import("stwo_riscv_air_lang").framework.universal_typed_geometry;
+const shared = @import("stwo_riscv_rv32").recursion.air.universal_shared_geometry;
 const CompactGeometry = shared.PoseidonForManifest(manifest_mod, true, .canonical_only);
 const RangeGeometry = shared.RangeForManifest(manifest_mod);
 

@@ -41,15 +41,15 @@ SOURCE_REASON = (
     "bytes while preserving the ordered row-local polynomial program."
 )
 SOURCE_PATHS = (
-    "src/frontends/riscv/air/constraint_program.zig",
-    "src/frontends/riscv/air/extract/program.zig",
-    "src/frontends/riscv/air/extract/model.zig",
-    "src/frontends/riscv/air/lang/typed_shifts_reg_authority.zig",
-    "src/frontends/riscv/air/lang/typed_shifts_imm_authority.zig",
-    "src/frontends/riscv/air/lang/typed_load_store_authority.zig",
-    "src/frontends/riscv/air/lang/typed_mul_authority.zig",
-    "src/frontends/riscv/air/lang/typed_mulh_authority.zig",
-    "src/frontends/riscv/air/lang/typed_div_authority.zig",
+    "src/frontends/riscv/rv32/air/constraint_program.zig",
+    "src/frontends/riscv/rv32/air/extract/program.zig",
+    "src/frontends/riscv/rv32/air/extract/model.zig",
+    "src/frontends/riscv/rv32/air/lang/typed_shifts_reg_authority.zig",
+    "src/frontends/riscv/rv32/air/lang/typed_shifts_imm_authority.zig",
+    "src/frontends/riscv/rv32/air/lang/typed_load_store_authority.zig",
+    "src/frontends/riscv/rv32/air/lang/typed_mul_authority.zig",
+    "src/frontends/riscv/rv32/air/lang/typed_mulh_authority.zig",
+    "src/frontends/riscv/rv32/air/lang/typed_div_authority.zig",
 )
 
 Monomial = tuple[tuple[int, int], ...]

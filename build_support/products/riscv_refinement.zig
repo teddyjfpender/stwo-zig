@@ -32,7 +32,7 @@ pub fn addPilot(
         configured_program_ir_dir orelse "zig-out/refinement-air-ir-v2";
     const root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/frontends/riscv/refinement_ir_export_test.zig",
+        .root_source_file = "src/frontends/riscv/rv32/refinement_ir_export_test.zig",
         .target = target,
         .optimize = optimize,
     });
@@ -51,7 +51,7 @@ pub fn addPilot(
     }
     const program_root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/frontends/riscv/refinement_program_export_test.zig",
+        .root_source_file = "src/frontends/riscv/rv32/refinement_program_export_test.zig",
         .target = target,
         .optimize = optimize,
     });

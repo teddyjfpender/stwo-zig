@@ -1,9 +1,9 @@
 //! Fixed-size authenticated metadata for the explicit Ethereum/SHA profile.
 const std = @import("std");
-const wire = @import("proof_artifact_wire.zig");
+const wire = @import("stwo_riscv_rv32").prover.guest_precompile.proof_artifact_wire;
 const ethereum = @import("ethereum_proof_artifact_wire.zig");
-const profile = @import("../../isa/execution_profile.zig");
-const sha = @import("../../air/guest_precompile/sha256_component_profile.zig");
+const profile = @import("stwo_riscv_isa").execution_profile;
+const sha = @import("stwo_riscv_rv32").air.guest_precompile.sha256_component_profile;
 const Statement = @import("../blake3_ethereum_sha_statement.zig").Statement;
 const magic = "B3SHST01";
 pub const extension_encoded_size = 56 + ethereum.extension_encoded_size + sha.Airs.len * 64;
@@ -12,7 +12,7 @@ pub fn localZeroSemanticDigest() [32]u8 {
     hash.update("stwo.riscv.ethereum-sha.statement.local-zero.v1\x00");
     hash.update(&profile.ethereum_sha_semantic_digest);
     hash.update(&@import("../../air/guest_precompile/ethereum_statement.zig").localZeroSemanticDigest());
-    hash.update(&@import("../../air/guest_precompile/sha256_caller_local_zero.zig").SEMANTIC_DIGEST);
+    hash.update(&@import("stwo_riscv_rv32").air.guest_precompile.sha256_caller_local_zero.SEMANTIC_DIGEST);
     var digest: [32]u8 = undefined;
     hash.final(&digest);
     return digest;

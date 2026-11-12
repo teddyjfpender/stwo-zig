@@ -1,8 +1,8 @@
 //! Cold fixed-storage construction for a binary FRI outer bundle.
 
 const std = @import("std");
-const logup = @import("../air/logup.zig");
-const poseidon_authority_mod = @import("../air/lang/typed_poseidon2_authority.zig");
+const logup = @import("stwo_riscv_air_lang").evaluation.logup;
+const poseidon_authority_mod = @import("stwo_riscv_memory").typed.typed_poseidon2_authority;
 
 pub fn init(
     allocator: std.mem.Allocator,

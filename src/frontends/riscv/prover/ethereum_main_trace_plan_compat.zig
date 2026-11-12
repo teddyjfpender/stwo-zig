@@ -1,6 +1,6 @@
-const base = @import("main_trace_plan.zig");
-const Statement = @import("../air/statement.zig").RiscVStatement;
-const CircuitProfile = @import("ethereum_circuit_profile.zig").CircuitProfileV1;
+const base = @import("stwo_riscv_rv32").prover.main_trace_plan;
+const Statement = @import("stwo_riscv_rv32").air.statement.RiscVStatement;
+const CircuitProfile = @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1;
 pub const Error = base.Error;
 pub const BuildOptions = base.BuildOptions;
 pub const ColumnRange = base.ColumnRange;

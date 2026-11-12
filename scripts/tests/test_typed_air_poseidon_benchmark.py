@@ -210,7 +210,7 @@ def fake_provenance(repository: Path, executable: Path, power_state: str):
             "manifest_sha256": SOURCE_MANIFEST.digest(),
             "source_count": 1,
             "content_sha256": digest("closure"),
-            "sources": ["src/frontends/riscv/poseidon_layout_benchmark_tool.zig"],
+            "sources": ["src/frontends/riscv/compat/assembly/rv32/poseidon_layout_benchmark_tool.zig"],
         },
         "executable": {
             "path": str(executable.resolve()),

@@ -8,15 +8,15 @@
 
 const std = @import("std");
 
-const program_commitment = @import("../../air/program/commitment.zig");
-const custom0 = @import("../../isa/custom0.zig");
+const program_commitment = @import("stwo_riscv_rv32").air.program.commitment;
+const custom0 = @import("stwo_riscv_isa").custom0;
 const authority_mod =
-    @import("../../isa/ethereum_candidate_combined_authority.zig");
+    @import("../../compat/product_tree/isa/ethereum_candidate_combined_authority.zig");
 const registry_mod =
-    @import("../../isa/ethereum_candidate_private_registry.zig");
+    @import("../../compat/product_tree/isa/ethereum_candidate_private_registry.zig");
 const combined_decode =
     @import("../../prover/guest_precompile/ethereum_candidate_combined_decode.zig");
-const memory_state = @import("../memory_state.zig");
+const memory_state = @import("stwo_riscv_isa").machine.memory_state;
 const segment_session = @import("../segment_session.zig");
 
 pub const Digest = [32]u8;

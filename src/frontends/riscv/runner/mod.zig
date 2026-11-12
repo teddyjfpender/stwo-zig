@@ -1,30 +1,30 @@
 //! RISC-V RV32IM runner — fetch/decode/execute loop with ELF loading.
 
 const std = @import("std");
-const execution_profile = @import("../isa/execution_profile.zig");
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
 pub const ethereum = @import("ethereum.zig");
-pub const cpu = @import("cpu.zig");
-pub const decode = @import("decode.zig");
-pub const memory = @import("memory.zig");
-pub const auipc_retirement = @import("auipc_retirement.zig");
-pub const base_alu_imm_retirement = @import("base_alu_imm_retirement.zig");
-pub const base_alu_reg_retirement = @import("base_alu_reg_retirement.zig");
-pub const elf_loader = @import("elf_loader.zig");
-pub const trace = @import("trace.zig");
-pub const trace_dump = @import("trace_dump.zig");
-pub const fence_retirement = @import("fence_retirement.zig");
-pub const lui_retirement = @import("lui_retirement.zig");
+pub const cpu = @import("stwo_riscv_isa").machine.cpu;
+pub const decode = @import("stwo_riscv_isa").machine.decode;
+pub const memory = @import("stwo_riscv_isa").machine.memory;
+pub const auipc_retirement = @import("stwo_riscv_rv32").execution.auipc_retirement;
+pub const base_alu_imm_retirement = @import("stwo_riscv_rv32").execution.base_alu_imm_retirement;
+pub const base_alu_reg_retirement = @import("stwo_riscv_rv32").execution.base_alu_reg_retirement;
+pub const elf_loader = @import("stwo_riscv_rv32").execution.elf_loader;
+pub const trace = @import("stwo_riscv_rv32").execution.trace;
+pub const trace_dump = @import("../compat/assembly/rv32/runner/trace_dump.zig");
+pub const fence_retirement = @import("stwo_riscv_rv32").execution.fence_retirement;
+pub const lui_retirement = @import("stwo_riscv_rv32").execution.lui_retirement;
 /// Compile-time registry for production typed retirement authorities.
-pub const generated_retirement = @import("generated_retirement.zig");
+pub const generated_retirement = @import("stwo_riscv_rv32").execution.generated_retirement;
 pub const guest_precompile = @import("guest_precompile/mod.zig");
 /// Test-only bridge to the pinned Sail oracle; see `sail_oracle.zig`.
-pub const sail_oracle = @import("sail_oracle.zig");
-pub const state_chain = @import("state_chain.zig");
-pub const memory_state = @import("memory_state.zig");
-pub const minimal_trace = @import("minimal_trace/mod.zig");
+pub const sail_oracle = @import("../compat/qualification/sail_oracle.zig");
+pub const state_chain = @import("stwo_riscv_isa").machine.state_chain;
+pub const memory_state = @import("stwo_riscv_isa").machine.memory_state;
+pub const minimal_trace = @import("../compat/assembly/rv32/runner/minimal_trace/mod.zig");
 pub const result_mod = @import("result.zig");
 pub const segment_session = @import("segment_session.zig");
-pub const host_mod = @import("../host/mod.zig");
+pub const host_mod = @import("../compat/host/mod.zig");
 
 pub const Cpu = cpu.Cpu;
 pub const Memory = memory.Memory;
@@ -821,5 +821,5 @@ fn makeTestElf(instructions: []const u32) [84 + 64]u8 {
 }
 
 test {
-    _ = @import("tests/segment_continuation_test.zig");
+    _ = @import("stwo_riscv_testing");
 }

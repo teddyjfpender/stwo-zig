@@ -4,26 +4,26 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const work_pool = @import("stwo_prover_engine").work_pool;
-const keccak_component = @import("../../air/guest_precompile/keccakf_component.zig");
-const keccak_interaction = @import("../../air/guest_precompile/keccakf_interaction.zig");
-const keccak_table_interaction = @import("../../air/guest_precompile/keccakf_table_interaction.zig");
-const keccak_tables = @import("../../air/guest_precompile/keccakf_tables.zig");
-const secp_bundle = @import("../../air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_component = @import("../../air/guest_precompile/secp256k1_component.zig");
-const secp_config = @import("../../air/guest_precompile/secp256k1_component_config.zig");
-const secp_interaction = @import("../../air/guest_precompile/secp256k1_component_interaction.zig");
-const opcode_interaction = @import("../../air/lookups/opcode_interaction.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
-const base_statement = @import("../../air/statement.zig");
-const commitment_witness = @import("../commitment_witness.zig");
-const lookup_sources = @import("../lookup_sources.zig");
-const proof_workspace = @import("../proof_workspace.zig");
-const statement_geometry = @import("../statement_geometry.zig");
-const external_tree = @import("external_profile_tree.zig");
+const keccak_component = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_component;
+const keccak_interaction = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_interaction;
+const keccak_table_interaction = @import("stwo_riscv_precompiles").air.keccakf_table_interaction;
+const keccak_tables = @import("stwo_riscv_precompiles").air.keccakf_tables;
+const secp_bundle = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_bundle;
+const secp_component = @import("stwo_riscv_precompiles").air.secp256k1_component;
+const secp_config = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_config;
+const secp_interaction = @import("stwo_riscv_precompiles").air.secp256k1_component_interaction;
+const opcode_interaction = @import("stwo_riscv_rv32").air.lookups.opcode_interaction;
+const lookup_physical_v2 = @import("stwo_riscv_rv32").air.lang.lookup_physical_manifest;
+const base_statement = @import("stwo_riscv_rv32").air.statement;
+const commitment_witness = @import("stwo_riscv_rv32").prover.commitment_witness;
+const lookup_sources = @import("stwo_riscv_rv32").prover.lookup_sources;
+const proof_workspace = @import("stwo_riscv_rv32").prover.proof_workspace;
+const statement_geometry = @import("stwo_riscv_rv32").prover.statement_geometry;
+const external_tree = @import("../../compat/assembly/rv32/prover/guest_precompile/external_profile_tree.zig");
 const ethereum_transcript = @import("ethereum_transcript.zig");
 const ethereum_types = @import("ethereum_types.zig");
 const ethereum_witness = @import("ethereum_witness.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
+const native_provider_omit = @import("../../compat/assembly/rv32/prover/memory_provider_shards/native_provider_omit.zig");
 
 const BaseClaim = base_statement.RiscVInteractionClaim;
 
@@ -423,7 +423,7 @@ pub fn generate(allocator: std.mem.Allocator, extension: *const ethereum_witness
 
     const signer_empty = extension.signerCount() == 0;
     const claim = ethereum_types.ExtensionClaim{
-        .keccak_shard = try keccak_component.Claim.canonicalWithMaximumLogSize(&extension.keccak_shard, k0.claims, @import("../../air/guest_precompile/keccakf_trace.zig").ethereum_maximum_log_size),
+        .keccak_shard = try keccak_component.Claim.canonicalWithMaximumLogSize(&extension.keccak_shard, k0.claims, @import("stwo_riscv_rv32").air.guest_precompile.keccakf_trace.ethereum_maximum_log_size),
         .keccak_chi_table = k1.claim,
         .keccak_xor5_table = k2.claim,
         .product_base = try secp_component.Claim(secp_bundle.ProductBase).canonicalLogical(&extension.secp.product_base, logicalRows(&extension.secp.product_base, signer_empty), s0.claims),
@@ -658,7 +658,7 @@ fn callerClaim(extension: *const @import("ethereum_witness.zig").Witness, claims
     return secp_component.Claim(secp_config.RecoveryCaller).canonicalLogical(&extension.recovery_caller, logicalRows(&extension.recovery_caller, empty), claims);
 }
 
-fn generateCallerInteraction(a: std.mem.Allocator, extension: *const ethereum_witness.Witness, relations: *const @import("../../air/guest_precompile/secp256k1_relations.zig").Relations, pool: *work_pool.WorkPool) !secp_interaction.Result(secp_config.RecoveryCaller) {
+fn generateCallerInteraction(a: std.mem.Allocator, extension: *const ethereum_witness.Witness, relations: *const @import("stwo_riscv_precompiles").air.secp256k1_relations.Relations, pool: *work_pool.WorkPool) !secp_interaction.Result(secp_config.RecoveryCaller) {
     if (extension.recovery_caller_local_zero) |*owned| {
         const generated = try secp_interaction.generate(secp_config.RecoveryCallerLocalZero, a, owned, relations, pool);
         // Same semantic batch count; every owned buffer moves into the stable

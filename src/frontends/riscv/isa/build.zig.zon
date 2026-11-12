@@ -1,0 +1,10 @@
+.{
+    .fingerprint = 0x3855484522a2e7a2,
+    .name = .stwo_riscv_isa,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.15.2",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../../waist/core" },
+    },
+}

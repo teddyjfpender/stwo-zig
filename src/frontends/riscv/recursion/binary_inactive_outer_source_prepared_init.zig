@@ -3,17 +3,17 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
-const binding = @import("air/universal_relation_binding.zig");
-const claim_input_witness = @import("air/vm_public_claim_input_witness.zig");
-const claim_hash_witness = @import("air/vm_public_claim_hash_witness.zig");
-const io_hash_witness = @import("air/vm_public_io_hash_witness.zig");
-const claim_semantics_witness = @import("air/vm_public_claim_semantics_input_witness.zig");
-const public_logup_witness = @import("air/vm_public_logup_input_witness.zig");
-const ClaimInputRelation = binding.Binding(@import("air/vm_public_claim_input.zig"));
-const ClaimHashRelation = binding.Binding(@import("air/vm_public_claim_hash.zig"));
-const IoHashRelation = binding.Binding(@import("air/vm_public_io_hash.zig"));
-const ClaimSemanticsRelation = binding.Binding(@import("air/vm_public_claim_semantics_input.zig"));
-const PublicLogupRelation = binding.Binding(@import("air/vm_public_logup_input.zig"));
+const binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
+const claim_input_witness = @import("stwo_riscv_rv32").recursion.air.vm_public_claim_input_witness;
+const claim_hash_witness = @import("stwo_riscv_rv32").recursion.air.vm_public_claim_hash_witness;
+const io_hash_witness = @import("stwo_riscv_rv32").recursion.air.vm_public_io_hash_witness;
+const claim_semantics_witness = @import("stwo_riscv_recursion_air").vm_public_claim_semantics_input_witness;
+const public_logup_witness = @import("stwo_riscv_recursion_air").vm_public_logup_input_witness;
+const ClaimInputRelation = binding.Binding(@import("stwo_riscv_recursion_air").vm_public_claim_input);
+const ClaimHashRelation = binding.Binding(@import("stwo_riscv_recursion_air").vm_public_claim_hash);
+const IoHashRelation = binding.Binding(@import("stwo_riscv_recursion_air").vm_public_io_hash);
+const ClaimSemanticsRelation = binding.Binding(@import("stwo_riscv_recursion_air").vm_public_claim_semantics_input);
+const PublicLogupRelation = binding.Binding(@import("stwo_riscv_recursion_air").vm_public_logup_input);
 
 pub fn init(
     comptime PreparedType: type,

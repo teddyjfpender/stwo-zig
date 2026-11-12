@@ -3,12 +3,12 @@
 const std = @import("std");
 
 const authority_mod =
-    @import("../../../isa/ethereum_candidate_combined_authority.zig");
+    @import("../../../compat/product_tree/isa/ethereum_candidate_combined_authority.zig");
 const combined_decode =
     @import("../../../prover/guest_precompile/ethereum_candidate_combined_decode.zig");
 const receipt_mod = @import("../ethereum_candidate_combined_elf_receipt.zig");
 const segment_session = @import("../../segment_session.zig");
-const test_elf = @import("../test_elf.zig");
+const test_elf = @import("stwo_riscv_rv32").testing.execution.guest_precompile.test_elf;
 
 test "combined candidate retires ordered bulk and SWAP under one authority" {
     const elf = test_elf.buildEthereumCombinedCandidate();

@@ -200,7 +200,7 @@ def _validate_production_inputs(value: object) -> None:
         not isinstance(opcode_manifest_value, dict)
         or set(opcode_manifest_value) != {"artifact", "sha256"}
         or opcode_manifest_value["artifact"]
-        != "src/frontends/riscv/opcode_manifest.zig"
+        != "src/frontends/riscv/isa/opcode_manifest.zig"
     ):
         raise RefinementError(
             "refinement receipt opcode manifest identity is invalid"

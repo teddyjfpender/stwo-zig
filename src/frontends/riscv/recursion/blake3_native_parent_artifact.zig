@@ -1,7 +1,7 @@
 //! Owned, unverified parent proof. The key identifier never selects its own key.
 const std = @import("std");
 const core = @import("stwo_core");
-const suite = @import("blake3_engine_protocol.zig");
+const suite = @import("stwo_riscv_recursion_air").protocol.recursion.blake3_engine_protocol;
 pub const CLAIM_COUNT = @import("air/blake3_native_parent_rows.zig").Airs.len + 2;
 pub const Claims = [CLAIM_COUNT]core.fields.qm31.QM31;
 pub const Owned = struct {
@@ -37,7 +37,7 @@ pub fn validateClaimsForAdmission(claims: Claims, admission: anytype) !void {
             if (value.v >= core.fields.m31.Modulus) return error.InvalidBlake3ParentClaims;
     } else try validateClaims(claims);
 }
-pub fn validateClosure(claims: Claims, admission: anytype, relations: @import("air/universal_challenges.zig").UniversalRelations) !void {
+pub fn validateClosure(claims: Claims, admission: anytype, relations: @import("stwo_riscv_air_lang").framework.universal_challenges.UniversalRelations) !void {
     if (comptime @hasDecl(@TypeOf(admission.*), "validateClaimsForRelations"))
         try admission.validateClaimsForRelations(claims, relations)
     else

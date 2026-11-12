@@ -1,18 +1,18 @@
 const std = @import("std");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const Cpu = @import("../cpu.zig").Cpu;
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const Cpu = @import("stwo_riscv_isa").machine.cpu.Cpu;
 const result_mod = @import("../result.zig");
 const segment_session = @import("../segment_session.zig");
-const StateChainTracker = @import("../state_chain.zig").StateChainTracker;
-const test_elf = @import("../guest_precompile/test_elf.zig");
+const StateChainTracker = @import("stwo_riscv_isa").machine.state_chain.StateChainTracker;
+const test_elf = @import("stwo_riscv_rv32").testing.execution.guest_precompile.test_elf;
 const capture = @import("ethereum_capture.zig");
 const ethereum_parallel = @import("ethereum_parallel_replay.zig");
 const ethereum_replay = @import("ethereum_replay.zig");
 const ethereum_semantic_capture = @import("ethereum_semantic_capture.zig");
 const ethereum_types = @import("ethereum_types.zig");
 const ethereum_wire = @import("ethereum_wire.zig");
-const base_replay = @import("replay.zig");
-const base_types = @import("types.zig");
+const base_replay = @import("stwo_riscv_rv32").execution.minimal_trace.replay;
+const base_types = @import("stwo_riscv_rv32").execution.minimal_trace.types;
 
 const EthereumExecutionSession = segment_session.ExecutionSession(
     execution_profile.ExecutionProfile.rv32im_zkvm_ethereum_v1,
@@ -453,7 +453,7 @@ const CaptureObserver = struct {
         try self.capture.begin(segment_index);
     }
 
-    fn observe(context: *anyopaque, row: @import("../trace.zig").TraceRow) !void {
+    fn observe(context: *anyopaque, row: @import("stwo_riscv_rv32").execution.trace.TraceRow) !void {
         const self: *CaptureObserver = @ptrCast(@alignCast(context));
         try self.capture.observeCoreRow(row);
     }

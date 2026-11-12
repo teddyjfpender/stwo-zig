@@ -1,16 +1,16 @@
 //! Poseidon2 extension proving and independent verification surface.
 
-pub const types = @import("types.zig");
-pub const trace_geometry = @import("trace_geometry.zig");
-pub const component_assembly = @import("component_assembly.zig");
-pub const cancellation = @import("cancellation.zig");
-pub const proof_artifact = @import("proof_artifact.zig");
+pub const types = @import("stwo_riscv_rv32").prover.guest_precompile.types;
+pub const trace_geometry = @import("stwo_riscv_rv32").prover.guest_precompile.trace_geometry;
+pub const component_assembly = @import("stwo_riscv_rv32").prover.guest_precompile.component_assembly;
+pub const cancellation = @import("stwo_riscv_rv32").prover.guest_precompile.cancellation;
+pub const proof_artifact = @import("../../compat/assembly/rv32/prover/guest_precompile/proof_artifact.zig");
 pub const ethereum_proof_artifact = @import("ethereum_proof_artifact.zig");
 pub const ethereum_segment_proof_artifact =
     @import("ethereum_segment_proof_artifact.zig");
 pub const ethereum_segment_source_wire =
     @import("ethereum_segment_source_wire.zig");
-pub const proof_finalize = @import("proof_finalize.zig");
+pub const proof_finalize = @import("stwo_riscv_rv32").prover.guest_precompile.proof_finalize;
 pub const ethereum_witness = @import("ethereum_witness.zig");
 pub const ethereum_types = @import("ethereum_types.zig");
 pub const ethereum_transcript = @import("ethereum_transcript.zig");
@@ -32,17 +32,17 @@ pub const ethereum_native_provider_omit_proof_v1 =
 pub const ethereum_segment_verifier = @import("ethereum_segment_verifier.zig");
 pub const ethereum_leaf_matched_ab_execution_profile_v1 =
     @import("ethereum_leaf_matched_ab_execution_profile.zig");
-pub const orchestration = @import("orchestration.zig");
-pub const verifier = @import("verifier.zig");
+pub const orchestration = @import("stwo_riscv_rv32").prover.guest_precompile.orchestration;
+pub const verifier = @import("stwo_riscv_rv32").prover.guest_precompile.verifier;
 /// Research-only split PCS prepare/manifest boundary. This retains real
 /// commitment schemes but is not accepted by the production proof API.
-pub const split_pcs_prepare = @import("split_pcs_prepare.zig");
+pub const split_pcs_prepare = @import("stwo_riscv_rv32").prover.guest_precompile.split_pcs_prepare;
 /// Research-only completion and independent verification of the base-plus-
 /// caller STARK after the split manifest barrier.
-pub const split_caller_finish = @import("split_caller_finish.zig");
+pub const split_caller_finish = @import("stwo_riscv_rv32").prover.guest_precompile.split_caller_finish;
 /// Research-only completion and independent verification of the standalone
 /// provider STARK after the split manifest barrier.
-pub const split_provider_finish = @import("split_provider_finish.zig");
+pub const split_provider_finish = @import("stwo_riscv_rv32").prover.guest_precompile.split_provider_finish;
 
 pub const InteractionClaim = types.InteractionClaim;
 pub const ProveOutput = types.ProveOutput;
@@ -113,4 +113,4 @@ pub const verifyEthereumSegmentWithEngineAndEthereumV3Capture =
 pub const verifyEthereumSegmentWithEngineAndEthereumV3CaptureUsingChannel =
     ethereum_segment_verifier.verifyWithEngineAndEthereumV3CaptureUsingChannel;
 
-pub const ecdsa_csp = @import("ecdsa_csp.zig");
+pub const ecdsa_csp = @import("../../compat/assembly/rv32/prover/guest_precompile/ecdsa_csp.zig");

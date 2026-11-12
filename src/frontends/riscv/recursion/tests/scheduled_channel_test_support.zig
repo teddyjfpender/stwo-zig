@@ -14,10 +14,10 @@ const m31 = stwo_core.fields.m31;
 const M31 = m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const PcsConfig = stwo_core.pcs.PcsConfig;
-const public_data_v2 = @import("../../air/public_data_v2.zig");
-const statement_v1 = @import("../../air/statement.zig");
-const channel_mod = @import("../poseidon2_channel.zig");
-const schedule = @import("../air/verifier_schedule.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").air.public_data_v2;
+const statement_v1 = @import("stwo_riscv_rv32").air.statement;
+const channel_mod = @import("stwo_riscv_memory").recursion.poseidon2_channel;
+const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 const transcript = @import("../transcript_program_v2.zig");
 
 pub const Error = transcript.Error || error{

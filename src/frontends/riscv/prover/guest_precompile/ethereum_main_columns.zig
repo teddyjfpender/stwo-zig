@@ -2,11 +2,11 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const Column = @import("stwo_prover_engine").pcs.ColumnEvaluation;
-const keccak_component = @import("../../air/guest_precompile/keccakf_component.zig");
-const secp_bundle = @import("../../air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_config = @import("../../air/guest_precompile/secp256k1_component_config.zig");
-const secp_trace = @import("../../air/guest_precompile/secp256k1_component_trace.zig");
-const external_tree = @import("external_profile_tree.zig");
+const keccak_component = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_component;
+const secp_bundle = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_bundle;
+const secp_config = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_config;
+const secp_trace = @import("stwo_riscv_precompiles").air.secp256k1_component_trace;
+const external_tree = @import("../../compat/assembly/rv32/prover/guest_precompile/external_profile_tree.zig");
 const ethereum_witness = @import("ethereum_witness.zig");
 pub const Range = struct { start: usize, count: usize, log_size: u32 };
 pub const Generated = struct {
@@ -48,8 +48,8 @@ pub fn generate(allocator: std.mem.Allocator, extension: *const ethereum_witness
     };
     const ethereum_blocks = [_]external_tree.BorrowedBlock{
         block(extension.keccak_shard.log_size, shard[0..extension.keccak_shard.mainColumnCount()]),
-        block(@import("../../air/guest_precompile/keccakf_tables.zig").logSize(.chi), &chi),
-        block(@import("../../air/guest_precompile/keccakf_tables.zig").logSize(.xor5), &xor5),
+        block(@import("stwo_riscv_precompiles").air.keccakf_tables.logSize(.chi), &chi),
+        block(@import("stwo_riscv_precompiles").air.keccakf_tables.logSize(.xor5), &xor5),
         block(extension.secp.product_base.log_size, &product_base),
         block(extension.secp.product_scalar.log_size, &product_scalar),
         block(extension.secp.linear_base.log_size, &linear_base),
@@ -75,7 +75,7 @@ fn block(log_size: u32, columns: []const []const M31) external_tree.BorrowedBloc
     return .{ .log_size = log_size, .columns = columns };
 }
 fn keccakMainColumns(
-    trace: *const @import("../../air/guest_precompile/keccakf_trace.zig").Shard,
+    trace: *const @import("stwo_riscv_rv32").air.guest_precompile.keccakf_trace.Shard,
 ) [keccak_component.main_column_count + 2][]const M31 {
     var result: [keccak_component.main_column_count + 2][]const M31 = undefined;
     for (result[0..trace.mainColumnCount()], 0..) |*column, index| column.* = trace.mainColumn(index);

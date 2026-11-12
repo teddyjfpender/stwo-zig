@@ -1,8 +1,8 @@
 //! Test-only support for retained live regression checks.
 //! Authenticated multi-relation interaction for authority-spine row 12.
 
-const air = @import("../air/vm_public_claim_input.zig");
-const compiler = @import("../air/relation_interaction.zig");
+const air = @import("stwo_riscv_recursion_air").vm_public_claim_input;
+const compiler = @import("stwo_riscv_air_lang").framework.relation_interaction;
 
 pub const Runtime = compiler.Runtime(
     air.LOGICAL_INPUT_COUNT,

@@ -1,9 +1,9 @@
 //! One canonical verified-native-capture to BLAKE3 parent preparation path.
 const std = @import("std");
 const core = @import("stwo_core");
-const statement_mod = @import("../air/statement_v2.zig");
-const claim_mod = @import("../air/statement.zig");
-const verifier = @import("../prover/verifier.zig");
+const statement_mod = @import("stwo_riscv_rv32").air.statement_v2;
+const claim_mod = @import("stwo_riscv_rv32").air.statement;
+const verifier = @import("stwo_riscv_rv32").prover.verifier;
 const rows_mod = @import("air/blake3_native_parent_rows.zig");
 const protocol = @import("blake3_native_parent_protocol.zig");
 const SharedBudget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
@@ -59,7 +59,7 @@ pub fn prepare(comptime Engine: type, a: std.mem.Allocator, statement: *const st
 pub const State = struct {
     allocator: std.mem.Allocator,
     context: protocol.Context,
-    prepared: @import("air/blake3_native_transcript.zig").Prepared,
+    prepared: @import("stwo_riscv_rv32").recursion.air.blake3_native_transcript.Prepared,
     hash_layout: @import("blake3_native_hash_layout.zig").Layout,
     hash_columns: ?@import("blake3_native_hash_columns.zig").Owner = null,
     composition: @import("vm_air_composition_circuit.zig").Prepared,
@@ -72,7 +72,7 @@ pub const State = struct {
     query_rows: @import("air/blake3_native_queries.zig").Prepared,
     paths: @import("air/blake3_stark_paths.zig").Prepared,
     opening_rows: @import("air/blake3_native_openings.zig").Prepared,
-    root_words: @import("air/blake3_native_root_nonce.zig").Prepared,
+    root_words: @import("stwo_riscv_rv32").recursion.air.blake3_native_root_nonce.Prepared,
     public_boundary: @import("air/blake3_native_public_boundary.zig").Prepared,
     public_join: @import("air/blake3_native_public_links.zig").Prepared,
     public_inputs: @import("air/blake3_native_public_sources.zig").Prepared,
@@ -90,7 +90,7 @@ pub const State = struct {
         self.hash_columns = null;
         errdefer if (self.hash_columns) |*columns| columns.deinit();
         self.prepared = blk: {
-            var planned = try @import("air/blake3_native_transcript.zig").planReplay(Engine, a, statement, claim, capture, config, capacity);
+            var planned = try @import("stwo_riscv_rv32").recursion.air.blake3_native_transcript.planReplay(Engine, a, statement, claim, capture, config, capacity);
             errdefer planned.deinit();
             self.hash_layout = try @import("blake3_native_hash_layout.zig").Layout.init(a, try planned.hashCounts(), &capture.proof);
             if (final_columns) {
@@ -122,7 +122,7 @@ pub const State = struct {
         try @import("air/blake3_native_queries.zig").applyPathReads(a, &self.query_rows, &self.deep, self.paths.inputs.projection.bit_reads);
         self.opening_rows = try @import("air/blake3_native_openings.zig").prepare(a, &self.paths, &self.deep, &self.fri);
         errdefer self.opening_rows.deinit();
-        self.root_words = try @import("air/blake3_native_root_nonce.zig").prepare(Engine, a, statement, capture, config, claim.interaction_pow, &self.prepared);
+        self.root_words = try @import("stwo_riscv_rv32").recursion.air.blake3_native_root_nonce.prepare(Engine, a, statement, capture, config, claim.interaction_pow, &self.prepared);
         errdefer self.root_words.deinit();
         self.public_boundary = try @import("air/blake3_native_public_boundary.zig").prepare(Engine, a, capture);
         errdefer self.public_boundary.deinit();

@@ -9,10 +9,10 @@
 
 const std = @import("std");
 
-const program_commitment = @import("../../air/program/commitment.zig");
-const custom0 = @import("../../isa/custom0.zig");
-const authority_mod = @import("../../isa/ethereum_stack_swap_candidate.zig");
-const memory_state = @import("../memory_state.zig");
+const program_commitment = @import("stwo_riscv_rv32").air.program.commitment;
+const custom0 = @import("stwo_riscv_isa").custom0;
+const authority_mod = @import("../../compat/product_tree/isa/ethereum_stack_swap_candidate.zig");
+const memory_state = @import("stwo_riscv_isa").machine.memory_state;
 const segment_session = @import("../segment_session.zig");
 const combined_decode =
     @import("../../prover/guest_precompile/ethereum_stack_swap_candidate_decode.zig");

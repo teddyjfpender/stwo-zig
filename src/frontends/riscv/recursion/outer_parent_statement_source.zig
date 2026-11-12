@@ -18,10 +18,10 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 
 const admission = @import("outer_parent_child_admission.zig");
-const channel = @import("poseidon2_channel.zig");
-const fixed_wire = @import("fixed_wire.zig");
+const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
+const fixed_wire = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_wire;
 const pair_node = @import("pair_node.zig");
-const protocol = @import("protocol.zig");
+const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 const transcript_source = @import("outer_parent_transcript_source.zig");
 
 pub const FORMAT_VERSION: u16 = 1;

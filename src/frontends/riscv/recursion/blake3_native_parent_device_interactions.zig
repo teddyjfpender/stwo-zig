@@ -2,18 +2,18 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
-const binding = @import("air/universal_relation_binding.zig");
-const framework = @import("air/framework_interaction.zig");
-const projection = @import("air/blake3_row_columns.zig");
-const storage = @import("air/blake3_parent_row_storage.zig");
-const exporter = @import("air/framework_polynomial_export.zig");
+const binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
+const framework = @import("stwo_riscv_air_lang").framework.framework_interaction;
+const projection = @import("stwo_riscv_air_lang").framework.blake3_row_columns;
+const storage = @import("stwo_riscv_air_lang").framework.blake3_parent_row_storage;
+const exporter = @import("stwo_riscv_air_lang").framework.framework_polynomial_export;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 pub const Program = engine.air.component_prover.OwnedFrameworkPolynomialProgramV1;
 
 pub fn prepare(comptime Backend: type, comptime Air: type, a: std.mem.Allocator, definition: anytype, plan: *const binding.Binding(Air).Plan) !?Program {
     if (comptime !@hasDecl(Backend, "supportsFrameworkInteractionProgram")) return null;
-    const direct = try @import("air/direct_constraint_program.zig").authenticate(&definition.arena, Air.SEMANTIC_DIGEST, Air.LOGICAL_INPUT_COUNT);
+    const direct = try @import("stwo_riscv_air_lang").framework.direct_constraint_program.authenticate(&definition.arena, Air.SEMANTIC_DIGEST, Air.LOGICAL_INPUT_COUNT);
     var program = try exporter.exportLocalPrepared(Air, a, &direct, plan);
     errdefer program.deinit();
     if (try Backend.supportsFrameworkInteractionProgram(a, &program, &.{ Air.PREPROCESSED_COLUMN_COUNT, Air.PHYSICAL_MAIN_COLUMN_COUNT, Air.INTERACTION_COLUMN_COUNT })) return program;
@@ -21,7 +21,7 @@ pub fn prepare(comptime Backend: type, comptime Air: type, a: std.mem.Allocator,
     return null;
 }
 
-pub fn generate(comptime Backend: type, comptime Air: type, a: std.mem.Allocator, program: ?*const Program, plan: *const binding.Binding(Air).Plan, view: framework.Runtime(binding.Binding(Air).Runtime).ColumnRows, metadata: []const storage.FixedRow(Air), log: u32, relations: *const @import("air/universal_challenges.zig").UniversalRelations, padding: Air.Row, scratch: []Q) !framework.Runtime(binding.Binding(Air).Runtime).OwnedColumns {
+pub fn generate(comptime Backend: type, comptime Air: type, a: std.mem.Allocator, program: ?*const Program, plan: *const binding.Binding(Air).Plan, view: framework.Runtime(binding.Binding(Air).Runtime).ColumnRows, metadata: []const storage.FixedRow(Air), log: u32, relations: *const @import("stwo_riscv_air_lang").framework.universal_challenges.UniversalRelations, padding: Air.Row, scratch: []Q) !framework.Runtime(binding.Binding(Air).Runtime).OwnedColumns {
     const Runtime = framework.Runtime(binding.Binding(Air).Runtime);
     if (comptime @hasDecl(Backend, "supportsFrameworkInteractionProgram")) {
         if (program) |selected| {
@@ -40,11 +40,11 @@ pub fn generate(comptime Backend: type, comptime Air: type, a: std.mem.Allocator
             var result = Runtime.OwnedColumns{ .columns = @splat(&.{}), .claimed_sum = undefined };
             errdefer result.deinit(a);
             for (&result.columns) |*column| column.* = try a.alloc(M, @as(usize, 1) << @intCast(log));
-            result.claimed_sum = try @import("air/framework_device_interaction.zig").generateColumnsInto(Backend, Air, a, selected, plan, .{ &fixed_values, view.columns[0..Air.PHYSICAL_MAIN_COLUMN_COUNT] }, padding[Air.PHYSICAL_MAIN_COLUMN_COUNT + Air.PREPROCESSED_COLUMN_COUNT ..], log, relations, &result.columns);
+            result.claimed_sum = try @import("stwo_riscv_air_lang").framework.framework_device_interaction.generateColumnsInto(Backend, Air, a, selected, plan, .{ &fixed_values, view.columns[0..Air.PHYSICAL_MAIN_COLUMN_COUNT] }, padding[Air.PHYSICAL_MAIN_COLUMN_COUNT + Air.PREPROCESSED_COLUMN_COUNT ..], log, relations, &result.columns);
             return result;
         }
     }
     const tile_log = @min(log, framework.OWNED_TILE_LOG_SIZE);
     var workspace = Runtime.Workspace{ .allocator = a, .capacity_log_size = tile_log, .scratch = scratch[0..try Runtime.requiredScratchElementCount(tile_log)] };
-    return @import("air/framework_parallel_interaction.zig").generate(Runtime, a, &workspace, plan, view, log, relations, padding);
+    return @import("stwo_riscv_air_lang").framework.framework_parallel_interaction.generate(Runtime, a, &workspace, plan, view, log, relations, padding);
 }

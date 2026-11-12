@@ -8,13 +8,13 @@
 //! this additive seam first establishes byte-for-byte compact parity.
 
 const std = @import("std");
-const custom0 = @import("../../isa/custom0.zig");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const recovery_abi = @import("../../isa/ethereum_signer_recovery.zig");
-const decode = @import("../decode.zig");
+const custom0 = @import("stwo_riscv_isa").custom0;
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const recovery_abi = @import("stwo_riscv_precompiles").recovery_abi;
+const decode = @import("stwo_riscv_isa").machine.decode;
 const result_mod = @import("../result.zig");
-const trace_mod = @import("../trace.zig");
-const replay = @import("replay.zig");
+const trace_mod = @import("stwo_riscv_rv32").execution.trace;
+const replay = @import("stwo_riscv_rv32").execution.minimal_trace.replay;
 const types = @import("ethereum_types.zig");
 const compatibility = @import("ethereum_capture.zig");
 
@@ -272,9 +272,9 @@ fn completionFromSegment(
 }
 
 fn findSnapshotWord(
-    words: []const @import("../memory_state.zig").WordState,
+    words: []const @import("stwo_riscv_isa").machine.memory_state.WordState,
     address: u32,
-) ?@import("../memory_state.zig").WordState {
+) ?@import("stwo_riscv_isa").machine.memory_state.WordState {
     var low: usize = 0;
     var high = words.len;
     while (low < high) {

@@ -3,9 +3,9 @@ const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const ethereum = @import("ethereum_assembly.zig");
-const sha = @import("../../air/guest_precompile/sha256_component_profile.zig");
-const ShaOwner = @import("../../recursion/air/universal_component_owner.zig").ForRoster(sha.Roster);
-const LocalZeroShaOwner = @import("../../recursion/air/universal_component_owner.zig").ForRoster(sha.LocalZeroRoster);
+const sha = @import("stwo_riscv_rv32").air.guest_precompile.sha256_component_profile;
+const ShaOwner = @import("stwo_riscv_recursion").universal_component_owner.ForRoster(sha.Roster);
+const LocalZeroShaOwner = @import("stwo_riscv_recursion").universal_component_owner.ForRoster(sha.LocalZeroRoster);
 const Relations = @import("ethereum_sha_relations.zig").Relations;
 const Claim = @import("ethereum_sha_types.zig").ExtensionClaim;
 const Statement = @import("../blake3_ethereum_sha_statement.zig").Statement;
@@ -25,7 +25,7 @@ pub fn Assembly(comptime direction: ethereum.Direction) type {
         handles: [ethereum.max_handles + sha.Airs.len]Handle,
         len: usize,
 
-        pub fn createBlake3WithRanges(a: std.mem.Allocator, native: *const @import("../../air/statement.zig").Blake3ExecutionStatement, statement: *const Statement, pin: @import("../blake3_commitment_plan.zig").Admission, logs: @import("../blake3_ethereum_statement.zig").HashLogs, relations: *const Relations, prefix: []const Handle, claims: *const Claim, ranges: ?@import("../../recursion/air/compact_range_geometry.zig").Plan) !*Self {
+        pub fn createBlake3WithRanges(a: std.mem.Allocator, native: *const @import("stwo_riscv_rv32").air.statement.Blake3ExecutionStatement, statement: *const Statement, pin: @import("stwo_riscv_rv32").prover.blake3_commitment_plan.Admission, logs: @import("../blake3_ethereum_statement.zig").HashLogs, relations: *const Relations, prefix: []const Handle, claims: *const Claim, ranges: ?@import("stwo_riscv_air_lang").framework.compact_range_geometry.Plan) !*Self {
             try claims.validate(statement);
             const self = try a.create(Self);
             errdefer a.destroy(self);

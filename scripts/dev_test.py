@@ -24,24 +24,25 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/extract/runtime_program.zig", "test-runtime-selector"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/runtime_selector_test_root.zig", "test-runtime-selector"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/control_row.zig", "test-recursion-framework-interaction"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/vm_composition_program_test.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/precompiles/focused_test_guest_precompile_0.zig", "test-guest-precompile"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv32/air/extract/runtime_program.zig", "test-runtime-selector"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv32/focused_test_runtime_selector_0.zig", "test-runtime-selector"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/air_lang/framework/control_row.zig", "test-recursion-framework-interaction"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/vm_composition_program_test.zig", "test-retained-typed-components"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/recursive_segment_detached_child_transcript.zig", "test-detached-child-capture"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/lang/tests/runtime_profile_test.zig", "test-air-runtime-profile"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/testing/cases/air/lang/tests/runtime_profile_test.zig", "test-air-runtime-profile"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/blake3_proof_tests", "test-blake3-proof-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/blake3_proof_contract_test_root.zig", "test-blake3-proof-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/blake3_memory_path_proof_test_root.zig", "test-blake3-proof-contracts"),
 
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/lang/function_activation_logup_test_support.zig", "test-retained-authority-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/lang/tests/function_activation_logup_test.zig", "test-retained-authority-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/guest_precompile/tests/sha256_memory_caller_test.zig", "test-retained-authority-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/blake3_draw_witness_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv32/air/lang/function_activation_logup_test_support.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/air/lang/tests/function_activation_logup_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/testing/cases/air/guest_precompile/tests/sha256_memory_caller_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/blake3_draw_witness_test.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed/functional_test.zig", "test-distributed-binary-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed/unified_test.zig", "test-distributed-binary-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/blake3_rejection_fixture_test_support.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion_air/tests/blake3_rejection_fixture_test_support.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_poseidon2_native_fixture_main.zig", "poseidon2-native-fixture"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig", "test-keccakf-precompile-proof"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/secp256k1_precompile_proof_test.zig", "test-secp256k1-precompile-proof"),
@@ -58,10 +59,10 @@ FOCUSED_RULES = (
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed/manifest_test.zig", "test-distributed-binary-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed_execution/binary_worker_test.zig", "test-distributed-binary-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_component_test.zig", "test-retained-typed-components"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_quotient_test.zig", "test-retained-typed-components"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_component_test_support.zig", "test-retained-typed-components"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/qm31_mul_full_relation_test_support.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_component_test.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_quotient_test.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_component_test_support.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion_air/tests/qm31_mul_full_relation_test_support.zig", "test-retained-typed-components"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/scheduled_channel_test_support.zig", "test-retained-transcript-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/transcript_program_v2_test.zig", "test-retained-transcript-contracts"),
 
@@ -70,7 +71,7 @@ FOCUSED_RULES = (
     ("stwo_core", "src/waist/core/tests/borrowed_proof_capture_test.zig", "test-proof-capture"),
     ("stwo_core", "src/waist/core/tests/borrowed_pcs_capture_success_test.zig", "test-proof-capture"),
 
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/guest_precompile/tests/relation_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/testing/cases/air/guest_precompile/tests/relation_test.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/segment_range_authority_test.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_execution/division_product_integration_test.zig", "test-division-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_execution/optional_division_test.zig", "test-division-contracts"),
@@ -120,7 +121,7 @@ FOCUSED_RULES = (
     ),
     ("stwo_riscv_frontend", "src/frontends/riscv/isa", "test-isa"),
     ("stwo_riscv_frontend", "src/frontends/riscv/runner", "test-runner"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/runner_test_root.zig", "test-runner"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv32/focused_benchmark_minimal_trace_parallel_replay_0.zig", "test-runner"),
     (
         "stwo_riscv_frontend",
         "src/frontends/riscv/air/semantics",
@@ -128,7 +129,7 @@ FOCUSED_RULES = (
     ),
     (
         "stwo_riscv_frontend",
-        "src/frontends/riscv/air_semantics_test_root.zig",
+        "src/frontends/riscv/rv32/focused_test_air_semantics_0.zig",
         "test-air-semantics",
     ),
     ("stwo_sm83_frontend", "src/frontends/sm83/isa", "test-isa"),
@@ -301,6 +302,16 @@ def tracked_deletions(root: Path) -> set[str]:
     return set(subprocess.check_output(["git", "diff", "--diff-filter=D", "--name-only", "HEAD", "--"], cwd=root, text=True).splitlines()) if (root / ".git").exists() else set()
 
 
+def focused_test_owner(package: str, path: str, packages: dict, root: Path) -> str:
+    """Use an explicit consumer-owned test only across a declared dependency."""
+    candidates = {owner for owner, source, _ in FOCUSED_RULES if owns(path, source)}
+    if frontend_root_step(root, path) is not None:
+        candidates.add("stwo_riscv_frontend")
+    admitted = {owner for owner in candidates if owner in packages and
+                (owner == package or package in packages[owner].dependencies)}
+    return next(iter(admitted)) if len(admitted) == 1 else package
+
+
 def commands_for_paths(
     root: Path,
     raw_paths: Iterable[str],
@@ -351,6 +362,7 @@ def commands_for_paths(
             continue
         package = ci_package_graph.owning_package(path, packages)
         if package is not None:
+            package = focused_test_owner(package, path, packages, root)
             selected.setdefault(package, []).append(path)
             continue
         if not lanes and not (root / path).exists() and (root / ".git").exists():

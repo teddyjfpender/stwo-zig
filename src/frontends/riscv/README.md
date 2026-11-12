@@ -17,7 +17,7 @@ that satisfies the stable prover transaction contract.
 The [package contract](package.contract.json) is the API/dependency authority;
 [mod.zig](mod.zig) is the public facade.
 
-The [composition preparation boundary](recursion/COMPOSITION_PREPARATION.md)
+The [composition preparation boundary](compat/product_tree/recursion/COMPOSITION_PREPARATION.md)
 documents immutable recursive preparation, explicit admission and audit checks,
 and its focused development commands.
 The [proving-stack development plan](../../../design/riscv/plan.md)
@@ -230,3 +230,15 @@ The CSP benchmark classifier reports these publication states:
   and memory measurements are available under admissible power conditions.
 - `host-qualified-non-comparable`: the host, matrix or memory evidence does not
   meet the publication contract. Keep its results separate from comparable runs.
+
+The compatibility umbrella directly composes these canonical child packages:
+
+- `stwo_riscv_isa`
+- `stwo_riscv_air_lang`
+- `stwo_riscv_memory`
+- `stwo_riscv_recursion_air`
+- `stwo_riscv_precompiles`
+- `stwo_riscv_rv32`
+- `stwo_riscv_rv64`
+- `stwo_riscv_recursion`
+- `stwo_riscv_testing`

@@ -33,7 +33,7 @@ pub fn ClaimsFor(comptime C: type) type {
     return [SUMS]C;
 }
 pub const Claims = ClaimsFor(Q);
-const LegacyRelations = @import("../../../air/relation_challenges.zig").Relations;
+const LegacyRelations = @import("stwo_riscv_air_lang").evaluation.relation_challenges.Relations;
 pub const PermutationChallenge = @FieldType(LegacyRelations, "poseidon2_io");
 /// Poseidon2 full-I/O relation over constant lane C: the pinned Stark-V
 /// elements natively; z plus thirty-two alpha powers derived with lane

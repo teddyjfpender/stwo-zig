@@ -13,21 +13,23 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 
-const access_clock = @import("../access_clock.zig");
-const memory_state = @import("../runner/memory_state.zig");
-const runner_result = @import("../runner/result.zig");
-const channel = @import("poseidon2_channel.zig");
-const span = @import("span_statement.zig");
-const segment_v2 = @import("segment_statement.zig");
+const access_clock = @import("stwo_riscv_isa").access_clock;
+const memory_state = @import("stwo_riscv_isa").machine.memory_state;
+const runner_result = @import("stwo_riscv_rv32").execution.base_result;
+const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
+const span = @import("stwo_riscv_rv32").recursion.span_statement;
+const canonical_segment_v2_440fbb = @import("stwo_riscv_memory").recursion.poseidon2_channel;
+const canonical_segment_v2_f1886d = @import("stwo_riscv_rv32").recursion.segment_statement_canonical_wire_view;
+const canonical_segment_v2_51c663 = @import("stwo_riscv_rv32").recursion.segment_statement_contract;
 
 const m31 = stwo_core.fields.m31;
 
 pub const FORMAT_VERSION: u16 = 3;
 pub const SCHEMA_VERSION: u16 = 1;
 pub const KNOWN_FLAGS: u16 = 0;
-pub const MAX_LEAF_CYCLES: u32 = segment_v2.MAX_GLOBAL_CYCLES;
+pub const MAX_LEAF_CYCLES: u32 = canonical_segment_v2_51c663.MAX_GLOBAL_CYCLES;
 pub const MAX_SPARSE_BOUNDARY_ENTRIES: u32 =
-    segment_v2.MAX_SPARSE_BOUNDARY_ENTRIES;
+    canonical_segment_v2_51c663.MAX_SPARSE_BOUNDARY_ENTRIES;
 pub const CLOCK_FRAME: runner_result.SegmentClockFrame = .leaf_local;
 pub const HOT_VALIDATION_HEAP_ALLOCATIONS: usize = 0;
 pub const PRODUCTION_PROOF_ACTIVATION = false;
@@ -50,7 +52,7 @@ comptime {
         @compileError("leaf-local V3 metadata identity domain is not canonical");
 }
 
-pub const Error = segment_v2.Error || error{
+pub const Error = canonical_segment_v2_51c663.Error || error{
     ClockFrameMismatch,
     ContinuationMismatch,
     CpuBoundaryMismatch,
@@ -69,11 +71,11 @@ pub const Error = segment_v2.Error || error{
 /// `SourceV3`; the identities here are suitable for a future canonical wire
 /// only when that wire also retains and re-authenticates the tuples.
 pub const BoundaryV3 = struct {
-    snapshot_id: segment_v2.Digest,
+    snapshot_id: canonical_segment_v2_440fbb.Digest,
     snapshot_count: u32,
     continuation_root: u32,
     register_clocks: [32]u32,
-    memory_clock_id: segment_v2.Digest,
+    memory_clock_id: canonical_segment_v2_440fbb.Digest,
     memory_clock_count: u32,
 };
 
@@ -91,7 +93,7 @@ pub const MetadataV3 = struct {
     local_cycle_count: u32,
     entry: BoundaryV3,
     exit: BoundaryV3,
-    completion: ?segment_v2.CompletionV2,
+    completion: ?canonical_segment_v2_51c663.CompletionV2,
 
     pub fn validate(self: *const MetadataV3) Error!void {
         if (self.format_version != FORMAT_VERSION or
@@ -138,7 +140,7 @@ pub const MetadataV3 = struct {
         if (self.entry.memory_clock_count != 0 or
             !std.meta.eql(
                 self.entry.memory_clock_id,
-                segment_v2.memoryClockIdentity(&.{}),
+                canonical_segment_v2_f1886d.memoryClockIdentity(&.{}),
             ))
         {
             return error.EntryClockNotReset;
@@ -156,7 +158,7 @@ pub const MetadataV3 = struct {
 
     /// Canonical Poseidon identity of the complete global projection,
     /// including both sparse-boundary identities and all local clock custody.
-    pub fn identity(self: *const MetadataV3) Error!segment_v2.Digest {
+    pub fn identity(self: *const MetadataV3) Error!canonical_segment_v2_440fbb.Digest {
         const words = try self.identityWords();
         return channel.hashCanonicalWords(&words, METADATA_ID_DOMAIN);
     }
@@ -296,17 +298,17 @@ pub const SourceV3 = struct {
         ) catch return error.TraceClockMismatch;
         try validateTraceRows(result, local_cycles);
 
-        try segment_v2.validateMemoryWords(
+        try canonical_segment_v2_f1886d.validateMemoryWords(
             result.rw_memory.words,
             result.segment_role,
             local_cycles,
         );
-        try segment_v2.validateClockBoundary(
+        try canonical_segment_v2_f1886d.validateClockBoundary(
             result.entry_access_clocks.register_clocks,
             result.entry_access_clocks.memory_clocks,
             0,
         );
-        try segment_v2.validateClockBoundary(
+        try canonical_segment_v2_f1886d.validateClockBoundary(
             result.exit_access_clocks.register_clocks,
             result.exit_access_clocks.memory_clocks,
             local_cycles,
@@ -420,7 +422,7 @@ fn metadataUnchecked(
     const result = source.result;
     const base_words = try source.base_statement.canonicalWords();
     const entry_snapshot = if (retained) |expected|
-        try segment_v2.snapshotIdentityReusingRoot(
+        try canonical_segment_v2_f1886d.snapshotIdentityReusingRoot(
             .{
                 .id = expected.entry.snapshot_id,
                 .count = expected.entry.snapshot_count,
@@ -430,12 +432,12 @@ fn metadataUnchecked(
             .initial_word,
         )
     else
-        segment_v2.snapshotIdentity(
+        canonical_segment_v2_f1886d.snapshotIdentity(
             result.rw_memory.words,
             .initial_word,
         );
     const exit_snapshot = if (retained) |expected|
-        try segment_v2.snapshotIdentityReusingRoot(
+        try canonical_segment_v2_f1886d.snapshotIdentityReusingRoot(
             .{
                 .id = expected.exit.snapshot_id,
                 .count = expected.exit.snapshot_count,
@@ -445,7 +447,7 @@ fn metadataUnchecked(
             .final_word,
         )
     else
-        segment_v2.snapshotIdentity(
+        canonical_segment_v2_f1886d.snapshotIdentity(
             result.rw_memory.words,
             .final_word,
         );
@@ -461,7 +463,7 @@ fn metadataUnchecked(
             .snapshot_count = entry_snapshot.count,
             .continuation_root = entry_snapshot.root,
             .register_clocks = result.entry_access_clocks.register_clocks,
-            .memory_clock_id = segment_v2.memoryClockIdentity(
+            .memory_clock_id = canonical_segment_v2_f1886d.memoryClockIdentity(
                 result.entry_access_clocks.memory_clocks,
             ),
             .memory_clock_count = @intCast(
@@ -473,7 +475,7 @@ fn metadataUnchecked(
             .snapshot_count = exit_snapshot.count,
             .continuation_root = exit_snapshot.root,
             .register_clocks = result.exit_access_clocks.register_clocks,
-            .memory_clock_id = segment_v2.memoryClockIdentity(
+            .memory_clock_id = canonical_segment_v2_f1886d.memoryClockIdentity(
                 result.exit_access_clocks.memory_clocks,
             ),
             .memory_clock_count = @intCast(
@@ -481,7 +483,7 @@ fn metadataUnchecked(
             ),
         },
         .completion = if (result.completion_reason) |reason|
-            try segment_v2.completionFromRunner(
+            try canonical_segment_v2_f1886d.completionFromRunner(
                 reason,
                 result.completion_address,
                 result.completion_value,
@@ -508,7 +510,7 @@ fn validateBoundary(boundary: *const BoundaryV3, cycle: u32) Error!void {
     }
 }
 
-fn requireDigest(digest: segment_v2.Digest) Error!void {
+fn requireDigest(digest: canonical_segment_v2_440fbb.Digest) Error!void {
     var aggregate: u32 = 0;
     for (digest) |word| {
         if (word >= m31.Modulus) return error.InvalidBoundaryDigest;
@@ -611,7 +613,7 @@ fn validateCompletionMemoryLink(
 ) Error!void {
     if (!is_final) return;
     const reason = result.completion_reason orelse return error.CompletionMissing;
-    const completion = try segment_v2.completionFromRunner(
+    const completion = try canonical_segment_v2_f1886d.completionFromRunner(
         reason,
         result.completion_address,
         result.completion_value,
@@ -648,7 +650,7 @@ fn putBoundary(
 fn putDigest(
     words: []stwo_core.fields.m31.M31,
     at: *usize,
-    digest: segment_v2.Digest,
+    digest: canonical_segment_v2_440fbb.Digest,
 ) void {
     for (digest) |word| putScalar(words, at, word);
 }

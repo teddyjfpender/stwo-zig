@@ -7,20 +7,20 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const component_order = @import("../component_order.zig");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const keccak_component = @import("keccakf_component.zig");
-const keccak_table_component = @import("keccakf_table_component.zig");
-const keccak_tables = @import("keccakf_tables.zig");
-const keccak_trace = @import("keccakf_trace.zig");
-const keccak_witness = @import("keccakf_witness.zig");
-const secp_bundle = @import("secp256k1_component_bundle.zig");
-const secp_component = @import("secp256k1_component.zig");
-const secp_config = @import("secp256k1_component_config.zig");
-const secp_trace = @import("secp256k1_component_trace.zig");
-const poseidon_statement = @import("statement.zig");
-const base_statement = @import("../statement.zig");
-const statement_v2 = @import("../statement_v2.zig");
+const component_order = @import("stwo_riscv_rv32").air.component_order;
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const keccak_component = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_component;
+const keccak_table_component = @import("stwo_riscv_precompiles").air.keccakf_table_component;
+const keccak_tables = @import("stwo_riscv_precompiles").air.keccakf_tables;
+const keccak_trace = @import("stwo_riscv_rv32").air.guest_precompile.keccakf_trace;
+const keccak_witness = @import("stwo_riscv_precompiles").air.keccakf_witness;
+const secp_bundle = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_bundle;
+const secp_component = @import("stwo_riscv_precompiles").air.secp256k1_component;
+const secp_config = @import("stwo_riscv_rv32").air.guest_precompile.secp256k1_component_config;
+const secp_trace = @import("stwo_riscv_precompiles").air.secp256k1_component_trace;
+const poseidon_statement = @import("stwo_riscv_rv32").air.guest_precompile.statement;
+const base_statement = @import("stwo_riscv_rv32").air.statement;
+const statement_v2 = @import("stwo_riscv_rv32").air.statement_v2;
 
 pub const schema_version: u16 = 1;
 pub const local_zero_schema_version: u16 = 2;
@@ -29,9 +29,9 @@ pub fn localZeroSemanticDigest() [32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
     h.update("stwo-zig/ethereum/caller-local-zero/v1\x00");
     h.update(&execution_profile.ethereum_semantic_digest);
-    h.update(&@import("x0_caller_envelope.zig").abiId(.keccak));
-    h.update(&@import("x0_caller_envelope.zig").abiId(.signer));
-    h.update(&@import("sha256_caller_local_zero.zig").SEMANTIC_DIGEST);
+    h.update(&@import("stwo_riscv_rv32").air.guest_precompile.x0_caller_envelope.abiId(.keccak));
+    h.update(&@import("stwo_riscv_rv32").air.guest_precompile.x0_caller_envelope.abiId(.signer));
+    h.update(&@import("stwo_riscv_rv32").air.guest_precompile.sha256_caller_local_zero.SEMANTIC_DIGEST);
     return h.finalResult();
 }
 pub const component_count: usize = 14;
@@ -150,7 +150,7 @@ pub const Statement = struct {
         return canonicalV2WithCircuitProfileV1(native, keccak_calls, signer_calls, secp, .legacy_v4);
     }
 
-    pub fn canonicalV2WithCircuitProfileV1(native: *const statement_v2.RiscVStatementV2, keccak_calls: u32, signer_calls: u32, secp: SecpShapes, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!Statement {
+    pub fn canonicalV2WithCircuitProfileV1(native: *const statement_v2.RiscVStatementV2, keccak_calls: u32, signer_calls: u32, secp: SecpShapes, circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1) Error!Statement {
         native.validate() catch return error.InvalidSegmentV2Boundary;
         const result = try initCanonical(
             keccak_calls,
@@ -169,7 +169,7 @@ pub const Statement = struct {
         return canonicalWithAdmissionForCircuitProfileV1(keccak_calls, signer_calls, secp, admission, .legacy_v4);
     }
 
-    pub fn canonicalWithAdmissionForCircuitProfileV1(keccak_calls: u32, signer_calls: u32, secp: SecpShapes, admission: Admission, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!Statement {
+    pub fn canonicalWithAdmissionForCircuitProfileV1(keccak_calls: u32, signer_calls: u32, secp: SecpShapes, admission: Admission, circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1) Error!Statement {
         var result = try initCanonical(keccak_calls, signer_calls, secp, admission, circuit_profile.keccakMaximumLogSize());
         if (circuit_profile.localZeroCustody()) {
             result.version = local_zero_schema_version;
@@ -183,7 +183,7 @@ pub const Statement = struct {
     }
 
     /// Explicit allocation/receiver geometry policy; legacy callers retain16.
-    pub fn validateGeometryWithCircuitProfileV1(self: *const Statement, total_steps: u32, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!void {
+    pub fn validateGeometryWithCircuitProfileV1(self: *const Statement, total_steps: u32, circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1) Error!void {
         try self.validateGeometryForRecipe(total_steps, circuit_profile.localZeroCustody());
         try self.validateKeccakMaximumLogSize(circuit_profile.keccakMaximumLogSize());
     }
@@ -241,7 +241,7 @@ pub const Statement = struct {
         return self.validateV2WithCircuitProfileV1(native, .legacy_v4);
     }
 
-    pub fn validateV2WithCircuitProfileV1(self: *const Statement, native: *const statement_v2.RiscVStatementV2, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!void {
+    pub fn validateV2WithCircuitProfileV1(self: *const Statement, native: *const statement_v2.RiscVStatementV2, circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1) Error!void {
         native.validate() catch return error.InvalidSegmentV2Boundary;
         try self.validateStructure(&native.core);
         try self.validateKeccakMaximumLogSize(circuit_profile.keccakMaximumLogSize());
@@ -351,7 +351,7 @@ pub const Statement = struct {
         self.mixValidatedInto(channel);
     }
 
-    pub fn mixIntoV2WithCircuitProfileV1(self: *const Statement, native: *const statement_v2.RiscVStatementV2, channel: anytype, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!void {
+    pub fn mixIntoV2WithCircuitProfileV1(self: *const Statement, native: *const statement_v2.RiscVStatementV2, channel: anytype, circuit_profile: @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1) Error!void {
         try self.validateV2WithCircuitProfileV1(native, circuit_profile);
         self.mixValidatedInto(channel);
     }
@@ -660,7 +660,7 @@ fn memoryRelationTerms(
 
 fn addDemand(
     bounds: *[fixed_table_count]u64,
-    kind: @import("../lookups/tables/schema.zig").Kind,
+    kind: @import("stwo_riscv_air_lang").evaluation.lookups.tables.schema.Kind,
     rows: u32,
     per_row: u32,
 ) Error!void {
