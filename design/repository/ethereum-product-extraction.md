@@ -186,3 +186,28 @@ exactly the same 83 inherited source findings. The 25-case native golden/chain
 suite passes in both modes, including its collection hook. These bounded
 results do not establish complete frontend/proof acceptance for the preserved
 migration draft.
+
+## Native helper prerequisite landing
+
+The next C4 slice removes request/packet policy from native qualifications
+without publishing another neutral API. File SHA-256 pins, immutable executable
+mapping collection, bounded byte I/O and tape/ROM profile compatibility each
+have one private canonical owner. The original request/batch/packet names alias
+those same definitions. CSP/Sail, distributed receipt and coverage consumers
+call the shared owners directly. The prepared-job digest domain/offset and all
+request/image admission remain with their original product implementation.
+
+All transferred function/record bodies are exact. The two new owning tests
+cover pin rejection precedence and bounded I/O truncation/section/buffer edges;
+both pass Debug and ReleaseFast (285,933,568-byte sampled peak). A bounded
+actual-module check also runs the existing Zbb authority/admission truth table
+and exercises real native program mapping, canonical request/type identity,
+empty-program refusal and mutable-executable refusal in both modes (three
+cases per mode, 448,331,776-byte peak). All 80 workspace/graph tests pass.
+The 83 inherited source findings remain; no ceiling or baseline is changed.
+The focused checks do not qualify a complete frontend or frozen Native proof.
+
+This slice is source +192/-130/net **+62**, cumulative C4 **755/1200**.
+Documentation is separate; configuration, flags and maintained scripts add or
+remove zero. Shared bodies are transferred, not counted as deleted code.
+The complete product migration remains preserved and unqualified separately.

@@ -399,4 +399,6 @@ test {
 test {
     _ = @import("blake3_proof_contract_test_root.zig");
     _ = @import("rv64_proof_artifact_support.zig");
+    _ = @import("source_identity.zig");
+    _ = @import("bounded_file_io.zig");
 }

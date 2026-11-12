@@ -1,63 +1,9 @@
 //! Bounded concrete file I/O, never buffers the tape or reads across a section.
 const std = @import("std");
-pub const Writer = struct {
-    file: std.fs.File,
-    buffer: [65536]u8 = undefined,
-    used: usize = 0,
-    pub fn bytes(self: *Writer, source: []const u8) !void {
-        var rest = source;
-        while (rest.len != 0) {
-            const n = @min(rest.len, self.buffer.len - self.used);
-            @memcpy(self.buffer[self.used..][0..n], rest[0..n]);
-            self.used += n;
-            rest = rest[n..];
-            if (self.used == self.buffer.len) try self.flush();
-        }
-    }
-    pub fn int(self: *Writer, comptime T: type, value: T) !void {
-        var raw: [@sizeOf(T)]u8 = undefined;
-        std.mem.writeInt(T, &raw, value, .little);
-        try self.bytes(&raw);
-    }
-    pub fn flush(self: *Writer) !void {
-        try self.file.writeAll(self.buffer[0..self.used]);
-        self.used = 0;
-    }
-};
-pub const Reader = struct {
-    file: std.fs.File,
-    remaining: usize,
-    buffer: [65536]u8 = undefined,
-    at: usize = 0,
-    end: usize = 0,
-    pub fn bytes(self: *Reader, output: []u8) !void {
-        var rest = output;
-        while (rest.len != 0) {
-            if (self.at == self.end) {
-                if (self.remaining == 0) return error.TruncatedWorkPacket;
-                self.end = @min(self.remaining, self.buffer.len);
-                try exact(self.file, self.buffer[0..self.end]);
-                self.remaining -= self.end;
-                self.at = 0;
-            }
-            const n = @min(rest.len, self.end - self.at);
-            @memcpy(rest[0..n], self.buffer[self.at..][0..n]);
-            self.at += n;
-            rest = rest[n..];
-        }
-    }
-    pub fn int(self: *Reader, comptime T: type) !T {
-        var raw: [@sizeOf(T)]u8 = undefined;
-        try self.bytes(&raw);
-        return std.mem.readInt(T, &raw, .little);
-    }
-    pub fn finish(self: *const Reader) !void {
-        if (self.remaining != 0 or self.at != self.end) return error.InvalidWorkPacketSection;
-    }
-};
-pub fn exact(file: std.fs.File, output: []u8) !void {
-    if (try file.readAll(output) != output.len) return error.TruncatedWorkPacket;
-}
+const IO = @import("bounded_file_io.zig");
+pub const Writer = IO.Writer;
+pub const Reader = IO.Reader;
+pub const exact = IO.exact;
 pub const DIGEST_OFFSET = 328;
 /// Header digest bytes are treated as zero. Hashes identify/corruption-check a
 /// job, not execution authority. Requires an exclusively owned immutable file.

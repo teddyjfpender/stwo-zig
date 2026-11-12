@@ -217,24 +217,9 @@ pub const Batch = struct {
         return .{ .allocator = a, .public = public, .rom_profile = if (self.authority.rom_profile != self.authority.profile) self.authority.rom_profile else null, .captured = captured, .cells = cells, .memory_clocks = clocks, .openings = openings };
     }
 };
-/// A v3 tape runs under the v2-decoded ROM authority (identical ISA effects);
-/// every other profile must match exactly. In particular a v3_zbb tape (which
-/// may retire Zbb BINARY instructions) needs a v3_zbb authority: its ROM is
-/// the only one that decodes them, so this deliberately does not use isV3.
-pub fn tapeMatches(tape: rv.execution_profile.Profile, authority: rv.execution_profile.Profile) bool {
-    return tape == authority or (tape == .ethereum_services_v3 and authority == .ethereum_services_v2);
-}
-/// Legacy native statement + execution ROM admission of a tape (native batch,
-/// packet writer and Word16 packet reader). Without a separate execution ROM
-/// this is exactly `tapeMatches`. The Zbb route (v2-decoded statement, v3_zbb
-/// ROM) admits only v3_zbb tapes, and a v3_zbb tape is admitted only there.
-pub fn tapeAdmits(tape: rv.execution_profile.Profile, statement: rv.execution_profile.Profile, rom: rv.execution_profile.Profile) bool {
-    if (rom == statement) return tapeMatches(tape, statement);
-    return statement == .ethereum_services_v2 and rom == .ethereum_services_v3_zbb and tape == .ethereum_services_v3_zbb;
-}
-pub fn tapeAdmitted(tape: rv.execution_profile.Profile, authority: *const Full.ProgramAuthority) bool {
-    return tapeAdmits(tape, authority.profile, authority.rom_profile);
-}
+pub const tapeMatches = @import("execution_profile_admission.zig").tapeMatches;
+pub const tapeAdmits = @import("execution_profile_admission.zig").tapeAdmits;
+pub const tapeAdmitted = @import("execution_profile_admission.zig").tapeAdmitted;
 fn requestLog(count: u32) u32 {
     return @max(5, std.math.log2_int_ceil(u32, @max(1, count)));
 }
