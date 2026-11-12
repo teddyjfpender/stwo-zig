@@ -69,7 +69,7 @@ pub const rv64_ethereum_plan = @import("word16_global_execution/ethereum/plan.zi
 /// authority and per-segment request views, built exactly as gkr_main's
 /// inventory does. Exports only; no behaviour change.
 pub const rv64_ethereum_keys = @import("word16_global_execution/ethereum/keys.zig");
-pub const rv64_ethereum_canon_rungs = @import("word16_global_execution/ethereum/canon_native_rungs.zig");
+pub const rv64_ethereum_canon_rungs = @import("word16_global_execution/services/native_schema/rungs.zig");
 pub const rv64_gkr_coordinator = @import("word16_global_execution/services/gkr_local/coordinator.zig");
 pub const rv64_gkr_bundle_wire = @import("word16_global_execution/services/gkr_local/bundle_wire.zig");
 pub const rv64_gkr_source_bounds = @import("word16_global_execution/services/gkr_local/source_bounds.zig");
@@ -389,6 +389,7 @@ test {
 // Retained image/program authority and distributed barrier proof regressions.
 test {
     _ = @import("word16_image_program_contract_test_root.zig");
+    _ = @import("word16_global_execution/ethereum/plan_scope_test.zig");
     _ = @import("distributed_binary_contract_test_root.zig");
 }
 

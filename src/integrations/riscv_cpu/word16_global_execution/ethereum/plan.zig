@@ -569,7 +569,7 @@ fn admittedSingle(family: @import("../services/types.zig").Family, calls: u32, r
     const declaration = W.TruthDeclaration{ .family = family, .first_id = 1, .calls = calls, .logs = logs };
     @import("../services/gkr_local/service_scope.zig").truthDeclaration(declaration) catch return null;
     if (rung_bound) {
-        const top = topRungLog(@import("canon_native_rungs.zig"), family, logs[1]) orelse return null;
+        const top = topRungLog(@import("../services/native_schema/rungs.zig"), family, logs[1]) orelse return null;
         if (logs[0] > top) return null;
     }
     return declaration;
@@ -583,7 +583,7 @@ pub fn appendSplitFamily(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclar
     var cap = sourceMaxLog(family);
     if (rung_bound) {
         // Every non-Keccak V3 truth has wire aux 0.
-        const top = topRungLog(@import("canon_native_rungs.zig"), family, 0) orelse return error.CanonFamilyMissing;
+        const top = topRungLog(@import("../services/native_schema/rungs.zig"), family, 0) orelse return error.CanonFamilyMissing;
         cap = @min(cap, top);
     }
     const capacity: u32 = (@as(u32, 1) << @intCast(cap)) - 1;
@@ -658,7 +658,7 @@ test "one truth per family partial coalescing preserves bounded Keccak and admit
         try std.testing.expectEqualSlices(u32, &total, &got);
         // The coalesced secp spans fit the existing source-owned M6 rung table.
         var classes: [4]CanonClass = undefined;
-        try canonicalTruths(truth[3..], @import("canon_native_rungs.zig"), &classes);
+        try canonicalTruths(truth[3..], @import("../services/native_schema/rungs.zig"), &classes);
         try std.testing.expectEqual(@as(u32, 14), truth[3].logs[0]);
         try std.testing.expectEqual(@as(u32, 14), truth[4].logs[0]);
     }
@@ -715,7 +715,7 @@ test "truth split plans refused coalesced families as bounded admitted spans" {
     defer std.testing.allocator.free(truth);
     try expectReceiverSpans(truth, total);
     // Every span is source-admitted and lands on an existing canonical rung.
-    const Rungs = @import("canon_native_rungs.zig");
+    const Rungs = @import("../services/native_schema/rungs.zig");
     const padded = try std.testing.allocator.dupe(W.TruthDeclaration, truth);
     defer std.testing.allocator.free(padded);
     var first_non_keccak: usize = 0;
@@ -804,7 +804,7 @@ test "one truth per family preserves exact dev call spans within existing source
         // Existing strict M6 authority deliberately has no Keccak log19 rung.
         // Source-valid geometry must not silently widen that receiver authority.
         var classes: [5]CanonClass = undefined;
-        try std.testing.expectError(error.CanonNoAdmissibleRung, canonicalTruths(truth, @import("canon_native_rungs.zig"), &classes));
+        try std.testing.expectError(error.CanonNoAdmissibleRung, canonicalTruths(truth, @import("../services/native_schema/rungs.zig"), &classes));
     }
     var total: [ST.FAMILIES]u32 = @splat(0);
     total[3] = 8192;
@@ -1038,7 +1038,7 @@ test "uniform resident Keccak covers the real block without changing the default
 }
 
 // ---------------------------------------------------------------- M5 canonical rungs (stream canon-native)
-const Canon = @import("canon_native.zig");
+const Canon = @import("../services/native_schema/canonical.zig");
 /// Head/tail ladder fitted to a canonical rung: the head takes the rung head;
 /// a tail is present only when the count overflows the head (today's
 /// admission: a present tail has rows). Null when the rung cannot hold `count`.

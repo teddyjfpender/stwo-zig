@@ -1,0 +1,54 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_ethereum_statement",
+  "version": "0.1.0",
+  "layer": "product",
+  "owner": "ethereum-statement",
+  "public_modules": {
+    "stwo_ethereum_statement": "mod.zig",
+    "legacy_riscv_frontend": "frontend.zig",
+    "legacy_riscv_cpu_integration": "cpu.zig"
+  },
+  "dependencies": {
+    "stwo_riscv_cpu_integration": "../../../integrations/riscv_cpu",
+    "stwo_riscv_cuda_integration": "../../../integrations/riscv_cuda",
+    "stwo_riscv_frontend": "../../../frontends/riscv"
+  },
+  "injected_modules": [
+    "ethereum_cpu_component",
+    "ethereum_cuda_component",
+    "ethereum_frontend_component",
+    "interop_postcard",
+    "legacy_riscv_cpu_integration",
+    "legacy_riscv_frontend"
+  ],
+  "api_surface": [
+    "cpu",
+    "cuda",
+    "frontend",
+    "prover",
+    "runner",
+    "statement"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Ethereum product exposes its six owning domains"
+    ],
+    "invariant_tests": [
+      "mod.zig::api invariant: legacy exports share canonical components and records"
+    ]
+  },
+  "ci": {
+    "lane": "ethereum_statement",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/products/ethereum/statement/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

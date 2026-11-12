@@ -154,7 +154,7 @@ test "source CPU projection binds count roles capacities splits absence and sign
         raw[Summary.Index.ctr_in + Counter.truth_next + f] = 1;
         raw[Summary.Index.ctr_out + Counter.truth_next + f] = 1;
     }
-    const Canon = @import("../../word16_global_execution/ethereum/canon_native.zig");
+    const Canon = @import("../../word16_global_execution/services/native_schema/canonical.zig");
     raw[Summary.Index.s_in..][0..8].* = Table.digestWords(Canon.stateDigest(0, @splat(0), false));
     raw[Summary.Index.s_out..][0..8].* = Table.digestWords(Canon.stateDigest(0, @splat(0), true));
     for (0..8) |mutation| {

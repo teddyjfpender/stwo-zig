@@ -134,3 +134,7 @@
 # owner-role: sm83-metal-integration
 /src/integrations/sm83_metal/build.zig.zon @teddyjfpender
 /src/integrations/sm83_metal/package.contract.json @teddyjfpender
+
+# owner-role: ethereum-statement
+/src/products/ethereum/statement/package.contract.json @teddyjfpender
+/src/products/ethereum/statement/build.zig.zon @teddyjfpender

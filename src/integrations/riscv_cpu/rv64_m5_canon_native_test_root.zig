@@ -1,10 +1,10 @@
 test {
-    _ = @import("word16_global_execution/ethereum/canon_native.zig");
+    _ = @import("word16_global_execution/services/native_schema/canonical.zig");
     _ = @import("word16_execution/native_policy.zig");
 }
 test "canon-native generated rung table has R rungs per family and ascending truth logs" {
     const std = @import("std");
-    const Rungs = @import("word16_global_execution/ethereum/canon_native_rungs.zig");
+    const Rungs = @import("word16_global_execution/services/native_schema/rungs.zig");
     try std.testing.expectEqual(@as(u32, 4), Rungs.R);
     for (Rungs.CPU) |e| {
         try std.testing.expect(e.rungs.len >= 1 and e.rungs.len <= Rungs.R);
@@ -15,7 +15,7 @@ test "canon-native generated rung table has R rungs per family and ascending tru
 test "m5 chi-chain manifest digest: spec agreement, differs from flat, refuses mixed versions" {
     const std = @import("std");
     const M = @import("word16_global_execution/services/gkr_local/manifest.zig");
-    const Canon = @import("word16_global_execution/ethereum/canon_native.zig");
+    const Canon = @import("word16_global_execution/services/native_schema/canonical.zig");
     const c0 = M.Chain{ .family = 0, .rung = 1, .vkhash = @splat(1), .stmt = @splat(2), .s_in = @splat(3), .s_out = @splat(4) };
     const c1 = M.Chain{ .family = 16, .rung = 0, .vkhash = @splat(11), .stmt = @splat(12), .s_in = @splat(4), .s_out = @splat(4) };
     var views = [_]M.CommitmentView{
@@ -112,8 +112,8 @@ test "m5 chi-chain adversarial: every chain field and every rho input is bound; 
 // ---------------------------------------------------------------- M6 native-format: rv64-m6-native/v2 (strict roster)
 test "corpus NV01 rv64-m6-native/v2: chain structure/vkhash of a strict segment equals the T_nat class structure (canon-native A1)" {
     const std = @import("std");
-    const Canon = @import("word16_global_execution/ethereum/canon_native.zig");
-    const Rungs = @import("word16_global_execution/ethereum/canon_native_rungs.zig");
+    const Canon = @import("word16_global_execution/services/native_schema/canonical.zig");
+    const Rungs = @import("word16_global_execution/services/native_schema/rungs.zig");
     const Chain = @import("word16_global_execution/services/gkr_local/chain.zig");
     const flags: u32 = 0x0E; // production v3 layout (cpu_fused_tail, cpu_u8_pairs, cpu_compact_decode), division never omitted
     for (Rungs.CPU) |e| for (e.rungs, 0..) |rung, r| {
@@ -131,7 +131,7 @@ test "corpus NV01 rv64-m6-native/v2: chain structure/vkhash of a strict segment 
 }
 test "corpus NV02 rv64-m6-native/v2: a declaration vector that differs from every rung vector is refused (no UNCLASSED, no dominance)" {
     const std = @import("std");
-    const Rungs = @import("word16_global_execution/ethereum/canon_native_rungs.zig");
+    const Rungs = @import("word16_global_execution/services/native_schema/rungs.zig");
     const Chain = @import("word16_global_execution/services/gkr_local/chain.zig");
     const e = Rungs.CPU[1]; // cpu_middle
     var presence_preserving = e.rungs[2];
@@ -155,7 +155,7 @@ test "corpus NV02 rv64-m6-native/v2: a declaration vector that differs from ever
 }
 test "corpus NV05 rv64-m6-native/v2: the version identity hashes LOCAL_RELATIONS = 10, the strict flag and the gkr mode" {
     const std = @import("std");
-    const Canon = @import("word16_global_execution/ethereum/canon_native.zig");
+    const Canon = @import("word16_global_execution/services/native_schema/canonical.zig");
     const Chain = @import("word16_global_execution/services/gkr_local/chain.zig");
     const v2 = Canon.versionIdentityV2(Canon.RUNGS, .strict_local);
     var h9 = Canon.Hasher.init(.version_v2);
@@ -191,10 +191,10 @@ test "corpus NV04 rv64-m6-native/v2: lambda_k (local GKR digest / marginals) is 
 }
 test "corpus NV01 golden rv64-m6-native/v2: Zig version identity and every class structure equal the Python reference vectors" {
     const std = @import("std");
-    const Canon = @import("word16_global_execution/ethereum/canon_native.zig");
+    const Canon = @import("word16_global_execution/services/native_schema/canonical.zig");
     const Chain = @import("word16_global_execution/services/gkr_local/chain.zig");
     const a = std.testing.allocator;
-    const parsed = try std.json.parseFromSlice(std.json.Value, a, @embedFile("word16_global_execution/ethereum/native_v2_vectors.json"), .{});
+    const parsed = try std.json.parseFromSlice(std.json.Value, a, @embedFile("word16_global_execution/services/native_schema/native_v2_vectors.json"), .{});
     defer parsed.deinit();
     const root = parsed.value.object;
     const hexOf = struct {

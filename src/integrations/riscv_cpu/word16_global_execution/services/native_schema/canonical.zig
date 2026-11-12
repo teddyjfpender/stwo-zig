@@ -13,8 +13,8 @@
 //! Geometry (class rung) selection never changes statement authority: the
 //! padded declaration is mixed and verified exactly as any admitted geometry.
 const std = @import("std");
-const W = @import("../services/wire.zig");
-const T = @import("../services/types.zig");
+const W = @import("cpu_declaration.zig");
+const T = @import("../types.zig");
 const Blake = std.crypto.hash.blake2.Blake2s256;
 
 pub const VERSION_NAME = "rv64-m5-native-chi-chain/v1";

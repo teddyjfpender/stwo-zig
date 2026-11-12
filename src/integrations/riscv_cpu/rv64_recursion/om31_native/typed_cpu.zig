@@ -17,8 +17,8 @@ const Bounds = @import("../node_summary.zig");
 pub const Policy = struct {
     cpu_log: u32,
     compact_pc: bool,
-    family: @import("../../word16_global_execution/ethereum/canon_native.zig").Family = .cpu_single,
-    pub fn fromSetup(source: *const @import("../../word16_global_execution/services/roster.zig").CpuSetup, family: @import("../../word16_global_execution/ethereum/canon_native.zig").Family) Policy {
+    family: @import("../../word16_global_execution/services/native_schema/canonical.zig").Family = .cpu_single,
+    pub fn fromSetup(source: *const @import("../../word16_global_execution/services/roster.zig").CpuSetup, family: @import("../../word16_global_execution/services/native_schema/canonical.zig").Family) Policy {
         return .{ .cpu_log = source.materials.geometry.cpu_log, .compact_pc = source.materials.geometry.cpu_compact_decode, .family = family };
     }
 };
@@ -120,7 +120,7 @@ fn admitPc(ctx: *C.Context, policy: Policy, words: [4]Public.Word, values: [4]u3
 }
 
 test "typed CPU transitions bind integer steps call cursors epoch state and terminal presence" {
-    const Canon = @import("../../word16_global_execution/ethereum/canon_native.zig");
+    const Canon = @import("../../word16_global_execution/services/native_schema/canonical.zig");
     const e = @import("../../word16_global_execution/services/fixture.zig").expectedFor(@splat(31));
     const native_inputs = Native.Inputs{ .steps = 7, .epoch = 1, .initial_pc = .{ 4096, 0, 0, 0 }, .final_pc = .{ 4124, 0, 0, 0 }, .initial_registers = @splat(@splat(0)), .final_registers = @splat(@splat(0)), .register_clocks = @splat(0), .sponge_first = 0, .rows = &.{}, .calls = &.{}, .first_ids = &.{} };
     var m = Native.Metadata{ .ordinal = 0, .execution = @splat(0), .mass = .{}, .relations = 0, .cpu_ordinal = 1, .steps_in = 0, .sponge = .{ 0, 0, 0 } };

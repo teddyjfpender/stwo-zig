@@ -3,9 +3,9 @@ const K = @import("../service_session.zig");
 const machine = @import("../machine.zig");
 const profile = @import("../execution_profile.zig");
 pub const secp256k1 = @import("stwo_riscv_precompiles").primitives.secp256k1;
-pub const curves = @import("../ethereum_services/curves.zig");
-pub const bulk_memory = @import("../ethereum_services/bulk_memory.zig");
-pub const keccak_sponge = @import("../ethereum_services/keccak_sponge.zig");
+pub const curves = @import("curve_packets.zig");
+pub const bulk_memory = @import("bulk_packets.zig");
+pub const keccak_sponge = @import("sponge_packets.zig");
 pub const SecpCall = struct {
     kind: secp256k1.Kind,
     packet_format: profile.SecpPacketFormat = .big_endian_bytes_v1,

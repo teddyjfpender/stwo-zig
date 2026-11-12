@@ -747,7 +747,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster();
     const canon_flag = false;
     if (strict_roster or canon_flag) {
-        const Rungs = @import("canon_native_rungs.zig");
+        const Rungs = @import("../services/native_schema/rungs.zig");
         const classes = try a.alloc(Plan.CanonClass, cpu.len + truths.len);
         defer a.free(classes);
         try Plan.canonicalCpusMode(&captured, cpu_layout, cpu, Rungs, classes[0..cpu.len], strict_roster);

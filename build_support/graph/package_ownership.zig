@@ -6,6 +6,7 @@
 const std = @import("std");
 
 pub const Package = enum {
+    ethereum_statement,
     riscv_isa,
     riscv_air_lang,
     riscv_memory,
@@ -57,6 +58,7 @@ const Owner = struct {
 };
 
 const owners = [_]Owner{
+    .{ .prefix = "src/products/ethereum/statement/", .package = .ethereum_statement, .dependency_name = "stwo_ethereum_statement" },
     .{ .prefix = "src/frontends/riscv/isa/", .package = .riscv_isa, .dependency_name = "stwo_riscv_isa" },
     .{ .prefix = "src/frontends/riscv/air_lang/", .package = .riscv_air_lang, .dependency_name = "stwo_riscv_air_lang" },
     .{ .prefix = "src/frontends/riscv/memory/", .package = .riscv_memory, .dependency_name = "stwo_riscv_memory" },

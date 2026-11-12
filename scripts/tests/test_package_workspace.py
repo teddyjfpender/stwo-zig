@@ -111,6 +111,42 @@ class PackageWorkspaceTests(unittest.TestCase):
                 subject._validate_manifest(contract, failures)
                 self.assertTrue(any("manifest version differs" in error for error in failures))
 
+    def test_secondary_exports_require_one_literal_component_producer(self):
+        contract = subject.load_contract(ROOT / "src/waist/core/package.contract.json")
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            contract = replace(contract, directory=root, public_modules={"stwo_core": "mod.zig", "legacy": "component.zig"})
+            (root / "build.zig.zon").write_text('.{ .name = .stwo_core, .version = "' + contract.version + '", .dependencies = .{} }')
+            for source in ("mod.zig", "component.zig"):
+                (root / source).touch()
+            producer = 'const component = b.createModule(.{ .root_source_file = b.path("component.zig"), .target = target });'
+            binding = 'try b.modules.put(b.allocator, "legacy", component);'
+            primary = 'b.addModule("stwo_core", .{});'
+            for candidate, accepted in ((primary + producer + binding, True),
+                    (primary + binding, False),
+                    (primary + producer + binding.replace("component);", "other);"), False),
+                    (primary + producer.replace('"component.zig"', '"mod.zig"') + binding, False),
+                    (primary + producer + binding + binding, False)):
+                with self.subTest(candidate=candidate):
+                    (root / "build.zig").write_text(candidate)
+                    failures = []
+                    subject._validate_manifest(contract, failures)
+                    self.assertEqual(accepted, not failures, failures)
+
+    def test_secondary_exports_do_not_skip_primary_api_validation(self):
+        contract = subject.load_contract(ROOT / "src/waist/core/package.contract.json")
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            contract = replace(contract, directory=root, public_modules={"legacy": "component.zig", "stwo_core": "mod.zig"}, api_surface=("owned",))
+            (root / "mod.zig").write_text("pub const owned = 1;\n")
+            (root / "component.zig").write_text("pub const other = 2;\n")
+            failures = []
+            subject._validate_api(contract, failures)
+            self.assertEqual([], failures)
+            (root / "mod.zig").write_text("pub const drift = 1;\n")
+            subject._validate_api(contract, failures)
+            self.assertTrue(any("public API differs" in error for error in failures))
+
     def test_repository_contracts_pass(self) -> None:
         self.assertEqual([], subject.check_repository(ROOT))
 

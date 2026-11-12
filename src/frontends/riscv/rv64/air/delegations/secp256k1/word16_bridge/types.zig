@@ -38,7 +38,7 @@ pub const Claims = ClaimsFor(Q);
 /// Curve/field packets (v3, kinds 5..11 = curves.Op ordinals): inline
 /// 32-byte coordinates, the leading `curves.writtenCoords` written in place.
 pub const Kind = enum(u8) { add = 1, double = 2, sha256 = 3, arith256_mod = 4, bn254_g1_add = 5, bn254_g1_double = 6, bn254_fp2_mul = 7, bls12_381_fp2_mul = 8, arith384_mont = 9, bls12_381_g1_add = 10, bls12_381_g1_double = 11 };
-pub const Curves = @import("../../../../ethereum_services/curves.zig");
+pub const Curves = @import("../../../../services/curve_packets.zig");
 pub fn curveOp(kind: Kind) ?Curves.Op {
     return if (@intFromEnum(kind) >= 5) @enumFromInt(@intFromEnum(kind)) else null;
 }

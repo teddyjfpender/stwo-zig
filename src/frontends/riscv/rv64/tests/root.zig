@@ -1,5 +1,7 @@
 //! Complete literal discovery for this owner; original focused exclusions are retained.
 test {
+    _ = @import("curve_packets_reference_test.zig");
+    _ = @import("bulk_packets_reference_test.zig");
     _ = @import("checkpoint_counters_test.zig");
     _ = @import("../air/delegations/arith256/mod.zig");
     _ = @import("../air/delegations/arith256/tests.zig");
@@ -94,12 +96,12 @@ test {
     _ = @import("../air/word16_cpu/rom_lookup_test.zig");
     _ = @import("../air/word16_index_control/authority_test.zig");
     _ = @import("../candidate_isa_test.zig");
-    _ = @import("../ethereum_services/bulk_memory.zig");
+    _ = @import("../services/bulk_packets.zig");
     _ = @import("../ethereum_services/candidate_curves.zig");
     _ = @import("../ethereum_services/candidate_jumpdest.zig");
     _ = @import("../ethereum_services/candidate_services.zig");
-    _ = @import("../ethereum_services/curves.zig");
-    _ = @import("../ethereum_services/keccak_sponge.zig");
+    _ = @import("../services/curve_packets.zig");
+    _ = @import("../services/sponge_packets.zig");
     _ = @import("../focused_product_rv64_air_test_root.zig");
     _ = @import("../focused_product_rv64_arith256_truth_test_root.zig");
     _ = @import("../focused_product_rv64_word16_alu_test_root.zig");

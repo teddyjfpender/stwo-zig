@@ -1,0 +1,12 @@
+.{
+    .name = .stwo_ethereum_statement,
+    .version = "0.1.0",
+    .fingerprint = 0xc424d95dcc7710b2,
+    .minimum_zig_version = "0.15.2",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_riscv_cpu_integration = .{ .path = "../../../integrations/riscv_cpu" },
+        .stwo_riscv_cuda_integration = .{ .path = "../../../integrations/riscv_cuda" },
+        .stwo_riscv_frontend = .{ .path = "../../../frontends/riscv" },
+    },
+}

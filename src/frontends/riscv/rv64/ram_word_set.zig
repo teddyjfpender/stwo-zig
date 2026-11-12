@@ -133,7 +133,7 @@ test "RAM-key service visitor equals complete source boundary cells for every fa
             }
         } else try compareEvent(@unionInit(Event, name, call));
     }
-    const BM = @import("ethereum_services/bulk_memory.zig");
+    const BM = @import("services/bulk_packets.zig");
     const zeroes: [8]u64 = @splat(0);
     for (std.enums.values(BM.Kind)) |kind| {
         const packet = BM.Packet{ .dst = 0x4000, .word1 = switch (kind) {
@@ -144,7 +144,7 @@ test "RAM-key service visitor equals complete source boundary cells for every fa
         }, .len = 64, .examined = 3 };
         try compareEvent(.{ .bulk = .{ .call = .{ .clock = 1, .pc = 0x1000, .pointer = 0x2000, .tag = BM.tagOf(kind) }, .packet = packet, .dst_before = zeroes[0..if (kind == .memcmp or kind == .jumpdest) 1 else 8] } });
     }
-    const Sponge = @import("ethereum_services/keccak_sponge.zig");
+    const Sponge = @import("services/sponge_packets.zig");
     for ([_]u64{ 0, 1, 8, 135, 136, 200 }) |len| for (0..8) |shift| {
         try compareEvent(.{ .sponge = .{ .call = .{ .clock = 1, .pc = 0x1000, .pointer = 0x2000 }, .packet = .{ .state = 0x4000, .input = 0x6000 + shift, .len = len, .flags = Sponge.FINALIZE | Sponge.FRESH }, .state_before = @splat(0) } });
     };

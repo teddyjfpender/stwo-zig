@@ -1,8 +1,8 @@
 //! Additive strict class roster for native-GKR. Historical flat/strict tables
 //! remain frozen; the new single-shard CPU family includes both public borders.
 const std = @import("std");
-const Canon = @import("../../ethereum/canon_native.zig");
-const Old = @import("../../ethereum/canon_native_rungs.zig");
+const Canon = @import("../native_schema/canonical.zig");
+const Old = @import("../native_schema/rungs.zig");
 pub const SINGLE: [Old.R]Canon.CpuVector = blk: {
     var out: [Old.R]Canon.CpuVector = undefined;
     for (0..Old.R) |r| for (&out[r], Old.CPU[0].rungs[r], Old.CPU[2].rungs[r]) |*value, first, last| {

@@ -23,8 +23,8 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # The workspace validator's edge count. A change here means a real dependency
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
-EXPECTED_PACKAGES = 36
-EXPECTED_EDGES = 170
+EXPECTED_PACKAGES = 37
+EXPECTED_EDGES = 173
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
@@ -186,7 +186,7 @@ class RepositoryGraphTest(unittest.TestCase):
             ["src/engine/artifact_store/mod.zig"], self.packages, self.bindings
         )
         self.assertEqual(lanes, frozenset({
-            "artifact_store", "metal_session", "cairo_metal_integration",
+            "artifact_store", "metal_session", "cairo_metal_integration", "ethereum_statement",
             "riscv_cpu_integration", "riscv_cuda_integration", "riscv_metal_integration", "circuit_metal_integration",
         }))
         self.assertEqual(unowned, frozenset())
@@ -198,6 +198,7 @@ class RepositoryGraphTest(unittest.TestCase):
             frozenset(
                 {
                     "cairo_frontend",
+                    "ethereum_statement",
                     "cairo_cpu_integration",
                     "cairo_metal_integration",
                     "cairo_cuda_integration",
@@ -221,6 +222,7 @@ class RepositoryGraphTest(unittest.TestCase):
             lanes,
             frozenset({
                 "riscv_frontend",
+                "ethereum_statement",
                 "riscv_frontend_releasefast",
                 "riscv_frontend_acceptance",
                 "riscv_witness_benchmarks",

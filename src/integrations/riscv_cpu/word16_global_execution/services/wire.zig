@@ -172,7 +172,7 @@ fn serviceCalls(r: CompactRequest) u64 {
     for (r.all()) |c| n += c;
     return n;
 }
-pub const CpuDeclaration = struct { geometry: Geo, bridges: T.Logs };
+pub const CpuDeclaration = @import("native_schema/cpu_declaration.zig").CpuDeclaration;
 /// Keccak truth declaration `logs[1]`: 0 compact (unchanged bytes), 21
 /// throughput-v1 (the chi table log), and 21 | 4 << 8 throughput-quartet-v1
 /// (same tables, batch width four). Every other word is rejected.

@@ -297,7 +297,15 @@ def _validate_manifest(contract: Contract, failures: list[str]) -> None:
         )
     for module, source in contract.public_modules.items():
         if f'b.addModule("{module}"' not in build:
-            failures.append(f"{contract.package}: build does not export {module}")
+            # Secondary names must reuse one concrete component, never silently
+            # compile another root or resolve an ambient module-name registry.
+            bindings = re.findall(r'b\.modules\.put\(\s*b\.allocator\s*,\s*"' + re.escape(module)
+                                  + r'"\s*,\s*(\w+)\s*\)', build)
+            producers = re.findall(r'const\s+(\w+)\s*=\s*b\.createModule\(\.\{\s*'
+                                   r'\.root_source_file\s*=\s*b\.path\("' + re.escape(source)
+                                   + r'"\)', build)
+            if len(bindings) != 1 or producers != bindings:
+                failures.append(f"{contract.package}: build does not export {module} from one literal component producer")
         if not (contract.directory / source).is_file():
             failures.append(f"{contract.package}: public module source is missing: {source}")
 
@@ -370,10 +378,11 @@ def _validate_imports(
 
 
 def _validate_api(contract: Contract, failures: list[str]) -> None:
-    if len(contract.public_modules) != 1:
+    primary = contract.public_modules.get(contract.package)
+    if primary is None and len(contract.public_modules) != 1:
         failures.append(f"{contract.package}: API ledger requires one primary module")
         return
-    root = contract.directory / next(iter(contract.public_modules.values()))
+    root = contract.directory / (primary or next(iter(contract.public_modules.values())))
     if not root.is_file():
         return
     actual = top_level_api(root.read_text(encoding="utf-8"))
@@ -516,7 +525,7 @@ def _test_reference(
 
 
 def _validate_api_contract(contract: Contract, failures: list[str]) -> None:
-    root = contract.directory / next(iter(contract.public_modules.values()))
+    root = contract.directory / contract.public_modules.get(contract.package, next(iter(contract.public_modules.values())))
     reached = _relative_import_closure(root, contract.directory)
     for category, references in (
         ("signature", contract.api_contract.signature_tests),

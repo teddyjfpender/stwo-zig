@@ -31,7 +31,7 @@ pub const Mass = struct { ram: u64, kio: u64, wire: u64 };
 /// `execution.zig Inventory` from trusted setup and admitted requests, never
 /// from producer bytes. All-null keeps the historical flat manifest digest.
 pub const Chain = struct { family: u32, rung: u32, vkhash: [32]u8, stmt: [32]u8, s_in: [32]u8, s_out: [32]u8 };
-const Canon = @import("../../ethereum/canon_native.zig");
+const Canon = @import("../native_schema/canonical.zig");
 pub const ExpectedWorker = struct {
     chain: ?Chain = null,
     kind: Kind,

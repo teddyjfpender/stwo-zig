@@ -1437,6 +1437,21 @@
           "-j2"
         ]
       ]
+    },
+    "ethereum_statement": {
+      "host": "linux",
+      "description": "Ethereum product component and compatibility contracts",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ]
+      ]
     }
   },
   "product_scope_lanes": {

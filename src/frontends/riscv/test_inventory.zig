@@ -23,6 +23,7 @@ test {
     _ = @import("compat/assembly/rv32/diagnostics/mod.zig");
     _ = @import("compat/assembly/rv32/diagnostics/segment_manifest.zig");
     _ = @import("compat/assembly/rv32/prover/guest_precompile/proof_artifact_header.zig");
+    _ = @import("compat/assembly/rv32/prover/blake3_profile_artifact_test.zig");
     _ = @import("compat/assembly/rv32/prover/incremental_bridge_external.zig");
     _ = @import("compat/assembly/rv32/runner/minimal_trace/mod.zig");
     _ = @import("compat/assembly/rv32/runner/trace_dump.zig");
