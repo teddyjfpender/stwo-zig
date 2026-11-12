@@ -268,6 +268,7 @@ fn expectProofPoolAudit(
     expect_publication: bool,
     expect_injected_failure: bool,
 ) !void {
+    errdefer std.debug.print("proof pool audit N={d}: {any}\n", .{ worker_count, receipt });
     const expected_pool_address = if (worker_count > 1) receipt.pool_address else 0;
     try std.testing.expectEqual(
         @as(usize, if (worker_count > 1) 1 else 0),

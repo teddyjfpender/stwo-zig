@@ -96,15 +96,8 @@ test {
     _ = @import("test_inventory.zig");
     _ = @import("test_inventory_test.zig");
     _ = @import("opcode_coverage_test.zig");
-    _ = @import("stwo_riscv_rv32");
-    _ = @import("stwo_riscv_rv32");
-    // The Sail bridge's own two self-checks. A file's tests are collected
-    // only when a `test` block names it; the file-scope `pub const
-    // sail_oracle = @import("sail_oracle.zig")` in `runner/mod.zig` is not
-    // enough, and until this line existed those two tests ran in no step at
-    // all. The main build reaches them through `test-riscv-sail-oracle`,
-    // which roots a test artifact at the file itself.
-    _ = @import("stwo_riscv_rv32");
+    // RV32 owns runner, trace and Sail cases in its separate executable.
+    // A named-module import here does not collect that owner's tests.
 }
 
 test "api invariant: native and product VM authority bindings preserve canonical records" {
