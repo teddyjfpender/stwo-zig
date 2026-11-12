@@ -211,3 +211,20 @@ This slice is source +192/-130/net **+62**, cumulative C4 **755/1200**.
 Documentation is separate; configuration, flags and maintained scripts add or
 remove zero. Shared bodies are transferred, not counted as deleted code.
 The complete product migration remains preserved and unqualified separately.
+
+## Independent reference prerequisite landing
+
+Pure arithmetic and FIPS SHA-256 reference bodies now have one private RV64
+service owner. Candidate dispatch aliases those same functions; the AIR tests
+call them directly. The independent reference is retained alongside the
+optimized witness primitive, so the differential oracle is not weakened.
+Curve reference tests use the already-approved canonical arithmetic binding.
+All original names, vectors, assertions and production function signatures stay.
+
+Actual candidate FIPS/big-integer cases pass in both modes (five cases including
+two collection hooks, 404,373,504-byte peak); AIR arithmetic/curve and random SHA
+reference cases also pass both modes (524,091,392 and 376,291,328-byte peaks).
+Workspace passes at 37 packages/39 modules/175 edges; the same 83 inherited
+source findings remain. Full frontend and frozen-proof acceptance remain open.
+Source +53/-47/net **+6**, cumulative C4 **761/1200**; documentation is separate,
+configuration/flags/maintained scripts unchanged. No move subtraction credit.
