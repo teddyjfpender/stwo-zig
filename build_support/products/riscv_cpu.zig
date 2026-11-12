@@ -381,11 +381,12 @@ pub fn addProduct(context: Context) void {
                 "src/products/riscv/cpu/tests/main_trace_planned_proof_test.zig",
                 &.{
                     "one proof-scoped pool preserves exact N=1/2/4 proof identity",
+                    "proof-scoped pool failure unwinds before a subsequent proof",
                     "five-region phase meter covers one real independently verified proof",
                     "profiled prepared Tree2 publishes exact interaction work",
                 },
             ),
-            .minimum = 3,
+            .minimum = 4,
         },
     });
     context.b.step(

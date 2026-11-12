@@ -149,6 +149,21 @@ class PlannerContractTests(unittest.TestCase):
         for command, step, mode in zip(commands, ("test-air-runtime-profile", "test-air-runtime-profile", "test", "test"), ("Debug", "ReleaseFast", "Debug", "ReleaseFast"), strict=True):
             self.assertEqual(["zig", "build", step, "--build-file", "src/frontends/riscv/build.zig", f"-Doptimize={mode}", "-j2"] + (["--verbose", "--summary", "all"] if step == "test" else []), command)
 
+    def test_profile_diagnostic_reuses_both_existing_targets_without_replacing_cpu_gate(self):
+        lane = self.policy["lanes"]["riscv_profile_partition"]
+        self.assertEqual([
+            ["zig", "build", "test-riscv-profile-partition", "-Doptimize=" + mode, "-j2"]
+            for mode in ("Debug", "ReleaseFast")
+        ], lane["commands"])
+        self.assertEqual(["riscv_profile_partition"],
+                         ci_scope_plan.manual_cpu_selection("riscv_profile_partition", self.policy)[0])
+        self.assertTrue(any("test-riscv-profile-partition" in command
+                            for command in self.policy["lanes"]["riscv_cpu"]["commands"]))
+        source = (ROOT / "build_support/products/riscv_cpu.zig").read_text()
+        selection = source.split("const profile_partition_run =", 1)[1].split("context.b.step(", 1)[0]
+        self.assertIn('"proof-scoped pool failure unwinds before a subsequent proof"', selection)
+        self.assertIn(".minimum = 4", selection)
+
     def test_rv64_modes_retain_exact_commands_and_shared_source_triggers(self):
         names = ("riscv_rv64_package", "riscv_rv64_package_releasefast")
         self.assertEqual([["zig", "build", "test", "--build-file", "src/frontends/riscv/rv64/build.zig", "-Doptimize=" + mode, "-j2"] for mode in ("Debug", "ReleaseFast")], sum((self.policy["lanes"][name]["commands"] for name in names), []))

@@ -300,7 +300,8 @@ fn expectProofPoolAudit(
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_saw_pool_count);
         try std.testing.expectEqual(@as(usize, 1), receipt.nested_binding_denied_count);
     } else {
-        try std.testing.expectEqual(@as(usize, 2), receipt.lease_acquire_count);
+        // Tree-1, Tree-2 and composition each acquire one coordinator lease.
+        try std.testing.expectEqual(@as(usize, 3), receipt.lease_acquire_count);
         try std.testing.expectEqual(@as(usize, 0), receipt.structured_submitted);
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_probe_count);
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_saw_pool_count);

@@ -1109,6 +1109,27 @@
         ]
       ]
     },
+    "riscv_profile_partition": {
+      "host": "linux",
+      "local": "hosted",
+      "description": "Manual bounded diagnostic of existing profile partition and exact proof-pool parity; never substitutes for the complete CPU product lane",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-riscv-profile-partition",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-riscv-profile-partition",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
     "riscv_frontend_acceptance": {
       "host": "linux",
       "description": "Existing correctness regressions plus owned transcript coverage in both modes; timing benchmarks remain separate",
