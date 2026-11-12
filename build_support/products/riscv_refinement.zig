@@ -37,6 +37,7 @@ pub fn addPilot(
         .optimize = optimize,
     });
     protocol.addImports(root);
+    _ = graph.addRiscVFrontendImport(b, protocol, product, target, optimize, root);
     const ir_exports = b.addTest(.{
         .root_module = root,
         .filters = &.{"refinement export: emit production symbolic AIR"},
@@ -56,6 +57,7 @@ pub fn addPilot(
         .optimize = optimize,
     });
     protocol.addImports(program_root);
+    _ = graph.addRiscVFrontendImport(b, protocol, product, target, optimize, program_root);
     const program_ir_exports = b.addTest(.{
         .root_module = program_root,
         .filters = &.{"refinement AIR IR v2 export: emit every unsigned production program"},
