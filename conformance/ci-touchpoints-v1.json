@@ -2200,6 +2200,15 @@
     },
     {
       "prefixes": [
+        "src/products/riscv/cpu"
+      ],
+      "lanes": [
+        "riscv_cpu",
+        "aggregate_cpu"
+      ]
+    },
+    {
+      "prefixes": [
         "src/products/riscv/tools/pc_hotspot",
         "src/products/riscv/tools/memcpy_hotspot",
         "src/products/riscv/tools/function_value",

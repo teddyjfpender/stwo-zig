@@ -103,6 +103,14 @@ class DevTestPlanTests(unittest.TestCase):
                 self.assertEqual("native_cpu", command[command.index("--lane") + 1])
                 self.assertIn("--local-compatible", command)
 
+    def test_riscv_cpu_product_tests_have_live_execution_owners(self):
+        deferred = []
+        commands = dev_test.commands_for_paths(ROOT, [
+            "src/products/riscv/cpu/tests/typed_witness_authority_test_support.zig",
+        ], deferred=deferred)
+        self.assertEqual({"riscv_cpu", "aggregate_cpu"}, set(deferred))
+        self.assertEqual([], commands)
+
     def test_shared_native_capabilities_preserve_all_consumer_deferrals(self):
         deferred = []
         commands = dev_test.commands_for_paths(ROOT, ["src/products/native/cpu/capabilities.zig"], check_only=True, deferred=deferred)

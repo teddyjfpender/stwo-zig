@@ -275,7 +275,8 @@ fn expectProofPoolAudit(
         receipt.pool_init_count,
     );
     try std.testing.expectEqual(receipt.pool_init_count, receipt.pool_deinit_count);
-    try std.testing.expectEqual(receipt.pool_init_count, receipt.binding_init_count);
+    // Coordinator plus deferred commitment worker bind the same owned pool.
+    try std.testing.expectEqual(receipt.pool_init_count * 2, receipt.binding_init_count);
     try std.testing.expectEqual(receipt.binding_init_count, receipt.binding_deinit_count);
     if (worker_count > 1) try std.testing.expect(receipt.pool_address != 0);
 

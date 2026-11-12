@@ -84,7 +84,7 @@ pub const profile_partition_test_names: []const []const u8 = &.{
     "verified request attempt: single-worker eligibility is request bounded",
     "verified request attempt: raw phase sum is checked exactly",
     "profiled phase clocks partition guest proof and native verification",
-    "request clock and flat graph capture are absent on unprofiled attempts",
+    "full-width phase timing never captures a flat task graph",
     "profiled benchmark binds every measured sample to the new timing authority",
     "ordinary product prove path has no execution policy or recursive call",
     "ordinary public prove API types expose no execution policy parameter",
