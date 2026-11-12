@@ -149,6 +149,11 @@ class PlannerContractTests(unittest.TestCase):
         for command, step, mode in zip(commands, ("test-air-runtime-profile", "test-air-runtime-profile", "test", "test"), ("Debug", "ReleaseFast", "Debug", "ReleaseFast"), strict=True):
             self.assertEqual(["zig", "build", step, "--build-file", "src/frontends/riscv/build.zig", f"-Doptimize={mode}", "-j2"] + (["--verbose", "--summary", "all"] if step == "test" else []), command)
 
+    def test_rv64_modes_retain_exact_commands_and_shared_source_triggers(self):
+        names = ("riscv_rv64_package", "riscv_rv64_package_releasefast")
+        self.assertEqual([["zig", "build", "test", "--build-file", "src/frontends/riscv/rv64/build.zig", "-Doptimize=" + mode, "-j2"] for mode in ("Debug", "ReleaseFast")], sum((self.policy["lanes"][name]["commands"] for name in names), []))
+        self.assertTrue(set(names).issubset(self.lanes_for("src/frontends/riscv/rv64/machine.zig")))
+
     def test_releasefast_companions_keep_every_parent_trigger(self) -> None:
         for parent in ("riscv_frontend", "riscv_retained_contracts"):
             companion = parent + "_releasefast"

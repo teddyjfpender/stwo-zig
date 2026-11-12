@@ -1325,7 +1325,7 @@
     },
     "riscv_rv64_package": {
       "host": "linux",
-      "description": "Owned rv64 contracts in Debug and ReleaseFast",
+      "description": "Owned RV64 Debug contracts; ReleaseFast runs independently with the same triggers",
       "commands": [
         [
           "zig",
@@ -1334,15 +1334,6 @@
           "--build-file",
           "src/frontends/riscv/rv64/build.zig",
           "-Doptimize=Debug",
-          "-j2"
-        ],
-        [
-          "zig",
-          "build",
-          "test",
-          "--build-file",
-          "src/frontends/riscv/rv64/build.zig",
-          "-Doptimize=ReleaseFast",
           "-j2"
         ]
       ]
@@ -1390,6 +1381,21 @@
           "test",
           "--build-file",
           "src/frontends/riscv/testing/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_rv64_package_releasefast": {
+      "host": "linux",
+      "description": "Owned RV64 ReleaseFast contracts; separate job retains both modes within bounded host time",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/rv64/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]

@@ -370,10 +370,10 @@ class CiTests(unittest.TestCase):
         self.assertIn("run: python3 scripts/ci.py --strict\n", workflow)
         self.assertIn("inputs.gate == 'strict'", workflow)
 
-    def test_frontend_releasefast_has_only_the_approved_timeout_exception(self) -> None:
+    def test_complete_frontend_modes_have_bounded_host_allowances(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         focused_linux = workflow.split("  focused-linux:", 1)[1].split("  focused-macos:", 1)[0]
-        self.assertIn("timeout-minutes: ${{ (matrix.lane == 'riscv_frontend_releasefast' || matrix.lane == 'riscv_retained_contracts_releasefast') && 90 || 30 }}", focused_linux)
+        self.assertIn("timeout-minutes: ${{ (matrix.lane == 'riscv_frontend' || matrix.lane == 'riscv_frontend_releasefast' || matrix.lane == 'riscv_retained_contracts_releasefast') && 90 || 30 }}", focused_linux)
 
     def test_focused_cairo_cpu_primes_its_offline_cargo_build(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

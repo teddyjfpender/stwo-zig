@@ -240,7 +240,7 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
                 "native_oracle", "package", "prover", "riscv_air_lang_package", "riscv_cpu",
                 "riscv_cpu_integration", "riscv_cuda_integration",
                 "riscv_frontend", "riscv_frontend_acceptance", "riscv_frontend_releasefast", "riscv_memory_package", "riscv_metal",
-                "riscv_metal_integration", "riscv_precompiles_package", "riscv_recursion_air_package", "riscv_recursion_package", "riscv_rv32_package", "riscv_rv64_package", "riscv_testing_package", "riscv_witness_benchmarks", "sm83_cpu_integration",
+                "riscv_metal_integration", "riscv_precompiles_package", "riscv_recursion_air_package", "riscv_recursion_package", "riscv_rv32_package", "riscv_rv64_package", "riscv_rv64_package_releasefast", "riscv_testing_package", "riscv_witness_benchmarks", "sm83_cpu_integration",
                 "sm83_frontend", "sm83_metal_integration", "static",
             ],
         )
