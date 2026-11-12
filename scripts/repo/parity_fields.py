@@ -3,12 +3,12 @@
 
 Default mode:
 - Regenerate vectors into a temporary file.
-- Compare with committed vectors/fields.json.
+- Compare with committed vectors/waist/fields.json.
 - Fail on mismatch.
 - Run `zig build test` unless --skip-zig is passed.
 
 Regenerate mode:
-- Overwrite vectors/fields.json.
+- Overwrite vectors/waist/fields.json.
 - Run `zig build test` unless --skip-zig is passed.
 """
 
@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 GEN_MANIFEST = ROOT / "tools" / "stwo-vector-gen" / "Cargo.toml"
-VECTORS_DIR = ROOT / "vectors"
+VECTORS_DIR = ROOT / "vectors" / "waist"
 COMMITTED = VECTORS_DIR / "fields.json"
 TMP = VECTORS_DIR / ".fields.tmp.json"
 
@@ -60,7 +60,7 @@ def main() -> int:
     parser.add_argument(
         "--regenerate",
         action="store_true",
-        help="Regenerate committed vectors/fields.json in-place",
+        help="Regenerate committed vectors/waist/fields.json in-place",
     )
     parser.add_argument(
         "--skip-zig",

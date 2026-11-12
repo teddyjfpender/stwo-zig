@@ -98,7 +98,7 @@ fn main() {
 
 fn parse_out_path() -> PathBuf {
     let mut args = env::args().skip(1);
-    let mut out = PathBuf::from("vectors/constraint_expr.json");
+    let mut out = PathBuf::from("vectors/waist/constraint_expr.json");
 
     while let Some(arg) = args.next() {
         if arg == "--out" {

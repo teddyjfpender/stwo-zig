@@ -1107,6 +1107,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 4,
       "positive_growth_justification": "Issue343 bounded checkpoint narrows the previously announced2500-line sweep allowance to500 after stopping at15 repaired violations (98to83). Actual net394 lines retain100 Python AST bodies, full Metal source bytes and existing kernel/source pins. Four private Python owner modules, no launcher; remaining83 violations are explicit follow-up, never baselined or suppressed. File moves receive no removal credit."
+    },
+    {
+      "id": "e1_waist_vector_ownership",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue362: move three immutable waist JSON fixtures to vectors/waist and update every live reader/generator default plus exact manifest path/group references. Fixture blobs, sizes, hashes, cases, generator dependencies and upstream identities remain unchanged; no numeric regeneration or source-pin bypass. Path-only source substitutions have zero net growth; physical moves get no removal credit. Remaining legacy line/source-bound artifacts stay explicit E1 follow-up."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

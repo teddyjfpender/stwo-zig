@@ -3,12 +3,12 @@
 
 Default mode:
 - Regenerate vectors into a temporary file.
-- Compare with committed vectors/air_derive.json.
+- Compare with committed vectors/waist/air_derive.json.
 - Fail on mismatch.
 - Run focused Zig parity tests unless --skip-zig is passed.
 
 Regenerate mode:
-- Overwrite vectors/air_derive.json.
+- Overwrite vectors/waist/air_derive.json.
 - Run focused Zig parity tests unless --skip-zig is passed.
 """
 
@@ -28,7 +28,7 @@ from scripts.repo.zig_protocol_lib.command import test_command
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 GEN_MANIFEST = ROOT / "tools" / "stwo-air-derive-vector-gen" / "Cargo.toml"
-VECTORS_DIR = ROOT / "vectors"
+VECTORS_DIR = ROOT / "vectors" / "waist"
 COMMITTED = VECTORS_DIR / "air_derive.json"
 TMP = VECTORS_DIR / ".air_derive.tmp.json"
 
@@ -65,7 +65,7 @@ def main() -> int:
     parser.add_argument(
         "--regenerate",
         action="store_true",
-        help="Regenerate committed vectors/air_derive.json in-place",
+        help="Regenerate committed vectors/waist/air_derive.json in-place",
     )
     parser.add_argument(
         "--skip-zig",
