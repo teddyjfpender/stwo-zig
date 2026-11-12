@@ -13,6 +13,26 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_artifact_owner_and_public_consumer_use_bounded_real_modules(self):
+        for path in ("rv64_proof_artifact_support.zig", "tests/proof_artifact_support_contract_test.zig"):
+            for check in (False, True):
+                with self.subTest(path=path, check=check):
+                    commands = dev_test.commands_for_paths(ROOT, ["src/integrations/riscv_cpu/" + path], optimize="ReleaseFast", check_only=check)
+                    self.assertEqual(2, len(commands))
+                    self.assertTrue(all(c[:3] == ["zig", "test", "-OReleaseFast"] for c in commands))
+                    self.assertIn("-Mstwo_riscv_cpu_integration=src/integrations/riscv_cpu/mod.zig", commands[0])
+                    self.assertEqual(check, "-fno-emit-bin" in commands[0])
+
+    def test_direct_zig_test_obeys_the_canonical_build_lock(self):
+        for held in ("", dev_test.zig_serial_build.DEFAULT_LOCK, "/tmp/foreign-build.lock"):
+            with mock.patch.object(dev_test, "commands_for_paths", return_value=[["zig", "test", "owner.zig"]]), mock.patch.dict(
+                os.environ, {dev_test.zig_serial_build.HELD_LOCK_ENV: held},
+            ), mock.patch.object(dev_test.zig_serial_build, "build_lock") as lock, mock.patch(
+                "scripts.dev_test.subprocess.run", return_value=mock.Mock(returncode=0),
+            ), mock.patch("sys.stdout", new=io.StringIO()):
+                self.assertEqual(0, dev_test.main(["owner.zig"]))
+            self.assertEqual(held != dev_test.zig_serial_build.DEFAULT_LOCK, lock.called)
+
     def test_cli_preserves_canonical_parent_lock_and_wraps_other_builds(self):
         planned = ["zig", "build", "test-isa", "-j1"]
         for held in ("", dev_test.zig_serial_build.DEFAULT_LOCK, "/tmp/foreign-build.lock"):

@@ -22,6 +22,7 @@ pub const rv64_gkr_truth_products = @import("word16_global_execution/services/gk
 pub const rv64_gkr_truth_device_source = @import("word16_global_execution/services/gkr_local/truth_device_source.zig");
 pub const rv64_gkr_truth_device_composition = @import("word16_global_execution/services/gkr_local/truth_device_composition.zig");
 pub const rv64_device_pcs = @import("stwo_prover_api").device_pcs;
+pub const rv64_proof_artifact_support = @import("rv64_proof_artifact_support.zig");
 pub const rv64_cpu_source = @import("word16_execution/cpu_source.zig");
 pub const rv64_gkr_child = @import("word16_global_execution/services/gkr_local/child.zig");
 pub const rv64_gkr_cpu_replay = @import("word16_global_execution/services/gkr_local/cpu_replay.zig");
@@ -99,7 +100,11 @@ const runner_result = frontend.runner.result_mod;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 
 pub const Blake3Execution = prover_mod.blake3_execution.ForBackend(CpuBackend);
-pub const CpuProverEngine = prover_mod.ProverEngineForBackend(CpuBackend);
+pub const CpuProverEngine = blk: {
+    const Engine = prover_mod.ProverEngineForBackend(CpuBackend);
+    prover_mod.assertProverEngine(Engine);
+    break :blk Engine;
+};
 pub const Poseidon2ProveOutput = prover_mod.Poseidon2ProveOutput;
 pub const Poseidon2InteractionClaim = prover_mod.Poseidon2InteractionClaim;
 pub const poseidon2_proof_artifact = prover_mod.guest_precompile.proof_artifact;
@@ -107,10 +112,6 @@ pub const ethereum_proof_artifact = prover_mod.guest_precompile.ethereum_proof_a
 pub const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
 /// The qualified CSP recursion producer shares this generic outer verifier.
 pub const recursive_fri_outer = @import("recursive_fri_outer.zig");
-
-comptime {
-    prover_mod.assertProverEngine(CpuProverEngine);
-}
 
 test "api signature: RISC-V CPU engine satisfies the stable transaction contract" {
     comptime @import("stwo_prover_api").assertProverEngine(CpuProverEngine);

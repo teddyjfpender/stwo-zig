@@ -1,5 +1,6 @@
 //! Complete literal discovery for this owner; original focused exclusions are retained.
 test {
+    _ = @import("checkpoint_counters_test.zig");
     _ = @import("../air/delegations/arith256/mod.zig");
     _ = @import("../air/delegations/arith256/tests.zig");
     _ = @import("../air/delegations/bulk_memory/tests.zig");

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 import json
 import os
 import re
@@ -24,6 +25,8 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_proof_artifact_support.zig", "test-proof-artifact-support"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/tests/proof_artifact_support_contract_test.zig", "test-proof-artifact-support"),
     ("stwo_riscv_frontend", "src/frontends/riscv/precompiles/focused_test_guest_precompile_0.zig", "test-guest-precompile"),
     ("stwo_riscv_frontend", "src/frontends/riscv/rv32/air/extract/runtime_program.zig", "test-runtime-selector"),
     ("stwo_riscv_frontend", "src/frontends/riscv/rv32/focused_test_runtime_selector_0.zig", "test-runtime-selector"),
@@ -427,6 +430,17 @@ def commands_for_paths(
             commands.append(broad_command(root, package, optimize or "ReleaseSafe"))
             continue
         selected_steps = sorted(value for value in steps if value is not None)
+        if package_name == "stwo_riscv_cpu_integration" and selected_steps == ["test-proof-artifact-support"]:
+            # These std-only paths consume the actual public module; loading the
+            # full package build runner would dwarf their four bounded tests.
+            base = ["zig", "test", "-O" + (optimize or "Debug")]
+            if check_only:
+                base.append("-fno-emit-bin")
+            commands.append(base + ["--dep", package_name,
+                "-Mroot=" + package.directory + "/tests/proof_artifact_support_contract_test.zig",
+                "-M" + package_name + "=" + package.directory + "/mod.zig"])
+            commands.append(base + [package.directory + "/rv64_proof_artifact_support.zig"])
+            continue
         if selected_steps:
             command = [
                 "zig",
@@ -496,7 +510,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"+ {shlex.join(command)}", flush=True)
             if args.dry_run:
                 continue
-            result = subprocess.run(command, cwd=root, check=False)
+            direct_test = command[:2] == ["zig", "test"] and os.environ.get(zig_serial_build.HELD_LOCK_ENV) != zig_serial_build.DEFAULT_LOCK
+            with zig_serial_build.build_lock() if direct_test else nullcontext():
+                result = subprocess.run(command, cwd=root, check=False)
             if result.returncode != 0:
                 return result.returncode
         verb = "PLAN" if args.dry_run else ("PASS_LOCAL" if deferred else "PASS")

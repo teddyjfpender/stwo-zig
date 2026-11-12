@@ -135,10 +135,19 @@ pub fn build(b: *std.Build) void {
     const native_gkr_circuit_tests = b.addTest(.{ .root_module = native_gkr_circuit_root, .filters = if (native_gkr_filter) |filter| &.{filter} else &.{} });
     b.step("test-native-gkr-circuit", "Test recursion-owned native GKR circuit and PCS statement adapters").dependOn(testDependency(b, native_gkr_circuit_tests, check_only, 0));
 
+    const artifact_root = b.createModule(.{ .root_source_file = b.path("tests/proof_artifact_support_contract_test.zig"), .target = target, .optimize = optimize });
+    artifact_root.addImport("stwo_riscv_cpu_integration", integration);
+    const artifact_consumer = testDependency(b, b.addTest(.{ .root_module = artifact_root }), check_only, 1);
+    const artifact_owner = b.createModule(.{ .root_source_file = b.path("rv64_proof_artifact_support.zig"), .target = target, .optimize = optimize });
+    const artifact_step = b.step("test-proof-artifact-support", "Test the canonical artifact owner and its actual public CPU consumer");
+    artifact_step.dependOn(artifact_consumer);
+    artifact_step.dependOn(testDependency(b, b.addTest(.{ .root_module = artifact_owner }), check_only, 3));
+
     const test_filter = b.option([]const u8, "test-filter", "Run only tests whose names contain this text");
     const tests = b.addTest(.{ .root_module = integration, .filters = if (test_filter) |filter| &.{filter} else &.{} });
-    b.step("test", "Test the focused RISC-V CPU integration")
-        .dependOn(testDependency(b, tests, check_only, 0));
+    const test_step = b.step("test", "Test the focused RISC-V CPU integration");
+    test_step.dependOn(testDependency(b, tests, check_only, 0));
+    test_step.dependOn(artifact_consumer);
 
     const secp_root = b.createModule(.{
         .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),

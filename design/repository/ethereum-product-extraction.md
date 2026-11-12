@@ -34,14 +34,34 @@ The current prerequisite slice separates these existing shared authorities:
   Helper bodies and error/cleanup ordering are unchanged.
 - The three previously approved RV64 primitive provider names forward to the
   existing Precompiles implementations. No algorithm is copied or moved back
-  into the RV64 executor. The additive RV64 package version is `0.2.0`.
+  into the RV64 executor. Their first additive version was `0.2.0`; the approved
+  checkpoint signature transaction now sets this package to `1.0.0`.
 
-The additional `service_calls` and `rv64_proof_artifact_support` public providers
-and four checkpoint input-signature changes require the separately requested
-RFC amendment before publication. They are not installed by this checkpoint.
-Additional contract changes discovered in the remaining closure need an exact
-ledger and recorded decision too; the initial fourteen removals are not blanket
-permission to remove other neutral APIs.
+The owner approved the two shared public providers and four checkpoint input
+signatures in the [recorded RFC amendment](https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6828863621).
+They are now installed: RV64 `service_calls` aliases the original call owner,
+and CPU `rv64_proof_artifact_support` aliases the original shared helper owner.
+The CPU package is `0.3.0`; these source-package versions are not release tags or
+proof-protocol revisions. Checkpoint no longer imports the Ethereum session;
+its four accessors infer the concrete caller's session pointer at compile time.
+The actual memory identity, counters, page checks, error/copy/cleanup ordering
+and data records are unchanged.
+
+The real CPU public-consumer test runs beside the private owner tests. The
+existing `dev_test.py` compiles these std-only paths directly against the actual
+CPU module, holding the canonical build lock. This avoids loading the complete
+package build runner for four small tests. Engine validation now runs inside the
+unchanged concrete `CpuProverEngine` construction, retaining the assertion for
+all consumers of that engine without forcing unrelated artifact consumers to
+instantiate it. The package's dedicated test target and default-test consumer
+wiring remain; the full build-runner attempt exceeded the laptop's 1 GiB guard
+and is not counted as qualification.
+
+Local actual-session checkpoint replay/tamper and canonical identity cases pass
+in Debug and ReleaseFast, as do all four public-consumer/private IO cases.
+Full product and frozen proof acceptance remain separate. Additional contract
+changes discovered in the remaining closure need their own exact ledger and
+recorded decision; this amendment is not blanket removal permission.
 
 ## Boundary checks and acceptance
 
@@ -76,3 +96,9 @@ including tests/build/compatibility wiring. Moves receive no subtraction credit.
 New flags and scripts are zero; documentation and configuration are separate.
 The private cuts protect shared ownership and failure semantics; rollback must
 restore their original aliases, consumers and tests together.
+
+Measured source so far: prerequisite +174 and approved shared-boundary segment
++88, cumulative **262/800**. The latter includes the real public-consumer test,
+complete counter-family regression and bounded developer routing. It adds no
+flag or script; documentation/configuration remain separate. Source conformance
+still has exactly the same 83 inherited findings, with no additions/removals.

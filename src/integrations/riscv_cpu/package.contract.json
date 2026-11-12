@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_cpu_integration",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "layer": "integration",
   "owner": "riscv-cpu-integration",
   "public_modules": {
@@ -126,6 +126,7 @@
     "rv64_pcs_suite",
     "rv64_program",
     "rv64_program_metadata",
+    "rv64_proof_artifact_support",
     "rv64_provider_tails",
     "rv64_recursion_budget",
     "rv64_replay_capture",

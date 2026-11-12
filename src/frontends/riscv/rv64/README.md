@@ -2,7 +2,7 @@
 
 | Fact | Value |
 | --- | --- |
-| Version | `0.2.0` |
+| Version | `1.0.0` |
 | Layer | `frontend` |
 | Owner | `riscv-frontend` |
 | Focused CI host | Linux |
@@ -35,6 +35,7 @@ graph LR
 - `machine`
 - `memory`
 - `secp256k1_rcb`
+- `service_calls`
 - `service_session`
 - `session`
 - `sha256_compression`
@@ -77,3 +78,11 @@ The Public API list above follows the package contract. These names expose
 canonical domain owners; `testing`, when present, is an unstable qualification
 interface. Production admission and product orchestration remain above the
 native children.
+
+The `service_calls` domain owns captured call records, independently of a
+product's session admission and dispatch. Checkpoint `Counters.of`,
+`Counters.apply`, `Recorder.take` and `matches` infer the caller's concrete
+session pointer at compile time. Their memory/dirty-set identity, counter and
+page comparisons, allocation, errors and teardown remain unchanged. These
+checkpoints are execution advice, not proof authority. See the approved
+[RFC #352 amendment](https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6828863621).

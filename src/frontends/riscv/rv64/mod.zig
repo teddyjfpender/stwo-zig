@@ -23,6 +23,7 @@ pub const execution_profile = @import("execution_profile.zig");
 pub const frequent_operations = @import("frequent_operations.zig");
 pub const machine = @import("machine.zig");
 pub const memory = @import("memory.zig");
+pub const service_calls = @import("services/call_abi.zig");
 pub const service_session = @import("service_session.zig");
 pub const session = @import("session.zig");
 pub const testing = struct {

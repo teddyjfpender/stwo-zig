@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_rv64",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "layer": "frontend",
   "owner": "riscv-frontend",
   "public_modules": {
@@ -31,6 +31,7 @@
     "machine",
     "memory",
     "secp256k1_rcb",
+    "service_calls",
     "service_session",
     "session",
     "sha256_compression",
