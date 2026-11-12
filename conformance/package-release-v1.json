@@ -82,6 +82,10 @@
       "status": "published",
       "reason": "The backend-generic proving engine is a supported Zig source package."
     },
+    "stwo_riscv_air_lang": {
+      "status": "internal",
+      "reason": "C3 owned frontend package; public SDK promotion requires its independent contract and release qualification."
+    },
     "stwo_riscv_cpu_integration": {
       "status": "published",
       "reason": "The release-gated RISC-V CPU composition is a supported Zig source package."
@@ -94,9 +98,41 @@
       "status": "published",
       "reason": "The backend-neutral RISC-V frontend is a supported Zig source package."
     },
+    "stwo_riscv_isa": {
+      "status": "internal",
+      "reason": "C3 owned frontend package; public SDK promotion requires its independent contract and release qualification."
+    },
+    "stwo_riscv_memory": {
+      "status": "internal",
+      "reason": "C3 owned frontend package; public SDK promotion requires its independent contract and release qualification."
+    },
     "stwo_riscv_metal_integration": {
       "status": "published",
       "reason": "The resident RISC-V Metal composition is distributed as a macOS Zig source package."
+    },
+    "stwo_riscv_precompiles": {
+      "status": "internal",
+      "reason": "C3 owned frontend package; public SDK promotion requires its independent contract and release qualification."
+    },
+    "stwo_riscv_recursion": {
+      "status": "internal",
+      "reason": "C3 owned frontend package; public SDK promotion requires its independent contract and release qualification."
+    },
+    "stwo_riscv_recursion_air": {
+      "status": "internal",
+      "reason": "C3 owned frontend package; public SDK promotion requires its independent contract and release qualification."
+    },
+    "stwo_riscv_rv32": {
+      "status": "internal",
+      "reason": "C3 owned frontend package; public SDK promotion requires its independent contract and release qualification."
+    },
+    "stwo_riscv_rv64": {
+      "status": "internal",
+      "reason": "C3 owned frontend package; public SDK promotion requires its independent contract and release qualification."
+    },
+    "stwo_riscv_testing": {
+      "status": "internal",
+      "reason": "C3 owned frontend package; public SDK promotion requires its independent contract and release qualification."
     },
     "stwo_sm83_cpu_integration": {
       "status": "published",

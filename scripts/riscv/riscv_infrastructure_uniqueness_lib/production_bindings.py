@@ -412,7 +412,7 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "Merkle coefficient lift admission",
         STATEMENT_VALIDATION_PATH,
-        "try validateMerkleCoefficientLift( if (circuit_profile.programPolicy() == .sparse_merkle_v1) program.n_rows else 0, memory_shards, merkle_desc.n_rows, public_merkle_terms, );",
+        "try validateMerkleCoefficientLift( if (circuit_layout.programPolicy() == .sparse_merkle_v1) program.n_rows else 0, memory_shards, merkle_desc.n_rows, public_merkle_terms, );",
     ),
     (
         "Merkle node coefficient bound",

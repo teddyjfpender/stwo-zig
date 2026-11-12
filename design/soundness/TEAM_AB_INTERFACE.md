@@ -385,7 +385,7 @@ on the merged tree before declaring the merge done (checklist step 8).
 
 Complement of Team B's 22 certified opcodes (`team-b-coverage.json`: manifest
 ids 2, 6, 7, 16–18, 19–26, 37–44) within the 46-entry
-`src/frontends/riscv/opcode_manifest.zig`. Manifest id = position in the
+`src/frontends/riscv/isa/opcode_manifest.zig`. Manifest id = position in the
 manifest, cross-checked against A's own `Air/IR.lean` `Family.validOpcode`
 table.
 

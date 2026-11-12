@@ -347,7 +347,7 @@ Within the admitted RV32IM language, the canonical decoder projection is
 injective: the opcode protocol ID fixes opcode/funct fields and the remaining
 tuple fields retain every live register or immediate field. Thus binding the
 decoded tuple binds the executed supported word, not merely its opcode name.
-[`src/frontends/riscv/air/program/decode.zig`](../../src/frontends/riscv/air/program/decode.zig)
+[`src/frontends/riscv/rv32/air/program/decode.zig`](../../src/frontends/riscv/rv32/air/program/decode.zig)
 pins the projection across all 46 supported opcodes and its canonical signed
 immediate representation.
 
@@ -416,11 +416,11 @@ exact closure; SA-1 obtains the latter only through premise 1.
 
 **Executable evidence:**
 
-- [`src/frontends/riscv/air/transcript/claims.zig`](../../src/frontends/riscv/air/transcript/claims.zig)
+- [`src/frontends/riscv/rv32/air/transcript/claims.zig`](../../src/frontends/riscv/rv32/air/transcript/claims.zig)
   and
-  [`src/frontends/riscv/air/component_order.zig`](../../src/frontends/riscv/air/component_order.zig)
+  [`src/frontends/riscv/rv32/air/component_order.zig`](../../src/frontends/riscv/rv32/air/component_order.zig)
   pin the 28-slot order;
-- [`src/frontends/riscv/air/public_logup.zig`](../../src/frontends/riscv/air/public_logup.zig)
+- [`src/frontends/riscv/rv32/air/public_logup.zig`](../../src/frontends/riscv/rv32/air/public_logup.zig)
   is the production public compensation;
 - [`scripts/riscv/air_satisfaction.py`](../../scripts/riscv/air_satisfaction.py) independently
   recomputes active rows, fixed-table requests, all 28 claims, the public

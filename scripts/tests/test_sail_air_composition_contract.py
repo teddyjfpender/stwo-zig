@@ -14,8 +14,8 @@ REFINEMENT_DOCUMENT = ROOT / "design" / "soundness" / "UNIVERSAL_AIR_SAIL_REFINE
 REFINEMENT_STATUS = ROOT / "design" / "soundness" / "RISCV_FRONTEND_VERIFICATION_STATUS.md"
 FORMAL_README = ROOT / "formal" / "riscv-refinement" / "README.md"
 FORMAL_EVIDENCE = ROOT / "conformance" / "riscv" / "formal-corpus-evidence.json"
-CLAIMS = ROOT / "src" / "frontends" / "riscv" / "air" / "transcript" / "claims.zig"
-OPCODE_MANIFEST = ROOT / "src" / "frontends" / "riscv" / "opcode_manifest.zig"
+CLAIMS = ROOT / "src" / "frontends" / "riscv" / "rv32" / "air" / "transcript" / "claims.zig"
+OPCODE_MANIFEST = ROOT / "src" / "frontends" / "riscv" / "isa" / "opcode_manifest.zig"
 
 
 class SailAirCompositionContractTest(unittest.TestCase):

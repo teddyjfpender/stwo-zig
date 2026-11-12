@@ -75,8 +75,8 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
         self.assertIn('expectEqual(@as(usize, 1), found)', source)
         self.assertIn('@import("blake3_proof_contract_test_root.zig")', (integration / "mod.zig").read_text())
         frontend = ROOT / "src/frontends/riscv"
-        for name in ("blake3_proof_fixture", "blake3_proof_gate_test_support"):
-            text = (frontend / "recursion/air" / (name + ".zig")).read_text()
+        for path in ("rv32/recursion/air/blake3_proof_fixture.zig", "recursion/test_support/blake3_proof_gate_test_support.zig"):
+            text = (frontend / path).read_text()
             self.assertNotIn('"stwo_cpu_backend"', text)
             self.assertNotIn('.Cpu)', text)
             self.assertIn('pub fn ForBackend(', text)
@@ -237,10 +237,10 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
                 "metal_backend", "native_cpu",
                 "native_cuda_device", "native_cuda_integration", "native_cuda_static",
                 "native_examples", "native_metal",
-                "native_oracle", "package", "prover", "riscv_cpu",
+                "native_oracle", "package", "prover", "riscv_air_lang_package", "riscv_cpu",
                 "riscv_cpu_integration", "riscv_cuda_integration",
-                "riscv_frontend", "riscv_frontend_acceptance", "riscv_frontend_releasefast", "riscv_metal",
-                "riscv_metal_integration", "riscv_witness_benchmarks", "sm83_cpu_integration",
+                "riscv_frontend", "riscv_frontend_acceptance", "riscv_frontend_releasefast", "riscv_memory_package", "riscv_metal",
+                "riscv_metal_integration", "riscv_precompiles_package", "riscv_recursion_air_package", "riscv_recursion_package", "riscv_rv32_package", "riscv_rv64_package", "riscv_testing_package", "riscv_witness_benchmarks", "sm83_cpu_integration",
                 "sm83_frontend", "sm83_metal_integration", "static",
             ],
         )

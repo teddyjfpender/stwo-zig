@@ -353,7 +353,7 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         raise AssertionError("production Merkle row admission guard changed")
     admission_call = (
         "try validateMerkleCoefficientLift( "
-        "if (circuit_profile.programPolicy() == .sparse_merkle_v1) program.n_rows else 0, "
+        "if (circuit_layout.programPolicy() == .sparse_merkle_v1) program.n_rows else 0, "
         "memory_shards, merkle_desc.n_rows, public_merkle_terms, );"
     )
     if admission_call not in admission_source:
