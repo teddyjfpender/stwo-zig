@@ -97,6 +97,8 @@
           "zig",
           "build",
           "test-fields",
+          "test-fri",
+          "test-revision",
           "--build-file",
           "src/waist/core/build.zig",
           "-Doptimize=Debug",

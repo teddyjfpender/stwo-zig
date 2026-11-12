@@ -1058,6 +1058,13 @@
       "positive_growth_justification": "Approved RFC367 consumer-owned waist behavior, strict v2/v3 metadata and real source ownership/module identity/discovery gates; initial schema-only checkpoint does not admit unvalidated v3 registrations. Full D3 and populated/enforced D5 remain open.",
       "scope": "Existing metadata/build/CI owners and consumer test roots only. Preserve provider commands/versions, proof bytes, actual rejection checks and all D2/D4 gates; no GPU execution or new launcher.",
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/367#issuecomment-6752608217"
+    },
+    {
+      "id": "d4_seeded_protocol_properties",
+      "net_code_budget": 800,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #347: at most800 net test-source lines for bounded fixed-seed field laws, FRI polynomial/linearity/composition properties, frozen Merkle membership/mutation checks and codec round trips in Debug and ReleaseFast. Reuse existing roots, independent integer/polynomial/frozen expectations and exact CM31 corpus; retain its noinline workaround. No runtime/public API, flags, launcher, golden or performance claims."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
