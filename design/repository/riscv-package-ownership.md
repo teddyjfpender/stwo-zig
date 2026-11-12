@@ -180,3 +180,18 @@ All sixteen case facts, classifications, coverage and profiles are unchanged;
 only inspector provenance, physical source evidence and their canonical digest
 change. The committed audit is the exact validated generator output. This is
 shape/source qualification, not recursive-proof or timing evidence.
+
+The repaired CPU profile/pool target passes at `e34cd6e77` in
+[ReleaseFast](https://github.com/teddyjfpender/stwo-zig/actions/runs/43234085186)
+and [Debug](https://github.com/teddyjfpender/stwo-zig/actions/runs/43234092115).
+The real N=1/2/4 proofs have identical bytes in both modes: 56,111 bytes,
+SHA-256 `4d64bc5165ca8638f83e576c18cf10005a86187058369c243997fd64ea6a1524`.
+The original phase/source contracts and failure-unwind/recovery case all pass.
+Separate jobs preserve complete coverage without serializing the two modes;
+the preceding combined-mode timeout remains unqualified.
+
+The approved D2 decoder boundary also passes five real verifier processes at
+`2b2ae4900` in
+[run 43230126952](https://github.com/teddyjfpender/stwo-zig/actions/runs/43230126952):
+valid frozen proof, both typed malformed-proof errors, usage and missing input.
+Full five-provider D2 coverage and the remaining campaign gates remain open.
