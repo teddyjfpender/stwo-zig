@@ -27,3 +27,7 @@ test "api invariant: legacy exports share canonical components and records" {
     try std.testing.expect(frontend.runner.trace.TraceRow == legacy_frontend.runner.trace.TraceRow);
     try std.testing.expect(cpu.rv64_proof_artifact_support == legacy_cpu.rv64_proof_artifact_support);
 }
+
+test {
+    _ = @import("tests/shared_bindings_test.zig");
+}

@@ -7,6 +7,10 @@ pub fn build(b: *std.Build) void {
     const neutral_frontend = b.dependency("stwo_riscv_frontend", options).module("stwo_riscv_frontend");
     const neutral_cpu = b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration");
     const neutral_cuda = b.dependency("stwo_riscv_cuda_integration", options).module("stwo_riscv_cuda_integration");
+    const riscv_rv32 = b.dependency("stwo_riscv_rv32", options).module("stwo_riscv_rv32");
+    const riscv_rv64 = b.dependency("stwo_riscv_rv64", options).module("stwo_riscv_rv64");
+    if (neutral_frontend.import_table.get("stwo_riscv_rv32") != riscv_rv32 or neutral_frontend.import_table.get("stwo_riscv_rv64") != riscv_rv64)
+        @panic("canonical RISC-V child module identity drift");
     const frontend_component = b.createModule(.{ .root_source_file = b.path("frontend.zig"), .target = target, .optimize = optimize });
     frontend_component.addImport("stwo_riscv_frontend", neutral_frontend);
     frontend_component.addImport("interop_postcard", neutral_cpu.import_table.get("interop_postcard").?);
@@ -19,6 +23,8 @@ pub fn build(b: *std.Build) void {
     cuda_component.addImport("ethereum_cpu_component", cpu_component);
     const product = b.addModule("stwo_ethereum_statement", .{ .root_source_file = b.path("mod.zig"), .target = target, .optimize = optimize });
     product.addImport("stwo_riscv_frontend", neutral_frontend);
+    product.addImport("stwo_riscv_rv32", riscv_rv32);
+    product.addImport("stwo_riscv_rv64", riscv_rv64);
     product.addImport("ethereum_frontend_component", frontend_component);
     product.addImport("ethereum_cpu_component", cpu_component);
     product.addImport("ethereum_cuda_component", cuda_component);

@@ -12,7 +12,9 @@
   "dependencies": {
     "stwo_riscv_cpu_integration": "../../../integrations/riscv_cpu",
     "stwo_riscv_cuda_integration": "../../../integrations/riscv_cuda",
-    "stwo_riscv_frontend": "../../../frontends/riscv"
+    "stwo_riscv_frontend": "../../../frontends/riscv",
+    "stwo_riscv_rv32": "../../../frontends/riscv/rv32",
+    "stwo_riscv_rv64": "../../../frontends/riscv/rv64"
   },
   "injected_modules": [
     "ethereum_cpu_component",
@@ -35,7 +37,11 @@
       "mod.zig::api signature: Ethereum product exposes its six owning domains"
     ],
     "invariant_tests": [
-      "mod.zig::api invariant: legacy exports share canonical components and records"
+      "mod.zig::api invariant: legacy exports share canonical components and records",
+      "tests/shared_bindings_test.zig::shared binding: artifact owner retains framing and rejection precedence",
+      "tests/shared_bindings_test.zig::shared binding: curve arithmetic retains packet tags and field operations",
+      "tests/shared_bindings_test.zig::shared binding: native rungs retain the legacy table identity",
+      "tests/shared_bindings_test.zig::shared binding: native schema matches the existing chain authority"
     ]
   },
   "ci": {

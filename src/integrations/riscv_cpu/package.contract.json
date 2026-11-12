@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_cpu_integration",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "layer": "integration",
   "owner": "riscv-cpu-integration",
   "public_modules": {
@@ -105,6 +105,8 @@
     "rv64_native_gkr_section",
     "rv64_native_gkr_v2",
     "rv64_native_policy",
+    "rv64_native_rungs",
+    "rv64_native_schema",
     "rv64_om31_cpu_leaf",
     "rv64_om31_execution_wrap",
     "rv64_om31_outer",

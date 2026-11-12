@@ -24,7 +24,7 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
 EXPECTED_PACKAGES = 37
-EXPECTED_EDGES = 173
+EXPECTED_EDGES = 175
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:

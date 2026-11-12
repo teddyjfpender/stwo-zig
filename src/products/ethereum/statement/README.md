@@ -42,6 +42,9 @@ instances, with no duplicate implementation or nominal records.
 - `stwo_riscv_cuda_integration`
 - `stwo_riscv_frontend`
 
+- `stwo_riscv_rv32`
+- `stwo_riscv_rv64`
+
 ## Build, test, and run
 
 `zig build test --build-file src/products/ethereum/statement/build.zig -Doptimize=Debug -j2`

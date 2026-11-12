@@ -5,6 +5,8 @@
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{
+        .stwo_riscv_rv32 = .{ .path = "../../../frontends/riscv/rv32" },
+        .stwo_riscv_rv64 = .{ .path = "../../../frontends/riscv/rv64" },
         .stwo_riscv_cpu_integration = .{ .path = "../../../integrations/riscv_cpu" },
         .stwo_riscv_cuda_integration = .{ .path = "../../../integrations/riscv_cuda" },
         .stwo_riscv_frontend = .{ .path = "../../../frontends/riscv" },

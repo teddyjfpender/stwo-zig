@@ -14,7 +14,8 @@
 //!   0x0003_0111 bls12_381_g1_double [x y]                -> x3 y3 (Montgomery residues)
 //! A violated precondition traps `CurveServiceDomain` with memory unchanged.
 const std = @import("std");
-const C = @import("curve_primitives.zig");
+pub const arithmetic = @import("curve_primitives.zig");
+const C = arithmetic;
 
 pub const Op = enum(u8) {
     bn254_g1_add = 5,

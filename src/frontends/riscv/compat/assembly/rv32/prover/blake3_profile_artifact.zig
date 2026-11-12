@@ -1,6 +1,7 @@
 //! Shared full-width execution-profile artifact framing and fresh verification.
 //! Fresh verification derives its key from authenticated metadata and supplied
 //! source bytes, without retaining the runner or trusting an embedded proof key.
+pub const ForOwner = @import("blake3_profile_artifact_owner.zig").ForOwner;
 pub const VerifiedPublic = @import("stwo_riscv_rv32").prover.blake3_verified_public.VerifiedPublic;
 pub fn ForProfile(comptime ethereum: bool) type {
     return ForExecutionProfile(if (ethereum) .rv32im_zkvm_ethereum_v1 else .rv32im_zkvm_v1);

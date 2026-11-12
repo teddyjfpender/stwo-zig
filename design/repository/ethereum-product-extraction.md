@@ -127,7 +127,8 @@ prerequisite slice.
 
 ## Budget
 
-The entire C4 transaction retains RFC #352's maximum +800 net source lines,
+The entire C4 transaction retains the amended RFC #352 maximum +1200 net source lines
+(originally +800),
 including tests/build/compatibility wiring. Moves receive no subtraction credit.
 New flags and scripts are zero; documentation and configuration are separate.
 The private cuts protect shared ownership and failure semantics; rollback must
@@ -146,3 +147,42 @@ adds 80 documentation lines, with this extraction ledger reported separately.
 Flags added/removed: zero; maintained scripts added/removed: zero. The additional
 source owns explicit component wiring, compatibility identity and retained
 negative/reference coverage. It does not authorize extra neutral public APIs.
+
+## Approved canonical-provider landing
+
+The owner explicitly approved the [bounded follow-up amendment](https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6832806430)
+on 2026-11-12. It permits the exact four canonical bindings: frontend prover
+`blake3_profile_artifact.ForOwner`, RV64 `service_calls.curves.arithmetic`, and
+CPU `rv64_native_schema` / `rv64_native_rungs`. Existing algorithms and schemas
+keep their sole definitions. The exact module member lists and implementation
+hashes are recorded in that decision. The C4 source allowance is now **+1200**,
+with target zero, no new flags/scripts and no removal credit for moves.
+
+This landing publishes those additive bindings first. Four real product-owned
+consumer cases require them and first fail on the four missing fields. They
+exercise native class/table authority and legacy nominal identity, arithmetic
+against integer modular arithmetic, canonical direct/umbrella machine and trace
+types, and artifact framing/rejection precedence. They pass in Debug and
+ReleaseFast alongside the two existing product identity cases (six named cases
+plus the collection hook). Both direct RV32/RV64 dependencies bind the same
+module instances already used by the neutral frontend; the actual build checks
+those pointers. These source package changes keep CPU's unpublished 1.0.0 major
+candidate; they do not publish a release or revise proof bytes.
+
+The approved RV64 service-export removal, product profile-selector move and
+strict placement activation remain in the separately preserved, **unqualified**
+full migration draft until its complete consumer closure passes. That draft
+physically relocates the product implementation and policy sources and has zero
+placement findings with P3 active, but still has cross-owner imports. It is not
+the pushed qualification state. The canonical-provider landing's existing
+placement diagnostic remains 212 with P3 inactive; full C4 completion is not
+claimed by this additive slice.
+
+This additive landing is source +74/-2/net **+72**, cumulative C4 **693/1200**.
+Configuration is +15/-5; documentation is reported separately. Flags and
+maintained scripts added/removed remain zero. All 80 workspace/graph Python
+checks pass at this landing (37 packages, 39 public modules, 175 edges), with
+exactly the same 83 inherited source findings. The 25-case native golden/chain
+suite passes in both modes, including its collection hook. These bounded
+results do not establish complete frontend/proof acceptance for the preserved
+migration draft.

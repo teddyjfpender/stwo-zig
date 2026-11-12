@@ -2,7 +2,7 @@
 
 | Fact | Value |
 | --- | --- |
-| Version | `0.3.0` |
+| Version | `1.0.0` |
 | Layer | `integration` |
 | Owner | `riscv-cpu-integration` |
 | Focused CI host | Linux |
@@ -180,6 +180,8 @@ are tracked separately from this metadata reconciliation.
 - `rv64_native_gkr_section`
 - `rv64_native_gkr_v2`
 - `rv64_native_policy`
+- `rv64_native_rungs`
+- `rv64_native_schema`
 - `rv64_om31_cpu_leaf`
 - `rv64_om31_execution_wrap`
 - `rv64_om31_outer`
