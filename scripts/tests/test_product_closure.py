@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest import mock
 from scripts.repo import check_product_closure as command
 from scripts.native import check_native_cpu_product
-from scripts.repo.product_closure.graph import ClosureError
+from scripts.repo.product_closure.graph import ClosureError, inspect_sources as raw_inspect_sources
 from scripts.repo.product_closure.linkage import (
     DynamicLinkage,
     check_dynamic,
@@ -65,6 +65,18 @@ class NativeCpuProductCheckTest(unittest.TestCase):
                              ("interop_riscv_artifact", "src/products/riscv/artifact/mod.zig")):
             self.assertEqual(source, modules[name])
             self.assertTrue((root / source).is_file())
+        from dataclasses import replace
+        manifest = Manifest("aggregate-cpu", ("src/products/cairo/aggregate/cpu.zig",),
+                            tuple(NamedImport(name, path) for name, path in modules.items()),
+                            frozenset({"std", "builtin", "aggregate_capabilities", "typed_air_artifacts",
+                                       "typed_air_h009_artifacts", "typed_air_h010_artifacts"}),
+                            frozenset(), ("src",))
+        graph = raw_inspect_sources(root, manifest)
+        self.assertIn("src/frontends/riscv/isa/mod.zig", graph.relative_sources())
+        incomplete = replace(manifest, named_imports=tuple(
+            item for item in manifest.named_imports if item.name != "stwo_riscv_isa"))
+        with self.assertRaisesRegex(ClosureError, "undeclared named import 'stwo_riscv_isa'"):
+            raw_inspect_sources(root, incomplete)
         facade = (root / "src/products/cairo/aggregate/cpu.zig").read_text()
         self.assertIn("frontends.riscv.prover_mod.ProverEngineForBackend(backends.cpu.CpuBackend)", facade)
         self.assertNotIn('"stwo_riscv_cpu_integration"', facade)
