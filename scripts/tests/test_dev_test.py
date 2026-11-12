@@ -30,7 +30,7 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_catalog_roots_select_bounded_commands_without_tool_probes(self):
         for filename, step in (
-            ("testing/focused_transcript_test_root.zig", "test-recursion-transcript-v2"),
+            ("recursion/focused_test_recursion_transcript_v2_0_1.zig", "test-recursion-transcript-v2"),
             ("testing/focused_main_trace_plan_execution_test_root.zig", "test-main-trace-plan-execution"),
             ("testing/focused_air_static_profile_registry_test_root.zig", "test-air-static-profile-registry"),
             ("rv32/focused_test_air_semantics_0.zig", "test-air-semantics"),

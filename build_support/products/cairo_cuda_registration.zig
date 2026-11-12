@@ -21,7 +21,9 @@ pub fn For(comptime descriptor: anytype, comptime toolchain_requirement: []const
     };
 }
 
-pub fn product(comptime protocol_features: []const u8, role: graph.Role) graph.Product {
+pub const protocol_features = "cairo-stwo-v1+cuda-resident-proof-v1+strict-aot-v1";
+
+pub fn product(role: graph.Role) graph.Product {
     return .{
         .name = "stwo-cairo-cuda",
         .frontend = .cairo,

@@ -1,19 +1,6 @@
 //! Complete literal discovery for this owner; original focused exclusions are retained.
 test {
     _ = @import("../circuit_layout.zig");
-    _ = @import("../focused_runtime_profile_symbolic.zig");
-    _ = @import("../focused_test_air_function_frames_0_1.zig");
-    _ = @import("../focused_test_air_semantics_0.zig");
-    _ = @import("../focused_test_air_semantics_1.zig");
-    _ = @import("../focused_test_air_semantics_2.zig");
-    _ = @import("../focused_test_air_semantics_3.zig");
-    _ = @import("../focused_test_parent_canonical_admission_0_2.zig");
-    _ = @import("../focused_test_parent_canonical_admission_0_4.zig");
-    _ = @import("../focused_test_polynomial_compiler_0.zig");
-    _ = @import("../focused_test_recursion_framework_export_0.zig");
-    _ = @import("../focused_test_recursion_framework_interaction_0.zig");
-    _ = @import("../focused_test_recursion_segment_public_components_v2_0_1.zig");
-    _ = @import("../focused_test_recursion_segment_public_components_v2_0_2.zig");
     _ = @import("../framework/blake3_g_partition.zig");
     _ = @import("../framework/blake3_parent_row_storage.zig");
     _ = @import("../framework/control_row.zig");

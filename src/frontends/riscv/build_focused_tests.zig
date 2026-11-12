@@ -479,9 +479,9 @@ pub const specs = [_]Spec{
     .{
         .step = "test-recursion-transcript-v2",
         .description = "Run exact generic-channel V2 scheduled transcript parity tests",
-        .root = "testing/focused_transcript_test_root.zig",
+        .root = "recursion/focused_test_recursion_transcript_v2_0_1.zig",
         .minimum = 236,
-        .partition_roots = &.{ "testing/focused_transcript_test_root.zig", "recursion/focused_test_recursion_transcript_v2_0_1.zig" },
+        .partition_roots = &.{ "air_lang/focused_test_transcript_support.zig", "focused_test_transcript_support.zig", "isa/focused_test_transcript_support.zig", "memory/focused_test_transcript_support.zig", "precompiles/focused_test_transcript_support.zig", "recursion/focused_test_recursion_transcript_v2_0_1.zig", "recursion_air/focused_test_transcript_support.zig", "rv32/focused_test_transcript_support.zig", "testing/focused_test_transcript_support.zig" },
     },
     .{
         .step = "test-recursion-pair-node",

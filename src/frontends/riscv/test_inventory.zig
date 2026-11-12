@@ -1,5 +1,7 @@
 //! Complete literal discovery for this owner; original focused exclusions are retained.
 test {
+    _ = @import("test_inventory_collector.zig");
+    _ = @import("focused_test_transcript_support.zig");
     _ = @import("stwo_riscv_air_lang");
     _ = @import("stwo_riscv_isa");
     _ = @import("stwo_riscv_memory");

@@ -17,17 +17,6 @@ test {
     _ = @import("../air/tests/secp256k1_scalar_direct_test.zig");
     _ = @import("../air/tests/secp256k1_split_direct_test.zig");
     _ = @import("../air/tests/secp256k1_table_direct_test.zig");
-    _ = @import("../focused_benchmark_minimal_trace_parallel_replay_0.zig");
-    _ = @import("../focused_test_bulk_memcpy_candidate_0.zig");
-    _ = @import("../focused_test_ethereum_runner_0.zig");
-    _ = @import("../focused_test_execution_session_0.zig");
-    _ = @import("../focused_test_guest_precompile_0.zig");
-    _ = @import("../focused_test_isa_0.zig");
-    _ = @import("../focused_test_keccakf_precompile_0.zig");
-    _ = @import("../focused_test_keccakf_row_0.zig");
-    _ = @import("../focused_test_minimal_trace_parallel_replay_0.zig");
-    _ = @import("../focused_test_runner_0.zig");
-    _ = @import("../focused_test_secp256k1_precompile_0.zig");
     _ = @import("../recovery_abi.zig");
     _ = @import("../runner/call_buffer.zig");
     _ = @import("../runner/secp256k1_recover_call_buffer.zig");

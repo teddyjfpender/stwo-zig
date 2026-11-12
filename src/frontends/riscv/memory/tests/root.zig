@@ -15,13 +15,6 @@ test {
     _ = @import("../air/poseidon2_universal_identity.zig");
     _ = @import("../air/sparse_merkle.zig");
     _ = @import("../air/trace.zig");
-    _ = @import("../focused_test_compact_poseidon_authority_0.zig");
-    _ = @import("../focused_test_merkle_authority_0.zig");
-    _ = @import("../focused_test_parent_canonical_admission_0_1.zig");
-    _ = @import("../focused_test_parent_canonical_admission_0_3.zig");
-    _ = @import("../focused_test_polynomial_compiler_0.zig");
-    _ = @import("../focused_test_poseidon_materialization_frontier_0.zig");
-    _ = @import("../focused_test_wide_poseidon_authority_0.zig");
     _ = @import("../primitives/common/poseidon2.zig");
     _ = @import("../primitives/recursion/blake3_identity_digest.zig");
     _ = @import("../primitives/recursion/poseidon2_channel.zig");

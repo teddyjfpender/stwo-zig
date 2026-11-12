@@ -288,6 +288,8 @@ test "test inventory: every test-bearing file in this package is named" {
             named += 1;
             continue;
         }
+        if (inventory.prefix.len != 0 and std.mem.startsWith(u8, relative, "focused") and
+            std.fs.path.dirname(relative) == null and try @import("test_inventory_collector.zig").coveredCollector(allocator, source, inventory.source)) continue;
         missing += 1;
         std.debug.print(
             "test_inventory.zig does not name {s}, so its tests are compiled by nothing\n",

@@ -176,7 +176,8 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn('.error_tracing = true,', spec)
         self.assertIn('.strip = false,', spec)
         lane = "riscv_frontend_acceptance"
-        self.assertEqual([["zig", "build", "test-releasefast-acceptance", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2", "--verbose", "--summary", "all"]], self.policy["lanes"][lane]["commands"])
+        self.assertEqual([["zig", "build", "test-releasefast-acceptance", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2", "--verbose", "--summary", "all"]], self.policy["lanes"][lane]["commands"][:1])
+        self.assertEqual([["zig", "build", "test-recursion-transcript-v2", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=" + mode, "-j2", "--summary", "all"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"][lane]["commands"][1:])
         self.assertIn(lane, ci_scope_plan.MANUAL_CPU_LANES)
         selected = self.lanes_for("src/frontends/riscv/testing/focused_test_releasefast_acceptance_0.zig")
         self.assertTrue({lane, "riscv_frontend_releasefast"}.issubset(selected))

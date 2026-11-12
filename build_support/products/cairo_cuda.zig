@@ -12,8 +12,7 @@ const graph_install = @import("../graph/install.zig");
 const policy = @import("../graph/product.zig");
 const registration = @import("cairo_cuda_registration.zig");
 
-const protocol_features =
-    "cairo-stwo-v1+cuda-resident-proof-v1+strict-aot-v1";
+const protocol_features = registration.protocol_features;
 const toolchain_requirement =
     "the Cairo CUDA product requires -Dcuda-nvcc, -Dcuda-host-cxx, " ++
     "-Dcuda-host-runtime, -Dcuda-host-unwind-runtime, -Dcuda-ar, " ++
@@ -484,7 +483,7 @@ const registerMissingToolchain = registration.For(descriptor, toolchain_requirem
 const registerResidentUnavailable = registration.For(descriptor, toolchain_requirement).registerResidentUnavailable;
 
 fn product(role: graph.Role) graph.Product {
-    return registration.product(protocol_features, role);
+    return registration.product(role);
 }
 
 test "Cairo CUDA is staged only for explicit Linux construction" {
