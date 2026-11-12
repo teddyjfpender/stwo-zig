@@ -1,6 +1,8 @@
 //! Explicit CuMetal provider build for the resident CUDA architecture.
 
 const std = @import("std");
+const Options = @import("cuda_tools_options.zig").Options;
+const cuda_cumetal = @This();
 
 pub const archive_name = "stwo_cuda_kernels";
 const build_script = "scripts/cuda/cuda_cumetal_build.py";
@@ -117,4 +119,72 @@ test "CuMetal toolchain remains explicit" {
             .air_validate = "air_validate",
         }).validate(),
     );
+}
+
+pub fn addCuMetalNative(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    stwo: *std.Build.Module,
+    options: Options,
+) void {
+    const archive_step = b.step(
+        "cuda-cumetal-native-archive",
+        "Build the authenticated Native CuMetal provider archive",
+    );
+    const smoke_step = b.step(
+        "run-native-cumetal-smoke",
+        "Prove and verify Native wide Fibonacci on the Apple GPU",
+    );
+    if (target.result.os.tag != .macos) {
+        const unavailable = b.addFail("the CuMetal provider requires macOS");
+        archive_step.dependOn(&unavailable.step);
+        smoke_step.dependOn(&unavailable.step);
+        return;
+    }
+    const clang = options.cumetal_clang;
+    const compiler = options.cumetalc;
+    const root = options.cumetal_root;
+    const library = options.cumetal_library;
+    const inspect = options.air_inspect;
+    const validate = options.air_validate;
+    if (clang == null or compiler == null or root == null or
+        library == null or inspect == null or validate == null)
+    {
+        const unavailable = b.addFail(
+            "Native CuMetal requires -Dcuda-cumetal-clang, " ++
+                "-Dcuda-cumetalc, -Dcuda-cumetal-root, " ++
+                "-Dcuda-cumetal-library, -Dcuda-air-inspect, and " ++
+                "-Dcuda-air-validate",
+        );
+        archive_step.dependOn(&unavailable.step);
+        smoke_step.dependOn(&unavailable.step);
+        return;
+    }
+    const toolchain = cuda_cumetal.Toolchain{
+        .clang = clang.?,
+        .compiler = compiler.?,
+        .root = root.?,
+        .library = library.?,
+        .air_inspect = inspect.?,
+        .air_validate = validate.?,
+        .archiver = options.cumetal_archiver orelse "/usr/bin/ar",
+        .jobs = options.jobs,
+    };
+    const archive = cuda_cumetal.addNativeArchive(b, toolchain);
+    archive_step.dependOn(&archive.build.step);
+    const root_module = b.createModule(.{
+        .root_source_file = b.path(
+            "tests/cuda/cumetal/native_frontend_execution.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    root_module.addImport("stwo_under_test", stwo);
+    const tests = b.addTest(.{ .root_module = root_module });
+    cuda_cumetal.linkRuntime(tests, toolchain, archive);
+    const run = b.addRunArtifact(tests);
+    run.setEnvironmentVariable("CUMETAL_TRACE_GPU", "1");
+    run.setEnvironmentVariable("CUMETAL_MSL_MATH_MODE", "safe");
+    smoke_step.dependOn(&run.step);
 }

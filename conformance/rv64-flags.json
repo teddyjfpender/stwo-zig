@@ -31,12 +31,12 @@
       }
     },
     "STWO_RV64_ARTIFACT_STORE": {
-      "owner": "scripts/rv64/rv64_m5_negative_corpus.py",
+      "owner": "scripts/rv64/rv64_negative_mutations.py",
       "default": "not applicable: reference only; no runtime reader found",
       "status": "reference-only",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64/rv64_m5_negative_corpus.py"
+        "scripts/rv64/rv64_negative_mutations.py"
       ]
     },
     "STWO_RV64_ASSIGNMENT_CRITICAL_CENSUS": {
@@ -802,6 +802,7 @@
         "scripts/rv64/rv64_m5_negative_corpus.py",
         "scripts/rv64/rv64_m5_receiver_class_ab.py",
         "scripts/rv64/rv64_m7_coalesced_tamper.py",
+        "scripts/rv64/rv64_negative_mutations.py",
         "scripts/rv64/rv64_validation.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
@@ -3719,12 +3720,12 @@
       }
     },
     "STWO_RV64_STORE": {
-      "owner": "scripts/rv64/rv64_m5_negative_corpus.py",
+      "owner": "scripts/rv64/rv64_negative_mutations.py",
       "default": "not applicable: reference only; no runtime reader found",
       "status": "reference-only",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64/rv64_m5_negative_corpus.py"
+        "scripts/rv64/rv64_negative_mutations.py"
       ]
     },
     "STWO_RV64_TAPE_POPULATE": {
@@ -3861,12 +3862,12 @@
       }
     },
     "STWO_RV64_VK_CACHE": {
-      "owner": "scripts/rv64/rv64_m5_negative_corpus.py",
+      "owner": "scripts/rv64/rv64_negative_mutations.py",
       "default": "not applicable: reference only; no runtime reader found",
       "status": "reference-only",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64/rv64_m5_negative_corpus.py"
+        "scripts/rv64/rv64_negative_mutations.py"
       ]
     }
   }
