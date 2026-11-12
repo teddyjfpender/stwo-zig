@@ -20,6 +20,7 @@
     "checkpoint",
     "circuit_felt_stream",
     "circuit_serialize",
+    "error_codes",
     "json_text",
     "leaf_proof_json",
     "packed_node",
@@ -29,11 +30,13 @@
   ],
   "api_contract": {
     "signature_tests": [
+      "error_codes.zig::api signature: circuit decode codes require the owned error set",
       "mod.zig::api signature: circuit recursion wire formats expose their codecs"
     ],
     "invariant_tests": [
       "circuit_felt_stream.zig::felt stream: a hand-built proof encodes, decodes and re-encodes identically",
       "circuit_serialize.zig::circuit serialize: decoding rejects truncation and out-of-range limbs, ignores trailing bytes",
+      "error_codes.zig::circuit decode code table pins meanings classes versions and unknown refusal",
       "registry.zig::registry: maps sort, variants and null follow serde"
     ]
   },

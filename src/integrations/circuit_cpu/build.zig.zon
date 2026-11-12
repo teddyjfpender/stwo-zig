@@ -1,7 +1,7 @@
 .{
     .fingerprint = 0x960b524911aa0c9d,
     .name = .stwo_circuit_cpu_integration,
-    .version = "0.2.0",
+    .version = "0.3.0",
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{

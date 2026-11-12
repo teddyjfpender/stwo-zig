@@ -3,6 +3,7 @@
 //! hashing, ChaCha20Rng and QM31 lane helpers. The upstream PoW order is the
 //! default Blake2s grind (`channel/blake2s_pow_order.zig`).
 test {
+    _ = @import("error_codes.zig");
     _ = @import("protocol_revision.zig");
     _ = @import("pcs/config.zig");
     _ = @import("channel/lookup_transcript.zig");

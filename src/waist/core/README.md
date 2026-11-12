@@ -168,3 +168,11 @@ Run it through `scripts/dev_test.py` or `zig build test-cdc-stwo-core` with
 `-Doptimize=Debug` and `-Doptimize=ReleaseFast`. The provider lane retains raw
 execution receipts and binaries. Other consumer rows remain open in
 [RFC #367](https://github.com/teddyjfpender/stwo-zig/issues/367).
+
+## Decoder diagnostic metadata
+
+`error_codes` exposes the RFC #360 metadata owned by this boundary. The
+unpublished `1.0.0-rc.1` surface includes the approved pre-RC addition;
+meaning, origin, null/unknown refusal and existing rejection semantics remain
+those specified by the provider tests. Full five-provider D2 coverage remains
+open in the RFC coverage ledger.

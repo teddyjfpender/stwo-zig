@@ -303,6 +303,79 @@ jobs:
               (out / 'matrix.json').write_text(json.dumps(receipt, indent=2) + '\n')
           PYCDC
 
+      - name: Check circuit decoder process boundary
+        if: matrix.lane == 'circuit_recursion_cpu'
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          python3 - <<'PYD2'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root = Path.cwd()
+          out = Path(os.environ['RUNNER_TEMP']) / 'focused-ci/circuit-decode-process'
+          out.mkdir(parents=True, exist_ok=False)
+          receipt = {'schema': 'circuit_decode_process_v1', 'status': 'FAIL', 'cases': [], 'command_timeout_seconds': 120, 'scope': 'five real CPU verifier processes; diagnostic metadata only; no GPU, performance or release-promotion qualification'}
+          def digest(data):
+              return hashlib.sha256(data).hexdigest()
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True, timeout=10).strip()
+          try:
+              receipt.update(source_commit=git('rev-parse', 'HEAD'), source_tree=git('rev-parse', 'HEAD^{tree}'), source_dirty=bool(git('status', '--porcelain', '--untracked-files=no')))
+              assert receipt['source_commit'] == os.environ['GITHUB_SHA'] and not receipt['source_dirty'], 'source identity mismatch'
+              binary = root / 'zig-out/bin/stwo-circuit-recursion-cpu'
+              receipt.update(binary_sha256=digest(binary.read_bytes()), zig_version=subprocess.check_output(['zig', 'version'], text=True, timeout=10).strip())
+              fixture = root / 'vectors/circuit/r7/verify/multiverifier.json'
+              proof_path = root / 'vectors/circuit/official/circuit_multiverifier/proof.bin'
+              raw, proof = fixture.read_bytes(), proof_path.read_bytes()
+              receipt.update(fixture_sha256=digest(raw), proof_sha256=digest(proof), proof_bytes=len(proof))
+              assert receipt['fixture_sha256'] == 'f1f25a8e30287cc72491d905bcd4cedc31a2d50af87cde1744d370e2d9872384', 'request fixture drift'
+              assert len(proof) == 182884 and receipt['proof_sha256'] == '458eaa893dee79b8e5bb572d20e445a6d2164cb2d464e5967f1fa9e4156b38df', 'frozen proof drift'
+              body = json.loads(raw)['body']
+              assert body['accepted'] is True and body['proof_bytes'] == len(proof) and body['proof_sha256'] == digest(proof)
+              request = json.dumps(body['request'], separators=(',', ':')).encode()
+              receipt['request_sha256'] = digest(request)
+              (out / 'request.json').write_bytes(request)
+              (out / 'empty.bin').write_bytes(b'')
+              (out / 'noncanonical.bin').write_bytes(b'\xff' * 4 + proof[4:])
+              cli_source = (root / 'src/products/cairo/recursion/cpu/cli.zig').read_text()
+              usage_lines = cli_source.split('pub const usage =\n', 1)[1].split('\n;', 1)[0].splitlines()
+              assert all(line.lstrip().startswith('\\\\') for line in usage_lines)
+              usage = '\n'.join(line.lstrip()[2:] for line in usage_lines).encode()
+              def verify(path):
+                  return [str(binary), 'verify', '--proof', str(path), '--request', str(out / 'request.json')]
+              def coded(code):
+                  return ('{"schema":"circuit_decode_rejection_v1","provider":"stwo_circuit_recursion_wire","origin":"circuit_serialize.deserializeProof","code":' + str(code) + ',"class":"invalid_input"}\n').encode()
+              import struct
+              request_words = body["request"]["preprocessed_root"] + body["request"]["output_digest"]
+              output_words = struct.unpack("<8I", hashlib.blake2s(struct.pack("<16I", *request_words)).digest())
+              cases = [
+                  ('success', verify(proof_path), 0, ('accepted: output digest ' + ''.join(f'{word:08x}' for word in output_words) + '\n').encode(), b''),
+                  ('empty', verify(out / 'empty.bin'), 3, b'rejected at deserialize: NotEnoughData\n', coded(20481)),
+                  ('noncanonical', verify(out / 'noncanonical.bin'), 3, b'rejected at deserialize: ValueOutOfRange\n', coded(20482)),
+                  ('usage', [str(binary), '--bad'], 2, b'', b'error: UnknownCommand\n' + usage),
+                  ('missing-input', [str(binary), 'verify', '--proof', str(proof_path), '--request', str(out / 'missing.json')], 1, b'', (f'error: cannot read {out / "missing.json"}: FileNotFound\nerror: FileNotFound\n').encode()),
+              ]
+              for name, command, expected_exit, expected_stdout, expected_stderr in cases:
+                  timed_out = False
+                  try:
+                      result = subprocess.run(command, capture_output=True, timeout=120, check=False, cwd=root)
+                      actual_exit, stdout, stderr = result.returncode, result.stdout, result.stderr
+                  except subprocess.TimeoutExpired as error:
+                      timed_out, actual_exit, stdout, stderr = True, None, error.stdout or b'', error.stderr or b''
+                  (out / (name + '.stdout')).write_bytes(stdout)
+                  (out / (name + '.stderr')).write_bytes(stderr)
+                  row = {'name': name, 'command': command, 'expected_exit': expected_exit, 'actual_exit': actual_exit, 'timed_out': timed_out, 'stdout_sha256': digest(stdout), 'stderr_sha256': digest(stderr), 'stdout_bytes': len(stdout), 'stderr_bytes': len(stderr), 'status': 'PASS' if not timed_out and (actual_exit, stdout, stderr) == (expected_exit, expected_stdout, expected_stderr) else 'FAIL'}
+                  if '--proof' in command:
+                      row['input_proof_sha256'] = digest(Path(command[command.index('--proof') + 1]).read_bytes())
+                  (out / (name + '.json')).write_text(json.dumps(row, indent=2) + '\n')
+                  receipt['cases'].append(row)
+              assert digest(binary.read_bytes()) == receipt['binary_sha256'] and proof_path.read_bytes() == proof, 'binary or frozen proof changed'
+              assert len(receipt['cases']) == 5 and all(row['status'] == 'PASS' for row in receipt['cases']), 'process boundary mismatch; inspect raw receipts'
+              receipt['status'] = 'PASS'
+          finally:
+              (out / 'matrix.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PYD2
+
       - name: Compare fresh Native CPU proof with the frozen golden
         if: matrix.lane == 'native_cpu'
         shell: bash

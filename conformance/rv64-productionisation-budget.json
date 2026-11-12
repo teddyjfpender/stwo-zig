@@ -1114,6 +1114,14 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Pre-edit issue362: move three immutable waist JSON fixtures to vectors/waist and update every live reader/generator default plus exact manifest path/group references. Fixture blobs, sizes, hashes, cases, generator dependencies and upstream identities remain unchanged; no numeric regeneration or source-pin bypass. Path-only source substitutions have zero net growth; physical moves get no removal credit. Remaining legacy line/source-bound artifacts stay explicit E1 follow-up."
+    },
+    {
+      "id": "typed_circuit_decode_errors_359_360",
+      "net_code_budget": 320,
+      "runtime_table_plumbing_max": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Two origin-specific stable decoder codes, immediately consumed by the circuit verifier and existing CPU CLI, with exact code/class/unknown/foreign-origin/OOM/diagnostic-failure contracts. All remaining five-waist D2 boundaries remain explicit; no global anyerror mapping or proof-byte/error/exit change. Approved RFC360."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
