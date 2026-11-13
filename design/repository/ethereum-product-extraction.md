@@ -816,3 +816,24 @@ profile and floor unchanged; no new lane, dependency, script or flag. Pre-edit
 source allowance +1 for the existing ordering contract, within C4 +3300;
 configuration moves and documentation are reported separately. This host run
 is final platform acceptance after local checks, not the development loop.
+
+## Owner-directed landing and explicit follow-ups
+
+On2026-11-13 the maintainer instructed landing PR378 now and tracking remaining
+quality work in issues. This is an explicit decision to land the implemented
+extraction with incomplete combined qualification; it does not turn failed,
+cancelled or unrun proof gates into passes.
+
+- #382 owns exact-main Linux publication, the21 repaired physical failures,
+  complete product mode coverage, both CSP proofs, CPU negatives and frozen
+  Native proof parity. Existing failed/partial evidence stays retained.
+- #383 owns measured owner-based test partitions and incremental receipts,
+  preserving the complete case union and floors through existing entrypoints.
+- #328 retains formal/Sail/oracle source-binding work; #358 retains LS-D64
+  source-projection qualification; #343 retains the69 source-size findings.
+- #332 retains the under60 control target (100 remain), and #354/#359/#366/#370
+  retain their declared waist/error/consumer/budget gates.
+
+No proof admission, profile, protocol version or placement exemption changes
+for landing. Final landing amendment source+0/-0, flags+0/-0 (100live),
+maintained scripts+0/-0; documentation only. C4 stays3288/3300.
