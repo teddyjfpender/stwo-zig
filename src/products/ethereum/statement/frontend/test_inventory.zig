@@ -5,6 +5,7 @@ test {
     _ = @import("air/guest_precompile/ethereum_lookup_registration.zig");
     _ = @import("air/guest_precompile/tests/ethereum_statement_test.zig");
     _ = @import("contracts_test.zig");
+    _ = @import("diagnostics/segment_manifest.zig");
     _ = @import("ethereum_commitment_test_root.zig");
     _ = @import("ethereum_minimal_trace_test_root.zig");
     _ = @import("isa/ethereum_bulk_memcpy_candidate.zig");

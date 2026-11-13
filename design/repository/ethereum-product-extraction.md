@@ -579,3 +579,61 @@ all thirteen commands; removing their descriptor lines restores the prior
 default build byte for byte. The focused proof execution still hits the
 unchanged laptop guard and is UNRUN locally. The same original proof bodies
 remain in the complete hosted default suite; no speed or memory gain is claimed.
+
+
+The repaired hosted run 43361016571 was cancelled at its 30-minute job limit
+while still on the first Debug command. Its retained started receipt and
+partial stderr contain frontend semantic seals but no completed-command or
+CPU acceptance receipt. It is CANCELLED/UNRUN, not a semantic pass. Under the
+standing owner authorization, this host-only combined suite receives the same
+90-minute scheduling allowance already used for complete frontend suites.
+Laptop caps, proof/resource admission and all test assertions/floors stay fixed.
+The commands gain verbose build/summary output to distinguish compiler and
+executed-binary progress in future cancelled receipts. Pre-edit source allowance
+for this CI contract regression is +8, within C4’s unchanged +3,300 total;
+workflow/policy configuration and this evidence note are accounted separately.
+
+The bounded CI metadata amendment also updates the package contract’s
+`ci.command` to the identical verbose Debug argv. The workspace checker rejects
+the old command once the lane changes; its exact command-identity consumer
+regression fails before that amendment. This changes no public runtime API,
+dependency, proof suite, test selector or discovery floor.
+
+The timeout also established that sequential mode scheduling blocks every
+ReleaseFast result behind the first Debug command. The combined suite is
+therefore split into the same two independently selected CPU lanes used for
+the native frontend: `ethereum_statement` retains complete Debug;
+`ethereum_statement_releasefast` retains complete ReleaseFast and focused CSP.
+The latter first runs the existing receiver-boundary gate and one restored
+Word16 proof command, so the previously guarded ReleaseFast physical receipt
+can qualify without waiting for Debug. The package graph selects both lanes
+for affected consumers; no original command, assertion, floor or rejection
+case is removed. Both full-suite hosts retain the bounded 90-minute allowance.
+Pre-edit CI contract/routing source allowance is +20 (within C4 +3,300);
+no new workflow, launcher, runtime flag or public runtime surface is introduced.
+
+
+Full native Debug at df92791a6 (run 43361021086) executed 3,266 cases:
+3,253 passed, eleven skipped, two failed. The failures are stale inventory
+membership and the retained Ethereum manifest case calling the now-correctly
+neutral dispatcher. A bounded +60 source allowance within C4 +3,300 covers
+removing seven no-test inventory entries, moving that exact positive case to
+its product owner, and adding a native rejection/no-output boundary case.
+No inventory checker, test assertion or discovery floor is relaxed; the product
+named floor increases from 478 to 479. Empty focused legacy wrappers revealed
+by this audit remain an explicit migration follow-up, not qualified commands.
+
+ReleaseFast run 43361025411 also completed 3,266 cases with the identical two
+failures (3,253 pass, eleven skip). Their repairs now execute locally in both
+modes: the byte-identical moved manifest assertion passes through the product
+dispatcher, the new neutral rejection checks no journal output, and the official
+native inventory command passes all three cases after eight no-test entries
+are removed (seven umbrella entries and one RV64 helper entry). All 179 Python
+contracts pass. The six empty legacy focused wrappers remain unqualified and
+are being migrated rather than exempted from discovery.
+
+This repair/scheduling slice is source +36/-21/net +15, C4 cumulative
++3,161/+3,300, with zero move credit. Documentation +59/-1, configuration
++48/-6; no new flags or maintained scripts (100 live). The existing full suites
+remain required after the focused-wrapper migration. A cancelled host run and
+locally guarded proof compile remain UNRUN; neither is acceptance evidence.

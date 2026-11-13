@@ -15,7 +15,6 @@ test {
     _ = @import("compat/air/mod.zig");
     _ = @import("compat/assembly/memory/air/mod.zig");
     _ = @import("compat/assembly/recursion/recursion_air_composition_circuit_authority_validation.zig");
-    _ = @import("compat/assembly/recursion/recursion_air_composition_circuit_program_roster.zig");
     _ = @import("compat/assembly/recursion/recursion_air_composition_circuit_write_inputs_from_validated_profile_and_policy.zig");
     _ = @import("compat/assembly/recursion/vm_composition_preparation.zig");
     _ = @import("compat/assembly/rv32/diagnostics/mod.zig");
@@ -61,15 +60,12 @@ test {
     _ = @import("compat/tests/testing/cases/runner_test_root.zig");
     _ = @import("compat/tests/testing/cases/rv64/execution_test_root.zig");
     _ = @import("compat/tests/testing/cases/secp256k1_precompile_test_root.zig");
-    _ = @import("compat/tests/testing/cases/stack_swap_candidate_test_root.zig");
-    _ = @import("compat/tests/testing/cases/vm_air_profile_authority_test_root.zig");
     _ = @import("focused_benchmark_minimal_trace_parallel_replay_0.zig");
     _ = @import("focused_product_rv64_execution_test_root.zig");
     _ = @import("focused_product_sail_oracle_test_root.zig");
     _ = @import("focused_retained_authority_contract_test_root.zig");
     _ = @import("focused_segment_publication_input_provider_authority_test_root.zig");
     _ = @import("focused_statement_wire_test_root.zig");
-    _ = @import("focused_test_bulk_memcpy_candidate_0.zig");
     _ = @import("focused_test_execution_session_0.zig");
     _ = @import("focused_test_guest_precompile_3.zig");
     _ = @import("focused_test_keccakf_precompile_0.zig");
@@ -79,12 +75,9 @@ test {
     _ = @import("focused_test_recursion_temporal_pair_0.zig");
     _ = @import("focused_test_releasefast_acceptance_0.zig");
     _ = @import("focused_test_retained_transcript_contracts_0.zig");
-    _ = @import("focused_test_retained_typed_components_0.zig");
     _ = @import("focused_test_retained_typed_components_upper.zig");
     _ = @import("focused_test_runner_0.zig");
-    _ = @import("focused_test_secp256k1_precompile_0.zig");
     _ = @import("focused_test_segment_statement_v2_0.zig");
-    _ = @import("focused_test_stack_swap_candidate_0.zig");
     _ = @import("opcode_coverage_test.zig");
     _ = @import("runner/guest_precompile/mod.zig");
     _ = @import("runner/mod.zig");

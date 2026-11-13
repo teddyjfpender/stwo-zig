@@ -35,8 +35,20 @@ class PlannerContractTests(unittest.TestCase):
     def test_ethereum_hosted_lane_covers_both_modes_and_preserves_focused_csp(self):
         self.assertEqual(["ethereum_statement"], ci_scope_plan.manual_cpu_selection("ethereum_statement", self.policy)[0])
         commands = self.policy["lanes"]["ethereum_statement"]["commands"]
+        optimized = self.policy["lanes"]["ethereum_statement_releasefast"]["commands"]
+        self.assertEqual(1, len(commands))
+        commands = commands + optimized
+        self.assertTrue(any("test-receiver-boundaries" in cmd for cmd in optimized))
+        self.assertTrue(any("test-word16-cpu-zero-induction-proof" in cmd for cmd in optimized))
         self.assertEqual({"-Doptimize=Debug", "-Doptimize=ReleaseFast"}, {part for cmd in commands if "test" in cmd for part in cmd if part.startswith("-Doptimize=")})
         self.assertTrue(any("test-csp-ecdsa-proof" in cmd and "-Doptimize=ReleaseFast" in cmd for cmd in commands))
+        contract = ci_scope_plan.strict_json(ROOT / "src/products/ethereum/statement/package.contract.json")
+        self.assertEqual(commands[0], contract["ci"]["command"])
+        for command in commands:
+            self.assertIn("--verbose", command)
+            self.assertEqual(["--summary", "all"], command[-2:])
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        self.assertRegex(workflow, r"timeout-minutes:.*matrix.lane == 'ethereum_statement'.*90")
 
     def test_manual_cpu_selection_is_exact_and_refuses_device_or_foreign_lanes(self):
         for lane in ci_scope_plan.MANUAL_CPU_LANES:
@@ -410,7 +422,7 @@ class PlannerContractTests(unittest.TestCase):
                 "cairo_cuda_integration",
                 "riscv_cuda_integration",
                 "ethereum_statement",
-                "package",
+                "ethereum_statement_releasefast",                "package",
                 "native_cuda_static",
                 "native_cuda_device",
             },

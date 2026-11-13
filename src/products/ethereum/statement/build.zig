@@ -51,7 +51,7 @@ pub fn build(b: *std.Build) void {
         run.*.has_side_effects = true;
         owner.dependOn(&run.*.step);
     }
-    owner.dependOn(@import("stwo_riscv_frontend").TestCountFloor.addMany(b, &runs, 478));
+    owner.dependOn(@import("stwo_riscv_frontend").TestCountFloor.addMany(b, &runs, 479));
     const build_tests = b.addRunArtifact(b.addTest(.{ .root_module = b.createModule(.{ .root_source_file = b.path("build_components_test.zig"), .target = b.graph.host, .optimize = optimize }) }));
     build_tests.has_side_effects = true;
     const build_floor = @import("stwo_riscv_frontend").TestCountFloor.addMany(b, &.{build_tests}, 1);

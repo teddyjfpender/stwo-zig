@@ -242,3 +242,16 @@ fn defaultSegmentExternalFamilyRows(comptime profile: execution_profile.Executio
     try validateExternalFamilyRows(rows, external_rows);
     return rows;
 }
+
+test "Ethereum manifest separates Keccak and signer-recovery rows" {
+    const test_elf = @import("stwo_riscv_rv32").testing.execution.guest_precompile.test_elf;
+    const elf = test_elf.buildEthereum();
+    var output = std.Io.Writer.Allocating.init(std.testing.allocator);
+    defer output.deinit();
+    try stream(std.testing.allocator, &elf, &.{}, 16, false, .leaf_local, &output.writer);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        output.written(),
+        "\"external_family_rows\":[{\"family\":\"stwo.keccakf-1600.permute-in-place@1\",\"calls\":1,\"execution_rows\":1},{\"family\":\"stwo.secp256k1.recover-signer@1\",\"calls\":1,\"execution_rows\":1}]",
+    ) != null);
+}

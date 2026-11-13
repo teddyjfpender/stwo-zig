@@ -95,7 +95,6 @@ test {
     _ = @import("../air/word16_index_control/authority_test.zig");
     _ = @import("../candidate_isa_test.zig");
     _ = @import("../services/bulk_packets.zig");
-    _ = @import("../services/curve_packets.zig");
     _ = @import("../services/sponge_packets.zig");
     _ = @import("../focused_product_rv64_air_test_root.zig");
     _ = @import("../focused_product_rv64_arith256_truth_test_root.zig");

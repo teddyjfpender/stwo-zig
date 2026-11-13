@@ -355,7 +355,7 @@ def emit_github_summary(path: Path, plan: dict[str, Any], policy: dict[str, Any]
 # Explicit diagnostics use the same maintained lane commands; they prove only
 # the selected owner and never substitute for automatic PR/scheduled coverage.
 MANUAL_CPU_LANES = frozenset({
-    "core", "prover", "cpu_backend", "proof_wire", "prover_api", "ethereum_statement",
+    "core", "prover", "cpu_backend", "proof_wire", "prover_api", "ethereum_statement", "ethereum_statement_releasefast",
     "riscv_runtime_profile", "riscv_rv64_package_releasefast", "riscv_profile_partition",
     "riscv_runtime_selector", "riscv_profile_partition_releasefast",
     "riscv_retained_contracts", "riscv_retained_contracts_releasefast",

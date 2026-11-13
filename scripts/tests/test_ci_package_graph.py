@@ -173,7 +173,7 @@ class RepositoryGraphTest(unittest.TestCase):
 
     def test_every_package_has_its_lane_and_frontend_has_releasefast_companion(self) -> None:
         bound = sorted(self.bindings.values())
-        self.assertEqual(bound, sorted([*self.packages, "stwo_riscv_frontend", "stwo_riscv_frontend", "stwo_riscv_frontend", "stwo_riscv_rv64"]))
+        self.assertEqual(bound, sorted([*self.packages, "stwo_ethereum_statement", "stwo_riscv_frontend", "stwo_riscv_frontend", "stwo_riscv_frontend", "stwo_riscv_rv64"]))
 
     def test_core_change_selects_every_dependent_package_lane(self) -> None:
         lanes, _ = graph.selection(["src/waist/core/fields/m31.zig"], self.packages, self.bindings)
@@ -186,7 +186,7 @@ class RepositoryGraphTest(unittest.TestCase):
             ["src/engine/artifact_store/mod.zig"], self.packages, self.bindings
         )
         self.assertEqual(lanes, frozenset({
-            "artifact_store", "metal_session", "cairo_metal_integration", "ethereum_statement",
+            "artifact_store", "metal_session", "cairo_metal_integration", "ethereum_statement", "ethereum_statement_releasefast",
             "riscv_cpu_integration", "riscv_cuda_integration", "riscv_metal_integration", "circuit_metal_integration",
         }))
         self.assertEqual(unowned, frozenset())
@@ -199,6 +199,7 @@ class RepositoryGraphTest(unittest.TestCase):
                 {
                     "cairo_frontend",
                     "ethereum_statement",
+                    "ethereum_statement_releasefast",
                     "cairo_cpu_integration",
                     "cairo_metal_integration",
                     "cairo_cuda_integration",
@@ -223,7 +224,7 @@ class RepositoryGraphTest(unittest.TestCase):
             frozenset({
                 "riscv_frontend",
                 "ethereum_statement",
-                "riscv_frontend_releasefast",
+                "ethereum_statement_releasefast",                "riscv_frontend_releasefast",
                 "riscv_frontend_acceptance",
                 "riscv_witness_benchmarks",
                 "riscv_cpu_integration",

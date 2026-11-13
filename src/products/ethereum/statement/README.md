@@ -64,7 +64,7 @@ instances, with no duplicate implementation or nominal records.
 
 ## Build, test, and run
 
-`zig build test --build-file src/products/ethereum/statement/build.zig -Doptimize=Debug -j2`
+`zig build test --build-file src/products/ethereum/statement/build.zig -Doptimize=Debug -j2 --verbose --summary all`
 
 ## Contract and invariants
 

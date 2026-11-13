@@ -1440,7 +1440,7 @@
     },
     "ethereum_statement": {
       "host": "linux",
-      "description": "Ethereum product component and compatibility contracts",
+      "description": "Complete Ethereum product Debug component and compatibility contracts",
       "commands": [
         [
           "zig",
@@ -1449,7 +1449,40 @@
           "--build-file",
           "src/products/ethereum/statement/build.zig",
           "-Doptimize=Debug",
-          "-j2"
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
+    },
+    "ethereum_statement_releasefast": {
+      "host": "linux",
+      "description": "Independent complete Ethereum ReleaseFast and CSP qualification; receiver boundaries run before broad compilation",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-receiver-boundaries",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test-word16-cpu-zero-induction-proof",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
         ],
         [
           "zig",
@@ -1458,7 +1491,10 @@
           "--build-file",
           "src/products/ethereum/statement/build.zig",
           "-Doptimize=ReleaseFast",
-          "-j2"
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
         ],
         [
           "zig",
@@ -1467,7 +1503,10 @@
           "--build-file",
           "src/products/ethereum/statement/build.zig",
           "-Doptimize=ReleaseFast",
-          "-j2"
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
         ]
       ]
     }
