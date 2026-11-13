@@ -637,3 +637,42 @@ This repair/scheduling slice is source +36/-21/net +15, C4 cumulative
 +48/-6; no new flags or maintained scripts (100 live). The existing full suites
 remain required after the focused-wrapper migration. A cancelled host run and
 locally guarded proof compile remain UNRUN; neither is acceptance evidence.
+
+
+## Final focused-owner migration
+
+Under the standing owner decision for RFC #352, a bounded BUILD-only native
+constructor will create the existing retained typed-test module from the
+caller-selected frontend source/dependency pointers. Its private source path
+stays with the native owner; the product receives only a std.Build.Module.
+An executable std.Build identity/immutability test precedes publication. No
+runtime API, protocol record, package dependency or module is added. The native
+default command will execute that BUILD contract under a separate floor of one.
+
+The former mixed retained target’s original floor21 moves to the product,
+joining the twelve existing native typed cases and eight existing product VM
+composition cases. The native mathematical subset gets its own named target;
+the original mixed floor is never lowered. The empty SWAP target transfers
+to the product with its original floor7, and empty partitions are removed
+from the bulk/secp targets without changing their floors. All original
+assertion-bearing subjects remain in their default owners. Pre-edit allowance
+for this factory, consumer wiring and executable BUILD contract is +110 source
+lines within C4’s unchanged +3,300; documentation/configuration remain separate.
+
+The BUILD constructor contract and actual developer entrypoint pass Debug and
+ReleaseFast. The SWAP command passes both modes with its preserved floor7,
+and an independent direct run observes all six selected named assertions
+passing in each mode. The official native inventory gate passes all three
+cases in both modes after retirement of the six empty collectors. All 180
+Python contracts and the package workspace pass. The composed floor21 gate
+still exceeds the unchanged laptop compiler cap and remains UNRUN locally;
+both complete product host lanes execute it before the broad defaults.
+The first operator harness nested the build lock and timed out before
+compilation; the corrected harness propagates its held-lock marker. Failed
+and guarded evidence is retained separately from passing command records.
+
+Focused-owner slice budget: source +90/-34/net +56; C4 cumulative
++3,217/+3,300, zero move credit. No new flags or maintained scripts (100 live).
+Documentation and configuration are measured separately in the commit. The
+69 inherited source-size errors remain outside this extracted product; no
+ceiling, baseline or exemption changed. Full final-source host gates are pending.

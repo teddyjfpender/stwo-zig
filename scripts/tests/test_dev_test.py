@@ -66,6 +66,14 @@ class DevTestPlanTests(unittest.TestCase):
         (command,) = dev_test.commands_for_paths(ROOT, ["src/products/ethereum/statement/build_components.zig"], optimize="ReleaseFast")
         self.assertEqual(["zig", "test", "-OReleaseFast", "src/products/ethereum/statement/build_components_test.zig"], command)
 
+    def test_native_build_contract_uses_the_actual_build_script_without_full_suite(self):
+        path = "src/frontends/riscv/build.zig"
+        (command,) = dev_test.commands_for_paths(ROOT, [path], optimize="ReleaseFast")
+        self.assertEqual(["zig", "test", "-OReleaseFast", path], command)
+        deferred = []
+        self.assertEqual([], dev_test.commands_for_paths(ROOT, [path], check_only=True, deferred=deferred))
+        self.assertEqual(["stwo_riscv_frontend (focused contract execution)"], deferred)
+
     def test_artifact_owner_and_public_consumer_use_bounded_real_modules(self):
         for path in ("rv64_proof_artifact_support.zig", "tests/proof_artifact_support_contract_test.zig"):
             for check in (False, True):
@@ -350,7 +358,7 @@ class DevTestPlanTests(unittest.TestCase):
             ("src/integrations/riscv_cpu/blake3_memory_path_proof_test_root.zig", "test-blake3-proof-contracts"),
             ("src/integrations/riscv_cpu/word16_image_program_contract_test_root.zig", "test-word16-image-program-contracts"),
             ("src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
-            ("src/frontends/riscv/focused_test_retained_typed_components_0.zig", "test-retained-typed-components"),
+            ("src/frontends/riscv/focused_test_retained_typed_components_upper.zig", "test-native-typed-components"),
             ("src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
             ("src/products/ethereum/statement/frontend/recursion/tests/ethereum_vm_composition_program_test.zig", "test-ethereum-composition-program"),
             ("src/frontends/riscv/focused_test_retained_transcript_contracts_0.zig", "test-retained-transcript-contracts"),

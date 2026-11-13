@@ -242,3 +242,13 @@ The compatibility umbrella directly composes these canonical child packages:
 - `stwo_riscv_rv64`
 - `stwo_riscv_recursion`
 - `stwo_riscv_testing`
+
+BUILD constructor contracts run in the default step and through
+`test-build-components`; `scripts/dev_test.py src/frontends/riscv/build.zig`
+executes that actual std.Build contract directly.
+`test-native-typed-components` owns the native mathematical subset. The
+complete mixed retained gate (original floor21) and SWAP gate (original floor7)
+now belong to `src/products/ethereum/statement/build.zig`; their product
+assertions remain in product default discovery. The BUILD-only
+`retainedTypedTestModule` constructor keeps the private native source layout
+below this boundary and reuses the caller’s exact dependency module pointers.

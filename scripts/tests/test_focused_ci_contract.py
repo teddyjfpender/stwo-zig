@@ -36,14 +36,17 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(["ethereum_statement"], ci_scope_plan.manual_cpu_selection("ethereum_statement", self.policy)[0])
         commands = self.policy["lanes"]["ethereum_statement"]["commands"]
         optimized = self.policy["lanes"]["ethereum_statement_releasefast"]["commands"]
-        self.assertEqual(1, len(commands))
+        self.assertEqual(2, len(commands))
+        for lane in ("ethereum_statement", "ethereum_statement_releasefast"):
+            self.assertTrue(any("test-retained-typed-components" in cmd for cmd in self.policy["lanes"][lane]["commands"]))
+        self.assertIn("retained_vm_run.? }, 21)", (ROOT / "src/products/ethereum/statement/build.zig").read_text())
         commands = commands + optimized
         self.assertTrue(any("test-receiver-boundaries" in cmd for cmd in optimized))
         self.assertTrue(any("test-word16-cpu-zero-induction-proof" in cmd for cmd in optimized))
         self.assertEqual({"-Doptimize=Debug", "-Doptimize=ReleaseFast"}, {part for cmd in commands if "test" in cmd for part in cmd if part.startswith("-Doptimize=")})
         self.assertTrue(any("test-csp-ecdsa-proof" in cmd and "-Doptimize=ReleaseFast" in cmd for cmd in commands))
         contract = ci_scope_plan.strict_json(ROOT / "src/products/ethereum/statement/package.contract.json")
-        self.assertEqual(commands[0], contract["ci"]["command"])
+        self.assertIn(contract["ci"]["command"], commands)
         for command in commands:
             self.assertIn("--verbose", command)
             self.assertEqual(["--summary", "all"], command[-2:])
@@ -162,7 +165,7 @@ class PlannerContractTests(unittest.TestCase):
         )
         commands = self.policy["lanes"]["riscv_frontend"]["commands"] + self.policy["lanes"]["riscv_frontend_releasefast"]["commands"]
         self.assertEqual(4, len(commands))
-        self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-retained-transcript-contracts", "test-retained-typed-components", f"-Doptimize={mode}", "-j1", "--summary", "all", "--verbose"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_retained_contracts"]["commands"] + self.policy["lanes"]["riscv_retained_contracts_releasefast"]["commands"])
+        self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-retained-transcript-contracts", "test-native-typed-components", f"-Doptimize={mode}", "-j1", "--summary", "all", "--verbose"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_retained_contracts"]["commands"] + self.policy["lanes"]["riscv_retained_contracts_releasefast"]["commands"])
         self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-air-runtime-profile", f"-Doptimize={mode}", "-j2", "--summary", "all"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_runtime_profile"]["commands"])
         for command, step, mode in zip(commands, ("test-air-runtime-profile", "test-air-runtime-profile", "test", "test"), ("Debug", "ReleaseFast", "Debug", "ReleaseFast"), strict=True):
             self.assertEqual(["zig", "build", step, "--build-file", "src/frontends/riscv/build.zig", f"-Doptimize={mode}", "-j2"] + (["--verbose", "--summary", "all"] if step == "test" else []), command)
@@ -192,7 +195,7 @@ class PlannerContractTests(unittest.TestCase):
                 self.assertEqual(parent in rule["lanes"], companion in rule["lanes"])
             for lanes in self.policy["product_scope_lanes"].values():
                 self.assertEqual(parent in lanes, companion in lanes)
-            selected = self.lanes_for("src/frontends/riscv/focused_test_retained_typed_components_0.zig")
+            selected = self.lanes_for("src/frontends/riscv/focused_test_retained_typed_components_upper.zig")
             self.assertTrue({parent, companion}.issubset(selected))
             self.assertIn(companion, ci_scope_plan.MANUAL_CPU_LANES)
 

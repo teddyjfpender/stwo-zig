@@ -104,3 +104,11 @@ Existing CSP qualification commands now belong to this product:
 `test-blake3-csp-ecdsa-aot` (with the same authenticated bundle option).
 The Metal commands are explicit device gates and are outside the default test
 step. This migration introduces no device qualification or performance claim.
+
+The retained mixed gate now runs here as `test-retained-typed-components`:
+its original floor of21 joins the existing native typed cases and the product
+VM cases. The native owner constructs its test module from the selected module
+graph; this product does not name a private native test path.
+`test-stack-swap-candidate` likewise runs here with its original floor7.
+The neutral package’s `test-native-typed-components` covers its mathematical
+subset; its default test command still collects all native assertions.

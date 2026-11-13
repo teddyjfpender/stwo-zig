@@ -1072,7 +1072,7 @@
           "--cwd",
           "src/frontends/riscv",
           "test-retained-transcript-contracts",
-          "test-retained-typed-components",
+          "test-native-typed-components",
           "-Doptimize=Debug",
           "-j1",
           "--summary",
@@ -1109,7 +1109,7 @@
           "--cwd",
           "src/frontends/riscv",
           "test-retained-transcript-contracts",
-          "test-retained-typed-components",
+          "test-native-typed-components",
           "-Doptimize=ReleaseFast",
           "-j1",
           "--summary",
@@ -1445,6 +1445,18 @@
         [
           "zig",
           "build",
+          "test-retained-typed-components",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
           "test",
           "--build-file",
           "src/products/ethereum/statement/build.zig",
@@ -1476,6 +1488,18 @@
           "zig",
           "build",
           "test-word16-cpu-zero-induction-proof",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test-retained-typed-components",
           "--build-file",
           "src/products/ethereum/statement/build.zig",
           "-Doptimize=ReleaseFast",
@@ -2344,7 +2368,7 @@
         "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig",
         "src/products/ethereum/statement/frontend/recursion/tests/ethereum_vm_composition_program_test.zig",
         "src/frontends/riscv/focused_test_retained_transcript_contracts_0.zig",
-        "src/frontends/riscv/focused_test_retained_typed_components_0.zig"
+        "src/frontends/riscv/focused_test_retained_typed_components_upper.zig"
       ],
       "lanes": [
         "riscv_retained_contracts",

@@ -62,6 +62,7 @@ pub fn build(b: *std.Build) void {
     build_step.dependOn(build_floor);
     // Product-owned focused roots borrow the actual component's dependency
     // pointers; they never construct a second frontend/Core module graph.
+    var retained_vm_run: ?*std.Build.Step.Run = null;
     inline for (.{
         .{ .component = cpu_component, .step = "test-receiver-boundaries", .description = "Test real receipt, image and independently configured receiver rejection boundaries", .root = "cpu/rv64_ethereum_receiver_boundary_test_root.zig", .filters = &[_][]const u8{ "serialized Ethereum receipt", "Ethereum cursor rejects", "serialized physical receipt", "merged RAM BYTE mass rejects" }, .minimum = 5 },
         .{ .component = cpu_component, .step = "test-receiver-boundaries", .description = "Test real receipt, image and independently configured receiver rejection boundaries", .root = "cpu/rv64_ethereum_image_admission_test_root.zig", .filters = &[_][]const u8{ "pristine expected image retains", "pristine image pin terminal", "new execution packet path reads", "execution receiver binds independently", "execution memory count preflight", "resident pinned image program cache" }, .minimum = 7 },
@@ -92,6 +93,7 @@ pub fn build(b: *std.Build) void {
         .{ .component = cpu_component, .step = "test-csp-ecdsa-proof", .description = "Prove both canonical CSP ECDSA suites on CPU", .root = "cpu/csp_ecdsa_proof_test.zig", .filters = &[_][]const u8{ "CSP ECDSA guest proves caller memory", "BLAKE3 CSP ECDSA guest proves" }, .minimum = 2 },
         .{ .component = frontend_component, .step = "test-composition-custody", .description = "Check ownership, OOM, mutation and Initial38 policy", .root = "frontend.zig", .filters = &[_][]const u8{ "composition ownership", "composition finalization", "composition borrowed", "Initial38 composition descriptor" }, .minimum = 17 },
         .{ .component = product, .step = "test-component-boundaries", .description = "Check canonical components, coordinator owners and read capabilities", .root = "mod.zig", .filters = &[_][]const u8{ "api signature: Ethereum product", "api invariant: legacy exports", "coordinator boundary:", "composition boundary:" }, .minimum = 7 },
+        .{ .component = frontend_component, .step = "test-stack-swap-candidate", .description = "Check product SWAP authority, decode and execution", .root = "frontend.zig", .filters = &[_][]const u8{"SWAP"}, .minimum = 7 },
         .{ .component = frontend_component, .step = "test-ethereum-composition-program", .description = "Run every moved composition-program case", .root = "frontend_composition_program_test_root.zig", .filters = &[_][]const u8{}, .minimum = 8 },
     }) |spec| {
         const root = b.createModule(.{ .root_source_file = b.path(spec.root), .target = target, .optimize = optimize });
@@ -99,11 +101,17 @@ pub fn build(b: *std.Build) void {
         const tests = b.addTest(.{ .root_module = root, .filters = spec.filters });
         const run = b.addRunArtifact(tests);
         run.has_side_effects = true;
+        if (std.mem.eql(u8, spec.step, "test-ethereum-composition-program")) retained_vm_run = run;
         // Shared names compose independent images, each with its own floor.
         const step = if (b.top_level_steps.get(spec.step)) |existing| &existing.step else b.step(spec.step, spec.description);
         step.dependOn(&run.step);
         step.dependOn(@import("stwo_riscv_frontend").TestCountFloor.addMany(b, &.{run}, spec.minimum));
     }
+    const retained_native = @import("stwo_riscv_frontend").retainedTypedTestModule(b, neutral_frontend, target, optimize);
+    const native_run = b.addRunArtifact(b.addTest(.{ .root_module = retained_native }));
+    native_run.has_side_effects = true;
+    const retained = b.step("test-retained-typed-components", "Check the complete retained native and product VM family");
+    retained.dependOn(@import("stwo_riscv_frontend").TestCountFloor.addMany(b, &.{ native_run, retained_vm_run.? }, 21));
 }
 
 fn addMetalCsp(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, frontend: *std.Build.Module) void {

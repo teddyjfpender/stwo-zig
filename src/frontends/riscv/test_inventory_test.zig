@@ -81,7 +81,7 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
     },
     .{
         .path = "build.zig",
-        .why = "this package's build script, not part of the module",
+        .why = "BUILD-only constructor contracts, executed by default and test-build-components",
     },
     .{
         .path = "testing/cases/r012_universal_adapter_test_root.zig",

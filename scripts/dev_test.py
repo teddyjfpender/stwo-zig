@@ -25,6 +25,8 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_frontend", "src/frontends/riscv/build.zig", "test-build-components"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/runner/guest_precompile/tests/ethereum_stack_swap_candidate_test.zig", "test-stack-swap-candidate"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/alu_fused_tail_proof_test.zig", "test-word16-alu-fused-tail-proof"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/alu_read_induction_proof_test.zig", "test-word16-alu-read-induction-proof"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_clock_induction_proof_test.zig", "test-word16-cpu-clock-induction-proof"),
@@ -103,10 +105,10 @@ FOCUSED_RULES = (
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed/manifest_test.zig", "test-distributed-binary-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed_execution/binary_worker_test.zig", "test-distributed-binary-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_component_test.zig", "test-retained-typed-components"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_quotient_test.zig", "test-retained-typed-components"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_component_test_support.zig", "test-retained-typed-components"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion_air/tests/qm31_mul_full_relation_test_support.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_component_test.zig", "test-native-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_quotient_test.zig", "test-native-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_component_test_support.zig", "test-native-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion_air/tests/qm31_mul_full_relation_test_support.zig", "test-native-typed-components"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/scheduled_channel_test_support.zig", "test-retained-transcript-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/transcript_program_v2_test.zig", "test-retained-transcript-contracts"),
 
@@ -471,13 +473,14 @@ def commands_for_paths(
             commands.append(broad_command(root, package, optimize or "ReleaseSafe"))
             continue
         selected_steps = sorted(value for value in steps if value is not None)
-        if check_only and package_name == "stwo_ethereum_statement":
+        if check_only and (package_name == "stwo_ethereum_statement" or (package_name == "stwo_riscv_frontend" and selected_steps == ["test-build-components"])):
             if deferred is None:
                 raise DevTestError("Ethereum consumer contracts require focused contract execution")
             deferred.append(package_name + " (focused contract execution)")
             continue
-        if package_name == "stwo_ethereum_statement" and selected_steps == ["test-build-components"]:
-            commands.append(["zig", "test", "-O" + (optimize or "Debug"), package.directory + "/build_components_test.zig"])
+        if package_name in {"stwo_ethereum_statement", "stwo_riscv_frontend"} and selected_steps == ["test-build-components"]:
+            filename = "build.zig" if package_name == "stwo_riscv_frontend" else "build_components_test.zig"
+            commands.append(["zig", "test", "-O" + (optimize or "Debug"), package.directory + "/" + filename])
             continue
         if package_name == "stwo_riscv_cpu_integration" and selected_steps == ["test-proof-artifact-support"]:
             # These std-only paths consume the actual public module; loading the

@@ -15,6 +15,13 @@ const std = @import("std");
 /// suite grows; never lower it to make a build pass.
 const test_floor = 1103;
 
+/// BUILD-only retained test constructor. Private source layout stays with
+/// this owner; consumers supply the already selected native module graph.
+pub fn retainedTypedTestModule(b: *std.Build, native: *std.Build.Module, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
+    const source = native.root_source_file orelse @panic("selected frontend lacks source root");
+    return createBoundRoot(b, native, source.dirname().path(b, "focused_test_retained_typed_components_upper.zig"), native, target, optimize);
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -134,6 +141,12 @@ pub fn build(b: *std.Build) void {
         test_step.dependOn(TestCountFloor.requireName(b, run, signatureName(b, owner.module)));
     }
     test_step.dependOn(TestCountFloor.addMany(b, &complete_runs, test_floor));
+    const build_run = b.addRunArtifact(b.addTest(.{ .root_module = b.createModule(.{ .root_source_file = b.path("build.zig"), .target = b.graph.host, .optimize = optimize }) }));
+    build_run.has_side_effects = true;
+    const build_gate = TestCountFloor.addMany(b, &.{build_run}, 1);
+    test_step.dependOn(build_gate);
+    const build_step = b.step("test-build-components", "Check selected native modules and BUILD ownership");
+    build_step.dependOn(build_gate);
 
     const manifest_mode = b.option(
         []const u8,
@@ -271,9 +284,13 @@ fn createOwnedRoot(b: *std.Build, frontend: *std.Build.Module, owners: []const O
         provider = owner.module;
         break;
     };
-    const root = b.createModule(.{ .root_source_file = b.path(source), .target = target, .optimize = optimize });
+    return createBoundRoot(b, provider, b.path(source), if (provider == frontend) frontend else null, target, optimize);
+}
+
+fn createBoundRoot(b: *std.Build, provider: *std.Build.Module, source: std.Build.LazyPath, frontend: ?*std.Build.Module, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
+    const root = b.createModule(.{ .root_source_file = source, .target = target, .optimize = optimize });
     for (provider.import_table.keys(), provider.import_table.values()) |name, dependency| root.addImport(name, dependency);
-    if (provider == frontend) root.addImport("stwo_riscv_frontend", frontend);
+    if (frontend) |selected| root.addImport("stwo_riscv_frontend", selected);
     return root;
 }
 
@@ -383,3 +400,33 @@ pub const TestCountFloor = struct {
         , .{ count, floor.minimum });
     }
 };
+
+test "retained BUILD constructor preserves selected modules and native ownership" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const directory = std.Build.Cache.Directory.cwd();
+    const target = std.Build.ResolvedTarget{ .query = .{}, .result = @import("builtin").target };
+    var graph = std.Build.Graph{
+        .arena = a,
+        .cache = .{ .gpa = a, .manifest_dir = std.fs.cwd() },
+        .zig_exe = "zig",
+        .env_map = std.process.EnvMap.init(a),
+        .global_cache_root = directory,
+        .zig_lib_directory = directory,
+        .host = target,
+        .time_report = false,
+    };
+    const b = try std.Build.create(&graph, directory, directory, &.{});
+    const native = b.createModule(.{ .root_source_file = b.path("src/frontends/riscv/mod.zig") });
+    const core = b.createModule(.{ .root_source_file = b.path("src/waist/core/mod.zig") });
+    native.addImport("stwo_core", core);
+    const module = retainedTypedTestModule(b, native, target, .Debug);
+    try std.testing.expect(module != native);
+    try std.testing.expect(module.import_table.get("stwo_core") == core);
+    try std.testing.expectEqual(@as(usize, 1), native.import_table.count());
+    try std.testing.expect(module.import_table.get("stwo_riscv_frontend") == native);
+    try std.testing.expectEqual(@as(usize, 2), module.import_table.count());
+    try std.testing.expectEqual(std.builtin.OptimizeMode.Debug, module.optimize.?);
+    try std.testing.expect(std.mem.endsWith(u8, module.root_source_file.?.getPath(b), "focused_test_retained_typed_components_upper.zig"));
+}

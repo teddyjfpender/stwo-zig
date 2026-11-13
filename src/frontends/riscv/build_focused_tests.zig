@@ -117,11 +117,10 @@ pub const specs = [_]Spec{
         .minimum = 2,
     },
     .{
-        .step = "test-retained-typed-components",
-        .description = "Check retained typed adapters, VM composition authority and quotient lifecycle",
-        .root = "focused_test_retained_typed_components_0.zig",
-        .minimum = 21,
-        .partition_roots = &.{ "focused_test_retained_typed_components_0.zig", "focused_test_retained_typed_components_upper.zig" },
+        .step = "test-native-typed-components",
+        .description = "Check the native retained typed adapters and quotient lifecycle",
+        .root = "focused_test_retained_typed_components_upper.zig",
+        .minimum = 13,
     },
     .{
         .step = "test-retained-transcript-contracts",
@@ -424,13 +423,7 @@ pub const specs = [_]Spec{
         .description = "Run the nonproduction word-granular memcpy AIR candidate tests",
         .root = "precompiles/focused_test_bulk_memcpy_candidate_0.zig",
         .minimum = 6,
-        .partition_roots = &.{ "precompiles/focused_test_bulk_memcpy_candidate_0.zig", "isa/focused_test_bulk_memcpy_candidate_0.zig", "focused_test_bulk_memcpy_candidate_0.zig", "rv32/focused_test_bulk_memcpy_candidate_0.zig", "testing/focused_test_bulk_memcpy_candidate_0.zig" },
-    },
-    .{
-        .step = "test-stack-swap-candidate",
-        .description = "Run the nonproduction SWAP1..SWAP16 semantic and AIR candidate tests",
-        .root = "focused_test_stack_swap_candidate_0.zig",
-        .minimum = 7,
+        .partition_roots = &.{ "precompiles/focused_test_bulk_memcpy_candidate_0.zig", "isa/focused_test_bulk_memcpy_candidate_0.zig", "rv32/focused_test_bulk_memcpy_candidate_0.zig", "testing/focused_test_bulk_memcpy_candidate_0.zig" },
     },
     .{
         .step = "test-poseidon-merkle",
@@ -460,7 +453,7 @@ pub const specs = [_]Spec{
         .description = "Run compact secp256k1 field and precompile authority tests",
         .root = "precompiles/focused_test_secp256k1_precompile_0.zig",
         .minimum = 34,
-        .partition_roots = &.{ "precompiles/focused_test_secp256k1_precompile_0.zig", "testing/focused_test_secp256k1_precompile_0.zig", "focused_test_secp256k1_precompile_0.zig" },
+        .partition_roots = &.{ "precompiles/focused_test_secp256k1_precompile_0.zig", "testing/focused_test_secp256k1_precompile_0.zig" },
     },
     .{
         .step = "test-interaction-trace-plan",
