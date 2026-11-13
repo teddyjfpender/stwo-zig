@@ -1,5 +1,6 @@
 //! Single Ethereum request lifecycle: capture, proving, publication and optional recursion.
 const std = @import("std");
+const Receipt = @import("stwo_riscv_cpu_integration").rv64_proof_artifact_support;
 const engine = @import("stwo_prover_engine");
 const Request = @import("../../rv64_ethereum_request.zig");
 const Image = @import("../../word16_execution/expected_image.zig");
@@ -649,7 +650,7 @@ pub fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: Resid
     // A session persists new artifacts between requests, off the request wall.
     if (setup_cache) |*owner| try owner.persist();
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .accounting_profile = value.accounting_profile, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
-    try std.posix.fsync(dir.fd);
+    try Receipt.syncDirectory(dir);
     if (combined) {
         if (comptime !enable_recursion) return error.RecursionProductRequired;
         // The terminal endpoint is checked before any accepted root artifact.
@@ -700,7 +701,7 @@ pub fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: Resid
         const fixed_setup_backend: []const u8 = if (try recursion_execution.usesDeviceFixed()) "device_candidate" else "cpu";
         const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .fixed_setup_backend = fixed_setup_backend, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .recursion_execution = recursion_operational, .native_authority_session_used = session != null, .native_authority_classes = if (session) |shared| shared.keyCount() else @as(usize, 0), .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .native_verify_join_wait_ns = native_verify_join_wait_ns, .native_verify_workers = if (overlap_verify) side_verify.worker_count else pool.workerCount(), .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .recursion_streamed = streaming != null, .recursion_after_native_ns = timer.read() - (prove_start + prove_ns), .combined_ns = timer.read(), .recursive = recursion };
         try Driver.writeJson(a, dir, "combined-report.json", report);
-        try std.posix.fsync(dir.fd);
+        try Receipt.syncDirectory(dir);
         return emit(a, report);
     }
 }

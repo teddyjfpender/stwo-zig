@@ -403,10 +403,10 @@ pub fn runWithOptions(a: std.mem.Allocator, config: Request.Config, options: Run
     defer descriptor.close();
     // Sync newly created directory entries as well as packet file contents.
     // A packet in jobs/ is not crash-durable if jobs itself can disappear.
-    try std.posix.fsync(directory.fd);
+    try Receipt.syncDirectory(directory);
     var output_parent = try directory.openDir("..", .{ .iterate = true });
     defer output_parent.close();
-    try std.posix.fsync(output_parent.fd);
+    try Receipt.syncDirectory(output_parent);
     const request = walk.request;
     const identity = walk.identity;
     // Two-stage pipeline: this thread executes batch k+1 while a single
@@ -456,7 +456,7 @@ pub fn runWithOptions(a: std.mem.Allocator, config: Request.Config, options: Run
     const result = try std.json.Stringify.valueAlloc(a, summary, .{ .whitespace = .indent_2 });
     defer a.free(result);
     try Receipt.writeExclusive(directory, "collection.json", result);
-    try std.posix.fsync(directory.fd);
+    try Receipt.syncDirectory(directory);
     // Never publish summary.json or a verified checkpoint from native data.
     return summary;
 }

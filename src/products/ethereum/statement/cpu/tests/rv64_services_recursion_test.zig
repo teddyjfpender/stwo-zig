@@ -252,6 +252,11 @@ test "SHA-256 truth shape: receiver derivation equals the actual component geome
     try std.testing.expectError(error.InvalidRecursiveTruthGeometry, Leaf.sha256Shape(arena, 14, config));
     try std.testing.expectError(error.InvalidRecursiveTruthGeometry, Leaf.sha256Shape(arena, 4, config));
     try std.testing.expectError(error.InvalidRecursiveTruthGeometry, Leaf.truthShape(arena, .arith256_mod, Ar.layout.MIN_LOG - 1, config));
+    // Family-confusion mutations need a height admitted by both providers.
+    const sha = try Leaf.truthShape(arena, .sha256, Ar.layout.MIN_LOG, config);
+    const arith = try Leaf.truthShape(arena, .arith256_mod, Ar.layout.MIN_LOG, config);
+    try std.testing.expectEqual(sha.global_log, arith.global_log);
+    try std.testing.expect(sha.nColumns(0) != arith.nColumns(0));
 }
 
 /// One v3 fixture (2 CPU proofs with SHA/arith/bulk bridges, then the
@@ -417,8 +422,10 @@ test "v3 truth leaves adversarial: tampered OODS values, wrong shape, wrong publ
         try std.testing.expectError(error.NonzeroAbsentServiceClaim, Leaf.verifyNative(a, prepared.truth(k), k, 2, prepared.case.expected(), &prepared.case.bundle.manifest, claims, &prepared.proofs[k]));
     }
     // The other family's shape is rejected the same way.
-    const swapped = try Leaf.truthShape(arena, .arith256_mod, (try prepared.public(0)).log, config);
-    try std.testing.expectError(error.ShapeMismatch, nv.proof.fromNative(arena, G.T.P.Hasher, &prepared.proofs[0], &prepared.verified[0].capture, &swapped));
+    // Use the arith proof's log (>=8), admitted by BOTH families. Building
+    // arith at the SHA fixture's log5 aborts before exercising conversion.
+    const swapped = try Leaf.truthShape(arena, .sha256, (try prepared.public(1)).log, config);
+    try std.testing.expectError(error.ShapeMismatch, nv.proof.fromNative(arena, G.T.P.Hasher, &prepared.proofs[1], &prepared.verified[1].capture, &swapped));
     // v2 truth families have no recursive truth statement yet.
     var keccak = try prepared.public(0);
     keccak.family = .keccak;

@@ -37,6 +37,6 @@ pub fn run(a: std.mem.Allocator, config: Request.Config) !Receiver.Result {
     }, .{ .whitespace = .indent_2 });
     defer a.free(summary);
     try Receipt.writeExclusive(directory, "summary.json", summary);
-    try std.posix.fsync(directory.fd);
+    try Receipt.syncDirectory(directory);
     return result;
 }

@@ -2,7 +2,7 @@
 
 | Fact | Value |
 | --- | --- |
-| Version | `1.0.0` |
+| Version | `1.1.0` |
 | Layer | `integration` |
 | Owner | `riscv-cpu-integration` |
 | Focused CI host | Linux |
@@ -311,3 +311,9 @@ original `tree_selection.validate`; inventory reconstruction, manifest closure,
 cancellation and teardown checks remain mandatory. All returned domain methods
 retain existing error and lifetime semantics. This unpublished 1.0.0 candidate
 requires the product consumer and complete execution gates before qualification.
+
+The shared artifact helper `rv64_proof_artifact_support.syncDirectory` borrows
+a directory and persists its entries through an independently opened readable
+handle. It preserves the caller’s handle and propagates open/sync failures;
+callers must not report durable publication after failure. This supports Linux
+non-iterable (`O_PATH`) handles as well as macOS directory handles.

@@ -482,7 +482,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, setups: []const *const R.Cpu
         try Receipt.writeExclusive(dir, try proofName(&buf, true, index), truth.bytes);
     }
     try Receipt.writeExclusive(dir, "bundle.json", json);
-    try std.posix.fsync(dir.fd);
+    try Receipt.syncDirectory(dir);
 }
 fn readProof(a: std.mem.Allocator, dir: std.fs.Dir, truth: bool, index: usize, file: File) ![]u8 {
     var buf: [64]u8 = undefined;

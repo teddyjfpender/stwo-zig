@@ -1,5 +1,6 @@
 //! Durable shared-truth diagnostic, independently expected four-instruction program.
 const std = @import("std");
+const Receipt = @import("../../../rv64_proof_artifact_support.zig");
 const engine = @import("stwo_prover_engine");
 const F = @import("fixture.zig");
 const Base = @import("../fixture.zig");
@@ -48,7 +49,7 @@ pub fn main() !void {
         try write(dir, "cpu0.bin", c.bundle.cpus[0].bytes);
         try write(dir, "cpu1.bin", c.bundle.cpus[1].bytes);
         try write(dir, "truth.bin", c.bundle.truth.bytes);
-        try std.posix.fsync(dir.fd);
+        try Receipt.syncDirectory(dir);
     } else if (std.mem.eql(u8, args[1], "verify")) {
         var dir = try std.fs.cwd().openDir(args[2], .{});
         defer dir.close();
@@ -95,7 +96,7 @@ fn produceBounded(a: std.mem.Allocator, path: []const u8) !void {
     try write(dir, "metadata.json", json);
     for (c.bundle.cpus, [_][]const u8{ "cpu0.bin", "cpu1.bin" }) |p, name| try write(dir, name, p.bytes);
     for (c.bundle.truths, [_][]const u8{ "truth0.bin", "truth1.bin" }) |p, name| try write(dir, name, p.bytes);
-    try std.posix.fsync(dir.fd);
+    try Receipt.syncDirectory(dir);
 }
 fn verifyBounded(a: std.mem.Allocator, path: []const u8) !void {
     var dir = try std.fs.cwd().openDir(path, .{});

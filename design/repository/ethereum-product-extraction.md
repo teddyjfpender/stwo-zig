@@ -750,3 +750,53 @@ both committed guest digests match their existing manifest and the161-byte
 input is retained unchanged. This does not qualify CSP proof execution yet.
 Source +3/-0/net+3; C4 cumulative+3,241/+3,300; flags+0/-0 (100 live),
 maintained scripts+0/-0. No vector or protocol pin changed.
+
+## Local-first publication repair (RFC #352 owner decision)
+
+Under the owner’s standing approval for necessary bounded changes, publish
+`rv64_proof_artifact_support.syncDirectory` in the existing neutral CPU
+publication owner (minor version 1.0 to 1.1). It borrows a directory, opens a
+readable `.` descriptor, syncs that descriptor, and closes only the new handle.
+Linux non-iterable Dir handles use O_PATH and cannot themselves be fsynced.
+Open/sync failures propagate; ready-marker durability and retry policy stay
+unchanged. Migrate the existing native and Ethereum directory-sync callers;
+file-sync calls stay with their file owners. Existing engine artifact-store
+publication is outside this slice. The regression opens a non-iterable handle
+and confirms both sync and subsequent caller use. Pre-edit source allowance
++50 within the unchanged cumulative +3300 cap; no dependency, flag, script,
+proof, transcript, profile or assertion relaxation. Local focused checks take
+priority over new CI runs.
+
+The two non-publication failures have independent fixture defects. The LS
+ladder histogram still expects twelve U16 queries although the canonical LS32
+layout emits four (after-clock, strict-gap limbs, address quotient). Pin the
+four-query authority and retain padding coverage for both physical instances;
+all proof and fresh-key checks stay intact. The recursion family-confusion
+mutation tries arith256 at the SHA fixture's log5, below its required log8.
+Use a SHA shape at the arith proof's admitted log instead, preserving the
+physical wrong-family ShapeMismatch rejection. Exercise both admitted shape
+constructors in the existing cheap geometry contract. These test-only repairs
+have a pre-edit allowance +15 within C4 +3300; no production AIR change.
+
+To keep the local loop within the laptop cap, factor the existing LS histogram
+assertions into one helper and expose a preparation-only test using that same
+helper. The original full proof/fresh receiver test continues to call it and
+retains its complete proof corpus. Pre-edit source allowance +12, within the
+unchanged +3300. This adds fast executable evidence rather than treating the
+memory-capped full proof attempt as a pass.
+
+Local qualification executes four publication cases plus the wire round-trip
+and tamper case, recursion shape geometry and both-instance LS histogram in
+each of Debug/ReleaseFast (seven named cases per mode; anonymous collectors
+excluded). All pass; peaks are below423MB. All180 Python developer/CI/workspace
+contracts pass in27.44s; strict workspace passes37packages/39modules/190edges.
+No new CI run was started. The attempted full LS proof hits the unchanged
+1GiB cap and is UNRUN, not a pass. Linux publication, full recursion mutations,
+full product acceptance and CSP execution remain pending. Prior complete
+ReleaseFast source8a7 reports491/513pass,21fail,1skip; its failures are retained.
+Full native Debug/ReleaseFast both pass at8a7, with3256pass/11skip each.
+
+This slice source +71/-25/net+46, configuration +4/-3, documentation reported
+separately. C4 cumulative3287/3300; zero move credit, flags+0/-0 (100live),
+maintained scripts+0/-0. The shared publication API's minor version and its
+consumer contract are updated together under the standing owner approval.

@@ -83,7 +83,7 @@ pub fn run(a: std.mem.Allocator, config: Request.Config, index: u32) !Result {
     const completed = try std.fmt.allocPrint(a, "job-{d:0>6}.completed.json", .{index});
     defer a.free(completed);
     try Receipt.writeExclusive(directory, completed, json);
-    try std.posix.fsync(directory.fd);
+    try Receipt.syncDirectory(directory);
     // Never write summary.json/checkpoint/verified_batches in this worker.
     return result;
 }

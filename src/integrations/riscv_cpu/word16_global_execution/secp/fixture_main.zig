@@ -1,6 +1,7 @@
 //! Durable actual CPU/global-RAM/RCB prefix fixture; receiver rebuilds expected
 //! software, image, registers and all independently sized immutable keys.
 const std = @import("std");
+const Receipt = @import("../../rv64_proof_artifact_support.zig");
 const engine = @import("stwo_prover_engine");
 const A = @import("stwo_riscv_frontend").rv64_air;
 const S = A.crypto.secp256k1;
@@ -42,7 +43,7 @@ pub fn main() !void {
         try write(dir, "metadata.json", json);
         for (c.bundle.cpus, [_][]const u8{ "cpu0.bin", "cpu1.bin" }) |cproof, name| try write(dir, name, cproof.bytes);
         for (c.bundle.truths, [_][]const u8{ "add.bin", "double.bin" }) |tproof, name| try write(dir, name, tproof.bytes);
-        try std.posix.fsync(dir.fd);
+        try Receipt.syncDirectory(dir);
     } else if (std.mem.eql(u8, args[1], "verify")) {
         var dir = try std.fs.cwd().openDir(args[2], .{});
         defer dir.close();

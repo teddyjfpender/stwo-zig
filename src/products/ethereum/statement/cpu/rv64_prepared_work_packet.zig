@@ -2,6 +2,7 @@
 //! streams borrowed narrow owners into a durable file before advancing Cache;
 //! the fresh worker owns decoded values and derives ROM/policy independently.
 const std = @import("std");
+const Receipt = @import("stwo_riscv_cpu_integration").rv64_proof_artifact_support;
 const builtin = @import("builtin");
 const frontend = @import("ethereum_frontend_component");
 const rv = frontend.rv64;
@@ -156,6 +157,6 @@ pub fn writeAtomic(a: std.mem.Allocator, directory: std.fs.Dir, name: []const u8
     };
     var parent = try directory.openDir(".", .{ .iterate = true });
     defer parent.close();
-    try std.posix.fsync(parent.fd);
+    try Receipt.syncDirectory(parent);
     return digest;
 }

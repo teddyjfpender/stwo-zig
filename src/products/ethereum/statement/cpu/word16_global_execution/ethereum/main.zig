@@ -1,6 +1,7 @@
 //! Full block driver for the mixed-service Word16 global-memory protocol.
 //! Verify modes consume only independently pinned config and durable proofs.
 const std = @import("std");
+const Receipt = @import("stwo_riscv_cpu_integration").rv64_proof_artifact_support;
 const engine = @import("stwo_prover_engine");
 const Request = @import("../../rv64_ethereum_request.zig");
 const Image = @import("../../word16_execution/expected_image.zig");
@@ -137,7 +138,7 @@ pub fn main() !void {
     const publish_start = timer.read();
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
     try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("stwo_riscv_cpu_integration").rv64_execution.word16.protocol.SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .capture_mode = @as([]const u8, if (direct) "in-process" else "packets"), .capture_schedule = captured.capture_schedule, .direct_capture = direct_stats, .capture_cache_trim_ns = trim_ns, .capture_cache_released_bytes = capture_cache_released, .cpu_fixed_witness_retired = !operational.keep_fixed_witness, .coordinator_schedule = schedule, .commit_batch_columns = operational.batch, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats(), .fixed_native_cache = native_cache.snapshot(), .program_metadata_cache = metadata_cache.snapshot() });
-    try std.posix.fsync(dir.fd);
+    try Receipt.syncDirectory(dir);
 }
 /// Receiver policy: SHA-256, arith256_mod, curve/field and bulk-memory bridges/truths
 /// exist only in the admitted v3 roster. A v2 request can never accept a

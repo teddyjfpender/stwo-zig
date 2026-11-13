@@ -1,5 +1,6 @@
 //! Explicit two-packet global prefix prototype. No services/full-block claim.
 const std = @import("std");
+const Receipt = @import("stwo_riscv_cpu_integration").rv64_proof_artifact_support;
 const Request = @import("../rv64_ethereum_request.zig");
 const Image = @import("../word16_execution/expected_image.zig");
 const Packet = @import("../word16_execution/packet.zig");
@@ -93,7 +94,7 @@ pub fn main() !void {
         const verify_ns = timer.read() - prove_ns;
         try Wire.write(a, dir, .{ g0, g1 }, &bundle);
         try Driver.writeJson(a, dir, "report.json", .{ .scope = "two real CPU shards; global RAM; no services/full-block/recursion claim", .steps = expected.total_steps, .words = advice.initial.len, .physical_proofs = 2, .retained_main_storage = if (store) |*owner| owner.stats() else null, .global_ram_prefix_accepted = true, .produce_after_setup_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = .{ bundle.proofs[0].bytes.len, bundle.proofs[1].bytes.len } });
-        try std.posix.fsync(dir.fd);
+        try Receipt.syncDirectory(dir);
     } else {
         var dir = try std.fs.cwd().openDir(args[5], .{});
         defer dir.close();
@@ -113,7 +114,7 @@ fn newDirectory(path: []const u8) !std.fs.Dir {
     try std.fs.cwd().makeDir(path);
     var parent = try std.fs.cwd().openDir(std.fs.path.dirname(path) orelse ".", .{});
     defer parent.close();
-    try std.posix.fsync(parent.fd);
+    try Receipt.syncDirectory(parent);
     return std.fs.cwd().openDir(path, .{});
 }
 

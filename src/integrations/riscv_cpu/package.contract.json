@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_cpu_integration",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "layer": "integration",
   "owner": "riscv-cpu-integration",
   "public_modules": {
@@ -135,7 +135,8 @@
       "mod.zig::api signature: RISC-V CPU engine satisfies the stable transaction contract"
     ],
     "invariant_tests": [
-      "mod.zig::api invariant: RISC-V CPU integration selects only the CPU backend"
+      "mod.zig::api invariant: RISC-V CPU integration selects only the CPU backend",
+      "rv64_proof_artifact_support.zig::artifact directory sync accepts borrowed non-iterable handles and preserves ownership"
     ]
   },
   "ci": {

@@ -194,7 +194,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, setups: []const *const R.Cpu
     }
     try Receipt.writeExclusive(dir, "stage-one.bin", bundle.stage_one_bytes);
     try Receipt.writeExclusive(dir, "bundle.json", json);
-    try std.posix.fsync(dir.fd);
+    try Receipt.syncDirectory(dir);
 }
 fn readFile(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, expected: File) ![]u8 {
     var file = try dir.openFile(name, .{});

@@ -112,14 +112,12 @@ test "LS ladder deterministic padding capacities and absent physical role and le
     defer a.free(directory);
     try std.testing.expectError(error.NonzeroOmittedLsTailClaim, Driver.verifyDirectory(a, &fixture.image, directory));
 }
-test "One PCS two LS instances native loop closes all claims and retained histograms include all padding" {
-    var f = try Fixture.init();
-    defer f.deinit();
+fn expectLadderHistograms(f: *const Fixture) !void {
     var program = try Program.init(a, .{ .base = 4096, .words = &WORDS });
     defer program.deinit();
     var captured = try Prepared.capture(a, &program, f.boundary, 1, 8, &f.tape, .{});
     defer captured.deinit();
-    var memory = try Memory.initIndependentLadderProfiled(a, admission(&f).image, captured.cpu.?.memory.items, 1, 5, 6, 5, 5, null);
+    var memory = try Memory.initIndependentLadderProfiled(a, admission(f).image, captured.cpu.?.memory.items, 1, 5, 6, 5, 5, null);
     defer memory.deinit();
     try std.testing.expectEqual(@as(u32, 31), memory.ls.rows);
     try std.testing.expectEqual(@as(u32, 34), memory.ls_tail.?.rows);
@@ -128,8 +126,23 @@ test "One PCS two LS instances native loop closes all claims and retained histog
     try std.testing.expectEqual(@as(u64, 96), selection);
     var r16: u64 = 0;
     for (memory.counts16) |c| r16 += c;
-    // Only LS U16 queries remain; public INIT/TEARDOWN chips own no range debt.
-    try std.testing.expectEqual(@as(u64, 12 * 96), r16);
+    // LS32 inherits canonical values through REG/RAM: only after-clock,
+    // two strict-gap limbs and address quotient remain U16 queries.
+    // Padding in BOTH physical instances still contributes all four queries;
+    // public INIT/TEARDOWN chips own no range debt.
+    const range_queries = front.rv64_air.memory.load_store_v2.layout.U16.len;
+    try std.testing.expectEqual(@as(usize, 4), range_queries);
+    try std.testing.expectEqual(@as(u64, range_queries * 96), r16);
+}
+test "LS ladder retained histogram includes both physical instances without proving" {
+    var f = try Fixture.init();
+    defer f.deinit();
+    try expectLadderHistograms(&f);
+}
+test "One PCS two LS instances native loop closes all claims and retained histograms include all padding" {
+    var f = try Fixture.init();
+    defer f.deinit();
+    try expectLadderHistograms(&f);
     var encoded = try prove(&f, LADDER);
     defer encoded.deinit(a);
     var fresh = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, LADDER);

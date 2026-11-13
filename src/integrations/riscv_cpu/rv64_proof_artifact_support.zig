@@ -15,6 +15,14 @@ pub fn sourceCells(a: std.mem.Allocator, setup: *const A.Prepared, public: A.Pub
     for (inter) |log| result.interaction += @as(u64, 1) << @intCast(log);
     return result;
 }
+/// Persist directory entries without taking ownership of the borrowed handle.
+/// openDir/fsync errors propagate; callers must not report durable publication
+/// on failure. Reopen because non-iterable Linux Dir handles use O_PATH.
+pub fn syncDirectory(directory: std.fs.Dir) !void {
+    var readable = try directory.openDir(".", .{ .iterate = true });
+    defer readable.close();
+    try std.posix.fsync(readable.fd);
+}
 pub fn writeExclusive(directory: std.fs.Dir, name: []const u8, bytes: []const u8) !void {
     var file = try directory.createFile(name, .{ .exclusive = true });
     errdefer directory.deleteFile(name) catch {};
@@ -64,4 +72,16 @@ test "failed artifact summary publication removes staging and preserves the dest
     try std.testing.expectError(error.FileNotFound, tmp.dir.openFile("summary.pending", .{}));
     var destination = try tmp.dir.openDir("summary.json", .{});
     destination.close();
+}
+
+test "artifact directory sync accepts borrowed non-iterable handles and preserves ownership" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var borrowed = try tmp.dir.openDir(".", .{});
+    defer borrowed.close();
+    try syncDirectory(borrowed);
+    try writeExclusive(borrowed, "after-sync", "ready");
+    const bytes = try borrowed.readFileAlloc(std.testing.allocator, "after-sync", 16);
+    defer std.testing.allocator.free(bytes);
+    try std.testing.expectEqualStrings("ready", bytes);
 }
