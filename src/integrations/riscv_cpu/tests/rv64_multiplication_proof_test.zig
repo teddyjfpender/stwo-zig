@@ -8,9 +8,17 @@ const fixture = @import("rv64_multiplication_test.zig");
 const Q = core.fields.qm31.QM31;
 const a = std.testing.allocator;
 test "MUL and BYTE one PCS production proof fresh receiver and previous masks" {
+    const artifact = std.process.getEnvVarOwned(a, "STWO_RV64_MULTIPLICATION_ARTIFACT_DIR") catch null;
+    defer if (artifact) |path| a.free(path);
+    // Exercise both evaluators on every run, publishing optimized artifacts once.
+    try proveAndReject(false, artifact);
+    try proveAndReject(true, null);
+}
+
+fn proveAndReject(reference: bool, artifact: ?[]const u8) !void {
     const requests = fixture.requests();
     const public = native.Public{ .requests = &requests, .log_size = 7 };
-    var bundle = try native.prove(a, public, std.process.hasEnvVarConstant("STWO_RV64_MULTIPLICATION_REFERENCE"));
+    var bundle = try native.prove(a, public, reference);
     defer bundle.deinit(a);
     const claims = bundle.claims;
     const wire = @import("stwo_proof_wire");
@@ -28,8 +36,6 @@ test "MUL and BYTE one PCS production proof fresh receiver and previous masks" {
     balanced.multiplication = balanced.multiplication.add(Q.one());
     balanced.bytes = balanced.bytes.sub(Q.one());
     try std.testing.expectError(error.OodsNotMatching, native.verifyOwned(a, public, balanced, try wire.decodeProofBytesBinary(a, encoded)));
-    const artifact = std.process.getEnvVarOwned(a, "STWO_RV64_MULTIPLICATION_ARTIFACT_DIR") catch null;
-    defer if (artifact) |path| a.free(path);
     if (artifact) |path| {
         try std.fs.cwd().makePath(path);
         var dir = try std.fs.cwd().openDir(path, .{});

@@ -14,7 +14,6 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const m31 = stwo_core.fields.m31;
 const qm31 = stwo_core.fields.qm31;
 const verifier_types = stwo_core.verifier_types;
-const Sha256 = std.crypto.hash.sha2.Sha256;
 
 const graph_mod = @import("stwo_riscv_rv32").recursion.air.composition_circuit;
 const segment_manifest_mod = @import("stwo_riscv_recursion").air.segment_outer_adapter_manifest;
@@ -721,207 +720,21 @@ fn initForManifest(
     return result;
 }
 
-fn deriveNormalizedCompositionLogSize(manifest: anytype, split: u32) Error!u32 {
-    var result: u32 = 0;
-    for (manifest.roster_rows[0..manifest.roster_count]) |row| {
-        const geometry = manifest.placements[row].?.geometry;
-        if (geometry.protocol_constraint_degree < 2)
-            return error.InvalidCompositionGeometry;
-        const local_split = @max(@as(u32, 1), std.math.log2_int_ceil(u32, geometry.protocol_constraint_degree - 1));
-        if (local_split > split) return error.InvalidCompositionGeometry;
-        const bound = std.math.add(u32, geometry.log_size, split) catch return error.ArithmeticOverflow;
-        if (bound >= stwo_core.circle.M31_CIRCLE_LOG_ORDER)
-            return error.InvalidCompositionGeometry;
-        result = @max(result, bound);
-    }
-    return result;
-}
+const CaptureGeometry = @import("recursion_capture_geometry.zig");
+const deriveNormalizedCompositionLogSize = CaptureGeometry.deriveNormalizedCompositionLogSize;
+const deriveCompositionLogSize = CaptureGeometry.deriveCompositionLogSize;
+const expectedTreeColumnCounts = CaptureGeometry.expectedTreeColumnCounts;
+const expectedSampleCount = CaptureGeometry.expectedSampleCount;
+const deriveFriLogBlowup = CaptureGeometry.deriveFriLogBlowup;
+const validateColumnLogs = CaptureGeometry.validateColumnLogs;
 
-fn deriveCompositionLogSize(manifest: anytype) Error!u32 {
-    var composition_log_size: u32 = 0;
-    for (manifest.roster_rows[0..manifest.roster_count]) |row| {
-        const geometry = manifest.placements[row].?.geometry;
-        const degree_minus_one: u32 = geometry.protocol_constraint_degree - 1;
-        const quotient_blowup: u32 = @max(
-            1,
-            std.math.log2_int_ceil(u32, degree_minus_one),
-        );
-        composition_log_size = @max(
-            composition_log_size,
-            std.math.add(u32, geometry.log_size, quotient_blowup) catch
-                return error.ArithmeticOverflow,
-        );
-    }
-    return composition_log_size;
-}
-
-fn expectedTreeColumnCounts(manifest: anytype, split: u32) Error![TREE_COUNT]usize {
-    return .{
-        @intCast(manifest.total_preprocessed_columns),
-        @intCast(manifest.total_main_columns),
-        @intCast(manifest.total_interaction_columns),
-        verifier_types.compositionColumnCount(split, qm31.SECURE_EXTENSION_DEGREE) orelse return error.InvalidCompositionGeometry,
-    };
-}
-
-fn expectedSampleCount(
-    manifest: anytype,
-    poseidon_roster_row: usize,
-    tree: usize,
-    column: usize,
-) Error!usize {
-    if (tree != universal_manifest_mod.INTERACTION_TREE_INDEX) return 1;
-    for (manifest.roster_rows[0..manifest.roster_count]) |row| {
-        const placement = manifest.placements[row].?;
-        const start: usize = @intCast(placement.interaction_offset);
-        const end = start + placement.geometry.interaction_columns;
-        if (column >= start and column < end) {
-            if (@as(usize, row) == poseidon_roster_row) return 2;
-            const final_start = end - qm31.SECURE_EXTENSION_DEGREE;
-            return if (column >= final_start) 2 else 1;
-        }
-    }
-    return error.InvalidSampleGeometry;
-}
-
-fn deriveFriLogBlowup(manifest: anytype, logs: anytype) Error!u32 {
-    for (manifest.roster_rows[0..manifest.roster_count]) |row| {
-        const placement = manifest.placements[row].?;
-        const geometry = placement.geometry;
-        const candidates = [_]struct { tree: usize, start: u32, count: u16 }{
-            .{ .tree = universal_manifest_mod.PREPROCESSED_TREE_INDEX, .start = placement.preprocessed_offset, .count = geometry.preprocessed_columns },
-            .{ .tree = universal_manifest_mod.MAIN_TREE_INDEX, .start = placement.main_offset, .count = geometry.main_columns },
-            .{ .tree = universal_manifest_mod.INTERACTION_TREE_INDEX, .start = placement.interaction_offset, .count = geometry.interaction_columns },
-        };
-        for (candidates) |candidate| {
-            if (candidate.count == 0) continue;
-            const observed = logs[candidate.tree][candidate.start];
-            if (observed < geometry.log_size)
-                return error.InvalidTraceLogGeometry;
-            return observed - geometry.log_size;
-        }
-    }
-    return error.InvalidTraceLogGeometry;
-}
-
-fn validateColumnLogs(
-    manifest: anytype,
-    logs: anytype,
-    composition_chunk_log_size: u32,
-    fri_log_blowup: u32,
-) Error!void {
-    for (manifest.roster_rows[0..manifest.roster_count]) |row| {
-        const placement = manifest.placements[row].?;
-        const geometry = placement.geometry;
-        const expected = std.math.add(
-            u32,
-            geometry.log_size,
-            fri_log_blowup,
-        ) catch return error.ArithmeticOverflow;
-        const ranges = [_]struct { tree: usize, start: u32, count: u16 }{
-            .{ .tree = universal_manifest_mod.PREPROCESSED_TREE_INDEX, .start = placement.preprocessed_offset, .count = geometry.preprocessed_columns },
-            .{ .tree = universal_manifest_mod.MAIN_TREE_INDEX, .start = placement.main_offset, .count = geometry.main_columns },
-            .{ .tree = universal_manifest_mod.INTERACTION_TREE_INDEX, .start = placement.interaction_offset, .count = geometry.interaction_columns },
-        };
-        for (ranges) |range| for (logs[range.tree][range.start..][0..range.count]) |
-            actual,
-        | if (actual != expected) return error.InvalidTraceLogGeometry;
-    }
-    const expected_composition = std.math.add(
-        u32,
-        composition_chunk_log_size,
-        fri_log_blowup,
-    ) catch return error.ArithmeticOverflow;
-    for (logs[COMPOSITION_TREE_INDEX]) |actual|
-        if (actual != expected_composition)
-            return error.InvalidTraceLogGeometry;
-}
-
-fn layoutIdentity(layout: *const CaptureLayoutV3) [32]u8 {
-    var hash = Sha256.init(.{});
-    hash.update(LAYOUT_DOMAIN);
-    hashInt(&hash, u16, layout.format_version);
-    hashInt(&hash, u16, layout.schema_version);
-    hashInt(&hash, u8, proofKindCode(layout.proof_kind));
-    hashInt(&hash, u8, @intFromEnum(layout.manifest_family));
-    hash.update(&layout.manifest_seal);
-    hash.update(&layout.catalog_identity);
-    hashInt(&hash, u8, layout.component_count);
-    hashInt(&hash, u32, layout.sampled_value_count);
-    for (layout.tree_column_counts) |count| hashInt(&hash, u32, count);
-    for (layout.offsets) |tree| {
-        hashInt(&hash, u32, @intCast(tree.len));
-        for (tree) |offset| hashInt(&hash, u64, @intCast(offset));
-    }
-    hashInt(&hash, u32, layout.composition_log_size);
-    hashInt(&hash, u32, layout.composition_log_split);
-    hashInt(&hash, u32, layout.quotient_max_log_degree_bound);
-    hashInt(&hash, u32, layout.fri_log_blowup);
-    return hash.finalResult();
-}
-
-fn canonicalEmptyLayoutIdentity(
-    layout: *const CanonicalEmptyCaptureLayoutV3,
-) [32]u8 {
-    var hash = Sha256.init(.{});
-    hash.update(CANONICAL_EMPTY_LAYOUT_DOMAIN);
-    hashInt(&hash, u16, layout.format_version);
-    hashInt(&hash, u16, layout.schema_version);
-    hash.update(&layout.manifest_seal);
-    hash.update(&layout.binary_geometry_identity);
-    hashInt(&hash, u32, layout.source_sample_count);
-    hashInt(&hash, u32, layout.internal_sample_count);
-    hash.update(&layout.geometry.identity);
-    return hash.finalResult();
-}
-
-fn sampleInputAuthorityIdentity(value: SampleInputAuthorityV3) [32]u8 {
-    var hash = Sha256.init(.{});
-    hash.update(INPUT_AUTHORITY_DOMAIN);
-    hashInt(&hash, u16, value.format_version);
-    hashInt(&hash, u16, value.schema_version);
-    hashInt(&hash, u32, value.segment_sample_count);
-    hashInt(&hash, u32, value.binary_sample_count);
-    hashInt(&hash, u32, value.empty_sample_count);
-    hashInt(&hash, u32, value.max_sample_count);
-    hash.update(&value.segment_layout_identity);
-    hash.update(&value.binary_layout_identity);
-    return hash.finalResult();
-}
-
-fn proofKindCode(kind: ProofKind) u8 {
-    return switch (kind) {
-        .segment_leaf => 0,
-        .binary_node => 1,
-        .empty_leaf => 2,
-    };
-}
-
-fn requireCanonical(value: QM31) Error!void {
-    for (value.toM31Array()) |word|
-        if (word.toU32() >= m31.Modulus) return error.NonCanonicalField;
-}
-
-fn overlap(left: []const u8, right: []const u8) bool {
-    if (left.len == 0 or right.len == 0) return false;
-    const left_start = @intFromPtr(left.ptr);
-    const right_start = @intFromPtr(right.ptr);
-    const left_end = std.math.add(usize, left_start, left.len) catch return true;
-    const right_end = std.math.add(usize, right_start, right.len) catch return true;
-    return left_start < right_end and right_start < left_end;
-}
-
-fn hashInt(hash: *Sha256, comptime T: type, value: T) void {
-    var encoded: [@sizeOf(T)]u8 = undefined;
-    std.mem.writeInt(T, &encoded, value, .little);
-    hash.update(&encoded);
-}
-
-fn allZero(value: []const u8) bool {
-    var aggregate: u8 = 0;
-    for (value) |byte| aggregate |= byte;
-    return aggregate == 0;
-}
+const CaptureIdentity = @import("recursion_capture_identity.zig");
+const layoutIdentity = CaptureIdentity.layoutIdentity;
+const canonicalEmptyLayoutIdentity = CaptureIdentity.canonicalEmptyLayoutIdentity;
+const sampleInputAuthorityIdentity = CaptureIdentity.sampleInputAuthorityIdentity;
+const requireCanonical = CaptureIdentity.requireCanonical;
+const overlap = CaptureIdentity.overlap;
+const allZero = CaptureIdentity.allZero;
 
 comptime {
     if (FORMAT_VERSION != 1 or SCHEMA_VERSION != 1 or TREE_COUNT != 4 or

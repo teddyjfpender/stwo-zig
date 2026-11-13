@@ -1,7 +1,7 @@
 //! Interop command-line schema, parsing, and proof configuration.
 
 const std = @import("std");
-const stwo = @import("root").stwo;
+const stwo = @import("stwo");
 
 const m31 = stwo.core.fields.m31;
 const fri = stwo.core.fri;
@@ -269,11 +269,14 @@ fn parseInt(comptime T: type, value: []const u8) !T {
 pub fn pcsConfigFromCli(cli: Cli) !pcs.PcsConfig {
     return .{
         .pow_bits = cli.pow_bits,
-        .fri_config = try fri.FriConfig.init(
+        .fri_config = fri.FriConfig.init(
             cli.fri_log_last_layer,
             cli.fri_log_blowup,
             cli.fri_n_queries,
-        ),
+        ) catch |err| {
+            emitBoundaryDiagnostic("core_config_rejection_v1", "stwo_core", "FriConfig.init", stwo.core.error_codes.fromFriConfig(err));
+            return err;
+        },
     };
 }
 
@@ -294,4 +297,43 @@ pub fn printUsage() void {
             "    [--bench-warmups <n>] [--bench-repeats <n>] [--bench-proof-codec <json|binary>] [--blake2-backend <auto|scalar|simd>]\n",
         .{},
     );
+}
+
+pub fn emitBoundaryDiagnostic(comptime schema: []const u8, comptime provider: []const u8, comptime origin: []const u8, entry: anytype) void {
+    emitTo(std.fs.File.stderr(), schema, provider, origin, entry);
+}
+
+pub fn emitTo(writer: anytype, comptime schema: []const u8, comptime provider: []const u8, comptime origin: []const u8, entry: anytype) void {
+    var buffer: [384]u8 = undefined;
+    const line = std.fmt.bufPrint(&buffer, "{{\"schema\":\"" ++ schema ++ "\",\"provider\":\"" ++ provider ++ "\",\"origin\":\"" ++ origin ++ "\",\"code\":{d},\"class\":\"{s}\"}}\n", .{ entry.code, @tagName(entry.class) }) catch return;
+    writer.writeAll(line) catch {};
+}
+
+test "native diagnostic framing retains wire bytes and ignores optional writer failure" {
+    const Class = enum { invalid_input };
+    const entry = .{ .code = @as(u16, 0x4001), .class = Class.invalid_input };
+    var buffer: [384]u8 = undefined;
+    var writer = std.Io.Writer.fixed(&buffer);
+    emitTo(&writer, "proof_wire_decode_rejection_v1", "stwo_proof_wire", "decodeProofBytes", entry);
+    try std.testing.expectEqualStrings("{\"schema\":\"proof_wire_decode_rejection_v1\",\"provider\":\"stwo_proof_wire\",\"origin\":\"decodeProofBytes\",\"code\":16385,\"class\":\"invalid_input\"}\n", writer.buffered());
+    const Failing = struct {
+        calls: usize = 0,
+        pub fn writeAll(self: *@This(), _: []const u8) error{DiagnosticUnavailable}!void {
+            self.calls += 1;
+            return error.DiagnosticUnavailable;
+        }
+    };
+    var failure = Failing{};
+    emitTo(&failure, "core_config_rejection_v1", "stwo_core", "FriConfig.init", entry);
+    try std.testing.expectEqual(@as(usize, 1), failure.calls);
+}
+
+test "native CLI core configuration catch preserves original admission" {
+    var cli = Cli{ .mode = .generate, .artifact_path = "unused", .fri_log_last_layer = 11 };
+    try std.testing.expectError(error.InvalidLastLayerDegreeBound, pcsConfigFromCli(cli));
+    cli.fri_log_last_layer = 0;
+    cli.fri_log_blowup = 0;
+    try std.testing.expectError(error.InvalidBlowupFactor, pcsConfigFromCli(cli));
+    cli.fri_log_blowup = 1;
+    try std.testing.expectEqual(@as(u32, 1), (try pcsConfigFromCli(cli)).fri_config.log_blowup_factor);
 }

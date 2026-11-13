@@ -90,6 +90,19 @@
       "tests": [
         "cdc: RV64 recursion transport owns decoded storage and unwinds all allocation failures"
       ]
+    },
+    {
+      "id": "product:stwo",
+      "root": "build_support/products/contract_tests/stwo/stwo_circuit_recursion_wire_test.zig",
+      "route": "product:stwo",
+      "imports": [
+        "stwo",
+        "stwo_circuit_recursion_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: SDK recursion_wire preserves provider behavior and refusal"
+      ]
     }
   ]
 }

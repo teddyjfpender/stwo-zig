@@ -1,7 +1,7 @@
 .{
     .fingerprint = 0x0dc66c7aa6e159cd,
     .name = .stwo_riscv_frontend,
-    .version = "1.0.0",
+    .version = "1.1.0",
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{

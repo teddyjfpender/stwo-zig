@@ -403,13 +403,7 @@ fn runVerifyImpl(allocator: std.mem.Allocator, cli: Cli, use_std_shims: bool) !v
     var decode_failure: ?stwo.core.error_codes.Entry = null;
     const proof = proof_wire.decodeProofBytesWithDiagnostic(allocator, proof_bytes, &decode_failure) catch |err| {
         if (decode_failure) |failure| {
-            var buffer: [384]u8 = undefined;
-            const line = std.fmt.bufPrint(
-                &buffer,
-                "{{\"schema\":\"proof_wire_decode_rejection_v1\",\"provider\":\"stwo_proof_wire\",\"origin\":\"decodeProofBytes\",\"code\":{d},\"class\":\"{s}\"}}\n",
-                .{ failure.code, @tagName(failure.class) },
-            ) catch unreachable;
-            std.fs.File.stderr().writeAll(line) catch {};
+            cli_mod.emitBoundaryDiagnostic("proof_wire_decode_rejection_v1", "stwo_proof_wire", "decodeProofBytes", failure);
         }
         return err;
     };

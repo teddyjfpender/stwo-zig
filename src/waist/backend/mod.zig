@@ -35,6 +35,7 @@ pub const field_ops = @import("field_ops.zig");
 pub const fri_ops = @import("fri_ops.zig");
 pub const merkle_ops = @import("merkle_ops.zig");
 pub const recovery = @import("recovery.zig");
+pub const error_codes = @import("error_codes.zig");
 pub const arena_plan = @import("arena_plan.zig");
 pub const line_evaluation = @import("line_evaluation.zig");
 pub const resident_storage = @import("resident_storage.zig");
@@ -89,4 +90,5 @@ test "backend: contract modules compile" {
     _ = secure_column;
     _ = proof_program;
     _ = @import("proof_program_native_air_test.zig");
+    _ = @import("error_codes_test.zig");
 }

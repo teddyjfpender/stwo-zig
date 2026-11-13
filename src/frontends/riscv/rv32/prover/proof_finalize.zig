@@ -65,6 +65,23 @@ pub fn proveWithOptions(
     n_main: usize,
     n_interaction: usize,
 ) !types.ProofForEngine(Engine) {
+    return proveWithOptionsDiagnosed(Engine, allocator, options, scheme, channel, workspace, relations, interaction_claim, n_main, n_interaction, null);
+}
+
+pub fn proveWithOptionsDiagnosed(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    options: prover_api.ProveOptions,
+    scheme: Engine.Scheme,
+    channel: *Engine.Channel,
+    workspace: *ProofWorkspace,
+    relations: *const relation_challenges.Relations,
+    interaction_claim: *const types.RiscVInteractionClaim,
+    n_main: usize,
+    n_interaction: usize,
+    diagnostic: ?*?prover_api.ProveDiagnostic,
+) !types.ProofForEngine(Engine) {
+    if (diagnostic) |sink| sink.* = null;
     var owned_scheme = scheme;
     var scheme_transferred = false;
     defer if (!scheme_transferred) Engine.deinit(&owned_scheme, allocator);
@@ -80,14 +97,16 @@ pub fn proveWithOptions(
 
     // `Engine.prove` consumes the scheme on both success and failure. Transfer
     // only after the complete component assembly has succeeded.
-    scheme_transferred = true;
-    var extended = try Engine.prove(
-        allocator,
-        active,
-        channel,
-        owned_scheme,
-        options,
-    );
+    var extended = blk: {
+        if (diagnostic) |sink| {
+            if (comptime @hasDecl(Engine, "proveDiagnosed")) {
+                scheme_transferred = true;
+                break :blk try Engine.proveDiagnosed(allocator, active, channel, owned_scheme, options, sink);
+            } else return error.UnsupportedProverDiagnostic;
+        }
+        scheme_transferred = true;
+        break :blk try Engine.prove(allocator, active, channel, owned_scheme, options);
+    };
     const proof = extended.proof;
     extended.aux.deinit(allocator);
     return proof;

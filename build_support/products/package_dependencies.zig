@@ -444,11 +444,17 @@ pub fn providerConsumers(b: *std.Build, directory: []const u8) []const Consumer 
     return (std.json.parseFromValue([]Consumer, b.allocator, rows, .{}) catch @panic("invalid waist consumer records")).value;
 }
 
-pub fn withWaistConsumerRoots(b: *std.Build, roots: []const []const u8) []const []const u8 {
+pub fn withWaistConsumerRoots(b: *std.Build, roots: []const []const u8, kind: enum { package_roots, product_roots }) []const []const u8 {
     var result: std.ArrayList([]const u8) = .empty;
     result.appendSlice(b.allocator, roots) catch @panic("OOM");
     for (waist_providers) |provider| {
         for (providerConsumers(b, provider.directory)) |consumer| {
+            const is_product = std.mem.startsWith(u8, consumer.id, "product:");
+            if (is_product != (kind == .product_roots)) continue;
+            if (is_product) {
+                result.append(b.allocator, consumer.root) catch @panic("OOM");
+                continue;
+            }
             const owner = ownership.resolve(consumer.root) orelse @panic("unowned waist consumer");
             const directory = consumer.root[0 .. consumer.root.len - owner.sub_path.len - 1];
             result.append(b.allocator, b.fmt("dependency:../{s}:{s}", .{ directory, owner.sub_path })) catch @panic("OOM");

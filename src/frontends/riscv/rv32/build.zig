@@ -27,6 +27,19 @@ pub fn build(b: *std.Build) void {
     postcard.addImport("stwo_core", dep0);
     postcard.addImport("stwo_proof_wire", wire);
     module.addImport("interop_postcard", postcard);
+    const export_step = b.step("export-refinement-ir", "Export the exact production family and unsigned opcode AIR without the product SDK");
+    inline for (.{
+        .{ "refinement_ir_export_test.zig", "riscv-refinement-ir-dir", "RISCV_AIR_IR_DIR", "refinement export: emit production symbolic AIR", "zig-out/uniqueness-ir" },
+        .{ "refinement_program_export_test.zig", "riscv-air-program-ir-dir", "RISCV_AIR_PROGRAM_IR_DIR", "refinement AIR IR v2 export: emit every unsigned production program", "zig-out/refinement-air-ir-v2" },
+    }) |spec| {
+        const destination = b.option([]const u8, spec[1], "Fresh output directory for the unchanged production AIR exporter") orelse spec[4];
+        const exporter = b.createModule(.{ .root_source_file = b.path(spec[0]), .target = target, .optimize = optimize });
+        for (module.import_table.keys(), module.import_table.values()) |name, dependency| exporter.addImport(name, dependency);
+        const export_run = b.addRunArtifact(b.addTest(.{ .root_module = exporter, .filters = &.{spec[3]} }));
+        export_run.has_side_effects = true;
+        export_run.setEnvironmentVariable(spec[2], destination);
+        export_step.dependOn(&export_run.step);
+    }
     const tests = b.addTest(.{ .root_module = module });
     const run = b.addRunArtifact(tests);
     run.has_side_effects = true;

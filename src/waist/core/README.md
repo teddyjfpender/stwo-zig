@@ -7,7 +7,7 @@ contains no prover orchestration and has no dependency on a compute backend.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.1` |
+| Version | `1.0.0-rc.2` |
 | Layer | `protocol` |
 | Owner | `protocol-core` |
 | Public Zig module | `stwo_core` |
@@ -176,7 +176,9 @@ live consumer graph, not full [D3 coverage](https://github.com/teddyjfpender/stw
 ## Decoder diagnostic metadata
 
 `error_codes` exposes the RFC #360 metadata owned by this boundary. The
-unpublished `1.0.0-rc.1` surface includes the approved pre-RC addition;
+unpublished `1.0.0-rc.2` surface includes the approved pre-RC addition;
 meaning, origin, null/unknown refusal and existing rejection semantics remain
 those specified by the provider tests. Full five-provider D2 coverage remains
 open in the RFC coverage ledger.
+
+`error_codes.fromFriConfig` accepts the exact FRI configuration error set. Codes `0x1001` and `0x1002` retain invalid-degree and invalid-blowup meanings; unknown/foreign IDs are refused by lookup. Native interop emits them only at its typed configuration admission catch, preserving the original error. This does not classify arbitrary verifier or caller-component errors.

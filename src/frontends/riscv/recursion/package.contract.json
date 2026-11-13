@@ -150,14 +150,14 @@
     ]
   },
   "budget": {
-    "code_files": 407,
-    "code_lines": 121066,
+    "code_files": 410,
+    "code_lines": 121201,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 105,
     "dependencies": 9,
     "rv64_registry_flags": 0,
-    "versioned_files": 410
+    "versioned_files": 413
   }
 }

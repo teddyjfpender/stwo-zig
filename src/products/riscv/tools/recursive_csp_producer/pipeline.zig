@@ -117,6 +117,18 @@ pub fn produce(
     implementation: ImplementationIdentity,
     stage_out: *Stage,
 ) !Produced {
+    return produceDiagnosed(allocator, request, request_raw, implementation, stage_out, null);
+}
+
+pub fn produceDiagnosed(
+    allocator: std.mem.Allocator,
+    request: contract.Request,
+    request_raw: []const u8,
+    implementation: ImplementationIdentity,
+    stage_out: *Stage,
+    diagnostic_out: ?*?@import("stwo_prover_api").ProveDiagnostic,
+) !Produced {
+    if (diagnostic_out) |sink| sink.* = null;
     comptime @import("stwo_prover_api").assertProverEngine(Engine);
     stage_out.* = .request_validation;
     try request.validate();
@@ -271,6 +283,7 @@ pub fn produce(
         public.data,
         &proving_channel,
         .{
+            .diagnostic = diagnostic_out,
             .cpu = .{
                 .worker_count = request.worker_count,
                 // This preserves the predecessor's uncapped allocation policy;

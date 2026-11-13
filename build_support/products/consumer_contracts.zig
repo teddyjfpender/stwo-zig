@@ -49,7 +49,7 @@ pub fn add(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builti
     const context = .{ .b = b, .target = target, .optimize = optimize };
     const cdc = @import("package_dependencies.zig");
     addMissingConsumerModules(b, target, optimize, facade, product);
-    const laws = b.createModule(.{ .root_source_file = b.path("src/products/stwo/tests/waist_consumer_laws.zig"), .target = target, .optimize = optimize });
+    const laws = b.createModule(.{ .root_source_file = b.path("build_support/products/consumer_laws.zig"), .target = target, .optimize = optimize });
     const source_check = context.b.addSystemCommand(&.{ "python3", "scripts/repo/check_package_workspace.py" });
     source_check.setCwd(context.b.path("."));
     for (cdc.waist_providers) |provider| {
@@ -61,10 +61,11 @@ pub fn add(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builti
         const step = context.b.step(target_name, "Run registered consumer-owned waist contracts");
         const canonical = findPublicModule(context.b, facade, provider.name);
         for (cdc.providerConsumers(context.b, provider.directory)) |registration| {
-            if (!std.mem.startsWith(u8, registration.id, "package:")) @panic("unsupported consumer kind");
-            const owner_name = registration.id["package:".len..];
-            const owner = findPublicModule(context.b, facade, owner_name);
-            const bound = if (std.mem.eql(u8, registration.route, "injected:interop_postcard")) (owner.import_table.get("interop_postcard") orelse @panic("consumer missing actual postcard injection")).import_table.get(provider.name) orelse @panic("postcard missing canonical provider") else owner.import_table.get(provider.name) orelse @panic("consumer missing declared provider");
+            const is_product = std.mem.startsWith(u8, registration.id, "product:");
+            const owner_name = if (is_product) registration.id["product:".len..] else if (std.mem.startsWith(u8, registration.id, "package:")) registration.id["package:".len..] else @panic("unsupported consumer kind");
+            if (is_product and (!std.mem.eql(u8, owner_name, product.name) or !std.mem.eql(u8, registration.route, registration.id))) @panic("consumer does not name the actual constructed SDK product");
+            const owner = if (is_product) facade else findPublicModule(context.b, facade, owner_name);
+            const bound = if (std.mem.eql(u8, registration.route, "injected:interop_postcard")) (owner.import_table.get("interop_postcard") orelse @panic("consumer missing actual postcard injection")).import_table.get(provider.name) orelse @panic("postcard missing canonical provider") else owner.import_table.get(provider.name) orelse std.debug.panic("consumer {s} missing declared provider {s}; route={s}; root={s}", .{ registration.id, provider.name, registration.route, registration.root });
             if (bound != canonical) @panic("consumer/provider module identity mismatch");
             const root = graph.create(context.b, .{ .product = product, .root_source_file = registration.root, .target = context.target, .optimize = context.optimize });
             for (registration.imports) |name| {

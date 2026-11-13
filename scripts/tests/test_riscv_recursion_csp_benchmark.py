@@ -692,6 +692,28 @@ class RecursionCspBenchmarkTests(unittest.TestCase):
                     producer_sha256="56" * 32,
                 )
 
+    def test_origin_diagnostic_is_separate_bound_and_fail_closed(self) -> None:
+        from scripts.riscv.riscv_recursion_csp_benchmark_lib.canonical_producer import validate_origin_diagnostic
+        attempt = {"status": "failed", "request": {"request_sha256": "12" * 32}, "failure": {"error_name": "InvalidColumnLength"}}
+        message = {"schema": "stwo.riscv.csp-origin-rejection.v1", "request_sha256": "12" * 32, "provider": "stwo_prover_api", "origin": "quotient_column", "phase": "fri", "error_name": "InvalidColumnLength", "code": 0x3003, "class": "invalid_input", "since": "1.0.0-rc.2"}
+        line = canonical_bytes(message) + b"\n"
+        before = canonical_bytes(attempt)
+        self.assertEqual(message, validate_origin_diagnostic(b"other stderr\n" + line, attempt))
+        self.assertIsNone(validate_origin_diagnostic(b"ordinary stderr", attempt))
+        self.assertEqual(before, canonical_bytes(attempt))
+        for code, tag in [(0x3001, "ShapeMismatch"), (0x3002, "InvalidColumnLogSize"), (0x3003, "InvalidColumnLength")]:
+            with self.subTest(code=code):
+                accepted = {**message, "code": code, "error_name": tag}
+                self.assertEqual(accepted, validate_origin_diagnostic(canonical_bytes(accepted), {**attempt, "failure": {"error_name": tag}}))
+        for key, value in [("provider", "stwo_core"), ("origin", "caller"), ("phase", "composition"), ("code", 0x4001), ("code", True), ("class", "resource_exhausted"), ("since", "0.1.0"), ("request_sha256", "34" * 32), ("error_name", "ShapeMismatch")]:
+            with self.subTest(key=key, value=value), self.assertRaises(EvidenceError):
+                validate_origin_diagnostic(canonical_bytes({**message, key: value}), attempt)
+        for bad in [line + line, line[:line.rfind(b"}")], line.replace(b"{", b"{ \"unexpected\":1,", 1), b" " * 512 + line]:
+            with self.assertRaises(EvidenceError):
+                validate_origin_diagnostic(bad, attempt)
+        with self.assertRaises(EvidenceError):
+            validate_origin_diagnostic(line, {**attempt, "status": "verified"})
+
     def test_v5_native_report_preserves_recursion_isolation(self) -> None:
         from scripts.riscv.riscv_recursion_csp_benchmark_lib.native_adapter import adapt_native_report
         report = _native_report()

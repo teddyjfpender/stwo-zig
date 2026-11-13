@@ -150,3 +150,37 @@ class PackageBudgetTests(unittest.TestCase):
             self.write("conformance/rv64-productionisation-budget.json", json.dumps({"hot_path_budgets": entries}))
             with self.subTest(entries=entries):
                 self.assertEqual(fails, bool(HOT_ERRORS(self.root, [owner])))
+
+
+class FailedBudgetReceiptTests(unittest.TestCase):
+    def test_failure_still_publishes_measurement_and_preserves_failed_status(self):
+        from scripts.repo import check_package_workspace as workspace
+        import contextlib
+        import io
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "failed-budget.json"
+            report = {"schema": "package-complexity-census/v1", "measurement": {"packages": {}}}
+            with patch("sys.argv", ["workspace", "--repo", str(root), "--budget-report", str(output)]), patch.object(
+                workspace, "check_repository", return_value=["owner: code_lines exceeds budget"],
+            ), patch.object(budget, "report", return_value=report), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(1, workspace.main())
+            receipt = json.loads(output.read_text())
+            self.assertEqual("FAIL", receipt["status"])
+            self.assertEqual(["owner: code_lines exceeds budget"], receipt["failures"])
+            self.assertEqual(report["measurement"], receipt["measurement"])
+
+    def test_malformed_contract_cannot_erase_original_refusal_or_fabricate_census(self):
+        from scripts.repo import check_package_workspace as workspace
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            contract = root / "src/owner/package.contract.json"
+            contract.parent.mkdir(parents=True)
+            contract.write_text("invalid-json")
+            output = root / "failed-budget.json"
+            budget.write_failure_report(root, output, ["invalid contract"])
+            receipt = json.loads(output.read_text())
+            self.assertEqual("FAIL", receipt["status"])
+            self.assertEqual(["invalid contract"], receipt["failures"])
+            self.assertIn("measurement_error", receipt)
+            self.assertNotIn("measurement", receipt)

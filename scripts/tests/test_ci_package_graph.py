@@ -533,5 +533,71 @@ class FiveProviderConsumerExecutionTest(unittest.TestCase):
                     self.assertTrue(consumer.tests)
 
 
+class SdkProductConsumerContractTests(unittest.TestCase):
+    def test_live_sdk_module_authority_comes_from_its_actual_constructed_builder(self):
+        from scripts.repo import check_build_configure_closure as source
+        actual = source.read_constructed_product_module(ROOT, "stwo")
+        self.assertEqual("src/products/stwo/root.zig", actual["module_root"])
+        self.assertEqual("build_support/products/libraries.zig", actual["builder_source"])
+        self.assertEqual("package", actual["scope"])
+        with self.assertRaises(ValueError):
+            source.read_constructed_product_module(ROOT, "invented-sdk")
+
+    def test_sdk_module_authority_rejects_escape_duplicate_and_comment_forgery(self):
+        from unittest import mock
+        from scripts.repo import check_build_configure_closure as source
+        builder = ROOT / "build_support/products/libraries.zig"
+        original = Path.read_text
+        comment = '\n// context.b.addModule("invented", .{ .root_source_file = context.b.path("src/forged.zig") });\n'
+        with mock.patch.object(Path, "read_text", lambda path, *a, **k: original(path, *a, **k) + comment if path == builder else original(path, *a, **k)):
+            self.assertEqual("src/products/stwo/root.zig", source.read_constructed_product_module(ROOT, "stwo")["module_root"])
+        for change in (lambda text: text.replace('context.b.path("src/products/stwo/root.zig")', 'context.b.path("../../escape.zig")'),
+                       lambda text: text.replace('    return .{ .stwo = stwo, .protocol = prover.protocol };', '    const duplicate = context.b.addModule("stwo", .{ .root_source_file = context.b.path("src/products/stwo/root.zig") });\n    return .{ .stwo = stwo, .protocol = prover.protocol };')):
+            with mock.patch.object(Path, "read_text", lambda path, *a, **k: change(original(path, *a, **k)) if path == builder else original(path, *a, **k)):
+                with self.assertRaises(ValueError):
+                    source.read_constructed_product_module(ROOT, "stwo")
+
+    def test_product_root_grammar_does_not_relax_package_source_ownership(self):
+        from copy import deepcopy
+        data = json.loads((ROOT / "src/waist/core/package.contract.json").read_text())
+        product = next(row for row in data["consumers"] if row["id"] == "product:stwo")
+        self.assertEqual(product["root"], graph.parse_contract_metadata(data, "SDK fixture").consumers[-1].root)
+        invalid = deepcopy(data)
+        invalid["consumers"] = [{**product, "id": "package:stwo_cpu_backend", "route": "dependency:stwo_core"}]
+        with self.assertRaises(ValueError):
+            graph.parse_contract_metadata(invalid, "package must remain src-only")
+
+    def test_sdk_root_source_rejects_wrong_product_owner_imports_and_discovery(self):
+        from dataclasses import replace
+        from scripts.repo import check_package_workspace as workspace
+        providers = {contract.package: contract for path in (ROOT / "src").rglob("package.contract.json")
+                     if (contract := workspace.load_contract(path))}
+        provider = providers["stwo_core"]
+        entry = next(row for row in provider.metadata.consumers if row.id == "product:stwo")
+        tracked = graph.tracked_regular_sources(ROOT)
+        check = lambda row: graph.validate_package_consumer_sources(ROOT, provider, graph.ContractMetadata((row,)), providers, tracked)
+        self.assertEqual([], check(entry))
+        for wrong in (replace(entry, root="build_support/products/consumer_laws.zig"),
+                      replace(entry, id="product:stwo-native-cpu", route="product:stwo-native-cpu"),
+                      replace(entry, route="product:forged"),
+                      replace(entry, imports=tuple(sorted((*entry.imports, "stwo_cpu_backend")))),
+                      replace(entry, tests=("cdc: invented",))):
+            self.assertTrue(check(wrong))
+
+    def test_registered_unpackaged_root_selects_its_provider_without_false_unowned_fallback(self):
+        path = "src/sdk/tests/contract_tests/provider_test.zig"
+        packages = {"provider": graph.Package("provider", "src/provider", frozenset(), (path,))}
+        self.assertEqual((frozenset({"provider_lane"}), frozenset()), graph.selection([path], packages, {"provider_lane": "provider"}))
+        self.assertEqual((frozenset(), frozenset({"src/sdk/unknown.zig"})), graph.selection(["src/sdk/unknown.zig"], packages, {"provider_lane": "provider"}))
+
+    def test_all_five_real_sdk_provider_edges_have_owned_behavior_registrations(self):
+        for path in (ROOT / "src/waist").glob("*/package.contract.json"):
+            data = json.loads(path.read_text())
+            rows = [row for row in data["consumers"] if row["id"] == "product:stwo"]
+            self.assertEqual(1, len(rows), data["package"])
+            self.assertEqual("product:stwo", rows[0]["route"])
+            self.assertEqual("build_support/products/contract_tests/stwo/" + data["package"] + "_test.zig", rows[0]["root"])
+
+
 if __name__ == "__main__":
     unittest.main()

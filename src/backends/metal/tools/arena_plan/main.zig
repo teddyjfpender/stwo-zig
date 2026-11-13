@@ -158,4 +158,5 @@ test "canonical proof protocol uses the exact report contract" {
 
 test {
     _ = @import("prepared_cache_tests.zig");
+    _ = @import("error_diagnostic.zig");
 }

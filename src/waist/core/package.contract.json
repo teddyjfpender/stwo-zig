@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_core",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "layer": "protocol",
   "owner": "protocol-core",
   "public_modules": {
@@ -469,11 +469,24 @@
       "tests": [
         "cdc: stwo_sm83_metal_integration field authority preserves inverse and zero refusal"
       ]
+    },
+    {
+      "id": "product:stwo",
+      "root": "build_support/products/contract_tests/stwo/stwo_core_test.zig",
+      "route": "product:stwo",
+      "imports": [
+        "stwo",
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: SDK core preserves provider behavior and refusal"
+      ]
     }
   ],
   "budget": {
     "code_files": 154,
-    "code_lines": 28652,
+    "code_lines": 28696,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

@@ -45,7 +45,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
-          python-version: "3.13"
+          python-version: "3.13.18"
       - name: Validate exact package ownership and contracts
         run: python3 scripts/repo/check_package_workspace.py
 
@@ -73,7 +73,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
-          python-version: "3.13"
+          python-version: "3.13.18"
 
       - name: Setup Zig
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
@@ -175,7 +175,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
-          python-version: "3.13"
+          python-version: "3.13.18"
 
       - name: Setup Zig
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
@@ -735,7 +735,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
-          python-version: "3.13"
+          python-version: "3.13.18"
 
       - name: Setup Zig
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
@@ -794,7 +794,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
-          python-version: "3.13"
+          python-version: "3.13.18"
 
       - name: Setup Zig
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
@@ -897,7 +897,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
-          python-version: "3.13"
+          python-version: "3.13.18"
 
       - name: Setup Zig
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
@@ -956,7 +956,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
-          python-version: "3.13"
+          python-version: "3.13.18"
 
       - name: Require full Xcode offline Metal tools
         run: |
@@ -1051,7 +1051,7 @@ jobs:
       - name: Setup pinned Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
-          python-version: "3.13"
+          python-version: "3.13.18"
 
       - name: Install the oracle's pinned Rust toolchain
         if: inputs.gate == 'regenerate-circuit-vectors'

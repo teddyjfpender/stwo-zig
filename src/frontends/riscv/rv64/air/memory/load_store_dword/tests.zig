@@ -2,6 +2,7 @@
 const Support = @import("tests_support.zig");
 
 test {
+    _ = @import("owner_projection_test.zig");
     _ = @import("tests_classic.zig");
     _ = @import("tests_fused_pair.zig");
 }

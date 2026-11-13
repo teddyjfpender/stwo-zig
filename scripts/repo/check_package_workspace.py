@@ -732,6 +732,10 @@ def _validate_ownership_projection(
     for contract in contracts:
         base = "/" + contract.directory.relative_to(repository).as_posix()
         role_paths.setdefault(contract.owner, set()).update({base + "/package.contract.json", base + "/build.zig.zon"})
+    try:
+        role_paths["repository-maintainer"].update(ci_package_graph.registered_product_owner_paths(repository, contracts))
+    except (OSError, ValueError) as error:
+        failures.append(f"product owner routes: {error}")
     failures.extend(ci_package_graph.check_owner_roles(repository, role_paths))
     projection = repository / "build_support/graph/package_ownership.zig"
     if not projection.is_file():
@@ -818,6 +822,8 @@ def main() -> int:
     arguments = parser.parse_args()
     failures = check_repository(arguments.repo)
     if failures:
+        if arguments.budget_report is not None:
+            package_budget.write_failure_report(arguments.repo, arguments.budget_report, failures)
         print("\n".join(failures))
         return 1
     contracts = [

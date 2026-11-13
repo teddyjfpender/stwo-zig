@@ -7,7 +7,7 @@ implementations; it contains contracts, not a working backend.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.1` |
+| Version | `1.0.0-rc.2` |
 | Layer | `contract` |
 | Owner | `backend-contracts` |
 | Public Zig module | `stwo_backend_contracts` |
@@ -59,6 +59,7 @@ comptime {
 | Operation contracts | `field_ops`, `fri_ops`, `line_evaluation`, `merkle_ops`, `recovery` |
 | Proof-program contract | `proof_program` |
 | Capability definitions | `capabilities` |
+| Arena-origin diagnostics | `error_codes` |
 
 Use `assertBackend` for the minimum backend contract and
 `assertBackendForChannel` when a proof path also needs a typed Merkle hasher and
@@ -118,3 +119,5 @@ incorrectly typed implementations fail at compile time.
 The scalar CPU backend registers checked Native trace geometry and its actual `CpuBackend` conformance witness. The provider contract also registers its Core dependency laws where applicable.
 
 The existing aggregate package graph exposes `zig build test-cdc-stwo-backend-contracts -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
+
+The typed `error_codes.fromArena` accepts only arena-plan errors and allocator failure from that boundary. Codes `0x2001`–`0x200d` are diagnostic metadata; original errors, plan hashes and proof bytes are unchanged. The Metal arena-plan process emits these only from its typed `arena_plan.build` catch. Foreign and unknown lookup codes return null.

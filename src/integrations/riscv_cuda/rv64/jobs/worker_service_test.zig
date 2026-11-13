@@ -367,3 +367,45 @@ test "pinned growth sizes are powers of two of at least one granule" {
     try std.testing.expectEqual(2 * W.pinned_granule_words, W.Worker.pinnedGrowth(W.pinned_granule_words + 1));
     try std.testing.expectEqual(8 * W.pinned_granule_words, W.Worker.pinnedGrowth(5 * W.pinned_granule_words));
 }
+
+test "posted callback outlives its phase delegate and retains stable worker userdata" {
+    const a = std.testing.allocator;
+    const w = try W.Worker.create(a, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer w.destroy();
+    const Probe = struct {
+        expected: *W.Worker,
+        entered: std.Thread.ResetEvent = .{},
+        release: std.Thread.ResetEvent = .{},
+        observed: ?*W.Worker = null,
+        value: u32 = 0,
+        fn run(raw: *anyopaque, worker: *W.Worker) anyerror!void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.entered.set();
+            self.release.wait();
+            self.observed = worker;
+            if (worker != self.expected) return error.WrongPostedWorker;
+            self.value = 0x513a_55ed;
+            return error.PostedApplicationRefusal;
+        }
+        fn healthy(raw: *anyopaque, worker: *W.Worker) anyerror!void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            if (worker != self.expected) return error.WrongPostedWorker;
+            self.value += 1;
+        }
+    };
+    var probe = Probe{ .expected = w };
+    defer probe.release.set();
+    var done = W.CallDone{};
+    try w.post(.{ .ctx = &probe, .run = Probe.run }, &done);
+    // post's borrowed phase is gone before this gate opens. Its stack frame
+    // cannot be the stored callback context or the Worker argument.
+    probe.entered.wait();
+    _ = w.arenaEpoch();
+    _ = w.pinnedBytes();
+    probe.release.set();
+    try std.testing.expectError(error.PostedApplicationRefusal, w.awaitCall(&done));
+    try std.testing.expectEqual(w, probe.observed.?);
+    try std.testing.expectEqual(@as(u32, 0x513a_55ed), probe.value);
+    try w.call(.{ .ctx = &probe, .run = Probe.healthy });
+    try std.testing.expectEqual(@as(u32, 0x513a_55ee), probe.value);
+}

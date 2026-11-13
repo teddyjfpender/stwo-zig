@@ -183,3 +183,16 @@ def hot_path_errors(repository: Path, contracts) -> list[str]:
         except ValueError as error:
             failures.append(str(error))
     return failures
+
+
+def write_failure_report(repository: Path, output: Path, failures: list[str]) -> None:
+    """Keep a refused transaction inspectable without certifying invalid inputs."""
+    from scripts.repo.check_package_workspace import load_contract
+    from scripts.repo.ci_scope_plan import write_json
+    receipt = {"schema": "package-complexity-census/v1", "status": "FAIL", "failures": failures}
+    try:
+        contracts = [load_contract(path) for path in sorted(repository.resolve().glob("src/**/package.contract.json"))]
+        receipt.update(report(repository.resolve(), contracts))
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        receipt["measurement_error"] = str(error)
+    write_json(output, receipt)

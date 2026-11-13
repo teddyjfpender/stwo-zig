@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_backend_contracts",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "layer": "contract",
   "owner": "backend-contracts",
   "public_modules": {
@@ -19,6 +19,7 @@
     "assertBackendForChannel",
     "capabilities",
     "column",
+    "error_codes",
     "field_ops",
     "fri_ops",
     "line_evaluation",
@@ -50,15 +51,15 @@
     ]
   },
   "budget": {
-    "code_files": 18,
-    "code_lines": 3400,
+    "code_files": 20,
+    "code_lines": 3485,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
-    "api_entries": 15,
+    "api_entries": 16,
     "dependencies": 1,
     "rv64_registry_flags": 0,
-    "versioned_files": 21
+    "versioned_files": 23
   },
   "consumers": [
     {
@@ -172,6 +173,19 @@
       ],
       "tests": [
         "cdc: stwo_riscv_cuda_integration native geometry overflow and domain refusal"
+      ]
+    },
+    {
+      "id": "product:stwo",
+      "root": "build_support/products/contract_tests/stwo/stwo_backend_contracts_test.zig",
+      "route": "product:stwo",
+      "imports": [
+        "stwo",
+        "stwo_backend_contracts",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: SDK backend preserves provider behavior and refusal"
       ]
     }
   ]

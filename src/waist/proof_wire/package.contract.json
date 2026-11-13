@@ -179,6 +179,19 @@
       "tests": [
         "cdc: stwo_riscv_rv32 injected postcard retains proof authority and bounded refusal"
       ]
+    },
+    {
+      "id": "product:stwo",
+      "root": "build_support/products/contract_tests/stwo/stwo_proof_wire_test.zig",
+      "route": "product:stwo",
+      "imports": [
+        "stwo",
+        "stwo_proof_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: SDK proof_wire preserves provider behavior and refusal"
+      ]
     }
   ]
 }

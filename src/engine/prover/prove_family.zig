@@ -240,6 +240,9 @@ pub fn ForField(comptime Secure: type) type {
             diagnostic.* = null;
             var diagnostic_phase: prover_api.ProvePhase = .composition;
             var diagnostic_subphase: ?prover_api.CompositionSubphase = .geometry;
+            var column_failure: ?prover_api.error_codes.ColumnFailure = null;
+            var diagnosed_scheme = commitment_scheme;
+            diagnosed_scheme.column_failure = &column_failure;
             var evaluation_diagnostic: ?prover_api.EvaluationDiagnostic = null;
             return proveExComponentsWithRecorder(
                 B,
@@ -248,7 +251,7 @@ pub fn ForField(comptime Secure: type) type {
                 allocator,
                 components,
                 channel,
-                commitment_scheme,
+                diagnosed_scheme,
                 include_all_preprocessed_columns,
                 recorder,
                 composition_stage,
@@ -265,6 +268,9 @@ pub fn ForField(comptime Secure: type) type {
                     evaluation_diagnostic,
                     err,
                 );
+                if (column_failure) |origin| if (diagnostic.*) |*retained| {
+                    if (retained.cause == origin.cause) retained.code = origin.entry;
+                };
                 return err;
             };
         }
