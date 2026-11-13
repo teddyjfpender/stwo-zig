@@ -63,6 +63,7 @@ pub fn build(b: *std.Build) void {
     // Product-owned focused roots borrow the actual component's dependency
     // pointers; they never construct a second frontend/Core module graph.
     var retained_vm_run: ?*std.Build.Step.Run = null;
+    var ethereum_runner: ?*std.Build.Step.Run = null;
     inline for (.{
         .{ .component = cpu_component, .step = "test-receiver-boundaries", .description = "Test real receipt, image and independently configured receiver rejection boundaries", .root = "cpu/rv64_ethereum_receiver_boundary_test_root.zig", .filters = &[_][]const u8{ "serialized Ethereum receipt", "Ethereum cursor rejects", "serialized physical receipt", "merged RAM BYTE mass rejects" }, .minimum = 5 },
         .{ .component = cpu_component, .step = "test-receiver-boundaries", .description = "Test real receipt, image and independently configured receiver rejection boundaries", .root = "cpu/rv64_ethereum_image_admission_test_root.zig", .filters = &[_][]const u8{ "pristine expected image retains", "pristine image pin terminal", "new execution packet path reads", "execution receiver binds independently", "execution memory count preflight", "resident pinned image program cache" }, .minimum = 7 },
@@ -93,6 +94,8 @@ pub fn build(b: *std.Build) void {
         .{ .component = cpu_component, .step = "test-csp-ecdsa-proof", .description = "Prove both canonical CSP ECDSA suites on CPU", .root = "cpu/csp_ecdsa_proof_test.zig", .filters = &[_][]const u8{ "CSP ECDSA guest proves caller memory", "BLAKE3 CSP ECDSA guest proves" }, .minimum = 2 },
         .{ .component = frontend_component, .step = "test-composition-custody", .description = "Check ownership, OOM, mutation and Initial38 policy", .root = "frontend.zig", .filters = &[_][]const u8{ "composition ownership", "composition finalization", "composition borrowed", "Initial38 composition descriptor" }, .minimum = 17 },
         .{ .component = product, .step = "test-component-boundaries", .description = "Check canonical components, coordinator owners and read capabilities", .root = "mod.zig", .filters = &[_][]const u8{ "api signature: Ethereum product", "api invariant: legacy exports", "coordinator boundary:", "composition boundary:" }, .minimum = 7 },
+        .{ .component = frontend_component, .step = "test-ethereum-runner", .description = "Check product execution and native runner service domains", .root = "frontend.zig", .filters = &[_][]const u8{"ethereum_runner_test."}, .minimum = 4 },
+        .{ .component = frontend_component, .step = "test-ethereum-minimal-trace", .description = "Check compact Ethereum capture and replay", .root = "frontend.zig", .filters = &[_][]const u8{"Ethereum minimal trace compacts and independently replays both native calls"}, .minimum = 1 },
         .{ .component = frontend_component, .step = "test-stack-swap-candidate", .description = "Check product SWAP authority, decode and execution", .root = "frontend.zig", .filters = &[_][]const u8{"SWAP"}, .minimum = 7 },
         .{ .component = frontend_component, .step = "test-ethereum-composition-program", .description = "Run every moved composition-program case", .root = "frontend_composition_program_test_root.zig", .filters = &[_][]const u8{}, .minimum = 8 },
     }) |spec| {
@@ -102,6 +105,7 @@ pub fn build(b: *std.Build) void {
         const run = b.addRunArtifact(tests);
         run.has_side_effects = true;
         if (std.mem.eql(u8, spec.step, "test-ethereum-composition-program")) retained_vm_run = run;
+        if (std.mem.eql(u8, spec.step, "test-ethereum-runner")) ethereum_runner = run;
         // Shared names compose independent images, each with its own floor.
         const step = if (b.top_level_steps.get(spec.step)) |existing| &existing.step else b.step(spec.step, spec.description);
         step.dependOn(&run.step);
@@ -112,6 +116,18 @@ pub fn build(b: *std.Build) void {
     native_run.has_side_effects = true;
     const retained = b.step("test-retained-typed-components", "Check the complete retained native and product VM family");
     retained.dependOn(@import("stwo_riscv_frontend").TestCountFloor.addMany(b, &.{ native_run, retained_vm_run.? }, 21));
+    var runner_runs: [4]*std.Build.Step.Run = undefined;
+    runner_runs[0] = ethereum_runner.?;
+    inline for (.{
+        .{ .module = neutral_frontend.import_table.get("stwo_riscv_isa").?, .filters = &[_][]const u8{ "custom0", "execution_profile" } },
+        .{ .module = neutral_frontend.import_table.get("stwo_riscv_precompiles").?, .filters = &[_][]const u8{ "recovery_abi", "secp256k1_recover_call_buffer" } },
+        .{ .module = @import("stwo_riscv_frontend").signerRecoveryTestModule(b, neutral_frontend, target, optimize), .filters = &[_][]const u8{} },
+    }, 1..) |part, i| {
+        const run = b.addRunArtifact(b.addTest(.{ .root_module = part.module, .filters = part.filters }));
+        run.has_side_effects = true;
+        runner_runs[i] = run;
+    }
+    b.top_level_steps.get("test-ethereum-runner").?.step.dependOn(@import("stwo_riscv_frontend").TestCountFloor.addMany(b, &runner_runs, 11));
 }
 
 fn addMetalCsp(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, frontend: *std.Build.Module) void {

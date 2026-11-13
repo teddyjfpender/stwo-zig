@@ -196,20 +196,6 @@ pub const specs = [_]Spec{
         .partition_roots = &.{ "rv32/focused_benchmark_minimal_trace_parallel_replay_0.zig", "focused_benchmark_minimal_trace_parallel_replay_0.zig", "testing/focused_benchmark_minimal_trace_parallel_replay_0.zig", "isa/focused_benchmark_minimal_trace_parallel_replay_0.zig", "precompiles/focused_benchmark_minimal_trace_parallel_replay_0.zig" },
     },
     .{
-        .step = "test-ethereum-runner",
-        .description = "Run the combined Ethereum profile and signer-recovery runner tests",
-        .root = "isa/focused_test_ethereum_runner_0.zig",
-        .minimum = 11,
-        .partition_roots = &.{ "isa/focused_test_ethereum_runner_0.zig", "precompiles/focused_test_ethereum_runner_0.zig", "focused_test_ethereum_runner_0.zig", "testing/focused_test_signer_recovery_0.zig" },
-    },
-    .{
-        .step = "test-ethereum-minimal-trace",
-        .description = "Run compact Ethereum minimal-trace capture and replay tests",
-        .root = "ethereum_minimal_trace_test_root.zig",
-        .filters = &.{"Ethereum minimal trace compacts and independently replays both native calls"},
-        .minimum = 1,
-    },
-    .{
         .step = "test-main-trace-plan-execution",
         .description = "Run only bounded main-trace plan and production execution tests",
         .root = "testing/focused_main_trace_plan_execution_test_root.zig",

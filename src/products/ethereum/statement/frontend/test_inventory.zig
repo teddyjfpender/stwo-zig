@@ -11,8 +11,6 @@ test {
     _ = @import("isa/ethereum_bulk_memcpy_candidate.zig");
     _ = @import("isa/ethereum_candidate_combined_authority.zig");
     _ = @import("isa/ethereum_candidate_private_registry.zig");
-    _ = @import("isa/focused_test_ethereum_runner_0.zig");
-    _ = @import("precompiles/focused_test_ethereum_runner_0.zig");
     _ = @import("prover/blake3_profile_artifact_test.zig");
     _ = @import("prover/guest_precompile/ethereum_assembly.zig");
     _ = @import("prover/guest_precompile/ethereum_candidate_combined_decode.zig");

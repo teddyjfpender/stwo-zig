@@ -23,6 +23,10 @@ class DevTestPlanTests(unittest.TestCase):
     def test_extracted_ethereum_contracts_keep_executed_focused_owners(self):
         prefix = "src/products/ethereum/statement/"
         for source, step in (("frontend/recursion/vm_composition_preparation.zig", "test-composition-custody"),
+                             ("frontend/focused_test_ethereum_runner_0.zig", "test-ethereum-runner"),
+                             ("frontend/runner/guest_precompile/tests/ethereum_runner_test.zig", "test-ethereum-runner"),
+                             ("frontend/ethereum_minimal_trace_test_root.zig", "test-ethereum-minimal-trace"),
+                             ("frontend/runner/minimal_trace/ethereum_test.zig", "test-ethereum-minimal-trace"),
                              ("tests/coordinator_boundary_test.zig", "test-component-boundaries"),
                              ("tests/composition_custody_test.zig", "test-component-boundaries"),
                              ("cpu/csp_ecdsa_proof_test.zig", "test-csp-ecdsa-proof"),

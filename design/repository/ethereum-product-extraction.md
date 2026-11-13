@@ -676,3 +676,32 @@ Focused-owner slice budget: source +90/-34/net +56; C4 cumulative
 Documentation and configuration are measured separately in the commit. The
 69 inherited source-size errors remain outside this extracted product; no
 ceiling, baseline or exemption changed. Full final-source host gates are pending.
+
+
+A broader catalog audit found two further moved-root references: the Ethereum
+runner (floor11) and minimal-trace gate (floor1). Their names/floors transfer to
+the product. A second BUILD-only owner operation returns the existing native
+signer test module; its predecessor pointers stay canonical and it must not
+acquire an upward umbrella import. Import-only ISA/precompile wrappers are
+replaced by actual selected module test runs for the public custom0/profile and
+recovery ABI/call-buffer domains. No new native source path is exposed to the
+product. The original three product runner assertions and four signer checks
+remain; empty wrappers carry no correctness assertions and are retired.
+Pre-edit source allowance for this closing catalog sweep is +60 within C4’s
+unchanged +3,300 total. Full host runs at 8a8abccb5 remain source-specific.
+
+The signer BUILD contract passes both modes, including the no-upward-import
+assertion. The restored minimal-trace command passes Debug/ReleaseFast and the
+joined runner passes ReleaseFast (37 total tests across its four images).
+Debug runner compilation reaches the unchanged laptop guard and is UNRUN.
+Initial focused roots below the package directory hit Zig’s outside-module
+guard; both now compile through the real package-level frontend root.
+All 180 Python contracts and the package workspace pass. The existing runner
+collector is byte-identical to its archived source. Two import-only wrappers
+are retired in favor of actual native module executions.
+
+Source budget for this closure: +40/-30/net +10; C4 cumulative
++3,227/+3,300, with zero move credit. No new flags or maintained scripts
+(100 live); docs/configuration are reported separately in the commit.
+The four full CPU-host runs remain live at 8a8abccb5 and retain their exact
+source scope; this closing BUILD-only delta is separately qualified above.

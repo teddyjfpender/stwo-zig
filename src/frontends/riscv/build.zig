@@ -22,6 +22,14 @@ pub fn retainedTypedTestModule(b: *std.Build, native: *std.Build.Module, target:
     return createBoundRoot(b, native, source.dirname().path(b, "focused_test_retained_typed_components_upper.zig"), native, target, optimize);
 }
 
+/// BUILD-only signer fixture over the actual selected Testing predecessor.
+pub fn signerRecoveryTestModule(b: *std.Build, native: *std.Build.Module, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
+    const owner = native.import_table.get("stwo_riscv_testing") orelse @panic("selected frontend lacks Testing");
+    const source = owner.root_source_file orelse @panic("selected Testing lacks source root");
+    if (owner.import_table.get("stwo_core") != native.import_table.get("stwo_core")) @panic("selected Testing Core drift");
+    return createBoundRoot(b, owner, source.dirname().path(b, "focused_test_signer_recovery_0.zig"), null, target, optimize);
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -421,12 +429,18 @@ test "retained BUILD constructor preserves selected modules and native ownership
     const native = b.createModule(.{ .root_source_file = b.path("src/frontends/riscv/mod.zig") });
     const core = b.createModule(.{ .root_source_file = b.path("src/waist/core/mod.zig") });
     native.addImport("stwo_core", core);
+    const fixture_owner = b.createModule(.{ .root_source_file = b.path("src/frontends/riscv/testing/mod.zig") });
+    fixture_owner.addImport("stwo_core", core);
+    native.addImport("stwo_riscv_testing", fixture_owner);
+    const signer = signerRecoveryTestModule(b, native, target, .Debug);
+    try std.testing.expect(signer.import_table.get("stwo_core") == core);
+    try std.testing.expect(!signer.import_table.contains("stwo_riscv_frontend"));
     const module = retainedTypedTestModule(b, native, target, .Debug);
     try std.testing.expect(module != native);
     try std.testing.expect(module.import_table.get("stwo_core") == core);
-    try std.testing.expectEqual(@as(usize, 1), native.import_table.count());
+    try std.testing.expectEqual(@as(usize, 2), native.import_table.count());
     try std.testing.expect(module.import_table.get("stwo_riscv_frontend") == native);
-    try std.testing.expectEqual(@as(usize, 2), module.import_table.count());
+    try std.testing.expectEqual(@as(usize, 3), module.import_table.count());
     try std.testing.expectEqual(std.builtin.OptimizeMode.Debug, module.optimize.?);
     try std.testing.expect(std.mem.endsWith(u8, module.root_source_file.?.getPath(b), "focused_test_retained_typed_components_upper.zig"));
 }

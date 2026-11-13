@@ -112,3 +112,8 @@ graph; this product does not name a private native test path.
 `test-stack-swap-candidate` likewise runs here with its original floor7.
 The neutral package’s `test-native-typed-components` covers its mathematical
 subset; its default test command still collects all native assertions.
+
+`test-ethereum-runner` and `test-ethereum-minimal-trace` also run here,
+retaining floors11 and1. The runner joins the product execution assertions
+with actual ISA, recovery-ABI and native signer tests over the selected
+module graph; importing a named module alone is not counted as execution.

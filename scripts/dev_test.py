@@ -25,6 +25,10 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/focused_test_ethereum_runner_0.zig", "test-ethereum-runner"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/runner/guest_precompile/tests/ethereum_runner_test.zig", "test-ethereum-runner"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/ethereum_minimal_trace_test_root.zig", "test-ethereum-minimal-trace"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/runner/minimal_trace/ethereum_test.zig", "test-ethereum-minimal-trace"),
     ("stwo_riscv_frontend", "src/frontends/riscv/build.zig", "test-build-components"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/runner/guest_precompile/tests/ethereum_stack_swap_candidate_test.zig", "test-stack-swap-candidate"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/alu_fused_tail_proof_test.zig", "test-word16-alu-fused-tail-proof"),
