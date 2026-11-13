@@ -146,7 +146,7 @@ product; benchmark qualification does not replace the package release gates.
 
 On 30 September 2026, the two contiguous adapted leaves
 `15627902-15627904` and `15627905-15627907` were proved under
-`vectors/circuit/official/registries/production.json` with the resident CUDA
+`vectors/recursion/registries/production.json` with the resident CUDA
 prover. Both decoded proofs passed independent Zig verification and the pinned
 official Rust `verify_cairo_ex` verifier. The first leaf's canonical Rust
 `bincode(CairoProofForRustVerifier)` was **byte-identical** to the pinned Rust

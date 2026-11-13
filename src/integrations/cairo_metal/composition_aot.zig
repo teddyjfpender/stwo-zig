@@ -101,14 +101,14 @@ pub const bounded_length: u64 = 10121115;
 /// generator leaves unused QM31 one-constants in these programs). Minted on
 /// macOS 15.3.1 with Apple metal 32023.620; like the Cairo artifacts it is an
 /// artifact identity, not a build-recipe identity
-/// (`vectors/circuit/official/circuit_air_composition_bounded.provenance.json`).
+/// (`vectors/metal/circuit/circuit_air_composition_bounded.provenance.json`).
 /// It is pinned only by the circuit route (`authenticateCircuitBoundedForProduct`)
 /// and is deliberately not in `approved_metallibs`: the Cairo product's
 /// library override must not be able to name it.
 pub const circuit_bounded_label = "circuit_air_composition_bounded_v1";
 pub const circuit_bounded_sha256_hex = "bbcfb8879ae76b0c9cb771cd70fe335abaa9ee319cbf30491d161b2dc2090473";
 pub const circuit_bounded_length: u64 = 367765;
-pub const circuit_bounded_path = "vectors/circuit/official/circuit_air_composition_bounded.metallib";
+pub const circuit_bounded_path = "vectors/metal/circuit/circuit_air_composition_bounded.metallib";
 
 pub const approved_metallibs = [_]ApprovedMetallib{
     .{

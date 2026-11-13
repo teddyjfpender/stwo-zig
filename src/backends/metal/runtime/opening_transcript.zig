@@ -20,7 +20,7 @@ pub fn transcriptMix(self: *Runtime, arena: ResidentBuffer, state_base: u32, sou
     return gpu_ms;
 }
 
-fn transcriptCall(self: *Runtime, arena: ResidentBuffer, comptime call: anytype, args: anytype) MetalError!f64 {
+pub fn transcriptCall(self: *Runtime, arena: ResidentBuffer, comptime call: anytype, args: anytype) MetalError!f64 {
     var gpu_ms: f64 = 0;
     var message: [1024]u8 = [_]u8{0} ** 1024;
     if (!@call(.auto, call, .{ self.handle, arena.handle } ++ args ++ .{ &gpu_ms, &message, message.len })) {

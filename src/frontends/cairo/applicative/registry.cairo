@@ -1,4 +1,4 @@
-// Circuit hashes pinned by vectors/circuit/official/registries/production.json.
+// Circuit hashes pinned by vectors/recursion/registries/production.json.
 // Changing the production registry requires recompiling this program and
 // qualifying its program hash against the new circuit registry.
 from starkware.cairo.common.math import assert_nn_le

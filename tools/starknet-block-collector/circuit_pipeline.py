@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 VECTOR = ROOT / "vectors/starknet/mainnet"
 LEAF_PROGRAM = "crates/cairo-program-runner-lib/resources/compiled_programs/bootloaders/leaf_simple_bootloader_compiled.json"
 PINNED_PROVING_COMMIT = "5a7c5ede4299c91a61df19a07cba4f7502c14230"
-REGISTRY = ROOT / "vectors/circuit/official/registries/production.json"
+REGISTRY = ROOT / "vectors/recursion/registries/production.json"
 
 
 def digest(path: Path) -> str:

@@ -2,6 +2,7 @@ const std = @import("std");
 const runtime = @import("../runtime.zig");
 const ffi = @import("bindings.zig");
 const protocol_mode = @import("protocol_mode.zig");
+const transcriptCall = @import("opening_transcript.zig").transcriptCall;
 
 const MetalError = runtime.MetalError;
 const Runtime = runtime.Runtime;

@@ -70,3 +70,31 @@ class VectorOwnershipTests(unittest.TestCase):
         target.unlink()
         target.symlink_to(self.root.parent / "outside.json")
         self.assertIn("invalid vector path", "\n".join(V.check(self.root)))
+
+
+class ArtifactOwnerTransferTests(unittest.TestCase):
+    def test_non_oracle_assets_keep_original_bytes_under_actual_owner_namespaces(self):
+        from scripts.repo.upstream_pins_lib import circuit_recursion
+        root = Path(__file__).resolve().parents[2]
+        manifest = json.loads((root / V.MANIFEST).read_text())
+        indexed = {row["path"]: row for row in manifest["files"]}
+        assets = [
+            ("vectors/metal/circuit/circuit_air_composition_bounded.metallib", 367765,
+             "bbcfb8879ae76b0c9cb771cd70fe335abaa9ee319cbf30491d161b2dc2090473", "cairo-metal-integration"),
+            ("vectors/metal/circuit/circuit_air_composition_bounded.provenance.json", 1519,
+             "f7cfb28b988526c059580f4eae78e1db4ae9eff8760ff3b86b12f7603d2cc36f", "cairo-metal-integration"),
+            ("vectors/recursion/registries/production.json", 4028,
+             "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf", "circuit-recursion"),
+        ]
+        for path, length, digest, owner in assets:
+            with self.subTest(path=path):
+                data = (root / path).read_bytes()
+                self.assertEqual((length, digest), (len(data), hashlib.sha256(data).hexdigest()))
+                self.assertEqual((length, digest), (indexed[path]["bytes"], indexed[path]["sha256"]))
+                self.assertEqual(owner, manifest["groups"][indexed[path]["group"]]["owner"])
+                self.assertNotIn(path, circuit_recursion.MANAGED)
+                self.assertFalse(path.startswith(circuit_recursion.VECTORS + "/"))
+        # Historical generation authority is retained byte-for-byte, not restamped.
+        historical = json.loads((root / assets[1][0]).read_text())
+        self.assertEqual("vectors/circuit/official/circuit_air_composition_bounded.metallib",
+                         historical["artifact"]["path"])

@@ -270,7 +270,7 @@
       "kind": "golden_fixture"
     },
     "vectors/circuit": {
-      "files": 83,
+      "files": 80,
       "consumers": [
         "build_support/products/cairo_cuda.zig",
         "build_support/products/circuit_recursion_cpu.zig",
@@ -348,7 +348,7 @@
       "kind": "golden_fixture"
     },
     "vectors/circuit/official": {
-      "files": 28,
+      "files": 25,
       "consumers": [
         "build_support/products/cairo_cuda.zig",
         "build_support/products/circuit_recursion_cpu.zig",
@@ -706,6 +706,25 @@
         "tools/stwo-vector-gen/src/main.rs"
       ],
       "owner": "protocol-core",
+      "kind": "golden_fixture"
+    },
+    "vectors/metal/circuit": {
+      "files": 2,
+      "consumers": [
+        "src/integrations/cairo_metal/composition_aot.zig",
+        "src/integrations/cairo_metal/composition_stage.zig",
+        "src/integrations/circuit_metal/README.md"
+      ],
+      "owner": "cairo-metal-integration",
+      "kind": "golden_fixture"
+    },
+    "vectors/recursion/registries": {
+      "files": 1,
+      "consumers": [
+        "src/integrations/riscv_cpu/rv64_recursion/fold_root.zig",
+        "tools/starknet-block-collector/circuit_pipeline.py"
+      ],
+      "owner": "circuit-recursion",
       "kind": "golden_fixture"
     }
   },
@@ -1491,18 +1510,6 @@
       "group": "vectors/circuit/official"
     },
     {
-      "path": "vectors/circuit/official/circuit_air_composition_bounded.metallib",
-      "sha256": "bbcfb8879ae76b0c9cb771cd70fe335abaa9ee319cbf30491d161b2dc2090473",
-      "bytes": 367765,
-      "group": "vectors/circuit/official"
-    },
-    {
-      "path": "vectors/circuit/official/circuit_air_composition_bounded.provenance.json",
-      "sha256": "f7cfb28b988526c059580f4eae78e1db4ae9eff8760ff3b86b12f7603d2cc36f",
-      "bytes": 1519,
-      "group": "vectors/circuit/official"
-    },
-    {
       "path": "vectors/circuit/official/circuit_multiverifier/backward_compatibility_cairo_proof.bin",
       "sha256": "4fd195c8bc96f3d2ff5d26f98ca2c0d67827529a3a9e7ec0e2a81ce306e9feac",
       "bytes": 182884,
@@ -1602,12 +1609,6 @@
       "path": "vectors/circuit/official/registries/privacy_large_proofs.json",
       "sha256": "7e0a8a8bfa636d5e15bd7df2d0b29ee03f3e8a4dab09d39d7a180a8ad1e614b2",
       "bytes": 4023,
-      "group": "vectors/circuit/official"
-    },
-    {
-      "path": "vectors/circuit/official/registries/production.json",
-      "sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
-      "bytes": 4028,
       "group": "vectors/circuit/official"
     },
     {
@@ -1975,6 +1976,24 @@
       "sha256": "7e0691d1bc3865554ea7cec4019a3b610017146bd0bf0e13c4d2597dc0cbdb2f",
       "bytes": 9152,
       "group": "vectors/circuit/r9"
+    },
+    {
+      "path": "vectors/metal/circuit/circuit_air_composition_bounded.metallib",
+      "sha256": "bbcfb8879ae76b0c9cb771cd70fe335abaa9ee319cbf30491d161b2dc2090473",
+      "bytes": 367765,
+      "group": "vectors/metal/circuit"
+    },
+    {
+      "path": "vectors/metal/circuit/circuit_air_composition_bounded.provenance.json",
+      "sha256": "f7cfb28b988526c059580f4eae78e1db4ae9eff8760ff3b86b12f7603d2cc36f",
+      "bytes": 1519,
+      "group": "vectors/metal/circuit"
+    },
+    {
+      "path": "vectors/recursion/registries/production.json",
+      "sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
+      "bytes": 4028,
+      "group": "vectors/recursion/registries"
     },
     {
       "path": "vectors/reports/rv64-productionisation/current.json",
