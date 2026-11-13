@@ -8,12 +8,10 @@ const std = @import("std");
 pub const hint_oracle = @import("stwo_riscv_rv32").host.hint_oracle;
 pub const runtime = @import("stwo_riscv_rv32").host.runtime;
 pub const block_input = @import("stwo_riscv_rv32").host.block_input;
-pub const prove_block = @import("../assembly/rv32/host/prove_block.zig");
 
 pub const HintOracle = hint_oracle.HintOracle;
 pub const HostRuntime = runtime.HostRuntime;
 pub const BlockInput = block_input.BlockInput;
-pub const proveEthereumBlockWithEngine = prove_block.proveEthereumBlockWithEngine;
 
 const interface = @import("stwo_riscv_isa").host.interface;
 pub const SyscallNr = interface.SyscallNr;

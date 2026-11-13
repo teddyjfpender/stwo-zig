@@ -127,8 +127,8 @@ prerequisite slice.
 
 ## Budget
 
-The entire C4 transaction retains the amended RFC #352 maximum +1200 net source lines
-(originally +800),
+The current C4 completion sweep has a planned maximum +3100 net source lines
+(originally +800, then +1200),
 including tests/build/compatibility wiring. Moves receive no subtraction credit.
 New flags and scripts are zero; documentation and configuration are separate.
 The private cuts protect shared ownership and failure semantics; rollback must
@@ -187,6 +187,29 @@ suite passes in both modes, including its collection hook. These bounded
 results do not establish complete frontend/proof acceptance for the preserved
 migration draft.
 
+## Current unqualified migration checkpoint (2026-11-12)
+
+The local extraction draft now relocates 226 implementation/test owners. The
+runner result, extension-state selection and profile-owner implementations live
+in the product; the native wrappers reuse the canonical RV32 owner factory and
+base result records. A bounded direct check runs the existing adjacent-segment
+execution-parity test and compares Native/Poseidon/Keccak session, result and
+state identities in Debug and ReleaseFast: three executed cases per mode,
+502,104,064-byte sampled peak under the 1 GiB aggregate guard. The temporary
+operator test root is removed after execution; it is not a new maintained test
+entrypoint and does not replace final package acceptance.
+
+Strict P3 is active in this draft and reports zero placement findings. Its five
+placement/layer regression cases pass. Source multiset comparison against
+`3eb01db13` retains all 9,674 original named Zig tests and adds two native-only
+identity cases. This is source retention, not executable discovery parity.
+All 353 changed existing/new Zig/zon sources parse through the formatter under
+the shared lock and memory guard. Cross-package closure is still failing;
+shared CPU provider boundaries, recursion policy separation and complete
+consumer/discovery migration remain open. No combined frontend, CPU-negative
+or frozen Native proof-byte acceptance is claimed for this draft. The pushed
+canonical-provider landing remains the last qualified additive checkpoint.
+
 ## Native helper prerequisite landing
 
 The next C4 slice removes request/packet policy from native qualifications
@@ -228,3 +251,275 @@ Workspace passes at 37 packages/39 modules/175 edges; the same 83 inherited
 source findings remain. Full frontend and frozen-proof acceptance remain open.
 Source +53/-47/net **+6**, cumulative C4 **761/1200**; documentation is separate,
 configuration/flags/maintained scripts unchanged. No move subtraction credit.
+
+## Approved execution-provider amendment
+
+The owner explicitly approved the exact 11-file execution-provider amendment on
+2026-11-12; the [recorded decision](https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6835724702)
+pins the full 17-owner member/hash ledger and patch. CPU now exposes the static
+`rv64_execution` domains; the neutral artifact facade publishes its existing
+Header and validatePcsConfig; expected-image ownership stays in the product.
+The borrowed memory adapter infers only its caller’s concrete pointer type;
+canonical Image/Statement records and receiver-owned policy remain unchanged.
+Two real product consumer cases and the raised 222-case floor are installed.
+The C4 source allowance is now +1600, with no new flags/scripts or move credit.
+Implementation and combined qualification remain in progress; approval is not
+evidence of runtime acceptance or full extraction completion.
+
+
+## Further consumer and policy ownership checkpoint
+
+The unqualified extraction now uses the product-owned expected image in fifteen
+consumer references and the published native rung provider in eight references.
+Its compatibility testing facade preserves all 74 original names: 68 retain
+native module identities and six resolve to their actual product owners. The
+existing component contract case checks those identities and neutral separation.
+Four packet-policy test files moved intact; their eleven named cases enter the
+CPU component inventory directly, raising the aggregate discovery floor to 375.
+Native signer recovery keeps a neutral focused root. The ECDSA Ethereum proof
+router moved intact, with import-only body parity; its neutral public alias is
+still an explicitly unresolved compatibility boundary awaiting owner decision.
+
+The full source inventory retains all 9,676 original literal named cases, with
+four additions. This is source preservation, not executable discovery. Strict
+product placement reports zero; the broader workspace still has 463 findings
+(231 relative import occurrences, each reported at both owners, plus one missing
+named dependency). The combined extraction remains unqualified. Source is
++58,217/-57,644/net +573 versus the pushed head, including physical moves with
+zero subtraction credit; cumulative C4 is +1,334/1,600. No flags or maintained
+scripts were added. Final runtime, negative-corpus and frozen-proof gates remain
+mandatory; the earlier checked prerequisite results do not qualify this draft.
+
+
+## Owner-authorized completion sweep (2026-11-12)
+
+The owner approved the bounded coordinator amendment, then explicitly authorized
+all necessary subsequent changes without repeated approval requests. The exact
+review packet and clean pushed-source RED receipt remain in
+`/tmp/c4-coordinator-owner-amendment/`. Publishing that factory does not qualify
+its consumer tests: the combined native frontend still has policy imports.
+The final C4 completion allowance is +2400 (target zero), for explicit canonical
+provider/facade/consumer wiring; C3's separate budget is unchanged. File moves
+receive no subtraction credit. No proof/security check, source ceiling, flag
+limit, golden or rejection classification was relaxed.
+
+The native coordinator now selects no product early owners. Ethereum selects its
+actual owner pair once above it; Bundle, timing, stream and encoded records have
+one native owner outside the operation specialization. The native page cache
+borrows native memory and permission regions, rather than an ExpectedImage type;
+its existing first-match rules and caller fallback stay intact. A new real-memory
+case checks uniform/mixed rights, absent pages and unaligned addresses.
+
+All production product imports now use explicit canonical native operation
+namespaces. Consumer tests use honest native fixture/oracle namespaces; hostile
+prover helpers remain private to their product proof-boundary tests. The legacy
+AIR and recursion facades keep actual shared records by identity while product
+loading/profile policy stays above. Seventeen CUDA orchestration/tool files and
+one admission case moved above their device/kernel providers. Two actual direct
+dependencies (circuit frontend and CPU backend) are declared and all owned
+component roots use the actual lower module pointers. The exact graph pin is
+189 dependency edges; its exact-equality assertion remains intact.
+
+Diagnostic streams now share one native journal/hash/data implementation;
+Ethereum session selection and receipt-validated candidate policy have a product
+adapter. The legacy product dispatch preserves five profiles and its candidate
+entrypoint; the native dispatcher admits only its three native profiles and
+returns UnsupportedExecutionProfile otherwise. NDJSON byte/observer qualification
+and existing candidate gates remain mandatory.
+
+The latest workspace audit has 24 findings, all for twelve remaining native
+frontend-to-product import occurrences. Product-to-private relative imports and
+undeclared named dependencies are zero. Strict product placement remains zero.
+All 9676 original literal named source cases remain, with seven additions; the
+current product source discovery floor is 427. These are source inventories,
+not executed frontend/prover qualification. Forty-three focused graph/boundary
+checks and flag/reference validation pass. The actual Debug public consumer
+still fails before execution on eight native frontend policy imports.
+
+The remaining work is CSP/harness and recursion policy separation, typed
+caller-protocol BUILD construction, all focused/default consumer wiring and the
+original complete Debug/ReleaseFast, CPU-negative and frozen-proof gates.
+The current staged draft is preserved as unqualified local work; earlier pushed
+prerequisite test results must not be reused as evidence for this full candidate.
+
+## Local ownership and qualification sweep (2026-11-13)
+
+The remaining direct frontend-to-product imports have been cut. Shared VM
+composition custody now constructs its program through a static compiler
+operation, owns its retained schedule, and exposes one native immutable
+`Source`/`View` pair. Ethereum selects its three compilers and claim routing
+above that boundary. Owner handles are distinct per compiler and cannot be
+confused with read capabilities. Statement arithmetic similarly keeps native
+opaque graph/evaluation custody separate from fixed product claim reconstruction.
+No proof/IR record is copied into a generic context and no runtime dispatch
+registry or cached validation flag replaces admission.
+
+The Initial38 manifest remains typed at the product admission boundary. Its
+native descriptor/capture ABI has one fixed count, and the original capacity,
+identity, policy, family and stale-manifest adversarial case is retained.
+The diagnostic journal has one native streaming kernel; product adapters select
+Ethereum sessions and validate candidate capabilities before entering it.
+
+BUILD-only component constructors accept actual caller-selected native modules.
+The default build retains the three literal audited export producers. Aggregate
+and legacy consumers reuse the same binding implementation; neutral import keys
+retain their native owners and deprecated product namespaces select the explicit
+compatibility components. Native CPU construction reuses the circuit provider
+implementation and the caller's wire/Cairo identities. Its provider factory was
+moved below both graph consumers to remove a build import cycle.
+
+Existing CSP ECDSA proof cases and the service-specific harness are product-owned.
+The two CPU suites have `test-csp-ecdsa-proof`; the existing Metal JIT/AOT commands
+retain their modes and authenticated-bundle option under this product build.
+Metal qualification remains outside default tests and has not been executed.
+The real Metal backend dependency raises the exact graph from 189 to 190 edges.
+No runtime module-export key, protocol flag, security parameter or golden changed.
+
+Local evidence is deliberately separated by scope:
+
+| Scope | Result |
+| --- | --- |
+| Primary product contracts, actual canonical components | 13 cases pass in Debug and ReleaseFast |
+| BUILD constructor identity/isolation unit | Pass in both modes using actual `std.Build` modules |
+| Compiler-owner/read-capability separation | Original failing run retained; passes in both modes |
+| Ownership, finalization/OOM, borrowed mutation, Initial38 admission | Pass in both modes through the actual frontend root |
+| Product profile authority, fixed identities and mutations | Pass in both modes through the actual frontend root |
+| Retained leaf context, receipt and capture mutation rejection | Pass in both modes through the actual frontend root |
+| Diagnostic journal/candidate closure | Eight previously blocked cases pass in both modes |
+| Frozen Native CPU kernel and raw wire | Fresh 8,390-byte proof matches `452fb396032380b7c031fc95f0b7c00d0a3c6e05622321f84f06cb3a801e3b2c`; separate verifier accepts and rejects a changed proof byte |
+| Literal source-name preservation | 9,676 original names retained; 9,686 current names; no missing multiplicities |
+
+Bounded frontend partitions cover the whole 154-case source list, with supplemental
+single-case and focused runs. Four Debug cases and six ReleaseFast cases remain
+unrun after the 1 GiB compiler guard, even when isolated. These are not assertion
+passes, and the small Native kernel proof is not the full product CLI/JSON negative
+corpus. Combined CPU/CUDA-root attempts also reached the compiler guard. Native
+captured-call ABI consumers found by those attempts are being migrated explicitly;
+the real Ethereum-session fixtures and their qualification consumers have now moved to product ownership (see the checkpoint below).
+
+The sweep therefore remains an **unqualified local extraction**, not a complete
+frontend/CPU/CUDA qualification or a performance result. Full consumer/focused
+catalog closure, larger compiler cases, CPU rejection
+coverage and final combined discovery remain required before completion.
+
+
+## Service fixture ownership checkpoint (2026-11-13)
+
+Nineteen additional fixture, policy-test, focused-root and CLI files now live in
+this product. They continue to run the real Ethereum executor: no synthetic
+executor replaces the independent fixture oracle. Native packet/math fixtures
+stay below, and the seven Zbb instruction encoders keep one native implementation
+shared by the ROM test and product fixtures. Native source, GKR operation and
+recursion bindings refer to their actual canonical owners.
+
+The original services-GKR focused command now runs both its neutral kernel image
+and its six product execution-policy cases, retaining the original combined
+floor of 38. Product-focused gates cover V3 services, Zbb, sponge, LS-D64 and
+service recursion, while the default product discovery floor increases from 434
+to 480 (154 frontend, 302 CPU, 13 CUDA and 11 primary named source cases).
+All 9,676 baseline literal named cases remain, with the same ten additions.
+These counts establish source preservation, not complete runtime qualification.
+
+The workspace audit passes with 37 packages, 39 public modules and exactly 190
+dependency edges. The moved secp wire-profile and SHA-256 receiver-derived shape
+checks pass in Debug and ReleaseFast through actual canonical component modules.
+The larger Zbb admission and compact-execution checks reached the unchanged
+1 GiB compiler guard; they remain unqualified. A focused leaf-file invocation
+also correctly failed its module-root boundary, and the maintained package-level
+root subsequently passed. Both failed and successful receipts are retained.
+
+This checkpoint's source budget is +1,631 net against the last pushed head,
+plus the previously landed C4 +761: cumulative +2,392 of the +2,400 allowance.
+Moves receive zero subtraction credit; no flags or maintained scripts are added.
+The fixture transfer is a policy ownership correction, not a performance claim.
+
+
+The owner-authorized organization pass has a pre-edit C4 maximum of +2,800
+(target unchanged +2,392). Its only permitted growth is explicit private-owner,
+consumer and test wiring while splitting twelve moved oversized product files
+and the focused build owner under their existing ceilings. No baseline, ceiling,
+public runtime surface, proof behavior, flag or script allowance changes. The
+real package configure and BUILD/component-boundary execution now pass after
+correcting the three Zig 0.15.2 export-registration calls; the initial failing
+configure receipt remains retained.
+
+
+## Organization and real entrypoint checkpoint
+
+Four moved product files now meet the unchanged 850-line ceiling: leaf context
+765 lines, incremental composition program 833, setup cache 781 and CPU/truth
+planner 766. Private owners hold the existing checked geometry, complete program
+equality, authenticated cache wire format and truth-family geometry/selection.
+Original public aliases and canonical proof records remain single-owned; helper
+exports are private implementation wiring, not new package contract members.
+The focused build owner is 388 lines after its unchanged suite/floor catalog was
+separated. Source conformance falls from 82 to 77 errors; it is still red, with
+eight oversized product owners remaining. No baseline or ceiling was modified.
+
+All sixteen original planner cases pass in Debug and ReleaseFast. The existing
+cache identity, round-trip/tamper and single-seal cases pass in both modes (four
+executed tests including the maintained collector). The aggregate sample-count
+substitution case also passes in both modes after the program authority move.
+The new cache focused command's full package-graph execution reached the 1 GiB
+guard; direct execution through the real canonical component modules passed.
+Those are separate scopes, and the failed package run remains retained.
+
+The real package configure check, BUILD constructor unit and component-boundary
+command pass after correcting `modules.put` to Zig 0.15.2's managed-map API.
+The workspace export audit and its mutation fixture now require the same actual
+API; a RED/GREEN run is retained, including rejection of the invalid allocator
+argument. The 125 graph/workspace/developer-entrypoint tests pass. Relocated flag
+owner/default-expression pins are updated without changing defaults, names,
+status, dates or expiration; the flag validator passes.
+
+
+The final three CUDA-owner splits have a pre-edit maximum C4 allowance of
++3,100 (measured +2,694 before those edits). Growth is limited to private
+install/input/fingerprint and parity-stage wiring; existing public aliases and
+canonical records stay intact. This is code organization and host-contract
+work only: no GPU execution, timing, rental or hardware qualification is included.
+An unused-private-alias sweep removed 133 unreferenced aliases from 35 product
+implementation files, retaining every pub declaration and test/algorithm body.
+
+
+## Final local qualification checkpoint (2026-11-13)
+
+Every one of the 154 frontend source cases was observed executing and passing
+in both Debug and ReleaseFast in a source-frozen campaign. `-fstrip` omits debug
+symbols; optimization mode, assertions, proof checks and the 1 GiB guard remain
+unchanged. This closed all previously unrun frontend cases and exposed private
+method access in the moved legacy context test. That private mutation test now
+stays beside ContextV1; its original method calls and every assertion remain.
+Checked geometry and canonical byte hashing have single private owners, and
+ContextV1's private methods remain private.
+
+The full primary product root passes 13 tests per mode. Real package configure,
+BUILD constructor and component-boundary commands pass in both modes. The
+constructor tests execute actual std.Build module identity/ownership checks;
+aggregate wiring now reuses a caller-selected CPU and its actual predecessors,
+rejecting Core or predecessor drift. All 13 CUDA component host contracts pass
+per mode; both large parity tools type-check without execution. No device test,
+GPU qualification, rental or timing result is claimed.
+
+CPU receipt/image/receiver rejection coverage is 10/10 in Debug and 9/10 in
+ReleaseFast. The remaining physical-receipt proof test exceeds the unchanged
+laptop compiler guard; it is UNRUN, not passed. The exact-source hosted CPU lane
+is the fallback for it. All 178 Python graph/workspace/developer/CI contract
+checks pass. A fresh 8,390-byte Native CPU proof retains the frozen hash above;
+a separate verifier accepts it and rejects a changed proof with RootMismatch.
+
+The CSP proofs were focused-only in the original CPU package. The extraction's
+accidental default broadening is corrected: the default product named floor is
+478 (154 frontend + 300 CPU + 13 CUDA + 11 primary), with both original CSP cases
+preserved under test-csp-ecdsa-proof, minimum two. The hosted Ethereum CPU lane
+covers Debug/ReleaseFast defaults and ReleaseFast CSP; no discovery or rejection
+check is dropped. The full literal source inventory retains all 9,676 original
+names and the same ten additions.
+
+All twelve moved oversized product owners now meet the unchanged 850-line
+ceiling, and the focused build owner meets its 500-line ceiling. Repository
+source conformance still reports 69 inherited errors outside this product;
+no baseline or ceiling was changed. The extraction remains unqualified as a
+whole until the remaining hosted/default-package gates pass. The committed
+local receipt records scopes, source fingerprint, proof/binary hashes and the
+explicit unrun case; prior failures and compiler-guard receipts remain retained.

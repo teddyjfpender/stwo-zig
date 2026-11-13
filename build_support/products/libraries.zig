@@ -134,6 +134,7 @@ pub fn addPublicModules(context: Context) Result {
         riscv_frontend,
         stwo,
     );
+    integration_graph.addEthereumCpuCompatibility(context.b, context.target, context.optimize, stwo);
     const cairo_frontend = graph.addCairoFrontendImport(
         context.b,
         protocol,
@@ -142,7 +143,7 @@ pub fn addPublicModules(context: Context) Result {
         context.optimize,
         stwo,
     );
-    stwo.addImport("stwo_circuit_recursion_wire", graph.createCircuitRecursionWire(
+    stwo.addImport("stwo_circuit_recursion_wire", stwo.import_table.get("stwo_circuit_recursion_wire") orelse graph.createCircuitRecursionWire(
         context.b,
         protocol,
         sdkProduct(),
@@ -325,6 +326,7 @@ pub fn addProducts(context: Context) Result {
         riscv_frontend,
         stwo,
     );
+    integration_graph.addEthereumCpuCompatibility(context.b, context.target, context.optimize, stwo);
     const cairo_frontend = graph.addCairoFrontendImport(
         context.b,
         prover.protocol,
@@ -333,7 +335,7 @@ pub fn addProducts(context: Context) Result {
         context.optimize,
         stwo,
     );
-    stwo.addImport("stwo_circuit_recursion_wire", graph.createCircuitRecursionWire(
+    stwo.addImport("stwo_circuit_recursion_wire", stwo.import_table.get("stwo_circuit_recursion_wire") orelse graph.createCircuitRecursionWire(
         context.b,
         prover.protocol,
         sdkProduct(),

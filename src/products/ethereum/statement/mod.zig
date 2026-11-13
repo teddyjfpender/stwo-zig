@@ -30,4 +30,10 @@ test "api invariant: legacy exports share canonical components and records" {
 
 test {
     _ = @import("tests/shared_bindings_test.zig");
+    _ = @import("tests/execution_providers_test.zig");
+    _ = @import("tests/coordinator_boundary_test.zig");
+}
+
+test {
+    _ = @import("tests/composition_custody_test.zig");
 }

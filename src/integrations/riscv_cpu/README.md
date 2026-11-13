@@ -96,6 +96,13 @@ to PCS. All 17 statements, claims and proofs remain byte-identical. ECDSA takes
 about 19.6 seconds in the matched suite; composition still sets the 12.78 GiB
 caller peak. Rejected scheduling/zero-shortcut experiments are documented.
 
+## Native execution domain
+
+`rv64_execution` binds the existing native witness/setup/proof, service, memory,
+delegation and source owners. It retains their exact types, bytes and lifetime
+rules; it does not establish Ethereum request/image authority. The old expected
+image name belongs to product compatibility.
+
 ## Public API
 
 Consumers import the declared module rather than relative source files:
@@ -116,7 +123,6 @@ are tracked separately from this metadata reconciliation.
 - `Poseidon2InteractionClaim`
 - `Poseidon2ProveOutput`
 - `diagnoseRiscVRelations`
-- `ethereum_proof_artifact`
 - `poseidon2_proof_artifact`
 - `proveAndVerifyElf`
 - `provePoseidon2WithPublicData`
@@ -133,17 +139,6 @@ are tracked separately from this metadata reconciliation.
 - `rv64_device_main`
 - `rv64_device_pcs`
 - `rv64_device_source_stage`
-- `rv64_ethereum_canon_rungs`
-- `rv64_ethereum_capture`
-- `rv64_ethereum_capture_options`
-- `rv64_ethereum_direct`
-- `rv64_ethereum_gkr_main`
-- `rv64_ethereum_keys`
-- `rv64_ethereum_plan`
-- `rv64_ethereum_receiver`
-- `rv64_ethereum_request`
-- `rv64_ethereum_terminal`
-- `rv64_expected_image`
 - `rv64_family_input`
 - `rv64_full`
 - `rv64_gkr_bundle_wire`
@@ -181,6 +176,7 @@ are tracked separately from this metadata reconciliation.
 - `rv64_native_gkr_v2`
 - `rv64_native_policy`
 - `rv64_native_rungs`
+- `rv64_execution`
 - `rv64_native_schema`
 - `rv64_om31_cpu_leaf`
 - `rv64_om31_execution_wrap`
@@ -208,7 +204,6 @@ are tracked separately from this metadata reconciliation.
 - `rv64_recursion_budget`
 - `rv64_replay_capture`
 - `rv64_root_verify`
-- `rv64_root_verify_main`
 - `rv64_services_collector`
 - `rv64_services_roster`
 - `rv64_services_types`
@@ -299,3 +294,20 @@ src/integrations/riscv_cpu/rv64_proof_artifact_support.zig` executes the actual
 public consumer and three private owner cases directly, under the same build
 lock. Use ReleaseFast for its other required mode. The full package build and
 proof acceptance remain separate checks.
+
+
+### Coordinator early-source boundary
+
+`rv64_gkr_coordinator.ForEarlySources(Cpu0, Segments)` specializes only producer
+operations. The neutral default uses `void, void`, making the two early-source
+fields null-typed; it cannot name or select a product owner. Ethereum compatibility
+binds its existing concrete owners in the product. Bundle, stream, worker timing,
+encoded workers and request records retain one canonical native owner.
+
+The returned domain also exposes the existing operational `planAdmission` and
+`produceWithPolicy` bodies plus the owned `Admission.deinit`. They do not accept
+proofs or supply verification authority. Frozen tree policy still passes the
+original `tree_selection.validate`; inventory reconstruction, manifest closure,
+cancellation and teardown checks remain mandatory. All returned domain methods
+retain existing error and lifetime semantics. This unpublished 1.0.0 candidate
+requires the product consumer and complete execution gates before qualification.

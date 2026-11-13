@@ -13,12 +13,12 @@ const test_filter = @import("riscv_test_filter.zig");
 const roots = [_]struct { step: []const u8, source: []const u8, description: []const u8 }{
     .{ .step = "rv64-poseidon-graph-fixture", .source = "src/integrations/riscv_cpu/rv64_poseidon_graph_fixture_main.zig", .description = "Real source-owned five-roster P2 v2 graph STARK and fresh receiver" },
     .{ .step = "rv64-poseidon-row-fixture", .source = "src/integrations/riscv_cpu/rv64_poseidon_row_fixture_main.zig", .description = "Scoped dedicated Poseidon row STARK and fresh receiver" },
-    .{ .step = "rv64-word16-ethereum-gkr-recursion", .source = "src/integrations/riscv_cpu/rv64_om31_recursion_main.zig", .description = "Wrap current OM31 Ethereum CPU/truth proofs, fold and freshly verify their execution root" },
+    .{ .step = "rv64-word16-ethereum-gkr-recursion", .source = "src/products/ethereum/statement/cpu/rv64_om31_recursion_main.zig", .description = "Wrap current OM31 Ethereum CPU/truth proofs, fold and freshly verify their execution root" },
     .{ .step = "rv64-gkr-circuit-cost", .source = "src/integrations/riscv_cpu/rv64_gkr_circuit_cost_main.zig", .description = "Inspect actual GKR verifier circuit graph cost on native-verified mini-AIR bundles" },
     .{ .step = "rv64-om31-cost", .source = "src/integrations/riscv_cpu/rv64_om31_cost_main.zig", .description = "Measure isolated OM31 native and circuit arithmetic, no protocol migration" },
-    .{ .step = "rv64-word16-recursion-shape", .source = "src/integrations/riscv_cpu/rv64_word16_recursion_shape_main.zig", .description = "Inspect native-verified Word16 shapes without constructing a recursive circuit" },
-    .{ .step = "rv64-v3-truth-leaf", .source = "src/integrations/riscv_cpu/rv64_truth_leaf_main.zig", .description = "Wrap the v3 truth proofs (SHA-256, arith256_mod) of a native-verified Word16 bundle into in-circuit leaves; report gates and timings" },
-    .{ .step = "rv64-recursion", .source = "src/integrations/riscv_cpu/rv64_recursion_main.zig", .description = "Build the RV64 recursion tools: wrap batch proofs into circuit leaves, fold them to one root, verify the root" },
+    .{ .step = "rv64-word16-recursion-shape", .source = "src/products/ethereum/statement/cpu/rv64_word16_recursion_shape_main.zig", .description = "Inspect native-verified Word16 shapes without constructing a recursive circuit" },
+    .{ .step = "rv64-v3-truth-leaf", .source = "src/products/ethereum/statement/cpu/rv64_truth_leaf_main.zig", .description = "Wrap the v3 truth proofs (SHA-256, arith256_mod) of a native-verified Word16 bundle into in-circuit leaves; report gates and timings" },
+    .{ .step = "rv64-recursion", .source = "src/products/ethereum/statement/cpu/rv64_recursion_main.zig", .description = "Build the RV64 recursion tools: wrap batch proofs into circuit leaves, fold them to one root, verify the root" },
 };
 
 pub fn addProduct(context: circuit_product.Context, product: graph.Product) void {
@@ -66,7 +66,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         .{ .name = "test-riscv64-division-degree3-circuit", .source = "src/integrations/riscv_cpu/rv64_division_degree3_circuit_test_root.zig" },
         .{ .name = "test-riscv64-division-product-circuit", .source = "src/integrations/riscv_cpu/rv64_division_product_circuit_test_root.zig" },
         .{ .name = "test-riscv64-word16-execution-circuit", .source = "src/integrations/riscv_cpu/rv64_word16_execution_circuit_test_root.zig" },
-        .{ .name = "test-riscv64-v3-services-recursion", .source = "src/integrations/riscv_cpu/rv64_services_recursion_test_root.zig" },
+        .{ .name = "test-riscv64-v3-services-recursion", .source = "src/products/ethereum/statement/cpu/rv64_services_recursion_test_root.zig" },
     }) |spec| {
         const tests = context.b.addTest(.{ .root_module = createRoot(context, product, spec.source), .filters = if (std.mem.eql(u8, spec.name, "test-riscv64-om31-native-pcs")) &.{ "OM31 native PCS", "OM31 frame", "OM31 V3" } else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-full-leaf-census")) &.{"actual complete CPU P2 mixed recursive leaf"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-pure-leaf-census")) &.{"source-exact complete CPU pure P2 candidate"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-matched-blake-census")) &.{"matched all-Blake complete CPU b4 q54 P20"} else &.{} });
         const run = context.b.addRunArtifact(tests);

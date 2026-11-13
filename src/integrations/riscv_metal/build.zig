@@ -11,7 +11,6 @@ pub fn build(b: *std.Build) void {
     const prover = b.dependency("stwo_prover_engine", options).module("stwo_prover_engine");
     const metal = b.dependency("stwo_metal_backend", options).module("stwo_metal_backend");
     const frontend = b.dependency("stwo_riscv_frontend", options).module("stwo_riscv_frontend");
-    const secp256k1_proof_harness = b.dependency("stwo_riscv_frontend", options).module("secp256k1_proof_harness");
     const cpu = b.dependency("stwo_riscv_cpu_integration", options);
 
     const integration = b.addModule("stwo_riscv_metal_integration", .{
@@ -51,40 +50,6 @@ pub fn build(b: *std.Build) void {
         const tests = b.addTest(.{ .root_module = integration });
         linkMetalFrameworks(tests);
         test_step.dependOn(&b.addRunArtifact(tests).step);
-    }
-
-    const blake3_runtime = b.createModule(.{
-        .root_source_file = b.path("blake3_runtime.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    const csp_root = b.createModule(.{
-        .root_source_file = b.path("blake3_csp_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    csp_root.addImport("blake3_runtime", blake3_runtime);
-    csp_root.addImport("stwo_core", core);
-    csp_root.addImport("stwo_prover_engine", prover);
-    csp_root.addImport("stwo_metal_backend", metal);
-    csp_root.addImport("secp256k1_proof_harness", secp256k1_proof_harness);
-    const csp_tests = b.addTest(.{
-        .root_module = csp_root,
-        .filters = &.{"Metal BLAKE3 canonical CSP ECDSA proves and independently verifies"},
-    });
-    linkMetalFrameworks(csp_tests);
-    const csp_jit = b.addRunArtifact(csp_tests);
-    csp_jit.setEnvironmentVariable("STWO_BLAKE3_CSP_RUNTIME", "source_jit");
-    b.step("test-blake3-csp-ecdsa-jit", "Prove and independently verify canonical CSP ECDSA on Metal source-JIT")
-        .dependOn(&csp_jit.step);
-    const aot_step = b.step("test-blake3-csp-ecdsa-aot", "Prove and independently verify canonical CSP ECDSA on authenticated AOT Metal");
-    if (b.option([]const u8, "metal-core-aot-bundle", "Absolute authenticated core AOT bundle for real-device acceptance")) |bundle| {
-        const csp_aot = b.addRunArtifact(csp_tests);
-        csp_aot.setEnvironmentVariable("STWO_BLAKE3_CSP_RUNTIME", "authenticated_aot");
-        csp_aot.setEnvironmentVariable("STWO_RISCV_METAL_AOT_BUNDLE", bundle);
-        aot_step.dependOn(&csp_aot.step);
-    } else {
-        aot_step.dependOn(&b.addFail("test-blake3-csp-ecdsa-aot requires -Dmetal-core-aot-bundle=<absolute-path>").step);
     }
 
     // The shared SegmentV2 detached protocol has one producer implementation;

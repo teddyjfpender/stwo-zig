@@ -143,8 +143,8 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
         try tape.appendService(call);
     }
     if (profile == .ethereum_services_v1 or profile == .ethereum_services_v2 or rv.execution_profile.isV3(profile)) {
-        for ([_]rv.ethereum_services.secp256k1.Kind{ .add, .double, .double }, 0..) |kind, i| {
-            var call = rv.ethereum_services.SecpCall{ .kind = kind, .packet_format = if (profile != .ethereum_services_v1) .little_endian_words_v2 else .big_endian_bytes_v1, .call_id = if (kind == .add) 3 else i + 5, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
+        for ([_]@import("stwo_riscv_precompiles").primitives.secp256k1.Kind{ .add, .double, .double }, 0..) |kind, i| {
+            var call = @import("stwo_riscv_rv64").service_calls.SecpCall{ .kind = kind, .packet_format = if (profile != .ethereum_services_v1) .little_endian_words_v2 else .big_endian_bytes_v1, .call_id = if (kind == .add) 3 else i + 5, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
             for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |*before, *after, index| {
                 before.* = 0xfedcba9876543210 - index;
                 after.* = index;
@@ -154,24 +154,24 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
     }
     if (rv.execution_profile.isV3(profile)) {
         for (0..3) |i| {
-            var call = rv.ethereum_services.Arith256ModCall{ .call_id = 1 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
+            var call = @import("stwo_riscv_rv64").service_calls.Arith256ModCall{ .call_id = 1 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
             for (&call.before, 0..) |*w, index| w.* = 0x0badc0ffee000000 +% index *% 0x9e3779b97f4a7c15;
             if (i == 1) @memset(call.before[12..16], 0);
             call.after = call.before;
-            call.after[16..20].* = rv.ethereum_services.arith256.mulAddModPacket(call.before);
+            call.after[16..20].* = @import("stwo_riscv_precompiles").primitives.arith256.mulAddModPacket(call.before);
             try tape.appendArith256Mod(call);
         }
         for (0..2) |i| {
-            var call = rv.ethereum_services.Sha256Call{ .call_id = 7 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
+            var call = @import("stwo_riscv_rv64").service_calls.Sha256Call{ .call_id = 7 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
             for (&call.before, 0..) |*w, index| w.* = 0x0123456789abcdef ^ index;
             call.after = call.before;
-            call.after[0..4].* = rv.ethereum_services.sha256.compressPacket(call.before);
+            call.after[0..4].* = @import("stwo_riscv_precompiles").primitives.sha256.compressPacket(call.before);
             try tape.appendSha256(call);
         }
     } else {
-        const sha = rv.ethereum_services.Sha256Call{ .call_id = 1, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
+        const sha = @import("stwo_riscv_rv64").service_calls.Sha256Call{ .call_id = 1, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
         try std.testing.expectError(error.InvalidTapeService, tape.appendSha256(sha));
-        const arith = rv.ethereum_services.Arith256ModCall{ .call_id = 1, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
+        const arith = @import("stwo_riscv_rv64").service_calls.Arith256ModCall{ .call_id = 1, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
         try std.testing.expectError(error.InvalidTapeService, tape.appendArith256Mod(arith));
     }
     return tape;
@@ -264,7 +264,7 @@ test "v3 tape extension is present exactly when arith256_mod records exist (SHA-
 }
 
 fn appendCurves(tape: *T.Tape, pointer: u64) !void {
-    const C = rv.ethereum_services.curves;
+    const C = @import("stwo_riscv_rv64").service_calls.curves;
     const ops = [_]C.Op{ .bn254_fp2_mul, .arith384_mont, .bls12_381_g1_double, .bn254_fp2_mul };
     var ids: [C.COUNT]u64 = @splat(0);
     for (ops) |op| {

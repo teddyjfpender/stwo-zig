@@ -17,11 +17,6 @@ const merkle = support.merkle;
 const merkle_relation = support.merkle_relation;
 const MerkleAdapter = support.MerkleAdapter;
 const merkleGeometry = support.merkleGeometry;
-const RawQuotientAir = support.RawQuotientAir;
-const RawQuotientAdapter = support.RawQuotientAdapter;
-const runRawQuotientStorage = support.runRawQuotientStorage;
-const failRawQuotientValues = support.failRawQuotientValues;
-const failRawQuotientMetadata = support.failRawQuotientMetadata;
 const runTypedPreparedWithWorkers = support.runTypedPreparedWithWorkers;
 
 test "Ethereum typed quotient domains reject recovery larger than quotient buffer" {
@@ -165,66 +160,6 @@ test "Ethereum typed quotient domains reject recovered high degree before trunca
     try std.testing.expectError(error.InvalidProofShape, helpers.sourceNeedsExtension(source, trace_log + 2, trace_log + 3));
 }
 
-test "Ethereum typed quotient domains route owned values and preserve mapped quotient results" {
-    const allocator = std.testing.allocator;
-    var definition = try RawQuotientAir.build(allocator);
-    defer definition.deinit();
-    const relation_plan = try RawQuotientAir.Relation.authenticate(&definition);
-    var builder = manifest_mod.Builder{};
-    _ = try builder.append(RawQuotientAdapter.manifestGeometry(.transcript_payload, 4));
-    const manifest = try builder.seal();
-    const relations = universal.UniversalRelations.dummy();
-    const component = try RawQuotientAdapter.init(
-        &definition,
-        relation_plan,
-        &manifest,
-        .transcript_payload,
-        4,
-        [_]M31{M31.zero()} ** RawQuotientAir.PARAMETER_COUNT,
-        &relations,
-        QM31.zero(),
-    );
-    // Exactly the failing real route's geometry ratio: native log4, committed
-    // log5, quotient log6, no retained coefficients. Nonconstant inputs make
-    // both inverse and forward transforms observable in the quotient parity.
-    const circle_poly = @import("stwo_prover_engine").poly.circle;
-    var coefficients: [16]M31 = undefined;
-    for (&coefficients, 0..) |*value, index| value.* = M31.fromCanonical(@intCast(index * index + 7));
-    const polynomial = try circle_poly.CircleCoefficients.initBorrowed(&coefficients);
-    const committed = try polynomial.evaluate(allocator, stwo_core.poly.circle.canonic.CanonicCoset.new(5).circleDomain());
-    defer allocator.free(@constCast(committed.values));
-    const original = try allocator.dupe(M31, committed.values);
-    defer allocator.free(original);
-    const poly = prover_component.Poly{ .log_size = 5, .values = committed.values };
-    var pp = [_]prover_component.Poly{poly} ** RawQuotientAir.PREPROCESSED_COLUMN_COUNT;
-    var main = [_]prover_component.Poly{poly} ** RawQuotientAir.PHYSICAL_MAIN_COLUMN_COUNT;
-    var interaction = [_]prover_component.Poly{poly} ** RawQuotientAir.INTERACTION_COLUMN_COUNT;
-    var trees = [_][]const prover_component.Poly{ &pp, &main, &interaction };
-    const trace = prover_component.Trace{ .polys = pcs.TreeVec([]const prover_component.Poly).initOwned(&trees) };
-    const expected = try runRawQuotientStorage(allocator, null, &component, &trace);
-    var measured = std.testing.FailingAllocator.init(allocator, .{});
-    const actual = try runRawQuotientStorage(allocator, measured.allocator(), &component, &trace);
-    try std.testing.expectEqualDeep(expected, actual);
-    const source_count = pp.len + main.len + interaction.len;
-    try std.testing.expectEqual(source_count, measured.alloc_index);
-    try std.testing.expectEqual(source_count * 64 * @sizeOf(M31), measured.allocated_bytes);
-    try std.testing.expectEqual(measured.allocated_bytes, measured.freed_bytes);
-
-    var tmp = std.testing.tmpDir(.{});
-    defer tmp.cleanup();
-    const directory = try tmp.dir.realpathAlloc(allocator, ".");
-    defer allocator.free(directory);
-    var mapped = try @import("stwo_prover_engine").mmap_alloc.FileBackedAllocator.init(directory);
-    defer mapped.deinit();
-    const mapped_result = try runRawQuotientStorage(allocator, mapped.allocator(), &component, &trace);
-    try std.testing.expectEqualDeep(expected, mapped_result);
-    try std.testing.expect(mapped.total_bytes.load(.monotonic) > 0);
-    try std.testing.expectEqual(@as(usize, 0), mapped.live_bytes.load(.monotonic));
-    try std.testing.expectEqualSlices(M31, original, committed.values);
-    try std.testing.checkAllAllocationFailures(allocator, failRawQuotientValues, .{ &component, &trace });
-    try std.testing.checkAllAllocationFailures(allocator, failRawQuotientMetadata, .{ &component, &trace });
-}
-
 test "R-012 generic adapter shards exact quotient rows with bounded workers and joins failures" {
     const allocator = std.testing.allocator;
     var definition = try merkle.build(allocator);
@@ -304,59 +239,4 @@ test "R-012 generic adapter shards exact quotient rows with bounded workers and 
     try std.testing.expectEqual(@as(u64, 3), failure_after.child_submissions - failure_before.child_submissions);
     try std.testing.expectEqual(@as(u64, 3), failure_after.child_completions - failure_before.child_completions);
     try std.testing.expect(failure_after.range_failures > failure_before.range_failures);
-}
-
-test "coefficient coset composition matches full domain including rotated interactions" {
-    const allocator = std.testing.allocator;
-    var definition = try RawQuotientAir.build(allocator);
-    defer definition.deinit();
-    const relation_plan = try RawQuotientAir.Relation.authenticate(&definition);
-    var builder = manifest_mod.Builder{};
-    _ = try builder.append(RawQuotientAdapter.manifestGeometry(.transcript_payload, 4));
-    const manifest = try builder.seal();
-    const relations = universal.UniversalRelations.dummy();
-    const component = try RawQuotientAdapter.init(
-        &definition,
-        relation_plan,
-        &manifest,
-        .transcript_payload,
-        4,
-        [_]M31{M31.zero()} ** RawQuotientAir.PARAMETER_COUNT,
-        &relations,
-        QM31.zero(),
-    );
-    // Exactly the failing real route's geometry ratio: native log4, committed
-    // log5, quotient log6, no retained coefficients. Nonconstant inputs make
-    // both inverse and forward transforms observable in the quotient parity.
-    const circle_poly = @import("stwo_prover_engine").poly.circle;
-    var coefficients: [16]M31 = undefined;
-    for (&coefficients, 0..) |*value, index| value.* = M31.fromCanonical(@intCast(index * index + 7));
-    const polynomial = try circle_poly.CircleCoefficients.initBorrowed(&coefficients);
-    const committed = try polynomial.evaluate(allocator, stwo_core.poly.circle.canonic.CanonicCoset.new(5).circleDomain());
-    defer allocator.free(@constCast(committed.values));
-    const original = try allocator.dupe(M31, committed.values);
-    defer allocator.free(original);
-    const poly = prover_component.Poly{ .log_size = 5, .values = committed.values };
-    var pp = [_]prover_component.Poly{poly} ** RawQuotientAir.PREPROCESSED_COLUMN_COUNT;
-    var main = [_]prover_component.Poly{poly} ** RawQuotientAir.PHYSICAL_MAIN_COLUMN_COUNT;
-    var interaction = [_]prover_component.Poly{poly} ** RawQuotientAir.INTERACTION_COLUMN_COUNT;
-    var trees = [_][]const prover_component.Poly{ &pp, &main, &interaction };
-    const trace = prover_component.Trace{ .polys = pcs.TreeVec([]const prover_component.Poly).initOwned(&trees) };
-    const expected = try runRawQuotientStorage(allocator, null, &component, &trace);
-    const compact_poly = prover_component.Poly{ .log_size = 5, .values = &.{}, .coefficients = polynomial };
-    @memset(&pp, compact_poly);
-    @memset(&main, compact_poly);
-    @memset(&interaction, compact_poly);
-    var compact_trace = trace;
-    compact_trace.partition_coefficient_composition = true;
-    var values_allocator = std.testing.FailingAllocator.init(allocator, .{});
-    const actual = try runRawQuotientStorage(allocator, values_allocator.allocator(), &component, &compact_trace);
-    try std.testing.expectEqualDeep(expected, actual);
-    const source_count = pp.len + main.len + interaction.len;
-    const full_tail: usize = if (RawQuotientAir.INTERACTION_COLUMN_COUNT != 0) 4 else 0;
-    const expected_values = (source_count - full_tail) * 16 + full_tail * 64;
-    try std.testing.expectEqual(expected_values * @sizeOf(M31), values_allocator.allocated_bytes);
-    try std.testing.expectEqual(values_allocator.allocated_bytes, values_allocator.freed_bytes);
-    try std.testing.checkAllAllocationFailures(allocator, failRawQuotientValues, .{ &component, &compact_trace });
-    try std.testing.checkAllAllocationFailures(allocator, failRawQuotientMetadata, .{ &component, &compact_trace });
 }

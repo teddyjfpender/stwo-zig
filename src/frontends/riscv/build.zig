@@ -313,7 +313,7 @@ fn addFocusedTests(
 /// `build_support/products/riscv_test_filter.zig`: this package builds
 /// standalone, so it cannot import the repository's build support, and the
 /// product gate's floor cannot cover a lane this build file owns.
-const TestCountFloor = struct {
+pub const TestCountFloor = struct {
     step: std.Build.Step,
     runs: []const *std.Build.Step.Run,
     minimum: usize,
@@ -323,7 +323,7 @@ const TestCountFloor = struct {
         return addMany(b, &.{run}, minimum);
     }
 
-    fn addMany(b: *std.Build, runs: []const *std.Build.Step.Run, minimum: usize) *std.Build.Step {
+    pub fn addMany(b: *std.Build, runs: []const *std.Build.Step.Run, minimum: usize) *std.Build.Step {
         const floor = b.allocator.create(TestCountFloor) catch @panic("out of memory");
         floor.* = .{
             .step = std.Build.Step.init(.{

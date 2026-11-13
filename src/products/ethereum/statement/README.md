@@ -38,12 +38,27 @@ instances, with no duplicate implementation or nominal records.
 
 ## Dependencies
 
+- `stwo_circuit_frontend`
+- `stwo_cpu_backend`
+- `stwo_metal_backend`
+
+- `stwo_circuit_cpu_integration`
+- `stwo_core`
+- `stwo_proof_wire`
+- `stwo_prover_api`
+- `stwo_prover_engine`
+- `stwo_riscv_air_lang`
 - `stwo_riscv_cpu_integration`
 - `stwo_riscv_cuda_integration`
 - `stwo_riscv_frontend`
-
+- `stwo_riscv_isa`
+- `stwo_riscv_memory`
+- `stwo_riscv_precompiles`
+- `stwo_riscv_recursion`
+- `stwo_riscv_recursion_air`
 - `stwo_riscv_rv32`
 - `stwo_riscv_rv64`
+- `stwo_riscv_testing`
 
 ## Build, test, and run
 
@@ -81,3 +96,9 @@ Those checks are necessary but do not replace execution tests. During extraction
 focused checks are bounded by the laptop memory guard and hold the canonical build
 lock. Full combined acceptance is reported separately against its exact source.
 No status from the old partial backup establishes acceptance of this package.
+
+Existing CSP qualification commands now belong to this product:
+`test-csp-ecdsa-proof`, `test-blake3-csp-ecdsa-jit`, and
+`test-blake3-csp-ecdsa-aot` (with the same authenticated bundle option).
+The Metal commands are explicit device gates and are outside the default test
+step. This migration introduces no device qualification or performance claim.

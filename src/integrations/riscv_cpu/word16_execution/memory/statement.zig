@@ -2,7 +2,6 @@
 const std = @import("std");
 const front = @import("stwo_riscv_frontend");
 const R = front.rv64_air.memory.closed_ram;
-const Owner = @import("../expected_image.zig").Owner;
 pub const Cell = R.types.Cell;
 pub const Image = struct {
     context: *const anyopaque,
@@ -18,20 +17,21 @@ pub const Image = struct {
         return rights;
     }
 };
-pub fn fromOwner(owner: *const Owner) Image {
+pub fn fromOwner(owner: anytype) Image {
+    const Owner = @TypeOf(owner.*);
+    const Callbacks = struct {
+        fn word(ctx: *const anyopaque, address: u64) !u64 {
+            const value: *const Owner = @ptrCast(@alignCast(ctx));
+            return value.initialWord(address);
+        }
+        fn rights(ctx: *const anyopaque, address: u64) !u2 {
+            const value: *const Owner = @ptrCast(@alignCast(ctx));
+            for (value.policy.regions) |region| if (region.first <= address and address <= region.last) return @intCast(region.flags & 3);
+            return 0;
+        }
+    };
     return .{ .context = owner, .initial_word = Callbacks.word, .rights_at = Callbacks.rights };
 }
-const Callbacks = struct {
-    fn word(ctx: *const anyopaque, address: u64) !u64 {
-        const owner: *const Owner = @ptrCast(@alignCast(ctx));
-        return owner.initialWord(address);
-    }
-    fn rights(ctx: *const anyopaque, address: u64) !u2 {
-        const owner: *const Owner = @ptrCast(@alignCast(ctx));
-        for (owner.policy.regions) |region| if (region.first <= address and address <= region.last) return @intCast(region.flags & 3);
-        return 0;
-    }
-};
 pub const Statement = struct {
     initial: []const Cell,
     terminal: []const Cell,

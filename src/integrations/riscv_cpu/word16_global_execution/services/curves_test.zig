@@ -61,7 +61,7 @@ fn freshVerify(op: F.Op) !void {
 }
 
 test "v3 curve/field calls: CPU bridges, global RAM and one truth verify with fresh keys and wire (every op)" {
-    for (@import("stwo_riscv_frontend").rv64.ethereum_services.curves.ALL) |op| try freshVerify(op);
+    for (@import("stwo_riscv_frontend").rv64.service_calls.curves.ALL) |op| try freshVerify(op);
 }
 
 test "v3 curve spans split across two truth proofs close the same Wire35 bus" {

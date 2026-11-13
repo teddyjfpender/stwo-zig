@@ -1450,6 +1450,24 @@
           "src/products/ethereum/statement/build.zig",
           "-Doptimize=Debug",
           "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-csp-ecdsa-proof",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
         ]
       ]
     }
@@ -2285,7 +2303,7 @@
     {
       "prefixes": [
         "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig",
-        "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/vm_composition_program_test.zig",
+        "src/products/ethereum/statement/frontend/recursion/tests/ethereum_vm_composition_program_test.zig",
         "src/frontends/riscv/focused_test_retained_transcript_contracts_0.zig",
         "src/frontends/riscv/focused_test_retained_typed_components_0.zig"
       ],

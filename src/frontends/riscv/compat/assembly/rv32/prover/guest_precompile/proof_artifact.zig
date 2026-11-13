@@ -19,3 +19,6 @@ pub const decodeAllocWithLimits = Legacy.decodeAllocWithLimits;
 pub const decodeAllocForConfig = Legacy.decodeAllocForConfig;
 pub const proofPreflightShape = Legacy.proofPreflightShape;
 pub const pcsConfigsEqual = Legacy.pcsConfigsEqual;
+
+pub const Header = @import("proof_artifact_header.zig").Header;
+pub const validatePcsConfig = @import("proof_artifact_header.zig").validatePcsConfig;

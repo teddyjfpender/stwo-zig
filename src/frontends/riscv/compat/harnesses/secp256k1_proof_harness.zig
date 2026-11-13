@@ -505,5 +505,3 @@ pub fn Harness(comptime Engine: type) type {
         }
     };
 }
-
-pub const cspProof = @import("csp_ecdsa_proof_harness.zig").cspProof;

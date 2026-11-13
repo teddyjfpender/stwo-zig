@@ -1,7 +1,7 @@
 //! Segmented runner parity and continuation-integrity tests.
 
 const std = @import("std");
-const result_mod = @import("../../../../../../runner/result.zig");
+const result_mod = @import("stwo_riscv_rv32").execution.base_result;
 const segment_session = @import("../../../../../../runner/segment_session.zig");
 
 const CompletionReason = result_mod.CompletionReason;

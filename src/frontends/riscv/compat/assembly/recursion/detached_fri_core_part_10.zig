@@ -441,7 +441,7 @@ pub fn Namespace(comptime context: type) type {
             lowering_plan: lowering.Plan,
             vm_air: ?VmAirAuthority,
             public_native_sum_lane: ?lowering.Lane,
-            statement_arithmetic: ?*const recursion.ethereum_statement_arithmetic_v4.Prepared,
+            statement_arithmetic: ?*const recursion.statement_arithmetic_preparation.Prepared,
             segment_transcript_inputs: ?SegmentTranscriptInputs,
             segment_transcript: ?SegmentTranscriptSource,
             segment_leaf_admission: ?SegmentLeafAdmission,
@@ -571,7 +571,7 @@ pub fn Namespace(comptime context: type) type {
                 public_native_sum_lane: ?lowering.Lane,
                 authenticated_poseidon_prefix_count: usize,
                 requested_log_sizes: ?[LogIndex.count]u32,
-                statement_arithmetic: ?*const recursion.ethereum_statement_arithmetic_v4.Prepared,
+                statement_arithmetic: ?*const recursion.statement_arithmetic_preparation.Prepared,
             ) !Authority {
                 return initAuthorityForLogSizes(
                     allocator,

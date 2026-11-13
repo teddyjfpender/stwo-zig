@@ -4,7 +4,7 @@ const limbs = arithmetic.limbs;
 const mulAddModPacket = arithmetic.mulAddModPacket;
 
 test "packet arith256_mod matches the candidate executor's semantics" {
-    const Candidate = @import("stwo_riscv_rv64").ethereum_services.candidate_services;
+    const Candidate = @import("stwo_riscv_rv64").service_calls.reference_crypto;
     var prng = std.Random.DefaultPrng.init(0x21);
     const rng = prng.random();
     for (0..256) |i| {

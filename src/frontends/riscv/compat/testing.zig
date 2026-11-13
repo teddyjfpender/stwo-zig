@@ -86,15 +86,7 @@ pub const guest_precompile_main_trace_support =
     @import("stwo_riscv_rv32").testing.air.guest_precompile.main_trace_test_support;
 pub const bulk_memcpy_word_candidate_v1 =
     @import("stwo_riscv_precompiles").air.bulk_memcpy_word_candidate;
-pub const EthereumStackSwapCandidateExecutionSessionV1 =
-    @import("../runner/segment_session.zig").EthereumStackSwapCandidateExecutionSessionV1;
-pub const EthereumBulkMemcpyCandidateExecutionSessionV1 =
-    @import("../runner/segment_session.zig").EthereumBulkMemcpyCandidateExecutionSessionV1;
-pub const EthereumCombinedCandidateExecutionSessionV1 =
-    @import("../runner/segment_session.zig").EthereumCombinedCandidateExecutionSessionV1;
-pub const ethereum_candidate_execution_capability_v1 = @import("../runner/guest_precompile/ethereum_candidate_execution_capability.zig");
-pub const ethereum_candidate_execution_journal_v1 = @import("../runner/guest_precompile/ethereum_candidate_execution_journal.zig");
-pub const ethereum_candidate_observed_journal_v1 = @import("../runner/guest_precompile/ethereum_candidate_observed_journal.zig");
+
 pub const split_leaf_prepare =
     @import("stwo_riscv_rv32").prover.guest_precompile.split_leaf_prepare;
 pub const split_leaf_statement =

@@ -6,12 +6,6 @@
 
 pub const types = @import("stwo_riscv_rv32").execution.minimal_trace.types;
 pub const capture = @import("stwo_riscv_rv32").execution.minimal_trace.capture;
-pub const ethereum_capture = @import("../../../../../runner/minimal_trace/ethereum_capture.zig");
-pub const ethereum_parallel_replay = @import("../../../../../runner/minimal_trace/ethereum_parallel_replay.zig");
-pub const ethereum_replay = @import("../../../../../runner/minimal_trace/ethereum_replay.zig");
-pub const ethereum_semantic_capture = @import("../../../../../runner/minimal_trace/ethereum_semantic_capture.zig");
-pub const ethereum_types = @import("../../../../../runner/minimal_trace/ethereum_types.zig");
-pub const ethereum_wire = @import("../../../../../runner/minimal_trace/ethereum_wire.zig");
 pub const parallel_replay = @import("stwo_riscv_rv32").execution.minimal_trace.parallel_replay;
 pub const replay = @import("stwo_riscv_rv32").execution.minimal_trace.replay;
 
@@ -45,25 +39,6 @@ pub const ParallelReplayOptionsV1 = parallel_replay.OptionsV1;
 pub const ParallelReplaySinkV1 = parallel_replay.SinkV1;
 pub const ParallelReplayReceiptV1 = parallel_replay.ReceiptV1;
 pub const replayLeavesParallel = parallel_replay.replayLeaves;
-
-pub const EthereumMinimalLeafV1 = ethereum_types.LeafV1;
-pub const ethereumCpuIdentity = ethereum_types.cpuIdentity;
-pub const EthereumCaptureRequestV1 = ethereum_capture.RequestV1;
-pub const EthereumCaptureResultV1 = ethereum_capture.ResultV1;
-pub const captureEthereumLeafFromSegment = ethereum_capture.captureFromSegment;
-pub const EthereumSemanticSegmentObservationV1 =
-    ethereum_semantic_capture.SegmentObservationV1;
-pub const EthereumReplayRequestV1 = ethereum_replay.RequestV1;
-pub const EthereumReplayResultV1 = ethereum_replay.ResultV1;
-pub const replayEthereumLeaf = ethereum_replay.replay;
-pub const EthereumParallelReplayRequestV1 = ethereum_parallel_replay.RequestV1;
-pub const EthereumParallelReplayOptionsV1 = ethereum_parallel_replay.OptionsV1;
-pub const EthereumParallelReplaySinkV1 = ethereum_parallel_replay.SinkV1;
-pub const EthereumParallelReplayReceiptV1 = ethereum_parallel_replay.ReceiptV1;
-pub const replayEthereumLeavesParallel = ethereum_parallel_replay.replayLeaves;
-pub const EthereumMinimalArtifactV1 = ethereum_wire.ArtifactV1;
-pub const encodeEthereumMinimalArtifactAlloc = ethereum_wire.encodeAlloc;
-pub const decodeEthereumMinimalArtifactAlloc = ethereum_wire.decodeAlloc;
 
 test {
     _ = @import("../../../../tests/rv32/runner/minimal_trace/test.zig");

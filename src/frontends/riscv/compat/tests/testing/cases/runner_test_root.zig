@@ -22,7 +22,6 @@ test {
     _ = @import("stwo_riscv_rv32");
     _ = @import("runner/guest_precompile/tests/c011_semantic_equivalence_test.zig");
     _ = @import("stwo_riscv_precompiles");
-    _ = @import("../../../../runner/guest_precompile/tests/ethereum_runner_test.zig");
     _ = @import("../../../../runner/guest_precompile/mod.zig");
     _ = @import("stwo_riscv_rv32");
     _ = @import("stwo_riscv_testing");

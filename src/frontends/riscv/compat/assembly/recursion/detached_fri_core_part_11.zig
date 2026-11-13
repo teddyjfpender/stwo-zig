@@ -124,7 +124,7 @@ pub fn Namespace(comptime context: type) type {
             public_native_sum_lane: ?lowering.Lane,
             authenticated_poseidon_prefix_count: usize,
             requested_log_sizes: ?[LogIndex.count]u32,
-            statement_arithmetic: ?*const recursion.ethereum_statement_arithmetic_v4.Prepared,
+            statement_arithmetic: ?*const recursion.statement_arithmetic_preparation.Prepared,
         ) !Authority {
             if (statement_arithmetic != null and (public_native_sum_lane == null or segment_transcript_inputs != null)) return error.AuthorityMismatch;
             try circuit.validate();

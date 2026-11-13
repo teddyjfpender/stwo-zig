@@ -10,16 +10,13 @@
 const std = @import("std");
 const canonical_runner_fdc1cc = @import("stwo_riscv_isa").machine.cpu;
 const canonical_runner_a174c4 = @import("stwo_riscv_rv32").execution.elf_loader;
-const canonical_runner_b82b34 = @import("../../../../runner/result.zig");
+const canonical_runner_b82b34 = @import("stwo_riscv_rv32").execution.base_result;
 const canonical_runner_a5909c = @import("../../../../runner/segment_session.zig");
 const canonical_runner_88791c = @import("stwo_riscv_rv32").execution.segment_session_contract;
 const canonical_runner_ff820b = @import("../runner/trace_dump.zig");
 const execution_profile = @import("stwo_riscv_isa").execution_profile;
-const bulk_registry = @import("stwo_riscv_isa").bulk_memcpy_private_registry;
-const stack_swap = @import("stwo_riscv_isa").stack_swap_candidate;
-const candidate_capability = @import("../../../../runner/guest_precompile/ethereum_candidate_execution_capability.zig");
 const memory_state = @import("stwo_riscv_isa").machine.memory_state;
-const result_mod = @import("../../../../runner/result.zig");
+const result_mod = @import("stwo_riscv_rv32").execution.base_result;
 const trace_mod = @import("stwo_riscv_rv32").execution.trace;
 const witness_layout = @import("stwo_riscv_rv32").witness_layout;
 const segment_statement_v2 = @import("stwo_riscv_rv32").recursion.segment_statement;
@@ -31,7 +28,7 @@ pub const CLAIM_BOUNDARY = "execution-only-not-a-proof";
 pub const SegmentClockFrame = canonical_runner_b82b34.SegmentClockFrame;
 
 const Digest = [32]u8;
-const maximum_external_families: usize = 4;
+pub const maximum_external_families: usize = 4;
 
 const HeaderPayload = struct {
     schema: []const u8,
@@ -52,7 +49,7 @@ const FamilyRows = struct {
     rows: u64,
 };
 
-const ExternalFamilyRows = struct {
+pub const ExternalFamilyRows = struct {
     family: []const u8,
     calls: u64,
     execution_rows: u64,
@@ -170,103 +167,12 @@ pub fn streamObserved(
 ) !void {
     const profile = try canonical_runner_a174c4.requestedExecutionProfile(elf_bytes);
     return switch (profile) {
-        .rv32im_zkvm_v1 => streamForProfile(
-            .rv32im_zkvm_v1,
-            allocator,
-            elf_bytes,
-            input,
-            segment_step_budget,
-            strict_completion,
-            clock_frame,
-            writer,
-            observer,
-        ),
-        .rv32im_zkvm_poseidon2_v1 => streamForProfile(
-            .rv32im_zkvm_poseidon2_v1,
-            allocator,
-            elf_bytes,
-            input,
-            segment_step_budget,
-            strict_completion,
-            clock_frame,
-            writer,
-            observer,
-        ),
-        .rv32im_zkvm_keccakf_v1 => streamForProfile(
-            .rv32im_zkvm_keccakf_v1,
-            allocator,
-            elf_bytes,
-            input,
-            segment_step_budget,
-            strict_completion,
-            clock_frame,
-            writer,
-            observer,
-        ),
-        .rv32im_zkvm_ethereum_sha_v1 => streamForProfile(
-            .rv32im_zkvm_ethereum_sha_v1,
-            allocator,
-            elf_bytes,
-            input,
-            segment_step_budget,
-            strict_completion,
-            clock_frame,
-            writer,
-            observer,
-        ),
-        .rv32im_zkvm_ethereum_v1 => streamForProfile(
-            .rv32im_zkvm_ethereum_v1,
-            allocator,
-            elf_bytes,
-            input,
-            segment_step_budget,
-            strict_completion,
-            clock_frame,
-            writer,
-            observer,
-        ),
+        inline .rv32im_zkvm_v1, .rv32im_zkvm_poseidon2_v1, .rv32im_zkvm_keccakf_v1 => |selected| streamForProfile(selected, allocator, elf_bytes, input, segment_step_budget, strict_completion, clock_frame, writer, observer),
+        else => error.UnsupportedExecutionProfile,
     };
 }
 
-/// Candidate-only sibling for the receipt-minted combined Ethereum session.
-/// There is no profile flag or fallback to the default session: `capability`
-/// must be the final combined class and `initCombinedSession` reopens the exact
-/// ELF bytes before execution. The observer receives each configured combined
-/// segment and can transactionally project its two private tapes into the
-/// candidate execution journal.
-pub fn streamCandidateObserved(
-    allocator: std.mem.Allocator,
-    capability: candidate_capability.Capability,
-    reopened_elf: []const u8,
-    input: []const u8,
-    segment_step_budget: usize,
-    strict_completion: bool,
-    clock_frame: canonical_runner_b82b34.SegmentClockFrame,
-    writer: *std.Io.Writer,
-    observer: anytype,
-) !void {
-    try capability.validate();
-    if (capability.executable_class != .combined_candidate or
-        !capability.final_candidate_executable)
-    {
-        return error.FinalEthereumCombinedCandidateCapabilityRequired;
-    }
-    return streamWithAdapter(
-        .rv32im_zkvm_ethereum_v1,
-        CombinedCandidateStreamAdapter,
-        capability,
-        allocator,
-        reopened_elf,
-        input,
-        segment_step_budget,
-        strict_completion,
-        clock_frame,
-        writer,
-        observer,
-    );
-}
-
-const NoopObserver = struct {
+pub const NoopObserver = struct {
     fn observe(
         _: *NoopObserver,
         comptime _: execution_profile.ExecutionProfile,
@@ -301,7 +207,7 @@ fn streamForProfile(
     );
 }
 
-fn streamWithAdapter(
+pub fn streamWithAdapter(
     comptime profile: execution_profile.ExecutionProfile,
     comptime Adapter: type,
     session_authority: Adapter.SessionAuthority,
@@ -611,83 +517,6 @@ fn DefaultStreamAdapter(comptime profile: execution_profile.ExecutionProfile) ty
     };
 }
 
-const CombinedCandidateStreamAdapter = struct {
-    const SessionAuthority = candidate_capability.Capability;
-
-    fn initSession(
-        capability: SessionAuthority,
-        allocator: std.mem.Allocator,
-        elf_bytes: []const u8,
-        input: []const u8,
-        strict_completion: bool,
-        clock_frame: canonical_runner_b82b34.SegmentClockFrame,
-        retirement_observer: ?canonical_runner_88791c.RetirementObserverV1,
-    ) !candidate_capability.CombinedSession {
-        return capability.initCombinedSession(allocator, elf_bytes, .{
-            .input = input,
-            .stop_on_halt_flag = strict_completion,
-            .strict_completion = strict_completion,
-            .trace_retention = .segment_owned,
-            .clock_frame = clock_frame,
-            .retirement_observer = retirement_observer,
-        });
-    }
-
-    fn baseSegment(configured: anytype) *result_mod.SegmentResult {
-        return &configured.ethereum.base;
-    }
-
-    fn initializeExternalFamilyRows(
-        storage: *[maximum_external_families]ExternalFamilyRows,
-    ) []ExternalFamilyRows {
-        storage[0] = .{
-            .family = execution_profile.keccakf_capability,
-            .calls = 0,
-            .execution_rows = 0,
-        };
-        storage[1] = .{
-            .family = execution_profile.secp256k1_recover_capability,
-            .calls = 0,
-            .execution_rows = 0,
-        };
-        storage[2] = .{
-            .family = bulk_registry.semantic_name,
-            .calls = 0,
-            .execution_rows = 0,
-        };
-        storage[3] = .{
-            .family = stack_swap.registry_request.semantic_name,
-            .calls = 0,
-            .execution_rows = 0,
-        };
-        return storage[0..maximum_external_families];
-    }
-
-    fn segmentExternalFamilyRows(
-        configured: anytype,
-        external_rows: u64,
-        storage: *[maximum_external_families]ExternalFamilyRows,
-    ) ![]ExternalFamilyRows {
-        const rows = initializeExternalFamilyRows(storage);
-        rows[0].calls = try u64FromUsize(configured.ethereum.keccakf_calls.len());
-        rows[0].execution_rows = try u64FromUsize(
-            configured.ethereum.keccakf_execution_rows.rows().len,
-        );
-        rows[1].calls = try u64FromUsize(
-            configured.ethereum.signer_recovery_calls.len(),
-        );
-        rows[1].execution_rows = try u64FromUsize(
-            configured.ethereum.signer_recovery_execution_rows.rows().len,
-        );
-        rows[2].calls = try u64FromUsize(configured.bulk_memcpy.records().len);
-        rows[2].execution_rows = try u64FromUsize(configured.bulk_memcpy.rows().len);
-        rows[3].calls = try u64FromUsize(configured.stack_swap.records().len);
-        rows[3].execution_rows = try u64FromUsize(configured.stack_swap.rows().len);
-        try validateExternalFamilyRows(rows, external_rows);
-        return rows;
-    }
-};
-
 fn defaultBaseSegment(
     comptime profile: execution_profile.ExecutionProfile,
     configured: anytype,
@@ -702,24 +531,11 @@ fn initializeDefaultExternalFamilyRows(
 ) []ExternalFamilyRows {
     if (comptime profile == .rv32im_zkvm_v1) return storage[0..0];
     storage[0] = .{
-        .family = if (comptime profile == .rv32im_zkvm_poseidon2_v1)
-            execution_profile.poseidon2_capability
-        else
-            execution_profile.keccakf_capability,
+        .family = if (comptime profile == .rv32im_zkvm_poseidon2_v1) execution_profile.poseidon2_capability else execution_profile.keccakf_capability,
         .calls = 0,
         .execution_rows = 0,
     };
-    if (comptime profile != .rv32im_zkvm_ethereum_v1 and profile != .rv32im_zkvm_ethereum_sha_v1) return storage[0..1];
-    storage[1] = .{
-        .family = execution_profile.secp256k1_recover_capability,
-        .calls = 0,
-        .execution_rows = 0,
-    };
-    if (comptime profile == .rv32im_zkvm_ethereum_sha_v1) {
-        storage[2] = .{ .family = execution_profile.sha256_capability, .calls = 0, .execution_rows = 0 };
-        return storage[0..3];
-    }
-    return storage[0..2];
+    return storage[0..1];
 }
 
 fn defaultSegmentExternalFamilyRows(
@@ -732,29 +548,14 @@ fn defaultSegmentExternalFamilyRows(
     if (comptime profile == .rv32im_zkvm_v1) {
         if (external_rows != 0) return error.ExtensionRowInventoryMismatch;
         return rows;
-    } else if (comptime profile == .rv32im_zkvm_ethereum_sha_v1) {
-        rows[0].calls = try u64FromUsize(configured.extension.keccakf_calls.len());
-        rows[0].execution_rows = try u64FromUsize(configured.extension.keccakf_execution_rows.rows().len);
-        rows[1].calls = try u64FromUsize(configured.extension.signer_recovery_calls.len());
-        rows[1].execution_rows = try u64FromUsize(configured.extension.signer_recovery_execution_rows.rows().len);
-        rows[2].calls = try u64FromUsize(configured.extension.sha_calls.len());
-        rows[2].execution_rows = rows[2].calls;
-    } else if (comptime profile == .rv32im_zkvm_ethereum_v1) {
-        rows[0].calls = try u64FromUsize(configured.keccakf_calls.len());
-        rows[0].execution_rows = try u64FromUsize(configured.keccakf_execution_rows.rows().len);
-        rows[1].calls = try u64FromUsize(configured.signer_recovery_calls.len());
-        rows[1].execution_rows = try u64FromUsize(
-            configured.signer_recovery_execution_rows.rows().len,
-        );
-    } else {
-        rows[0].calls = try u64FromUsize(configured.calls.len());
-        rows[0].execution_rows = try u64FromUsize(configured.execution_rows.rows().len);
     }
+    rows[0].calls = try u64FromUsize(configured.calls.len());
+    rows[0].execution_rows = try u64FromUsize(configured.execution_rows.rows().len);
     try validateExternalFamilyRows(rows, external_rows);
     return rows;
 }
 
-fn validateExternalFamilyRows(
+pub fn validateExternalFamilyRows(
     rows: []const ExternalFamilyRows,
     external_rows: u64,
 ) !void {
@@ -900,7 +701,7 @@ fn hex(digest: Digest) [64]u8 {
     return std.fmt.bytesToHex(digest, .lower);
 }
 
-fn u64FromUsize(value: usize) !u64 {
+pub fn u64FromUsize(value: usize) !u64 {
     return std.math.cast(u64, value) orelse error.IntegerOutOfRange;
 }
 

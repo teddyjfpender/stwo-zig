@@ -20,7 +20,8 @@ const ProofKind = dependency_0.ProofKind;
 const UNIVERSAL_PHYSICAL_CLAIM_COUNT = dependency_0.UNIVERSAL_PHYSICAL_CLAIM_COUNT;
 const SEGMENT_PHYSICAL_CLAIM_COUNT = dependency_0.SEGMENT_PHYSICAL_CLAIM_COUNT;
 const H1_PHYSICAL_CLAIM_COUNT = dependency_0.H1_PHYSICAL_CLAIM_COUNT;
-const INITIAL_PHYSICAL_CLAIM_COUNT = @import("../../product_tree/recursion/air/ethereum_initial_input_manifest.zig").COMPONENT_COUNT;
+// Frozen Initial38 descriptor ABI, independent of product execution policy.
+pub const INITIAL_PHYSICAL_CLAIM_COUNT = capture_layout_v3.INITIAL_WRAPPER_COMPONENT_COUNT;
 const EMPTY_PHYSICAL_CLAIM_COUNT = dependency_0.EMPTY_PHYSICAL_CLAIM_COUNT;
 const POSEIDON_PARTIAL_COUNT = dependency_0.POSEIDON_PARTIAL_COUNT;
 const POSEIDON_ROSTER_ROW = dependency_0.POSEIDON_ROSTER_ROW;

@@ -76,7 +76,7 @@
         "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig",
         "src/integrations/riscv_cuda/rv64/blake_sample_plan.zig",
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
+        "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig",
@@ -137,7 +137,7 @@
         "scripts/rv64/rv64_m4_arena_sweep.py",
         "scripts/rv64/rv64_m7_outer_fs_ops_fixture.py",
         "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+        "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
         "tests/cuda/rv64/inter_contributions_numerical.py",
         "tests/cuda/rv64/node_observer_smoke.py"
       ],
@@ -185,29 +185,29 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_ETH_CPU_V1_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_ethereum_cpu_proof_test.zig",
+      "owner": "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig",
       "default": "disabled (no artifact output directory)",
       "status": "qualification",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cpu/tests/rv64_ethereum_cpu_proof_test.zig"
+        "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_ethereum_cpu_proof_test.zig",
+        "path": "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig",
         "text": "    const artifact = std.process.getEnvVarOwned(a, if (profile == .ethereum_services_v1) \"STWO_RV64_ETH_CPU_V1_ARTIFACT_DIR\" else \"STWO_RV64_ETH_CPU_V2_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var directory = try std.fs.cwd().openDir(path, .{});\n        defer directory.close();\n        const public_json = try std.json.Stringify.valueAlloc(a, public, .{});\n        defer a.free(public_json);"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_ETH_CPU_V2_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_ethereum_cpu_proof_test.zig",
+      "owner": "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig",
       "default": "disabled (no artifact output directory)",
       "status": "qualification",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cpu/tests/rv64_ethereum_cpu_proof_test.zig"
+        "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_ethereum_cpu_proof_test.zig",
+        "path": "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig",
         "text": "    const artifact = std.process.getEnvVarOwned(a, if (profile == .ethereum_services_v1) \"STWO_RV64_ETH_CPU_V1_ARTIFACT_DIR\" else \"STWO_RV64_ETH_CPU_V2_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var directory = try std.fs.cwd().openDir(path, .{});\n        defer directory.close();\n        const public_json = try std.json.Stringify.valueAlloc(a, public, .{});\n        defer a.free(public_json);"
       },
       "expires": "2026-12-09"
@@ -341,38 +341,38 @@
       ]
     },
     "STWO_RV64_GPU_BYTE_CAP": {
-      "owner": "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
       "default": "24 GiB in hybrid/standalone entrypoints; resident device caps use their parsed device plan",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
-        "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_outer_recursion_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
         "text": "        const cap_text = std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_BYTE_CAP\") catch |err| switch (err) {\n            error.EnvironmentVariableNotFound => null,\n            else => return err,\n        };\n        defer if (cap_text) |text| a.free(text);\n        const cap: usize = if (cap_text) |text| std.fmt.parseInt(usize, text, 10) catch return error.InvalidGpuByteCap else 24 * 1024 * 1024 * 1024;\n        if (cap == 0) return error.InvalidGpuByteCap;\n        var native = try Native.Context.init(path, 0, cap);"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_COMPOSITION_HELPER": {
-      "owner": "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
       "default": "absent (no subprocess composition helper)",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
         "text": "    const composition_helper = std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_COMPOSITION_HELPER\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => null,\n        else => return err,\n    };\n    defer if (composition_helper) |value| a.free(value);\n    var composition = Composition.Context{ .helper = composition_helper orelse \"\", .directory = directory, .keep_jobs = false };\n    const composition_stage = composition.stage();\n    try CPU.rv64_ethereum_gkr_main.mainWithStages(&stage, if (composition_helper != null) &composition_stage else null);"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_CPU_REPLAY": {
-      "owner": "src/integrations/riscv_cuda/rv64/resident_pool.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64/resident_pool.zig",
       "default": "false (variable absent)",
       "status": "runtime",
       "date": "2026-11-08",
@@ -381,25 +381,25 @@
         "scripts/rv64/rv64_m3_pod.py",
         "scripts/rv64/rv64_m4_arena_job.sh",
         "scripts/tests/test_rv64_resident_basket.py",
-        "src/integrations/riscv_cuda/rv64/resident_pool.zig",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64/resident_pool.zig",
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/resident_pool.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64/resident_pool.zig",
         "text": "        if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_CPU_REPLAY\") and !device_binding) return error.CpuReplayRequiresDeviceBinding;\n        try config.validatePlan(cpu_workers);\n        const self = try a.create(Pool);"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_DEVICE": {
-      "owner": "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_outer_recursion_main.zig",
       "default": "0",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_outer_recursion_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_outer_recursion_main.zig",
         "text": "    const device_text = std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_DEVICE\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => null,\n        else => return err,\n    };\n    defer if (device_text) |text| a.free(text);\n    const device: u32 = if (device_text) |text| std.fmt.parseUnsigned(u32, text, 10) catch return error.InvalidGpuDevice else 0;\n    const cap_text = std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_BYTE_CAP\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => null,"
       },
       "expires": "2026-12-09"
@@ -416,8 +416,8 @@
         "src/integrations/riscv_cuda/rv64/cpu_replay.zig",
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
         "src/integrations/riscv_cuda/rv64/resident_router.zig",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
-        "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_outer_recursion_main.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
@@ -426,42 +426,42 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_DEVICE_BINDING": {
-      "owner": "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
       "default": "required in fully resident CPU replay mode; otherwise optional",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
-        "src/integrations/riscv_cuda/rv64/resident_batch.zig",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
         "text": "    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_TRACE\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_BINDING\")) return error.ResidentBatchRequiresDevicePipeline;\n    if (manifest.resources != .object or (manifest.resources.object.get(\"park_main\") orelse return error.ResidentPipelineCannotParkMain) != .bool or manifest.resources.object.get(\"park_main\").?.bool) return error.ResidentPipelineCannotParkMain;\n    var config = try Router.Config.fromEnv(a);\n    defer config.deinit(a);\n    var first_name: [24]u8 = undefined;\n    const first = manifest.blocks.map.get(try std.fmt.bufPrint(&first_name, \"{d}\", .{manifest.execution_order[0]})) orelse return error.MissingResidentBatchBlock;\n    if (combined) {\n        _ = try ReadyPolicy.workers(manifest.recursion_mode, config.ids, manifest.recursion_worker_budget, manifest.recursion_max_pending_authorities);"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_DEVICE_CAPS": {
-      "owner": "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
       "default": "parsed resident defaults (28 GiB for device 0 in combined entrypoint)",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
-        "src/integrations/riscv_cuda/rv64/resident_batch.zig",
         "src/integrations/riscv_cuda/rv64/resident_router.zig",
-        "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
+        "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
         "text": "        if (!std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_CAPS\")) @memset(config.caps, 28 << 30);\n        for (config.caps) |cap| if (cap > 28 << 30 or manifest.combined_immutable_device_bytes == 0 or manifest.combined_immutable_device_bytes > cap) return error.InvalidCombinedBatchBudget;\n        if (manifest.combined_host_bytes == 0 or manifest.immutable_host_key_bytes > manifest.combined_host_bytes) return error.InvalidCombinedBatchBudget;\n        for (manifest.execution_order) |block| {\n            var name: [24]u8 = undefined;\n            const item = manifest.blocks.map.get(try std.fmt.bufPrint(&name, \"{d}\", .{block})) orelse return error.MissingResidentBatchBlock;\n            if (item.prefix_count != 0 or !std.mem.eql(u8, item.jobs, \"-\")) return error.CombinedRequiresCompleteDirectExecution;\n            try config.validatePlan(cpuCount(item));"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_DEVICE_TRACE": {
-      "owner": "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
       "default": "false (variable absent)",
       "status": "runtime",
       "date": "2026-11-08",
@@ -469,17 +469,17 @@
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_resident_basket.py",
-        "src/integrations/riscv_cuda/rv64/resident_batch.zig",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
         "text": "    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_TRACE\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_BINDING\")) return error.ResidentBatchRequiresDevicePipeline;\n    if (manifest.resources != .object or (manifest.resources.object.get(\"park_main\") orelse return error.ResidentPipelineCannotParkMain) != .bool or manifest.resources.object.get(\"park_main\").?.bool) return error.ResidentPipelineCannotParkMain;\n    var config = try Router.Config.fromEnv(a);\n    defer config.deinit(a);\n    var first_name: [24]u8 = undefined;\n    const first = manifest.blocks.map.get(try std.fmt.bufPrint(&first_name, \"{d}\", .{manifest.execution_order[0]})) orelse return error.MissingResidentBatchBlock;\n    if (combined) {\n        _ = try ReadyPolicy.workers(manifest.recursion_mode, config.ids, manifest.recursion_worker_budget, manifest.recursion_max_pending_authorities);"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_HOST_RETAINED": {
-      "owner": "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
       "default": "false (variable absent)",
       "status": "runtime",
       "date": "2026-11-08",
@@ -489,18 +489,18 @@
         "scripts/rv64/rv64_m4_resident.py",
         "scripts/rv64/rv64_resident_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
-        "src/integrations/riscv_cuda/rv64/resident_batch.zig",
-        "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
+        "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
         "text": "    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_TRACE\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_BINDING\")) return error.ResidentBatchRequiresDevicePipeline;\n    if (manifest.resources != .object or (manifest.resources.object.get(\"park_main\") orelse return error.ResidentPipelineCannotParkMain) != .bool or manifest.resources.object.get(\"park_main\").?.bool) return error.ResidentPipelineCannotParkMain;\n    var config = try Router.Config.fromEnv(a);\n    defer config.deinit(a);\n    var first_name: [24]u8 = undefined;\n    const first = manifest.blocks.map.get(try std.fmt.bufPrint(&first_name, \"{d}\", .{manifest.execution_order[0]})) orelse return error.MissingResidentBatchBlock;\n    if (combined) {\n        _ = try ReadyPolicy.workers(manifest.recursion_mode, config.ids, manifest.recursion_worker_budget, manifest.recursion_max_pending_authorities);"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_LIBRARY": {
-      "owner": "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
       "default": "required by native/resident entrypoints; subprocess hybrid may run without it",
       "status": "runtime",
       "date": "2026-11-08",
@@ -509,23 +509,23 @@
         "scripts/rv64/rv64_m4_resident.py",
         "scripts/rv64/rv64_resident_basket.py",
         "scripts/tests/test_rv64_resident_basket.py",
-        "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
         "src/integrations/riscv_cuda/rv64_jobs_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_truth_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_outer_recursion_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
         "text": "    const library = (try env(a, \"STWO_RV64_GPU_LIBRARY\")) orelse return error.CombinedRequiresNativeLibrary;\n    defer a.free(library);\n    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\")) return error.CombinedRequiresFullyResidentNative;\n    const arguments = try std.process.argsAlloc(a);\n    defer std.process.argsFree(a, arguments);\n    if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], \"combined-batch\")) {\n        if (arguments.len != 4) return error.ExpectedCombinedBatchManifestAndOutput;\n        return @import(\"rv64/resident_batch.zig\").runCombined(a, library, arguments[2], arguments[3]);"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_PCS_HELPER": {
-      "owner": "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
       "default": "required by subprocess hybrid path",
       "status": "runtime",
       "date": "2026-11-08",
@@ -539,27 +539,27 @@
         "scripts/rv64/rv64_validation.py",
         "scripts/tests/test_rv64_resident_basket.py",
         "scripts/tests/test_rv64_validation.py",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
         "text": "    const helper = try std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_PCS_HELPER\");\n    defer a.free(helper);\n    const directory = try std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_WORKDIR\");\n    defer a.free(directory);\n    try std.fs.cwd().makePath(directory);\n    var context = H.Context{ .helper = helper, .directory = directory };\n    const stage = context.stage();\n    const composition_helper = std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_COMPOSITION_HELPER\") catch |err| switch (err) {"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_PLANNED_CPU_WORKERS": {
-      "owner": "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
       "default": "required by combined resident entrypoint",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
-        "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
         "text": "    const planned_text = (try env(a, \"STWO_RV64_GPU_PLANNED_CPU_WORKERS\")) orelse return error.CombinedRequiresResidentPlan;\n    defer a.free(planned_text);\n    const planned = std.fmt.parseUnsigned(usize, planned_text, 10) catch return error.InvalidResidentPlan;\n    var config = try Router.Config.fromEnv(a);\n    defer config.deinit(a);\n    if (config.ids.len != 1) return error.MultiGpuCombinedRecursionNotImplemented;\n    if (!std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_CAPS\")) config.caps[0] = 28 << 30;\n    if (config.caps[0] > 28 << 30) return error.CombinedDeviceBudgetExceedsQualifiedCap;"
       },
       "expires": "2026-12-09"
@@ -573,7 +573,7 @@
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
         "src/integrations/riscv_cuda/rv64/resident_router.zig",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/resident_router.zig",
@@ -582,7 +582,7 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_WORKDIR": {
-      "owner": "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
       "default": "required by subprocess hybrid path",
       "status": "runtime",
       "date": "2026-11-08",
@@ -590,10 +590,10 @@
         "scripts/rv64/rv64_m5_negative_corpus.py",
         "scripts/rv64/rv64_m5_rootverify_corpus.py",
         "scripts/rv64/rv64_resident_basket.py",
-        "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
         "text": "    const directory = try std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_WORKDIR\");\n    defer a.free(directory);\n    try std.fs.cwd().makePath(directory);\n    var context = H.Context{ .helper = helper, .directory = directory };\n    const stage = context.stage();\n    const composition_helper = std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_COMPOSITION_HELPER\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => null,\n        else => return err,"
       },
       "expires": "2026-12-09"
@@ -784,8 +784,8 @@
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+        "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
@@ -799,8 +799,8 @@
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
-        "src/integrations/riscv_cuda/rv64/outer_seed_record.zig"
+        "src/integrations/riscv_cuda/rv64/outer_seed_record.zig",
+        "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/outer_seed_record.zig",
@@ -907,29 +907,29 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_GN_SHAPE_MISS_BLOCK": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
       "default": "0",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
         "text": "        const miss_block = std.fmt.parseUnsigned(u64, env(\"STWO_RV64_M8_GN_SHAPE_MISS_BLOCK\") orelse \"0\", 10) catch return error.InvalidParityEnvironment;\n        builder.miss_cache = &cache;\n        builder.miss_devices = 1;\n        const warm2 = try Warm.init(a, miss_request, manifest.resources);\n        defer warm2.deinit();\n        var mt = try std.time.Timer.start();\n        const before = builder.classes.count();\n        const mrows = try nf.vtable.shape.?(nf.ctx, a, .{ .block = miss_block, .capture = warm2.end() });"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_GN_SHAPE_MISS_REQUEST": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
       "default": "disabled (no additional request)",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
         "text": "    if (env(\"STWO_RV64_M8_GN_SHAPE_MISS_REQUEST\")) |miss_request| {\n        const miss_block = std.fmt.parseUnsigned(u64, env(\"STWO_RV64_M8_GN_SHAPE_MISS_BLOCK\") orelse \"0\", 10) catch return error.InvalidParityEnvironment;\n        builder.miss_cache = &cache;\n        builder.miss_devices = 1;\n        const warm2 = try Warm.init(a, miss_request, manifest.resources);\n        defer warm2.deinit();\n        var mt = try std.time.Timer.start();\n        const before = builder.classes.count();"
       },
       "expires": "2026-12-09"
@@ -969,7 +969,7 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_GPU_NATIVE_REUSE": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
       "default": "0",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
@@ -977,10 +977,10 @@
         "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_m8_bench15.py",
-        "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig"
+        "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
         "text": "    const reuse = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_REUSE\", 0);\n    if (reuse > 1) return error.InvalidM8GpuNativeEnvironment;\n    var workers: [G.max_devices]*W.Worker = undefined;\n    var made: usize = 0;\n    defer for (workers[0..made]) |w| w.destroy();\n    if (config.device_count > G.max_devices) return error.GpuNativeTooManyDevices;\n    for (config.devices[0..config.device_count]) |d| {\n        // WarmJob uploads FIXED coefficients at install. Lazy slots allocate"
       },
       "expires": "2026-12-09"
@@ -1000,7 +1000,7 @@
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
+        "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
@@ -1017,10 +1017,10 @@
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
         "src/integrations/riscv_cuda/rv64/jobs/worker.zig",
         "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
-        "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_truth_parity_main.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
@@ -1029,7 +1029,7 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_JOBS_LIBRARY": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
       "default": "error.MissingJobsAddon",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
@@ -1039,19 +1039,19 @@
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_gate.py",
         "scripts/tests/test_rv64_m8_bench15.py",
-        "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
         "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig",
         "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
         "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
         "src/integrations/riscv_cuda/rv64_jobs_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_truth_parity_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
         "text": "    const addon = std.posix.getenv(\"STWO_RV64_M8_JOBS_LIBRARY\") orelse return error.MissingJobsAddon;\n    var libs = try O.Libraries.open(library, addon);\n    defer libs.close();\n    const peer = try O.Peer.open(&libs.addon);\n    const config = try mod.Config.fromEnv();\n    // Build real immutable recursion classes before native workers carve the\n    // device pool. Its cold proof construction is counted in init_ns.\n    const recursion_classes = try Host.installRecursion(a, &libs, library, manifest_path, spool);"
       },
       "expires": "2026-12-09"
@@ -1067,10 +1067,10 @@
         "scripts/tests/test_rv64_gate.py",
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
         "src/integrations/riscv_cuda/rv64/jobs/worker.zig",
-        "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_truth_parity_main.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
@@ -1130,7 +1130,7 @@
       "date": "2026-11-08",
       "references": [
         "src/integrations/riscv_cuda/rv64/jobs/outer_class_plan.zig",
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
+        "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_class_plan.zig",
@@ -1160,7 +1160,7 @@
       "date": "2026-11-08",
       "references": [
         "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
+        "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
@@ -1175,7 +1175,7 @@
       "date": "2026-11-08",
       "references": [
         "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
+        "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
@@ -1212,7 +1212,7 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_OUTER_FS_LIBRARY": {
-      "owner": "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig",
       "default": "error.MissingOuterFsLibrary",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
@@ -1221,11 +1221,11 @@
         "scripts/rv64/rv64_validation.py",
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_m8_bench15.py",
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+        "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig",
         "text": "        const fs_path = std.posix.getenv(\"STWO_RV64_M8_OUTER_FS_LIBRARY\") orelse return error.MissingOuterFsLibrary;\n        self.* = .{ .a = a, .shared = try Outer.Shared.init(&libs.base, &libs.addon, fs_path) };\n        errdefer self.deinitContents();\n        const raw = try std.fs.cwd().readFileAlloc(a, manifest_path, 1 << 20);\n        defer a.free(raw);\n        var manifest = try std.json.parseFromSlice(std.json.Value, a, raw, .{ .allocate = .alloc_always });\n        defer manifest.deinit();\n        const root = manifest.value;"
       },
       "expires": "2026-12-09"
@@ -1259,89 +1259,89 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_PARITY_COMPOSITION": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
       "default": "\"0\"",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "text": "//!   STWO_RV64_M8_PARITY_COMPOSITION 0 (default) / 1: composition parity\n//!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots\n//!                                   patched from the native_global jobs' claims\n//!                                   (Stage2 layout, jobs/native_claims.zig)\n//!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too\n//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity\nconst std = @import(\"std\");\nconst CPU = @import(\"stwo_riscv_cpu_integration\");"
+        "path": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
+        "text": "//!   STWO_RV64_M8_PARITY_COMPOSITION 0 (default) / 1: composition parity\n//!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots\n//!                                   patched from the native_global jobs' claims\n//!                                   (Stage2 layout, jobs/native_claims.zig)\n//!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too\n//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity\nconst std = @import(\"std\");\nconst ProductCPU = @import(\"ethereum_cpu_component\");\nconst CPU = @import(\"stwo_riscv_cpu_integration\");"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_PARITY_DEVICE": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
       "default": "1",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_truth_parity_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
         "text": "    const device = std.fmt.parseUnsigned(u32, env(\"STWO_RV64_M8_PARITY_DEVICE\") orelse \"1\", 10) catch return error.InvalidParityEnvironment;\n    const arena_bytes = try envBytes(\"STWO_RV64_M8_JOBS_ARENA_BYTES\", 8 << 30);\n    const worker = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignBackward(usize, arena_bytes / 4, W.Arena.granule), .pinned_slot_words = try envBytes(\"STWO_RV64_M8_JOBS_PINNED_BYTES\", 1 << 30) / 4 });\n    defer worker.destroy();\n    const gsym = try NG.Symbols.load(&libs.base);\n    const s1sym = try S1.Symbols.load(&libs.base, &libs.addon, &gsym);\n    const s2sym = S2.Symbols{ .encode = try NE.Symbols.load(&libs.addon), .seal = try S2.SealSymbols.load(&libs.addon), .commit = try NC.Symbols.load(&libs.base), .pcs = build_env.psym, .composition = try NComp.Symbols.load(&libs.base, &libs.addon), .global = try NGl.Symbols.load(&libs.base) };\n    var timer_api = Timer{ .events = try Events.Api.load(&libs.base) };"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_PARITY_DEVICE_CLAIMS": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
       "default": "false",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "text": "//!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots\n//!                                   patched from the native_global jobs' claims\n//!                                   (Stage2 layout, jobs/native_claims.zig)\n//!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too\n//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity\nconst std = @import(\"std\");\nconst CPU = @import(\"stwo_riscv_cpu_integration\");\nconst Main = CPU.rv64_ethereum_gkr_main;"
+        "path": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
+        "text": "//!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots\n//!                                   patched from the native_global jobs' claims\n//!                                   (Stage2 layout, jobs/native_claims.zig)\n//!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too\n//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity\nconst std = @import(\"std\");\nconst ProductCPU = @import(\"ethereum_cpu_component\");\nconst CPU = @import(\"stwo_riscv_cpu_integration\");\nconst Main = ProductCPU.rv64_ethereum_gkr_main;"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_PARITY_ONLY": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
       "default": "\"\"",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
         "text": "    const only_mode = env(\"STWO_RV64_M8_PARITY_ONLY\") orelse \"\";\n    const only: Only = if (only_mode.len == 0) .all else std.meta.stringToEnum(Only, only_mode) orelse return error.InvalidParityEnvironment;\n    const only_composition = only == .composition;\n    const device_claims = std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_DEVICE_CLAIMS\") orelse \"0\", \"1\");\n    var stages = pool.stages();\n    var decorator = Decorator{ .a = a, .inner = pool.stages().numerical.?.*, .worker = worker, .symbols = try NG.Symbols.load(&libs.base), .catalogue = try Sources.Catalogue.init(a), .arena_bytes = arena_bytes, .peer = peer, .csym = try NC.Symbols.load(&libs.base) };\n    defer decorator.catalogue.deinit();\n    defer decorator.rows.deinit(a);"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_PARITY_PCS": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
       "default": "false unless only_mode is pcs",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
         "text": "    const check_pcs = std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_PCS\") orelse \"0\", \"1\") or only == .pcs;\n    var pcs_mutex: std.Thread.Mutex = .{};\n    var pcs_rows: std.ArrayListUnmanaged(PcsRow) = .empty;\n    defer pcs_rows.deinit(a);\n    const Version = *const fn () callconv(.c) u32;\n    const wide = if (libs.base.lookup(Version, \"stwo_rv64_pcs_request_version\")) |version| version() >= 3 else false;\n    const pcs_sym = try NP.Symbols.load(&libs.addon);\n    var cpu_pcs = PcsDecorator{ .a = a, .inner = stages.pcs orelse return error.ParityRequiresDevicePcs, .kind = \"cpu\", .worker = worker, .sym = pcs_sym, .peer = peer, .events = &events_api, .wide = wide, .mutex = &pcs_mutex, .rows = &pcs_rows };"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_PARITY_SOURCE_DEVICE": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig",
       "default": "0",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig",
+        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig",
         "text": "    const peer = Peer{ .copy = libs.addon.lookup(PeerCopy, \"stwo_rv64_jobs_native_peer_copy_v1\") orelse return error.ParityRequiresPeerCopy, .source_device = std.fmt.parseUnsigned(c_int, env(\"STWO_RV64_M8_PARITY_SOURCE_DEVICE\") orelse \"0\", 10) catch return error.InvalidParityEnvironment };\n    const Version = *const fn () callconv(.c) u32;\n    const wide = if (libs.base.lookup(Version, \"stwo_rv64_pcs_request_version\")) |v| v() >= 3 else false;\n    std.debug.print(\"GPU_M8_GN_S2 phase=worker_ready device={} wide={}\\n\", .{ device, wide });\n\n    var config = try Router.Config.fromEnv(a);\n    defer config.deinit(a);\n    var recycler = Main.Recycler.init(std.heap.smp_allocator, 1 << 30);"
       },
       "expires": "2026-12-09"
@@ -1404,17 +1404,17 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_TRUTH_SPLIT": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig",
+      "owner": "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/truth_plan.zig",
       "default": "false",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_m8_bench15.py",
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig"
+        "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/truth_plan.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig",
+        "path": "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/truth_plan.zig",
         "text": "    /// M8 p-truth-split (`STWO_RV64_M8_TRUTH_SPLIT=1`, default off; coalesced\n    /// plans only): a family whose single coalesced truth the profile refuses\n    /// (source MAX_LOG, V3 shape, or no admissible canonical rung) is split\n    /// into consecutive bounded spans instead. Families that fit keep their\n    /// single truth, so every plan the profile admits today is unchanged.\n    split_families: bool = false,\n    /// Bound split spans by the top canonical rung of their family (set when\n    /// the producer pads to rungs: strict roster or STWO_RV64_CANON_RUNGS=1)."
       },
       "expires": "2026-12-09"
@@ -1430,7 +1430,7 @@
       ]
     },
     "STWO_RV64_M9_CLASS_PACKED_INGRESS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
       "default": "0",
       "status": "runtime",
       "date": "2026-11-08",
@@ -1438,11 +1438,11 @@
         "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_m8_bench15.py",
-        "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
+        "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
+        "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
         "text": "        .prewarm_resources = (try envUnsigned(\"STWO_RV64_M9_CLASS_PACKED_INGRESS\", 0)) == 1,\n        .slab_words = default_slab_bytes / 4,\n        .batch_pinned_words = default_batch_pinned_bytes / 4,\n    };\n    const ring = S.RingConfig{ .buffers = default_ring_buffers, .words = default_ring_bytes / 4 };\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});\n        binding.reportStage1();"
       },
       "expires": "2026-12-09"
@@ -1560,7 +1560,7 @@
         "scripts/rv64/rv64_m3_pod.py",
         "scripts/rv64/rv64_m5_negative_corpus.py",
         "src/integrations/riscv_cpu/word16_execution/native_policy.zig",
-        "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/word16_execution/native_policy.zig",
@@ -1832,15 +1832,15 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_RECURSION_HOST_BYTES": {
-      "owner": "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
+      "owner": "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
       "default": "48 GiB",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig"
+        "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
+        "path": "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
         "text": "    const host_text = try env(a, \"STWO_RV64_RECURSION_HOST_BYTES\");\n    defer if (host_text) |v| a.free(v);\n    const host_bytes = if (host_text) |v| std.fmt.parseUnsigned(usize, v, 10) catch return error.InvalidCombinedHostBudget else 48 << 30;\n\n    const output_path = try outputDirectory(arguments);\n    // Identity binds this lifecycle to the explicit request and command. Actual\n    // proof scopes continue to bind authenticated statement/FIXED/MAIN roots.\n    var hash = std.crypto.hash.sha2.Sha256.init(.{});"
       },
       "expires": "2026-12-09"
@@ -1921,15 +1921,15 @@
       ]
     },
     "STWO_RV64_TAPE_POPULATE": {
-      "owner": "src/integrations/riscv_cpu/rv64_ethereum_native_prepare.zig",
+      "owner": "src/products/ethereum/statement/cpu/rv64_ethereum_native_prepare.zig",
       "default": "null",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cpu/rv64_ethereum_native_prepare.zig"
+        "src/products/ethereum/statement/cpu/rv64_ethereum_native_prepare.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_ethereum_native_prepare.zig",
+        "path": "src/products/ethereum/statement/cpu/rv64_ethereum_native_prepare.zig",
         "text": "        const v = std.posix.getenv(\"STWO_RV64_TAPE_POPULATE\") orelse return null;\n        if (!std.mem.eql(u8, v, \"1\")) return null;\n        // Ordinary RV64 code issues a load/store on well under half its steps.\n        tape.memory_before.ensureTotalCapacity(a, tape.storage.len / 2) catch {};\n        const regions = [2][]u8{ std.mem.sliceAsBytes(tape.storage), std.mem.sliceAsBytes(tape.memory_before.allocatedSlice()) };\n        const t = std.Thread.spawn(.{}, populate, .{regions}) catch return null;\n        return .{ .thread = t };\n    }"
       },
       "expires": "2026-12-09"

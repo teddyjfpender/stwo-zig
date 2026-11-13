@@ -26,7 +26,7 @@ pub const fri_profile_frontier = @import("stwo_riscv_recursion").fri_profile_fro
 pub const leaf_profile = @import("stwo_riscv_recursion").leaf_profile;
 pub const pair_node = @import("stwo_riscv_recursion").pair_node;
 pub const poseidon2_channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
-pub const proof_ingress = @import("../../product_tree/recursion/ethereum_proof_ingress_compat.zig");
+pub const proof_ingress = @import("stwo_riscv_recursion").proof_ingress;
 pub const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 pub const recording_poseidon_channel_v4 =
     @import("stwo_riscv_recursion").recording_poseidon_channel;
@@ -129,3 +129,5 @@ pub const vm_selected_lookup_compiler_v2 = @import("stwo_riscv_recursion").vm_se
 pub const vm_composition_graph_support_v2 = @import("stwo_riscv_recursion").vm_composition_graph_support;
 pub const vm_composition_graph_base_v2 = @import("stwo_riscv_recursion").vm_composition_graph_base;
 pub const vm_composition_transcript_aggregates_v2 = @import("stwo_riscv_recursion").vm_composition_transcript_aggregates;
+
+pub const statement_arithmetic_preparation = @import("statement_arithmetic_preparation.zig");

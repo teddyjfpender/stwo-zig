@@ -36,7 +36,7 @@ pub fn ramContribution(calls: []const BridgeCall, challenges: rv.relations.Chall
 }
 
 const Secp = rv.crypto.secp256k1;
-const Runtime = execution.ethereum_services;
+const Runtime = execution.service_calls;
 /// Sparse external RAM transitions, grouped by typed service family. The
 /// caller retains source calls only until construction; this owner stores no
 /// source-call pointers and survives compact tape release.

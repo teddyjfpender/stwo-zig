@@ -15,17 +15,17 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-composition-custody",
+        .description = "Check native compiler-owner and immutable read-capability separation",
+        .root = "compat/assembly/recursion/vm_composition_preparation.zig",
+        .filters = &.{"composition custody gives"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-poseidon-materialization-frontier",
         .description = "Run focused typed-Poseidon layout and quotient-frontier tests",
         .root = "testing/focused_test_poseidon_materialization_frontier_0.zig",
         .partition_roots = &.{ "testing/focused_test_poseidon_materialization_frontier_0.zig", "memory/focused_test_poseidon_materialization_frontier_0.zig" },
-    },
-    .{
-        .step = "test-vm-leaf-context-v2",
-        .description = "Test SegmentV2 verifier-instance and capture authority",
-        .root = "focused_test_vm_leaf_context_v2_0.zig",
-        .filters = &.{ "SegmentV2 VM leaf ContextV2", "Ethereum selected base claim admission" },
-        .minimum = 4,
     },
     .{
         .step = "test-runtime-selector",
@@ -167,13 +167,6 @@ pub const specs = [_]Spec{
         .partition_roots = &.{ "rv32/focused_test_execution_session_0.zig", "focused_test_execution_session_0.zig", "testing/focused_test_execution_session_0.zig", "isa/focused_test_execution_session_0.zig", "precompiles/focused_test_execution_session_0.zig" },
     },
     .{
-        .step = "test-vm-air-profile-authority-v2",
-        .description = "Check VM profile identity and authority without composition-program or provider-shard tests",
-        .root = "focused_test_vm_air_profile_authority_v2_0.zig",
-        .filters = &.{"authenticated VM AIR ProfileV2"},
-        .minimum = 6, // Three authority checks plus three import-discovery tests.
-    },
-    .{
         .step = "test-isa",
         .description = "Run only RISC-V ISA authority and decoder tests",
         .root = "isa/focused_test_isa_0.zig",
@@ -208,7 +201,7 @@ pub const specs = [_]Spec{
         .description = "Run the combined Ethereum profile and signer-recovery runner tests",
         .root = "isa/focused_test_ethereum_runner_0.zig",
         .minimum = 11,
-        .partition_roots = &.{ "isa/focused_test_ethereum_runner_0.zig", "precompiles/focused_test_ethereum_runner_0.zig", "focused_test_ethereum_runner_0.zig", "testing/focused_test_ethereum_runner_0.zig" },
+        .partition_roots = &.{ "isa/focused_test_ethereum_runner_0.zig", "precompiles/focused_test_ethereum_runner_0.zig", "focused_test_ethereum_runner_0.zig", "testing/focused_test_signer_recovery_0.zig" },
     },
     .{
         .step = "test-ethereum-minimal-trace",

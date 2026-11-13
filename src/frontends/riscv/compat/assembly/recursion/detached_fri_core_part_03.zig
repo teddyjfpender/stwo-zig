@@ -458,7 +458,7 @@ pub fn Namespace(comptime context: type) type {
                 public_lane: lowering.Lane,
                 public_evaluation: lowering.Evaluation,
                 public_evaluation_id: [32]u8,
-                statement_arithmetic: ?*const recursion.ethereum_statement_arithmetic_v4.Prepared,
+                statement_arithmetic: ?*const recursion.statement_arithmetic_preparation.Prepared,
                 query_authority: QueryAuthorityV4,
                 boundary_layout: *const shared_schedule_v2.SharedPoseidonCallLayoutV2,
                 boundary_calls: []const shared_schedule_v2.Call,

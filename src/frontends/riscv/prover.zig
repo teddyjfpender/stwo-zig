@@ -7,7 +7,7 @@ const opcode_memory = @import("stwo_riscv_rv32").air.opcode_memory;
 const trace_mod = @import("stwo_riscv_rv32").execution.trace;
 const state_chain = @import("stwo_riscv_isa").machine.state_chain;
 const memory_state = @import("stwo_riscv_isa").machine.memory_state;
-const run_result_mod = @import("runner/result.zig");
+const run_result_mod = @import("stwo_riscv_rv32").execution.base_result;
 const orchestration = @import("stwo_riscv_rv32").prover.orchestration;
 const types = @import("stwo_riscv_rv32").prover.types;
 
@@ -16,14 +16,6 @@ pub const guest_precompile = @import("prover/guest_precompile/mod.zig");
 pub const main_trace_plan_execution_production =
     @import("stwo_riscv_rv32").prover.main_trace_plan_execution_production;
 /// Fixed joined Ethereum Tree0 derivation; accepts no candidate proof root.
-pub const deriveIncrementalEthereumPreprocessedRootWithFixedProgramV1 =
-    @import("prover/incremental_ethereum_verifier.zig").deriveExpectedPreprocessedRootWithFixedProgramV1;
-pub const deriveIncrementalEthereumPreprocessedRootV4 =
-    @import("prover/incremental_ethereum_verifier.zig").deriveExpectedPreprocessedRoot;
-pub const ethereum_native_provider_omit_protocol_v1 =
-    guest_precompile.ethereum_native_provider_omit_protocol_v1;
-pub const ethereum_native_provider_omit_proof_v1 =
-    guest_precompile.ethereum_native_provider_omit_proof_v1;
 pub const PublicData = types.PublicData;
 pub const PublicDataV2 = @import("stwo_riscv_rv32").air.public_data_v2.PublicDataV2;
 pub const Hasher = types.Hasher;
@@ -64,64 +56,6 @@ pub const provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter =
 pub const verifyPoseidon2WithEngine = guest_precompile.verifyPoseidon2WithEngine;
 pub const verifyPoseidon2WithEngineUsingChannel =
     guest_precompile.verifyPoseidon2WithEngineUsingChannel;
-pub const EthereumProveOutputForEngine =
-    guest_precompile.EthereumProveOutputForEngine;
-pub const proveEthereumWithEngine = guest_precompile.proveEthereumWithEngine;
-pub const EthereumExecutionOptions =
-    guest_precompile.ethereum_orchestration.ExecutionOptions;
-pub const proveEthereumWithEngineUsingExecution =
-    guest_precompile.proveEthereumWithEngineUsingExecution;
-pub const proveEthereumWithEngineUsingChannel =
-    guest_precompile.proveEthereumWithEngineUsingChannel;
-pub const verifyEthereumWithEngine = guest_precompile.verifyEthereumWithEngine;
-pub const verifyEthereumWithEngineUsingChannel =
-    guest_precompile.verifyEthereumWithEngineUsingChannel;
-pub const EthereumSegmentProveOutputForEngine =
-    guest_precompile.EthereumSegmentProveOutputForEngine;
-pub const proveEthereumSegmentWithEngine =
-    guest_precompile.proveEthereumSegmentWithEngine;
-pub const proveEthereumSegmentWithEngineUsingExecution =
-    guest_precompile.proveEthereumSegmentWithEngineUsingExecution;
-pub const EthereumSegmentProveDiagnostic =
-    guest_precompile.EthereumSegmentProveDiagnostic;
-pub const proveEthereumSegmentWithEngineUsingExecutionDiagnosed =
-    guest_precompile.proveEthereumSegmentWithEngineUsingExecutionDiagnosed;
-pub const EthereumLeafMatchedAbExecutionAuthorityV1 =
-    guest_precompile.ethereum_leaf_matched_ab_execution_profile_v1.Authority;
-pub const proveEthereumSegmentWithEngineUsingMatchedAbExecutionDiagnosed =
-    guest_precompile.proveEthereumSegmentWithEngineUsingMatchedAbExecutionDiagnosed;
-pub const proveEthereumSegmentWithEngineUsingChannelAndExecutionAndTranscriptExtension =
-    guest_precompile.proveEthereumSegmentWithEngineUsingChannelAndExecutionAndTranscriptExtension;
-pub const proveEthereumSegmentWithEngineUsingChannelAndExecutionAndNativeProviderOmission =
-    guest_precompile.proveEthereumSegmentWithEngineUsingChannelAndExecutionAndNativeProviderOmission;
-pub const verifyEthereumSegmentWithEngineUsingChannelAndTranscriptExtension =
-    guest_precompile.verifyEthereumSegmentWithEngineUsingChannelAndTranscriptExtension;
-pub const verifyEthereumSegmentWithEngineUsingChannelAndNativeProviderOmission =
-    guest_precompile.verifyEthereumSegmentWithEngineUsingChannelAndNativeProviderOmission;
-pub const verifyEthereumSegmentWithEngineAndEthereumV3CaptureUsingChannelAndTranscriptExtension =
-    guest_precompile.verifyEthereumSegmentWithEngineAndEthereumV3CaptureUsingChannelAndTranscriptExtension;
-pub const EthereumSegmentGeometrySnapshot =
-    guest_precompile.EthereumSegmentGeometrySnapshot;
-pub const inspectEthereumSegmentPreEngineGeometry =
-    guest_precompile.inspectEthereumSegmentPreEngineGeometry;
-pub const EthereumSegmentProviderCallAuthorityV1 =
-    guest_precompile.EthereumSegmentProviderCallAuthorityV1;
-pub const buildEthereumSegmentProviderCallAuthorityV1 =
-    guest_precompile.buildEthereumSegmentProviderCallAuthorityV1;
-pub const verifyEthereumSegmentWithEngine =
-    guest_precompile.verifyEthereumSegmentWithEngine;
-pub const verifyEthereumSegmentWithEngineUsingChannel =
-    guest_precompile.verifyEthereumSegmentWithEngineUsingChannel;
-pub const verifyEthereumSegmentWithEngineAndCapture =
-    guest_precompile.verifyEthereumSegmentWithEngineAndCapture;
-pub const verifyEthereumSegmentWithEngineAndCaptureUsingChannel =
-    guest_precompile.verifyEthereumSegmentWithEngineAndCaptureUsingChannel;
-pub const VerifiedEthereumSegmentV3CaptureForEngine =
-    guest_precompile.VerifiedEthereumSegmentV3CaptureForEngine;
-pub const verifyEthereumSegmentWithEngineAndEthereumV3Capture =
-    guest_precompile.verifyEthereumSegmentWithEngineAndEthereumV3Capture;
-pub const verifyEthereumSegmentWithEngineAndEthereumV3CaptureUsingChannel =
-    guest_precompile.verifyEthereumSegmentWithEngineAndEthereumV3CaptureUsingChannel;
 pub const proveRiscVSegmentV2WithEngine =
     orchestration.runRiscVSegmentV2WithEngine;
 pub const proveRiscVSegmentV2WithEngineUsingChannel =
@@ -554,10 +488,7 @@ pub const blake3_commitment_components = @import("stwo_riscv_rv32").prover.blake
 pub const blake3_execution_artifact = @import("compat/assembly/rv32/prover/blake3_execution_artifact.zig");
 
 pub const blake3_verified_public = @import("compat/assembly/rv32/prover/blake3_profile_artifact.zig").VerifiedPublic;
-pub const blake3_ethereum_artifact = @import("compat/assembly/rv32/prover/blake3_profile_artifact.zig").ForProfile(true);
-pub const blake3_ethereum_proof = @import("prover/blake3_ethereum_proof.zig");
 pub const blake3_commitment_sharing = @import("stwo_riscv_rv32").prover.blake3_commitment_sharing;
-pub const blake3_ethereum_witness = @import("prover/blake3_ethereum_witness.zig");
 pub const blake3_segment_execution = @import("stwo_riscv_rv32").prover.blake3_segment_execution;
 
 pub const blake3_profile_artifact = @import("compat/assembly/rv32/prover/blake3_profile_artifact.zig");

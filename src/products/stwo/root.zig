@@ -38,7 +38,7 @@ pub const backends = struct {
 pub const frontends = struct {
     pub const examples = @import("stwo_native_examples");
     pub const cairo = @import("stwo_cairo_frontend");
-    pub const riscv = @import("stwo_riscv_frontend");
+    pub const riscv = @import("legacy_riscv_frontend");
 };
 
 /// Deprecated: import the integration package module.
@@ -47,7 +47,7 @@ pub const integrations = struct {
     pub const cairo_cpu = @import("stwo_cairo_cpu_integration");
     pub const cairo_cuda = @import("stwo_cairo_cuda_integration");
     pub const native_cuda = @import("stwo_native_cuda_integration");
-    pub const riscv_cpu = @import("stwo_riscv_cpu_integration");
+    pub const riscv_cpu = @import("legacy_riscv_cpu_integration");
 };
 
 /// Deprecated: import `stwo_native_examples`.

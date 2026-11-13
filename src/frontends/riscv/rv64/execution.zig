@@ -18,7 +18,6 @@ pub const execution_profile = @import("execution_profile.zig");
 pub const services = @import("service_session.zig");
 pub const compact_tape = @import("compact_tape.zig");
 pub const compact_tape_wire = @import("compact_tape_wire.zig");
-pub const ethereum_services = @import("ethereum_services/session.zig");
 pub const boundary_capture = @import("boundary_capture.zig");
 pub const fast_execution = @import("fast_execution.zig");
 pub const ram_word_set = @import("ram_word_set.zig");

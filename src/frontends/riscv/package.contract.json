@@ -42,8 +42,6 @@
     "owned_statement",
     "process_usage",
     "proveAndVerifyElfWithEngine",
-    "proveEthereumWithEngine",
-    "proveEthereumWithEngineUsingExecution",
     "provePoseidon2WithEngineAndPublicData",
     "provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter",
     "proveRiscVSegmentV2WithEngine",
@@ -59,7 +57,6 @@
     "rv64_air",
     "statement_shape_inspection",
     "testing",
-    "verifyEthereumWithEngine",
     "verifyPoseidon2WithEngine",
     "verifyRiscVSegmentV2WithEngine",
     "verifyRiscVSegmentV2WithEngineUsingChannelAndCapture",
@@ -73,7 +70,7 @@
       "mod.zig::api signature: RISC-V facade preserves runner and prover entry points"
     ],
     "invariant_tests": [
-      "mod.zig::api invariant: native and product VM authority bindings preserve canonical records",
+      "mod.zig::api invariant: native VM authority bindings preserve canonical records",
       "opcode_coverage_test.zig::all 46 proof opcodes reach witness, semantic, lookup, and component authorities"
     ]
   },

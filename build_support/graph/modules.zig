@@ -149,6 +149,11 @@ pub fn addCairoFrontendImport(
     optimize: std.builtin.OptimizeMode,
     consumer: *std.Build.Module,
 ) *std.Build.Module {
+    if (consumer.import_table.get("stwo_cairo_frontend")) |existing| {
+        if (existing.import_table.get("stwo_core") != protocol.core)
+            @panic("Cairo frontend protocol identity drift");
+        return existing;
+    }
     const frontend = createCairoFrontend(
         b,
         protocol,

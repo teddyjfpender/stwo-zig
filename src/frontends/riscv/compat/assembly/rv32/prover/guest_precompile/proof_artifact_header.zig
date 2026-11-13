@@ -275,22 +275,3 @@ test "guest artifact header BLAKE3 version cannot select a legacy hasher" {
         try std.testing.expectError(error.UnsupportedProofHasher, Header.decodeForVersion(&encoded, 5, .{}));
     }
 }
-
-test "guest artifact header Ethereum BLAKE3 identity binds its own version" {
-    const wire_identity = @import("../../../../../prover/guest_precompile/ethereum_proof_artifact_wire.zig");
-    const Legacy = wire_identity.Identity;
-    const Blake3 = wire_identity.IdentityForVersion(6);
-    const old = Legacy.canonical("statement", "extension");
-    const new = Blake3.canonical("statement", "extension");
-    try std.testing.expect(!std.mem.eql(u8, &old.metadata_sha256, &new.metadata_sha256));
-    var bytes: [wire_identity.identity_encoded_size]u8 = undefined;
-    var stream = std.io.fixedBufferStream(&bytes);
-    try old.encode(stream.writer());
-    try std.testing.expectError(error.IdentityArtifactVersionMismatch, Blake3.decode(&bytes));
-    stream = std.io.fixedBufferStream(&bytes);
-    try new.encode(stream.writer());
-    try std.testing.expectError(error.IdentityArtifactVersionMismatch, Legacy.decode(&bytes));
-    const decoded = try Blake3.decode(&bytes);
-    try decoded.validate("statement", "extension");
-    try std.testing.expectError(error.IdentityMetadataMismatch, decoded.validate("different", "extension"));
-}

@@ -32,6 +32,12 @@ class PlannerContractTests(unittest.TestCase):
         lanes, _ = ci_scope_plan.select_lanes(paths, self.catalog, self.policy)
         return set(lanes)
 
+    def test_ethereum_hosted_lane_covers_both_modes_and_preserves_focused_csp(self):
+        self.assertEqual(["ethereum_statement"], ci_scope_plan.manual_cpu_selection("ethereum_statement", self.policy)[0])
+        commands = self.policy["lanes"]["ethereum_statement"]["commands"]
+        self.assertEqual({"-Doptimize=Debug", "-Doptimize=ReleaseFast"}, {part for cmd in commands if "test" in cmd for part in cmd if part.startswith("-Doptimize=")})
+        self.assertTrue(any("test-csp-ecdsa-proof" in cmd and "-Doptimize=ReleaseFast" in cmd for cmd in commands))
+
     def test_manual_cpu_selection_is_exact_and_refuses_device_or_foreign_lanes(self):
         for lane in ci_scope_plan.MANUAL_CPU_LANES:
             lanes, reasons = ci_scope_plan.manual_cpu_selection(lane, self.policy)
@@ -403,6 +409,7 @@ class PlannerContractTests(unittest.TestCase):
                 "native_cuda_integration",
                 "cairo_cuda_integration",
                 "riscv_cuda_integration",
+                "ethereum_statement",
                 "package",
                 "native_cuda_static",
                 "native_cuda_device",

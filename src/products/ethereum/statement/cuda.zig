@@ -8,3 +8,7 @@ pub const frontend = neutral.frontend;
 pub const production_ready = neutral.production_ready;
 pub const requireExecution = neutral.requireExecution;
 pub const rv64 = neutral.rv64;
+
+test {
+    _ = @import("cuda/test_inventory.zig");
+}

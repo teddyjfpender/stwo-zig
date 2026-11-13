@@ -13,6 +13,34 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_csp_proofs_keep_original_focused_only_ownership(self):
+        product = ROOT / "src/products/ethereum/statement"
+        self.assertNotIn('@import("csp_ecdsa_proof_test.zig")', (product / "cpu/test_inventory.zig").read_text())
+        self.assertEqual(2, (product / "cpu/csp_ecdsa_proof_test.zig").read_text().count('test "'))
+        self.assertRegex((product / "build.zig").read_text(), r'\.root = "cpu/csp_ecdsa_proof_test.zig"[^\n]+\.minimum = 2')
+
+    def test_extracted_ethereum_contracts_keep_executed_focused_owners(self):
+        prefix = "src/products/ethereum/statement/"
+        for source, step in (("frontend/recursion/vm_composition_preparation.zig", "test-composition-custody"),
+                             ("tests/coordinator_boundary_test.zig", "test-component-boundaries"),
+                             ("tests/composition_custody_test.zig", "test-component-boundaries"),
+                             ("cpu/csp_ecdsa_proof_test.zig", "test-csp-ecdsa-proof"),
+                             ("cpu/rv64_services_gkr_policy_test_root.zig", "test-services-gkr-policy"),
+                             ("cpu/rv64_word16_services_test_root.zig", "test-word16-services"),
+                             ("cpu/rv64_word16_zbb_services_test_root.zig", "test-word16-zbb-services"),
+                             ("cpu/rv64_word16_sponge_services_test_root.zig", "test-word16-sponge-services"),
+                             ("cpu/rv64_word16_ls_dword_services_test_root.zig", "test-word16-ls-dword-services"),
+                             ("cpu/rv64_services_recursion_test_root.zig", "test-services-recursion")):
+            with self.subTest(source=source):
+                self.assertEqual(step, dev_test.focus_step("stwo_ethereum_statement", prefix + source))
+                deferred = []
+                self.assertEqual([], dev_test.commands_for_paths(ROOT, [prefix + source], check_only=True, deferred=deferred))
+                self.assertEqual(["stwo_ethereum_statement (focused contract execution)"], deferred)
+
+    def test_ethereum_build_graph_unit_avoids_the_package_build_runner(self):
+        (command,) = dev_test.commands_for_paths(ROOT, ["src/products/ethereum/statement/build_components.zig"], optimize="ReleaseFast")
+        self.assertEqual(["zig", "test", "-OReleaseFast", "src/products/ethereum/statement/build_components_test.zig"], command)
+
     def test_artifact_owner_and_public_consumer_use_bounded_real_modules(self):
         for path in ("rv64_proof_artifact_support.zig", "tests/proof_artifact_support_contract_test.zig"):
             for check in (False, True):
@@ -299,7 +327,7 @@ class DevTestPlanTests(unittest.TestCase):
             ("src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
             ("src/frontends/riscv/focused_test_retained_typed_components_0.zig", "test-retained-typed-components"),
             ("src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
-            ("src/frontends/riscv/compat/tests/testing/cases/recursion/tests/vm_composition_program_test.zig", "test-retained-typed-components"),
+            ("src/products/ethereum/statement/frontend/recursion/tests/ethereum_vm_composition_program_test.zig", "test-ethereum-composition-program"),
             ("src/frontends/riscv/focused_test_retained_transcript_contracts_0.zig", "test-retained-transcript-contracts"),
             ("src/waist/core/air_components_test_root.zig", "test-air-components"),
             ("src/waist/core/tests/borrowed_proof_capture_root.zig", "test-proof-capture"),

@@ -4,7 +4,6 @@ test {
     _ = @import("compat/host/mod.zig");
     _ = @import("compat/assembly/rv32/diagnostics/segment_manifest.zig");
     _ = @import("compat/tests/testing/cases/runner/guest_precompile/tests/c011_semantic_equivalence_test.zig");
-    _ = @import("runner/guest_precompile/tests/ethereum_runner_test.zig");
     _ = @import("runner/guest_precompile/mod.zig");
     _ = @import("compat/tests/testing/cases/runner/guest_precompile/tests/runner_test.zig");
     _ = @import("compat/tests/testing/cases/runner/tests/host_integration_test.zig");

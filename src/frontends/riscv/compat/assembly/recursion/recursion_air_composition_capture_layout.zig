@@ -23,6 +23,8 @@ const universal_roster = @import("stwo_riscv_air_lang").framework.universal_rost
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;
+// Fixed Initial38 composition ABI. The typed product manifest is admitted above.
+pub const INITIAL_WRAPPER_COMPONENT_COUNT: usize = universal_roster.COMPONENT_COUNT + 2;
 pub const ETHEREUM_WRAPPER_COMPOSITION_VERSION: u16 = 1;
 pub const ETHEREUM_WRAPPER_COMPOSITION_LOG_SPLIT: u32 = 2;
 
@@ -42,7 +44,7 @@ pub fn ethereumWrapperFixedGeometry(manifest: anytype, fri_log_blowup: u32) Erro
 }
 
 pub fn ethereumInitialWrapperFixedGeometryV1(manifest: anytype, fri_log_blowup: u32) Error!EthereumWrapperGeometryV1 {
-    return ethereumWrapperFixedGeometryForCount(@import("../../product_tree/recursion/air/ethereum_initial_input_manifest.zig").COMPONENT_COUNT, manifest, fri_log_blowup);
+    return ethereumWrapperFixedGeometryForCount(INITIAL_WRAPPER_COMPONENT_COUNT, manifest, fri_log_blowup);
 }
 
 fn ethereumWrapperFixedGeometryForCount(comptime component_count: usize, manifest: anytype, fri_log_blowup: u32) Error!EthereumWrapperGeometryV1 {
@@ -94,13 +96,14 @@ pub const HEAP_ALLOCATIONS_PER_SAMPLE_WRITE: usize = 0;
 pub const EMPTY_SAMPLE_COUNT: u32 = 0;
 pub const CANONICAL_EMPTY_LAYOUT_SCHEMA_VERSION: u16 = 1;
 
-pub const Error = std.mem.Allocator.Error || @import("../../product_tree/recursion/air/ethereum_initial_input_manifest.zig").Error || segment_manifest_mod.Error ||
+pub const Error = std.mem.Allocator.Error || segment_manifest_mod.Error ||
     universal_manifest_mod.Error || error{
     AliasedInput,
     ArithmeticOverflow,
     CaptureLayoutIdentityMismatch,
     CircuitTooLarge,
     InvalidCaptureShape,
+    InvalidEthereumInitialManifest,
     InvalidCanonicalEmptyLayout,
     InvalidCompositionGeometry,
     InvalidProofKind,
@@ -247,7 +250,7 @@ pub const CaptureLayoutV3 = struct {
     }
 
     pub fn initEthereumInitialWrapperV1(allocator: std.mem.Allocator, manifest: anytype, capture: anytype) Error!CaptureLayoutV3 {
-        return initEthereumWrapperForCount(@import("../../product_tree/recursion/air/ethereum_initial_input_manifest.zig").COMPONENT_COUNT, allocator, manifest, capture);
+        return initEthereumWrapperForCount(INITIAL_WRAPPER_COMPONENT_COUNT, allocator, manifest, capture);
     }
 
     fn initEthereumWrapperForCount(comptime component_count: usize, allocator: std.mem.Allocator, manifest: anytype, capture: anytype) Error!CaptureLayoutV3 {
@@ -275,7 +278,7 @@ pub const CaptureLayoutV3 = struct {
     }
 
     pub fn validateAgainstEthereumInitialWrapperV1(self: *const CaptureLayoutV3, manifest: anytype) Error!void {
-        return self.validateAgainstEthereumWrapperForCount(@import("../../product_tree/recursion/air/ethereum_initial_input_manifest.zig").COMPONENT_COUNT, manifest);
+        return self.validateAgainstEthereumWrapperForCount(INITIAL_WRAPPER_COMPONENT_COUNT, manifest);
     }
 
     fn validateAgainstEthereumWrapperForCount(self: *const CaptureLayoutV3, comptime component_count: usize, manifest: anytype) Error!void {

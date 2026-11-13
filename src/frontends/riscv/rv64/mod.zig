@@ -14,10 +14,6 @@ pub const candidate_isa = @import("candidate_isa.zig");
 pub const compact_tape_wire = @import("compact_tape_wire.zig");
 pub const decode_cache = @import("decode_cache.zig");
 pub const elf = @import("elf.zig");
-pub const ethereum_services = struct {
-    pub const candidate_services = @import("ethereum_services/candidate_services.zig");
-    pub const session = @import("ethereum_services/session.zig");
-};
 pub const execution = @import("execution.zig");
 pub const execution_profile = @import("execution_profile.zig");
 pub const frequent_operations = @import("frequent_operations.zig");
@@ -27,6 +23,8 @@ pub const service_calls = @import("services/call_abi.zig");
 pub const service_session = @import("service_session.zig");
 pub const session = @import("session.zig");
 pub const testing = struct {
+    /// Honest native AIR fixtures for cross-package reference agreement.
+    pub const bulk_memory = @import("air/delegations/bulk_memory/tests.zig");
     pub const inventory_source = @embedFile("tests/root.zig");
 };
 

@@ -2,7 +2,7 @@
 pub const binary_global_closure_outer_source = @import("stwo_riscv_recursion").binary_global_closure_outer_source;
 pub const captured_fri = @import("stwo_riscv_recursion").captured_fri;
 pub const engine = @import("stwo_riscv_recursion").engine;
-pub const ethereum_statement_arithmetic_v4 = @import("../../product_tree/recursion/ethereum_statement_arithmetic.zig");
+pub const statement_arithmetic_preparation = @import("statement_arithmetic_preparation.zig");
 pub const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
 pub const fixed_wire = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_wire;
 pub const outer_parent_child_admission = @import("stwo_riscv_recursion").outer_parent_child_admission;

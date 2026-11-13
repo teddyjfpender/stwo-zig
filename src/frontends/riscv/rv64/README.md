@@ -28,7 +28,6 @@ graph LR
 - `compact_tape_wire`
 - `decode_cache`
 - `elf`
-- `ethereum_services`
 - `execution`
 - `execution_profile`
 - `frequent_operations`
@@ -86,3 +85,10 @@ session pointer at compile time. Their memory/dirty-set identity, counter and
 page comparisons, allocation, errors and teardown remain unchanged. These
 checkpoints are execution advice, not proof authority. See the approved
 [RFC #352 amendment](https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6828863621).
+
+
+The unstable `testing.bulk_memory` namespace supplies the existing honest World,
+JWitness and JFixture builders and their real AIR/RAM/OWNER verdict oracle for
+consumer agreement tests. It does not supply execution acceptance authority or
+skip verifier checks. Product-specific executor agreement belongs to the Ethereum
+suite; the generic native positive and adversarial AIR tests remain here.

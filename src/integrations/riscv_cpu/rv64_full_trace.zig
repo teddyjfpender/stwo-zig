@@ -68,7 +68,7 @@ pub const Trace = struct {
         if ((plan.execution_profile != .rv64im and plan.execution_profile != .keccak_service_v1) or tape.secp_calls.items.len != 0 or tape.execution_profile != plan.execution_profile or tape.initial_pc != statement.initial_pc) return error.InvalidRv64CompactProfile;
         return initProfile(a, .{ .compact = tape }, tape.service_calls.items, first_id, statement, program, plan, work.getGlobalPool(), &.{}, .{ 1, 1 }, null);
     }
-    pub const CallBatch = struct { keccak: []const execution.services.Call = &.{}, secp: []const execution.ethereum_services.SecpCall = &.{}, first_keccak: u32 = 1, first_secp: [2]u32 = .{ 1, 1 } };
+    pub const CallBatch = struct { keccak: []const execution.services.Call = &.{}, secp: []const execution.service_calls.SecpCall = &.{}, first_keccak: u32 = 1, first_secp: [2]u32 = .{ 1, 1 } };
     pub const PrivateBoundary = @import("rv64_private_boundary.zig").Boundary;
     pub fn initWithEthereumCalls(a: std.mem.Allocator, records: []const execution.machine.Retirement, calls: CallBatch, statement: S.Statement, program: *const rv.program.setup.Setup, plan: *const rv.encoding.Plan) !Trace {
         if (plan.execution_profile != .ethereum_services_v1 and plan.execution_profile != .ethereum_services_v2) return error.InvalidRv64ServiceConstructor;
@@ -100,7 +100,7 @@ pub const Trace = struct {
         const native = try boundary.native(public);
         return initProfile(a, .{ .compact = tape }, tape.service_calls.items, first_keccak, native, program, plan, work.getGlobalPool(), tape.secp_calls.items, first_secp, main);
     }
-    fn initProfile(a: std.mem.Allocator, records: Retirements, calls: []const execution.services.Call, first_id: u32, statement: S.Statement, program: *const rv.program.setup.Setup, plan: *const rv.encoding.Plan, pool: ?*work.WorkPool, secp_calls: []const execution.ethereum_services.SecpCall, first_secp: [2]u32, borrowed_main: ?[]M) !Trace {
+    fn initProfile(a: std.mem.Allocator, records: Retirements, calls: []const execution.services.Call, first_id: u32, statement: S.Statement, program: *const rv.program.setup.Setup, plan: *const rv.encoding.Plan, pool: ?*work.WorkPool, secp_calls: []const execution.service_calls.SecpCall, first_secp: [2]u32, borrowed_main: ?[]M) !Trace {
         try statement.validateWithProfile(plan.execution_profile);
         if (borrowed_main) |main| try @import("rv64_trace_main_admission.zig").validate(main, records, calls, secp_calls, statement, program, plan);
         if (calls.len > records.len() or first_id == 0 or @as(u64, first_id) + calls.len > core.fields.m31.Modulus) return error.InvalidRv64ServiceCallSpan;

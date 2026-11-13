@@ -2,7 +2,6 @@
 
 const std = @import("std");
 const execution_profile = @import("stwo_riscv_isa").execution_profile;
-pub const ethereum = @import("ethereum.zig");
 pub const cpu = @import("stwo_riscv_isa").machine.cpu;
 pub const decode = @import("stwo_riscv_isa").machine.decode;
 pub const memory = @import("stwo_riscv_isa").machine.memory;
@@ -22,7 +21,7 @@ pub const sail_oracle = @import("../compat/qualification/sail_oracle.zig");
 pub const state_chain = @import("stwo_riscv_isa").machine.state_chain;
 pub const memory_state = @import("stwo_riscv_isa").machine.memory_state;
 pub const minimal_trace = @import("../compat/assembly/rv32/runner/minimal_trace/mod.zig");
-pub const result_mod = @import("result.zig");
+pub const result_mod = @import("stwo_riscv_rv32").execution.base_result;
 pub const segment_session = @import("segment_session.zig");
 pub const host_mod = @import("../compat/host/mod.zig");
 
@@ -36,14 +35,9 @@ pub const OutputWord = result_mod.OutputWord;
 pub const RunResult = result_mod.RunResult;
 pub const Poseidon2RunResult = result_mod.Poseidon2RunResult;
 pub const KeccakfRunResult = result_mod.KeccakfRunResult;
-pub const EthereumRunResult = result_mod.EthereumRunResult;
-pub const EthereumShaRunResult = result_mod.EthereumShaRunResult;
-pub const EthereumShaSegmentResult = result_mod.EthereumShaSegmentResult;
-pub const EthereumShaExecutionSession = ExecutionSession(.rv32im_zkvm_ethereum_sha_v1);
 pub const SegmentResult = result_mod.SegmentResult;
 pub const Poseidon2SegmentResult = result_mod.Poseidon2SegmentResult;
 pub const KeccakfSegmentResult = result_mod.KeccakfSegmentResult;
-pub const EthereumSegmentResult = result_mod.EthereumSegmentResult;
 pub const ContinuationToken = result_mod.ContinuationToken;
 pub const SegmentClockFrame = result_mod.SegmentClockFrame;
 pub const SessionOptions = segment_session.SessionOptions;
@@ -56,7 +50,6 @@ pub const ExecutionSession = segment_session.ExecutionSession;
 pub const BaseExecutionSession = ExecutionSession(.rv32im_zkvm_v1);
 pub const Poseidon2ExecutionSession = ExecutionSession(.rv32im_zkvm_poseidon2_v1);
 pub const KeccakfExecutionSession = ExecutionSession(.rv32im_zkvm_keccakf_v1);
-pub const EthereumExecutionSession = ethereum.ExecutionSession;
 
 const ExecutionProfile = execution_profile.ExecutionProfile;
 
@@ -65,8 +58,7 @@ fn ConfiguredResult(comptime profile: ExecutionProfile) type {
         .rv32im_zkvm_v1 => RunResult,
         .rv32im_zkvm_poseidon2_v1 => Poseidon2RunResult,
         .rv32im_zkvm_keccakf_v1 => KeccakfRunResult,
-        .rv32im_zkvm_ethereum_v1 => EthereumRunResult,
-        .rv32im_zkvm_ethereum_sha_v1 => EthereumShaRunResult,
+        else => @compileError("product profiles require an explicit product owner"),
     };
 }
 
@@ -198,9 +190,6 @@ pub fn runKeccakfExtensionWithInput(
         true,
     );
 }
-
-pub const runEthereumExtension = ethereum.run;
-pub const runEthereumExtensionWithInput = ethereum.runWithInput;
 
 fn runConfigured(
     comptime profile: ExecutionProfile,

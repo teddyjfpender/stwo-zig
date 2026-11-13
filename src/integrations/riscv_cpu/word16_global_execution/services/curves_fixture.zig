@@ -14,7 +14,7 @@ const P = @import("protocol.zig");
 const C = @import("collector.zig");
 const E = @import("execution.zig");
 const T = @import("types.zig");
-const Curves = front.rv64.ethereum_services.curves;
+const Curves = front.rv64.service_calls.curves;
 pub const Op = Curves.Op;
 pub const ADDRESS: u64 = 0x8000000000000fe0;
 pub const LOG: u32 = A.crypto.curves.layout.MIN_LOG;
@@ -86,7 +86,7 @@ fn regs(op: Op) [32]u64 {
 pub fn expectedFor(op: Op, identity: [32]u8) P.Expected {
     return .{ .admission = .{ .image = image(op), .image_identity = @splat(0x4e), .initial_pc = 4096, .initial_registers = regs(op), .max_prefix_steps = 31 }, .program_identity = identity, .total_steps = 5, .max_total_steps = 5, .final_pc = 4116, .final_registers = regs(op) };
 }
-pub fn call(op: Op, id: u64, clock: u64, pc: u64, before: [Curves.MAX_WORDS]u64) !front.rv64.ethereum_services.CurveCall {
+pub fn call(op: Op, id: u64, clock: u64, pc: u64, before: [Curves.MAX_WORDS]u64) !front.rv64.service_calls.CurveCall {
     const after = try Curves.execute(op, before[0..Curves.words(op)]);
     return .{ .op = op, .call_id = id, .clock = clock, .pc = pc, .pointer = ADDRESS, .before = before, .after = after };
 }

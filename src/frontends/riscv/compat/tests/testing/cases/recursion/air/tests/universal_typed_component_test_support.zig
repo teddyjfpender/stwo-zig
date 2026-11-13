@@ -272,67 +272,6 @@ pub fn verifierPointCase(comptime Component: type) !void {
     try std.testing.expect(!reversed.finalize().isZero());
 }
 
-pub const RawQuotientAir = @import("../../../../../../product_tree/recursion/air/ethereum_transcript_payload_raw.zig");
-pub const RawQuotientAdapter = adapter.Component(RawQuotientAir, RawQuotientAir.Relation);
-
-pub fn runRawQuotientStorage(
-    allocator: std.mem.Allocator,
-    values_allocator: ?std.mem.Allocator,
-    component: *const RawQuotientAdapter,
-    source_trace: *const prover_component.Trace,
-) ![64]QM31 {
-    var measured = std.testing.FailingAllocator.init(allocator, .{});
-    const tracked = measured.allocator();
-    var trace = source_trace.*;
-    trace.quotient_values_allocator = values_allocator;
-    var accumulator = try prover_accumulation.DomainEvaluationAccumulator.init(
-        tracked,
-        QM31.fromU32Unchecked(3, 1, 4, 1),
-        component.maxConstraintLogDegreeBound(),
-        component.nConstraints(),
-    );
-    defer accumulator.deinit();
-    const prover = component.asProverComponent();
-    var prepared = (try prover.prepareConstraintQuotientsOnDomain(tracked, &trace, &accumulator)).?;
-    defer prepared.deinit();
-    var cancellation = prover_task_graph.CancellationToken{};
-    var context = testTaskContext(prepared.context, &cancellation);
-    const allocations = measured.alloc_index;
-    measured.fail_index = allocations;
-    measured.resize_fail_index = measured.resize_index;
-    try prepared.run(&context);
-    try std.testing.expectEqual(allocations, measured.alloc_index);
-    try std.testing.expect(!measured.has_induced_failure);
-    measured.fail_index = std.math.maxInt(usize);
-    measured.resize_fail_index = std.math.maxInt(usize);
-    var result = try accumulator.finalize();
-    defer result.deinit(tracked);
-    try std.testing.expectEqual(@as(usize, 64), result.len());
-    var values: [64]QM31 = undefined;
-    for (&values, 0..) |*value, index| value.* = result.at(index);
-    return values;
-}
-
-pub fn failRawQuotientValues(
-    allocator: std.mem.Allocator,
-    component: *const RawQuotientAdapter,
-    trace: *const prover_component.Trace,
-) !void {
-    _ = try runRawQuotientStorage(std.testing.allocator, allocator, component, trace);
-}
-
-pub fn failRawQuotientMetadata(
-    allocator: std.mem.Allocator,
-    component: *const RawQuotientAdapter,
-    trace: *const prover_component.Trace,
-) !void {
-    // A distinct value allocator catches wrong-owner cleanup when metadata,
-    // twiddles, the accumulator or prepared state fails after value allocation.
-    var values = std.testing.FailingAllocator.init(std.testing.allocator, .{});
-    defer std.debug.assert(values.allocated_bytes == values.freed_bytes);
-    _ = try runRawQuotientStorage(allocator, values.allocator(), component, trace);
-}
-
 pub fn runTypedPreparedWithWorkers(prepared: *prepared_domain.PreparedDomainEvaluation, workers: usize, cancel: bool) !void {
     const Runner = struct {
         prepared: *prepared_domain.PreparedDomainEvaluation,

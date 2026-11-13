@@ -16,7 +16,6 @@ pub const proof_transcript = @import("stwo_riscv_rv32").air.guest_precompile.pro
 pub const proof_admission = @import("stwo_riscv_rv32").air.guest_precompile.proof_admission;
 pub const program_commitment = @import("stwo_riscv_rv32").air.guest_precompile.program_commitment;
 pub const artifact_identity = @import("stwo_riscv_rv32").air.guest_precompile.artifact_identity;
-pub const ethereum_statement = @import("../../../../air/guest_precompile/ethereum_statement.zig");
 
 /// Candidate Keccak-f profile authority. These modules are proof-complete but
 /// remain outside the production profile switch until the caller relation and

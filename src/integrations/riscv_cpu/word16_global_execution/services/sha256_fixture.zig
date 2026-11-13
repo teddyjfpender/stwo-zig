@@ -10,7 +10,7 @@ const R = @import("roster.zig");
 const P = @import("protocol.zig");
 const C = @import("collector.zig");
 const E = @import("execution.zig");
-const Sha = front.rv64.ethereum_services.sha256;
+const Sha = front.rv64.sha256_compression;
 pub const ADDRESS: u64 = 0x8000000000000fe0;
 pub const TAG: u64 = 0x30010;
 /// sd x0,0(a0); ecall; ecall | sd x0,32(a0); ecall
@@ -45,7 +45,7 @@ fn regs() [32]u64 {
 pub fn expectedFor(identity: [32]u8) P.Expected {
     return .{ .admission = .{ .image = image(), .image_identity = @splat(0x5a), .initial_pc = 4096, .initial_registers = regs(), .max_prefix_steps = 31 }, .program_identity = identity, .total_steps = 5, .max_total_steps = 5, .final_pc = 4116, .final_registers = regs() };
 }
-fn call(id: u64, clock: u64, pc: u64, before: [12]u64) front.rv64.ethereum_services.Sha256Call {
+fn call(id: u64, clock: u64, pc: u64, before: [12]u64) front.rv64.service_calls.Sha256Call {
     var after = before;
     after[0..4].* = Sha.compressPacket(before);
     return .{ .call_id = id, .clock = clock, .pc = pc, .pointer = ADDRESS, .before = before, .after = after };

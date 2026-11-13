@@ -67,6 +67,6 @@ pub const memory = struct {
     pub const policy_air = core.memory.policy_air;
     pub const policy = core.memory.policy;
     pub const commitment = core.memory.commitment;
-    pub const image = @import("ethereum_image.zig");
+    pub const image = core.memory.image;
     pub const transition = core.memory.transition;
 };

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import unittest
 from dataclasses import replace
 from tempfile import TemporaryDirectory
@@ -11,6 +12,21 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PackageWorkspaceTests(unittest.TestCase):
+    def test_repository_gate_enforces_product_placement(self):
+        payload = json.loads((ROOT / "src/waist/core/package.contract.json").read_text())
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            directory = root / "src/frontends/lower"
+            directory.mkdir(parents=True)
+            (directory / "package.contract.json").write_text(json.dumps(payload | {"layer": "frontend"}))
+            (directory / "mod.zig").write_text("pub const fields = struct {};\n")
+            escaped = directory / "generated/EthereumDriver.zig"
+            escaped.parent.mkdir()
+            escaped.write_text("pub const enabled = false;\n")
+            failures = subject.check_repository(root)
+            self.assertIn("package workspace: product-owned path below frontends: src/frontends/lower/generated/EthereumDriver.zig", failures)
+
     def test_product_placement_rejects_every_product_path_without_generated_exemptions(self):
         from types import SimpleNamespace
         graph = subject.ci_package_graph
@@ -120,13 +136,14 @@ class PackageWorkspaceTests(unittest.TestCase):
             for source in ("mod.zig", "component.zig"):
                 (root / source).touch()
             producer = 'const component = b.createModule(.{ .root_source_file = b.path("component.zig"), .target = target });'
-            binding = 'try b.modules.put(b.allocator, "legacy", component);'
+            binding = 'try b.modules.put("legacy", component);'
             primary = 'b.addModule("stwo_core", .{});'
             for candidate, accepted in ((primary + producer + binding, True),
                     (primary + binding, False),
                     (primary + producer + binding.replace("component);", "other);"), False),
                     (primary + producer.replace('"component.zig"', '"mod.zig"') + binding, False),
-                    (primary + producer + binding + binding, False)):
+                    (primary + producer + binding + binding, False),
+                    (primary + producer + binding.replace('put("legacy"', 'put(b.allocator, "legacy"'), False)):
                 with self.subTest(candidate=candidate):
                     (root / "build.zig").write_text(candidate)
                     failures = []

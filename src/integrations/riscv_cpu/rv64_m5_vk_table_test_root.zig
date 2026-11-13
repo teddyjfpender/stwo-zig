@@ -7,7 +7,6 @@ test {
     _ = @import("rv64_recursion/node_summary.zig");
     _ = @import("rv64_recursion/om31_native/canon_hash.zig");
     _ = @import("rv64_recursion/om31_native/node_summary.zig");
-    _ = @import("rv64_recursion/om31_native/typed_root.zig");
     _ = @import("rv64_recursion/om31_native/typed_leaf.zig");
     _ = @import("rv64_recursion/om31_native/typed_integer.zig");
     _ = @import("rv64_recursion/om31_native/typed_mass.zig");

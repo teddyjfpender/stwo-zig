@@ -299,7 +299,7 @@ def _validate_manifest(contract: Contract, failures: list[str]) -> None:
         if f'b.addModule("{module}"' not in build:
             # Secondary names must reuse one concrete component, never silently
             # compile another root or resolve an ambient module-name registry.
-            bindings = re.findall(r'b\.modules\.put\(\s*b\.allocator\s*,\s*"' + re.escape(module)
+            bindings = re.findall(r'b\.modules\.put\(\s*"' + re.escape(module)
                                   + r'"\s*,\s*(\w+)\s*\)', build)
             producers = re.findall(r'const\s+(\w+)\s*=\s*b\.createModule\(\.\{\s*'
                                    r'\.root_source_file\s*=\s*b\.path\("' + re.escape(source)
@@ -784,6 +784,7 @@ def check_repository(repository: Path) -> list[str]:
     for cycle in dependency_cycles(graph):
         failures.append(f"package workspace: dependency cycle {' -> '.join(cycle)}")
     _validate_layers(contracts, packages, failures, repository)
+    failures.extend(ci_package_graph.check_product_placement(repository, contracts))
     generated_embeds = ci_package_graph.generated_embedded_assets(repository)
     for contract in contracts:
         _validate_manifest(contract, failures)

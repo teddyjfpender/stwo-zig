@@ -1,0 +1,249 @@
+//! Bounded native batch bookkeeping. Advice and first/last RAM transitions are
+//! captured by the caller in the same execution walk. No replay or RAM snapshot.
+const std = @import("std");
+const frontend = @import("ethereum_frontend_component");
+const rv = frontend.rv64;
+const air = frontend.rv64_air;
+const Full = @import("stwo_riscv_cpu_integration").rv64_full;
+const CPU = @import("stwo_riscv_cpu_integration").rv64_execution.legacy.authenticated.CPU;
+const Secp = @import("stwo_riscv_cpu_integration").rv64_execution.delegations.secp;
+const R = air.memory;
+const PublicCell = @import("stwo_riscv_cpu_integration").rv64_execution.legacy.authenticated.rv.statement.Cell;
+const Modulus = @import("stwo_core").fields.m31.Modulus;
+
+/// The same capture walk serves complete execution and retained-batch reproving.
+/// A failed append aborts the batch; callers never continue a partial capture.
+pub fn captureNext(session: *rv.ethereum_services.Session, tape: *rv.compact_tape.Tape, capture: *rv.boundary_capture.Capture, batch: *Batch) !void {
+    if (batch.tape != tape or batch.capture != capture) return error.InvalidEthereumBatchSeed;
+    var event: rv.ethereum_services.Event = undefined;
+    const record = if (try session.step(&event)) |row| blk: {
+        try tape.append(row);
+        try capture.append(row, session.keccak.base.memory);
+        break :blk row;
+    } else blk: {
+        try tape.appendEvent(event);
+        try capture.appendEvent(event, session.keccak.base.memory);
+        break :blk event.retirement();
+    };
+    try batch.observe(record);
+}
+
+/// Traced fast retirement up to clock `limit` (M6 capture): every ordinary
+/// instruction the engine can retire is written to `tape`, `capture` and
+/// `batch` exactly as `captureNext` would (the engine's program must be
+/// restricted with `admitsFast` for `batch.authority`). Stops before the
+/// first instruction it cannot retire (services, traps, absent pages, the
+/// clock limit); the caller then takes one reference `captureNext` step.
+pub fn runFast(engine: *rv.fast_execution.Engine, session: *rv.ethereum_services.Session, tape: *rv.compact_tape.Tape, capture: *rv.boundary_capture.Capture, batch: *Batch, limit: u64) !void {
+    if (batch.tape != tape or batch.capture != capture) return error.InvalidEthereumBatchSeed;
+    const cpu = &session.keccak.base.cpu;
+    // Same budget as Session.step: the reference step reports StepLimit.
+    const end = @min(limit, session.keccak.base.max_retirements, tape.initial_clock + tape.storage.len);
+    if (cpu.retired != tape.initial_clock + tape.len or cpu.retired != capture.initial_clock + capture.steps or batch.steps != tape.len or cpu.pc != batch.next_pc) return error.InvalidEthereumBatchClock;
+    while (cpu.retired < end) {
+        // Bounded reservation per round (a whole batch could need 4M words).
+        const round = @min(end, cpu.retired + FAST_ROUND);
+        tape.memory_before.ensureUnusedCapacity(tape.allocator, @intCast(round - cpu.retired)) catch return;
+        var trace = rv.fast_execution.Trace{ .steps = tape.storage, .len = tape.len, .memory_before = &tape.memory_before, .capture = capture, .clocks = undefined };
+        trace.clocks[0..32].* = batch.register_clocks;
+        trace.clocks[32] = 0;
+        const exit = engine.runTraced(cpu, round, &trace);
+        const retired = trace.len - tape.len;
+        tape.len = trace.len;
+        batch.register_clocks = trace.clocks[0..32].*;
+        batch.steps += @intCast(retired);
+        batch.next_pc = cpu.pc;
+        batch.division_requests += trace.divisions;
+        batch.multiplication_requests += trace.multiplications;
+        if (exit == .slow) return;
+    }
+}
+const FAST_ROUND: u64 = 1 << 16;
+/// Program-engine restriction for `runFast`: a pc is fast only when the
+/// authority admits it with the very opcode the engine decoded from the
+/// image (so `Batch.observe` would accept it); anything else stays on the
+/// reference path and fails or succeeds there.
+pub fn admitsFast(authority: *const Full.ProgramAuthority, pc: u64, raw: u32, inst: rv.decode.Instruction) bool {
+    const decoded = authority.instructionAt(pc) catch return false;
+    return decoded.raw == raw and std.meta.eql(decoded.instruction, inst) and inst.opcode != .ECALL and inst.opcode != .EBREAK;
+}
+
+pub const Batch = struct {
+    authority: *const Full.ProgramAuthority,
+    tape: *const rv.compact_tape.Tape,
+    capture: *const rv.boundary_capture.Capture,
+    initial_registers: [32]u64,
+    initial_pc: u64,
+    initial_clock: u64,
+    first_ids: [3]u32,
+    register_clocks: [32]u32 = @splat(0),
+    steps: u32 = 0,
+    next_pc: u64,
+    division_requests: u32 = 0,
+    multiplication_requests: u32 = 0,
+    calls: [3]u32 = @splat(0),
+    /// v3 SHA-256 calls (tape-only; the v2-decoded public statement is unchanged).
+    sha256_first: u32 = 1,
+    sha256_calls: u32 = 0,
+    /// v3 arith256_mod calls (tape-only, like SHA-256).
+    arith256_first: u32 = 1,
+    arith256_calls: u32 = 0,
+    /// v3 curve/field calls per op (curves.Op order; tape-only, like SHA-256).
+    curve_first: [rv.ethereum_services.curves.COUNT]u32 = @splat(1),
+    curve_calls: [rv.ethereum_services.curves.COUNT]u32 = @splat(0),
+    /// v3 aligned memcpy/memset calls (no tape records; counted for telemetry).
+    bulk_calls: u32 = 0,
+    state_policy: air.state_policy.Policy = .cyclic_v2,
+
+    pub fn init(authority: *const Full.ProgramAuthority, tape: *const rv.compact_tape.Tape, capture: *const rv.boundary_capture.Capture, initial_registers: [32]u64, first_ids: [3]u32) !Batch {
+        if (authority.profile != .ethereum_services_v1 and authority.profile != .ethereum_services_v2) return error.InvalidEthereumBatchProfile;
+        if (!tapeAdmitted(tape.execution_profile, authority) or tape.len != 0 or capture.steps != 0 or tape.initial_clock != capture.initial_clock or initial_registers[0] != 0) return error.InvalidEthereumBatchSeed;
+        // A batch may start at any retired row, including a Zbb row.
+        _ = try authority.instructionAt(tape.initial_pc);
+        for (first_ids) |id| if (id == 0 or id >= Modulus) return error.InvalidEthereumBatchSeed;
+        return .{ .authority = authority, .tape = tape, .capture = capture, .initial_registers = initial_registers, .initial_pc = tape.initial_pc, .initial_clock = tape.initial_clock, .first_ids = first_ids, .next_pc = tape.initial_pc };
+    }
+    /// Call once per retirement, including Event.retirement() for services.
+    /// Fallible tape/capture appends stay with the caller; on any failure abort
+    /// this native batch instead of advancing execution with partial advice.
+    pub fn observe(self: *Batch, record: rv.machine.Retirement) !void {
+        if (!tapeAdmitted(self.tape.execution_profile, self.authority) or self.tape.initial_pc != self.initial_pc or self.tape.initial_clock != self.initial_clock or self.capture.initial_clock != self.initial_clock) return error.InvalidEthereumBatchSeed;
+        if (self.steps >= rv.compact_tape.MAX_STEPS or record.clock != self.initial_clock + self.steps + 1 or record.pc.toInt() != self.next_pc) return error.InvalidEthereumBatchClock;
+        // Legacy byte-ROM row, or (Zbb execution ROM only) a Zbb BINARY row.
+        const decoded = try self.authority.instructionAt(record.pc.toInt());
+        if (record.instruction != decoded.raw or record.opcode != decoded.instruction.opcode) return error.InvalidEthereumBatchInstruction;
+        const inst = decoded.instruction;
+        const effects = rv.execution_profile.effects(self.authority.rom_profile, inst.opcode);
+        var kind: ?usize = null;
+        var sha256 = false;
+        var arith = false;
+        var curve: ?usize = null;
+        var bulk = false;
+        if (inst.opcode == .ECALL and rv.execution_profile.admitsV3(self.tape.execution_profile, record.rhs.toInt())) {
+            if (rv.execution_profile.isPayloadFreeTag(record.rhs.toInt())) {
+                // Bulk memory has no call ID or tape payload: the ECALL step
+                // (pointer, tag) is the call; RAM effects are in the capture.
+                bulk = true;
+            } else if (record.rhs.toInt() == rv.execution_profile.ARITH256_MOD_TAG) {
+                if (@as(u64, self.arith256_first) + self.arith256_calls >= Modulus) return error.InvalidEthereumBatchService;
+                arith = true;
+            } else if (rv.ethereum_services.curves.opOfTag(record.rhs.toInt())) |op| {
+                const c = rv.ethereum_services.curves.index(op);
+                if (@as(u64, self.curve_first[c]) + self.curve_calls[c] >= Modulus) return error.InvalidEthereumBatchService;
+                curve = c;
+            } else {
+                if (@as(u64, self.sha256_first) + self.sha256_calls >= Modulus) return error.InvalidEthereumBatchService;
+                sha256 = true;
+            }
+        } else if (inst.opcode == .ECALL) {
+            const tag = record.rhs.toInt();
+            kind = if (tag == rv.execution_profile.KECCAK_TAG) 0 else switch (self.authority.profile) {
+                .ethereum_services_v1 => if (tag == rv.execution_profile.SECP_ADD_TAG) 1 else if (tag == rv.execution_profile.SECP_DOUBLE_TAG) 2 else return error.InvalidEthereumBatchService,
+                .ethereum_services_v2 => if (tag == rv.execution_profile.SECP_ADD_WORD_TAG) 1 else if (tag == rv.execution_profile.SECP_DOUBLE_WORD_TAG) 2 else return error.InvalidEthereumBatchService,
+                else => unreachable,
+            };
+            const k = kind.?;
+            if (@as(u64, self.first_ids[k]) + self.calls[k] >= Modulus) return error.InvalidEthereumBatchService;
+        }
+        const tick = 4 * self.steps;
+        if (effects.reads_rs1 and inst.rs1 != 0) self.register_clocks[inst.rs1] = tick + 1;
+        if (effects.reads_rs2 and inst.rs2 != 0) self.register_clocks[inst.rs2] = tick + 2;
+        if (effects.writes_rd and inst.rd != 0) self.register_clocks[inst.rd] = tick + 3;
+        switch (inst.opcode) {
+            .DIV, .DIVU, .REM, .REMU, .DIVW, .DIVUW, .REMW, .REMUW => self.division_requests += 1,
+            .MUL, .MULH, .MULHSU, .MULHU, .MULW => self.multiplication_requests += 1,
+            else => {},
+        }
+        if (kind) |k| self.calls[k] += 1;
+        if (sha256) self.sha256_calls += 1;
+        if (arith) self.arith256_calls += 1;
+        if (curve) |c| self.curve_calls[c] += 1;
+        if (bulk) self.bulk_calls += 1;
+        self.steps += 1;
+        self.next_pc = record.next_pc.toInt();
+    }
+    /// Must run while final_memory still holds this batch's final image. Reads
+    /// touched chunks once and reconstructs their before words from capture.
+    pub fn finish(self: *const Batch, a: std.mem.Allocator, final_cpu: *const rv.machine.Cpu, final_memory: *const rv.memory.Memory, policy: *const R.policy.Policy, geometry: R.values.Geometry) !Finished {
+        if (!tapeAdmitted(self.tape.execution_profile, self.authority) or self.tape.initial_pc != self.initial_pc or self.tape.initial_clock != self.initial_clock or self.capture.initial_clock != self.initial_clock) return error.InvalidEthereumBatchSeed;
+        if (self.tape.sha256_calls.items.len != self.sha256_calls) return error.InvalidEthereumBatchBoundary;
+        for (self.tape.sha256_calls.items, 0..) |call, i| if (call.call_id != @as(u64, self.sha256_first) + i) return error.InvalidEthereumBatchService;
+        if (self.tape.arith256_mod_calls.items.len != self.arith256_calls) return error.InvalidEthereumBatchBoundary;
+        for (self.tape.arith256_mod_calls.items, 0..) |call, i| if (call.call_id != @as(u64, self.arith256_first) + i) return error.InvalidEthereumBatchService;
+        var curve_seen: [rv.ethereum_services.curves.COUNT]u32 = @splat(0);
+        for (self.tape.curve_calls.items) |call| {
+            const c = rv.ethereum_services.curves.index(call.op);
+            if (call.call_id != @as(u64, self.curve_first[c]) + curve_seen[c]) return error.InvalidEthereumBatchService;
+            curve_seen[c] += 1;
+        }
+        if (!std.mem.eql(u32, &curve_seen, &self.curve_calls)) return error.InvalidEthereumBatchBoundary;
+        if (self.steps == 0 or self.steps != self.tape.len or self.steps != self.capture.steps or final_cpu.retired != self.initial_clock + self.steps or final_cpu.pc != self.next_pc or final_cpu.regs[0] != 0 or self.tape.service_calls.items.len != self.calls[0] or self.tape.secp_calls.items.len != @as(u64, self.calls[1]) + self.calls[2]) return error.InvalidEthereumBatchBoundary;
+        var actual: [3]u32 = @splat(0);
+        for (self.tape.service_calls.items) |call| {
+            if (call.call_id != @as(u64, self.first_ids[0]) + actual[0]) return error.InvalidEthereumBatchService;
+            actual[0] += 1;
+        }
+        for (self.tape.secp_calls.items) |call| {
+            const k: usize = if (call.kind == .add) 1 else 2;
+            if (call.call_id != @as(u64, self.first_ids[k]) + actual[k]) return error.InvalidEthereumBatchService;
+            actual[k] += 1;
+        }
+        if (!std.mem.eql(u32, &actual, &self.calls)) return error.InvalidEthereumBatchService;
+        const captured = try self.capture.sorted(a);
+        errdefer a.free(captured);
+        const cells = try a.alloc(PublicCell, captured.len);
+        errdefer a.free(cells);
+        const clocks = try a.alloc(u32, captured.len);
+        errdefer a.free(clocks);
+        for (captured, cells, clocks) |native, *cell, *clock| {
+            cell.* = .{ .address = native.address, .initial = native.initial, .final = native.final, .readable = native.rights & 1 != 0, .writable = native.rights & 2 != 0 };
+            clock.* = native.terminal_clock;
+        }
+        var public = CPU.Public{ .control_policy = self.authority.control_policy, .execution_profile = self.authority.profile, .arithmetic_policy = .division_multiplication_services_v3, .state_policy = self.state_policy, .division_requests = self.division_requests, .multiplication_requests = self.multiplication_requests, .division_log = requestLog(self.division_requests), .multiplication_log = requestLog(self.multiplication_requests), .keccak_calls = self.calls[0], .first_call_id = self.first_ids[0], .roster = if (self.calls[0] == 0) .none else .paired, .statement = .{ .program = self.authority.expectedProgram(), .steps = self.steps, .initial_pc = self.initial_pc, .final_pc = final_cpu.pc, .initial_registers = self.initial_registers, .final_registers = final_cpu.regs, .register_clocks = self.register_clocks, .cells = &.{}, .memory_clocks = &.{}, .opcodes = self.authority.opcodes } };
+        if (self.division_requests == 0) public.division_roster = .none;
+        if (self.multiplication_requests == 0) public.multiplication_roster = .none;
+        if (self.calls[0] != 0) {
+            public.keccak_log = try air.crypto.keccak.layout.logSize(self.calls[0]);
+            public.bridge_log = try air.crypto.keccak.bridge.trace.logSize(self.calls[0]);
+        }
+        var groups: [2]Secp.Group = .{ .{}, .{} };
+        for (&groups, self.calls[1..], self.first_ids[1..], 0..) |*group, count, first, k| {
+            group.first_id = first;
+            if (count != 0) group.* = .{ .roster = .present, .calls = count, .first_id = first, .geometry = try Secp.Source.Geometry.minimal(if (k == 0) .add else .double, count) };
+        }
+        public.secp = .{ .add = groups[0], .double = groups[1] };
+        try public.validate();
+        const openings: ?R.openings.Owned = if (captured.len == 0) null else try R.openings.Owned.init(a, geometry, policy, final_memory, captured);
+        return .{ .allocator = a, .public = public, .rom_profile = if (self.authority.rom_profile != self.authority.profile) self.authority.rom_profile else null, .captured = captured, .cells = cells, .memory_clocks = clocks, .openings = openings };
+    }
+};
+pub const tapeMatches = @import("stwo_riscv_cpu_integration").rv64_execution.source.profiles.tapeMatches;
+pub const tapeAdmits = @import("stwo_riscv_cpu_integration").rv64_execution.source.profiles.tapeAdmits;
+pub const tapeAdmitted = @import("stwo_riscv_cpu_integration").rv64_execution.source.profiles.tapeAdmitted;
+fn requestLog(count: u32) u32 {
+    return @max(5, std.math.log2_int_ceil(u32, @max(1, count)));
+}
+pub const Finished = struct {
+    allocator: std.mem.Allocator,
+    public: CPU.Public,
+    /// Execution ROM profile of the producing authority when it differs from
+    /// the statement profile (Zbb route). Not serialized: a packet reader
+    /// re-derives it from its own authority (or rejects the tape).
+    rom_profile: ?rv.execution_profile.Profile = null,
+    captured: []rv.boundary_capture.Cell,
+    cells: []PublicCell,
+    memory_clocks: []u32,
+    openings: ?R.openings.Owned,
+    pub fn takeOpenings(self: *Finished) ?R.openings.Owned {
+        const value = self.openings;
+        self.openings = null;
+        return value;
+    }
+    pub fn deinit(self: *Finished) void {
+        if (self.openings) |*value| value.deinit();
+        self.allocator.free(self.memory_clocks);
+        self.allocator.free(self.cells);
+        self.allocator.free(self.captured);
+        self.* = undefined;
+    }
+};

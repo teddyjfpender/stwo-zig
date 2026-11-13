@@ -25,6 +25,34 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_ethereum_image_admission_test_root.zig", "test-receiver-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_ethereum_receiver_boundary_test_root.zig", "test-receiver-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/tests/rv64_ethereum_chain_test.zig", "test-receiver-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/tests/rv64_word16_execution_image_test.zig", "test-receiver-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_gkr_resources_test_root.zig", "test-gkr-resources"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/gkr_resources.zig", "test-gkr-resources"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/gkr_resources_test.zig", "test-gkr-resources"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_capture_prefetch_test_root.zig", "test-capture-prefetch"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/capture_prefetch_test.zig", "test-capture-prefetch"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/capture_test_support.zig", "test-capture-prefetch"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_setup_cache_test_root.zig", "test-setup-cache"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/setup_cache.zig", "test-setup-cache"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/setup_cache_format.zig", "test-setup-cache"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/setup_cache_test.zig", "test-setup-cache"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_services_gkr_policy_test_root.zig", "test-services-gkr-policy"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_word16_services_test_root.zig", "test-word16-services"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_word16_zbb_services_test_root.zig", "test-word16-zbb-services"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_word16_sponge_services_test_root.zig", "test-word16-sponge-services"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_word16_ls_dword_services_test_root.zig", "test-word16-ls-dword-services"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_services_recursion_test_root.zig", "test-services-recursion"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/build_components.zig", "test-build-components"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/build_components_test.zig", "test-build-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/assembly/recursion/vm_composition_preparation.zig", "test-composition-custody"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/recursion/vm_composition_preparation.zig", "test-composition-custody"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/recursion/initial_wrapper_admission.zig", "test-composition-custody"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/tests/coordinator_boundary_test.zig", "test-component-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/tests/composition_custody_test.zig", "test-component-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/csp_ecdsa_proof_test.zig", "test-csp-ecdsa-proof"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_proof_artifact_support.zig", "test-proof-artifact-support"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/tests/proof_artifact_support_contract_test.zig", "test-proof-artifact-support"),
     ("stwo_riscv_frontend", "src/frontends/riscv/precompiles/focused_test_guest_precompile_0.zig", "test-guest-precompile"),
@@ -32,7 +60,7 @@ FOCUSED_RULES = (
     ("stwo_riscv_frontend", "src/frontends/riscv/rv32/focused_test_runtime_selector_0.zig", "test-runtime-selector"),
     ("stwo_riscv_frontend", "src/frontends/riscv/air_lang/framework/control_row.zig", "test-recursion-framework-interaction"),
     ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/vm_composition_program_test.zig", "test-retained-typed-components"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/recursion/tests/ethereum_vm_composition_program_test.zig", "test-ethereum-composition-program"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/recursive_segment_detached_child_transcript.zig", "test-detached-child-capture"),
     ("stwo_riscv_frontend", "src/frontends/riscv/testing/cases/air/lang/tests/runtime_profile_test.zig", "test-air-runtime-profile"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/blake3_proof_tests", "test-blake3-proof-contracts"),
@@ -430,6 +458,14 @@ def commands_for_paths(
             commands.append(broad_command(root, package, optimize or "ReleaseSafe"))
             continue
         selected_steps = sorted(value for value in steps if value is not None)
+        if check_only and package_name == "stwo_ethereum_statement":
+            if deferred is None:
+                raise DevTestError("Ethereum consumer contracts require focused contract execution")
+            deferred.append(package_name + " (focused contract execution)")
+            continue
+        if package_name == "stwo_ethereum_statement" and selected_steps == ["test-build-components"]:
+            commands.append(["zig", "test", "-O" + (optimize or "Debug"), package.directory + "/build_components_test.zig"])
+            continue
         if package_name == "stwo_riscv_cpu_integration" and selected_steps == ["test-proof-artifact-support"]:
             # These std-only paths consume the actual public module; loading the
             # full package build runner would dwarf their four bounded tests.

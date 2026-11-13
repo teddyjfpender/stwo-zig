@@ -343,3 +343,12 @@ test "fold-v3 summary receiver refuses alternate encodings and malformed headers
     outputs[0] = C.Q.fromU32Unchecked(VERSION, 0, 1, 0);
     try std.testing.expectError(error.TypedSummaryRawWord, Native.fromOutputs(&outputs));
 }
+
+pub const Counter = struct {
+    pub const cpu_calls = 0;
+    pub const truth_next = Types.FAMILIES;
+    pub const sponge_next = 2 * Types.FAMILIES;
+    pub const cpu_next = sponge_next + 1;
+    pub const boundary_lo = cpu_next + 1;
+    pub const boundary_hi = boundary_lo + 1;
+};

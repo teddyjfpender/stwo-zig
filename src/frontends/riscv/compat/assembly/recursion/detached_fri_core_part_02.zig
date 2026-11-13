@@ -116,7 +116,7 @@ pub fn Namespace(comptime context: type) type {
         /// and it accepts full q193 query words only after the core checks
         /// their low-bit projection against the native PCS capture.
         pub const NativeSegmentCoreAuthorityInputsV4 = struct {
-            statement_arithmetic: *const recursion.ethereum_statement_arithmetic_v4.Prepared,
+            statement_arithmetic: *const recursion.statement_arithmetic_preparation.Prepared,
             captured: *const recursion.captured_fri.Owned,
             vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,

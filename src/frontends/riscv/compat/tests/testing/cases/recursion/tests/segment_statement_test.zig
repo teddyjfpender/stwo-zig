@@ -5,7 +5,7 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 const memory_state = @import("stwo_riscv_isa").machine.memory_state;
-const runner_result = @import("../../../../../../runner/result.zig");
+const runner_result = @import("stwo_riscv_rv32").execution.base_result;
 const sparse_merkle = @import("stwo_riscv_memory").air.sparse_merkle;
 const Cpu = @import("stwo_riscv_isa").machine.cpu.Cpu;
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;

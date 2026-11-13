@@ -30,7 +30,7 @@ pub const Source = union(enum) {
         result.clock = try self.localClock(call.clock);
         return result;
     }
-    pub fn localSecpCall(self: Source, call: rv.ethereum_services.SecpCall) !rv.ethereum_services.SecpCall {
+    pub fn localSecpCall(self: Source, call: rv.service_calls.SecpCall) !rv.service_calls.SecpCall {
         var result = call;
         result.clock = try self.localClock(call.clock);
         return result;

@@ -24,7 +24,6 @@
     "compact_tape_wire",
     "decode_cache",
     "elf",
-    "ethereum_services",
     "execution",
     "execution_profile",
     "frequent_operations",
@@ -39,9 +38,10 @@
   ],
   "api_contract": {
     "signature_tests": [
-      "tests/contracts.zig::C3 canonical API identity: RV64 machine memory and session types"
+      "tests/native_contracts.zig::C3 native API identity: RV64 machine memory and session types"
     ],
     "invariant_tests": [
+      "air/delegations/bulk_memory/tests.zig::jumpdest: honest scenario satisfies every constraint and closes every relation",
       "tests/zbb_binary_test.zig::pinned encodings decode exactly under the Zbb BINARY ISA and are illegal under RV64IM"
     ]
   },

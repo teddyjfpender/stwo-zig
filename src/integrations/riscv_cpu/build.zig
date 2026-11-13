@@ -160,7 +160,7 @@ pub fn build(b: *std.Build) void {
     secp_root.addImport("stwo_prover_engine", prover);
     secp_root.addImport("secp256k1_proof_harness", frontend_dependency.module("secp256k1_proof_harness"));
     const secp_tests = b.addTest(.{ .root_module = secp_root });
-    b.step("test-secp256k1-precompile-proof", "Prove and independently verify typed and canonical CSP ECDSA on CPU")
+    b.step("test-secp256k1-precompile-proof", "Prove and independently verify typed ECDSA on CPU")
         .dependOn(testDependency(b, secp_tests, check_only, 0));
 
     const keccak_root = b.createModule(.{

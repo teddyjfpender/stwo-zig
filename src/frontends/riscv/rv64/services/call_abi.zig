@@ -123,3 +123,6 @@ pub const Event = union(enum) {
         };
     }
 };
+
+/// Independent mathematical references, separate from optimized witnesses.
+pub const reference_crypto = @import("reference_crypto.zig");
