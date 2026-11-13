@@ -1545,6 +1545,20 @@
           "all"
         ]
       ]
+    },
+    "ethereum_receiver_releasefast": {
+      "host": "linux",
+      "description": "Explicit receiver-only CPU diagnostic via the canonical developer target; not full product acceptance",
+      "commands": [
+        [
+          "python3",
+          "scripts/dev_test.py",
+          "src/products/ethereum/statement/cpu/rv64_ethereum_receiver_boundary_test_root.zig",
+          "--optimize",
+          "ReleaseFast"
+        ]
+      ],
+      "local": "hosted"
     }
   },
   "product_scope_lanes": {

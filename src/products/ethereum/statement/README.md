@@ -125,3 +125,11 @@ proof/recorder parity case for3/8/16workers and both control encodings. It uses
 the production worker-stack default and remains in the full default suite.
 Run this proof-heavy gate on the qualified CPU host; configuration alone does
 not establish its proof or timing results.
+
+The hosted CPU diagnostic `ethereum_receiver_releasefast` runs the existing
+`test-receiver-boundaries` target through `scripts/dev_test.py`, independently
+of the full CSP/mixed-proof lane. Dispatch it with
+`gh workflow run ci.yml --ref <source-ref> -f gate=focused-cpu -f cpu_lane=ethereum_receiver_releasefast`.
+It preserves both receiver roots, their floors and all physical assertions.
+It is marked hosted-only because the physical ReleaseFast case exceeds the
+local compiler-memory cap. It does not replace complete product acceptance.
