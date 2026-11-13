@@ -1487,6 +1487,18 @@
         [
           "zig",
           "build",
+          "test-csp-ecdsa-proof",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
           "test-receiver-boundaries",
           "--build-file",
           "src/products/ethereum/statement/build.zig",
@@ -1524,18 +1536,6 @@
           "zig",
           "build",
           "test",
-          "--build-file",
-          "src/products/ethereum/statement/build.zig",
-          "-Doptimize=ReleaseFast",
-          "-j2",
-          "--verbose",
-          "--summary",
-          "all"
-        ],
-        [
-          "zig",
-          "build",
-          "test-csp-ecdsa-proof",
           "--build-file",
           "src/products/ethereum/statement/build.zig",
           "-Doptimize=ReleaseFast",

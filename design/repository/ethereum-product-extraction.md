@@ -800,3 +800,19 @@ This slice source +71/-25/net+46, configuration +4/-3, documentation reported
 separately. C4 cumulative3287/3300; zero move credit, flags+0/-0 (100live),
 maintained scripts+0/-0. The shared publication API's minor version and its
 consumer contract are updated together under the standing owner approval.
+
+## Frozen final acceptance ordering
+
+The existing Debug run43383369374 is terminal at its150minute limit. Its
+retained typed command passes26/26 and its focused all27 scoped-pool command
+passes2/2 in461.21s; only the following broad default command is incomplete.
+The stream digests match the command ledger; this qualifies the stack repair
+on93eaf74fa, without claiming the incomplete broad suite passed.
+
+After the bounded local repair slice, use one frozen ReleaseFast host run for
+Linux publication/full product proof acceptance. Run the existing CSP command
+first so it cannot be stranded after the broad suite. Keep every command,
+profile and floor unchanged; no new lane, dependency, script or flag. Pre-edit
+source allowance +1 for the existing ordering contract, within C4 +3300;
+configuration moves and documentation are reported separately. This host run
+is final platform acceptance after local checks, not the development loop.

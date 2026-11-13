@@ -36,6 +36,7 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(["ethereum_statement"], ci_scope_plan.manual_cpu_selection("ethereum_statement", self.policy)[0])
         commands = self.policy["lanes"]["ethereum_statement"]["commands"]
         optimized = self.policy["lanes"]["ethereum_statement_releasefast"]["commands"]
+        self.assertIn("test-csp-ecdsa-proof", optimized[0])
         self.assertEqual(3, len(commands))
         self.assertIn("test-authenticated-component-profile", commands[1])
         for lane in ("ethereum_statement", "ethereum_statement_releasefast"):
