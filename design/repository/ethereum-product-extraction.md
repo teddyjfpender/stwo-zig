@@ -837,3 +837,26 @@ cancelled or unrun proof gates into passes.
 No proof admission, profile, protocol version or placement exemption changes
 for landing. Final landing amendment source+0/-0, flags+0/-0 (100live),
 maintained scripts+0/-0; documentation only. C4 stays3288/3300.
+
+## Focused receiver host acceptance (#383)
+
+The final ReleaseFast physical receiver case exceeds the unchanged local
+compiler-memory cap. The existing full host lane queues it behind CSP and
+publishes command receipts only when the entire job ends. Reuse the existing
+`test-receiver-boundaries` owner target through `scripts/dev_test.py` in one
+admitted manual CPU diagnostic. No new BUILD target, launcher, runtime flag,
+proof setting, fixture, floor or provider is introduced. Both receiver roots
+remain in that existing target. Full Debug/ReleaseFast/CSP lanes continue.
+
+Pre-edit source allowance +10 within C4 +3300 (currently3288); configuration
+and documentation are separate. Owner: build/test under#383 and the standing
+maintainer approval. The diagnostic is not a substitute for automatic PR or
+complete product qualification; it produces the missing owner result sooner.
+
+The manual selection and hosted-only policy each fail RED before implementation.
+All181 graph/workspace/developer/CI contracts then pass locally in40.25s under
+the unchanged guard. The actual developer dry-run resolves to exactly the
+existing receiver target inReleaseFast. Workspace remains37/39/190, with no
+prover/BUILD/fixture changes. Slice source+8/-0/net+8; C4 cumulative3296/3300,
+configuration+14/-0; documentation separate. Flags+0/-0 (100live), maintained
+scripts+0/-0. Host execution is still required before claiming that gate passed.

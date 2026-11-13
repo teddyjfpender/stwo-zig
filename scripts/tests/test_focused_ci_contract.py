@@ -55,6 +55,13 @@ class PlannerContractTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         self.assertRegex(workflow, r"timeout-minutes:.*matrix.lane == 'ethereum_statement'.*150")
 
+    def test_manual_ethereum_receiver_diagnostic_reuses_owned_gate(self):
+        lane = "ethereum_receiver_releasefast"
+        self.assertEqual("hosted", self.policy["lanes"][lane]["local"])
+        self.assertEqual([lane], ci_scope_plan.manual_cpu_selection(lane, self.policy)[0])
+        command = ["python3", "scripts/dev_test.py", "src/products/ethereum/statement/cpu/rv64_ethereum_receiver_boundary_test_root.zig", "--optimize", "ReleaseFast"]
+        self.assertEqual([command], self.policy["lanes"][lane]["commands"])
+
     def test_manual_cpu_selection_is_exact_and_refuses_device_or_foreign_lanes(self):
         for lane in ci_scope_plan.MANUAL_CPU_LANES:
             lanes, reasons = ci_scope_plan.manual_cpu_selection(lane, self.policy)
