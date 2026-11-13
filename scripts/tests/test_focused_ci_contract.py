@@ -21,6 +21,17 @@ ROOT = Path(__file__).resolve().parents[2]
 COMMIT = "1" * 40
 TREE = "2" * 40
 class PlannerContractTests(unittest.TestCase):
+    def test_manual_csp_baseline_is_the_original_cpu_proof_without_security_changes(self):
+        lane = "ethereum_csp_baseline"
+        self.assertEqual([lane], ci_scope_plan.manual_cpu_selection(lane, self.policy)[0])
+        command, = self.policy["lanes"][lane]["commands"]
+        self.assertEqual(["python3", "scripts/repo/zig_serial_build.py"], command[:2])
+        self.assertEqual("src/products/ethereum/statement", command[command.index("--cwd") + 1])
+        self.assertIn("test-csp-ecdsa-proof", command)
+        self.assertIn("-Dcpu=baseline", command)
+        self.assertIn("-Doptimize=ReleaseFast", command)
+        self.assertNotIn("-Dcheck-only=true", command)
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.policy = ci_scope_plan.strict_json(

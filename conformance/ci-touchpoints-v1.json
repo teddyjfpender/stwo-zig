@@ -1615,6 +1615,26 @@
         ]
       ],
       "local": "hosted"
+    },
+    "ethereum_csp_baseline": {
+      "host": "linux",
+      "local": "hosted",
+      "description": "Explicit same-security CSP CPU-model diagnostic; baseline code generation only, not a replacement for native qualification",
+      "commands": [
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/products/ethereum/statement",
+          "test-csp-ecdsa-proof",
+          "-Doptimize=ReleaseFast",
+          "-Dcpu=baseline",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
     }
   },
   "product_scope_lanes": {

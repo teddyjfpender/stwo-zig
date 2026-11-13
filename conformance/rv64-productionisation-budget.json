@@ -1146,10 +1146,10 @@
     },
     {
       "id": "source_size_owner_sweep_20261113",
-      "net_code_budget": 1400,
+      "net_code_budget": 3000,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Issue343 owner-delegated first33-owner checkpoint under explicit maintainer completion authorization: private polynomial/GKR/PCS/backend owner phases and test-family fixture separation; measured source net1200 before final integration,129 original named test bodies token-identical,68to35 size breaches. Preserve public aliases, equations, source/proof pins, runtime defaults, floors and failure/teardown invariants. Moves earn no removal credit. No raised source ceiling, new launcher or GPU qualification. Revert full owner splits with their aliases and test imports together; remaining35 are explicit active work."
+      "positive_growth_justification": "Issue343 owner-delegated first33-owner checkpoint under explicit maintainer completion authorization: private polynomial/GKR/PCS/backend owner phases and test-family fixture separation; measured source net1200 before final integration,129 original named test bodies token-identical,68to35 size breaches. Preserve public aliases, equations, source/proof pins, runtime defaults, floors and failure/teardown invariants. Moves earn no removal credit. No raised source ceiling, new launcher or GPU qualification. Revert full owner splits with their aliases and test imports together; remaining35 are explicit active work. Second bounded owner amendment on #343: cumulative<=3000, additional<=1786 after1214 checkpoint for remaining35 Metal/Cairo/neutral recursion/legacy CLI and CUDA/RV64 owner phases. No fragments, ceiling increases or dead copies; formal-pinned owners require canonical regeneration. Preserve transaction admission, cancellation, publication and cleanup, all cases and aliases. Not an automatic package budget ratchet."
     },
     {
       "id": "csp_required_failure_control_382",
