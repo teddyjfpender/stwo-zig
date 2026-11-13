@@ -551,6 +551,8 @@ def validate_package_consumer_sources(repository: Path, provider: Any, metadata:
             if route == "injected":
                 if module not in owner.injected_modules:
                     raise GraphError("undeclared provider injection")
+                if provider.package != "stwo_proof_wire" or module not in {"stwo_proof_wire", "interop_postcard"}:
+                    raise GraphError("unimplemented provider injection route")
                 # Declaration admission only. The materialized provider target
                 # independently checks the real injected Module pointer.
             else:
