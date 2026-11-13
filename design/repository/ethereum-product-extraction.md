@@ -523,3 +523,34 @@ no baseline or ceiling was changed. The extraction remains unqualified as a
 whole until the remaining hosted/default-package gates pass. The committed
 local receipt records scopes, source fingerprint, proof/binary hashes and the
 explicit unrun case; prior failures and compiler-guard receipts remain retained.
+
+
+## Hosted qualification repairs (2026-11-13)
+
+Under the maintainer’s standing authorization, the pre-edit C4 source allowance
+is +3,300 net (previous measured +3,068, zero move credit). This bounded repair
+covers four failures exposed by exact-source Linux run 43359194474: the bulk
+memory external-lane scratch type, runtime neutral coordinator options, proof
+tests selecting a backend different from their canonical scheme, and unused
+CUDA extern references in Debug symbol metadata. Existing tests, constraint
+bodies, canonical protocol types and discovery floors remain mandatory. The
+host-only CUDA test image may omit debug symbols; it must still analyse the
+legacy builder bodies and execute all thirteen contracts in both modes. No
+CUDA stubs, device execution, new flags or maintained scripts are authorized by
+this repair. Acceptance is the affected actual-source tests and the complete
+CPU-host package lane; a guarded laptop check remains unrun, never passed.
+
+The neutral absence fields now use `?noreturn`: null is their only inhabitant,
+but options can be heap-allocated and carry runtime timing/stream fields. Both
+coordinator consumer cases and the complete thirteen-case primary root pass
+in both modes. The bulk-memory native/circuit residual and mutation test
+passes in both modes. The actual stripped CUDA host image cross-links for
+Linux without device libraries or stubs. The four official BUILD/boundary
+commands, all 178 Python contracts and the 37-package workspace pass. An
+initial combined package invocation hit the unchanged laptop guard; separate
+official invocations pass, and the failed evidence is retained.
+
+Repair budget against f49fd921d: source +30/-20/net +10; C4 cumulative
++3,078/+3,300, zero move credit. No flags or maintained scripts added/removed;
+100 registry flags remain live. Documentation and receipts are counted
+separately. Exact-source whole-package hosted qualification remains pending.

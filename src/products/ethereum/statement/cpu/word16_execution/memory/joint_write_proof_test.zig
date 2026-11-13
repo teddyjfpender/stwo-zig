@@ -2,7 +2,7 @@
 //! close; the accepting receiver must still authenticate its RAM ancestry.
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
-const Backend = @import("stwo_riscv_cpu_integration").rv64_full.Support.Backend;
+const Backend = @import("stwo_cpu_backend").CpuBackend;
 const wire = @import("stwo_proof_wire");
 const front = @import("ethereum_frontend_component");
 const A = front.rv64_air;

@@ -46,8 +46,8 @@ pub fn ForEarlySources(comptime EarlyCpu0: type, comptime EarlySegments: type) t
         pub const Options = struct {
             /// M8 native-hybrid stage-two seam (see NativeStageTwo); null = legacy.
             native_stage_two: ?NativeStageTwo = null,
-            early_cpu0: if (EarlyCpu0 == void) @TypeOf(null) else ?*EarlyCpu0 = null,
-            early_segments: if (EarlySegments == void) @TypeOf(null) else ?*EarlySegments = null,
+            early_cpu0: if (EarlyCpu0 == void) ?noreturn else ?*EarlyCpu0 = null,
+            early_segments: if (EarlySegments == void) ?noreturn else ?*EarlySegments = null,
             stream: ?Stream = null,
             cpu_replay_stage: ?@import("cpu_replay.zig").Stage = null,
             device_source_stage: ?Pipeline.DeviceSourceStage = null,

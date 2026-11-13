@@ -1,0 +1,146 @@
+{
+  "schema": "ethereum-extraction-hosted-repairs-v1",
+  "parent_commit": "f49fd921df610d21de92bc61208e2df3a173a450",
+  "source_patch_sha256": "f4418c654928d6537b46083d2ac6281e69c6f8a55d5cd8b429a208de0cae0011",
+  "source_files": {
+    "src/frontends/riscv/rv64/air/delegations/bulk_memory/component.zig": "9a72f2ff1afc52a65aad92c8f2fedd6f41b326ae5b00e8cf8d27a5c562741044",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator_operations.zig": "197b5212db7fd24effecfe1c6da85df1ca98eea5d24f6296cf70379c6fedd8ff",
+    "src/products/ethereum/statement/build.zig": "9fe073f846b8e8f1f07e5420d618f1f428a65758df7203f2fa2f1814e798ca61",
+    "src/products/ethereum/statement/cpu/word16_execution/alu_fused_tail_proof_test.zig": "2ae42a531101d32d9f43cf3cbf7065d3f87a7701327595968494f0d6bbad3503",
+    "src/products/ethereum/statement/cpu/word16_execution/alu_read_induction_proof_test.zig": "6dd90e8d92c23539e0281b4e9125579496cb84d39f4a9f7df4fa62fc73e2ab61",
+    "src/products/ethereum/statement/cpu/word16_execution/cpu_clock_induction_proof_test.zig": "b165eb21e36b2cca46355adea02a4eabb86bf3ed49a1c8dc5186076673f9d365",
+    "src/products/ethereum/statement/cpu/word16_execution/cpu_compact_decode_proof_test.zig": "b9e967744d89da5abd0a87f64ff2a9a9cc039feeba02fee738d2e0ee7e176a9b",
+    "src/products/ethereum/statement/cpu/word16_execution/cpu_fused_tail_proof_test.zig": "ec2ef9aefd223b455fbd37227101d9194d5a29618059564cb5397ae511e3c640",
+    "src/products/ethereum/statement/cpu/word16_execution/cpu_u8_pairs_proof_test.zig": "8644f04aa9f6e7dfbe66ed951869ea2df56b103acee0278ebee81fb8ac794c4f",
+    "src/products/ethereum/statement/cpu/word16_execution/cpu_zero_induction_proof_test.zig": "48ad4a99e5b5d59a36f982fe5c8e8fffa8af9788483500780fbfc22029ea1bfb",
+    "src/products/ethereum/statement/cpu/word16_execution/ls_fused_pairs_proof_test.zig": "c6bab868e61be918421a0c3b887eb5eb0a63e03d729446b1517b31514f891498",
+    "src/products/ethereum/statement/cpu/word16_execution/memory/boundary_anchor_test.zig": "c6fc756d77be9a012570b77d1b526138fd1e918de31c2abd53728422a1e288fe",
+    "src/products/ethereum/statement/cpu/word16_execution/memory/joint_write_proof_test.zig": "eacb862f368ad8971d96a598ca7e6eb76d6fb9008e00b10a883b03bd6822a323",
+    "src/products/ethereum/statement/cpu/word16_execution/memory/range_induction_proof_test.zig": "c89257b202d4c6aeb73db68981cad7f67361cb75caed12203b50f28ed2d3db8f",
+    "src/products/ethereum/statement/cpu/word16_execution/mul_u8_pairs_proof_test.zig": "0678d1461515991d4163858dd9ad6e120c0ab2f3f119044f917e7eabf5af9d3b",
+    "src/products/ethereum/statement/cpu/word16_execution/shift_read_induction_proof_test.zig": "7e3fab600223e926565a08291e3ede4ec2c525ec4a5a1ecd2d6db02110327bd9",
+    "src/products/ethereum/statement/tests/coordinator_boundary_test.zig": "a68bc25cb3029f3cf0c113cf0f8c53d93e644904080554b9bbec813eae7b48fb"
+  },
+  "trigger": {
+    "run": "https://github.com/teddyjfpender/stwo-zig/actions/runs/43359194474",
+    "status": "FAIL",
+    "CPU_named_tests_passed_before_compile_failure": 183,
+    "compilation_errors": 19,
+    "CUDA_host_debug_link_errors": 44
+  },
+  "changes": [
+    "External bulk-memory point scratch uses its selected field lane; native QM31 and circuit residual/mutation test executes",
+    "Neutral early-owner fields use optional noreturn: only null is inhabited, runtime Options and Run remain representable",
+    "Thirteen physical proof fixtures select the canonical CPU backend used by their actual scheme",
+    "CUDA host-only test artifact omits debug symbols; real legacy builder bodies remain analysed; no fake kernels or device execution"
+  ],
+  "local_checks": [
+    {
+      "label": "primary-Debug",
+      "returncode": 0,
+      "seconds": 3.021357125006034,
+      "log": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-primary-Debug.txt",
+      "log_sha256": "f8a2934c130529c78e0bc9745c035b6987967e52cd09dd3e53f84cbc61a33f6f",
+      "status": "PASS"
+    },
+    {
+      "label": "primary-ReleaseFast",
+      "returncode": 0,
+      "seconds": 5.433502625004621,
+      "log": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-primary-ReleaseFast.txt",
+      "log_sha256": "a82b24215599dc8024028c59cdb4f9051e0c476818a43ff643f3606be081ff9c",
+      "status": "PASS"
+    },
+    {
+      "label": "bulk-circuit-Debug",
+      "returncode": 0,
+      "seconds": 2.311761375007336,
+      "log": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-pass2-bulk-circuit-Debug.txt",
+      "log_sha256": "196c17787c9cf468bb18de214b7ff9a66e95058d32bb673d25f7815f2139a4cb",
+      "status": "PASS"
+    },
+    {
+      "label": "bulk-circuit-ReleaseFast",
+      "returncode": 0,
+      "seconds": 6.433163499998045,
+      "log": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-pass2-bulk-circuit-ReleaseFast.txt",
+      "log_sha256": "1fdc2e4549b12a4f2ad9be2d9842a89200173f81620f3fb7b5c44fab24513189",
+      "status": "PASS"
+    },
+    {
+      "label": "cuda-linux-host-link",
+      "returncode": 0,
+      "seconds": 2.1506413750030333,
+      "log": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-pass2-cuda-linux-host-link.txt",
+      "log_sha256": "9a64c8031df6923fa9d9c14710193ea91586bd3a27a27722ad5a8cc697821e9e",
+      "status": "PASS"
+    }
+  ],
+  "official_package_commands": [
+    {
+      "mode": "Debug",
+      "step": "test-build-components",
+      "returncode": 0,
+      "seconds": 0.47433391599042807,
+      "log": "/tmp/c4-hosted-repair-Debug-test-build-components.txt"
+    },
+    {
+      "mode": "Debug",
+      "step": "test-component-boundaries",
+      "returncode": 0,
+      "seconds": 2.833922707999591,
+      "log": "/tmp/c4-hosted-repair-Debug-test-component-boundaries.txt"
+    },
+    {
+      "mode": "ReleaseFast",
+      "step": "test-build-components",
+      "returncode": 0,
+      "seconds": 0.481813875012449,
+      "log": "/tmp/c4-hosted-repair-ReleaseFast-test-build-components.txt"
+    },
+    {
+      "mode": "ReleaseFast",
+      "step": "test-component-boundaries",
+      "returncode": 0,
+      "seconds": 4.552070374993491,
+      "log": "/tmp/c4-hosted-repair-ReleaseFast-test-component-boundaries.txt"
+    }
+  ],
+  "additional_checks": {
+    "python_contracts": {
+      "status": "PASS",
+      "tests": 178
+    },
+    "workspace": {
+      "status": "PASS",
+      "packages": 37,
+      "public_modules": 39,
+      "edges": 190
+    },
+    "all_original_literal_source_case_names_retained": 9676,
+    "current_literal_source_case_names": 9686
+  },
+  "guard": {
+    "aggregate_RSS_bytes": 1073741824,
+    "CPU_seconds": 110,
+    "wall_seconds": 120
+  },
+  "retained_failures": [
+    "Initial isolated bulk harness chose a file below its module root (outside-module import); corrected to actual collector, both modes pass",
+    "Initial Linux cross-link harness omitted libc; corrected -lc, actual Linux host image links",
+    "Combined pair of package steps exceeded unchanged laptop guard; separately guarded official steps all pass"
+  ],
+  "budget": {
+    "base": "f79e26ebab0dffc313284d18487029a52c0602c5",
+    "source_added": 77290,
+    "source_removed": 74973,
+    "source_net": 2317,
+    "landed_C4": 761,
+    "C4_cumulative": 3078,
+    "planned_cap": 3300,
+    "move_subtraction_credit": 0,
+    "new_flags": 0,
+    "new_maintained_scripts": 0
+  },
+  "qualification": "Local repaired cases PASS. Complete exact-source hosted CPU package and original frontend suites remain required; no final extraction acceptance yet."
+}

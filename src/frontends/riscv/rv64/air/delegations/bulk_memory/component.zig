@@ -105,9 +105,9 @@ pub const Component = struct {
     /// values; only the kind, log size and column offsets come from `self`.
     pub fn evaluatePointFor(self: *const Component, comptime F: type, point: geometry.PointFor(F), global_log: u32, masks: anytype, rows: T.RowsFor(E.ConstFor(F)), claims: T.ClaimsFor(E.ConstFor(F)), challenges: T.ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) !void {
         const widths_ = self.widths();
-        var data: [L.MAX_TOTAL]Q = undefined;
-        var pm: [L.MAX_ROW]Q = @splat(Q.zero());
-        var pi: [L.MAX_ROW]Q = @splat(Q.zero());
+        var data: [L.MAX_TOTAL]F = undefined;
+        var pm: [L.MAX_ROW]F = @splat(F.zero());
+        var pi: [L.MAX_ROW]F = @splat(F.zero());
         var at: usize = 0;
         for (widths_, 0..) |width, tree| for (0..width) |c| {
             const prev = if (tree == 1) L.previousMainFor(self.kind, c) else tree == 2 and L.previousInterFor(self.kind, c);

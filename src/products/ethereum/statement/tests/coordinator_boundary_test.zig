@@ -4,8 +4,15 @@ const native = @import("stwo_riscv_cpu_integration").rv64_gkr_coordinator;
 test "coordinator boundary: native operations cannot select product early owners" {
     const N = native.ForEarlySources(void, void);
     const options = N.Options{};
-    try std.testing.expect(@TypeOf(options.early_cpu0) == @TypeOf(null));
-    try std.testing.expect(@TypeOf(options.early_segments) == @TypeOf(null));
+    try std.testing.expect(@TypeOf(options.early_cpu0) == ?noreturn);
+    try std.testing.expect(@TypeOf(options.early_segments) == ?noreturn);
+    // Absence has a runtime-representable type with no non-null inhabitant.
+    // Null's own type made the entire coordinator Run comptime-only.
+    const runtime_options = try std.testing.allocator.create(N.Options);
+    defer std.testing.allocator.destroy(runtime_options);
+    runtime_options.* = options;
+    try runtime_options.validate(1);
+    try std.testing.expect(runtime_options.early_cpu0 == null and runtime_options.early_segments == null);
     try std.testing.expect(N.Bundle == native.Bundle);
     try std.testing.expect(N.WorkerTiming == native.WorkerTiming);
     try std.testing.expect(N.Stream == native.Stream);

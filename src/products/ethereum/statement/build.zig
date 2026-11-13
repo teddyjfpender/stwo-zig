@@ -44,6 +44,9 @@ pub fn build(b: *std.Build) void {
     var runs: [4]*std.Build.Step.Run = undefined;
     for ([_]*std.Build.Module{ product, frontend_component, cpu_component, cuda_component }, &runs) |component, *run| {
         const tests = b.addTest(.{ .root_module = component });
+        // Host-only CUDA tests analyse real builders without linking a device
+        // library. Zig ELF debug metadata retains unused extern references.
+        if (component == cuda_component) tests.root_module.strip = true;
         run.* = b.addRunArtifact(tests);
         run.*.has_side_effects = true;
         owner.dependOn(&run.*.step);
