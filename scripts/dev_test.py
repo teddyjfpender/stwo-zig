@@ -25,6 +25,19 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/alu_fused_tail_proof_test.zig", "test-word16-alu-fused-tail-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/alu_read_induction_proof_test.zig", "test-word16-alu-read-induction-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_clock_induction_proof_test.zig", "test-word16-cpu-clock-induction-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_compact_decode_proof_test.zig", "test-word16-cpu-compact-decode-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_fused_tail_proof_test.zig", "test-word16-cpu-fused-tail-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_u8_pairs_proof_test.zig", "test-word16-cpu-u8-pairs-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_zero_induction_proof_test.zig", "test-word16-cpu-zero-induction-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/ls_fused_pairs_proof_test.zig", "test-word16-ls-fused-pairs-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/memory/boundary_anchor_test.zig", "test-word16-boundary-anchor"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/memory/joint_write_proof_test.zig", "test-word16-joint-write-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/memory/range_induction_proof_test.zig", "test-word16-range-induction-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/mul_u8_pairs_proof_test.zig", "test-word16-mul-u8-pairs-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/shift_read_induction_proof_test.zig", "test-word16-shift-read-induction-proof"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_ethereum_image_admission_test_root.zig", "test-receiver-boundaries"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_ethereum_receiver_boundary_test_root.zig", "test-receiver-boundaries"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/tests/rv64_ethereum_chain_test.zig", "test-receiver-boundaries"),

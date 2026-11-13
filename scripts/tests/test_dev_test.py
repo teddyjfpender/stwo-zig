@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -36,6 +37,30 @@ class DevTestPlanTests(unittest.TestCase):
                 deferred = []
                 self.assertEqual([], dev_test.commands_for_paths(ROOT, [prefix + source], check_only=True, deferred=deferred))
                 self.assertEqual(["stwo_ethereum_statement (focused contract execution)"], deferred)
+
+    def test_extracted_word16_proofs_keep_individual_commands_and_default_coverage(self):
+        product = ROOT / "src/products/ethereum/statement"
+        inventory = (product / "cpu/test_inventory.zig").read_text()
+        focused = (product / "cpu/rv64_word16_proof_boundary_test_root.zig").read_text()
+        catalog = (product / "build.zig").read_text()
+        covered = 0
+        for path in (product / "cpu/word16_execution").rglob("*test.zig"):
+            if '@import("stwo_cpu_backend").CpuBackend;' not in path.read_text() or "P.T.Scheme" not in path.read_text():
+                continue
+            covered += 1
+            step = "test-word16-" + path.stem.removesuffix("_test").replace("_", "-")
+            with self.subTest(source=path):
+                self.assertEqual(step, dev_test.focus_step("stwo_ethereum_statement", path.relative_to(ROOT).as_posix()))
+                self.assertIn('@import("' + path.relative_to(product / "cpu").as_posix() + '")', inventory)
+                (command,) = dev_test.commands_for_paths(ROOT, [path.relative_to(ROOT).as_posix()], optimize="Debug")
+                self.assertIn(step, command)
+                self.assertIn("-j1", command)
+                self.assertIn('@import("' + path.relative_to(product / "cpu").as_posix() + '")', focused)
+                entry = next(line for line in catalog.splitlines() if '.step = "' + step + '"' in line)
+                self.assertIn('.root = "cpu/rv64_word16_proof_boundary_test_root.zig"', entry)
+                self.assertRegex(entry, r'\.filters = &\[_\]\[\]const u8\{\s*"' + re.escape(path.stem + '.') + r'"\s*\}')
+                self.assertRegex(entry, r'\.minimum = ' + str(len(re.findall(r'^test "', path.read_text(), re.M))) + r' \}')
+        self.assertEqual(13, covered)
 
     def test_ethereum_build_graph_unit_avoids_the_package_build_runner(self):
         (command,) = dev_test.commands_for_paths(ROOT, ["src/products/ethereum/statement/build_components.zig"], optimize="ReleaseFast")

@@ -554,3 +554,28 @@ Repair budget against f49fd921d: source +30/-20/net +10; C4 cumulative
 +3,078/+3,300, zero move credit. No flags or maintained scripts added/removed;
 100 registry flags remain live. Documentation and receipts are counted
 separately. Exact-source whole-package hosted qualification remains pending.
+
+
+The final developer-workflow audit found thirteen moved Word16 proof fixtures
+falling back to the entire product suite. Within the existing +3,300 C4 cap,
+a pre-edit allowance of +60 source lines restores individual focused commands
+for these existing files, with per-image named floors and unchanged default
+discovery. This is BUILD/developer routing only; no runtime body, flag, script
+or public protocol changes. A consumer regression first fails on all thirteen
+old broad fallbacks; configure closure and the actual developer plan are gates.
+
+Both the symbol-bearing and stripped umbrella-root attempts exceeded the
+unchanged laptop guard. The pre-edit routing allowance is therefore +80
+source lines, still within C4’s +3,300 total, for one actual CPU proof collector
+shared by those thirteen commands. The collector imports the same thirteen
+existing subjects; each focused command selects a whole subject and enforces
+its original named count. This keeps the product’s unrelated default owners
+out of the focused compilation. No substitute source or assertion is added.
+
+The routing slice is source +68/-0/net +68; C4 cumulative +3,146/+3,300,
+with zero move credit and no new flags or maintained scripts. All 179 Python
+contracts and the 37-package workspace pass. Actual package configure exposes
+all thirteen commands; removing their descriptor lines restores the prior
+default build byte for byte. The focused proof execution still hits the
+unchanged laptop guard and is UNRUN locally. The same original proof bodies
+remain in the complete hosted default suite; no speed or memory gain is claimed.

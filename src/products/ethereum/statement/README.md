@@ -12,9 +12,11 @@
 Ethereum statement orchestration belongs above neutral RISC-V frontends and integrations.
 The frontend, CPU and CUDA components are constructed once. CPU imports frontend;
 CUDA imports both. The primary module and two legacy exports reuse those instances.
-This is an extraction in progress: component facades currently forward the existing
-owners while source and consumer migration is completed. This package does not
-establish whole-extraction, proof or GPU qualification.
+Ethereum request, image, session, publication and recursion policy now live in
+this package. Computation, field/curve arithmetic, service ABI and physical
+witness storage keep their canonical neutral owners. Strict product placement
+is active with zero findings. Whole-package qualification is recorded separately
+against immutable source revisions; no GPU qualification is established here.
 
 ```mermaid
 graph TD
