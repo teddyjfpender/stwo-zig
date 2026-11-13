@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_cpu_integration",
-  "version": "0.2.0",
+  "version": "1.1.0",
   "layer": "integration",
   "owner": "riscv-cpu-integration",
   "public_modules": {
@@ -41,7 +41,6 @@
     "Poseidon2InteractionClaim",
     "Poseidon2ProveOutput",
     "diagnoseRiscVRelations",
-    "ethereum_proof_artifact",
     "poseidon2_proof_artifact",
     "proveAndVerifyElf",
     "provePoseidon2WithPublicData",
@@ -58,17 +57,7 @@
     "rv64_device_main",
     "rv64_device_pcs",
     "rv64_device_source_stage",
-    "rv64_ethereum_canon_rungs",
-    "rv64_ethereum_capture",
-    "rv64_ethereum_capture_options",
-    "rv64_ethereum_direct",
-    "rv64_ethereum_gkr_main",
-    "rv64_ethereum_keys",
-    "rv64_ethereum_plan",
-    "rv64_ethereum_receiver",
-    "rv64_ethereum_request",
-    "rv64_ethereum_terminal",
-    "rv64_expected_image",
+    "rv64_execution",
     "rv64_family_input",
     "rv64_full",
     "rv64_gkr_bundle_wire",
@@ -105,6 +94,8 @@
     "rv64_native_gkr_section",
     "rv64_native_gkr_v2",
     "rv64_native_policy",
+    "rv64_native_rungs",
+    "rv64_native_schema",
     "rv64_om31_cpu_leaf",
     "rv64_om31_execution_wrap",
     "rv64_om31_outer",
@@ -126,11 +117,11 @@
     "rv64_pcs_suite",
     "rv64_program",
     "rv64_program_metadata",
+    "rv64_proof_artifact_support",
     "rv64_provider_tails",
     "rv64_recursion_budget",
     "rv64_replay_capture",
     "rv64_root_verify",
-    "rv64_root_verify_main",
     "rv64_services_collector",
     "rv64_services_roster",
     "rv64_services_types",
@@ -144,7 +135,8 @@
       "mod.zig::api signature: RISC-V CPU engine satisfies the stable transaction contract"
     ],
     "invariant_tests": [
-      "mod.zig::api invariant: RISC-V CPU integration selects only the CPU backend"
+      "mod.zig::api invariant: RISC-V CPU integration selects only the CPU backend",
+      "rv64_proof_artifact_support.zig::artifact directory sync accepts borrowed non-iterable handles and preserves ownership"
     ]
   },
   "ci": {

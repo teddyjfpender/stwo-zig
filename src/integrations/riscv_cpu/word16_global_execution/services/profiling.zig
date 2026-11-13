@@ -34,7 +34,7 @@ pub const Options = struct {
         defer a.free(bytes);
         var name: [40]u8 = undefined;
         const path = try std.fmt.bufPrint(&name, "physical-{d:0>4}.stages.json", .{index});
-        try @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, path, bytes);
+        try @import("../../rv64_proof_artifact_support.zig").writeExclusive(dir, path, bytes);
     }
 };
 pub fn prove(a: std.mem.Allocator, handles: []const engine.air.component_prover.ComponentProver, channel: *G.T.P.Channel, scheme: G.T.Scheme, recorder: ?*Profile.Recorder) !core.proof.StarkProof(G.T.P.Hasher) {

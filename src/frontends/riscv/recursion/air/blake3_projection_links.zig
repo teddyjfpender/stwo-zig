@@ -4,11 +4,11 @@ const core = @import("stwo_core");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const queries = @import("blake3_query_links.zig");
-pub const route = @import("blake3_byte_route.zig");
-pub const pack = @import("qm31_pack_wire.zig");
+pub const route = @import("stwo_riscv_air_lang").framework.blake3_byte_route;
+pub const pack = @import("stwo_riscv_air_lang").framework.qm31_pack_wire;
 const packed_circuit: u32 = 5_000_004;
 const index_circuit: u32 = 5_000_005;
-pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{ 11, 7 });
+pub const Columns = @import("stwo_riscv_recursion_air").blake3.upstream_source_columns.ForSlots(.{ 11, 7 });
 pub const Prepared = struct {
     bit_reads: [][31]u32,
     ports: [32]?[]route.Endpoint,

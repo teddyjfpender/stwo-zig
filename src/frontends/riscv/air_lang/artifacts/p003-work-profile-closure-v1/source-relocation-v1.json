@@ -1,0 +1,13 @@
+{
+  "schema": "stwo.source-location-equivalence.v1",
+  "previous": {
+    "path": "src/frontends/riscv/air/lang/artifacts/p003-work-profile-closure-v1/matrix-v1.json",
+    "schema": "stwo.typed-air.p003-work-profile-closure-matrix.v1",
+    "sha256": "5bca804f3d092fad059d94d1a83475a914d2b927a8071a0f6d8629cd9714b617"
+  },
+  "current": {
+    "path": "src/frontends/riscv/air_lang/artifacts/p003-work-profile-closure-v1/matrix-v1.json",
+    "schema": "stwo.typed-air.p003-work-profile-closure-matrix.v1",
+    "sha256": "feb13b43465fbc5045c70d3b47476b665acb8a1c9e2ee4b4ec4cc24d28754b33"
+  }
+}

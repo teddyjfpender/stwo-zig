@@ -8,8 +8,8 @@ const QM31 = stwo_core.fields.qm31.QM31;
 
 const authority_mod = @import("../outer_parent_range_authority.zig");
 const circuit_mod = @import("../statement_semantics_circuit.zig");
-const row11 = @import("../air/statement_semantics_input_witness.zig");
-const statement = @import("../span_statement.zig");
+const row11 = @import("stwo_riscv_rv32").recursion.air.statement_semantics_input_witness;
+const statement = @import("stwo_riscv_rv32").recursion.span_statement;
 
 test "outer parent range authority derives exactly binary row-11 requests" {
     var fixture = try Fixture.init(std.testing.allocator);

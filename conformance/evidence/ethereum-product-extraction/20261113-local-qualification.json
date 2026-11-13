@@ -1,0 +1,107 @@
+{
+  "classification": "Local extraction qualification; one required ReleaseFast physical-receipt proof check remains UNRUN at the laptop compiler limit",
+  "base_commit": "f79e26ebab0dffc313284d18487029a52c0602c5",
+  "source_inputs": {
+    "files": 8232,
+    "sha256": "06419f30744e198580fef48af1f73360c0860551652a337989ada2ef3fcba043",
+    "scope": "src,build_support,scripts code plus package contracts; documentation/evidence excluded"
+  },
+  "runtime": {
+    "zig": "0.15.2",
+    "system": "Darwin",
+    "machine": "arm64",
+    "hardware_execution": "CPU only; CUDA tests are host metadata contracts"
+  },
+  "guard": {
+    "aggregate_RSS_bytes": 1073741824,
+    "CPU_seconds": 110,
+    "wall_seconds": 120
+  },
+  "tests": {
+    "frontend": {
+      "Debug": 154,
+      "ReleaseFast": 154,
+      "status": "PASS",
+      "flags": [
+        "-fstrip"
+      ],
+      "observed_runtime_names": true,
+      "frozen_source": true,
+      "later_changes": [
+        "build_support/graph/integrations.zig",
+        "conformance/ci-touchpoints-v1.json",
+        "scripts/tests/test_focused_ci_contract.py",
+        "src/products/ethereum/statement/build_components.zig",
+        "src/products/ethereum/statement/build_components_test.zig"
+      ],
+      "later_changes_scope": "BUILD-only predecessor selection and CI coverage; runtime frontend inputs unchanged"
+    },
+    "primary_product_contracts": {
+      "Debug": 13,
+      "ReleaseFast": 13,
+      "status": "PASS"
+    },
+    "official_package_BUILD_and_component_boundary_commands": {
+      "modes": [
+        "Debug",
+        "ReleaseFast"
+      ],
+      "status": "PASS"
+    },
+    "CUDA_host_contracts": {
+      "Debug": 13,
+      "ReleaseFast": 13,
+      "status": "PASS",
+      "flags": [
+        "-fstrip"
+      ],
+      "GPU_execution": false
+    },
+    "CPU_rejection_cases": {
+      "Debug": 10,
+      "ReleaseFast": 9,
+      "expected_per_mode": 10,
+      "remaining": "serialized physical receipt binds expected program authority instead of producer ROM (ReleaseFast compiler RSS guard; no assertion failure)"
+    },
+    "python_graph_workspace_developer_CI_contracts": {
+      "count": 178,
+      "status": "PASS"
+    }
+  },
+  "frozen_native": {
+    "classification": "fresh actual Native example kernel and wire bytes; separate-process native verification; not the product CLI/JSON negative corpus",
+    "status": "PASS",
+    "binary_sha256": "b07c6e836c3fb3d930a535de4f2eacccb22af1a6940407e519f95de7b59d672e",
+    "proof_bytes": 8390,
+    "proof_sha256": "452fb396032380b7c031fc95f0b7c00d0a3c6e05622321f84f06cb3a801e3b2c",
+    "reference": "conformance/evidence/cuda/native-bringup-sm89/product-parity-receipt.json",
+    "runtime": "ReleaseFast CPU on local Mac; no GPU; no performance claim"
+  },
+  "fresh_native_mutation": {
+    "status": "PASS",
+    "original_proof_sha256": "452fb396032380b7c031fc95f0b7c00d0a3c6e05622321f84f06cb3a801e3b2c",
+    "changed_proof_sha256": "16a9cf968b4b6c27be62fa212b9eda8958034864545fa286dd8f110603a24531",
+    "binary_sha256": "b07c6e836c3fb3d930a535de4f2eacccb22af1a6940407e519f95de7b59d672e",
+    "fresh_verifier_returncode": 1,
+    "fresh_verifier_output": "error: RootMismatch\n"
+  },
+  "discovery": {
+    "baseline_Zig_named_cases": 9676,
+    "current_Zig_named_cases": 9686,
+    "missing_original_names": 0,
+    "default_product_named_floor": 478,
+    "focused_CSP_cases": 2,
+    "CSP_classification": "Original focused-only classification restored; both cases remain mandatory in test-csp-ecdsa-proof"
+  },
+  "source_layout": {
+    "oversized_product_Zig_files": [],
+    "build_support_CPU_owner_lines": 388,
+    "all_source_conformance": "69 inherited errors remain outside this product; ceilings/baseline unchanged"
+  },
+  "remaining": [
+    "Run exact-source hosted CPU qualification for the remaining ReleaseFast physical-proof case and complete default product package suites",
+    "Publish final qualified commit/PR update after the remaining gates; do not claim complete yet"
+  ],
+  "no_new_runtime_flags": true,
+  "no_new_maintained_scripts": true
+}

@@ -35,7 +35,7 @@ pub fn selected() !bool {
     return Env.flag("STWO_RV64_M8_OUTER_CLASS_PLAN", false);
 }
 pub fn hostBudgetBytes() !u64 {
-    return (try Env.unsigned(u64, "STWO_RV64_M8_OUTER_CLASS_PLAN_HOST_MB", 65536)) << 20;
+    return (65536) << 20;
 }
 
 /// Counters of every slot of the process (receipts: GPU_M8_OUTER_CLASS_PLAN).

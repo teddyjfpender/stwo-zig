@@ -256,7 +256,7 @@ test "Zbb ROM mapping: v3_zbb ids 19..24, unary B pinned by the ROM immediate, z
 
 test "Zbb program ROM: identity binds the profile and Zbb map, v3 ROM keeps Zbb words invalid" {
     const Program = @import("../word16_execution/program.zig").Program;
-    const Zf = @import("../word16_global_execution/services/zbb_fixture.zig");
+    const Zf = @import("../word16_global_execution/services/zbb_words.zig");
     const words = [_]u32{ Zf.andn(5, 6, 7), Zf.rev8(8, 9), Zf.sextB(1, 2), Zf.sextH(1, 2), Zf.zextH(3, 4), Zf.orn(1, 2, 3), Zf.xnor(1, 2, 3) };
     var zbb = try Program.initWithProfile(std.testing.allocator, .{ .base = 4096, .words = &words }, .ethereum_services_v3_zbb);
     defer zbb.deinit();

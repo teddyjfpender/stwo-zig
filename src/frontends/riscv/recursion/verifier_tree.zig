@@ -2,7 +2,7 @@
 //! Depends only on the protocol hash suite and core; no witness/session owner.
 
 const std = @import("std");
-const Hasher = @import("poseidon2_channel.zig").MerkleHasher;
+const Hasher = @import("stwo_riscv_memory").recursion.poseidon2_channel.MerkleHasher;
 
 pub fn moveOwnedForVerifier(
     comptime T: type,

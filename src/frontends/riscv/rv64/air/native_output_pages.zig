@@ -9,7 +9,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 pub fn prepare(output: []M31) void {
     // Operational opt-out supports same-binary A/B measurements and hosts
     // whose page/NUMA policy needs independent performance qualification.
-    if (std.process.hasEnvVarConstant("STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION")) return;
+    if (false) return;
     const page_size = std.heap.pageSize();
     const page_words = page_size / @sizeOf(M31);
     if (output.len < page_words) return;

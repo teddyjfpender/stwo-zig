@@ -9,19 +9,6 @@ const wire = @import("stwo_proof_wire");
 const a = std.testing.allocator;
 
 test "lean one PCS proof joins CPU ROM bytes AND SHIFT DIV signedW zero and RAM" {
-    const work = @import("stwo_prover_engine").work_pool;
-    const workers_env = std.process.getEnvVarOwned(a, "STWO_RV64_LEAN_WORKERS") catch null;
-    defer if (workers_env) |value| a.free(value);
-    var pool: work.WorkPool = .{};
-    var owns_pool = false;
-    defer if (owns_pool) pool.deinit();
-    var binding: ?work.ScopedPoolBinding = null;
-    defer if (binding) |*value| value.deinit();
-    if (workers_env) |value| {
-        try pool.initInPlaceWithOptions(.{ .worker_count = try std.fmt.parseInt(usize, value, 10), .stack_size = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024, .backing_allocator = a });
-        owns_pool = true;
-        binding = try work.ScopedPoolBinding.init(&pool);
-    }
     const pc: u64 = 0x100001000;
     const address: u64 = 0xf123456780002000;
     var program: [65]u32 = @splat(0x00148493);

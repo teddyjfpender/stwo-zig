@@ -6,7 +6,7 @@ const Hash = @import("canon_hash.zig");
 const Public = @import("frame.zig");
 const Table = @import("../vk_table.zig");
 const Summary = @import("node_summary.zig");
-const Counter = @import("typed_root.zig").Counter;
+const Counter = @import("node_summary.zig").Counter;
 const Integer = @import("typed_integer.zig");
 const Mass = @import("typed_mass.zig");
 const SourceMass = @import("../../word16_global_execution/services/gkr_local/mass_authority.zig");
@@ -154,7 +154,7 @@ test "source CPU projection binds count roles capacities splits absence and sign
         raw[Summary.Index.ctr_in + Counter.truth_next + f] = 1;
         raw[Summary.Index.ctr_out + Counter.truth_next + f] = 1;
     }
-    const Canon = @import("../../word16_global_execution/ethereum/canon_native.zig");
+    const Canon = @import("../../word16_global_execution/services/native_schema/canonical.zig");
     raw[Summary.Index.s_in..][0..8].* = Table.digestWords(Canon.stateDigest(0, @splat(0), false));
     raw[Summary.Index.s_out..][0..8].* = Table.digestWords(Canon.stateDigest(0, @splat(0), true));
     for (0..8) |mutation| {

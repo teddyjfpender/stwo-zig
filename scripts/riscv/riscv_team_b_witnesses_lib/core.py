@@ -53,7 +53,7 @@ EXPORT_COMMAND = (
 
 #: Range-check domains and the bit width of each tuple coordinate.
 #: ``range_check_m31`` additionally rejects the maximal tuple, matching
-#: ``src/frontends/riscv/air/lookups/entry.zig``.
+#: ``src/frontends/riscv/air_lang/shared/air/lookups/entry.zig``.
 RANGE_DOMAINS: dict[str, tuple[int, ...]] = {
     "range_check_20": (20,),
     "range_check_8_11": (8, 11),

@@ -1,7 +1,7 @@
 {
-  "schema": "stwo-zig-package-contract-v2",
+  "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_core",
-  "version": "0.1.0",
+  "version": "1.0.0-rc.1",
   "layer": "protocol",
   "owner": "protocol-core",
   "public_modules": {
@@ -20,6 +20,7 @@
     "constraint_framework",
     "constraints",
     "crypto",
+    "error_codes",
     "fft",
     "fields",
     "fraction",
@@ -42,6 +43,7 @@
   ],
   "api_contract": {
     "signature_tests": [
+      "error_codes.zig::api signature: boundary metadata uses u16 codes and stable class tags",
       "mod.zig::api signature: core vector constructors preserve element types"
     ],
     "invariant_tests": [
@@ -60,5 +62,21 @@
       "-Doptimize=ReleaseFast",
       "-j2"
     ]
-  }
+  },
+  "consumers": [
+    {
+      "id": "package:stwo_cpu_backend",
+      "root": "src/backends/cpu_scalar/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "stwo_cpu_backend"
+      ],
+      "tests": [
+        "cdc: CPU batch inverse cleans every allocation failure",
+        "cdc: CPU batch inverse owns canonical exact results without changing input",
+        "cdc: CPU batch inverse zero refusal preserves input and releases output"
+      ]
+    }
+  ]
 }

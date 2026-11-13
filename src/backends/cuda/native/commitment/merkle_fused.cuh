@@ -39,13 +39,7 @@ inline int &merkle_fused_override_slot() {
 inline int merkle_fused_mode() {
     const int forced = __atomic_load_n(&merkle_fused_override_slot(), __ATOMIC_RELAXED);
     if (forced != -2) return forced;
-    static const int from_env = [] {
-        const char *value = getenv("STWO_RV64_M8_MERKLE_FUSED");
-        if (value == nullptr || *value == 0 || strcmp(value, "0") == 0) return 0;
-        if (strcmp(value, "1") == 0) return 1;
-        return -1;
-    }();
-    return from_env;
+    return 0;
 }
 
 // Explicit 2x128-bit loads/stores. [M review-r3] Indexing the global Hash

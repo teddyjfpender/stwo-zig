@@ -97,6 +97,25 @@
 /src/integrations/riscv_cuda/package.contract.json @teddyjfpender
 
 # owner-role: riscv-frontend
+/src/frontends/riscv/isa/package.contract.json @teddyjfpender
+/src/frontends/riscv/isa/build.zig.zon @teddyjfpender
+/src/frontends/riscv/air_lang/package.contract.json @teddyjfpender
+/src/frontends/riscv/air_lang/build.zig.zon @teddyjfpender
+/src/frontends/riscv/memory/package.contract.json @teddyjfpender
+/src/frontends/riscv/memory/build.zig.zon @teddyjfpender
+/src/frontends/riscv/recursion_air/package.contract.json @teddyjfpender
+/src/frontends/riscv/recursion_air/build.zig.zon @teddyjfpender
+/src/frontends/riscv/precompiles/package.contract.json @teddyjfpender
+/src/frontends/riscv/precompiles/build.zig.zon @teddyjfpender
+/src/frontends/riscv/rv32/package.contract.json @teddyjfpender
+/src/frontends/riscv/rv32/build.zig.zon @teddyjfpender
+/src/frontends/riscv/rv64/package.contract.json @teddyjfpender
+/src/frontends/riscv/rv64/build.zig.zon @teddyjfpender
+/src/frontends/riscv/recursion/package.contract.json @teddyjfpender
+/src/frontends/riscv/recursion/build.zig.zon @teddyjfpender
+/src/frontends/riscv/testing/package.contract.json @teddyjfpender
+/src/frontends/riscv/testing/build.zig.zon @teddyjfpender
+
 /src/frontends/riscv/build.zig.zon @teddyjfpender
 /src/frontends/riscv/package.contract.json @teddyjfpender
 
@@ -115,3 +134,7 @@
 # owner-role: sm83-metal-integration
 /src/integrations/sm83_metal/build.zig.zon @teddyjfpender
 /src/integrations/sm83_metal/package.contract.json @teddyjfpender
+
+# owner-role: ethereum-statement
+/src/products/ethereum/statement/package.contract.json @teddyjfpender
+/src/products/ethereum/statement/build.zig.zon @teddyjfpender

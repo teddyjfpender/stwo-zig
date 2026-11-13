@@ -7,14 +7,14 @@ const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const Deep = @import("blake3_native_deep.zig");
 const Fri = @import("blake3_native_fri.zig");
-const FriAir = @import("fri_verifier_circuit.zig");
+const FriAir = @import("stwo_riscv_rv32").recursion.air.fri_verifier_circuit;
 const Terminal = @import("blake3_terminal_links.zig");
 const QueryLinks = @import("blake3_query_links.zig");
 const OpeningInput = @import("blake3_opening_inputs.zig");
-const Lower = @import("verifier_arithmetic_lowering.zig");
-const Scalar = @import("scalar_wire_source.zig");
-const Encoding = @import("blake3_field_bytes.zig");
-const Owned = @import("blake3_upstream_source_columns.zig");
+const Lower = @import("stwo_riscv_rv32").recursion.air.verifier_arithmetic_lowering;
+const Scalar = @import("stwo_riscv_air_lang").framework.scalar_wire_source;
+const Encoding = @import("stwo_riscv_air_lang").framework.blake3_field_bytes;
+const Owned = @import("stwo_riscv_recursion_air").blake3.upstream_source_columns;
 
 fn base(values: []const Q, node: u32, comptime err: anyerror) !M {
     if (node >= values.len) return err;

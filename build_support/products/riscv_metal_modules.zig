@@ -150,6 +150,7 @@ pub fn createFacadeModule(
     context.protocol.addImports(facade);
     facade.addImport("stwo_riscv_frontend", dependencies.frontend);
     facade.addImport("stwo_riscv_metal_integration", dependencies.integration);
+    _ = @import("../graph/integrations.zig").addEthereumFrontendCompatibility(context.b, context.target, context.optimize, dependencies.frontend, facade);
     addInteropImports(context, product, facade, dependencies.frontend);
     return facade;
 }

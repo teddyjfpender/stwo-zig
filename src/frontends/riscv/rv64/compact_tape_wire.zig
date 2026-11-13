@@ -6,7 +6,7 @@ const builtin = @import("builtin");
 const T = @import("compact_tape.zig");
 const profile = @import("execution_profile.zig");
 const K = @import("service_session.zig");
-const S = @import("ethereum_services/session.zig");
+const S = @import("services/call_abi.zig");
 pub const MAGIC = "RV64TP01";
 pub const HEADER_BYTES = 48;
 pub const Limits = struct { steps: u32 = T.MAX_STEPS, bytes: usize = 1024 * 1024 * 1024 };

@@ -185,9 +185,9 @@ pub const OuterNodeJob = struct {
     }
     fn initBase(staged: *St.Staged, kernels: *const K.Kernels, snapshots: bool, build_streams: bool) !OuterNodeJob {
         var out = OuterNodeJob{ .staged = staged, .kernels = kernels, .snapshots = snapshots, .mode = .prefix };
-        out.pcs_reserve_trees = try Env.unsigned(u64, "STWO_RV64_M8_OUTER_PCS_RESERVE_TREES", out.pcs_reserve_trees);
+        out.pcs_reserve_trees = out.pcs_reserve_trees;
         out.declare_words = try Env.optionalUnsigned(u64, "STWO_RV64_M8_OUTER_DECLARE_WORDS");
-        out.leaf_persistent = try Env.flag("STWO_RV64_M8_OUTER_LEAF_PERSISTENT", false);
+        out.leaf_persistent = false;
         if (build_streams and try TC.streamSelected(kernels)) {
             const fp: ?*const Plan.TreePlan = if (staged.statics.fixed_plan) |*f| f else null;
             out.streams = try N.Streams.init(out.allocator, staged.plan(), fp, try TC.streamChunkWords(), kernels.compact_eager);

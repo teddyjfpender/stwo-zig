@@ -1,0 +1,61 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_rv64",
+  "version": "1.0.0",
+  "layer": "frontend",
+  "owner": "riscv-frontend",
+  "public_modules": {
+    "stwo_riscv_rv64": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../../waist/core",
+    "stwo_prover_engine": "../../../engine/prover",
+    "stwo_riscv_air_lang": "../air_lang",
+    "stwo_riscv_memory": "../memory",
+    "stwo_riscv_precompiles": "../precompiles",
+    "stwo_riscv_rv32": "../rv32"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "access_census",
+    "air",
+    "arith256_mod",
+    "candidate_isa",
+    "compact_tape_wire",
+    "decode_cache",
+    "elf",
+    "execution",
+    "execution_profile",
+    "frequent_operations",
+    "machine",
+    "memory",
+    "secp256k1_rcb",
+    "service_calls",
+    "service_session",
+    "session",
+    "sha256_compression",
+    "testing"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "tests/native_contracts.zig::C3 native API identity: RV64 machine memory and session types"
+    ],
+    "invariant_tests": [
+      "air/delegations/bulk_memory/tests.zig::jumpdest: honest scenario satisfies every constraint and closes every relation",
+      "tests/zbb_binary_test.zig::pinned encodings decode exactly under the Zbb BINARY ISA and are illegal under RV64IM"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_rv64_package",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/riscv/rv64/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

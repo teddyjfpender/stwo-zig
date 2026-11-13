@@ -6,11 +6,11 @@ pub const stwo_core = @import("stwo_core");
 
 pub const M31 = stwo_core.fields.m31.M31;
 pub const m31 = stwo_core.fields.m31;
-pub const channel = @import("poseidon2_channel.zig");
-pub const protocol = @import("protocol.zig");
-pub const span_statement = @import("span_statement.zig");
-pub const proof_kind_mod = @import("air/proof_kind.zig");
-pub const roster = @import("air/universal_roster.zig");
+pub const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
+pub const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
+pub const span_statement = @import("stwo_riscv_rv32").recursion.span_statement;
+pub const proof_kind_mod = @import("stwo_riscv_air_lang").framework.proof_kind;
+pub const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 pub const permutation_audit = @import("temporal_pair_node_permutation_audit.zig");
 const recordScalarPoseidonInvocations =
     permutation_audit.recordScalarPoseidonInvocations;

@@ -16,8 +16,8 @@ pub const TestProofPoolAuditConfig = struct {
     probe_nested_helper: bool = false,
 };
 
-/// Immutable receipt copied after a real proof attempt has returned. A zero
-/// pool address is the intentional serial (`N=1`) representation.
+/// Immutable receipt copied after a real proof attempt has returned. Explicit
+/// requests retain one pool identity even at N=1, which owns no helper threads.
 pub const TestProofPoolAuditSnapshot = struct {
     pool_address: usize,
     pool_init_count: usize,

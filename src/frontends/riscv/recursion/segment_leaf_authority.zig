@@ -6,14 +6,14 @@
 //! same source; no row accepts an independently supplied digest.
 
 const std = @import("std");
-const public_data_mod = @import("../air/public_data.zig");
-const protocol = @import("protocol.zig");
-const span_statement = @import("span_statement.zig");
-const vm_claim = @import("vm_public_claim.zig");
-const statement_input = @import("air/statement_input_witness.zig");
-const claim_input = @import("air/vm_public_claim_input_witness.zig");
-const claim_hash = @import("air/vm_public_claim_hash_witness.zig");
-const io_hash = @import("air/vm_public_io_hash_witness.zig");
+const public_data_mod = @import("stwo_riscv_rv32").air.public_data;
+const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
+const span_statement = @import("stwo_riscv_rv32").recursion.span_statement;
+const vm_claim = @import("stwo_riscv_rv32").recursion.vm_public_claim;
+const statement_input = @import("stwo_riscv_rv32").recursion.air.statement_input_witness;
+const claim_input = @import("stwo_riscv_rv32").recursion.air.vm_public_claim_input_witness;
+const claim_hash = @import("stwo_riscv_rv32").recursion.air.vm_public_claim_hash_witness;
+const io_hash = @import("stwo_riscv_rv32").recursion.air.vm_public_io_hash_witness;
 
 pub const FORMAT_VERSION: u16 = 1;
 

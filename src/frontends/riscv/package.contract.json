@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_frontend",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "layer": "frontend",
   "owner": "riscv-frontend",
   "public_modules": {
@@ -10,13 +10,19 @@
   "dependencies": {
     "stwo_core": "../../waist/core",
     "stwo_prover_api": "../../waist/prover_api",
-    "stwo_prover_engine": "../../engine/prover"
+    "stwo_prover_engine": "../../engine/prover",
+    "stwo_riscv_isa": "isa",
+    "stwo_riscv_air_lang": "air_lang",
+    "stwo_riscv_memory": "memory",
+    "stwo_riscv_recursion_air": "recursion_air",
+    "stwo_riscv_precompiles": "precompiles",
+    "stwo_riscv_rv32": "rv32",
+    "stwo_riscv_rv64": "rv64",
+    "stwo_riscv_recursion": "recursion",
+    "stwo_riscv_testing": "testing"
   },
   "injected_modules": [
-    "interop_postcard",
-    "typed_air_artifacts",
-    "typed_air_h009_artifacts",
-    "typed_air_h010_artifacts"
+    "interop_postcard"
   ],
   "api_surface": [
     "Cpu",
@@ -36,8 +42,6 @@
     "owned_statement",
     "process_usage",
     "proveAndVerifyElfWithEngine",
-    "proveEthereumWithEngine",
-    "proveEthereumWithEngineUsingExecution",
     "provePoseidon2WithEngineAndPublicData",
     "provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter",
     "proveRiscVSegmentV2WithEngine",
@@ -53,7 +57,6 @@
     "rv64_air",
     "statement_shape_inspection",
     "testing",
-    "verifyEthereumWithEngine",
     "verifyPoseidon2WithEngine",
     "verifyRiscVSegmentV2WithEngine",
     "verifyRiscVSegmentV2WithEngineUsingChannelAndCapture",
@@ -67,6 +70,7 @@
       "mod.zig::api signature: RISC-V facade preserves runner and prover entry points"
     ],
     "invariant_tests": [
+      "mod.zig::api invariant: native VM authority bindings preserve canonical records",
       "opcode_coverage_test.zig::all 46 proof opcodes reach witness, semantic, lookup, and component authorities"
     ]
   },

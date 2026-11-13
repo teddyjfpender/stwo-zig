@@ -10,10 +10,7 @@ pub fn prefillEnabled() !bool {
 }
 pub fn enabled() !bool {
     if (try prefillEnabled()) return true;
-    const value = std.posix.getenv("STWO_RV64_BLAKE_SAMPLE_CHECK") orelse return false;
-    if (std.mem.eql(u8, value, "0")) return false;
-    if (std.mem.eql(u8, value, "1")) return true;
-    return error.InvalidBlakeSampleCheckOption;
+    return false;
 }
 pub const Recorder = struct {
     allocator: std.mem.Allocator,

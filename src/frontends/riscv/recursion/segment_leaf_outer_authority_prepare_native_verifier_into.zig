@@ -68,7 +68,7 @@ pub fn prepareNativeVerifierInto(
     infra_descs: []const statement_v1.InfraComponentDesc,
     outer: *const universal.UniversalRelations,
 ) Error!void {
-    const generator = @import("air/interaction_generator.zig").Host{};
+    const generator = @import("stwo_riscv_recursion_air").interaction_generator.Host{};
     return prepareNativeVerifierIntoWithGenerator(destination, workspace, authority, traces, data, keys, native, native_sums, receipt, component_descs, infra_descs, outer, &generator);
 }
 

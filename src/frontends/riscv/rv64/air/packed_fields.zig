@@ -1,5 +1,5 @@
 //! RV64 aliases for the neutral sixteen-row field packet authority.
-const fields = @import("../../air/packed_fields16.zig");
+const fields = @import("stwo_riscv_air_lang").evaluation.packed_fields16;
 pub const LANES = fields.LANES;
 pub const NATIVE_LANES = fields.NATIVE_LANES;
 pub const PACKS = fields.PACKS;

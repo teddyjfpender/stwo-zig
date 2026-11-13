@@ -1,124 +1,65 @@
-//! Structural pins for the profiled verified-request boundary.
-//!
-//! A mock engine cannot prove where production I/O, verification, snapshots,
-//! and artifact publication sit around a real monotonic timer. These checks
-//! therefore bind the production adapter itself, following the same pattern as
-//! `staged_pcs_profile_test.zig`.
-
+//! Pins the live full-width request, verification and publication boundary.
 const std = @import("std");
 const stwo = @import("stwo");
-
-const ADAPTER_SOURCE = @embedFile("../proof_adapter.zig");
-
-fn between(start_token: []const u8, end_token: []const u8) ![]const u8 {
-    return sourceBetween(ADAPTER_SOURCE, start_token, end_token);
-}
-
-fn sourceBetween(
-    source: []const u8,
-    start_token: []const u8,
-    end_token: []const u8,
-) ![]const u8 {
-    const start = std.mem.indexOf(u8, source, start_token) orelse
-        return error.StartTokenMissing;
-    const tail = source[start..];
-    const end = std.mem.indexOf(u8, tail, end_token) orelse
-        return error.EndTokenMissing;
-    return tail[0..end];
-}
+const REQUEST = @embedFile("blake3_execution_request.zig");
+const PRODUCT = @embedFile("blake3_execution_product.zig");
 
 fn expectOrdered(source: []const u8, tokens: []const []const u8) !void {
     var cursor: usize = 0;
     for (tokens) |token| {
-        const relative = std.mem.indexOf(u8, source[cursor..], token) orelse {
-            std.debug.print("missing ordered adapter token: {s}\n", .{token});
+        const offset = std.mem.indexOf(u8, source[cursor..], token) orelse
             return error.AdapterBoundaryTokenMissing;
-        };
-        cursor += relative + token.len;
+        cursor += offset + token.len;
     }
 }
 
 test "profiled phase clocks partition guest proof and native verification" {
-    const run_prove = try between("fn runProve(", "\nfn runBenchmark(");
-    try expectOrdered(run_prove, &.{
-        "Sha256.hash(input_bytes",
-        "Recorder.initWithOptions(",
-        "var profile_phase_timer: ?std.time.Timer",
-        "runner.runWithInput",
-        "const guest_execution_ns: ?u64",
-        "proof_phase_meter.Meter.init(",
-        "proveRiscVWithEngineAndPublicDataUsingChannelAndPhaseMeter(",
-        "proveRiscVWithEngineAndPublicDataUsingChannel(",
-        "const proving_including_witness_ns: ?u64",
-        "const witness_ns: ?u64",
-        "const proving_ns: ?u64",
-        "serializeProof(",
-        "verifyRiscVWithEngineUsingChannel(",
-        "error.TranscriptStateDigestMismatch",
-        "const verification_ns = verification_timer.read();",
-        "const telemetry_after = try Engine.telemetrySnapshot();",
-        "recorder.snapshot(allocator)",
-        "requireNativeOnlyStages(profile.stages)",
-        "verified_request_attempt.Attempt.capture(",
-        "artifact_mod.writeArtifact",
+    try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, REQUEST, "Timer.start()"));
+    try std.testing.expectEqual(@as(usize, 6), std.mem.count(u8, REQUEST, "timer.read()"));
+    try expectOrdered(REQUEST, &.{
+        "Timer.start()",                             "admitRunForProving(base_run)",                       "const execution_end = timer.read()",
+        "Owner.initCompactRun",                      "run.deinit()",                                       "run_alive = false",
+        "const witness_end = timer.read()",          "owner.admission()",                                  "PreparedVerifier.initCompact",
+        "const admission_end = timer.read()",        "try Api.prove",                                      "const proving_end = timer.read()",
+        "Artifact.encode",                           "prepared.deinit()",                                  "prepared_alive = false",
+        "result.proof.deinit(a)",                    "proof_alive = false",                                "owner.deinit()",
+        "owner_alive = false",                       "const artifact_end = timer.read()",                  "verifyPublic(a, encoded.bytes, encoded.statement_id",
+        "error.TranscriptStateDigestMismatch",       "const end = timer.read()",                           ".public = verified",
+        ".execution_ns = execution_end",             ".witness_ns = witness_end - execution_end",          ".admission_ns = admission_end - witness_end",
+        ".proving_ns = proving_end - admission_end", ".artifact_encoding_ns = artifact_end - proving_end", ".fresh_verification_ns = end - artifact_end",
+        ".total_ns = end",
     });
 }
 
-test "request clock and flat graph capture are absent on unprofiled attempts" {
-    const run_prove = try between("fn runProve(", "\nfn runBenchmark(");
-    for ([_][]const u8{
-        "profiled_sample_index: ?usize",
-        ".capture_tasks = profiled_sample_index != null,",
-        ".capture_work = profiled_sample_index != null,",
-        "if (profiled_sample_index != null)\n        try std.time.Timer.start()",
-        "if (profiled_sample_index != null)\n        try prover.proveRiscVWithEngineAndPublicDataUsingChannelAndPhaseMeter(",
-        "if (profiled_sample_index) |index|",
-    }) |token| {
-        try std.testing.expect(std.mem.indexOf(u8, run_prove, token) != null);
-    }
-    try std.testing.expect(std.mem.indexOf(u8, run_prove, "profile_attempt") == null);
+test "full-width phase timing never captures a flat task graph" {
+    for ([_][]const u8{ "Recorder.init", "recorder.snapshot", "capture_tasks", "capture_work" }) |token|
+        try std.testing.expect(std.mem.indexOf(u8, REQUEST, token) == null);
+    try expectOrdered(PRODUCT, &.{
+        ".profile_kind = \"phase_timings\"", ".profiled = switch (options.mode)",
+        ".prove => false",                   ".bench => |b| b.profiled",
+    });
 }
 
 test "profiled benchmark binds every measured sample to the new timing authority" {
-    const run_benchmark = try between("fn runBenchmark(", "\n/// Cryptographically verifies");
-    try expectOrdered(run_benchmark, &.{
-        "if (benchmark.profiled and is_sample) sample_index else null",
-        "verified_request_attempt.requireProfiled(",
-        "retained_profiled_reports[retained_profiled_report_count] = parsed",
-        "retained_profiled_report_count != benchmark.samples",
-        "verified_request_attempt.PROFILED_BENCHMARK_SCHEMA",
-        ".timing_authority = if (benchmark.profiled) .{} else null",
-        ".verified_request_attempts = if (benchmark.profiled) profiled_attempts else null",
-        ".emit_null_optional_fields = false",
+    try expectOrdered(PRODUCT, &.{
+        "if (samples == 0) return error.NoBenchmarkSamples",                                                "std.math.add(usize, warmups, samples)",
+        "for (0..count) |index|",                                                                           "try request.execute",
+        "defer result.deinit(a)",                                                                           "error.NonDeterministicStatement",
+        "error.NonDeterministicTranscript",                                                                 "error.NonDeterministicExecution",
+        "if (index < warmups) continue",                                                                    "timings[index - warmups] = result.timing",
+        "devices[index - warmups] = result.device",                                                         "ordered[index - warmups] = result.timing.total_ns",
+        "if (index + 1 == count)",                                                                          "verified_public = result.public",
+        ".exclusive = true",                                                                                "file.writeAll(result.artifact.bytes)",
+        ".schema = \"riscv_full_width_execution_v2\"",                                                      ".verified_in_process = true",
+        ".recursion_enabled = false",                                                                       ".verified_samples = samples",
+        ".timing_partition = \"execution+witness+admission+proving+artifact_encoding+fresh_verification\"",
     });
-    try std.testing.expect(
-        std.mem.indexOf(
-            u8,
-            run_benchmark,
-            "else\n            benchmark_report.NATIVE_BENCHMARK_SCHEMA",
-        ) != null,
-    );
-    try std.testing.expect(
-        std.mem.indexOf(u8, run_benchmark, ".recursion_enabled = false") != null,
-    );
 }
 
 test "ordinary product prove path has no execution policy or recursive call" {
-    const run_prove = try between("fn runProve(", "\nfn runBenchmark(");
-    try std.testing.expect(std.mem.indexOf(
-        u8,
-        run_prove,
-        "proveRiscVWithEngineAndPublicDataUsingChannel(",
-    ) != null);
-    for ([_][]const u8{
-        "proveRiscVWithEngineAndPublicDataUsingChannelAndExecution(",
-        "StatementAdmission",
-        "recursive_fri_outer",
-        "proveRecursive",
-        "proveOuter",
-    }) |forbidden| {
-        try std.testing.expect(std.mem.indexOf(u8, run_prove, forbidden) == null);
-    }
+    try expectOrdered(REQUEST, &.{ "try Api.prove", "try Api.proveCompact", "Artifact.encode", "verifyPublic" });
+    for ([_][]const u8{ "StatementAdmission", "recursive_fri_outer", "proveRecursive", "proveOuter", "CpuCompositionExecutionRequest" }) |token|
+        try std.testing.expect(std.mem.indexOf(u8, REQUEST, token) == null);
 }
 
 test "ordinary public prove API types expose no execution policy parameter" {
@@ -160,10 +101,7 @@ test "ordinary public prove API types expose no execution policy parameter" {
 }
 
 test "the structural fixture still covers the production adapter" {
-    try std.testing.expect(ADAPTER_SOURCE.len > 1024);
-    try std.testing.expect((try between("fn runProve(", "\nfn runBenchmark(")).len > 1024);
-    try std.testing.expect((try between(
-        "fn runBenchmark(",
-        "\n/// Cryptographically verifies",
-    )).len > 1024);
+    try std.testing.expect(REQUEST.len > 1024 and PRODUCT.len > 1024);
+    try std.testing.expectError(error.AdapterBoundaryTokenMissing, expectOrdered("verify encode", &.{ "encode", "verify" }));
+    try std.testing.expectError(error.AdapterBoundaryTokenMissing, expectOrdered("encode", &.{"verify"}));
 }

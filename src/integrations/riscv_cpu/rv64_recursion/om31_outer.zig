@@ -388,10 +388,7 @@ fn buildFoldMode(a: std.mem.Allocator, children: []const Child, trace_only: bool
     // Native PCS verifier emits terminal arithmetic/transcript intermediates
     // that are intentionally unused; all asserted verification equalities and
     // guessed-input yield gates are retained, as in the native PCS fixtures.
-    if (V.topology_fingerprint.enabled()) {
-        var label: [64]u8 = undefined;
-        V.topology_fingerprint.report(&ctx, try std.fmt.bufPrint(&label, "fold-{x}-{x}", .{ children[0].authority.identity[0..4], children[1].authority.identity[0..4] }), "pre_finalize");
-    }
+
     try ctx.finalize(false);
     return .{ .ctx = ctx, .output_digest = try expectedDigest(children) };
 }

@@ -11,7 +11,6 @@ test {
     _ = @import("rv64/jobs/native_gkr.zig");
     _ = @import("rv64/jobs/native_gkr_wire.zig");
     _ = @import("rv64/jobs/native_leaf_wire.zig");
-    _ = @import("rv64/native_publication.zig");
     _ = @import("rv64/jobs/native_global.zig");
     _ = @import("rv64/jobs/native_gpu_support_test.zig");
     _ = @import("rv64/jobs/native_pcs.zig");
@@ -28,6 +27,4 @@ test {
     _ = @import("rv64/jobs/native_framing_cache.zig");
     _ = @import("rv64/jobs/native_encode.zig");
     _ = @import("rv64/jobs/native_device_stage2.zig");
-    _ = @import("rv64/jobs/native_class_build.zig");
-    _ = @import("rv64/jobs/native_class_build_test.zig");
 }

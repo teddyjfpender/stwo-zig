@@ -225,7 +225,7 @@ fn memoryEstimates(a: std.mem.Allocator, setups: []const *const R.CpuSetup, trut
 fn writeTrace(a: std.mem.Allocator, dir: std.fs.Dir, policy: Schedule.Policy, traces: []const Schedule.Trace, count: usize) !void {
     const bytes = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .scope = "operational lane trace only; ns are relative to each phase start; estimates are declared-geometry heuristics", .policy = policy, .stage1 = traces[0..count], .stage2 = traces[count .. 2 * count] }, .{ .whitespace = .indent_2 });
     defer a.free(bytes);
-    try @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, "schedule.json", bytes);
+    try @import("../../rv64_proof_artifact_support.zig").writeExclusive(dir, "schedule.json", bytes);
 }
 
 /// Per-family call counts of one shard's admitted advice, in Family order.

@@ -8,7 +8,7 @@ const M = @import("stwo_core").fields.m31.M31;
 const Storage = air.crypto.main_storage;
 const Retirements = @import("rv64_retirements.zig").Source;
 const S = @import("rv64_full_statement.zig");
-pub fn validate(main: []M, records: Retirements, calls: []const rv.services.Call, secp_calls: []const rv.ethereum_services.SecpCall, statement: S.Statement, program: *const air.program.setup.Setup, plan: *const air.encoding.Plan) !void {
+pub fn validate(main: []M, records: Retirements, calls: []const rv.services.Call, secp_calls: []const rv.service_calls.SecpCall, statement: S.Statement, program: *const air.program.setup.Setup, plan: *const air.encoding.Plan) !void {
     if (statement.steps == 0 or statement.steps >= 1 << 22) return error.InvalidRv64FullStatement;
     const size = @as(usize, 1) << @intCast(statement.logSize());
     const cells = try std.math.mul(usize, try std.math.add(usize, plan.main_count, air.full.frame.widthWithControl(plan.execution_profile, plan.control_policy)), size);

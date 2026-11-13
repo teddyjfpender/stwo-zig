@@ -46,7 +46,7 @@ pub fn build(b: *std.Build) void {
         "python3",
         "scripts/typed_air/typed_air_p003_completion.py",
         "validate-blocker",
-        "src/frontends/riscv/air/lang/artifacts/p003-work-profile-closure-v1/scaling-blocker-v1.json",
+        "src/frontends/riscv/air_lang/artifacts/p003-work-profile-closure-v1/scaling-blocker-v1.json",
     });
     completion_receipt.setCwd(repository_root);
     completion_receipt.step.dependOn(&completion_matrix.step);

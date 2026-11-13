@@ -19,9 +19,9 @@ pub const source_closure = product_policy.SourceClosure{
         "src/products/riscv/tools/recursive_csp_producer/main.zig",
         "src/products/riscv/tools/recursive_csp_shape_inspector/main.zig",
         "src/products/riscv/cpu/trace/main.zig",
-        "src/frontends/riscv/refinement_ir_export_test.zig",
-        "src/frontends/riscv/refinement_program_export_test.zig",
-        "src/frontends/riscv/sail_oracle_test_root.zig",
+        "src/frontends/riscv/rv32/refinement_ir_export_test.zig",
+        "src/frontends/riscv/rv32/refinement_program_export_test.zig",
+        "src/frontends/riscv/focused_product_sail_oracle_test_root.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
         .{ .name = "observation_journal", .source = "src/products/riscv/tools/observations/journal.zig" },

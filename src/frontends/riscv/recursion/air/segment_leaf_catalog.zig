@@ -1,8 +1,8 @@
 //! Canonical SegmentV2 leaf typed AIR roster shared by verifier and backend
 //! catalog export. Rows 34 and 35 remain separately admitted native providers.
-const universal_catalog = @import("universal_catalog.zig");
+const universal_catalog = @import("stwo_riscv_recursion_air").universal_catalog;
 const boundary = @import("../segment_leaf_outer_air.zig");
-const public_air = @import("segment_public_outer_air.zig");
+const public_air = @import("stwo_riscv_recursion_air").segment_public_outer_air;
 const manifest_mod = @import("segment_outer_manifest_contract.zig");
 
 pub const Entry = struct { Air: type, row: manifest_mod.ComponentKey, requires_location: bool = false };

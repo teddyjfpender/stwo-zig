@@ -4,7 +4,7 @@
 const std = @import("std");
 const M = @import("manifest.zig");
 const T = M.T;
-const IO = @import("../rv64_work_packet_io.zig");
+const IO = @import("../bounded_file_io.zig");
 pub const MAGIC = "RV64DM01";
 pub const HEADER_BYTES = 312;
 pub fn encodedBytes(expected: M.Expected) !usize {

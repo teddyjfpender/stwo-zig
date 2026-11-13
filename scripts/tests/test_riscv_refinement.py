@@ -49,7 +49,7 @@ class RefinementAirTest(unittest.TestCase):
     def test_source_closure_is_version_controlled_and_cache_free(self) -> None:
         digests = render._source_digests(Paths(ROOT))
         self.assertIn("src/waist/core/fields/m31.zig", digests)
-        self.assertIn("src/frontends/riscv/air/extract/mod.zig", digests)
+        self.assertIn("src/frontends/riscv/rv32/air/extract/mod.zig", digests)
         self.assertFalse(
             any("/.zig-cache/" in relative for relative in digests),
         )
@@ -724,7 +724,7 @@ class RefinementAirTest(unittest.TestCase):
 
         wrong_builder = copy.deepcopy(base)
         wrong_builder["source_identity"]["builder"] = (
-            "src/frontends/riscv/air/semantic_eval.zig"
+            "src/frontends/riscv/rv32/air/semantic_eval.zig"
         )
         mutations.append(wrong_builder)
 

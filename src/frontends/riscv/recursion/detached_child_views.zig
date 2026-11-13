@@ -2,7 +2,7 @@
 const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
-const Digest = @import("poseidon2_channel.zig").Digest;
+const Digest = @import("stwo_riscv_memory").recursion.poseidon2_channel.Digest;
 const recording = @import("recording_poseidon_channel.zig");
 
 /// All slices are const, including nested capture views returned individually.

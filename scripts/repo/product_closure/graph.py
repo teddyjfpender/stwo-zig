@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -48,6 +49,8 @@ def inspect_sources(repository: Path, manifest: Manifest) -> SourceGraph:
     sources: set[Path] = set()
     edges: dict[Path, frozenset[Path]] = {}
     named_edges: set[tuple[Path, Path]] = set()
+    export_metadata: set[Path] = set()
+    facade_cache: dict[Path, dict[tuple[str, ...], str] | None] = {}
     while pending:
         source = pending.pop()
         if source in sources:
@@ -55,12 +58,15 @@ def inspect_sources(repository: Path, manifest: Manifest) -> SourceGraph:
         require_file(repository, source)
         sources.add(source)
         targets, source_named_edges = resolve_imports(
-            repository, source, named, manifest.generated_imports
+            repository, source, named, manifest.generated_imports, export_metadata, facade_cache
         )
         edges[source] = frozenset(targets)
         named_edges.update((source, target) for target in source_named_edges)
         pending.extend(target for target in targets if target not in sources)
 
+    sources.update(export_metadata)
+    for source in export_metadata:
+        edges.setdefault(source, frozenset())
     graph = SourceGraph(repository, frozenset(sources), edges, frozenset(named_edges))
     cycle = find_named_cycle(graph)
     if cycle:
@@ -83,11 +89,14 @@ def resolve_imports(
     source: Path,
     named: dict[str, Path],
     generated: frozenset[str],
+    export_metadata: set[Path] | None = None,
+    facade_cache: dict | None = None,
 ) -> tuple[set[Path], set[Path]]:
     targets: set[Path] = set()
     named_targets: set[Path] = set()
     try:
-        imports = literal_imports(source.read_text(encoding="utf-8"))
+        text = source.read_text(encoding="utf-8")
+        imports = literal_imports(text)
     except ClosureError as error:
         relative = source.relative_to(repository)
         raise ClosureError(f"{relative}: {error}") from error
@@ -96,6 +105,18 @@ def resolve_imports(
             continue
         if imported in named:
             target = named[imported]
+            # A qualified use of a pure alias facade consumes that interface,
+            # not every sibling export or its package's test inventory. Unknown
+            # syntax or an unqualified use retains the full conservative walk.
+            uses = import_projections(text, imported)
+            projected = [projected_export(target, use, facade_cache) for use in uses]
+            if export_metadata is not None and uses and all(projected):
+                if any(not item.is_relative_to(repository) for item in projected if item is not None):
+                    raise ClosureError(f"{source}: projected import escapes repository: {imported}")
+                export_metadata.add(target)
+                targets.update(item for item in projected if item is not None)
+                named_targets.update(item for item in projected if item is not None)
+                continue
             targets.add(target)
             named_targets.add(target)
             continue
@@ -113,7 +134,98 @@ def resolve_imports(
     return targets, named_targets
 
 
+def import_projections(source: str, imported: str) -> list[tuple[str, ...]]:
+    """Keep every use, including an unqualified use that disables projection."""
+    text = without_comments(source)
+    uses = []
+    for match in re.finditer(r'@import\(\s*"' + re.escape(imported) + r'"\s*,?\s*\)', text):
+        suffix = re.match(r'(?:\s*\.\s*[A-Za-z_]\w*)*', text[match.end():])[0]
+        uses.append(tuple(re.findall(r'[A-Za-z_]\w*', suffix)))
+    return uses
+
+
+def projected_export(root: Path, selected: tuple[str, ...], cache: dict | None = None) -> Path | None:
+    if not selected:
+        return None
+    if cache is None:
+        exports = facade_exports(root)
+    else:
+        if root not in cache:
+            cache[root] = facade_exports(root)
+        exports = cache[root]
+    if exports is not None:
+        for size in range(len(selected), 0, -1):
+            if selected[:size] in exports:
+                return (root.parent / exports[selected[:size]]).resolve()
+    return None
+
+
+def facade_exports(root: Path) -> dict[tuple[str, ...], str] | None:
+    """Accept only declarative aliases; every other facade gets the full walk."""
+    text = without_comments(root.read_text(encoding="utf-8"))
+    exports: dict[tuple[str, ...], str] = {}
+    declared: set[tuple[str, ...]] = set()
+    index = 0
+
+    def declarations(prefix: tuple[str, ...]) -> bool:
+        nonlocal index
+        while True:
+            index = skip_space(text, index)
+            if index == len(text):
+                return not prefix
+            if text.startswith('};', index):
+                index += 2
+                return bool(prefix)
+            collector = re.match(r'test\s*\{\s*_\s*=\s*@import\("tests/root.zig"\);\s*\}', text[index:])
+            if not prefix and collector:
+                index += collector.end()
+                continue
+            declaration = re.match(r'pub\s+const\s+(\w+)\s*=\s*', text[index:])
+            if declaration is None:
+                return False
+            name = prefix + (declaration[1],)
+            if name in declared:
+                return False
+            declared.add(name)
+            index += declaration.end()
+            structure = re.match(r'struct\s*\{', text[index:])
+            if structure:
+                index += structure.end()
+                if not declarations(name):
+                    return False
+                continue
+            alias = re.match(r'@(import|embedFile)\("([^"\\\n]+)"\)(?:\.\w+)*\s*;', text[index:])
+            if alias is None:
+                return False
+            if alias[1] == 'import':
+                if not alias[2].endswith('.zig'):
+                    return False
+                exports[name] = alias[2]
+            index += alias.end()
+
+    return exports if declarations(()) and index == len(text) else None
+
+
+def without_comments(source: str) -> str:
+    """Use this parser's literal rules; comments cannot create facade syntax."""
+    rendered = list(source)
+    index = 0
+    while index < len(source):
+        if source[index] in {'"', "'"}:
+            index = skip_quoted(source, index, source[index])
+        elif source.startswith("\\\\", index):
+            index = skip_line(source, index)
+        elif source.startswith("//", index):
+            end = skip_line(source, index)
+            rendered[index:end] = [char if char.isspace() else " " for char in source[index:end]]
+            index = end
+        else:
+            index += 1
+    return "".join(rendered)
+
+
 def literal_imports(source: str) -> tuple[str, ...]:
+    source = without_comments(source)
     imports: list[str] = []
     index = 0
     while index < len(source):

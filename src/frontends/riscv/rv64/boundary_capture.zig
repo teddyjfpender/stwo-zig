@@ -4,7 +4,7 @@
 const std = @import("std");
 const Memory = @import("memory.zig").Memory;
 const Retirement = @import("machine.zig").Retirement;
-const Event = @import("ethereum_services/session.zig").Event;
+const Event = @import("services/call_abi.zig").Event;
 pub const Cell = struct { address: u64, initial: u64, final: u64, terminal_clock: u32, rights: u2 };
 const Transition = struct { address: u64, before: u64, after: u64, writable_required: bool };
 /// A captured word without its address (implied by its page block slot).
@@ -230,8 +230,8 @@ pub const Capture = struct {
     /// Packet and source words are reads (unchanged by the call); destination
     /// words (memcmp: the result word) go from the session's recorded
     /// before-values to current memory.
-    fn appendBulk(self: *Capture, e: @import("ethereum_services/bulk_memory.zig").Event, memory: *Memory) !void {
-        const BM = @import("ethereum_services/bulk_memory.zig");
+    fn appendBulk(self: *Capture, e: @import("services/bulk_packets.zig").Event, memory: *Memory) !void {
+        const BM = @import("services/bulk_packets.zig");
         const kind = BM.kindOf(e.call.tag) orelse return error.InvalidBoundaryService;
         const words: usize = @intCast(e.packet.len / 8);
         const source = BM.sourceWords(e.packet.word1, e.packet.len);
@@ -298,7 +298,7 @@ pub const Capture = struct {
     }
     /// Packet and message words are reads; the 25 state words go from the
     /// recorded before-values to current memory (ethereum_services/keccak_sponge).
-    fn appendSponge(self: *Capture, e: @import("ethereum_services/keccak_sponge.zig").Event, memory: *Memory) !void {
+    fn appendSponge(self: *Capture, e: @import("services/sponge_packets.zig").Event, memory: *Memory) !void {
         const p = e.packet;
         const words = p.words();
         const transitions = try self.allocator.alloc(Transition, 4 + 25 + words);
@@ -392,7 +392,7 @@ pub const Capture = struct {
 pub fn visitEventWordAddresses(event: Event, writer: anytype) !void {
     switch (event) {
         .bulk => |e| {
-            const BM = @import("ethereum_services/bulk_memory.zig");
+            const BM = @import("services/bulk_packets.zig");
             const kind = BM.kindOf(e.call.tag) orelse return error.InvalidBoundaryService;
             for (0..3) |k| try writer.word(e.call.pointer + 8 * k);
             switch (kind) {

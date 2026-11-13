@@ -5,12 +5,12 @@ const core = @import("stwo_core");
 const m31 = core.fields.m31;
 const M31 = m31.M31;
 const QM31 = core.fields.qm31.QM31;
-const public_data_v2 = @import("../air/public_data_v2.zig");
-const relation = @import("../air/lang/relation.zig");
-const channel = @import("poseidon2_channel.zig");
-const protocol = @import("protocol.zig");
-const segment_v2 = @import("segment_statement_wire.zig");
-const roster = @import("air/universal_roster.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").air.public_data_v2;
+const relation = @import("stwo_riscv_air_lang").relation;
+const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
+const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
+const segment_v2 = @import("stwo_riscv_rv32").recursion.segment_statement_wire;
+const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 
 pub const Digest = channel.Digest;
 

@@ -17,67 +17,67 @@ pub const M31 = stwo_core.fields.m31.M31;
 
 pub const QM31 = stwo_core.fields.qm31.QM31;
 
-pub const fixed_wire = @import("fixed_wire.zig");
+pub const fixed_wire = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_wire;
 
 pub const segment_witness = @import("segment_transcript_witness.zig");
 
-pub const adapter = @import("air/universal_typed_component.zig");
+pub const adapter = @import("stwo_riscv_air_lang").framework.universal_typed_component;
 
-pub const framework = @import("air/framework_interaction.zig");
+pub const framework = @import("stwo_riscv_air_lang").framework.framework_interaction;
 
-pub const relation_interaction = @import("air/relation_interaction.zig");
+pub const relation_interaction = @import("stwo_riscv_air_lang").framework.relation_interaction;
 
-pub const manifest_mod = @import("air/universal_adapter_manifest.zig");
+pub const manifest_mod = @import("stwo_riscv_air_lang").framework.universal_adapter_manifest;
 
-pub const binding = @import("air/universal_relation_binding.zig");
+pub const binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
 
-pub const roster = @import("air/universal_roster.zig");
+pub const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 
-pub const schedule = @import("air/verifier_schedule.zig");
+pub const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 
-pub const universal = @import("air/universal_challenges.zig");
+pub const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 
-pub const universal_manifest = @import("air/universal_manifest.zig");
+pub const universal_manifest = @import("stwo_riscv_rv32").recursion.air.universal_manifest;
 
-pub const control_air = @import("air/control.zig");
+pub const control_air = @import("stwo_riscv_air_lang").framework.control;
 
-pub const control_witness = @import("air/control_witness.zig");
+pub const control_witness = @import("stwo_riscv_recursion_air").control.witness;
 
-pub const transcript_air = @import("air/transcript_air.zig");
+pub const transcript_air = @import("stwo_riscv_recursion_air").transcript.air;
 
-pub const transcript_air_witness = @import("air/transcript_air_witness.zig");
+pub const transcript_air_witness = @import("stwo_riscv_recursion_air").transcript.air_witness;
 
-pub const transcript_binding_air = @import("air/transcript_binding.zig");
+pub const transcript_binding_air = @import("stwo_riscv_recursion_air").transcript.binding;
 
-pub const transcript_binding_witness = @import("air/transcript_binding_witness.zig");
+pub const transcript_binding_witness = @import("stwo_riscv_recursion_air").transcript.binding_witness;
 
-pub const transcript_state_air = @import("air/transcript_state.zig");
+pub const transcript_state_air = @import("stwo_riscv_recursion_air").transcript.state;
 
-pub const transcript_state_witness = @import("air/transcript_state_witness.zig");
+pub const transcript_state_witness = @import("stwo_riscv_recursion_air").transcript.state_witness;
 
-pub const transcript_word_air = @import("air/transcript_word.zig");
+pub const transcript_word_air = @import("stwo_riscv_recursion_air").transcript.word;
 
-pub const transcript_word_witness = @import("air/transcript_word_witness.zig");
+pub const transcript_word_witness = @import("stwo_riscv_recursion_air").transcript.word_witness;
 
-pub const transcript_payload_air = @import("air/transcript_payload.zig");
+pub const transcript_payload_air = @import("stwo_riscv_recursion_air").transcript.payload;
 
-pub const transcript_payload_witness = @import("air/transcript_payload_witness.zig");
+pub const transcript_payload_witness = @import("stwo_riscv_recursion_air").transcript.payload_witness;
 
-pub const pow_check_air = @import("air/pow_check.zig");
+pub const pow_check_air = @import("stwo_riscv_recursion_air").pow.check;
 
-pub const pow_check_witness = @import("air/pow_check_witness.zig");
+pub const pow_check_witness = @import("stwo_riscv_recursion_air").pow.check_witness;
 
-pub const pow_frame_air = @import("air/pow_frame.zig");
+pub const pow_frame_air = @import("stwo_riscv_recursion_air").pow.frame;
 
-pub const pow_frame_witness = @import("air/pow_frame_witness.zig");
+pub const pow_frame_witness = @import("stwo_riscv_recursion_air").pow.frame_witness;
 
-pub const relation_challenge_air = @import("air/relation_challenge.zig");
+pub const relation_challenge_air = @import("stwo_riscv_recursion_air").relation.challenge;
 
-pub const relation_challenge_witness = @import("air/relation_challenge_witness.zig");
+pub const relation_challenge_witness = @import("stwo_riscv_recursion_air").relation.challenge_witness;
 
-pub const verifier_randomness_air = @import("air/verifier_randomness.zig");
+pub const verifier_randomness_air = @import("stwo_riscv_recursion_air").verifier_randomness;
 
-pub const verifier_randomness_witness = @import("air/verifier_randomness_witness.zig");
+pub const verifier_randomness_witness = @import("stwo_riscv_recursion_air").verifier_randomness_witness;
 
 pub const FORMAT_VERSION: u16 = 1;
 

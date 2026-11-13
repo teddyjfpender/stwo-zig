@@ -7,15 +7,15 @@
 
 const std = @import("std");
 const prover_component = @import("stwo_prover_engine").air.component_prover;
-const logup = @import("../air/logup.zig");
-const entry_mod = @import("../air/lookups/entry.zig");
-const opcode_entries = @import("../air/lookups/opcode_entries.zig");
-const lookup_batch = @import("../air/lang/lookup_batch_execution.zig");
-const lookup_lowering = @import("../air/lang/lookup_polynomial_program.zig");
-const lookup_manifest = @import("../air/lang/lookup_physical_manifest.zig");
-const statement_mod = @import("../air/statement.zig");
-const trace = @import("../runner/trace.zig");
-const profile_mod = @import("vm_air_profile_v2.zig");
+const logup = @import("stwo_riscv_air_lang").evaluation.logup;
+const entry_mod = @import("stwo_riscv_air_lang").evaluation.lookups.entry;
+const opcode_entries = @import("stwo_riscv_rv32").air.lookups.opcode_entries;
+const lookup_batch = @import("stwo_riscv_rv32").air.lang.lookup_batch_execution;
+const lookup_lowering = @import("stwo_riscv_rv32").air.lang.lookup_polynomial_program;
+const lookup_manifest = @import("stwo_riscv_rv32").air.lang.lookup_physical_manifest;
+const statement_mod = @import("stwo_riscv_rv32").air.statement;
+const trace = @import("stwo_riscv_rv32").execution.trace;
+const profile_mod = @import("stwo_riscv_rv32").recursion.vm_air_profile_v2;
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 
@@ -78,42 +78,7 @@ pub const CompilerV2 = struct {
         authenticated: *const lookup_manifest.AuthenticatedStatement,
         profile: *const profile_mod.ProfileV2,
     ) !CompilerV2 {
-        try profile.validateAuthority(
-            allocator,
-            statement,
-            manifest,
-            authenticated,
-        );
-        var result = CompilerV2{
-            .profile_identity = profile.identity_digest,
-            .manifest_identity = manifest.identity,
-            .authenticated_statement_identity = authenticated.statement_identity,
-            .activation_identity = authenticated.activation_identity,
-            .families = undefined,
-            .identity_sha256 = undefined,
-        };
-        for (&result.families, 0..) |*destination, index| {
-            const selected_family: trace.OpcodeFamily = @enumFromInt(index);
-            const physical = manifest.entryForFamily(selected_family);
-            var plan = try lookup_batch.FamilyPlan.initNativeV1(
-                allocator,
-                selected_family,
-            );
-            defer plan.deinit();
-            var lowered = try lookup_lowering.lowerSelected(allocator, &plan);
-            defer lowered.deinit();
-            try lowered.validateAgainst(&physical.lookup_authority);
-            destination.* = .{
-                .family = selected_family,
-                .authority = try lowered.authority(),
-                .batch_count = @intCast(physical.activeBatches().len),
-                .batches_sha256 = batchIdentity(physical),
-            };
-            try destination.validate(physical);
-        }
-        result.identity_sha256 = result.computeIdentity();
-        try result.validateAgainstManifest(manifest);
-        return result;
+        return ForProfile(profile_mod.ProfileV2).init(allocator, statement, manifest, authenticated, profile);
     }
 
     pub fn validateAgainstManifest(
@@ -154,16 +119,7 @@ pub const CompilerV2 = struct {
         authenticated: *const lookup_manifest.AuthenticatedStatement,
         profile: *const profile_mod.ProfileV2,
     ) !void {
-        try self.validateAgainstManifest(manifest);
-        const expected = try init(
-            allocator,
-            statement,
-            manifest,
-            authenticated,
-            profile,
-        );
-        if (!std.meta.eql(self.*, expected))
-            return error.InvalidCompilerIdentity;
+        return ForProfile(profile_mod.ProfileV2).validateAuthority(self, allocator, statement, manifest, authenticated, profile);
     }
 
     pub fn programForFamily(
@@ -331,4 +287,73 @@ comptime {
     {
         @compileError("VM selected lookup compiler V2 contract drifted");
     }
+}
+
+pub fn ForProfile(comptime Profile: type) type {
+    return struct {
+        pub fn init(
+            allocator: std.mem.Allocator,
+            statement: *const statement_mod.RiscVStatement,
+            manifest: *const lookup_manifest.Manifest,
+            authenticated: *const lookup_manifest.AuthenticatedStatement,
+            profile: *const Profile,
+        ) !CompilerV2 {
+            try profile.validateAuthority(
+                allocator,
+                statement,
+                manifest,
+                authenticated,
+            );
+            var result = CompilerV2{
+                .profile_identity = profile.identity_digest,
+                .manifest_identity = manifest.identity,
+                .authenticated_statement_identity = authenticated.statement_identity,
+                .activation_identity = authenticated.activation_identity,
+                .families = undefined,
+                .identity_sha256 = undefined,
+            };
+            for (&result.families, 0..) |*destination, index| {
+                const selected_family: trace.OpcodeFamily = @enumFromInt(index);
+                const physical = manifest.entryForFamily(selected_family);
+                var plan = try lookup_batch.FamilyPlan.initNativeV1(
+                    allocator,
+                    selected_family,
+                );
+                defer plan.deinit();
+                var lowered = try lookup_lowering.lowerSelected(allocator, &plan);
+                defer lowered.deinit();
+                try lowered.validateAgainst(&physical.lookup_authority);
+                destination.* = .{
+                    .family = selected_family,
+                    .authority = try lowered.authority(),
+                    .batch_count = @intCast(physical.activeBatches().len),
+                    .batches_sha256 = batchIdentity(physical),
+                };
+                try destination.validate(physical);
+            }
+            result.identity_sha256 = result.computeIdentity();
+            try result.validateAgainstManifest(manifest);
+            return result;
+        }
+
+        pub fn validateAuthority(
+            self: *const CompilerV2,
+            allocator: std.mem.Allocator,
+            statement: *const statement_mod.RiscVStatement,
+            manifest: *const lookup_manifest.Manifest,
+            authenticated: *const lookup_manifest.AuthenticatedStatement,
+            profile: *const Profile,
+        ) !void {
+            try self.validateAgainstManifest(manifest);
+            const expected = try init(
+                allocator,
+                statement,
+                manifest,
+                authenticated,
+                profile,
+            );
+            if (!std.meta.eql(self.*, expected))
+                return error.InvalidCompilerIdentity;
+        }
+    };
 }

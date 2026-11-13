@@ -5,7 +5,7 @@ const E = @import("execution.zig");
 const P = @import("protocol.zig");
 const G = @import("../word16_execution/geometry.zig");
 const Cells = @import("../word16_execution/cells_wire.zig");
-const Receipt = @import("../rv64_ethereum_batch_receipt.zig");
+const Receipt = @import("../rv64_proof_artifact_support.zig");
 const Cell = @import("../word16_execution/memory/statement.zig").Cell;
 const MAX_META = 1 << 20;
 const MAX_LEGACY = 512 << 20;
@@ -70,7 +70,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, geometries: [2]G.Geometry, b
     try Receipt.writeExclusive(dir, "proof1.bin", bundle.proofs[1].bytes);
     // Metadata is the ready marker: publish only after every sidecar has synced.
     try Receipt.writeExclusive(dir, "bundle.json", json);
-    try std.posix.fsync(dir.fd);
+    try Receipt.syncDirectory(dir);
 }
 fn legacyPrefix(bytes: []const u8) bool {
     var i: usize = 0;

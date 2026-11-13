@@ -12,7 +12,7 @@ const machine = @import("machine.zig");
 const mem = @import("memory.zig");
 const pages = @import("pages.zig");
 const fast = @import("fast_execution.zig");
-const eth = @import("ethereum_services/session.zig");
+const calls = @import("services/call_abi.zig");
 const Page = pages.Page;
 pub const Dirty = pages.Dirty;
 
@@ -26,11 +26,11 @@ pub const Counters = struct {
     arith256_mod: u64 = 0,
     bulk: u64 = 0,
     sponge: u64 = 0,
-    curve: [eth.curves.COUNT]u64 = @splat(0),
-    pub fn of(s: *const eth.Session) Counters {
+    curve: [calls.curves.COUNT]u64 = @splat(0),
+    pub fn of(s: anytype) Counters {
         return .{ .keccak = s.keccak.calls, .add = s.add_calls, .double = s.double_calls, .sha256 = s.sha256_calls, .arith256_mod = s.arith256_mod_calls, .bulk = s.bulk_calls, .sponge = s.sponge_calls, .curve = s.curve_calls };
     }
-    pub fn apply(self: Counters, s: *eth.Session) void {
+    pub fn apply(self: Counters, s: anytype) void {
         s.keccak.calls = self.keccak;
         s.add_calls = self.add;
         s.double_calls = self.double;
@@ -112,7 +112,7 @@ pub const Recorder = struct {
 
     /// Snapshot the session at its current clock and start a new dirty
     /// interval. The engine must be attached to the session's memory.
-    pub fn take(self: *Recorder, session: *const eth.Session) Error!Checkpoint {
+    pub fn take(self: *Recorder, session: anytype) Error!Checkpoint {
         const memory = self.engine.memory;
         std.debug.assert(memory == session.keccak.base.memory and memory.backing.dirty == &self.engine.dirty);
         var written = std.ArrayList(u64).empty;
@@ -182,7 +182,7 @@ pub fn materialize(a: std.mem.Allocator, layout: *const mem.Memory, cp: *const C
 /// Continuity of a traced segment against the next checkpoint: same CPU,
 /// counters, page set, set of written pages and bytes of every written page.
 /// `dirty` is the segment memory's own write observer since `materialize`.
-pub fn matches(segment: *const eth.Session, dirty: *const pages.Dirty, next: *const Checkpoint) bool {
+pub fn matches(segment: anytype, dirty: *const pages.Dirty, next: *const Checkpoint) bool {
     const memory = segment.keccak.base.memory;
     if (!std.meta.eql(segment.keccak.base.cpu, next.cpu) or !std.meta.eql(Counters.of(segment), next.counters)) return false;
     if (dirty.overflow or memory.backing.table.count() != next.pages.len) return false;

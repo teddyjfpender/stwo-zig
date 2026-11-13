@@ -73,7 +73,7 @@ load_store    mul           mulh        div          fence
 ```
 
 `manifest_id` and `mnemonic` MUST name the same entry in
-`src/frontends/riscv/opcode_manifest.zig`, and that entry's family MUST equal
+`src/frontends/riscv/isa/opcode_manifest.zig`, and that entry's family MUST equal
 top-level `family`. The v2 mapping is:
 
 | Family | Manifest ID and mnemonic |
@@ -195,7 +195,7 @@ Each `schema_sha256` is SHA-256 of canonical compact sorted-key JSON for
 
 The geometry digest distinguishes stable table identities; it is not a digest
 of table meaning. `source_identity.files` MUST separately bind
-`src/frontends/riscv/air/lookups/tables/schema.zig`, whose raw bytes own the
+`src/frontends/riscv/air_lang/shared/air/lookups/tables/schema.zig`, whose raw bytes own the
 row functions. The Lean interpreter implements these exact membership
 predicates:
 
@@ -358,7 +358,7 @@ empty, `.`, or `..` segment. `builder` MUST name an entry in `files`.
 of that file's raw bytes; text newline conversion is forbidden.
 
 The v2 production builder is exactly
-`src/frontends/riscv/air/constraint_program.zig`. The normative common closure
+`src/frontends/riscv/rv32/air/constraint_program.zig`. The normative common closure
 and per-family semantic additions are enumerated in
 `scripts/riscv/riscv_refinement_lib/air_program_contract.py`. Each opcode artifact
 MUST carry exactly the closure selected by its family; a same-family selector

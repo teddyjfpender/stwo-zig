@@ -144,3 +144,43 @@ pub fn logicalMerkleCompressions(
     else
         leaf_count - 1;
 }
+
+/// Executed QM31 multiplications for one sampled-value basis task. The Metal
+/// shader has two deliberate schedules: a generic per-index popcount walk for
+/// narrower pipelines, and a 256-lane block schedule that recomputes each
+/// block's low-byte products to expose independent threadgroups.
+pub fn logicalSampledCoefficientBasisMultiplications(
+    log_size: u32,
+    threadgroup_width: u32,
+) Error!u64 {
+    if (threadgroup_width == 0 or threadgroup_width > 256 or
+        log_size >= @bitSizeOf(u64))
+    {
+        return error.InvalidCounterGroup;
+    }
+    const basis_len = @as(u64, 1) << @intCast(log_size);
+    if (threadgroup_width != 256) {
+        if (log_size == 0) return 0;
+        return multiplyCounter(log_size, basis_len >> 1);
+    }
+
+    const block_count = ((basis_len - 1) / 256) + 1;
+    const low_log = @min(log_size, 8);
+    const low_products = try multiplyCounter(
+        block_count,
+        try multiplyCounter(low_log, 128),
+    );
+    const high_log = log_size - low_log;
+    const high_products = if (high_log == 0)
+        0
+    else
+        try multiplyCounter(
+            high_log,
+            @as(u64, 1) << @intCast(high_log - 1),
+        );
+    const block_products = basis_len - @min(basis_len, 256);
+    return addCounter(
+        try addCounter(low_products, high_products),
+        block_products,
+    );
+}

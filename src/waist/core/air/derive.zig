@@ -275,7 +275,7 @@ const AirDeriveInvalidShapeVector = struct {
 fn parseAirDeriveVectors(allocator: std.mem.Allocator) !std.json.Parsed(AirDeriveVectorFile) {
     const raw = try std.fs.cwd().readFileAlloc(
         allocator,
-        "vectors/air_derive.json",
+        "vectors/waist/air_derive.json",
         4 * 1024 * 1024,
     );
     defer allocator.free(raw);

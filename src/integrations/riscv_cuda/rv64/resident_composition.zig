@@ -22,9 +22,6 @@ const Timing = Events.RecorderFor(Span);
 const O = D.O;
 const M = D.M;
 const Items = CPU.rv64_gkr_cpu_components;
-const Sparse = @import("composition_sparse_runtime.zig");
-const WorkspaceCost = @import("composition_cost.zig");
-const Columns = @import("composition_columns.zig");
 const Trace = engine.air.component_prover.ForField(O).Trace;
 const Twiddle = engine.poly.twiddles.TwiddleTree([]M);
 const N2b = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
@@ -61,7 +58,6 @@ fn sourceColumn(source: engine.air.component_prover.ForField(O).Poly) !D.Column 
 }
 // Retain only authenticated executable metadata, not the cold symbolic DAG.
 pub const KernelMetadata = struct {
-    chunks: ?@import("outer_chunks_runtime.zig").Runtime = null,
     allocator: std.mem.Allocator,
     program: struct { identity: [32]u8, inputs: []engine.air.secure_polynomial_program_v2.Input, roots: []u32 },
     parameter_slots: []u32,
@@ -84,10 +80,9 @@ pub const KernelMetadata = struct {
         return out;
     }
     pub fn bytes(self: *const KernelMetadata) usize {
-        return self.program.inputs.len * @sizeOf(engine.air.secure_polynomial_program_v2.Input) + self.program.roots.len * 4 + self.parameter_slots.len * 4 + (if (self.chunks) |*chunks| chunks.bytes() else 0);
+        return self.program.inputs.len * @sizeOf(engine.air.secure_polynomial_program_v2.Input) + self.program.roots.len * 4 + self.parameter_slots.len * 4;
     }
     pub fn deinit(self: *KernelMetadata) void {
-        if (self.chunks) |*chunks| chunks.deinit();
         self.allocator.free(self.program.inputs);
         self.allocator.free(self.program.roots);
         self.allocator.free(self.parameter_slots);
@@ -136,14 +131,7 @@ const GeometryBorrow = struct {
         if (!self.retained) self.value.deinit(a);
     }
 };
-const PhasePoolTrim = @import("phase_pool_trim.zig");
 pub const Context = struct {
-    pool_trim: PhasePoolTrim.Policy = .{},
-    direct_policy: bool = true,
-    compact_policy: bool = true,
-    enqueue_policy: bool = true,
-    workspace_policy: bool = false,
-    column_policy: bool = false,
     allocator: std.mem.Allocator,
     service: *Service.Context,
     session_api: SC.Api,
@@ -162,7 +150,6 @@ pub const Context = struct {
     clear: Clear,
     artifacts: [49]KernelMetadata,
     truth_artifacts: [15]?KernelMetadata = @splat(null),
-    sparse_truth: ?Sparse.Runtime = null,
     truth_role: ?*const @TypeOf(Abi.stwo_rv64_composition_role_on) = null,
     twiddles: [29]?Twiddle = @splat(null),
     mutex: std.Thread.Mutex = .{},
@@ -180,7 +167,7 @@ pub const Context = struct {
     log_blowup: u32 = 1,
     result_columns: std.ArrayList([]D.Column) = .empty,
     pub fn initNumerical(a: std.mem.Allocator, service: *Service.Context) !Context {
-        const result = Context{ .column_policy = if (std.posix.getenv("STWO_RV64_RC_COMPOSITION_COLUMNS")) |v| std.mem.eql(u8, v, "1") else false, .direct_policy = !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT")) |v| std.mem.eql(u8, v, "0") else false), .compact_policy = !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT_EL2")) |v| std.mem.eql(u8, v, "0") else false), .enqueue_policy = if (std.posix.getenv("STWO_RV64_COMPOSITION_ENQUEUE")) |v| !std.mem.eql(u8, v, "0") else true, .workspace_policy = if (std.posix.getenv("STWO_RV64_RC_ROLE_WORKSPACE")) |v| std.mem.eql(u8, v, "1") else false, .pool_trim = try PhasePoolTrim.Policy.init(try PhasePoolTrim.fromEnv(a), service.library.lookup(PhasePoolTrim.Trim, "stwo_exec_context_pool_trim")), .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
+        const result = Context{ .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -208,7 +195,6 @@ pub const Context = struct {
         return result;
     }
     pub fn deinit(self: *Context) void {
-        if (self.sparse_truth) |*sparse| sparse.deinit();
         for (self.artifacts[0..self.artifact_count]) |*artifact| artifact.deinit();
         for (&self.truth_artifacts) |*artifact| if (artifact.*) |*value| value.deinit();
         for (&self.twiddles) |*cached| if (cached.*) |*value| engine.poly.twiddles.deinitM31(self.allocator, value);
@@ -326,7 +312,6 @@ pub const Context = struct {
             for (&self.truth_artifacts, 0..) |*entry, id| if (entry.* == null) {
                 var cold = try @import("truth_domain_fixtures.zig").record(self.allocator, @intCast(id));
                 defer cold.artifact.deinit();
-                if (id == 0) self.sparse_truth = try Sparse.Runtime.init(self.allocator, &cold.artifact.program);
                 const bytes = cold.artifact.program.inputs.len * @sizeOf(engine.air.secure_polynomial_program_v2.Input) + cold.artifact.program.roots.len * 4 + cold.artifact.parameter_slots.len * 4;
                 if (!self.admitCache(bytes, true)) return error.CompositionMetadataCacheCapExceeded;
                 entry.* = KernelMetadata.take(&cold.artifact);
@@ -397,17 +382,14 @@ pub const Context = struct {
     /// Per-call commitment blowup: a shared context serves native (beta 1) and
     /// outer recursion profiles (m3: beta 2/3) without mutating shared state.
     pub fn evaluateRolesAtBlowup(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32) !D.Tree {
-        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, false, null);
+        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, false);
     }
     /// Only the outer authority explicitly opts this job into the role arena.
     /// The Context is shared with native stages and must never carry this flag.
     pub fn evaluateOuterRolesAtBlowup(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32) !D.Tree {
-        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, true, null);
+        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, true);
     }
-    pub fn evaluateOuterDevicePowersAtBlowup(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32, device_powers: ?Native.Lease) !D.Tree {
-        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, true, device_powers);
-    }
-    fn evaluateRolesImpl(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32, outer_workspace: bool, device_powers: ?Native.Lease) !D.Tree {
+    fn evaluateRolesImpl(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32, outer_workspace: bool) !D.Tree {
         if (log_blowup < 1 or log_blowup > 4) return error.UnsupportedResidentCompositionBlowup;
         const trace: *const Trace = @ptrCast(@alignCast(trace_raw));
         if (trace.polys.items.len != 3 or roles.len == 0 or log < 5 or log > 28 or split < 1 or split > 2) return error.InvalidResidentCompositionRoles;
@@ -426,7 +408,7 @@ pub const Context = struct {
             }
         }
         if (constraints != total) return error.WrongResidentConstraintCount;
-        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope, .log_blowup = log_blowup, .outer_workspace = outer_workspace, .device_powers = device_powers };
+        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope, .log_blowup = log_blowup, .outer_workspace = outer_workspace };
         const result = try self.executeJob(a, &job);
         return result;
     }
@@ -491,7 +473,6 @@ pub const RuntimeRole = struct {
     auxiliary: union(enum) { none, hc: [2 * 27 * 8]u32, last } = .none,
 };
 const Job = struct {
-    device_powers: ?Native.Lease = null,
     outer_workspace: bool = false,
     backend: *Context,
     allocator: std.mem.Allocator,
@@ -519,7 +500,7 @@ const Job = struct {
         self.native_context = raw;
         defer self.native_context = null;
         const Observer = @import("allocation_observer.zig");
-        var observed = Observer.Range.begin(&self.backend.service.library, raw, self.scope, if (self.outer_workspace) 1 else 2, .composition, if (self.backend.enqueue_policy) 0 else 1) catch |err| {
+        var observed = Observer.Range.begin(&self.backend.service.library, raw, self.scope, if (self.outer_workspace) 1 else 2, .composition, 0) catch |err| {
             self.failure = err;
             return 1;
         };
@@ -540,188 +521,8 @@ const Job = struct {
         try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, @ptrFromInt(segment.source), segment.words, segment.context_token, segment.generation, &context.scope));
         try self.checked("copy", b.copy(raw, @ptrCast(arena + segment.target_word), @ptrFromInt(segment.source), try std.math.mul(usize, segment.words, 4)));
     }
-    fn workspacePlan(self: *Job, a: std.mem.Allocator, immutable_fixed: []const D.Column, scope: [8]u32) !WorkspaceCost.Plan {
-        const roles = try a.alloc(WorkspaceCost.Role, self.roles.len);
-        defer a.free(roles);
-        var made: usize = 0;
-        defer for (roles[0..made]) |role| a.free(role.columns);
-        const b = self.backend;
-        const direct_enabled = b.n2b_columns != null and b.direct_policy;
-        const direct_el2 = direct_enabled and b.n2b_columns_compact != null and b.compact_policy;
-        for (self.roles, roles) |role, *out| {
-            const columns = try a.alloc(WorkspaceCost.Column, role.widths[0] + role.widths[1] + role.widths[2]);
-            errdefer a.free(columns);
-            var at: usize = 0;
-            for (0..3) |tree| for (0..role.widths[tree]) |column| {
-                const index = if (tree == 0 and role.fixed_indices != null) role.fixed_indices.?[column] else role.offsets[tree] + column;
-                const original = try sourceColumn(self.trace.polys.items[tree][index]);
-                const immutable = if (tree == 0 and original.device == null) immutable_fixed[index].device else null;
-                const device = if (original.device != null) original.device else immutable orelse b.service.retainedColumn(scope, @intCast(tree), index, original);
-                const n = @as(usize, 1) << @intCast(role.eval_log);
-                const direct = (direct_enabled and original.log_size + 1 == role.eval_log and device != null and device.?.count == n / 2) or
-                    (direct_el2 and original.log_size + 2 == role.eval_log and device != null and device.?.count == n / 4);
-                columns[at] = .{ .log = original.log_size, .direct = direct };
-                at += 1;
-            };
-            out.* = .{ .trace_log = role.trace_log, .eval_log = role.eval_log, .columns = columns, .auxiliary = switch (role.auxiliary) {
-                .none => .none,
-                .last => .last,
-                .hc => .hc,
-            }, .masks = role.artifact.program.inputs.len, .parameters = role.parameters.len, .constraints = role.artifact.program.roots.len };
-            if (b.sparse_truth) |*sparse| {
-                var widths = role.widths;
-                if (role.auxiliary == .last) widths[2] += 1;
-                if (role.evaluate == b.truth_role and sparse.matches(role.artifact.program.identity, role.id, role.trace_log, role.eval_log, widths, role.artifact.program.inputs.len, role.artifact.program.roots.len, role.parameters.len)) out.sparse = sparse.selection();
-            }
-            made += 1;
-        }
-        const beta = self.log_blowup orelse b.log_blowup;
-        return WorkspaceCost.init(a, .{ .roles = roles, .shared_role_arena = true, .log = self.log, .split = self.split, .beta = beta, .separate_coefficients = (beta == 1 and b.n2b_columns != null) or (beta == 2 and b.n2b_columns_compact != null), .constraints = self.total });
-    }
     // Each authenticated mask retains its tree identity and full-domain row
     // shift, but its column offset names a slot in one shared evaluation slab.
-    fn runSelectedRole(self: *Job, raw: *anyopaque, context: *SC.Context, role: *const RuntimeRole, timing: *Timing, direct: []const ?D.DeviceCoefficients, selected: Columns.Selection, twiddles: []const u32, denominators: []const u32, powers: []const O, next: *usize, bucket: *?Native.Lease, leases: *std.ArrayList(Native.Lease), stream: *anyopaque) !usize {
-        const a = self.allocator;
-        const b = self.backend;
-        const el = role.eval_log;
-        const n = @as(usize, 1) << @intCast(el);
-        const chunks = if (role.artifact.chunks) |*value| value else null;
-        const count = if (chunks != null) 32 else selected.source_indices.len;
-        const eval_words = try std.math.mul(usize, count, n);
-        const arena_words = try Columns.arenaWords(count, el);
-        if (twiddles.len < n / 2 or denominators.len != (@as(usize, 1) << @intCast(el - role.trace_log))) return error.InvalidCompositionGeometry;
-        var arena = context.allocate(@intCast(arena_words), 0) catch |err| blk: {
-            if (err != error.CudaAllocationFailed) return err;
-            const cache = b.service.immutable_setup orelse return err;
-            const freed = try cache.trimUnborrowed();
-            std.debug.print("GPU_COMPOSITION_IMMUTABLE_TRIM ordinal={} role={} arena_words={} released_bytes={}\n", .{ self.scope.ordinal, role.id, arena_words, freed });
-            if (freed == 0) return err;
-            break :blk try context.allocate(@intCast(arena_words), 0);
-        };
-        defer context.release(&arena) catch |err| self.cleanupFailure(err);
-        const base = arena.words.?;
-        const logs = try a.alloc(u32, count);
-        defer a.free(logs);
-        @memset(logs, el - 1);
-        if (chunks == null) for (selected.source_indices, logs) |index, *log| {
-            const source = direct[index] orelse return error.MissingSelectedResidentSource;
-            if (source.count != n / 2 and source.count != n / 4) return error.InvalidSelectedResidentSource;
-            log.* = if (source.count == n / 2) el - 1 else el - 2;
-        };
-        const log_lease = try upload(a, context, leases, logs);
-        const parameter_words = try felts(a, role.parameters);
-        defer a.free(parameter_words);
-        const parameters = try upload(a, context, leases, parameter_words);
-        const roots = role.artifact.program.roots.len;
-        if (roots > next.*) return error.NotEnoughCoefficients;
-        next.* -= roots;
-        const pw = if (self.device_powers) |all| blk: {
-            var part = all;
-            part.words = all.words.? + next.* * 8;
-            part.count = roots * 8;
-            _ = try context.borrow(part);
-            std.debug.print("GPU_OUTER_DEVICE_FS rc_consumed ordinal={} role={} first={} count={} host_power_upload_words=0\n", .{ self.scope.ordinal, role.id, next.*, roots });
-            break :blk part;
-        } else blk: {
-            const power_words = try felts(a, powers[next.*..][0..roots]);
-            defer a.free(power_words);
-            break :blk try upload(a, context, leases, power_words);
-        };
-        const masks_host = try a.alloc(u64, selected.mask_slots.len);
-        defer a.free(masks_host);
-        @memset(masks_host, 0);
-        if (chunks == null) for (masks_host, selected.mask_slots) |*mask, slot| {
-            mask.* = @as(u64, slot) * n;
-        };
-        const masks = try upload(a, context, leases, @as([*]const u32, @ptrCast(masks_host.ptr))[0 .. masks_host.len * 2]);
-        const denom = try upload(a, context, leases, denominators);
-        if (bucket.* == null) {
-            bucket.* = try allocate(a, context, leases, 8 * n, 0);
-            try self.checked("selected_bucket_clear", b.clear(raw, @ptrCast(bucket.*.?.words.?), 0, 8 * n * 4));
-        }
-        try self.checked("selected_twiddles", b.session_api.upload(raw, @ptrCast(base + eval_words), twiddles[twiddles.len - n / 2 ..].ptr, n / 2 * 4));
-        inline for (.{ Span.coefficients, Span.auxiliary }) |span| {
-            try timing.mark(span, false, stream);
-            try timing.mark(span, true, stream);
-        }
-        if (try b.pool_trim.beforeTransform(raw, try std.math.mul(u64, arena.count, 4))) {
-            std.debug.print("GPU_COMPOSITION_POOL_TRIM ordinal={} arena_bytes={} joined=true\n", .{ self.scope.ordinal, arena.count * 4 });
-        }
-        if (chunks) |chunk| {
-            if (chunk.role != role.id or chunk.plan.input_columns.len != masks_host.len) return error.InvalidOuterChunksInvocation;
-            // Verify every referenced source before any destructive refill.
-            const bases = [_]usize{ 0, role.widths[0], role.widths[0] + role.widths[1] };
-            for (chunk.plan.columns) |column| {
-                if (column.tree >= 3 or column.column >= role.widths[column.tree]) return error.InvalidOuterChunksColumn;
-                const source = direct[bases[column.tree] + column.column] orelse return error.MissingSelectedResidentSource;
-                if (source.count != n / 2 and source.count != n / 4) return error.InvalidSelectedResidentSource;
-                try self.checked("chunk_source_validate", context.api.validate_range(context.session, source.words, source.count, source.context_token, source.generation, &context.scope));
-            }
-            // Domain and row work interleave; report their combined span once.
-            try timing.mark(.domain_fft, false, stream);
-            for (chunk.plan.groups, chunk.cache.steps, 0..) |group, step, group_index| {
-                for (step.loads) |load| {
-                    const column = chunk.plan.columns[load.column];
-                    const source = direct[bases[column.tree] + column.column].?;
-                    const stride: usize = @intCast(source.count);
-                    const log: u32 = if (stride == n / 2) el - 1 else el - 2;
-                    try self.checked("chunk_log", context.api.upload(raw, @ptrCast(log_lease.words.? + load.slot), &log, 4));
-                    var launches: u32 = 0;
-                    if (stride == n / 2) {
-                        try self.checked("chunk_n2b", b.n2b_columns.?(source.words, stride, log_lease.words.? + load.slot, base + @as(usize, load.slot) * n, n, el, 1, base + eval_words, @intCast(n / 2), @intCast(n / 2), stream, &launches));
-                    } else {
-                        try self.checked("chunk_n2b_compact", b.n2b_columns_compact.?(source.words, stride, log_lease.words.? + load.slot, base + @as(usize, load.slot) * n, n, el, 1, base + eval_words, @intCast(n / 2), @intCast(n / 2), stride, stream, &launches));
-                    }
-                }
-                @memset(masks_host, 0);
-                for (chunk.plan.input_columns, masks_host) |column, *offset| {
-                    if (std.mem.indexOfScalar(u32, group.columns, column) != null) {
-                        const slot = step.column_slots[column];
-                        if (slot >= 32) return error.InvalidOuterChunksSlot;
-                        offset.* = @as(u64, slot) * n;
-                    }
-                }
-                try self.checked("chunk_masks", context.api.upload(raw, @ptrCast(masks.words.?), masks_host.ptr, masks_host.len * 8));
-                const packet = Abi.CompositionRole{ .role = role.id, .trace_log = role.trace_log, .eval_log = el, .first_row = 0, .row_count = @intCast(n), .trees = .{ base, base, base }, .tree_words = .{ eval_words, eval_words, eval_words }, .column_offsets = @ptrCast(@alignCast(masks.words.?)), .mask_count = masks_host.len, .parameters = parameters.words.?, .parameter_count = role.parameters.len, .powers = pw.words.?, .constraint_count = roots, .denominator_inverses = denom.words.?, .output = bucket.*.?.words.? };
-                var launches: u32 = 0;
-                try self.checked("chunk_group", chunk.group(raw, 0, @intCast(group_index), &packet, &launches));
-            }
-            try timing.mark(.domain_fft, true, stream);
-            try timing.mark(.rows, false, stream);
-            try timing.mark(.rows, true, stream);
-            std.debug.print("GPU_OUTER_CHUNKS ordinal={} role={} groups={} fills={} slots=32 arena_words={} combined_LDE_rows_span=true\n", .{ self.scope.ordinal, role.id, chunk.plan.groups.len, chunk.cache.fills, arena_words });
-            return chunk.cache.fills * n;
-        }
-        try timing.mark(.domain_fft, false, stream);
-        var column: usize = 0;
-        while (column < count) {
-            const first = direct[selected.source_indices[column]].?;
-            const stride: usize = @intCast(first.count);
-            var merged = try CopyRun.init(@intFromPtr(first.words), column * stride, stride, first.context_token, first.generation);
-            var end = column + 1;
-            while (end < count) : (end += 1) {
-                const following = direct[selected.source_indices[end]].?;
-                if (following.count != first.count) break;
-                if (!try merged.append(try CopyRun.init(@intFromPtr(following.words), end * stride, stride, following.context_token, following.generation))) break;
-            }
-            try self.checked("selected_source_validate", b.service.lease_validate_range(b.service.session, @ptrFromInt(merged.source), merged.words, merged.context_token, merged.generation, &context.scope));
-            var launches: u32 = 0;
-            if (stride == n / 2) {
-                try self.checked("selected_n2b", b.n2b_columns.?(@ptrFromInt(merged.source), stride, log_lease.words.? + column, base + column * n, n, el, @intCast(end - column), base + eval_words, @intCast(n / 2), @intCast(n / 2), stream, &launches));
-            } else {
-                try self.checked("selected_n2b_compact", b.n2b_columns_compact.?(@ptrFromInt(merged.source), stride, log_lease.words.? + column, base + column * n, n, el, @intCast(end - column), base + eval_words, @intCast(n / 2), @intCast(n / 2), stride, stream, &launches));
-            }
-            column = end;
-        }
-        try timing.mark(.domain_fft, true, stream);
-        const packet = Abi.CompositionRole{ .role = role.id, .trace_log = role.trace_log, .eval_log = el, .first_row = 0, .row_count = @intCast(n), .trees = .{ base, base, base }, .tree_words = .{ eval_words, eval_words, eval_words }, .column_offsets = @ptrCast(@alignCast(masks.words.?)), .mask_count = masks_host.len, .parameters = parameters.words.?, .parameter_count = role.parameters.len, .powers = pw.words.?, .constraint_count = roots, .denominator_inverses = denom.words.?, .output = bucket.*.?.words.? };
-        try timing.mark(.rows, false, stream);
-        var launches: u32 = 0;
-        try self.checked("selected_role", role.evaluate(raw, 0, &packet, &launches));
-        try timing.mark(.rows, true, stream);
-        std.debug.print("GPU_COMPOSITION_COLUMNS ordinal={} role={} original_columns={} active_columns={} eval_log={} arena_words={} bucket_layout_unchanged=true\n", .{ self.scope.ordinal, role.id, direct.len, count, el, arena_words });
-        return eval_words;
-    }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         var range = try @import("nvtx_stage.zig").Range.beginUnlessAdmitted(&self.backend.service.library, raw, "rv64/composition", false);
         defer range.deinit();
@@ -732,8 +533,7 @@ const Job = struct {
         // One stream orders ingress, role transforms, quotient accumulation and
         // the final commitment. Keep each role's events until the root readback;
         // collecting timing is observational and must not drain the GPU per role.
-        const enqueue = b.enqueue_policy;
-        const compute_lane: u32 = if (enqueue) 0 else 1;
+        const compute_lane: u32 = 0;
         var events = try Timing.init(&b.timing);
         defer events.deinit();
         const role_events = try a.alloc(Timing, self.roles.len);
@@ -773,11 +573,6 @@ const Job = struct {
             };
             leases.deinit(a);
         }
-        if (self.device_powers) |all| {
-            const expected_words = try std.math.mul(usize, self.total, 8);
-            if (all.count != expected_words) return error.InvalidOuterDeviceFsPowerCount;
-            _ = try context.borrow(all);
-        }
         var buckets: [29]?Native.Lease = @splat(null);
         const powers = try a.alloc(O, self.total);
         defer a.free(powers);
@@ -785,41 +580,6 @@ const Job = struct {
         for (powers) |*p| {
             p.* = power;
             power = power.mul(self.alpha);
-        }
-        const reuse_workspace = self.outer_workspace and b.workspace_policy;
-        var workspace: Native.Lease = .{};
-        defer if (workspace.words != null) {
-            context.join() catch |err| {
-                self.cleanupFailure(err);
-            };
-            context.release(&workspace) catch |err| {
-                self.cleanupFailure(err);
-            };
-        };
-        if (reuse_workspace) {
-            var plan = try self.workspacePlan(a, immutable_fixed, context.scope);
-            defer plan.deinit(a);
-            // Include the maximum arena held alongside ALL accumulated role
-            // metadata/buckets; per-role peaks alone are not a valid bound.
-            const Memory = @import("runtime_memory.zig");
-            var actual = try Memory.query(&b.service.library, raw);
-            var available = try actual.available();
-            if (!available.contains(plan.additional_peak) or actual.largest_virtual_free < plan.workspace_words * 4) {
-                // Match the established allocator's pressure recovery before
-                // refusing. Only unused upper PCS blocks may be evicted; the
-                // fresh all-context snapshot must still cover the FULL peak.
-                if (try Memory.trimUnused(&b.service.library, b.service.session)) |released| {
-                    actual = try Memory.query(&b.service.library, raw);
-                    available = try actual.available();
-                    std.debug.print("GPU_RC_WORKSPACE_PRESSURE_TRIM ordinal={} released_bytes={} available_large={} available_small={}\n", .{ self.scope.ordinal, released, available.large, available.small });
-                }
-            }
-            if (!available.contains(plan.additional_peak) or actual.largest_virtual_free < plan.workspace_words * 4) {
-                std.debug.print("GPU_RC_WORKSPACE_REFUSED ordinal={} required_large={} required_small={} available_large={} available_small={} workspace_words={}\n", .{ self.scope.ordinal, plan.additional_peak.large, plan.additional_peak.small, available.large, available.small, plan.workspace_words });
-                return error.RoleWorkspaceExceedsPhysicalArena;
-            }
-            workspace = try context.allocate(@intCast(plan.workspace_words), 0);
-            std.debug.print("GPU_RC_WORKSPACE_ADMITTED ordinal={} workspace_words={} phase_peak_large={} phase_peak_small={} snapshot_live_large={} snapshot_live_small={} retained_across_proofs=false\n", .{ self.scope.ordinal, plan.workspace_words, plan.additional_peak.large, plan.additional_peak.small, actual.live_large, actual.live_small });
         }
         var next = self.total;
         for (self.roles, role_events) |*role, *timing| {
@@ -863,13 +623,13 @@ const Job = struct {
             // lower-degree and auxiliary columns. Exact field LDE: identical
             // evaluations, identical proof bytes. STWO_RV64_COMPOSITION_DIRECT=0
             // restores the full coefficient copy.
-            const direct_enabled = b.n2b_columns != null and b.direct_policy;
+            const direct_enabled = b.n2b_columns != null;
             // M5 platform: degree el-2 device columns are extended directly too
             // (compact source, stride n/4). Same kernels, same evaluations;
             // removes their staged-coefficient copy from the arena (3.69 GB on
             // the 18.44 GB rl+2 truth role). STWO_RV64_COMPOSITION_DIRECT_EL2=0
             // keeps them staged.
-            const direct_el2 = direct_enabled and b.n2b_columns_compact != null and b.compact_policy;
+            const direct_el2 = direct_enabled and b.n2b_columns_compact != null;
             const direct = try a.alloc(?D.DeviceCoefficients, column_count);
             defer a.free(direct);
             const staging_offsets = try a.alloc(usize, column_count);
@@ -899,42 +659,6 @@ const Job = struct {
                     staging_words += @as(usize, 1) << @intCast(original.log_size);
                 } else staging_words += @as(usize, 1) << @intCast(rl);
             }
-            if (b.column_policy and self.outer_workspace and !b.workspace_policy and enqueue and
-                aux == 0 and direct_columns == column_count and Columns.supportsGeometry(rl, el) and
-                artifact.program.inputs.len != 0)
-            {
-                var selected = try Columns.Selection.init(a, role.widths, artifact.program.inputs);
-                defer selected.deinit(a);
-                if (selected.source_indices.len < column_count) {
-                    domain_cells += try self.runSelectedRole(raw, &context, role, timing, direct, selected, words(tw.twiddles), words(geometry.denominators), powers, &next, &buckets[el], &leases, stream0.?);
-                    continue;
-                }
-            }
-            if (b.sparse_truth) |*sparse| {
-                if (role.evaluate == b.truth_role and id == 0 and rl == 18 and el == 20) {
-                    if (!enqueue or !sparse.matches(artifact.program.identity, id, rl, el, widths, artifact.program.inputs.len, artifact.program.roots.len, role.parameters.len) or role.auxiliary != .last or self.device_powers != null) return error.UnsupportedSparseCompositionInvocation;
-                    if (artifact.program.roots.len > next) return error.NotEnoughCoefficients;
-                    next -= artifact.program.roots.len;
-                    const parameter_words = try felts(a, role.parameters);
-                    defer a.free(parameter_words);
-                    const power_words = try felts(a, powers[next..][0..artifact.program.roots.len]);
-                    defer a.free(power_words);
-                    var role_tw_borrow = try b.tw(rl);
-                    defer role_tw_borrow.deinit(b.allocator);
-                    // Empty traditional spans; the rows span is explicitly
-                    // reported as combined sparse LDE+row work below.
-                    inline for (.{ Span.coefficients, Span.auxiliary, Span.domain_fft }) |span| {
-                        try timing.mark(span, false, stream0.?);
-                        try timing.mark(span, true, stream0.?);
-                    }
-                    try timing.mark(.rows, false, stream0.?);
-                    try sparse.run(a, b, &context, artifact.program.inputs, direct, parameter_words, power_words, words(geometry.denominators), words(tw.twiddles), words(role_tw_borrow.value.itwiddles), &buckets[el], &leases);
-                    try timing.mark(.rows, true, stream0.?);
-                    std.debug.print("GPU_RC_SPARSE_ROLE ordinal={} role={} scope=truth combined_LDE_rows_span=true original_power_first={} original_roots={}\n", .{ self.scope.ordinal, id, next, artifact.program.roots.len });
-                    domain_cells += sparse.cache.fills * n;
-                    continue;
-                }
-            }
             const eval_base = staging_words;
             const tw_base = try std.math.add(usize, eval_base, try std.math.mul(usize, column_count, n));
             const desc_base = std.mem.alignForward(usize, tw_base + tw.twiddles.len, 2);
@@ -950,8 +674,7 @@ const Job = struct {
             // M5 platform: under device pressure, release unborrowed immutable
             // setup (other nodes' PP/schedules kept by a resident service) and
             // retry once before failing. Scheduling only: misses re-upload.
-            if (reuse_workspace and arena_words > workspace.count) return error.RoleWorkspacePlanMismatch;
-            var arena = if (reuse_workspace) workspace else context.allocate(arena_words, 0) catch |err| blk: {
+            var arena = context.allocate(arena_words, 0) catch |err| blk: {
                 if (err != error.CudaAllocationFailed) return err;
                 const cache = b.service.immutable_setup orelse return err;
                 const freed = try cache.trimUnborrowed();
@@ -960,10 +683,7 @@ const Job = struct {
                 break :blk try context.allocate(arena_words, 0);
             };
             defer {
-                if (!enqueue) context.join() catch |err| {
-                    self.cleanupFailure(err);
-                };
-                if (!reuse_workspace) context.release(&arena) catch |err| {
+                context.release(&arena) catch |err| {
                     self.cleanupFailure(err);
                 };
             }
@@ -1016,7 +736,7 @@ const Job = struct {
                 defer role_tw_borrow.deinit(b.allocator);
                 const role_tw = &role_tw_borrow.value;
                 const it = try upload(a, &context, &leases, words(role_tw.itwiddles));
-                if (!enqueue) try context.join();
+
                 var stream: ?*anyopaque = null;
                 try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, compute_lane, &stream));
                 var launches: u32 = 0;
@@ -1024,7 +744,7 @@ const Job = struct {
                 switch (role.auxiliary) {
                     .hc => |hc| {
                         const h = try upload(a, &context, &leases, hc[0 .. 16 * rl]);
-                        if (!enqueue) try context.join();
+
                         try self.checked("auxiliary", b.auxiliary(raw, compute_lane, h.words.?, arena_ptr + coefficient_offset, rl, &launches));
                     },
                     .last => {
@@ -1034,7 +754,6 @@ const Job = struct {
                         // Legacy lane 1 needs a join; enqueue mode interpolates on lane 0.
                         const one: u32 = 1;
                         try self.checked("last_anchor_set", b.session_api.upload(raw, @ptrCast(arena_ptr + coefficient_offset + 1), &one, 4));
-                        if (!enqueue) try context.join();
                     },
                     .none => unreachable,
                 }
@@ -1058,14 +777,7 @@ const Job = struct {
             const params = try upload(a, &context, &leases, parameter_words);
             if (artifact.program.roots.len > next) return error.NotEnoughCoefficients;
             next -= artifact.program.roots.len;
-            const pw = if (self.device_powers) |all| blk: {
-                var part = all;
-                part.words = all.words.? + next * 8;
-                part.count = artifact.program.roots.len * 8;
-                _ = try context.borrow(part);
-                std.debug.print("GPU_OUTER_DEVICE_FS rc_consumed ordinal={} role={} first={} count={} host_power_upload_words=0\n", .{ self.scope.ordinal, id, next, artifact.program.roots.len });
-                break :blk part;
-            } else blk: {
+            const pw = blk: {
                 const power_words = try felts(a, powers[next..][0..artifact.program.roots.len]);
                 defer a.free(power_words);
                 break :blk try upload(a, &context, &leases, power_words);
@@ -1077,10 +789,7 @@ const Job = struct {
                 buckets[el] = try allocate(a, &context, &leases, 8 * n, 0);
                 try self.checked("clear", b.clear(raw, @ptrCast(buckets[el].?.words.?), 0, 8 * n * 4));
             }
-            if (!enqueue) try context.join();
-            if (try b.pool_trim.beforeTransform(raw, try std.math.mul(u64, arena.count, 4))) {
-                std.debug.print("GPU_COMPOSITION_POOL_TRIM ordinal={} arena_bytes={} joined=true\n", .{ self.scope.ordinal, arena.count * 4 });
-            }
+
             var stream: ?*anyopaque = null;
             try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, compute_lane, &stream));
             var launches: u32 = 0;
@@ -1115,11 +824,10 @@ const Job = struct {
             try timing.mark(.rows, false, stream.?);
             try self.checked("role", role.evaluate(raw, compute_lane, &packet, &launches));
             try timing.mark(.rows, true, stream.?);
-            if (!enqueue) try context.join();
+
             domain_cells += column_count * n;
         }
         if (next != 0) return error.UnusedCompositionCoefficients;
-        if (workspace.words != null) try context.release(&workspace);
         const n = @as(usize, 1) << @intCast(self.log);
         const coeff_count = 8 * n;
         const chunk_log = self.log - self.split;
@@ -1154,7 +862,7 @@ const Job = struct {
         var list: std.ArrayList(Abi.CompositionBucket) = .empty;
         defer list.deinit(a);
         for (buckets, 0..) |bucket, log| if (bucket) |value| try list.append(a, .{ .words = value.words.?, .log = @intCast(log) });
-        if (!enqueue) try context.join();
+
         var launches: u32 = 0;
         try events.mark(.finalize, false, stream1.?);
         try self.checked("finish", b.finish(raw, compute_lane, list.items.ptr, @intCast(list.items.len), accumulator.words.?, output.words.?, self.log, self.split, inv.words.?, @intCast(composition_tw.itwiddles.len), &launches));
@@ -1172,7 +880,7 @@ const Job = struct {
         }
         try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(scratch.words.? + output_tw), tw.twiddles.ptr, tw.twiddles.len * 4));
         try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(scratch.words.? + output_desc), descriptors.items.ptr, descriptors.items.len * 4));
-        if (!enqueue) try context.join();
+
         var stream: ?*anyopaque = null;
         try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, compute_lane, &stream));
         try events.mark(.commit_fft, false, stream.?);
@@ -1189,7 +897,7 @@ const Job = struct {
         try events.mark(.commit_hash, false, stream1.?);
         try self.checked("tree", b.tree(raw, compute_lane, @ptrCast(&segment), 1, commit_log, tree.words.?, tree_words));
         try events.mark(.commit_hash, true, stream1.?);
-        if (!enqueue) try context.join();
+
         var root_words: [8]u32 = undefined;
         try self.checked("session_api.download", b.session_api.download(raw, &root_words, @ptrCast(tree.words.? + tree_words - 8), 32));
         try context.join();

@@ -1,7 +1,7 @@
 .{
     .fingerprint = 0xc21b5c68285dad71,
     .name = .stwo_riscv_cpu_integration,
-    .version = "0.2.0",
+    .version = "1.1.0",
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{

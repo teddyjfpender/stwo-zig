@@ -398,9 +398,6 @@ pub const Worker = struct {
             config.reuse_frees = config.reuse_frees or p.gpu.allocator == .reuse;
             config.max_outstanding = @min(config.max_outstanding, p.gpu.max_outstanding);
         }
-        if (config.plan_from_env) if (std.posix.getenv("STWO_RV64_M8_JOBS_ARENA_REUSE")) |v| {
-            if (std.mem.eql(u8, v, "1")) config.reuse_frees = true else if (!std.mem.eql(u8, v, "0")) return error.InvalidM8JobsEnvironment;
-        };
         const self = try a.create(Worker);
         errdefer a.destroy(self);
         self.* = .{ .ops = ops, .config = config, .device_ordinal = config.device, .a = a, .policy = policy, .owned_plan = owned };

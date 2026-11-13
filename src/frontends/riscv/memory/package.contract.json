@@ -1,0 +1,48 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_memory",
+  "version": "0.1.0",
+  "layer": "frontend",
+  "owner": "riscv-frontend",
+  "public_modules": {
+    "stwo_riscv_memory": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../../waist/core",
+    "stwo_prover_api": "../../../waist/prover_api",
+    "stwo_prover_engine": "../../../engine/prover",
+    "stwo_riscv_air_lang": "../air_lang",
+    "stwo_riscv_isa": "../isa"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "aggregation",
+    "air",
+    "common",
+    "prover",
+    "recursion",
+    "testing",
+    "typed"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "tests/contracts.zig::C3 canonical API identity: memory tree and leaf types"
+    ],
+    "invariant_tests": [
+      "primitives/recursion/poseidon2_channel.zig::recursion Poseidon2: canonical Stark-V conformance vector"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_memory_package",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/riscv/memory/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

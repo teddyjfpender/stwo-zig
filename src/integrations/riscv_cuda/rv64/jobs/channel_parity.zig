@@ -3,7 +3,7 @@
 //!
 //! A `Script` is a transcript op sequence, either written directly or
 //! recorded from any host Om31Channel through the `om31_observer` hook
-//! (`Recorder`, the same hook device_fs_check.zig uses). `ParityJob` replays it
+//! (`Recorder`). `ParityJob` replays it
 //! as an ordinary job: inputs staged once, every op enqueued on the device
 //! channel, a boundary snapshot of every op and every draw output written into
 //! the slab, one D2H. `finish` replays the host channel op by op and requires

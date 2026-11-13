@@ -169,7 +169,7 @@ class ScopeTest(unittest.TestCase):
             "scripts/riscv/riscv_equivalence.py",
             "scripts/riscv/riscv_trace_vectors_lib/corpus.py",
             "src/frontends/riscv/isa/authority.zig",
-            "src/frontends/riscv/runner/trace_dump.zig",
+            "src/frontends/riscv/compat/assembly/rv32/runner/trace_dump.zig",
             ".github/workflows/riscv-sail-differential.yml",
         ):
             required, matched = gate.live_scope([path])
@@ -198,7 +198,7 @@ class ScopeTest(unittest.TestCase):
             "src/products/riscv/cpu/tests/malicious_prover_forged_output_test.zig",
             "src/products/riscv/cpu/tests/malicious_prover_skipped_test.zig",
             "src/products/riscv/cpu/tests/malicious_prover_stale_read_test.zig",
-            "src/frontends/riscv/sail_oracle_test_root.zig",
+            "src/frontends/riscv/focused_product_sail_oracle_test_root.zig",
         ):
             required, matched = gate.live_scope([path])
             self.assertTrue(required, path)
@@ -209,7 +209,7 @@ class ScopeTest(unittest.TestCase):
             [
                 "README.md",
                 "src/waist/core/fields/m31.zig",
-                "src/frontends/riscv/air/component.zig",
+                "src/frontends/riscv/rv32/air/component.zig",
             ]
         )
         self.assertFalse(required)

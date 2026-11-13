@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 import json
 import os
 import re
@@ -24,21 +25,76 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/vm_composition_program_test.zig", "test-retained-typed-components"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/focused_test_ethereum_runner_0.zig", "test-ethereum-runner"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/runner/guest_precompile/tests/ethereum_runner_test.zig", "test-ethereum-runner"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/ethereum_minimal_trace_test_root.zig", "test-ethereum-minimal-trace"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/runner/minimal_trace/ethereum_test.zig", "test-ethereum-minimal-trace"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/build.zig", "test-build-components"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/runner/guest_precompile/tests/ethereum_stack_swap_candidate_test.zig", "test-stack-swap-candidate"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/alu_fused_tail_proof_test.zig", "test-word16-alu-fused-tail-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/alu_read_induction_proof_test.zig", "test-word16-alu-read-induction-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_clock_induction_proof_test.zig", "test-word16-cpu-clock-induction-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_compact_decode_proof_test.zig", "test-word16-cpu-compact-decode-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_fused_tail_proof_test.zig", "test-word16-cpu-fused-tail-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_u8_pairs_proof_test.zig", "test-word16-cpu-u8-pairs-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/cpu_zero_induction_proof_test.zig", "test-word16-cpu-zero-induction-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/ls_fused_pairs_proof_test.zig", "test-word16-ls-fused-pairs-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/memory/boundary_anchor_test.zig", "test-word16-boundary-anchor"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/memory/joint_write_proof_test.zig", "test-word16-joint-write-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/memory/range_induction_proof_test.zig", "test-word16-range-induction-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/mul_u8_pairs_proof_test.zig", "test-word16-mul-u8-pairs-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/shift_read_induction_proof_test.zig", "test-word16-shift-read-induction-proof"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_ethereum_image_admission_test_root.zig", "test-receiver-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_ethereum_receiver_boundary_test_root.zig", "test-receiver-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_authenticated_execution_test_root.zig", "test-authenticated-component-profile"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/tests/rv64_authenticated_execution_test.zig", "test-authenticated-component-profile"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/tests/rv64_ethereum_chain_test.zig", "test-receiver-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/tests/rv64_word16_execution_image_test.zig", "test-receiver-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_gkr_resources_test_root.zig", "test-gkr-resources"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/gkr_resources.zig", "test-gkr-resources"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/gkr_resources_test.zig", "test-gkr-resources"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_capture_prefetch_test_root.zig", "test-capture-prefetch"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/capture_prefetch_test.zig", "test-capture-prefetch"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/capture_test_support.zig", "test-capture-prefetch"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_setup_cache_test_root.zig", "test-setup-cache"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/setup_cache.zig", "test-setup-cache"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/setup_cache_format.zig", "test-setup-cache"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/setup_cache_test.zig", "test-setup-cache"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_services_gkr_policy_test_root.zig", "test-services-gkr-policy"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_word16_services_test_root.zig", "test-word16-services"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_word16_zbb_services_test_root.zig", "test-word16-zbb-services"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_word16_sponge_services_test_root.zig", "test-word16-sponge-services"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_word16_ls_dword_services_test_root.zig", "test-word16-ls-dword-services"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_services_recursion_test_root.zig", "test-services-recursion"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/build_components.zig", "test-build-components"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/build_components_test.zig", "test-build-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/assembly/recursion/vm_composition_preparation.zig", "test-composition-custody"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/recursion/vm_composition_preparation.zig", "test-composition-custody"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/recursion/initial_wrapper_admission.zig", "test-composition-custody"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/tests/coordinator_boundary_test.zig", "test-component-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/tests/composition_custody_test.zig", "test-component-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/csp_ecdsa_proof_test.zig", "test-csp-ecdsa-proof"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_proof_artifact_support.zig", "test-proof-artifact-support"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/tests/proof_artifact_support_contract_test.zig", "test-proof-artifact-support"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/precompiles/focused_test_guest_precompile_0.zig", "test-guest-precompile"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv32/air/extract/runtime_program.zig", "test-runtime-selector"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv32/focused_test_runtime_selector_0.zig", "test-runtime-selector"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/air_lang/framework/control_row.zig", "test-recursion-framework-interaction"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/recursion/tests/ethereum_vm_composition_program_test.zig", "test-ethereum-composition-program"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/recursive_segment_detached_child_transcript.zig", "test-detached-child-capture"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/lang/tests/runtime_profile_test.zig", "test-air-runtime-profile"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/testing/cases/air/lang/tests/runtime_profile_test.zig", "test-air-runtime-profile"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/blake3_proof_tests", "test-blake3-proof-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/blake3_proof_contract_test_root.zig", "test-blake3-proof-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/blake3_memory_path_proof_test_root.zig", "test-blake3-proof-contracts"),
 
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/lang/function_activation_logup_test_support.zig", "test-retained-authority-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/lang/tests/function_activation_logup_test.zig", "test-retained-authority-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/guest_precompile/tests/sha256_memory_caller_test.zig", "test-retained-authority-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/blake3_draw_witness_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv32/air/lang/function_activation_logup_test_support.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/air/lang/tests/function_activation_logup_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/testing/cases/air/guest_precompile/tests/sha256_memory_caller_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/blake3_draw_witness_test.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed/functional_test.zig", "test-distributed-binary-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed/unified_test.zig", "test-distributed-binary-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/blake3_rejection_fixture_test_support.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion_air/tests/blake3_rejection_fixture_test_support.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_poseidon2_native_fixture_main.zig", "poseidon2-native-fixture"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig", "test-keccakf-precompile-proof"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/secp256k1_precompile_proof_test.zig", "test-secp256k1-precompile-proof"),
@@ -55,10 +111,10 @@ FOCUSED_RULES = (
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed/manifest_test.zig", "test-distributed-binary-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed_execution/binary_worker_test.zig", "test-distributed-binary-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_component_test.zig", "test-retained-typed-components"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_quotient_test.zig", "test-retained-typed-components"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_component_test_support.zig", "test-retained-typed-components"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/qm31_mul_full_relation_test_support.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_component_test.zig", "test-native-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_quotient_test.zig", "test-native-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_component_test_support.zig", "test-native-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion_air/tests/qm31_mul_full_relation_test_support.zig", "test-native-typed-components"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/scheduled_channel_test_support.zig", "test-retained-transcript-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/transcript_program_v2_test.zig", "test-retained-transcript-contracts"),
 
@@ -67,7 +123,7 @@ FOCUSED_RULES = (
     ("stwo_core", "src/waist/core/tests/borrowed_proof_capture_test.zig", "test-proof-capture"),
     ("stwo_core", "src/waist/core/tests/borrowed_pcs_capture_success_test.zig", "test-proof-capture"),
 
-    ("stwo_riscv_frontend", "src/frontends/riscv/air/guest_precompile/tests/relation_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/testing/cases/air/guest_precompile/tests/relation_test.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/segment_range_authority_test.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_execution/division_product_integration_test.zig", "test-division-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_execution/optional_division_test.zig", "test-division-contracts"),
@@ -117,7 +173,7 @@ FOCUSED_RULES = (
     ),
     ("stwo_riscv_frontend", "src/frontends/riscv/isa", "test-isa"),
     ("stwo_riscv_frontend", "src/frontends/riscv/runner", "test-runner"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/runner_test_root.zig", "test-runner"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv32/focused_benchmark_minimal_trace_parallel_replay_0.zig", "test-runner"),
     (
         "stwo_riscv_frontend",
         "src/frontends/riscv/air/semantics",
@@ -125,7 +181,7 @@ FOCUSED_RULES = (
     ),
     (
         "stwo_riscv_frontend",
-        "src/frontends/riscv/air_semantics_test_root.zig",
+        "src/frontends/riscv/rv32/focused_test_air_semantics_0.zig",
         "test-air-semantics",
     ),
     ("stwo_sm83_frontend", "src/frontends/sm83/isa", "test-isa"),
@@ -298,6 +354,16 @@ def tracked_deletions(root: Path) -> set[str]:
     return set(subprocess.check_output(["git", "diff", "--diff-filter=D", "--name-only", "HEAD", "--"], cwd=root, text=True).splitlines()) if (root / ".git").exists() else set()
 
 
+def focused_test_owner(package: str, path: str, packages: dict, root: Path) -> str:
+    """Use an explicit consumer-owned test only across a declared dependency."""
+    candidates = {owner for owner, source, _ in FOCUSED_RULES if owns(path, source)}
+    if frontend_root_step(root, path) is not None:
+        candidates.add("stwo_riscv_frontend")
+    admitted = {owner for owner in candidates if owner in packages and
+                (owner == package or package in packages[owner].dependencies)}
+    return next(iter(admitted)) if len(admitted) == 1 else package
+
+
 def commands_for_paths(
     root: Path,
     raw_paths: Iterable[str],
@@ -338,6 +404,19 @@ def commands_for_paths(
     policy = ci_scope_plan.strict_json(root / "conformance/ci-touchpoints-v1.json")
     ci_scope_plan.validate_policy(policy)
     bindings = ci_package_graph.lane_packages(policy, packages)
+    consumer_paths = {path: package for package in packages.values() for path in package.consumer_roots}
+    for path in paths:
+        if path not in consumer_paths:
+            continue
+        provider = consumer_paths[path]
+        if check_only:
+            if deferred is None:
+                raise DevTestError("consumer contracts require execution, not check-only")
+            deferred.append(provider.name + " consumer contracts (execution required)")
+        else:
+            for mode in ((optimize,) if optimize else ("Debug", "ReleaseFast")):
+                commands.append(["zig", "build", "test-cdc-" + provider.name.replace("_", "-"), "-Doptimize=" + mode, "-j1"])
+    paths = [path for path in paths if path not in consumer_paths]
     selected: dict[str, list[str]] = {}
     extra_lanes: set[str] = set()
     unowned: list[str] = []
@@ -348,6 +427,7 @@ def commands_for_paths(
             continue
         package = ci_package_graph.owning_package(path, packages)
         if package is not None:
+            package = focused_test_owner(package, path, packages, root)
             selected.setdefault(package, []).append(path)
             continue
         if not lanes and not (root / path).exists() and (root / ".git").exists():
@@ -399,6 +479,26 @@ def commands_for_paths(
             commands.append(broad_command(root, package, optimize or "ReleaseSafe"))
             continue
         selected_steps = sorted(value for value in steps if value is not None)
+        if check_only and (package_name == "stwo_ethereum_statement" or (package_name == "stwo_riscv_frontend" and selected_steps == ["test-build-components"])):
+            if deferred is None:
+                raise DevTestError("Ethereum consumer contracts require focused contract execution")
+            deferred.append(package_name + " (focused contract execution)")
+            continue
+        if package_name in {"stwo_ethereum_statement", "stwo_riscv_frontend"} and selected_steps == ["test-build-components"]:
+            filename = "build.zig" if package_name == "stwo_riscv_frontend" else "build_components_test.zig"
+            commands.append(["zig", "test", "-O" + (optimize or "Debug"), package.directory + "/" + filename])
+            continue
+        if package_name == "stwo_riscv_cpu_integration" and selected_steps == ["test-proof-artifact-support"]:
+            # These std-only paths consume the actual public module; loading the
+            # full package build runner would dwarf their four bounded tests.
+            base = ["zig", "test", "-O" + (optimize or "Debug")]
+            if check_only:
+                base.append("-fno-emit-bin")
+            commands.append(base + ["--dep", package_name,
+                "-Mroot=" + package.directory + "/tests/proof_artifact_support_contract_test.zig",
+                "-M" + package_name + "=" + package.directory + "/mod.zig"])
+            commands.append(base + [package.directory + "/rv64_proof_artifact_support.zig"])
+            continue
         if selected_steps:
             command = [
                 "zig",
@@ -468,7 +568,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"+ {shlex.join(command)}", flush=True)
             if args.dry_run:
                 continue
-            result = subprocess.run(command, cwd=root, check=False)
+            direct_test = command[:2] == ["zig", "test"] and os.environ.get(zig_serial_build.HELD_LOCK_ENV) != zig_serial_build.DEFAULT_LOCK
+            with zig_serial_build.build_lock() if direct_test else nullcontext():
+                result = subprocess.run(command, cwd=root, check=False)
             if result.returncode != 0:
                 return result.returncode
         verb = "PLAN" if args.dry_run else ("PASS_LOCAL" if deferred else "PASS")

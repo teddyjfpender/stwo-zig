@@ -108,16 +108,16 @@ fn rightsAt(address: u64) u2 {
 
 /// Honest chronological memory ledger producing calls, words and the
 /// environment's RAM endpoint sum.
-const World = struct {
+pub const World = struct {
     a: std.mem.Allocator,
     states: std.AutoHashMap(u64, T.State),
     initial: std.AutoHashMap(u64, T.State),
     calls: std.ArrayList(T.Call) = .{},
     words: std.ArrayList(T.Word) = .{},
-    fn init(a: std.mem.Allocator) World {
+    pub fn init(a: std.mem.Allocator) World {
         return .{ .a = a, .states = std.AutoHashMap(u64, T.State).init(a), .initial = std.AutoHashMap(u64, T.State).init(a) };
     }
-    fn deinit(self: *World) void {
+    pub fn deinit(self: *World) void {
         self.states.deinit();
         self.initial.deinit();
         self.calls.deinit(self.a);
@@ -133,7 +133,7 @@ const World = struct {
         try self.image(address, address *% 0x9E3779B97F4A7C15);
         return self.states.get(address).?;
     }
-    fn call(self: *World, op: T.Op, pointer: u64, epoch: u16, tick: u24, dst: u64, word1: u64, len: u64) !void {
+    pub fn call(self: *World, op: T.Op, pointer: u64, epoch: u16, tick: u24, dst: u64, word1: u64, len: u64) !void {
         const pw: usize = if (op == .cmp) 4 else 3;
         const packet_values = if (op == .jumpdest) [_]u64{ dst, len, word1, 0x5EED } else [_]u64{ dst, word1, len, 0x5EED };
         for (packet_values, 0..) |v, k| if (k < pw and !self.states.contains(pointer + 8 * k)) try self.image(pointer + 8 * k, v);
@@ -288,7 +288,7 @@ fn honest(a: std.mem.Allocator, w: *World) !Witness {
     }
     return out;
 }
-const Verdict = struct { local: usize = 0, ranges: bool = true, ram: bool = true, owner: bool = true };
+pub const Verdict = struct { local: usize = 0, ranges: bool = true, ram: bool = true, owner: bool = true };
 fn verdict(a: std.mem.Allocator, w: *World, wit: *Witness) !Verdict {
     const ch = challenges();
     var out = Verdict{};
@@ -920,7 +920,7 @@ fn codeWord(bytes: []const u8) u64 {
     for (bytes, 0..) |b, i| v |= @as(u64, b) << @intCast(8 * i);
     return v;
 }
-fn imageCode(w: *World, address: u64, bytes: []const u8) !void {
+pub fn imageCode(w: *World, address: u64, bytes: []const u8) !void {
     var k: usize = 0;
     while (k < bytes.len) : (k += 8) try w.image(address + k, codeWord(bytes[k..@min(k + 8, bytes.len)]));
 }
@@ -949,12 +949,12 @@ fn scenarioJ(w: *World) !void {
     try w.call(.jumpdest, 0x1030, 2, 4, 0x9000, 0x9200, 16);
 }
 
-const JWitness = struct {
+pub const JWitness = struct {
     jdesc: [][L.jdesc.MAIN]M,
     jscan: [][L.jscan.MAIN]M,
     jtab: [][L.jtab.MAIN]M,
     rows: [3]u32,
-    fn deinit(self: *JWitness, a: std.mem.Allocator) void {
+    pub fn deinit(self: *JWitness, a: std.mem.Allocator) void {
         a.free(self.jdesc);
         a.free(self.jscan);
         a.free(self.jtab);
@@ -963,7 +963,7 @@ const JWitness = struct {
 fn jlog(comptime kind: L.Kind) u32 {
     return if (kind == .jtab) T.TABLE_LOG else JLOG;
 }
-fn honestJ(a: std.mem.Allocator, w: *World) !JWitness {
+pub fn honestJ(a: std.mem.Allocator, w: *World) !JWitness {
     var out: JWitness = undefined;
     inline for (L.jumpdest_kinds, 0..) |kind, k| {
         var s = try Src.Source.init(a, kind, w.calls.items, w.words.items, jlog(kind));
@@ -976,7 +976,7 @@ fn honestJ(a: std.mem.Allocator, w: *World) !JWitness {
     }
     return out;
 }
-fn verdictJ(a: std.mem.Allocator, w: *World, wit: *JWitness) !Verdict {
+pub fn verdictJ(a: std.mem.Allocator, w: *World, wit: *JWitness) !Verdict {
     const ch = challenges();
     var out = Verdict{};
     var ram = try w.ramEnvironment(ch);
@@ -1027,17 +1027,17 @@ fn verdictJ(a: std.mem.Allocator, w: *World, wit: *JWitness) !Verdict {
     out.owner = owner.isZero();
     return out;
 }
-const JFixture = struct {
+pub const JFixture = struct {
     a: std.mem.Allocator,
     world: World,
     wit: JWitness,
-    fn init(a: std.mem.Allocator) !JFixture {
+    pub fn init(a: std.mem.Allocator) !JFixture {
         var w = World.init(a);
         errdefer w.deinit();
         try scenarioJ(&w);
         return .{ .a = a, .world = w, .wit = try honestJ(a, &w) };
     }
-    fn deinit(self: *JFixture) void {
+    pub fn deinit(self: *JFixture) void {
         self.wit.deinit(self.a);
         self.world.deinit();
     }
@@ -1075,34 +1075,6 @@ test "jumpdest: honest scenario satisfies every constraint and closes every rela
     defer fx.deinit();
     try testing.expectEqual([3]u32{ 3, 4, T.TABLE_ENTRIES }, fx.wit.rows);
     try testing.expectEqual(Verdict{}, try fx.check());
-}
-
-test "jumpdest: known answers match the executor's reference walk" {
-    var fx = try JFixture.init(testing.allocator);
-    defer fx.deinit();
-    // A: JUMPDESTs at 0, 3, 10 (2 is PUSH1 data, 64 and 70 are PUSH32 data).
-    try testing.expectEqual(@as(u64, (1 << 0) | (1 << 3) | (1 << 10)), fx.world.states.get(0x9000).?.value);
-    try testing.expectEqual(@as(u64, 0), fx.world.states.get(0x9008).?.value);
-    // B: every 0x5b except PUSH2 data 51, 52 and the bytes 61..63 after the
-    // truncated PUSH32 at 60; the PUSH opcodes at 50 and 60 are not JUMPDESTs.
-    var want: u64 = 0;
-    for (0..64) |i| if (i < 50 or i == 53 or (i > 53 and i < 60)) {
-        want |= @as(u64, 1) << @intCast(i);
-    };
-    try testing.expectEqual(want, fx.world.states.get(0x9100).?.value);
-    // The AIR rows write the same words, and the pending counter crosses the
-    // row boundary of call A (PUSH32 at 40: 9 data bytes left at byte 64).
-    try testing.expectEqual(@as(u64, (1 << 0) | (1 << 3) | (1 << 10)), Src.jscanBitmap(&fx.wit.jscan[0]));
-    try testing.expectEqual(@as(u32, 9), fx.wit.jscan[1][J.pending].v);
-    try testing.expectEqual(want, Src.jscanBitmap(&fx.wit.jscan[2]));
-    try testing.expectEqual(@as(u32, 1), fx.wit.jscan[1][J.remaining].v);
-    // Agreement with the executor's reference on the same bytes.
-    const ref = @import("../../../ethereum_services/candidate_jumpdest.zig");
-    var bytes: [64]u8 = undefined;
-    for (0..8) |k| std.mem.writeInt(u64, bytes[8 * k ..][0..8], fx.world.states.get(0x5000 + 8 * k).?.value, .little);
-    var out: [1]u64 = undefined;
-    ref.bitmap(&bytes, &out);
-    try testing.expectEqual(want, out[0]);
 }
 
 test "jumpdest adversarial: forged JUMPDEST inside PUSH data is rejected by the table" {
@@ -1328,38 +1300,6 @@ test "jumpdest: constraint degrees are at most three" {
     }
 }
 
-test "jumpdest: random codes of every remainder close and match the reference walk" {
-    const a = testing.allocator;
-    const ref = @import("../../../ethereum_services/candidate_jumpdest.zig");
-    var prng = std.Random.DefaultPrng.init(0x5b60_7f00);
-    const r = prng.random();
-    var w = World.init(a);
-    defer w.deinit();
-    // 17 calls, 1..17 code words each (every last-row remainder 1..8 occurs),
-    // biased towards JUMPDEST and PUSH opcodes.
-    var expected: [17][3]u64 = undefined;
-    for (0..17) |k| {
-        const words = k + 1;
-        const code = 0x10000 + 0x400 * @as(u64, k);
-        var bytes: [17 * 8]u8 = undefined;
-        for (bytes[0 .. 8 * words]) |*b| b.* = switch (r.uintLessThan(u8, 4)) {
-            0 => 0x5b,
-            1 => r.intRangeAtMost(u8, 0x60, 0x7f),
-            else => r.int(u8),
-        };
-        try imageCode(&w, code, bytes[0 .. 8 * words]);
-        var out: [3]u64 = @splat(0);
-        ref.bitmap(bytes[0 .. 8 * words], out[0 .. (words + 7) / 8]);
-        expected[k] = out;
-        try w.call(.jumpdest, 0x1000 + 0x20 * @as(u64, k), 1, @intCast(8 + 4 * k), code, 0x30000 + 0x40 * @as(u64, k), 8 * words);
-    }
-    var wit = try honestJ(a, &w);
-    defer wit.deinit(a);
-    try testing.expectEqual(Verdict{}, try verdictJ(a, &w, &wit));
-    for (0..17) |k| for (0..(k + 8) / 8) |j| {
-        try testing.expectEqual(expected[k][j], w.states.get(0x30000 + 0x40 * @as(u64, k) + 8 * j).?.value);
-    };
-}
 /// Sets a word's initial and final ledger value (a read-only word of the
 /// forged history, e.g. a packet field the prover rewrites).
 fn rewriteWord(w: *World, address: u64, value: u64) !void {

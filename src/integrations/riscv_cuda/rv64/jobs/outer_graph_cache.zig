@@ -52,13 +52,7 @@ pub const Policy = struct {
     /// STWO_RV64_M8_OUTER_GRAPH=0 disables graphs (direct enqueue).
     enabled: bool = true,
     pub fn fromEnv() !Policy {
-        const Env = @import("outer_env.zig");
-        var p = Policy{};
-        p.enabled = try Env.flag("STWO_RV64_M8_OUTER_GRAPH", p.enabled);
-        p.threshold = @max(1, try Env.unsigned(u32, "STWO_RV64_M8_OUTER_GRAPH_THRESHOLD", p.threshold));
-        p.budget_bytes = (try Env.unsigned(u64, "STWO_RV64_M8_OUTER_GRAPH_BUDGET_MB", p.budget_bytes >> 20)) << 20;
-        p.idle_requests = try Env.unsigned(u32, "STWO_RV64_M8_OUTER_GRAPH_IDLE_REQUESTS", p.idle_requests);
-        return p;
+        return .{};
     }
 };
 

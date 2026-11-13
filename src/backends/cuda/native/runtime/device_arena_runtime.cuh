@@ -101,32 +101,11 @@ inline Config parse_config() {
     else if (parse_bytes(v, &c.bytes) && c.bytes >= (uint64_t(1) << 20)) c.enabled = true;
     else c.valid = false;
   }
-  if (const char *v = getenv("STWO_RV64_DEVICE_ARENA_RESERVE"))
-    if (!parse_bytes(v, &c.reserve)) c.valid = false;
-  if (const char *v = getenv("STWO_RV64_DEVICE_ARENA_STACK"))
-    if (!parse_bytes(v, &c.stack)) c.valid = false;
   if (const char *v = getenv("STWO_RV64_PINNED_STAGING")) {
     if (!strcmp(v, "0")) c.staging = false;
     else if (!strcmp(v, "1")) c.staging = true;
     else c.valid = false;
   }
-  if (const char *v = getenv("STWO_RV64_DEVICE_ARENA_CHUNK"))
-    if (!parse_bytes(v, &c.chunk) || c.chunk < (uint64_t(2) << 20)) c.valid = false;
-  if (const char *v = getenv("STWO_RV64_DEVICE_ARENA_SMALL_CHUNKS"))
-    if (!parse_bytes(v, &c.small_chunks) || c.small_chunks == 0) c.valid = false;
-  if (const char *v = getenv("STWO_RV64_DEVICE_ARENA_PREMAP")) {
-    if (!strcmp(v, "0")) c.premap = false;
-    else if (strcmp(v, "1")) c.valid = false;
-  }
-  if (const char *v = getenv("STWO_RV64_DEVICE_ARENA_POISON")) {
-    uint64_t byte = 0;
-    if (parse_bytes(v, &byte) && byte <= 255) c.poison = int(byte);
-    else c.valid = false;
-  }
-  if (const char *v = getenv("STWO_RV64_PINNED_STAGING_SLOT"))
-    if (!parse_bytes(v, &c.slot_bytes) || c.slot_bytes < 4096) c.valid = false;
-  if (const char *v = getenv("STWO_RV64_PINNED_STAGING_THREADS"))
-    if (!parse_bytes(v, &c.staging_threads) || c.staging_threads > 64) c.valid = false;
   if (!c.valid)
     fprintf(stderr, "GPU_ARENA_CONFIG_INVALID (STWO_RV64_DEVICE_ARENA*/STWO_RV64_PINNED_STAGING*)\n");
   return c;

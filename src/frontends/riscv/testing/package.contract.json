@@ -1,0 +1,50 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_testing",
+  "version": "0.1.0",
+  "layer": "frontend",
+  "owner": "riscv-frontend",
+  "public_modules": {
+    "stwo_riscv_testing": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../../waist/core",
+    "stwo_prover_api": "../../../waist/prover_api",
+    "stwo_prover_engine": "../../../engine/prover",
+    "stwo_riscv_air_lang": "../air_lang",
+    "stwo_riscv_isa": "../isa",
+    "stwo_riscv_memory": "../memory",
+    "stwo_riscv_precompiles": "../precompiles",
+    "stwo_riscv_recursion": "../recursion",
+    "stwo_riscv_recursion_air": "../recursion_air",
+    "stwo_riscv_rv32": "../rv32",
+    "stwo_riscv_rv64": "../rv64"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "benchmarks",
+    "regressions",
+    "testing"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "tests/contracts.zig::C3 canonical API identity: unstable regression callable signatures"
+    ],
+    "invariant_tests": [
+      "cases/vm_public_logup_control_test_root.zig::VM public-LogUp V2 focused inventory compiles"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_testing_package",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/riscv/testing/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

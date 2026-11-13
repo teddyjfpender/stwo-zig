@@ -7,19 +7,126 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 from pathlib import Path
 
 from scripts.ci import FAST_PLAN, TOOLCHAIN_PLAN, command_plan, main
 from scripts.repo.check_build_configure_closure import validate_actual_construction
 from scripts.release.release_evidence import gate_steps
-from scripts.tests.test_focused_ci_contract import runner_policy
+from scripts.tests.test_focused_ci_contract import COMMIT, TREE, runner_policy
 
 ROOT = Path(__file__).resolve().parents[2]
 PINNED_ACTION_RE = re.compile(r"^\s*uses:\s*[^@\s]+@[0-9a-f]{40}(?:\s+#.*)?$")
 
 
 class CiTests(unittest.TestCase):
+    def test_circuit_decoder_process_matrix_checks_exact_outputs_and_keeps_failures(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        start = workflow.index("      - name: Check circuit decoder process boundary")
+        end = workflow.index("      - name:", start + 10)
+        step = workflow[start:end]
+        self.assertLess(workflow.index("      - name: Run focused lane"), start)
+        self.assertIn("if: matrix.lane == 'circuit_recursion_cpu'", step)
+        self.assertIn("timeout-minutes: 12", step)
+        self.assertNotIn("zig build", step)
+        code = "\n".join(line[10:] for line in step.split("<<'PYD2'\n", 1)[1].split("          PYD2", 1)[0].splitlines())
+        fixture = json.loads((ROOT / "vectors/circuit/r7/verify/multiverifier.json").read_text())["body"]
+        usage_source = (ROOT / "src/products/cairo/recursion/cpu/cli.zig").read_text()
+        usage = "\n".join(line.lstrip()[2:] for line in usage_source.split("pub const usage =\n", 1)[1].split("\n;", 1)[0].splitlines()).encode()
+        outputs = {
+            "success": (0, b"accepted: output digest c196ecb3c253ca01b483b6ac9c725aa83555423ea253ec7af8a5a05bb43cb836\n", b""),
+            "empty": (3, b"rejected at deserialize: NotEnoughData\n", b'{"schema":"circuit_decode_rejection_v1","provider":"stwo_circuit_recursion_wire","origin":"circuit_serialize.deserializeProof","code":20481,"class":"invalid_input"}\n'),
+            "noncanonical": (3, b"rejected at deserialize: ValueOutOfRange\n", b'{"schema":"circuit_decode_rejection_v1","provider":"stwo_circuit_recursion_wire","origin":"circuit_serialize.deserializeProof","code":20482,"class":"invalid_input"}\n'),
+            "usage": (2, b"", b"error: UnknownCommand\n" + usage),
+            "missing-input": (1, b"", b"error: FileNotFound\n"),
+        }
+        binary = ROOT / "zig-out/bin/stwo-circuit-recursion-cpu"
+        read_bytes = Path.read_bytes
+        for fault in (None, "wrong-code", "wrong-exit", "leaked-receipt", "timeout", "claimed-digest", "missing-read-diagnostic"):
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as temp:
+                calls = []
+                def run(command, **kwargs):
+                    self.assertEqual(str(binary), command[0])
+                    self.assertEqual({"capture_output": True, "timeout": 120, "check": False, "cwd": ROOT}, kwargs)
+                    name = list(outputs)[len(calls)]
+                    calls.append(command)
+                    exit_code, stdout, stderr = outputs[name]
+                    if name == "success" and fault == "claimed-digest":
+                        stdout = ("accepted: output digest " + "".join(f"{word:08x}" for word in fixture["request"]["output_digest"]) + "\n").encode()
+                    if name == "missing-input" and fault != "missing-read-diagnostic":
+                        stderr = (f"error: cannot read {command[-1]}: FileNotFound\n").encode() + stderr
+                    if name == "empty" and fault == "wrong-code":
+                        stderr = outputs["noncanonical"][2]
+                    if name == "empty" and fault == "wrong-exit":
+                        exit_code = 0
+                    if name == "missing-input" and fault == "leaked-receipt":
+                        stderr += outputs["empty"][2]
+                    if name == "empty" and fault == "timeout":
+                        raise subprocess.TimeoutExpired(command, 120, output=b"partial", stderr=b"timeout")
+                    return SimpleNamespace(returncode=exit_code, stdout=stdout, stderr=stderr)
+                def check_output(command, **kwargs):
+                    self.assertEqual({"text": True, "timeout": 10}, kwargs)
+                    return {("git", "rev-parse", "HEAD"): COMMIT, ("git", "rev-parse", "HEAD^{tree}"): TREE, ("git", "status", "--porcelain", "--untracked-files=no"): "", ("zig", "version"): "0.15.2"}[tuple(command)]
+                with mock.patch.dict(os.environ, {"RUNNER_TEMP": temp, "GITHUB_SHA": COMMIT}), mock.patch.object(subprocess, "run", side_effect=run), mock.patch.object(subprocess, "check_output", side_effect=check_output), mock.patch.object(Path, "read_bytes", lambda path: b"test-binary" if path == binary else read_bytes(path)):
+                    if fault:
+                        with self.assertRaisesRegex(AssertionError, "process boundary mismatch"):
+                            exec(compile(code, "ci-circuit-process", "exec"), {})
+                    else:
+                        exec(compile(code, "ci-circuit-process", "exec"), {})
+                directory = Path(temp) / "focused-ci/circuit-decode-process"
+                receipt = json.loads((directory / "matrix.json").read_text())
+                self.assertEqual("FAIL" if fault else "PASS", receipt["status"])
+                self.assertEqual(5, len(calls))
+                self.assertEqual(list(outputs), [row["name"] for row in receipt["cases"]])
+                for name in outputs:
+                    self.assertTrue((directory / (name + ".stdout")).is_file())
+                    self.assertTrue((directory / (name + ".stderr")).is_file())
+                    self.assertTrue((directory / (name + ".json")).is_file())
+
+
+    def test_core_cdc_receipt_rejects_missing_execution_even_when_binary_exits_zero(self):
+        from types import SimpleNamespace
+        from scripts.repo import check_package_workspace
+        source = (ROOT / ".github/workflows/ci.yml").read_text().split("- name: Retain Core consumer execution receipts", 1)[1]
+        code = textwrap.dedent(source.split("<<'PYCDC'\n", 1)[1].split("          PYCDC", 1)[0])
+        tests = ("consumer inverse", "consumer refusal")
+        consumer = SimpleNamespace(id="package:stwo_cpu_backend", root="src/consumer.zig", tests=tests)
+        provider = SimpleNamespace(metadata=SimpleNamespace(consumers=[consumer]))
+        for fault in (False, True):
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                (root / "src/waist/core").mkdir(parents=True)
+                (root / "src/waist/core/package.contract.json").write_text("{}")
+                (root / consumer.root).write_text("registered source")
+                (root / "zig-out/bin").mkdir(parents=True)
+                for mode in ("Debug", "ReleaseFast"):
+                    (root / "zig-out/bin" / ("cdc-stwo-core-stwo_cpu_backend-" + mode)).write_bytes(mode.encode())
+                calls = []
+                def run(command, **kwargs):
+                    self.assertEqual(120, kwargs["timeout"])
+                    self.assertFalse(kwargs["check"])
+                    calls.append(command)
+                    names = tests[:1] if fault and command[0].endswith("ReleaseFast") else tests
+                    kwargs["stderr"].write(("\n".join(names) + "\n").encode())
+                    return SimpleNamespace(returncode=0)
+                def output(command, **kwargs):
+                    self.assertEqual({"text": True, "timeout": 10}, kwargs)
+                    return "" if "status" in command else "1" * 40
+                with mock.patch.object(Path, "cwd", return_value=root), mock.patch.dict(os.environ, {"RUNNER_TEMP": str(root / "out"), "GITHUB_SHA": "1" * 40}), mock.patch.object(check_package_workspace, "load_contract", return_value=provider), mock.patch.object(subprocess, "run", side_effect=run), mock.patch.object(subprocess, "check_output", side_effect=output):
+                    if fault:
+                        with self.assertRaisesRegex(AssertionError, "Core consumer execution failed"):
+                            exec(compile(code, "core-cdc-ci", "exec"), {})
+                    else:
+                        exec(compile(code, "core-cdc-ci", "exec"), {})
+                directory = root / "out/focused-ci/core-consumer-contracts"
+                receipt = json.loads((directory / "matrix.json").read_text())
+                self.assertEqual("FAIL" if fault else "PASS", receipt["status"])
+                self.assertEqual(2, len(calls))
+                self.assertEqual(2, len(receipt["cases"]))
+                self.assertEqual(0 if fault else 1, receipt["cases"][1]["executed_name_counts"][tests[1]])
+                self.assertTrue(list(directory.glob("*.stderr")))
+
     def test_cpu_golden_check_rejects_changed_proof_without_verifying_or_passing(self):
         from scripts.cuda.cuda_proof_parity_gate import UPSTREAM_COMMIT, EXCHANGE_MODE, EXPECTED_CONFIG
         source = (ROOT / ".github/workflows/ci.yml").read_text().split("- name: Compare fresh Native CPU proof with the frozen golden", 1)[1]
@@ -328,10 +435,10 @@ class CiTests(unittest.TestCase):
         self.assertIn("run: python3 scripts/ci.py --strict\n", workflow)
         self.assertIn("inputs.gate == 'strict'", workflow)
 
-    def test_frontend_releasefast_has_only_the_approved_timeout_exception(self) -> None:
+    def test_complete_frontend_modes_have_bounded_host_allowances(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         focused_linux = workflow.split("  focused-linux:", 1)[1].split("  focused-macos:", 1)[0]
-        self.assertIn("timeout-minutes: ${{ matrix.lane == 'riscv_frontend_releasefast' && 90 || 30 }}", focused_linux)
+        self.assertIn("timeout-minutes: ${{ (matrix.lane == 'riscv_frontend' || matrix.lane == 'riscv_frontend_releasefast' || matrix.lane == 'riscv_retained_contracts_releasefast' || matrix.lane == 'riscv_profile_partition') && 90 || 30 }}", focused_linux)
 
     def test_focused_cairo_cpu_primes_its_offline_cargo_build(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

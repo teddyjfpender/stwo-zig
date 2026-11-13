@@ -41,6 +41,7 @@ state, and accidental abstractions are frequent causes of both bugs and poor thr
 
 ## Contents
 
+- [Collaboration agreement](#collaboration-agreement)
 - [Priority order](#priority-order)
 - [Repository architecture](#repository-architecture)
 - [What changes we accept](#what-changes-we-accept)
@@ -66,6 +67,40 @@ state, and accidental abstractions are frequent causes of both bugs and poor thr
 - [Security](#security)
 - [Contributor checklist](#contributor-checklist)
 - [Taste canon](#taste-canon)
+
+---
+
+## Collaboration agreement
+
+The [collaboration model](ENGINEERING_STANDARDS.md#2-model-of-collaboration)
+applies equally to people and agents. Teams may choose their own internal tools;
+consumers rely on stable contracts, executable behavior and compatibility rules.
+Complexity is debt owed to collaborators. Keep representation, policy and
+concurrency behind the boundary that owns them.
+
+Before editing, open or link a GitHub issue with the behavior, invariant owner,
+affected packages, acceptance evidence and subtraction budget. A contract change
+requires the [RFC process](ENGINEERING_STANDARDS.md#6-api-change-protocol): record
+the owner or explicit delegate's decision, change contract/consumer tests first,
+preserve compatibility or version the interface, then deprecate and remove only
+after consumers migrate. A changed side effect, error model or timing guarantee
+counts even when the signature does not change.
+
+| Required agreement | Contributor responsibility |
+| --- | --- |
+| Executable boundaries | Declare types/schema, failure/retry/idempotency/timeout semantics, compatibility and owner. Run consumer-owned tests in the provider lane, relevant properties and pinned golden checks. |
+| Measured complexity | Report public surface, dependencies, hot-path complexity and relevant allocation/latency costs. Budget growth needs measurable benefit, containment and rollback; moves earn no deletion credit. |
+| Continuous integration | One short branch off current main per coherent slice/sweep. Push each green slice, keep at most two unpushed commits, and put a measured budget in every commit and PR. |
+| Honest acceptance | Keep proof pins, floors, negatives and rejection classes strict. State exact heads, commands and PASS/FAIL/UNRUN/CANCELLED/DEFERRED results; a compile is not executed behavior or GPU qualification. |
+| Bounded execution | No heavy laptop builds or complete-block runs. Cap small local checks with memguard or an equivalent enforced limit; use hosted CPU/qualified hosts for the rest. GPU work requires authorization. |
+| Stop and handover | Stop new work immediately when asked. Preserve only the requested existing work; report pushed refs, remaining gates and owned-run status. Never auto-resume a paused campaign. |
+
+Humans remain accountable for decomposition, contract design, correctness,
+security and taste. Agents implement and explore edge cases inside that scope.
+Neither a plausible explanation nor agreement among agents overrides a failing
+contract. The [review checklist](ENGINEERING_STANDARDS.md#9-review-checklist-no-complexity-leaks)
+and [known enforcement gaps](ENGINEERING_STANDARDS.md#11-known-gaps) make the
+quality bar and its current automation coverage explicit.
 
 ---
 
@@ -1422,7 +1457,9 @@ corresponding bypass path.
    needs an approved RFC issue first.
 2. **Inspect the existing path.** Trace real call sites, ownership, protocol order, and reports.
 3. **Write the design/hypothesis.** Do this before a cross-layer or performance-heavy change.
-4. **Build the oracle.** Add scalar, Rust, component, or verifier evidence first.
+4. **Establish acceptance.** Correctness/contract work needs a reproducible failure and the
+   appropriate scalar, Rust, component or verifier evidence. Mechanical moves preserve existing
+   tests, source identities and byte-identity gates; do not invent per-line tests or receipts.
 5. **Implement the smallest coherent slice.** Keep intermediate states valid and testable.
 6. **Run focused correctness tests.** Include failures and boundary sizes.
 7. **Measure only after parity.** Use a bounded run before large SN PIE or queue tests.
@@ -1451,7 +1488,11 @@ Do not merge a temporary correctness bypass with a promise to repair it later.
 - Use imperative mood: `Add`, `Fix`, `Refactor`, `Remove`, `Document`.
 - Keep one reviewable concept per commit when possible.
 - Separate pure moves/formatting from behavior.
-- Do not commit broken intermediate states to a shared branch.
+- Put the measured complexity budget in every commit, including merge commits; declare it before
+  editing and report documentation/configuration/receipts separately from source.
+- Push each green slice; keep at most two commits unpushed. Use short branches from current main.
+- Shared integration branches must pass their stated gates. A necessary partial savepoint goes on
+  an explicitly unqualified backup ref with missing gates listed; it is not a merge candidate.
 - Do not include caches, local artifacts, unrelated changes, or secret material.
 
 ### PR size
@@ -1461,7 +1502,10 @@ review rather than an arbitrary diff count.
 
 - Aim for at most roughly 400 changed lines and 10 files for routine work.
 - Larger PRs need a review map and a reason they cannot be split without hiding an invariant.
-- More than 1,000 substantive changed lines should normally be a stack or series.
+- More than 1,000 substantive behavior changes normally need separately integrated slices.
+- A mechanical move/deletion sweep may be large on one short branch when its review map,
+  ownership checks, retained tests and CPU/byte-identity gates establish preservation. Keep
+  correctness changes separate; do not split a sweep into dozens of evidence-only commits.
 - Generated files and bound vectors are counted separately but must be identified.
 - A performance PR should not combine unrelated optimizations; attribution matters.
 

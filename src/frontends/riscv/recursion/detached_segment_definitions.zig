@@ -2,7 +2,7 @@
 //! The containing owner must keep this storage stable while components borrow it.
 const std = @import("std");
 const catalog = @import("air/segment_leaf_catalog.zig");
-const range = @import("air/range_check_8_8_contract.zig");
+const range = @import("stwo_riscv_rv32").recursion.air.range_check_8_8_contract;
 
 fn DefinitionTuple() type {
     var types: [catalog.LOGICAL_ROWS.len]type = undefined;

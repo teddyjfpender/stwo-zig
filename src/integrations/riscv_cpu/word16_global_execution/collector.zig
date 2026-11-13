@@ -6,18 +6,19 @@ const R = A.memory.closed_ram;
 const CPU = @import("../word16_execution/cpu_source.zig");
 const Public = @import("../word16_execution/memory/statement.zig");
 pub const StateTable = @import("ledger_table.zig").StateTable;
-const ImageOwner = @import("../word16_execution/expected_image.zig").Owner;
-const PageTable = @FieldType(@FieldType(@FieldType(@FieldType(ImageOwner, "loaded"), "memory"), "backing"), "table");
+const NativeMemory = @import("stwo_riscv_frontend").rv64.memory.Memory;
+const PageTable = @FieldType(@FieldType(NativeMemory, "backing"), "table");
 const PAGE_SIZE: u64 = @import("stwo_riscv_frontend").rv64.memory.PAGE_SIZE;
 /// First-touch word state `{initialWord, wordRights}` of `Public.fromOwner(owner)`,
-/// computed once per guest page instead of per word (a page-table lookup and
+/// borrowed as native memory and permission regions, computed once per guest page instead of per word (a page-table lookup and
 /// eight first-match region scans each). Exact: it answers only aligned words
 /// in pages whose every byte has the same first-matching policy region (or
 /// none), where `wordRights` is that region's rights; otherwise null and the
 /// caller takes the image path (including all of its errors). Values are read
-/// from the same page bytes `Owner.initialWord` reads. Producer speed only.
+/// from the same supplied page bytes. Producer speed only; no image authority.
 pub const OwnerPages = struct {
-    owner: *const ImageOwner,
+    memory: *const NativeMemory,
+    regions: []const A.memory.policy.Region,
     index: u64 = std.math.maxInt(u64),
     page: ?@FieldType(PageTable.KV, "value") = null,
     rights: ?u2 = null,
@@ -26,8 +27,8 @@ pub const OwnerPages = struct {
         const index = address / PAGE_SIZE;
         if (index != self.index) {
             self.index = index;
-            self.page = self.owner.loaded.memory.backing.table.get(index);
-            self.rights = uniformRights(self.owner.policy.regions, index * PAGE_SIZE, index * PAGE_SIZE + (PAGE_SIZE - 1));
+            self.page = self.memory.backing.table.get(index);
+            self.rights = uniformRights(self.regions, index * PAGE_SIZE, index * PAGE_SIZE + (PAGE_SIZE - 1));
         }
         const rights = self.rights orelse return null;
         const offset: usize = @intCast(address % PAGE_SIZE);
@@ -83,7 +84,7 @@ pub const Ledger = struct {
     initial: std.ArrayList(R.types.Cell) = .empty,
     next_epoch: u32 = 1,
     /// Optional exact fast path for first-touch reads when `image` is
-    /// `Public.fromOwner(pages.owner)` (set by the Ethereum ordered owner).
+    /// the same independently owned memory and permission regions.
     pages: ?OwnerPages = null,
     pub fn init(a: std.mem.Allocator, image: Public.Image) Ledger {
         return .{ .allocator = a, .image = image };
@@ -140,9 +141,7 @@ pub const Ledger = struct {
 const PARALLEL = 8;
 const PARALLEL_MIN = 1 << 16;
 fn parallelBoundaries(n: usize) bool {
-    if (n < PARALLEL_MIN) return false;
-    const text = std.posix.getenv("STWO_RV64_CAPTURE_PARALLEL_BOUNDARIES") orelse return true;
-    return !std.mem.eql(u8, text, "0");
+    return n >= PARALLEL_MIN;
 }
 fn sortChunk(cells: []R.types.Cell) void {
     std.sort.pdq(R.types.Cell, cells, {}, less);
@@ -222,4 +221,27 @@ fn terminalStates(ledger: *const Ledger, initial: []const R.types.Cell, terminal
 }
 fn less(_: void, a: R.types.Cell, b: R.types.Cell) bool {
     return a.address < b.address;
+}
+
+test "page cache borrows native memory and first-match permissions without an image owner" {
+    const Memory = @import("stwo_riscv_frontend").rv64.memory.Memory;
+    var memory = Memory.init(std.testing.allocator, .{});
+    defer memory.deinit();
+    try memory.map(.{ .start = 0x1000, .size = 4096, .permissions = .{ .read = true, .write = true } });
+    const bytes = [_]u8{ 1, 2, 3, 4, 5, 6, 7, 8 };
+    try memory.initialize(0x1008, &bytes);
+    const regions = [_]A.memory.policy.Region{.{ .first = 0x1000, .last = 0x1fff, .flags = 3 }};
+    var pages = OwnerPages{ .memory = &memory, .regions = &regions };
+    try std.testing.expectEqualDeep(R.types.State{ .value = 0x0807060504030201, .rights = 3 }, pages.lookup(0x1008).?);
+    try std.testing.expectEqualDeep(R.types.State{ .value = 0, .rights = 3 }, pages.lookup(0x1010).?);
+    try std.testing.expect(pages.lookup(0x1009) == null);
+    try std.testing.expect(pages.lookup(std.math.maxInt(u64)) == null);
+    try std.testing.expectEqualDeep(R.types.State{ .value = 0, .rights = 0 }, pages.lookup(0x2000).?);
+    const split = [_]A.memory.policy.Region{
+        .{ .first = 0x1800, .last = 0x1fff, .flags = 1 },
+        .{ .first = 0x1000, .last = 0x1fff, .flags = 3 },
+    };
+    var mixed = OwnerPages{ .memory = &memory, .regions = &split };
+    try std.testing.expect(mixed.lookup(0x1008) == null);
+    try std.testing.expect(mixed.lookup(0x1800) == null);
 }

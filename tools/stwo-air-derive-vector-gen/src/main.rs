@@ -51,7 +51,7 @@ fn main() {
 }
 
 fn parse_args() -> (PathBuf, usize) {
-    let mut out = PathBuf::from("vectors/air_derive.json");
+    let mut out = PathBuf::from("vectors/waist/air_derive.json");
     let mut sample_count = DEFAULT_COUNT;
     let mut args = env::args().skip(1);
 

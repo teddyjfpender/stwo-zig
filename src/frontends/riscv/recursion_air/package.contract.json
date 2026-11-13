@@ -1,0 +1,95 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_recursion_air",
+  "version": "0.1.0",
+  "layer": "frontend",
+  "owner": "riscv-frontend",
+  "public_modules": {
+    "stwo_riscv_recursion_air": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../../waist/core",
+    "stwo_prover_engine": "../../../engine/prover",
+    "stwo_riscv_air_lang": "../air_lang",
+    "stwo_riscv_memory": "../memory",
+    "stwo_riscv_isa": "../isa"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "arithmetic_fusion_fixed_columns",
+    "blake3",
+    "control",
+    "detached",
+    "field_public_word",
+    "field_statement_word",
+    "fixed_wire",
+    "fri",
+    "interaction_generator",
+    "linear_ops_witness",
+    "merkle",
+    "pcs_deep_input",
+    "pcs_deep_input_relation",
+    "pow",
+    "prepared_interaction_generation",
+    "protocol",
+    "qm31",
+    "query",
+    "relation",
+    "roster_composition_geometry",
+    "segment_public_outer_air",
+    "statement",
+    "structural_sha256",
+    "testing",
+    "trace_merkle",
+    "trace_merkle_relation",
+    "trace_merkle_witness",
+    "transcript",
+    "universal_catalog",
+    "universal_catalog_entry",
+    "verifier_component_parameters",
+    "verifier_parameter_tags",
+    "verifier_randomness",
+    "verifier_randomness_relation",
+    "verifier_randomness_witness",
+    "verifier_schedule",
+    "verifier_wire_claims",
+    "verifier_wire_protocol",
+    "vm_air_composition_control",
+    "vm_air_composition_input",
+    "vm_air_composition_input_relation",
+    "vm_public_claim_hash",
+    "vm_public_claim_hash_authority",
+    "vm_public_claim_input",
+    "vm_public_claim_semantics_input",
+    "vm_public_claim_semantics_input_witness",
+    "vm_public_io_hash",
+    "vm_public_logup_control",
+    "vm_public_logup_control_relation",
+    "vm_public_logup_control_v2",
+    "vm_public_logup_control_witness",
+    "vm_public_logup_input",
+    "vm_public_logup_input_witness",
+    "wire_interaction"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "tests/contracts.zig::C3 canonical API identity: logical transcript and routing types"
+    ],
+    "invariant_tests": [
+      "protocol/recursion/protocol.zig::recursion protocol: profile and identifiers are frozen"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_recursion_air_package",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/riscv/recursion_air/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

@@ -1,8 +1,8 @@
 //! Internal fri profile frontier authority shard; use fri_profile_frontier.zig publicly.
 
 pub const std = @import("std");
-pub const fixed_profile = @import("fixed_profile.zig");
-pub const protocol = @import("protocol.zig");
+pub const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
+pub const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 
 pub const MAX_CANDIDATES: usize = 16;
 pub const MAX_OBSERVATIONS: usize = 32;

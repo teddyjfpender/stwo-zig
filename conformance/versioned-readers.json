@@ -34,43 +34,43 @@
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/air/incremental_public_logup_v3.zig",
+      "path": "src/frontends/riscv/rv32/air/incremental_public_logup_v3.zig",
       "reason": "Live full-state and Ethereum role-aware compensation differ; v4 delegates to v3."
     },
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/air/incremental_public_logup_v4.zig",
+      "path": "src/frontends/riscv/rv32/air/incremental_public_logup_v4.zig",
       "reason": "Live full-state and Ethereum role-aware compensation differ; v4 delegates to v3."
     },
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/air/public_data_v2.zig",
+      "path": "src/frontends/riscv/rv32/air/public_data_v2.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/air/public_logup_v2.zig",
+      "path": "src/frontends/riscv/rv32/air/public_logup_v2.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/air/statement_v2.zig",
+      "path": "src/frontends/riscv/rv32/air/statement_v2.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/recursion/air/vm_public_logup_control_v2.zig",
+      "path": "src/frontends/riscv/recursion_air/vm_public_logup_control_v2.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3.zig",
+      "path": "src/frontends/riscv/compat/assembly/recursion/recursion_air_composition_circuit_v3.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {
@@ -124,7 +124,7 @@
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/recursion/tests/segment_leaf_authority_v2_test.zig",
+      "path": "src/frontends/riscv/compat/tests/recursion/tests/segment_leaf_authority_v2_test.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {
@@ -142,13 +142,13 @@
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/recursion/tests/vm_air_profile_v2_test.zig",
+      "path": "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/vm_air_profile_v2_test.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/recursion/tests/vm_leaf_context_v2_test.zig",
+      "path": "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/vm_leaf_context_v2_test.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {
@@ -166,13 +166,13 @@
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/recursion/vm_air_profile_v2.zig",
+      "path": "src/frontends/riscv/rv32/recursion/vm_air_profile_v2.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/recursion/vm_leaf_context_v2.zig",
+      "path": "src/frontends/riscv/rv32/recursion/vm_leaf_context_v2.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {
@@ -232,7 +232,7 @@
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/segment_statement_outer_source_v2_test_root.zig",
+      "path": "src/frontends/riscv/recursion/focused_test_recursion_segment_statement_source_v2_0.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {

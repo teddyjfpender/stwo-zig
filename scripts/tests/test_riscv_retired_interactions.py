@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parents[2]
 class RetiredInteractionTests(unittest.TestCase):
     def test_only_test_surfaces_import_the_oracle(self) -> None:
         allowed = {
-            "src/frontends/riscv/testing.zig",
-            "src/frontends/riscv/test_inventory.zig",
-            "src/frontends/riscv/air_semantics_partition_0_test_root.zig",
+            "src/frontends/riscv/rv32/mod.zig",
+            "src/frontends/riscv/rv32/tests/root.zig",
+            "src/frontends/riscv/rv32/focused_test_air_semantics_0.zig",
         }
         consumers = set()
         for source in (ROOT / "src").rglob("*.zig"):
@@ -22,12 +22,12 @@ class RetiredInteractionTests(unittest.TestCase):
         self.assertEqual(allowed, consumers)
 
     def test_retired_public_route_is_absent(self) -> None:
-        air = ROOT / "src/frontends/riscv/air"
+        air = ROOT / "src/frontends/riscv/compat/air"
         self.assertFalse((air / "interaction_gen.zig").exists())
         self.assertNotIn("pub const interaction_gen", (air / "mod.zig").read_text())
 
     def test_memory_owner_excludes_retired_writers_and_constraints(self) -> None:
-        source = (ROOT / "src/frontends/riscv/air/opcode_memory.zig").read_text()
+        source = (ROOT / "src/frontends/riscv/rv32/air/opcode_memory.zig").read_text()
         for declaration in ("pub fn generate(", "pub fn constraints(", "pub const Generated", "fn accessFromTrace("):
             self.assertNotIn(declaration, source)
 
@@ -41,16 +41,18 @@ class RetiredInteractionTests(unittest.TestCase):
             product="typed-session-host-contract",
             entry_roots=(
                 "src/frontends/riscv/runner/segment_session.zig",
-                "src/frontends/riscv/host/runtime.zig",
+                "src/frontends/riscv/rv32/host/runtime.zig",
             ),
-            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),
+                *(NamedImport("stwo_riscv_" + name, "src/frontends/riscv/" + name + "/mod.zig")
+                  for name in ("isa", "air_lang", "memory", "recursion_air", "precompiles", "rv32"))),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
             allowed_prefixes=("src/waist/core", "src/frontends/riscv"),
         )
         sources = inspect_sources(ROOT, manifest).relative_sources()
-        self.assertIn("src/frontends/riscv/runner/generated_retirement.zig", sources)
-        self.assertIn("src/frontends/riscv/host/interface.zig", sources)
+        self.assertIn("src/frontends/riscv/rv32/runner/generated_retirement.zig", sources)
+        self.assertIn("src/frontends/riscv/isa/host/interface.zig", sources)
         for source in sources:
             if source.startswith("src/frontends/riscv/"):
                 self.assertNotIn("/prover", source)

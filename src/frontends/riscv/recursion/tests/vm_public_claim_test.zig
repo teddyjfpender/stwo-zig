@@ -2,9 +2,9 @@
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const public_data_mod = @import("../../air/public_data.zig");
-const claim = @import("../vm_public_claim.zig");
-const claim_witness = @import("../air/vm_public_claim_input_witness.zig");
+const public_data_mod = @import("stwo_riscv_rv32").air.public_data;
+const claim = @import("stwo_riscv_rv32").recursion.vm_public_claim;
+const claim_witness = @import("stwo_riscv_rv32").recursion.air.vm_public_claim_input_witness;
 
 const M31 = stwo_core.fields.m31.M31;
 

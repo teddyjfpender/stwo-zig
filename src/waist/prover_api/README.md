@@ -7,7 +7,7 @@ check without importing the prover implementation.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `1.0.0-rc.1` |
 | Layer | `api` |
 | Owner | `prover-api` |
 | Public Zig module | `stwo_prover_api` |

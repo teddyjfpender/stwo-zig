@@ -23,6 +23,7 @@ from scripts.riscv.riscv_csp_benchmark_lib.contract import (
 
 from .codec import EvidenceError, load_json, seal_document, verify_document_seal
 from .contract import exact_object, expect_commit, expect_digest, expect_positive_int
+from .contract import SHAPE_AUDITED_SOURCES as AUDITED_SOURCES
 
 
 INSPECTION_SCHEMA = "stwo.riscv.recursion-shape-inspection.v2"
@@ -30,16 +31,6 @@ AUDIT_SCHEMA = "stwo.riscv.recursion-csp-shape-audit.v2"
 PROFILE_REGISTRY_SCHEMA = "stwo.riscv.recursion-csp-profile-registry.v1"
 DEFAULT_AUDIT = MANIFEST.parent / "recursion-shape-audit-v2.json"
 
-AUDITED_SOURCES = (
-    "src/products/riscv/tools/recursive_csp_shape_inspector/main.zig",
-    "src/products/riscv/tools/recursive_csp_producer/profile_registry.zig",
-    "src/frontends/riscv/prover/statement_shape_inspection.zig",
-    "src/frontends/riscv/prover/commitment_witness.zig",
-    "src/frontends/riscv/prover/statement_geometry.zig",
-    "src/frontends/riscv/prover/statement_validation.zig",
-    "src/frontends/riscv/air/statement.zig",
-    "src/frontends/riscv/recursion/segment_profile.zig",
-)
 
 INSPECTION_KEYS = frozenset(
     {

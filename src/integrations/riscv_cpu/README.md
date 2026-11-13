@@ -2,7 +2,7 @@
 
 | Fact | Value |
 | --- | --- |
-| Version | `0.2.0` |
+| Version | `1.1.0` |
 | Layer | `integration` |
 | Owner | `riscv-cpu-integration` |
 | Focused CI host | Linux |
@@ -22,7 +22,7 @@ flowchart TD
 
 This package binds the backend-neutral typed RV32IM frontend to the CPU prover engine. The RISC-V runner, witness, AIR, and statement rules remain owned by `src/frontends/riscv`; this package selects the CPU backend and supplies the proof adapter used by the released CPU product and CSP benchmarks.
 
-The public module is [`mod.zig`](mod.zig). Its supported surface consists of `CpuProverEngine`, native proof and verification entry points, the Poseidon2 guest profile, the CSP-compatible Ethereum guest proof artifact, and the generic recursive FRI outer verifier. The Ethereum guest profile remains because CSP ECDSA uses it. It is distinct from the archived Ethereum **block** proving experiment.
+The public module is [`mod.zig`](mod.zig). It selects `CpuProverEngine` and exposes native proving/verification, service proof adapters, shared artifact helpers and recursion. Ethereum adapters remain compatibility surface pending the approved [product extraction](https://github.com/teddyjfpender/stwo-zig/issues/352); their presence does not make that extraction complete.
 
 The existing build also consumes `stwo_circuit_recursion_wire`. Their providers stay explicit in the package manifest; injected aliases do not replace these concrete dependency edges.
 
@@ -96,6 +96,13 @@ to PCS. All 17 statements, claims and proofs remain byte-identical. ECDSA takes
 about 19.6 seconds in the matched suite; composition still sets the 12.78 GiB
 caller peak. Rejected scheduling/zero-shortcut experiments are documented.
 
+## Native execution domain
+
+`rv64_execution` binds the existing native witness/setup/proof, service, memory,
+delegation and source owners. It retains their exact types, bytes and lifetime
+rules; it does not establish Ethereum request/image authority. The old expected
+image name belongs to product compatibility.
+
 ## Public API
 
 Consumers import the declared module rather than relative source files:
@@ -116,7 +123,6 @@ are tracked separately from this metadata reconciliation.
 - `Poseidon2InteractionClaim`
 - `Poseidon2ProveOutput`
 - `diagnoseRiscVRelations`
-- `ethereum_proof_artifact`
 - `poseidon2_proof_artifact`
 - `proveAndVerifyElf`
 - `provePoseidon2WithPublicData`
@@ -133,17 +139,6 @@ are tracked separately from this metadata reconciliation.
 - `rv64_device_main`
 - `rv64_device_pcs`
 - `rv64_device_source_stage`
-- `rv64_ethereum_canon_rungs`
-- `rv64_ethereum_capture`
-- `rv64_ethereum_capture_options`
-- `rv64_ethereum_direct`
-- `rv64_ethereum_gkr_main`
-- `rv64_ethereum_keys`
-- `rv64_ethereum_plan`
-- `rv64_ethereum_receiver`
-- `rv64_ethereum_request`
-- `rv64_ethereum_terminal`
-- `rv64_expected_image`
 - `rv64_family_input`
 - `rv64_full`
 - `rv64_gkr_bundle_wire`
@@ -180,6 +175,9 @@ are tracked separately from this metadata reconciliation.
 - `rv64_native_gkr_section`
 - `rv64_native_gkr_v2`
 - `rv64_native_policy`
+- `rv64_native_rungs`
+- `rv64_execution`
+- `rv64_native_schema`
 - `rv64_om31_cpu_leaf`
 - `rv64_om31_execution_wrap`
 - `rv64_om31_outer`
@@ -201,11 +199,11 @@ are tracked separately from this metadata reconciliation.
 - `rv64_pcs_suite`
 - `rv64_program`
 - `rv64_program_metadata`
+- `rv64_proof_artifact_support`
 - `rv64_provider_tails`
 - `rv64_recursion_budget`
 - `rv64_replay_capture`
 - `rv64_root_verify`
-- `rv64_root_verify_main`
 - `rv64_services_collector`
 - `rv64_services_roster`
 - `rv64_services_types`
@@ -282,3 +280,40 @@ tree coverage and publication. Canonical package modules share field and engine
 identity. OM31 retains its existing **prefixed** Blake2s Merkle hasher and raw-mod
 transcript; the older circuit profiles retain their existing plain family.
 No hash family, wire bytes, profile admission or device qualification changes.
+
+`rv64_proof_artifact_support` exposes the single shared physical-cell accounting
+and durable-file implementation. Ethereum receipt schema and chain checkpoint
+policy remain with the product adapter. Run its owner and real public-consumer
+contracts with `zig build test-proof-artifact-support --build-file
+src/integrations/riscv_cpu/build.zig -Doptimize=Debug -j1` (also ReleaseFast).
+The default package test includes the consumer; no self-module reconstruction
+or duplicate record definition is used.
+
+For bounded local work, `python3 scripts/dev_test.py --optimize Debug
+src/integrations/riscv_cpu/rv64_proof_artifact_support.zig` executes the actual
+public consumer and three private owner cases directly, under the same build
+lock. Use ReleaseFast for its other required mode. The full package build and
+proof acceptance remain separate checks.
+
+
+### Coordinator early-source boundary
+
+`rv64_gkr_coordinator.ForEarlySources(Cpu0, Segments)` specializes only producer
+operations. The neutral default uses `void, void`, making the two early-source
+fields null-typed; it cannot name or select a product owner. Ethereum compatibility
+binds its existing concrete owners in the product. Bundle, stream, worker timing,
+encoded workers and request records retain one canonical native owner.
+
+The returned domain also exposes the existing operational `planAdmission` and
+`produceWithPolicy` bodies plus the owned `Admission.deinit`. They do not accept
+proofs or supply verification authority. Frozen tree policy still passes the
+original `tree_selection.validate`; inventory reconstruction, manifest closure,
+cancellation and teardown checks remain mandatory. All returned domain methods
+retain existing error and lifetime semantics. This unpublished 1.0.0 candidate
+requires the product consumer and complete execution gates before qualification.
+
+The shared artifact helper `rv64_proof_artifact_support.syncDirectory` borrows
+a directory and persists its entries through an independently opened readable
+handle. It preserves the caller’s handle and propagates open/sync failures;
+callers must not report durable publication after failure. This supports Linux
+non-iterable (`O_PATH`) handles as well as macOS directory handles.

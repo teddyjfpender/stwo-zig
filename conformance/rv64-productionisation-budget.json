@@ -12,6 +12,20 @@
   },
   "entries": [
     {
+      "id": "runtime_selector_replay_diagnostic",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue330 comments6805045179/6805442223: keep the existing seeded runtime polynomial active-selector assertion reachable through the maintained focused catalog, serial build and hosted CPU entrypoint. Specialize the existing fixed8/4 shift coefficients at compile time, preserving arithmetic/iteration order; the original test file, assertion, RNG, family coverage and full frontend floors stay exact. No field algorithm, public API/protocol change, copied test or launcher. Temporary traces and the ineffective noinline experiment are removed. Full frontend/proof gates remain independent; rollback the focused plumbing and private kernel change together without removing the original regression."
+    },
+    {
+      "id": "c3_private_control_row_ownership_rfc344",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Private prerequisite within the approved C3 <=4000 total, charged once: canonical control row/encoder below schedule and allocation ownership. Preserve exact old aliases and three existing framework test bodies, add row/selector and nominal identity coverage, retain all discovery and floors. No public API, numerical, wire or protocol change; rollback moves canonical definitions and imports together."
+    },
+    {
       "id": "worktree_consolidation",
       "net_code_budget": 0,
       "flags_added_budget": 0,
@@ -983,6 +997,34 @@
       "positive_growth_justification": "Issue #330: reuse the existing frontend test catalog, floor checker and hosted CPU lane to isolate the twelve unchanged failures from the complete ReleaseFast run. Literal leaf imports and exact filters retain original assertions; error traces improve diagnosis. Preserve complete mandatory suite, floors, golden pins and throughput thresholds. No copied tests, runtime flags or new launcher. Diagnostic result never substitutes for the complete gate; rollback removes the selection and lane together."
     },
     {
+      "id": "c1_owner_local_flag_defaults_and_expiry",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #332: remove owner-local environment controls without maintained overrides by preserving exact absent-variable defaults, trim obsolete parsing/reporting paths, and shrink the precise #329 ambient-reader exception. Keep deferred GPU promotion, library/device selection, two-key fault arming, required negatives and preset overrides. Require live flag expiry dates; test unknown/missing/expired metadata and prohibit reference refresh from renewing decisions. No new launcher or ABI; code/test growth is paid by removed readers. This is an initial sweep, not a claim that the <60 live target or GPU qualification is complete."
+    },
+    {
+      "id": "c1_redundant_preset_and_scheduling_defaults",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #332 continuation: fold default-only preset values and dormant scheduling controls; remove obsolete passthrough keys and parsing branches. Preserve typed policies, all proof algorithms and negative tests, allocation-plan and device-selection controls, artifact controls that select stronger protocol settings, and deferred GPU-native promotion. No new launcher, ABI or proof-format boundary; remaining live-count debt is explicit."
+    },
+    {
+      "id": "c1_retire_disabled_report_outputs",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #332: remove owner-local optional filesystem diagnostics with no maintained setter or live artifact consumer. Keep fingerprint computation and all proof/negative assertions; retain direct typed class-plan writing, complete worker destruction and rejected-request cleanup. No protocol, ceiling, test-root or qualification parameter changes."
+    },
+    {
+      "id": "c1_retire_default_disabled_composition_owners",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #332: retire complete selected-column/reusable-workspace execution branches and unused outer-chunk loader after their owner-local controls folded to the maintained defaults. Preserve the exact default per-role arena allocation, capability checks, stream ordering, join/release/cancellation paths and all live proof tests; no artifact/security setting changes or GPU-native promotion. No new API, launcher or larger ceiling. Retire sparse truth and old device-FS recorder adapters whose maintained modes are explicitly zero; preserve the default host-parameter upload/release and CPU-derived composition powers. Keep all preload assets, binary/source pins, physical sampling, actual GPU-native checks/encoding and default hybrid owners unchanged."
+    },
+    {
       "id": "phase0_workspace_contracts_blocking",
       "net_code_budget": 100,
       "flags_added_budget": 0,
@@ -1004,11 +1046,89 @@
       "positive_growth_justification": "Pre-edit issue333 comment6752084383: apply pinned Zig0.15.2 canonical whitespace after path shortening. All changed Zig files are checked; only one declaration-array alignment differs. Preserve line counts, non-whitespace source bytes, literal strings and all protocol/source pins; no implementation or optimization change. Existing13-line P003 facade retains its separate16-line allowance."
     },
     {
+      "id": "c3_authority_graph_foundation",
+      "net_code_budget": 400,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue335 / RFC352 decisions6753253656 and6753472871: carve at most400 net lines ONCE from the existing4000 total C3 allowance (later package split allowance excludes this charge). One source-bound VM profile authority/graph implementation separates native proof authority from product selector/routing policy; preserves full original tags, identity bytes, canonical records, validation/error/cleanup and actual test ownership. Closed CircuitLayout prerequisite and exact upper compatibility wrappers are included, not extra allowance. Containment is concrete typed native/product bindings with no runtime registry or copied recorder. Rollback reverts the complete owner/consumer/test transaction together; actual hosted graph byte/negative tests are required, not AST or Native golden alone."
+    },
+    {
       "id": "csp_protocol_shape_source_contract",
       "net_code_budget": 5,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Pre-edit issue361: pin the exact already-shipped RISC-V Metal protocol manifest including typed ECDSA recovery; retain strict single-registration checks. Regenerate stale proof-independent shape coverage only with the existing pinned CPU inspector/audit entrypoints, complete16-case matrix and source identity; no hand-edited hash or performance/proof/GPU reclassification. Code growth is limited to the existing test contract; metadata/receipts reported separately."
+    },
+    {
+      "id": "a3_remaining_nonblocking_frontend_benchmark_ownership",
+      "net_code_budget": 240,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue330 comments6751095616 and6751132519 extend the complete shared-runner timing separation to52 exact cases, including17 retirement and2 split/scheduler comparisons. Preserve every name, assertion body, threshold and helper in the existing nonblocking lane; mandatory correctness floors, functional/negative tests and frozen proof pins stay unchanged. Growth owns only test registration/filter metadata and test-only fixture signatures, not production optimization. Earlier180-line allowance covered33 cases; full bounded allowance240, no runtime flag or launcher."
+    },
+    {
+      "id": "riscv_pr_smoke_live_schema_349",
+      "net_code_budget": 280,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Strict private CPU smoke consumers for retained legacy schema pairs and the actual full-width BLAKE3 producer/verifier, source-pinned hosted report fixtures, identity/PCS/phase/ambiguity negatives, separate CLI admission/proof release metadata and independent workload-input binding. No producer, public API, proof suite/default, pin, corpus, floor or timeout changes. Issue #349."
+    },
+    {
+      "id": "waist_consumer_contracts_366_367",
+      "net_code_budget": 2400,
+      "validator_build_code_budget": 650,
+      "consumer_negative_test_code_budget": 1750,
+      "initial_metadata_stage_net_budget": 300,
+      "runtime_public_api_added_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "top_level_scripts_added_budget": 0,
+      "positive_growth_justification": "Approved RFC367 consumer-owned waist behavior, strict v2/v3 metadata and real source ownership/module identity/discovery gates; initial schema-only checkpoint does not admit unvalidated v3 registrations. Full D3 and populated/enforced D5 remain open.",
+      "scope": "Existing metadata/build/CI owners and consumer test roots only. Preserve provider commands/versions, proof bytes, actual rejection checks and all D2/D4 gates; no GPU execution or new launcher.",
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/367#issuecomment-6752608217"
+    },
+    {
+      "id": "d4_seeded_protocol_properties",
+      "net_code_budget": 800,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #347: at most800 net test-source lines for bounded fixed-seed field laws, FRI polynomial/linearity/composition properties, frozen Merkle membership/mutation checks and codec round trips in Debug and ReleaseFast. Reuse existing roots, independent integer/polynomial/frozen expectations and exact CM31 corpus; retain its noinline workaround. No runtime/public API, flags, launcher, golden or performance claims."
+    },
+    {
+      "id": "waist_rc_freeze_354_355",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Strict existing version-parser prerelease recognition and rejection tests permit the user-directed five-package 1.0.0-rc.1 metadata transaction, preserving all existing runtime/API/wire/error/source/dependency behavior. RC is separate from D2/D3/D5 and final Phase1 exit; RFC355."
+    },
+    {
+      "id": "source_ceiling_bounded_ownership_checkpoint",
+      "net_code_budget": 500,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 4,
+      "positive_growth_justification": "Issue343 bounded checkpoint narrows the previously announced2500-line sweep allowance to500 after stopping at15 repaired violations (98to83). Actual net394 lines retain100 Python AST bodies, full Metal source bytes and existing kernel/source pins. Four private Python owner modules, no launcher; remaining83 violations are explicit follow-up, never baselined or suppressed. File moves receive no removal credit."
+    },
+    {
+      "id": "e1_waist_vector_ownership",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue362: move three immutable waist JSON fixtures to vectors/waist and update every live reader/generator default plus exact manifest path/group references. Fixture blobs, sizes, hashes, cases, generator dependencies and upstream identities remain unchanged; no numeric regeneration or source-pin bypass. Path-only source substitutions have zero net growth; physical moves get no removal credit. Remaining legacy line/source-bound artifacts stay explicit E1 follow-up."
+    },
+    {
+      "id": "typed_circuit_decode_errors_359_360",
+      "net_code_budget": 320,
+      "runtime_table_plumbing_max": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Two origin-specific stable decoder codes, immediately consumed by the circuit verifier and existing CPU CLI, with exact code/class/unknown/foreign-origin/OOM/diagnostic-failure contracts. All remaining five-waist D2 boundaries remain explicit; no global anyerror mapping or proof-byte/error/exit change. Approved RFC360."
+    },
+    {
+      "id": "c4_ethereum_product_extraction",
+      "net_code_budget": 1200,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue336 / RFC352: one complete Ethereum product boundary with canonical shared types, explicit compatibility component identity and strict product-placement/dependency rejection. The single +800 source allowance includes private service-call/artifact ownership cuts, the already-approved three mathematical providers, product/build/consumer wiring and tests; moves receive no subtraction credit. Preserve original algorithms, protocol/profile identities, named discovery, errors, publication and teardown. Additional public providers/signature changes require their exact recorded RFC amendment before publication. Rollback the complete source/consumer/test transaction; no new flags or launchers."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

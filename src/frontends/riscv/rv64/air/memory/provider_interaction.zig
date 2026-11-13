@@ -2,9 +2,9 @@
 //! prefix convention. No duplicate Call/output arrays and no permutation replay.
 const std = @import("std");
 const core = @import("stwo_core");
-const legacy = @import("../../../air/memory_commitment/poseidon2_air.zig");
-const Relations = @import("../../../air/relation_challenges.zig").Relations;
-const Pair = @import("../../../air/logup.zig").RowPair;
+const legacy = @import("stwo_riscv_memory").air.poseidon2_air;
+const Relations = @import("stwo_riscv_air_lang").evaluation.relation_challenges.Relations;
+const Pair = @import("stwo_riscv_air_lang").evaluation.logup.RowPair;
 const values = @import("values.zig");
 const physical = @import("../witness.zig").physical;
 const M = core.fields.m31.M31;

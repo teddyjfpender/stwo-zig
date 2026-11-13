@@ -778,6 +778,11 @@ fn verifyCommand(gpa: std.mem.Allocator, command: cli.Verify) !bool {
         .rejected => |why| try out.print("rejected at {s}: {s}\n", .{ @tagName(why.stage), @errorName(why.reason) }),
     }
     try out.flush();
+    if (verdict == .rejected) if (verdict.rejected.wire_failure) |failure| {
+        var stderr_buffer: [256]u8 = undefined;
+        var stderr = std.fs.File.stderr().writer(&stderr_buffer);
+        @import("verify_output.zig").write(&stderr.interface, failure);
+    };
     return verdict.isAccepted();
 }
 
@@ -816,5 +821,6 @@ fn circuitParams(gpa: std.mem.Allocator, command: cli.CircuitParams) !void {
 }
 
 test {
+    _ = @import("verify_output.zig");
     _ = cli;
 }

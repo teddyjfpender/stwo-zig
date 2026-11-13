@@ -1,6 +1,6 @@
 """Shared RISC-V preprocessed lookup-table membership, per relation domain.
 
-Transcribed from `src/frontends/riscv/air/lookups/tables/schema.zig` (`Kind`,
+Transcribed from `src/frontends/riscv/air_lang/shared/air/lookups/tables/schema.zig` (`Kind`,
 `logSize`, `arity`, `tupleAt`) and from `air/lookups/entry.zig` (`Domain`,
 `expectedArity`).  Those files stay the source of truth: the widths here are a
 restatement for a different toolchain, and `test_air_uniqueness.py` cross-checks

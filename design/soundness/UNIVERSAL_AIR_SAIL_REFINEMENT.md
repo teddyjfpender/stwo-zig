@@ -380,7 +380,7 @@ rewritten AIR is not a proof of the production system.
 
 ### 6.1 Current extraction
 
-`src/frontends/riscv/air/extract/mod.zig` evaluates the generic production
+`src/frontends/riscv/rv32/air/extract/mod.zig` evaluates the generic production
 semantics and lookup-entry construction with a symbolic scalar and emits:
 
 - ordered columns and roles;
@@ -675,7 +675,7 @@ The completed source promotion followed this family-oriented order:
 
 Within each family, shared lemmas are proved once and selector-specific
 theorems instantiate them. Coverage automation compares theorem names and
-opcode IDs against `src/frontends/riscv/opcode_manifest.zig`; an omitted,
+opcode IDs against `src/frontends/riscv/isa/opcode_manifest.zig`; an omitted,
 duplicated, or renamed opcode fails closed.
 
 ## 11. Repository layout
@@ -807,7 +807,7 @@ stale formal inputs but does not substitute for a Lean or live-Sail run.
 Every pull request touching the following surfaces triggers the fast
 refinement build:
 
-- `src/frontends/riscv/opcode_manifest.zig`;
+- `src/frontends/riscv/isa/opcode_manifest.zig`;
 - `src/frontends/riscv/isa/**`;
 - `src/frontends/riscv/air/semantics/**`;
 - opcode trace columns or lookup-entry generation;

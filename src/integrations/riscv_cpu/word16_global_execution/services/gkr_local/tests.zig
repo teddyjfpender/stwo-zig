@@ -401,10 +401,6 @@ test {
 }
 
 test {
-    _ = @import("../../ethereum/receiver_budget.zig");
-}
-
-test {
     _ = @import("fixed_source_metadata_test.zig");
 }
 
@@ -500,10 +496,6 @@ test {
 }
 test {
     _ = @import("truth_v3_test.zig");
-}
-test {
-    _ = @import("v3_execution_test.zig");
-    _ = @import("cpu_compact_role_test.zig");
 }
 
 test {

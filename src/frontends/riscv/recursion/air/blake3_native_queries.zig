@@ -4,9 +4,9 @@ const core = @import("stwo_core");
 const deep_mod = @import("blake3_native_deep.zig");
 const fri_mod = @import("blake3_native_fri.zig");
 const query_links = @import("blake3_query_links.zig");
-const scalar = @import("scalar_wire_source.zig");
-const encoding = @import("blake3_field_bytes.zig");
-const lower = @import("verifier_arithmetic_lowering.zig");
+const scalar = @import("stwo_riscv_air_lang").framework.scalar_wire_source;
+const encoding = @import("stwo_riscv_air_lang").framework.blake3_field_bytes;
+const lower = @import("stwo_riscv_rv32").recursion.air.verifier_arithmetic_lowering;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const Direct = @import("blake3_pcs_source_columns.zig");
@@ -19,7 +19,7 @@ pub const Prepared = struct {
     fixed: []scalar.Row,
     encoded: []encoding.Row,
     fixed_encoded: []encoding.Row,
-    columns: ?@import("blake3_upstream_source_columns.zig").ForSlots(.{ 12, 10 }) = null,
+    columns: ?@import("stwo_riscv_recursion_air").blake3.upstream_source_columns.ForSlots(.{ 12, 10 }) = null,
     paths_applied: bool = false,
     pub fn deinit(self: *Prepared) void {
         if (self.columns) |*columns| columns.deinit();

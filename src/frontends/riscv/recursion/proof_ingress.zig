@@ -8,12 +8,12 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const postcard = @import("interop_postcard");
-const statement_mod = @import("../air/statement.zig");
-const statement_v2 = @import("../air/statement_v2.zig");
-const statement_validation = @import("../prover/statement_validation.zig");
-const prover_types = @import("../prover/types.zig");
+const statement_mod = @import("stwo_riscv_rv32").air.statement;
+const statement_v2 = @import("stwo_riscv_rv32").air.statement_v2;
+const statement_validation = @import("stwo_riscv_rv32").prover.statement_validation;
+const prover_types = @import("stwo_riscv_rv32").prover.types;
 const engine = @import("engine.zig");
-const protocol = @import("protocol.zig");
+const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 
 /// Exact authenticated retirement authority accepted by the additive V2
 /// proof-shape preflight below. Exporting the type here keeps integration
@@ -170,15 +170,15 @@ pub fn preflightShapeV2WithRetirementSupplementV2ForVerifierConfig(
 
 /// Geometry admission for the explicit Ethereum circuit. Independent program
 /// Tree0 authority is checked by the enclosing native/profile verifier.
-pub fn preflightShapeV2WithCircuitProfileV1(
+pub fn preflightShapeV2WithCircuitLayout(
     statement: *const statement_v2.RiscVStatementV2,
     supplement: RetirementSupplementV2,
     pcs_config: stwo_core.pcs.PcsConfig,
     max_wire_bytes: usize,
-    circuit_profile: @import("../prover/ethereum_circuit_profile.zig").CircuitProfileV1,
+    circuit_layout: @import("stwo_riscv_air_lang").circuit_layout.CircuitLayout,
 ) Error!postcard.proof_preflight.Shape {
     if (max_wire_bytes == 0) return error.InvalidProofResourceLimit;
-    try statement_validation.validateV2WithRetirementSupplementAndCircuitProfileV1(statement, .proof, supplement, circuit_profile);
+    try statement_validation.validateV2WithRetirementSupplementAndCircuitLayout(statement, .proof, supplement, circuit_layout);
     return preflightShapeFromValidatedCore(statement.core, pcs_config, max_wire_bytes);
 }
 

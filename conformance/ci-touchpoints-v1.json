@@ -97,6 +97,8 @@
           "zig",
           "build",
           "test-fields",
+          "test-fri",
+          "test-revision",
           "--build-file",
           "src/waist/core/build.zig",
           "-Doptimize=Debug",
@@ -116,6 +118,20 @@
           "test",
           "--build-file",
           "src/waist/core/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-core",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-core",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -581,6 +597,15 @@
           "test",
           "--build-file",
           "src/waist/recursion_wire/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/waist/recursion_wire/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -977,6 +1002,66 @@
         ]
       ]
     },
+    "riscv_runtime_selector": {
+      "host": "linux",
+      "description": "Explicit original active-selector replay diagnostic; complete frontend acceptance remains mandatory",
+      "commands": [
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-runtime-selector",
+          "-Doptimize=Debug",
+          "-j1",
+          "--summary",
+          "all",
+          "--verbose"
+        ],
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-runtime-selector",
+          "-Doptimize=ReleaseFast",
+          "-j1",
+          "--summary",
+          "all",
+          "--verbose"
+        ]
+      ]
+    },
+    "riscv_native_graph": {
+      "host": "linux",
+      "description": "Explicit captured-native-proof graph parity diagnostic; full integration and frontend suites remain mandatory",
+      "commands": [
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/integrations/riscv_cpu",
+          "test-segment-v2-native-proof",
+          "-Doptimize=Debug",
+          "-j1",
+          "--summary",
+          "all",
+          "--verbose"
+        ],
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/integrations/riscv_cpu",
+          "test-segment-v2-native-proof",
+          "-Doptimize=ReleaseFast",
+          "-j1",
+          "--summary",
+          "all",
+          "--verbose"
+        ]
+      ]
+    },
     "riscv_retained_contracts": {
       "host": "linux",
       "description": "Retained native projection, transcript and VM composition contract diagnostic; full frontend remains mandatory",
@@ -987,7 +1072,7 @@
           "--cwd",
           "src/frontends/riscv",
           "test-retained-transcript-contracts",
-          "test-retained-typed-components",
+          "test-native-typed-components",
           "-Doptimize=Debug",
           "-j1",
           "--summary",
@@ -1024,7 +1109,7 @@
           "--cwd",
           "src/frontends/riscv",
           "test-retained-transcript-contracts",
-          "test-retained-typed-components",
+          "test-native-typed-components",
           "-Doptimize=ReleaseFast",
           "-j1",
           "--summary",
@@ -1033,9 +1118,23 @@
         ]
       ]
     },
+    "riscv_profile_partition": {
+      "host": "linux",
+      "local": "hosted",
+      "description": "Manual bounded Debug execution of existing profile partition and exact proof-pool recovery",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-riscv-profile-partition",
+          "-Doptimize=Debug",
+          "-j2"
+        ]
+      ]
+    },
     "riscv_frontend_acceptance": {
       "host": "linux",
-      "description": "Four correctness/contract regressions from #330; timing benchmarks have a separate non-blocking lane",
+      "description": "Existing correctness regressions plus owned transcript coverage in both modes; timing benchmarks remain separate",
       "commands": [
         [
           "zig",
@@ -1046,6 +1145,28 @@
           "-Doptimize=ReleaseFast",
           "-j2",
           "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test-recursion-transcript-v2",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=Debug",
+          "-j2",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test-recursion-transcript-v2",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
           "--summary",
           "all"
         ]
@@ -1074,6 +1195,350 @@
           "--build-file",
           "src/frontends/riscv/build.zig",
           "-Doptimize=Debug",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
+    },
+    "riscv_isa_package": {
+      "host": "linux",
+      "description": "Owned isa contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/isa/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/isa/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_air_lang_package": {
+      "host": "linux",
+      "description": "Owned air lang contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/air_lang/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/air_lang/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_memory_package": {
+      "host": "linux",
+      "description": "Owned memory contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/memory/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/memory/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_recursion_air_package": {
+      "host": "linux",
+      "description": "Owned recursion air contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/recursion_air/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/recursion_air/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_precompiles_package": {
+      "host": "linux",
+      "description": "Owned precompiles contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/precompiles/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/precompiles/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_rv32_package": {
+      "host": "linux",
+      "description": "Owned rv32 contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/rv32/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/rv32/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_rv64_package": {
+      "host": "linux",
+      "description": "Owned RV64 Debug contracts; ReleaseFast runs independently with the same triggers",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/rv64/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_recursion_package": {
+      "host": "linux",
+      "description": "Owned recursion contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/recursion/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/recursion/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_testing_package": {
+      "host": "linux",
+      "description": "Owned testing contracts in Debug and ReleaseFast",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/testing/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/testing/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_rv64_package_releasefast": {
+      "host": "linux",
+      "description": "Owned RV64 ReleaseFast contracts; separate job retains both modes within bounded host time",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/rv64/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "riscv_profile_partition_releasefast": {
+      "host": "linux",
+      "local": "hosted",
+      "description": "Manual bounded ReleaseFast execution of existing profile partition and exact proof-pool recovery",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-riscv-profile-partition",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
+    "ethereum_statement": {
+      "host": "linux",
+      "description": "Complete Ethereum product Debug component and compatibility contracts",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-retained-typed-components",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test-authenticated-component-profile",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
+    },
+    "ethereum_statement_releasefast": {
+      "host": "linux",
+      "description": "Independent complete Ethereum ReleaseFast and CSP qualification; receiver boundaries run before broad compilation",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-csp-ecdsa-proof",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test-receiver-boundaries",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test-word16-cpu-zero-induction-proof",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test-retained-typed-components",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=ReleaseFast",
           "-j2",
           "--verbose",
           "--summary",
@@ -1725,6 +2190,7 @@
     {
       "prefixes": [
         "build_support/products/cairo_cuda.zig",
+        "build_support/products/cairo_cuda_registration.zig",
         "src/products/cairo/cuda/root.zig",
         "src/products/cairo/cuda",
         "src/products/native/tools/cuda_ec_composite_oracle"
@@ -1879,6 +2345,15 @@
     },
     {
       "prefixes": [
+        "src/products/riscv/cpu"
+      ],
+      "lanes": [
+        "riscv_cpu",
+        "aggregate_cpu"
+      ]
+    },
+    {
+      "prefixes": [
         "src/products/riscv/tools/pc_hotspot",
         "src/products/riscv/tools/memcpy_hotspot",
         "src/products/riscv/tools/function_value",
@@ -1893,8 +2368,8 @@
     },
     {
       "prefixes": [
-        "src/frontends/riscv/air/lang/tests/runtime_profile_test.zig",
-        "src/frontends/riscv/air_runtime_profile_test_root.zig"
+        "src/frontends/riscv/testing/cases/air/lang/tests/runtime_profile_test.zig",
+        "src/frontends/riscv/testing/focused_air_runtime_profile_test_root.zig"
       ],
       "lanes": [
         "riscv_runtime_profile"
@@ -1902,10 +2377,10 @@
     },
     {
       "prefixes": [
-        "src/frontends/riscv/recursion/tests/segment_leaf_local_projection_test.zig",
-        "src/frontends/riscv/recursion/tests/vm_composition_program_test.zig",
-        "src/frontends/riscv/retained_transcript_contract_test_root.zig",
-        "src/frontends/riscv/retained_typed_component_test_root.zig"
+        "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig",
+        "src/products/ethereum/statement/frontend/recursion/tests/ethereum_vm_composition_program_test.zig",
+        "src/frontends/riscv/focused_test_retained_transcript_contracts_0.zig",
+        "src/frontends/riscv/focused_test_retained_typed_components_upper.zig"
       ],
       "lanes": [
         "riscv_retained_contracts",

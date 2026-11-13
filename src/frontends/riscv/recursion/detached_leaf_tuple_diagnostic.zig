@@ -11,8 +11,8 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const relation_interaction = @import("air/relation_interaction.zig");
-const roster = @import("air/universal_roster.zig");
+const relation_interaction = @import("stwo_riscv_air_lang").framework.relation_interaction;
+const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 
 pub const TupleLedger = relation_interaction.TupleLedger;
 pub const TupleContribution = relation_interaction.TupleContribution;

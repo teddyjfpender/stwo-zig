@@ -27,7 +27,7 @@ class Rv64FlagsTests(unittest.TestCase):
         self.source.write_text(self.expression)
         self.payload = {"schema": "rv64-flag-registry/v1", "flags": {self.name: {
             "owner": "src/owner.zig", "default": "0", "status": "runtime",
-            "date": "2026-01-01", "references": ["src/owner.zig"],
+            "date": "2026-01-01", "expires": "2099-12-31", "references": ["src/owner.zig"],
             "default_evidence": {"path": "src/owner.zig", "text": self.expression},
         }}}
         self.save()
@@ -73,6 +73,20 @@ class Rv64FlagsTests(unittest.TestCase):
         self.source.write_text("")
         self.assertTrue(any("stale RV64" in e for e in F.check(self.repo)))
 
+    def test_live_expiry_is_required_and_refresh_cannot_renew_it(self):
+        path = self.repo / F.REGISTRY
+        for value in (None, "", "not-a-date", "2000-01-01"):
+            with self.subTest(expiry=value):
+                self.payload["flags"][self.name]["expires"] = value
+                self.save()
+                before = path.read_bytes()
+                self.assertTrue(any("expir" in error for error in F.check(self.repo)))
+                self.assertTrue(F.check(self.repo, refresh=True))
+                self.assertEqual(before, path.read_bytes())
+        self.payload["flags"][self.name]["expires"] = "2099-12-31"
+        self.save()
+        self.assertEqual([], F.check(self.repo))
+
     def test_missing_and_duplicate_registry_fail(self):
         path = self.repo / F.REGISTRY
         path.unlink()
@@ -109,7 +123,7 @@ class Rv64FlagsTests(unittest.TestCase):
         self.name = "STWO_RV64_" + "M8_PENDING"
         self.source.write_text(f'const x = "{self.name}";')
         self.payload["flags"] = {self.name: {"owner": "src/owner.zig", "default": "off",
-            "status": "runtime", "date": "2026-01-01", "references": ["src/owner.zig"],
+            "status": "runtime", "date": "2026-01-01", "expires": "2099-12-31", "references": ["src/owner.zig"],
             "default_evidence": {"path": "src/owner.zig", "text": self.source.read_text()}}}
         self.save()
         self.assertEqual([], F.check(self.repo))

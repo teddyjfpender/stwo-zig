@@ -150,7 +150,7 @@ const Writer = struct {
 };
 pub fn verify(ctx: *C.Context, scope: Scope, instances: []const Frame.Instance, proof: *const G.Proof) !Pending {
     if (instances.len == 0 or instances.len > Receipt.MAX_INSTANCES) return error.LocalGkrReceiptShape;
-    const census = if (std.posix.getenv("STWO_RV64_ASSIGNMENT_CRITICAL_CENSUS")) |v| std.mem.eql(u8, v, "1") else false;
+    const census = false;
     const first_gg = ctx.circuit.blake_g_gate.items.len;
     var channel = try begin(ctx, scope, instances);
     const challenges = Challenges.For(C.F).drawForInstances(&channel, instances);

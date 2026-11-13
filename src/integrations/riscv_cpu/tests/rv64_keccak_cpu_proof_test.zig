@@ -18,19 +18,6 @@ test "MUL typed CPU one PCS joins all5 multiplication DIV Keccak RAM and shared 
     try run(.cyclic_v2, .division_multiplication_services_v3);
 }
 fn run(state_policy: air.state_policy.Policy, arithmetic_policy: air.arithmetic.division.policy.Policy) !void {
-    const work = @import("stwo_prover_engine").work_pool;
-    const workers = std.process.getEnvVarOwned(a, "STWO_RV64_KECCAK_CPU_WORKERS") catch null;
-    defer if (workers) |text| a.free(text);
-    var pool: work.WorkPool = .{};
-    var owns_pool = false;
-    defer if (owns_pool) pool.deinit();
-    var binding: ?work.ScopedPoolBinding = null;
-    defer if (binding) |*scope| scope.deinit();
-    if (workers) |text| {
-        try pool.initInPlaceWithOptions(.{ .worker_count = try std.fmt.parseInt(usize, text, 10), .stack_size = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024, .backing_allocator = a });
-        owns_pool = true;
-        binding = try work.ScopedPoolBinding.init(&pool);
-    }
     const pc: u64 = 0x100001000;
     const ptr: u64 = 0xf123456780001ff8;
     const base_program = [_]u32{ 0x0220c1bb, 0x00353023, 0x00000073, 0x00053303, 0x00000073, 0x00053383, 0x002375b3, 0x40235633 };

@@ -29,6 +29,7 @@ LAYERS = {
     "integration",
     "interchange",
     "protocol",
+    "product",
     "service",
 }
 ALLOWED_DEPENDENCY_LAYERS = {
@@ -41,7 +42,8 @@ ALLOWED_DEPENDENCY_LAYERS = {
     "interchange": {"protocol"},
     "example": {"api", "backend", "engine", "interchange", "protocol"},
     "service": {"service"},
-    "integration": LAYERS,
+    "integration": LAYERS - {"product"},
+    "product": LAYERS - {"product", "service", "example"},
 }
 IMPORT_RE = re.compile(
     r'@import\(\s*"([^"]+)"\s*,?\s*\)',
@@ -97,6 +99,7 @@ class Contract:
     # Sub-directories that live beside the package but are not part of it
     # (product tools, benchmarks, system tests that consume the package).
     consumer_subdirs: tuple[str, ...] = ()
+    metadata: ci_package_graph.ContractMetadata | None = None
 
 
 def _object(value: Any, label: str) -> dict[str, Any]:
@@ -131,37 +134,18 @@ def owned_by(contract: Contract, source: Path) -> bool:
 
 
 def load_contract(path: Path) -> Contract:
-    payload = _object(json.loads(path.read_text(encoding="utf-8")), str(path))
-    expected_fields = {
-        "schema",
-        "package",
-        "version",
-        "layer",
-        "owner",
-        "public_modules",
-        "dependencies",
-        "injected_modules",
-        "api_surface",
-        "api_contract",
-        "ci",
-    }
-    optional_fields = {"consumer_subdirs"}
-    if not expected_fields <= set(payload) or set(payload) - expected_fields - optional_fields:
-        raise ValueError(
-            f"{path}: contract fields differ: "
-            f"missing={sorted(expected_fields - set(payload))}, "
-            f"extra={sorted(set(payload) - expected_fields - optional_fields)}"
-        )
-    if payload["schema"] != SCHEMA:
-        raise ValueError(f"{path}: unknown schema {payload['schema']!r}")
+    payload = _object(ci_package_graph.load_contract_payload(path), str(path))
+    metadata = ci_package_graph.parse_contract_metadata(payload, str(path))
     package = payload["package"]
     version = payload["version"]
     layer = payload["layer"]
     owner = payload["owner"]
     if not isinstance(package, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", package):
         raise ValueError(f"{path}: invalid package name")
+    prerelease = r"(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
     if not isinstance(version, str) or not re.fullmatch(
-        r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)",
+        r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
+        rf"(?:-{prerelease}(?:\.{prerelease})*)?",
         version,
     ):
         raise ValueError(f"{path}: invalid semantic version")
@@ -232,6 +216,7 @@ def load_contract(path: Path) -> Contract:
             invariant_tests=tuple(invariant_tests),
         ),
         consumer_subdirs=tuple(consumer_subdirs),
+        metadata=metadata if payload["schema"] == "stwo-zig-package-contract-v3" else None,
         ci_lane=ci["lane"],
         ci_host=ci["host"],
         ci_command=tuple(command),
@@ -312,7 +297,15 @@ def _validate_manifest(contract: Contract, failures: list[str]) -> None:
         )
     for module, source in contract.public_modules.items():
         if f'b.addModule("{module}"' not in build:
-            failures.append(f"{contract.package}: build does not export {module}")
+            # Secondary names must reuse one concrete component, never silently
+            # compile another root or resolve an ambient module-name registry.
+            bindings = re.findall(r'b\.modules\.put\(\s*"' + re.escape(module)
+                                  + r'"\s*,\s*(\w+)\s*\)', build)
+            producers = re.findall(r'const\s+(\w+)\s*=\s*b\.createModule\(\.\{\s*'
+                                   r'\.root_source_file\s*=\s*b\.path\("' + re.escape(source)
+                                   + r'"\)', build)
+            if len(bindings) != 1 or producers != bindings:
+                failures.append(f"{contract.package}: build does not export {module} from one literal component producer")
         if not (contract.directory / source).is_file():
             failures.append(f"{contract.package}: public module source is missing: {source}")
 
@@ -385,10 +378,11 @@ def _validate_imports(
 
 
 def _validate_api(contract: Contract, failures: list[str]) -> None:
-    if len(contract.public_modules) != 1:
+    primary = contract.public_modules.get(contract.package)
+    if primary is None and len(contract.public_modules) != 1:
         failures.append(f"{contract.package}: API ledger requires one primary module")
         return
-    root = contract.directory / next(iter(contract.public_modules.values()))
+    root = contract.directory / (primary or next(iter(contract.public_modules.values())))
     if not root.is_file():
         return
     actual = top_level_api(root.read_text(encoding="utf-8"))
@@ -531,7 +525,7 @@ def _test_reference(
 
 
 def _validate_api_contract(contract: Contract, failures: list[str]) -> None:
-    root = contract.directory / next(iter(contract.public_modules.values()))
+    root = contract.directory / contract.public_modules.get(contract.package, next(iter(contract.public_modules.values())))
     reached = _relative_import_closure(root, contract.directory)
     for category, references in (
         ("signature", contract.api_contract.signature_tests),
@@ -559,22 +553,10 @@ def _validate_api_contract(contract: Contract, failures: list[str]) -> None:
                 )
 
 
-def _validate_layers(
-    contracts: list[Contract],
-    packages: dict[str, Contract],
-    failures: list[str],
-) -> None:
-    for contract in contracts:
-        allowed = ALLOWED_DEPENDENCY_LAYERS[contract.layer]
-        for dependency in contract.dependencies:
-            target = packages.get(dependency)
-            if target is None:
-                continue
-            if target.layer not in allowed:
-                failures.append(
-                    f"{contract.package}: {contract.layer} layer cannot depend on "
-                    f"{target.layer} package {dependency}"
-                )
+def _validate_layers(contracts, packages, failures, repository=None) -> None:
+    ci_package_graph.validate_dependency_layers(
+        repository, contracts, packages, ALLOWED_DEPENDENCY_LAYERS, failures
+    )
 
 
 def _validate_ci_contracts(
@@ -801,7 +783,8 @@ def check_repository(repository: Path) -> list[str]:
     }
     for cycle in dependency_cycles(graph):
         failures.append(f"package workspace: dependency cycle {' -> '.join(cycle)}")
-    _validate_layers(contracts, packages, failures)
+    _validate_layers(contracts, packages, failures, repository)
+    failures.extend(ci_package_graph.check_product_placement(repository, contracts))
     generated_embeds = ci_package_graph.generated_embedded_assets(repository)
     for contract in contracts:
         _validate_manifest(contract, failures)
@@ -813,6 +796,7 @@ def check_repository(repository: Path) -> list[str]:
     _validate_aggregate_manifests(repository, contracts, failures)
     _validate_ownership_projection(repository, contracts, failures)
     _validate_ci_contracts(repository, contracts, failures)
+    failures.extend(ci_package_graph.validate_registered_consumers(repository, {c.package: c for c in contracts}))
     return failures
 
 

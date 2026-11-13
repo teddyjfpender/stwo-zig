@@ -47,7 +47,7 @@ from scripts.riscv import riscv_air_ir_equivalence as air_equivalence
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
-OPCODE_MANIFEST = REPOSITORY_ROOT / "src/frontends/riscv/opcode_manifest.zig"
+OPCODE_MANIFEST = REPOSITORY_ROOT / "src/frontends/riscv/isa/opcode_manifest.zig"
 LEAN_ROOT = REPOSITORY_ROOT / "formal/riscv-refinement/RiscvRefinement"
 CERTIFICATE_INDEX = (
     REPOSITORY_ROOT / "formal/riscv-refinement/team-b-coverage.json"

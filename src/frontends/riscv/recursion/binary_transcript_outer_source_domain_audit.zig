@@ -1,30 +1,30 @@
 //! Cold domain audit for authenticated binary transcript rows.
 
-const binding = @import("air/universal_relation_binding.zig");
-const relation_interaction = @import("air/relation_interaction.zig");
-const schedule = @import("air/verifier_schedule.zig");
-const universal = @import("air/universal_challenges.zig");
+const binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
+const relation_interaction = @import("stwo_riscv_air_lang").framework.relation_interaction;
+const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
+const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 const binary_authority = @import("binary_pair_authority.zig");
 
-const control_witness = @import("air/control_witness.zig");
-const transcript_air_witness = @import("air/transcript_air_witness.zig");
-const transcript_binding_witness = @import("air/transcript_binding_witness.zig");
-const transcript_state_witness = @import("air/transcript_state_witness.zig");
-const transcript_word_witness = @import("air/transcript_word_witness.zig");
-const transcript_payload_witness = @import("air/transcript_payload_witness.zig");
-const relation_challenge_witness = @import("air/relation_challenge_witness.zig");
-const verifier_randomness_witness = @import("air/verifier_randomness_witness.zig");
+const control_witness = @import("stwo_riscv_recursion_air").control.witness;
+const transcript_air_witness = @import("stwo_riscv_recursion_air").transcript.air_witness;
+const transcript_binding_witness = @import("stwo_riscv_recursion_air").transcript.binding_witness;
+const transcript_state_witness = @import("stwo_riscv_recursion_air").transcript.state_witness;
+const transcript_word_witness = @import("stwo_riscv_recursion_air").transcript.word_witness;
+const transcript_payload_witness = @import("stwo_riscv_recursion_air").transcript.payload_witness;
+const relation_challenge_witness = @import("stwo_riscv_recursion_air").relation.challenge_witness;
+const verifier_randomness_witness = @import("stwo_riscv_recursion_air").verifier_randomness_witness;
 
-const ControlRelation = binding.Binding(@import("air/control.zig"));
-const TranscriptAirRelation = binding.Binding(@import("air/transcript_air.zig"));
-const TranscriptBindingRelation = binding.Binding(@import("air/transcript_binding.zig"));
-const TranscriptStateRelation = binding.Binding(@import("air/transcript_state.zig"));
-const TranscriptWordRelation = binding.Binding(@import("air/transcript_word.zig"));
-const TranscriptPayloadRelation = binding.Binding(@import("air/transcript_payload.zig"));
-const PowCheckRelation = binding.Binding(@import("air/pow_check.zig"));
-const PowFrameRelation = binding.Binding(@import("air/pow_frame.zig"));
-const RelationChallengeRelation = binding.Binding(@import("air/relation_challenge.zig"));
-const VerifierRandomnessRelation = binding.Binding(@import("air/verifier_randomness.zig"));
+const ControlRelation = binding.Binding(@import("stwo_riscv_air_lang").framework.control);
+const TranscriptAirRelation = binding.Binding(@import("stwo_riscv_recursion_air").transcript.air);
+const TranscriptBindingRelation = binding.Binding(@import("stwo_riscv_recursion_air").transcript.binding);
+const TranscriptStateRelation = binding.Binding(@import("stwo_riscv_recursion_air").transcript.state);
+const TranscriptWordRelation = binding.Binding(@import("stwo_riscv_recursion_air").transcript.word);
+const TranscriptPayloadRelation = binding.Binding(@import("stwo_riscv_recursion_air").transcript.payload);
+const PowCheckRelation = binding.Binding(@import("stwo_riscv_recursion_air").pow.check);
+const PowFrameRelation = binding.Binding(@import("stwo_riscv_recursion_air").pow.frame);
+const RelationChallengeRelation = binding.Binding(@import("stwo_riscv_recursion_air").relation.challenge);
+const VerifierRandomnessRelation = binding.Binding(@import("stwo_riscv_recursion_air").verifier_randomness);
 
 pub fn audit(
     self: anytype,

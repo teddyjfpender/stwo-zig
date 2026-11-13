@@ -11,7 +11,7 @@ bytes the Rust would write for it.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `1.0.0-rc.1` |
 | Layer | `interchange` |
 | Owner | `circuit-recursion` |
 | Public Zig module | `stwo_circuit_recursion_wire` |
@@ -166,3 +166,11 @@ from the repository root and round-trips the upstream goldens copied into
 - [Rust porting map](../../../design/starknet/recursion/01-rust-map.md)
 - [Circuit recursion fixtures](../../../vectors/circuit/README.md)
 - [Proof interchange package](../proof_wire/README.md)
+
+## Decoder diagnostic metadata
+
+`error_codes` exposes the RFC #360 metadata owned by this boundary. The
+unpublished `1.0.0-rc.1` surface includes the approved pre-RC addition;
+meaning, origin, null/unknown refusal and existing rejection semantics remain
+those specified by the provider tests. Full five-provider D2 coverage remains
+open in the RFC coverage ledger.

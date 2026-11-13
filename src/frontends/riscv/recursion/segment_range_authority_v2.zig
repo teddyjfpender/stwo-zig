@@ -12,13 +12,13 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-const lookup_counter = @import("../air/lookups/tables/counter.zig");
-const lookup_interaction = @import("../air/lookups/tables/interaction.zig");
-const lookup_schema = @import("../air/lookups/tables/schema.zig");
-const relation = @import("../air/lang/relation.zig");
-const range_bridge = @import("air/range_check_8_8_bridge.zig");
-const shared_provider = @import("air/universal_shared_provider.zig");
-const universal = @import("air/universal_challenges.zig");
+const lookup_counter = @import("stwo_riscv_air_lang").evaluation.lookups.tables.counter;
+const lookup_interaction = @import("stwo_riscv_rv32").air.lookups.tables.interaction;
+const lookup_schema = @import("stwo_riscv_air_lang").evaluation.lookups.tables.schema;
+const relation = @import("stwo_riscv_air_lang").relation;
+const range_bridge = @import("stwo_riscv_rv32").recursion.air.range_check_8_8_bridge;
+const shared_provider = @import("stwo_riscv_rv32").recursion.air.universal_shared_provider;
+const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 const manifest_v2 = @import("air/segment_outer_adapter_manifest.zig");
 const statement = @import("segment_statement_outer_source_v2.zig");
 

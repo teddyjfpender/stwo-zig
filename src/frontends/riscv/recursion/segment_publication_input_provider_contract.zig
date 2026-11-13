@@ -1,7 +1,7 @@
 //! Stable publication-provider authority independent of prepared witnesses.
 const shape = @import("air/segment_publication_input_provider_shape.zig");
 const air = @import("air/segment_publication_input_provider.zig");
-const relation = @import("../air/lang/relation.zig");
+const relation = @import("stwo_riscv_air_lang").relation;
 const ShaHasher = @import("publication_authority_encoding.zig").ShaHasher;
 pub const Shape = shape.Shape;
 pub const PROPOSED_ROSTER_ROW = shape.PROPOSED_ROSTER_ROW;

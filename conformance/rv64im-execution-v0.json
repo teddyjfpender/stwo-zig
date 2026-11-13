@@ -34,7 +34,7 @@
     "src/frontends/riscv/rv64/mod.zig": "56056f9a7489f4d3380dc998e22f2673d114e6d0ba1e20fc1c591050807b2a61",
     "src/frontends/riscv/rv64/tests.zig": "6e6699ba50c5c399ede57ab02077936e62588757dc9199446fc46ac2c32cf419",
     "src/frontends/riscv/rv64/word.zig": "ecb5a0cd4710aa593ce916a7956feb97a5eb45cad0329dd3e4d9793922c99a05",
-    "src/frontends/riscv/rv64_execution_test_root.zig": "edba3d7424ba46a555c59db0b4bbf828ee86cd6888206d0176df1f8eb93aa063"
+    "src/frontends/riscv/compat/tests/testing/cases/rv64_execution_test_root.zig": "edba3d7424ba46a555c59db0b4bbf828ee86cd6888206d0176df1f8eb93aa063"
   },
   "unit_tests": {
     "debug": 34,

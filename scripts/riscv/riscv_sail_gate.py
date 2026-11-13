@@ -140,9 +140,11 @@ LIVE_TRIGGER_PREFIXES = (
     "scripts/riscv/riscv_trace_vectors_lib",
     "src/frontends/riscv/isa",
     "src/frontends/riscv/runner",
+    "src/frontends/riscv/rv32/runner",
+    "src/frontends/riscv/compat/assembly/rv32/runner/trace_dump.zig",
     # Test root for the two sail_oracle self-checks; it decides what the job's
     # `test-riscv-sail-oracle` step actually executes.
-    "src/frontends/riscv/sail_oracle_test_root.zig",
+    "src/frontends/riscv/focused_product_sail_oracle_test_root.zig",
     # Owns `requireSailAgreement`, the seam every committed-forgery guest uses
     # to ask the pinned model whether the honest trace is honest.
     "src/products/riscv/cpu/test_root.zig",

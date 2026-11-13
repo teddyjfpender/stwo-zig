@@ -13,6 +13,23 @@ SOURCE_PATHS = (
     ROOT / "src/backends/metal/runtime/object_model.h",
     ROOT / "src/backends/metal/runtime/abi.h",
 )
+SOURCE_FRAGMENTS = {
+    ROOT / "src/backends/metal/runtime.m": "runtime/library_setup.m",
+    ROOT / "src/backends/metal/runtime/lifecycle_and_tree.m": "tree_readback.m",
+}
+
+
+def source_owner(path: Path) -> str:
+    source = path.read_text()
+    fragment = SOURCE_FRAGMENTS.get(path)
+    if fragment is not None:
+        source = source.replace(
+            '#include "' + fragment + '"\n',
+            (path.parent / fragment).read_text(),
+        )
+    return source
+
+
 ZIG_SOURCE_PATH = ROOT / "src/backends/metal/runtime.zig"
 ZIG_SESSION_PATH = ROOT / "src/backends/metal/runtime/session.zig"
 ZIG_ABI_SOURCE_PATH = ROOT / "src/backends/metal/runtime/abi.zig"
@@ -27,7 +44,7 @@ def function_body(source: str, name: str, next_name: str) -> str:
 class MetalPipelineCacheSourceTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = "\n".join(path.read_text() for path in SOURCE_PATHS)
+        cls.source = "\n".join(source_owner(path) for path in SOURCE_PATHS)
         cls.zig_source = ZIG_SOURCE_PATH.read_text() + ZIG_SESSION_PATH.read_text()
         cls.zig_abi_source = ZIG_ABI_SOURCE_PATH.read_text()
 

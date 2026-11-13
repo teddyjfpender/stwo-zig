@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -473,6 +474,272 @@ def main() -> int:
     suffix = "; installs not exercised" if arguments.configure_only else ""
     print(f"{label}: PASS ({len(receipts)} catalog scopes{suffix})")
     return 0
+
+
+def source_tokens(text: str) -> list[str]:
+    pattern = r'//[^\n]*|/\*.*?\*/|\\\\[^\n]*|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|[A-Za-z_][A-Za-z0-9_]*|[^\s]'
+    return [m.group() for m in re.finditer(pattern, text, re.DOTALL)
+              if not m.group().startswith(("//", "/*"))]
+
+
+class ProductDeclarationError(ValueError):
+    pass
+
+
+class _ProductSource:
+    """Literal product-declaration reader, deliberately not a Zig evaluator."""
+
+    def __init__(self, repository: Path):
+        self.repository, self.cache = repository.resolve(), {}
+
+    def fail(self, path, name):
+        raise ProductDeclarationError(f"{path}::{name}: unsupported or ambiguous product declaration")
+
+    def split(self, tokens, separator=","):
+        result, start, depth = [], 0, 0
+        for index, token in enumerate(tokens):
+            if token in {"(", "[", "{"}:
+                depth += 1
+            elif token in {")", "]", "}"}:
+                depth -= 1
+            elif depth == 0 and token == separator:
+                result.append(tokens[start:index]); start = index + 1
+            if depth < 0:
+                raise ProductDeclarationError("unbalanced product declaration")
+        if depth:
+            raise ProductDeclarationError("unbalanced product declaration")
+        return result + ([tokens[start:]] if start < len(tokens) else [])
+
+    def declarations(self, path):
+        path = path.resolve()
+        if not path.is_relative_to(self.repository) or not path.is_file():
+            self.fail(path, "source owner")
+        if path in self.cache:
+            return self.cache[path]
+        text = path.read_text(encoding="utf-8")
+        tokens = source_tokens(text)
+        declarations = {}
+        for statement in self.split(tokens, ";"):
+            # Function bodies have no top-level semicolon, so scan their closing braces too.
+            remaining = statement
+            while remaining:
+                offset = 1 if remaining[0] == "pub" else 0
+                if len(remaining) <= offset + 1 or remaining[offset] not in {"const", "fn"}:
+                    break
+                kind, name = remaining[offset:offset + 2]
+                if kind == "const":
+                    if "=" not in remaining:
+                        self.fail(path, name)
+                    value, remaining = remaining[remaining.index("=") + 1:], []
+                else:
+                    depth, body = 0, None
+                    for index in range(offset + 2, len(remaining)):
+                        token = remaining[index]
+                        if token == "{" and depth == 0:
+                            body = index; break
+                        depth += (token in {"(", "["}) - (token in {")", "]"})
+                    if body is None:
+                        self.fail(path, name)
+                    depth, end = 1, body + 1
+                    while end < len(remaining) and depth:
+                        depth += (remaining[end] == "{") - (remaining[end] == "}"); end += 1
+                    value, remaining = remaining[body + 1:end - 1], remaining[end:]
+                if name in declarations:
+                    self.fail(path, name)
+                declarations[name] = (kind, value, bool(offset))
+        self.cache[path] = declarations
+        return declarations
+
+    def value(self, path, name, visited=()):
+        path = path.resolve()
+        key = (path, name)
+        if key in visited or name not in self.declarations(path):
+            self.fail(path, name)
+        kind, tokens, _ = self.declarations(path)[name]
+        if kind == "fn":
+            if not tokens or tokens[0] != "return" or tokens[-1] != ";":
+                self.fail(path, name)
+            tokens = tokens[1:-1]
+        return self.resolve(path, tokens, (*visited, key))
+
+    def resolve(self, path, tokens, visited=()):
+        if "{" in tokens:
+            prefix = tokens[:tokens.index("{")]
+            if any(token in {"(", ":", "if", "switch", "blk"} for token in prefix):
+                self.fail(path, "dynamic literal")
+            return path, tokens
+        if "(" in tokens:
+            opening = tokens.index("(")
+            arguments = tokens[opening + 1:-1]
+            if (tokens[-1] != ")" or not arguments
+                    or not (len(arguments) == 1 and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", arguments[0])
+                            or len(arguments) == 2 and arguments[0] == ".")):
+                self.fail(path, "nonliteral descriptor call")
+            reference = tokens[:opening]
+        else:
+            reference = tokens
+        if len(reference) == 1:
+            return self.value(path, reference[0], visited)
+        if len(reference) == 3 and reference[1] == ".":
+            _, alias, _ = self.declarations(path).get(reference[0], (None, [], False))
+            if len(alias) == 5 and alias[:3] == ["@", "import", "("] and alias[-1] == ")":
+                target = path.parent / json.loads(alias[3])
+                return self.value(target, reference[2], visited)
+        self.fail(path, " ".join(tokens[:8]))
+
+    def arm(self, path, body, name):
+        markers = [i for i in range(len(body) - 3) if body[i:i + 4] == [".", name, "=", ">"]]
+        if len(markers) != 1:
+            self.fail(path, name)
+        branch, depth = [], 0
+        for token in body[markers[0] + 4:]:
+            if token == "," and depth == 0:
+                break
+            branch.append(token)
+            depth += (token in {"(", "[", "{"}) - (token in {")", "]", "}"})
+        return branch
+
+    def fields(self, path, tokens):
+        if "{" not in tokens or tokens[-1] != "}":
+            self.fail(path, "literal")
+        result = {}
+        for field in self.split(tokens[tokens.index("{") + 1:-1]):
+            if len(field) < 4 or field[0] != "." or field[2] != "=" or field[1] in result:
+                self.fail(path, "field")
+            result[field[1]] = field[3:]
+        return result
+
+
+def read_product_declarations(repository: Path, *, include_constructed: bool = False) -> dict[str, dict[str, str | None]]:
+    """Resolve primary literal identities; not product closure or build evidence."""
+    repository = repository.resolve()
+    source = _ProductSource(repository)
+    specs = repository / "build_support/products/product_specs.zig"
+    path, table = source.value(specs, "products")
+    records, live_scopes = {}, set()
+    for row in source.split(table[table.index("{") + 1:-1]):
+        fields = source.fields(path, row)
+        scope, constructor = fields.get("scope", []), fields.get("constructor", [])
+        if len(scope) != 2 or scope[0] != "." or len(constructor) != 2 or constructor[0] != ".":
+            source.fail(path, "scope/constructor")
+        if "descriptor" not in fields:
+            source.fail(path, "descriptor")
+        descriptor_path, descriptor = source.resolve(path, fields["descriptor"])
+        descriptor_fields = source.fields(descriptor_path, descriptor)
+        if "product" not in descriptor_fields:
+            source.fail(descriptor_path, "product")
+        product_path, product = source.resolve(descriptor_path, descriptor_fields["product"])
+        name = source.fields(product_path, product).get("name", [])
+        if len(name) != 1 or not name[0].startswith('"'):
+            source.fail(product_path, "name")
+        identity = json.loads(name[0])
+        if identity in records or (constructor[1] != "unavailable" and scope[1] in live_scopes):
+            source.fail(path, "duplicate identity/scope")
+        if constructor[1] != "unavailable":
+            live_scopes.add(scope[1])
+        builder = None
+        if constructor[1] != "unavailable":
+            matrix = repository / "build_support/products/matrix.zig"
+            body = source.declarations(matrix)["construct"][1]
+            branch = source.arm(matrix, body, constructor[1])
+            if constructor[1] == "aggregate":
+                if branch != ["unreachable"]:
+                    source.fail(matrix, "aggregate dispatch")
+                branch = source.declarations(matrix)["constructAggregate"][1]
+            candidates = []
+            for i in range(len(branch) - 3):
+                if branch[i + 1:i + 4] != [".", "addProduct", "("]:
+                    continue
+                alias = source.declarations(matrix).get(branch[i], (None, [], False))[1]
+                if len(alias) != 5 or alias[:3] != ["@", "import", "("]:
+                    source.fail(matrix, "builder import")
+                builder_path = (matrix.parent / json.loads(alias[3])).resolve()
+                if builder_path == descriptor_path or constructor[1] == "aggregate":
+                    declaration = source.declarations(builder_path).get("addProduct")
+                    if not declaration or declaration[0] != "fn" or not declaration[2]:
+                        source.fail(builder_path, "public addProduct")
+                    candidates.append(str(builder_path.relative_to(repository)))
+            if len(candidates) != 1:
+                source.fail(matrix, "builder ambiguity")
+            builder = candidates[0]
+        records[identity] = {"scope": scope[1], "constructor": constructor[1], "builder_source": builder,
+                             "descriptor_source": str(descriptor_path.relative_to(repository)),
+                             "identity_source": str(product_path.relative_to(repository))}
+    if include_constructed:
+        _add_constructed_products(source, repository, records)
+    return records
+
+
+def _add_constructed_products(source, repository, records):
+    catalog, table = source.value(repository / "build_support/products/catalog.zig", "configure")
+    for row in source.split(table[table.index("{") + 1:-1]):
+        fields = source.fields(catalog, row)
+        if fields.get("role") != [".", "package_exports"]:
+            continue
+        constructors = fields.get("constructors", [])
+        constructors = source.split(constructors[constructors.index("{") + 1:-1]) if "{" in constructors else []
+        if len(constructors) != 1 or len(constructors[0]) != 1:
+            source.fail(catalog, "constructed builder")
+        identity = json.loads(constructors[0][0])
+        relative, function = identity.rsplit(".", 1)
+        builder = (repository / "build_support" / (relative + ".zig")).resolve()
+        declaration = source.declarations(builder).get(function)
+        if not declaration or declaration[0] != "fn" or not declaration[2]:
+            source.fail(builder, "public constructed builder")
+        internal = repository / "build_support/internal_build.zig"
+        scope = fields.get("scope", [])
+        if len(scope) != 2 or scope[0] != ".":
+            source.fail(catalog, "constructed scope")
+        arm = source.arm(internal, source.declarations(internal)["build"][1], scope[1])
+        call = ["@", "import", "(", json.dumps(relative + ".zig"), ")", ".", function, "("]
+        if not any(arm[i:i + len(call)] == call for i in range(len(arm))):
+            source.fail(internal, "constructed builder binding")
+        observed = {}
+        body = declaration[1]
+        for i in range(1, len(body) - 2):
+            if body[i:i + 3] != [".", "recordProduct", "("]:
+                continue
+            alias = source.declarations(builder).get(body[i - 1], (None, [], False))[1]
+            observer = repository / "build_support/graph/construction_observer.zig"
+            if (len(alias) != 5 or alias[:3] != ["@", "import", "("]
+                    or (builder.parent / json.loads(alias[3])).resolve() != observer):
+                source.fail(builder, "recording authority")
+            recorded = source.declarations(observer).get("recordProduct")
+            if not recorded or recorded[0] != "fn" or not recorded[2]:
+                source.fail(observer, "public recordProduct")
+            depth, end = 1, i + 3
+            while end < len(body) and depth:
+                depth += (body[end] == "(") - (body[end] == ")"); end += 1
+            arguments = source.split(body[i + 3:end - 1])
+            if len(arguments) != 2:
+                source.fail(builder, "recorded product")
+            expression = arguments[1]
+            expression = expression[:-2] if expression[-2:] == ["(", ")"] else expression
+            product_path, product = source.resolve(builder, expression)
+            name = source.fields(product_path, product).get("name", [])
+            if len(name) != 1 or not name[0].startswith('"'):
+                source.fail(product_path, "constructed name")
+            name = json.loads(name[0])
+            if name in observed:
+                source.fail(builder, "duplicate recorded identity")
+            observed[name] = str(product_path.relative_to(repository))
+        declared = set()
+        configured = fields.get("constructed_products", [])
+        if "{" not in configured:
+            source.fail(catalog, "constructed products")
+        for item in source.split(configured[configured.index("{") + 1:-1]):
+            product = source.fields(catalog, item).get("product_id", [])
+            if len(product) != 1 or not product[0].startswith('"') or json.loads(product[0]) not in observed:
+                source.fail(catalog, "unrecorded constructed identity")
+            name = json.loads(product[0])
+            if name in declared:
+                source.fail(catalog, "duplicate constructed identity")
+            declared.add(name)
+            if name not in records:
+                records[name] = {"scope": scope[1], "constructor": identity, "builder_source": str(builder.relative_to(repository)),
+                                 "descriptor_source": str(catalog.relative_to(repository)), "identity_source": observed[name]}
+        if declared != set(observed):
+            source.fail(catalog, "constructed/recorded identities differ")
 
 
 if __name__ == "__main__":

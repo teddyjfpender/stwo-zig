@@ -5,9 +5,9 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const recursion = struct {
-    const protocol = @import("protocol.zig");
-    const fixed_profile = @import("fixed_profile.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
+    const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
+    const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
+    const poseidon2_channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
     const outer_parent_child_admission = @import("outer_parent_child_admission_profile.zig");
     const segment_leaf_statement_contract_v2 = @import("segment_leaf_statement_contract.zig");
     const detached_segment_admission_v1 = @import("detached_segment_admission.zig");
@@ -15,9 +15,9 @@ const recursion = struct {
     const detached_segment_authority_boundary_v1 = @import("detached_segment_authority_boundary.zig");
     const air = struct {
         const segment_outer_manifest_contract_v2 = @import("air/segment_outer_manifest_contract.zig");
-        const verifier_wire_claims = @import("air/verifier_wire_claims.zig");
-        const query_bits_profile = @import("air/query_bits_profile.zig");
-        const universal_challenges = @import("air/universal_challenges.zig");
+        const verifier_wire_claims = @import("stwo_riscv_recursion_air").verifier_wire_claims;
+        const query_bits_profile = @import("stwo_riscv_recursion_air").query.bits_profile;
+        const universal_challenges = @import("stwo_riscv_air_lang").framework.universal_challenges;
     };
 };
 const air = recursion.air;
@@ -27,7 +27,7 @@ const source = recursion.segment_leaf_statement_contract_v2;
 const components = recursion.detached_segment_admission_v1;
 const public_inputs = recursion.detached_segment_public_inputs_v1;
 const authority_boundary = recursion.detached_segment_authority_boundary_v1;
-const PublicData = @import("../air/public_data_v2.zig").PublicDataV2;
+const PublicData = @import("stwo_riscv_rv32").air.public_data_v2.PublicDataV2;
 const QM31 = core.fields.qm31.QM31;
 const Digest = recursion.poseidon2_channel.Digest;
 pub const VERSION: u32 = 2;

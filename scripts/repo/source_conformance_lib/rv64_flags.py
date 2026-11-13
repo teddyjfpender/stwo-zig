@@ -98,6 +98,12 @@ def check(repo: Path, *, refresh: bool = False, strict: bool = False) -> list[st
                 errors.append(f"{name}: an environment reader cannot be excluded from the live count")
         evidence = entry.get("default_evidence", {})
         if isinstance(status, str) and status in LIVE:
+            try:
+                expiry = datetime.date.fromisoformat(entry.get("expires", ""))
+                if expiry < datetime.datetime.now(datetime.timezone.utc).date():
+                    errors.append(f"{name}: flag expired on {expiry}; retire or obtain owner review")
+            except (TypeError, ValueError):
+                errors.append(f"{name}: live flag requires an ISO expiry date")
             if not isinstance(evidence, dict):
                 errors.append(f"{name}: invalid default evidence")
                 continue

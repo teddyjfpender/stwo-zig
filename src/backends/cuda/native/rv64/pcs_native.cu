@@ -107,7 +107,7 @@ struct ResidentOwner {
     // upper-cache blocks; it does not disable or trim the runtime async pool.
     idle_cache = rv64_pcs_idle_cache::parse(
         std::getenv("STWO_RV64_PCS_IDLE_CACHE_BYTES"), cap);
-    const char *phase = std::getenv("STWO_RV64_PCS_PHASE_BOUND");
+    const char *phase = nullptr;
     const bool phase_bound = phase && std::strcmp(phase,"1")==0;
     rv64_pcs_idle_cache::requirePhaseRetirement(idle_cache, phase_bound);
     if (phase_bound) std::printf("GPU_PCS_PHASE_BOUND enabled=1 zero_idle_cache=true joined_retirement=true\n");

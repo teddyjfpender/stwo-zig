@@ -16,7 +16,7 @@ const Sink = V.Sink;
 const lane = @import("../../lane.zig");
 const geometry = @import("../../geometry.zig");
 const cosets = @import("../../full/coset_evaluation.zig");
-const points = @import("../../../../air/component_point_support.zig");
+const points = @import("stwo_riscv_air_lang").evaluation.component_point_support;
 pub const Kind = enum { permutation, chi, xor5 };
 pub const Offsets = struct { fixed: usize = 0, main: usize = 0, interaction: usize = 0 };
 pub fn ComponentFor(comptime Lane: type) type {

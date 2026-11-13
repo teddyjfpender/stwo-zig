@@ -173,8 +173,8 @@ class RiscVPoseidonTableUniquenessTest(unittest.TestCase):
                 "src/waist/core/fields/cm31.zig",
                 "src/waist/core/fields/qm31.zig",
                 "src/waist/core/utils.zig",
-                "src/frontends/riscv/air/lookups/entry.zig",
-                "src/frontends/riscv/air/relation_challenges.zig",
+                "src/frontends/riscv/air_lang/shared/air/lookups/entry.zig",
+                "src/frontends/riscv/air_lang/shared/air/relation_challenges.zig",
             },
             set(checker.SOURCE_BINDINGS),
         )
@@ -206,27 +206,27 @@ class RiscVPoseidonTableUniquenessTest(unittest.TestCase):
 
     def test_extracted_equations_and_forwarders_reject_semantic_mutations(self) -> None:
         mutations = {
-            "src/frontends/riscv/air/memory_commitment/poseidon2_layout.zig": (
+            "src/frontends/riscv/memory/air/poseidon2_layout.zig": (
                 'N_TEMPORARIES: usize = 426',
                 'N_TEMPORARIES: usize = 425',
             ),
-            "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig": (
+            "src/frontends/riscv/memory/air/poseidon2_air.zig": (
                 '@import("poseidon2_wide_equations.zig").evaluateGeneric',
                 '@import("unused.zig").evaluateGeneric',
             ),
-            "src/frontends/riscv/air/lookups/tables/schema_definition.zig": (
+            "src/frontends/riscv/air_lang/shared/air/lookups/tables/schema_definition.zig": (
                 'if (row == size(kind) - 1)',
                 'if (row == size(kind) - 2)',
             ),
-            "src/frontends/riscv/air/lookups/tables/verifier.zig": (
+            "src/frontends/riscv/rv32/air/lookups/tables/verifier.zig": (
                 'return N_CONSTRAINTS;',
                 'return N_CONSTRAINTS + 1;',
             ),
-            "src/frontends/riscv/air/logup_equations.zig": (
+            "src/frontends/riscv/air_lang/shared/air/logup_equations.zig": (
                 's.sub(s_prev).add(is_first.mul(claimed))',
                 's.sub(s_prev).sub(is_first.mul(claimed))',
             ),
-            "src/frontends/riscv/air/lookups/entry.zig": (
+            "src/frontends/riscv/air_lang/shared/air/lookups/entry.zig": (
                 'relations.bitwise, self.values[0..4].*',
                 'relations.bitwise, self.values[0..3].*',
             ),

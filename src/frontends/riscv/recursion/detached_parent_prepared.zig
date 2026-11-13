@@ -15,21 +15,21 @@ const canonicalBase = component_types.canonicalBase;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const work_pool = @import("stwo_prover_engine").work_pool;
-const device_interaction = @import("air/framework_device_interaction.zig");
+const device_interaction = @import("stwo_riscv_air_lang").framework.framework_device_interaction;
 const CompactLedger = @import("compact_tuple_ledger.zig").Owner;
-const range = @import("air/range_check_8_8_bridge.zig");
-const provider = @import("air/universal_shared_provider.zig");
+const range = @import("stwo_riscv_rv32").recursion.air.range_check_8_8_bridge;
+const provider = @import("stwo_riscv_rv32").recursion.air.universal_shared_provider;
 const PoseidonAdapter = provider.Poseidon2Degree3AdapterForManifest(manifest_mod);
 const air = struct {
-    const direct_constraint_program = @import("air/direct_constraint_program.zig");
-    const framework_interaction = @import("air/framework_interaction.zig");
-    const relation_interaction = @import("air/relation_interaction.zig");
-    const universal_relation_binding = @import("air/universal_relation_binding.zig");
+    const direct_constraint_program = @import("stwo_riscv_air_lang").framework.direct_constraint_program;
+    const framework_interaction = @import("stwo_riscv_air_lang").framework.framework_interaction;
+    const relation_interaction = @import("stwo_riscv_air_lang").framework.relation_interaction;
+    const universal_relation_binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
 };
-const native_relations = @import("../air/relation_challenges.zig");
-const native_poseidon = @import("../air/memory_commitment/poseidon2_air.zig");
-const table_counter = @import("../air/lookups/tables/counter.zig");
-const poseidon_air = @import("../air/memory_commitment/poseidon2_universal_degree3.zig");
+const native_relations = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
+const native_poseidon = @import("stwo_riscv_memory").air.poseidon2_air;
+const table_counter = @import("stwo_riscv_air_lang").evaluation.lookups.tables.counter;
+const poseidon_air = @import("stwo_riscv_memory").air.poseidon2_universal_degree3;
 pub const ProviderCall = poseidon_air.Call;
 
 // Match the leaf's existing worker policy and reuse the exact native writer.
@@ -425,7 +425,7 @@ pub fn testSnapshotAdmission() !*PreparedV1 {
     errdefer prepared.deinit();
     try prepared.parameters().validate(prepared.manifest());
     // Canonical admission roundtrips exactly; independently resealed retired identity fails.
-    const compact_identity = @import("../air/memory_commitment/poseidon2_universal_identity.zig");
+    const compact_identity = @import("stwo_riscv_memory").air.poseidon2_universal_identity;
     try std.testing.expectEqualSlices(u8, &compact_identity.CANONICAL_DIGEST, &prepared.manifest().placements[34].?.geometry.semantic_digest);
     var legacy_builder = manifest_mod.Builder{};
     for (prepared.manifest().roster_rows[0..prepared.manifest().roster_count]) |row| {

@@ -161,7 +161,7 @@ pub const Witness = struct {
     /// Reconstruct the authenticated request bus from public output states.
     /// No witness-dependent permutation is executed here. The provider STARK
     /// must close the resulting full-I/O requests after this ledger is sealed.
-    pub fn replayHashCalls(self: *const Witness, a: std.mem.Allocator, outputs: []const @import("../../../air/memory_commitment/poseidon2.zig").State) !ram.Recorder {
+    pub fn replayHashCalls(self: *const Witness, a: std.mem.Allocator, outputs: []const @import("stwo_riscv_memory").air.poseidon2.State) !ram.Recorder {
         var recorder = ram.Recorder{ .allocator = a, .replay = outputs };
         errdefer recorder.deinit();
         const zero = try ram.defaults();

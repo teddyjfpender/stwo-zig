@@ -10,13 +10,13 @@
 
 const std = @import("std");
 
-const digest = @import("../../air/lang/digest.zig");
-const base = @import("universal_manifest_contract.zig");
-const universal_manifest = @import("universal_manifest.zig");
-const universal_roster = @import("universal_roster.zig");
+const digest = @import("stwo_riscv_air_lang").digest;
+const base = @import("stwo_riscv_air_lang").framework.universal_manifest_contract;
+const universal_manifest = @import("stwo_riscv_rv32").recursion.air.universal_manifest;
+const universal_roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 const statement_v2 = @import("../segment_statement_outer_geometry.zig");
-const public_air_v2 = @import("segment_public_outer_air.zig");
-const row17_air_v2 = @import("vm_public_logup_control_v2.zig");
+const public_air_v2 = @import("stwo_riscv_recursion_air").segment_public_outer_air;
+const row17_air_v2 = @import("stwo_riscv_recursion_air").vm_public_logup_control_v2;
 const boundary_v2 = @import("../segment_leaf_outer_geometry.zig");
 const boundary_air_v2 = @import("../segment_leaf_outer_air.zig");
 const provider_air_v2 = @import("segment_publication_input_provider.zig");

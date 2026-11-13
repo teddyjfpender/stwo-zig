@@ -305,7 +305,7 @@ __global__ void __launch_bounds__(256) keccak_bitrev_small(uint32_t *main,uint32
 // -1 = read STWO_RV64_M8_WITNESS_COALESCE once; tests may set 0/1 directly.
 static int keccak_coalesce=-1;
 static bool witness_coalesce() {
-  if(keccak_coalesce<0){const char *v=getenv("STWO_RV64_M8_WITNESS_COALESCE");keccak_coalesce=!(v&&v[0]=='0'&&!v[1]); /* default ON (M8 opt-combined): keccak_witness 0.342 -> staged+bitrev 0.021 GPU-s per warm 24628607 request [M] */}
+  if(keccak_coalesce<0){const char *v=nullptr;keccak_coalesce=!(v&&v[0]=='0'&&!v[1]); /* default ON (M8 opt-combined): keccak_witness 0.342 -> staged+bitrev 0.021 GPU-s per warm 24628607 request [M] */}
   return keccak_coalesce==1;
 }
 }

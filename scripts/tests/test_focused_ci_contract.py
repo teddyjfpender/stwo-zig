@@ -32,6 +32,29 @@ class PlannerContractTests(unittest.TestCase):
         lanes, _ = ci_scope_plan.select_lanes(paths, self.catalog, self.policy)
         return set(lanes)
 
+    def test_ethereum_hosted_lane_covers_both_modes_and_preserves_focused_csp(self):
+        self.assertEqual(["ethereum_statement"], ci_scope_plan.manual_cpu_selection("ethereum_statement", self.policy)[0])
+        commands = self.policy["lanes"]["ethereum_statement"]["commands"]
+        optimized = self.policy["lanes"]["ethereum_statement_releasefast"]["commands"]
+        self.assertIn("test-csp-ecdsa-proof", optimized[0])
+        self.assertEqual(3, len(commands))
+        self.assertIn("test-authenticated-component-profile", commands[1])
+        for lane in ("ethereum_statement", "ethereum_statement_releasefast"):
+            self.assertTrue(any("test-retained-typed-components" in cmd for cmd in self.policy["lanes"][lane]["commands"]))
+        self.assertIn("retained_vm_run.? }, 21)", (ROOT / "src/products/ethereum/statement/build.zig").read_text())
+        commands = commands + optimized
+        self.assertTrue(any("test-receiver-boundaries" in cmd for cmd in optimized))
+        self.assertTrue(any("test-word16-cpu-zero-induction-proof" in cmd for cmd in optimized))
+        self.assertEqual({"-Doptimize=Debug", "-Doptimize=ReleaseFast"}, {part for cmd in commands if "test" in cmd for part in cmd if part.startswith("-Doptimize=")})
+        self.assertTrue(any("test-csp-ecdsa-proof" in cmd and "-Doptimize=ReleaseFast" in cmd for cmd in commands))
+        contract = ci_scope_plan.strict_json(ROOT / "src/products/ethereum/statement/package.contract.json")
+        self.assertIn(contract["ci"]["command"], commands)
+        for command in commands:
+            self.assertIn("--verbose", command)
+            self.assertEqual(["--summary", "all"], command[-2:])
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        self.assertRegex(workflow, r"timeout-minutes:.*matrix.lane == 'ethereum_statement'.*150")
+
     def test_manual_cpu_selection_is_exact_and_refuses_device_or_foreign_lanes(self):
         for lane in ci_scope_plan.MANUAL_CPU_LANES:
             lanes, reasons = ci_scope_plan.manual_cpu_selection(lane, self.policy)
@@ -128,7 +151,7 @@ class PlannerContractTests(unittest.TestCase):
         self.assertNotIn("core", selected)
 
     def test_riscv_frontend_has_an_independent_package_lane(self) -> None:
-        selected = self.lanes_for("src/frontends/riscv/air/semantic_eval.zig")
+        selected = self.lanes_for("src/frontends/riscv/rv32/air/semantic_eval.zig")
         self.assertTrue(
             {
                 "static",
@@ -144,10 +167,28 @@ class PlannerContractTests(unittest.TestCase):
         )
         commands = self.policy["lanes"]["riscv_frontend"]["commands"] + self.policy["lanes"]["riscv_frontend_releasefast"]["commands"]
         self.assertEqual(4, len(commands))
-        self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-retained-transcript-contracts", "test-retained-typed-components", f"-Doptimize={mode}", "-j1", "--summary", "all", "--verbose"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_retained_contracts"]["commands"] + self.policy["lanes"]["riscv_retained_contracts_releasefast"]["commands"])
+        self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-retained-transcript-contracts", "test-native-typed-components", f"-Doptimize={mode}", "-j1", "--summary", "all", "--verbose"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_retained_contracts"]["commands"] + self.policy["lanes"]["riscv_retained_contracts_releasefast"]["commands"])
         self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-air-runtime-profile", f"-Doptimize={mode}", "-j2", "--summary", "all"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_runtime_profile"]["commands"])
         for command, step, mode in zip(commands, ("test-air-runtime-profile", "test-air-runtime-profile", "test", "test"), ("Debug", "ReleaseFast", "Debug", "ReleaseFast"), strict=True):
             self.assertEqual(["zig", "build", step, "--build-file", "src/frontends/riscv/build.zig", f"-Doptimize={mode}", "-j2"] + (["--verbose", "--summary", "all"] if step == "test" else []), command)
+
+    def test_profile_diagnostic_reuses_both_existing_targets_without_replacing_cpu_gate(self):
+        for suffix, mode in (("", "Debug"), ("_releasefast", "ReleaseFast")):
+            name = "riscv_profile_partition" + suffix
+            self.assertEqual([["zig", "build", "test-riscv-profile-partition", "-Doptimize=" + mode, "-j2"]],
+                             self.policy["lanes"][name]["commands"])
+            self.assertEqual([name], ci_scope_plan.manual_cpu_selection(name, self.policy)[0])
+        self.assertTrue(any("test-riscv-profile-partition" in command
+                            for command in self.policy["lanes"]["riscv_cpu"]["commands"]))
+        source = (ROOT / "build_support/products/riscv_cpu.zig").read_text()
+        selection = source.split("const profile_partition_run =", 1)[1].split("context.b.step(", 1)[0]
+        self.assertIn('"proof-scoped pool failure unwinds before a subsequent proof"', selection)
+        self.assertIn(".minimum = 4", selection)
+
+    def test_rv64_modes_retain_exact_commands_and_shared_source_triggers(self):
+        names = ("riscv_rv64_package", "riscv_rv64_package_releasefast")
+        self.assertEqual([["zig", "build", "test", "--build-file", "src/frontends/riscv/rv64/build.zig", "-Doptimize=" + mode, "-j2"] for mode in ("Debug", "ReleaseFast")], sum((self.policy["lanes"][name]["commands"] for name in names), []))
+        self.assertTrue(set(names).issubset(self.lanes_for("src/frontends/riscv/rv64/machine.zig")))
 
     def test_releasefast_companions_keep_every_parent_trigger(self) -> None:
         for parent in ("riscv_frontend", "riscv_retained_contracts"):
@@ -156,26 +197,30 @@ class PlannerContractTests(unittest.TestCase):
                 self.assertEqual(parent in rule["lanes"], companion in rule["lanes"])
             for lanes in self.policy["product_scope_lanes"].values():
                 self.assertEqual(parent in lanes, companion in lanes)
-            selected = self.lanes_for("src/frontends/riscv/retained_typed_component_test_root.zig")
+            selected = self.lanes_for("src/frontends/riscv/focused_test_retained_typed_components_upper.zig")
             self.assertTrue({parent, companion}.issubset(selected))
             self.assertIn(companion, ci_scope_plan.MANUAL_CPU_LANES)
 
     def test_releasefast_failure_diagnostic_retains_four_correctness_cases_and_full_gate(self):
         package = ROOT / "src/frontends/riscv"
         catalog = (package / "build_focused_tests.zig").read_text()
-        spec = catalog.split('.step = "test-releasefast-acceptance",', 1)[1].split('.minimum = 4,', 1)[0]
-        filters = re.findall(r'"([^"\n]+)"', spec.split('.filters = &.{', 1)[1])
-        imports = re.findall(r'@import\("([^"]+)"\)', (package / "releasefast_acceptance_test_root.zig").read_text())
+        spec = catalog.split('.step = "test-releasefast-acceptance",', 1)[1].split('\n    },', 1)[0]
+        filters = re.findall(r'"([^"\n]+)"', re.search(r'\.filters = &\.\{(.*?)\}', spec, re.S)[1])
+        parts = re.search(r'\.partition_roots = &\.\{(.*?)\}', spec, re.S)
+        roots = re.findall(r'"([^"\n]+)"', parts[1]) if parts else re.findall(r'\.root = "([^"\n]+)"', spec)
+        imports = [str((package / source).parent / name) for source in roots
+                   for name in re.findall(r'@import\("([^"\n]+\.zig)"\)', (package / source).read_text())]
         self.assertEqual(4, len(set(filters)))
         self.assertEqual(4, len(set(imports)))
-        declared = [name for path in imports for name in re.findall(r'test "([^"]+)"', (package / path).read_text())]
+        declared = [name for path in imports for name in re.findall(r'test "([^"]+)"', Path(path).read_text())]
         self.assertTrue(all(sum(name == selected for name in declared) == 1 for selected in filters))
         self.assertIn('.error_tracing = true,', spec)
         self.assertIn('.strip = false,', spec)
         lane = "riscv_frontend_acceptance"
-        self.assertEqual([["zig", "build", "test-releasefast-acceptance", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2", "--verbose", "--summary", "all"]], self.policy["lanes"][lane]["commands"])
+        self.assertEqual([["zig", "build", "test-releasefast-acceptance", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2", "--verbose", "--summary", "all"]], self.policy["lanes"][lane]["commands"][:1])
+        self.assertEqual([["zig", "build", "test-recursion-transcript-v2", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=" + mode, "-j2", "--summary", "all"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"][lane]["commands"][1:])
         self.assertIn(lane, ci_scope_plan.MANUAL_CPU_LANES)
-        selected = self.lanes_for("src/frontends/riscv/releasefast_acceptance_test_root.zig")
+        selected = self.lanes_for("src/frontends/riscv/testing/focused_test_releasefast_acceptance_0.zig")
         self.assertTrue({lane, "riscv_frontend_releasefast"}.issubset(selected))
 
     def test_package_workspace_has_a_dedicated_failing_pr_gate(self):
@@ -199,14 +244,25 @@ class PlannerContractTests(unittest.TestCase):
     def test_timing_benchmarks_are_separate_and_nonblocking(self):
         package = ROOT / "src/frontends/riscv"
         catalog = (package / "build_focused_tests.zig").read_text()
-        spec = catalog.split('.step = "test-typed-witness-benchmarks",', 1)[1].split('.minimum = 8,', 1)[0]
-        filters = re.findall(r'"([^"\n]+)"', spec.split('.filters = &.{', 1)[1])
-        imports = re.findall(r'@import\("([^"]+)"\)', (package / "typed_witness_benchmark_test_root.zig").read_text())
-        self.assertEqual(8, len(set(filters)))
-        self.assertEqual(8, len(set(imports)))
-        for path in imports:
-            self.assertNotIn('@import("' + path + '")', (package / "test_inventory.zig").read_text())
-            self.assertIn('.path = "' + path + '"', (package / "test_inventory_test.zig").read_text())
+        spec = catalog.split('.step = "test-typed-witness-benchmarks",', 1)[1].split('\n    },', 1)[0]
+        self.assertIn('.minimum = 52,', spec)
+        filters = re.findall(r'"([^"\n]+)"', re.search(r'\.filters = &\.\{(.*?)\}', spec, re.S)[1])
+        roots = re.findall(r'"([^"\n]+)"', re.search(r'\.partition_roots = &\.\{(.*?)\}', spec, re.S)[1])
+        subjects = [(package / source).parent / name for source in roots
+                    for name in re.findall(r'@import\("([^"\n]+\.zig)"\)', (package / source).read_text())]
+        names = [name for path in subjects for name in re.findall(r'test "([^"\n]+)"', path.read_text())]
+        self.assertEqual(52, len(set(filters)))
+        self.assertEqual(52, len(names))
+        self.assertEqual(set(filters), set(names))
+        for path in subjects:
+            relative = path.resolve().relative_to(package)
+            if relative.parts[0] == "testing":
+                inventory = package / "testing/tests/root.zig"
+                quoted = "../" + relative.relative_to("testing").as_posix()
+            else:
+                inventory, quoted = package / "test_inventory.zig", relative.as_posix()
+            self.assertNotIn('@import("' + quoted + '")', inventory.read_text())
+            self.assertIn('.path = "' + relative.as_posix() + '"', (package / "test_inventory_test.zig").read_text())
         commands = self.policy["lanes"]["riscv_witness_benchmarks"]["commands"]
         self.assertEqual([["zig", "build", "test-typed-witness-benchmarks", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=" + mode, "-j2", "--verbose", "--summary", "all"] for mode in ("ReleaseFast", "Debug")], commands)
         self.assertIn("continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' }}", (ROOT / ".github/workflows/ci.yml").read_text())
@@ -370,7 +426,8 @@ class PlannerContractTests(unittest.TestCase):
                 "native_cuda_integration",
                 "cairo_cuda_integration",
                 "riscv_cuda_integration",
-                "package",
+                "ethereum_statement",
+                "ethereum_statement_releasefast",                "package",
                 "native_cuda_static",
                 "native_cuda_device",
             },
@@ -588,313 +645,11 @@ class PlannerContractTests(unittest.TestCase):
             ci_scope_plan.validate_policy(policy)
 
 
-def runner_policy(commands: list[list[str]], host: str | None = None) -> dict[str, object]:
-    current_host = "macos" if sys.platform == "darwin" else "linux"
-    return {
-        "schema": "ci-touchpoints-v1",
-        "always_lanes": ["focused"],
-        "lanes": {
-            "focused": {
-                "host": host or current_host,
-                "description": "test lane",
-                "commands": commands,
-            }
-        },
-        "product_scope_lanes": {},
-        "rules": [],
-        "documentation_prefixes": ["docs"],
-    }
+from scripts.tests.focused_ci_runner_contracts import runner_policy
 
 
-class RunnerReceiptTests(unittest.TestCase):
-    def test_local_build_preserves_limits_and_runtime_args_while_serializing(self) -> None:
-        for jobs in (["-j2"], ["-j", "2"], ["-j"]):
-            command = [
-                "zig", "build", *jobs, "test", "-Doptimize=ReleaseFast",
-                "--maxrss", "4294967296", "--", "-j8",
-            ]
-            original = list(command)
-            local = ci_scope_run.local_build_command(command)
-            with mock.patch.object(zig_serial_build, "default_maxrss", return_value=1024):
-                _, rss, count, _, forwarded = zig_serial_build.parse(local[2:])
-            self.assertEqual((4294967296, 1), (rss, count))
-            self.assertEqual(["test", "-Doptimize=ReleaseFast", "--", "-j8"], forwarded)
-            self.assertEqual(original, command)
-        self.assertEqual(["tool"], ci_scope_run.local_build_command(["tool"]))
-
-    def test_local_build_keeps_invalid_job_counts_rejected(self) -> None:
-        for jobs in (["-j0"], ["-j", "0"]):
-            local = ci_scope_run.local_build_command(["zig", "build", *jobs, "test"])
-            with mock.patch.object(zig_serial_build, "default_maxrss", return_value=1024):
-                with self.assertRaises(ValueError):
-                    zig_serial_build.parse(local[2:])
-
-    def fake_run(
-        self,
-        command_results: list[tuple[int, bytes, bytes]],
-        captured: list[tuple[list[str], dict[str, object]]],
-    ):
-        remaining = list(command_results)
-
-        def run(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess:
-            if argv == ["git", "rev-parse", "HEAD"]:
-                return subprocess.CompletedProcess(argv, 0, COMMIT + "\n", "")
-            if argv == ["git", "rev-parse", "HEAD^{tree}"]:
-                return subprocess.CompletedProcess(argv, 0, TREE + "\n", "")
-            if argv == ["git", "diff", "--quiet", "HEAD", "--"]:
-                return subprocess.CompletedProcess(argv, 0, b"", b"")
-            if argv == ["git", "ls-files", "--others", "--exclude-standard"]:
-                return subprocess.CompletedProcess(argv, 0, b"", b"")
-            captured.append((list(argv), kwargs))
-            returncode, stdout, stderr = remaining.pop(0)
-            kwargs["stdout"].write(stdout)
-            kwargs["stderr"].write(stderr)
-            return subprocess.CompletedProcess(argv, returncode)
-
-        return run
-
-    def test_pre_push_clears_git_environment_before_nested_git_commands(self) -> None:
-        result = subprocess.CompletedProcess(
-            args=[], returncode=0,
-            stdout="GIT_DIR\nGIT_WORK_TREE\nGIT_INDEX_FILE\n", stderr="",
-        )
-        inherited = {
-            "GIT_DIR": "/repository/.git",
-            "GIT_WORK_TREE": "/repository",
-            "GIT_INDEX_FILE": "/repository/.git/index",
-        }
-        with (
-            mock.patch.dict(os.environ, inherited, clear=False),
-            mock.patch.object(ci_scope_push.subprocess, "run", return_value=result),
-        ):
-            ci_scope_push.clear_git_local_environment(ROOT)
-            for name in inherited:
-                self.assertNotIn(name, os.environ)
-
-    def test_pass_receipt_binds_identity_output_digests_and_durations(self) -> None:
-        policy = runner_policy(
-            [["test-riscv-profile-partition", "--output", "{output_dir}", "--commit", "{commit}"]]
-        )
-        captured: list[tuple[list[str], dict[str, object]]] = []
-        stdout = SimpleNamespace(buffer=io.BytesIO())
-        stderr = SimpleNamespace(buffer=io.BytesIO())
-        with tempfile.TemporaryDirectory() as raw:
-            output = Path(raw) / "receipts" / "focused.json"
-            with (
-                mock.patch.object(
-                    ci_scope_run.subprocess,
-                    "run",
-                    side_effect=self.fake_run([(0, b"ok\n", b"")], captured),
-                ),
-                mock.patch.object(
-                    ci_scope_run.time,
-                    "monotonic_ns",
-                    side_effect=[100, 200, 500, 900],
-                ),
-                mock.patch.object(ci_scope_run.platform, "machine", return_value="test64"),
-                mock.patch.object(ci_scope_run.sys, "stdout", stdout),
-                mock.patch.object(ci_scope_run.sys, "stderr", stderr),
-            ):
-                receipt = ci_scope_run.run_lane(
-                    root=ROOT,
-                    policy=policy,
-                    lane="focused",
-                    output=output,
-                    cache_mode="inherit",
-                    cache_root=None,
-                )
-            persisted = json.loads(output.read_text(encoding="utf-8"))
-            self.assertEqual(b"ok\n", (output.parent / "focused-0.stdout").read_bytes())
-
-        self.assertEqual(receipt, persisted)
-        self.assertEqual("stwo-focused-ci-timing-v1", receipt["schema"])
-        self.assertEqual("PASS", receipt["status"])
-        self.assertEqual(COMMIT, receipt["commit"])
-        self.assertEqual(TREE, receipt["tree"])
-        self.assertTrue(receipt["clean"])
-        self.assertEqual("test64", receipt["host_machine"])
-        self.assertEqual(800, receipt["duration_ns"])
-        self.assertEqual(300, receipt["commands"][0]["duration_ns"])
-        self.assertEqual(ci_scope_run.digest(b"ok\n"), receipt["commands"][0]["stdout_sha256"])
-        self.assertEqual(ci_scope_run.digest(b""), receipt["commands"][0]["stderr_sha256"])
-        self.assertEqual(b"ok\n", stdout.buffer.getvalue())
-        self.assertEqual([], [entry for entry in captured if entry[0][:2] == ["git", "rev-parse"]])
-        self.assertEqual(
-            [
-                "test-riscv-profile-partition",
-                "--output",
-                str(output.parent.resolve()),
-                "--commit",
-                COMMIT,
-            ],
-            captured[0][0],
-        )
-
-    def test_failed_command_stops_lane_and_persists_failure_receipt(self) -> None:
-        policy = runner_policy([["first"], ["second"], ["must-not-run"]])
-        captured: list[tuple[list[str], dict[str, object]]] = []
-        streams = SimpleNamespace(buffer=io.BytesIO())
-        with tempfile.TemporaryDirectory() as raw:
-            output = Path(raw) / "failed.json"
-            with (
-                mock.patch.object(
-                    ci_scope_run.subprocess,
-                    "run",
-                    side_effect=self.fake_run(
-                        [(0, b"", b""), (7, b"", b"failed\n")], captured
-                    ),
-                ),
-                mock.patch.object(
-                    ci_scope_run.time,
-                    "monotonic_ns",
-                    side_effect=[100, 200, 300, 400, 650, 1000],
-                ),
-                mock.patch.object(ci_scope_run.sys, "stdout", streams),
-                mock.patch.object(
-                    ci_scope_run.sys, "stderr", SimpleNamespace(buffer=io.BytesIO())
-                ),
-            ):
-                receipt = ci_scope_run.run_lane(
-                    root=ROOT,
-                    policy=policy,
-                    lane="focused",
-                    output=output,
-                    cache_mode="inherit",
-                    cache_root=None,
-                )
-
-            persisted = json.loads(output.read_text(encoding="utf-8"))
-            self.assertEqual(b"failed\n", (output.parent / "focused-1.stderr").read_bytes())
-        self.assertEqual("FAIL", receipt["status"])
-        self.assertEqual(receipt, persisted)
-        self.assertEqual(["first", "second"], [item[0][0] for item in captured])
-        self.assertEqual([0, 7], [record["exit_code"] for record in receipt["commands"]])
-        self.assertEqual([100, 250], [record["duration_ns"] for record in receipt["commands"]])
-        self.assertEqual(900, receipt["duration_ns"])
-
-    def test_warm_cache_exports_isolated_cache_roots(self) -> None:
-        policy = runner_policy([["tool"]])
-        captured: list[tuple[list[str], dict[str, object]]] = []
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            output = root / "receipt.json"
-            cache = root / "cache"
-            with (
-                mock.patch.object(
-                    ci_scope_run.subprocess,
-                    "run",
-                    side_effect=self.fake_run([(0, b"", b"")], captured),
-                ),
-                mock.patch.object(
-                    ci_scope_run.time,
-                    "monotonic_ns",
-                    side_effect=[100, 200, 300, 400],
-                ),
-                mock.patch.object(
-                    ci_scope_run.sys,
-                    "stdout",
-                    SimpleNamespace(buffer=io.BytesIO()),
-                ),
-                mock.patch.object(
-                    ci_scope_run.sys,
-                    "stderr",
-                    SimpleNamespace(buffer=io.BytesIO()),
-                ),
-            ):
-                receipt = ci_scope_run.run_lane(
-                    root=ROOT,
-                    policy=policy,
-                    lane="focused",
-                    output=output,
-                    cache_mode="warm",
-                    cache_root=cache,
-                )
-        environment = captured[0][1]["env"]
-        assert isinstance(environment, dict)
-        self.assertEqual(str(cache.resolve() / "local"), environment["STWO_CI_CACHE_DIR"])
-        self.assertEqual(
-            str(cache.resolve() / "zig-local"), environment["ZIG_LOCAL_CACHE_DIR"]
-        )
-        self.assertEqual(str(cache.resolve() / "global"), environment["ZIG_GLOBAL_CACHE_DIR"])
-        self.assertEqual(str(cache.resolve() / "cargo-target"), environment["CARGO_TARGET_DIR"])
-        self.assertEqual("warm", receipt["cache_mode"])
-
-    def test_invalid_cache_arguments_fail_before_git_or_execution(self) -> None:
-        with tempfile.TemporaryDirectory() as raw, mock.patch.object(
-            ci_scope_run.subprocess, "run", side_effect=AssertionError("no Git or lane execution")
-        ):
-            output = Path(raw) / "not-created" / "receipt.json"
-            for mode, message in (("warm", "warm cache mode requires --cache-root"),
-                                  ("invalid", "invalid cache mode")):
-                with self.subTest(mode=mode), self.assertRaisesRegex(ci_scope_run.PlanError, message):
-                    ci_scope_run.run_lane(
-                        root=Path(raw) / "no-checkout", policy=runner_policy([["tool"]]),
-                        lane="focused", output=output, cache_mode=mode, cache_root=None,
-                    )
-            self.assertFalse(output.parent.exists())
-
-    def test_wrong_host_and_unknown_lane_fail_before_execution(self) -> None:
-        current_host = "macos" if sys.platform == "darwin" else "linux"
-        other_host = "linux" if current_host == "macos" else "macos"
-        with tempfile.TemporaryDirectory() as raw:
-            output = Path(raw) / "receipt.json"
-            with self.assertRaisesRegex(ci_scope_run.PlanError, "requires"):
-                ci_scope_run.run_lane(
-                    root=ROOT,
-                    policy=runner_policy([["tool"]], host=other_host),
-                    lane="focused",
-                    output=output,
-                    cache_mode="inherit",
-                    cache_root=None,
-                )
-            with self.assertRaisesRegex(ci_scope_run.PlanError, "unknown CI lane"):
-                ci_scope_run.run_lane(
-                    root=ROOT,
-                    policy=runner_policy([["tool"]]),
-                    lane="missing",
-                    output=output,
-                    cache_mode="inherit",
-                    cache_root=None,
-                )
-
-    def test_macos_can_run_linux_compatible_lane_only_when_explicit(self) -> None:
-        policy = runner_policy([["zig", "build", "test", "-Doptimize=ReleaseFast", "-j2"]], host="linux")
-        captured: list[tuple[list[str], dict[str, object]]] = []
-        with tempfile.TemporaryDirectory() as raw:
-            with (
-                mock.patch.object(ci_scope_run.sys, "platform", "darwin"),
-                mock.patch.object(
-                    ci_scope_run.subprocess,
-                    "run",
-                    side_effect=self.fake_run([(0, b"", b"")], captured),
-                ),
-                mock.patch.object(
-                    ci_scope_run.time,
-                    "monotonic_ns",
-                    side_effect=[100, 200, 300, 400],
-                ),
-                mock.patch.object(
-                    ci_scope_run.sys, "stdout", SimpleNamespace(buffer=io.BytesIO())
-                ),
-                mock.patch.object(
-                    ci_scope_run.sys, "stderr", SimpleNamespace(buffer=io.BytesIO())
-                ),
-            ):
-                receipt = ci_scope_run.run_lane(
-                    root=ROOT,
-                    policy=policy,
-                    lane="focused",
-                    output=Path(raw) / "receipt.json",
-                    cache_mode="inherit",
-                    cache_root=None,
-                    local_compatible=True,
-                )
-        self.assertEqual("macos", receipt["host"])
-        self.assertEqual("linux", receipt["required_host"])
-        self.assertEqual(
-            [sys.executable, "scripts/repo/zig_serial_build.py", "-j1", "test", "-Doptimize=ReleaseFast"],
-            captured[0][0],
-        )
+from scripts.tests.focused_ci_runner_contracts import RunnerReceiptTests
+RunnerReceiptTests.__module__ = __name__
 
 
 if __name__ == "__main__":

@@ -1,0 +1,55 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_isa",
+  "version": "0.1.0",
+  "layer": "frontend",
+  "owner": "riscv-frontend",
+  "public_modules": {
+    "stwo_riscv_isa": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../../waist/core"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "access_clock",
+    "authority",
+    "bulk_memcpy_candidate",
+    "bulk_memcpy_private_registry",
+    "custom0",
+    "decode",
+    "execution_profile",
+    "host",
+    "instruction_set",
+    "machine",
+    "opcode_manifest",
+    "profile",
+    "segment_wire_layout",
+    "sha256_compression",
+    "span_word_geometry",
+    "stack_swap_candidate",
+    "stack_swap_private_registry",
+    "testing"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "tests/contracts.zig::C3 canonical API identity: ISA machine and host types"
+    ],
+    "invariant_tests": [
+      "runner/state_chain.zig::state_chain: register access tracking"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_isa_package",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/riscv/isa/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

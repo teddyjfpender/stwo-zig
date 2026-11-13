@@ -2,8 +2,8 @@
 
 pub const std = @import("std");
 pub const stwo_core = @import("stwo_core");
-pub const channel = @import("poseidon2_channel.zig");
-pub const protocol = @import("protocol.zig");
+pub const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
+pub const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 
 pub const m31 = stwo_core.fields.m31;
 

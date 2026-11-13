@@ -1043,7 +1043,7 @@
       ],
       "properties": {
         "builder": {
-          "const": "src/frontends/riscv/air/constraint_program.zig"
+          "const": "src/frontends/riscv/rv32/air/constraint_program.zig"
         },
         "source_closure_sha256": {
           "$ref": "#/$defs/sha256"

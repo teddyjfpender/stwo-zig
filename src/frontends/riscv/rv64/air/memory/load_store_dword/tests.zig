@@ -670,7 +670,7 @@ test "LS-D64 packed quotient rows on four workers equal serial accumulation" {
     var actual_output = engine.air.accumulation.ColumnAccumulator{ .random_coeff_powers = &powers, .col = &actual_col, .next_fresh_index = 0 };
     try D.component.testing.packedRows.evaluate(&component, views[0..count], 0, size, &inverses, &ref_output);
     var pool: engine.work_pool.WorkPool = .{};
-    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .stack_size = 256 * 1024, .backing_allocator = a });
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .stack_size = engine.work_pool.WORKER_STACK_SIZE, .backing_allocator = a });
     defer pool.deinit();
     try D.component.testing.evaluateRows(&component, views[0..count], &inverses, &actual_output, &pool);
     try testing.expectEqualSlices(M, reference, actual);
@@ -874,7 +874,7 @@ test "LS-D64 fused-pair packed quotient rows on four workers equal serial accumu
     var actual_output = engine.air.accumulation.ColumnAccumulator{ .random_coeff_powers = &powers, .col = &actual_col, .next_fresh_index = 0 };
     try D.component.testing.packedRows.evaluate(&component, views[0..count], 0, size, &inverses, &ref_output);
     var pool: engine.work_pool.WorkPool = .{};
-    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .stack_size = 256 * 1024, .backing_allocator = a });
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .stack_size = engine.work_pool.WORKER_STACK_SIZE, .backing_allocator = a });
     defer pool.deinit();
     try D.component.testing.evaluateRows(&component, views[0..count], &inverses, &actual_output, &pool);
     try testing.expectEqualSlices(M, reference, actual);

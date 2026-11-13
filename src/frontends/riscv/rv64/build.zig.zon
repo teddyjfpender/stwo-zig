@@ -1,0 +1,15 @@
+.{
+    .fingerprint = 0x8111228940faf7e7,
+    .name = .stwo_riscv_rv64,
+    .version = "1.0.0",
+    .minimum_zig_version = "0.15.2",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../../waist/core" },
+        .stwo_prover_engine = .{ .path = "../../../engine/prover" },
+        .stwo_riscv_air_lang = .{ .path = "../air_lang" },
+        .stwo_riscv_memory = .{ .path = "../memory" },
+        .stwo_riscv_precompiles = .{ .path = "../precompiles" },
+        .stwo_riscv_rv32 = .{ .path = "../rv32" },
+    },
+}

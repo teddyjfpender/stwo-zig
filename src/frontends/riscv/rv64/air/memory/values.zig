@@ -5,9 +5,9 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const M = core.fields.m31.M31;
-const permutation = @import("../../../air/memory_commitment/poseidon2.zig");
-const node = @import("../../../air/memory_commitment/ethereum_node.zig");
-const provider = @import("../../../air/memory_commitment/poseidon2_universal_degree3.zig");
+const permutation = @import("stwo_riscv_memory").air.poseidon2;
+const node = @import("stwo_riscv_memory").air.binary_node_128;
+const provider = @import("stwo_riscv_memory").air.poseidon2_universal_degree3;
 const physical = @import("../witness.zig").physical;
 const Memory = @import("../../memory.zig").Memory;
 pub const Digest = node.Digest;

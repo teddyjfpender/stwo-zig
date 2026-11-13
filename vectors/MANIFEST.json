@@ -3,14 +3,6 @@
   "description": "Golden vectors and fixtures tracked under vectors/. consumers lists live files that name the group path (git grep), not a proof of reachability. Historical receipts live at archive/pre-restructure-20261108.",
   "archive": "https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors",
   "groups": {
-    "vectors/air_derive.json": {
-      "files": 1,
-      "consumers": [
-        "scripts/repo/parity_air_derive.py",
-        "src/waist/core/air/derive.zig",
-        "tools/stwo-air-derive-vector-gen/src/main.rs"
-      ]
-    },
     "vectors/cairo": {
       "files": 122,
       "consumers": [
@@ -484,23 +476,6 @@
         "src/integrations/circuit_cpu/tests/r9_fold_tree_test.zig"
       ]
     },
-    "vectors/constraint_expr.json": {
-      "files": 1,
-      "consumers": [
-        "scripts/repo/parity_constraint_expr.py",
-        "src/waist/core/constraint_framework/evaluator.zig",
-        "src/waist/core/constraint_framework/expr.zig",
-        "tools/stwo-cf-vector-gen/src/main.rs"
-      ]
-    },
-    "vectors/fields.json": {
-      "files": 1,
-      "consumers": [
-        "scripts/repo/parity_fields.py",
-        "src/products/native/tests/parity/vectors/fixtures.zig",
-        "tools/stwo-vector-gen/src/main.rs"
-      ]
-    },
     "vectors/reports": {
       "files": 3,
       "consumers": [
@@ -641,15 +616,34 @@
         "tools/starknet-block-collector/README.md",
         "tools/starknet-block-collector/circuit_pipeline.py"
       ]
+    },
+    "vectors/waist/air_derive.json": {
+      "files": 1,
+      "consumers": [
+        "scripts/repo/parity_air_derive.py",
+        "src/waist/core/air/derive.zig",
+        "tools/stwo-air-derive-vector-gen/src/main.rs"
+      ]
+    },
+    "vectors/waist/constraint_expr.json": {
+      "files": 1,
+      "consumers": [
+        "scripts/repo/parity_constraint_expr.py",
+        "src/waist/core/constraint_framework/evaluator.zig",
+        "src/waist/core/constraint_framework/expr.zig",
+        "tools/stwo-cf-vector-gen/src/main.rs"
+      ]
+    },
+    "vectors/waist/fields.json": {
+      "files": 1,
+      "consumers": [
+        "scripts/repo/parity_fields.py",
+        "src/products/native/tests/parity/vectors/fixtures.zig",
+        "tools/stwo-vector-gen/src/main.rs"
+      ]
     }
   },
   "files": [
-    {
-      "path": "vectors/air_derive.json",
-      "sha256": "9fb133e22a7b514628a45d81c2a083147f0a3921b6dd4ec54051db7bc212f787",
-      "bytes": 55601,
-      "group": "vectors/air_derive.json"
-    },
     {
       "path": "vectors/cairo/cairo_fib25k_claim_geometry.json",
       "sha256": "20014cbc5a1188b3d1e7d11a1634ec64348e82f972714f36a585908d30379d9e",
@@ -672,48 +666,6 @@
       "path": "vectors/cairo/cairo_relation_templates.bin",
       "sha256": "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f",
       "bytes": 54544,
-      "group": "vectors/cairo"
-    },
-    {
-      "path": "vectors/cairo/ec_op_parity.bin",
-      "sha256": "dd3e2354adee6779e68b19cd46314e9da54f53ec5ad232948623add38282e53b",
-      "bytes": 8580284,
-      "group": "vectors/cairo"
-    },
-    {
-      "path": "vectors/cairo/sn_pie_2_arena_schedule.json.gz",
-      "sha256": "60c895e5d9de62b017abc71df65faf55d684d4121d6c792b31fe589bef241e73",
-      "bytes": 138083,
-      "group": "vectors/cairo"
-    },
-    {
-      "path": "vectors/cairo/sn_pie_2_composition.bin",
-      "sha256": "fdb84be46893a8bb6eb8eeac19bc8746d064a04c3700accca367911a921a47e9",
-      "bytes": 2312299,
-      "group": "vectors/cairo"
-    },
-    {
-      "path": "vectors/cairo/sn_pie_2_composition.metallib",
-      "sha256": "85db09e024a661d78e34e53ed2ae36c150567977223f34bba88f119b3c7b21ab",
-      "bytes": 7740844,
-      "group": "vectors/cairo"
-    },
-    {
-      "path": "vectors/cairo/sn_pie_2_multiplicity_feeds.bin",
-      "sha256": "2f4c16e659b9098e573280bcabc52702d9dd848eefc4997b8cd7a3ae738eff2e",
-      "bytes": 8446456,
-      "group": "vectors/cairo"
-    },
-    {
-      "path": "vectors/cairo/sn_pie_2_witness.metallib",
-      "sha256": "054426fc7107a841345398428275a9b448b319c3c409b9d56388489cb168ab3a",
-      "bytes": 2987517,
-      "group": "vectors/cairo"
-    },
-    {
-      "path": "vectors/cairo/sn_pie_2_witness_programs.bin",
-      "sha256": "c6ba38c81159d1caac17d94ff5b0ebf50bf407d76eaaf7f3aa644630f904b25c",
-      "bytes": 1036444,
       "group": "vectors/cairo"
     },
     {
@@ -769,6 +721,12 @@
       "sha256": "e66a6aa1e12edba098d50d10b296b46960b81c5b421be3989ea63a8a3b4aec49",
       "bytes": 34859,
       "group": "vectors/cairo/csp"
+    },
+    {
+      "path": "vectors/cairo/ec_op_parity.bin",
+      "sha256": "dd3e2354adee6779e68b19cd46314e9da54f53ec5ad232948623add38282e53b",
+      "bytes": 8580284,
+      "group": "vectors/cairo"
     },
     {
       "path": "vectors/cairo/official/air_template_composition_bounded.metallib",
@@ -1009,6 +967,42 @@
       "sha256": "d4381c90ee04f717aeb6c5ead5a599c4029b8a38faf56d066c865ffe89273d57",
       "bytes": 43604,
       "group": "vectors/cairo/programs"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_arena_schedule.json.gz",
+      "sha256": "60c895e5d9de62b017abc71df65faf55d684d4121d6c792b31fe589bef241e73",
+      "bytes": 138083,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_composition.bin",
+      "sha256": "fdb84be46893a8bb6eb8eeac19bc8746d064a04c3700accca367911a921a47e9",
+      "bytes": 2312299,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_composition.metallib",
+      "sha256": "85db09e024a661d78e34e53ed2ae36c150567977223f34bba88f119b3c7b21ab",
+      "bytes": 7740844,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_multiplicity_feeds.bin",
+      "sha256": "2f4c16e659b9098e573280bcabc52702d9dd848eefc4997b8cd7a3ae738eff2e",
+      "bytes": 8446456,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_witness.metallib",
+      "sha256": "054426fc7107a841345398428275a9b448b319c3c409b9d56388489cb168ab3a",
+      "bytes": 2987517,
+      "group": "vectors/cairo"
+    },
+    {
+      "path": "vectors/cairo/sn_pie_2_witness_programs.bin",
+      "sha256": "c6ba38c81159d1caac17d94ff5b0ebf50bf407d76eaaf7f3aa644630f904b25c",
+      "bytes": 1036444,
+      "group": "vectors/cairo"
     },
     {
       "path": "vectors/cairo/source_semantics/four_pie_coverage_v1.json",
@@ -1425,12 +1419,6 @@
       "group": "vectors/circuit"
     },
     {
-      "path": "vectors/circuit/provenance.json",
-      "sha256": "0a0aed9f5c86032b938ff20f33119c4d7232f18935badfdc98314f9b86f12aa0",
-      "bytes": 40382,
-      "group": "vectors/circuit"
-    },
-    {
       "path": "vectors/circuit/official/circuit_air.air_programs_v1.bin",
       "sha256": "7b8022b09d84db371cc433aa0fcf132f7687f2720e05e4dc9a7650c575dc02c2",
       "bytes": 47875,
@@ -1597,6 +1585,12 @@
       "sha256": "f1bc1655685f17352d762637841b07f7bcf9dd640eb051850cbc702a5bd5c3e1",
       "bytes": 394,
       "group": "vectors/circuit/official"
+    },
+    {
+      "path": "vectors/circuit/provenance.json",
+      "sha256": "0a0aed9f5c86032b938ff20f33119c4d7232f18935badfdc98314f9b86f12aa0",
+      "bytes": 40382,
+      "group": "vectors/circuit"
     },
     {
       "path": "vectors/circuit/r0/primitives.json",
@@ -1915,18 +1909,6 @@
       "sha256": "7e0691d1bc3865554ea7cec4019a3b610017146bd0bf0e13c4d2597dc0cbdb2f",
       "bytes": 9152,
       "group": "vectors/circuit/r9"
-    },
-    {
-      "path": "vectors/constraint_expr.json",
-      "sha256": "706acd51e9cff0348856f0b46aee3034e46ba0f7e529671ccd96887492454635",
-      "bytes": 4728,
-      "group": "vectors/constraint_expr.json"
-    },
-    {
-      "path": "vectors/fields.json",
-      "sha256": "1f25c17270d8c11b5b65ca0005e96e67591a5f0097ed3e14d9ac8c992ae30748",
-      "bytes": 4602433,
-      "group": "vectors/fields.json"
     },
     {
       "path": "vectors/reports/rv64-productionisation/current.json",
@@ -3430,8 +3412,8 @@
     },
     {
       "path": "vectors/riscv_csp/recursion-shape-audit-v2.json",
-      "sha256": "daad8c1693db7c49f1f4e781022c973ae793eb70ac07853716b0195e20d9892c",
-      "bytes": 24048,
+      "sha256": "34ba24a1393750da6a25028e7480f39a41f4c4a717362a7ab374b3b1ad134838",
+      "bytes": 24234,
       "group": "vectors/riscv_csp"
     },
     {
@@ -4051,6 +4033,24 @@
       "sha256": "b63d60ace04c665c73a24336da84ba24a6c6c591be89d48df02b46dde1bc12a0",
       "bytes": 779,
       "group": "vectors/starknet/mainnet"
+    },
+    {
+      "path": "vectors/waist/air_derive.json",
+      "sha256": "9fb133e22a7b514628a45d81c2a083147f0a3921b6dd4ec54051db7bc212f787",
+      "bytes": 55601,
+      "group": "vectors/waist/air_derive.json"
+    },
+    {
+      "path": "vectors/waist/constraint_expr.json",
+      "sha256": "706acd51e9cff0348856f0b46aee3034e46ba0f7e529671ccd96887492454635",
+      "bytes": 4728,
+      "group": "vectors/waist/constraint_expr.json"
+    },
+    {
+      "path": "vectors/waist/fields.json",
+      "sha256": "1f25c17270d8c11b5b65ca0005e96e67591a5f0097ed3e14d9ac8c992ae30748",
+      "bytes": 4602433,
+      "group": "vectors/waist/fields.json"
     }
   ]
 }

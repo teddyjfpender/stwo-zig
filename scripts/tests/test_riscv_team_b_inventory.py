@@ -330,7 +330,7 @@ class CliTest(unittest.TestCase):
     def test_embedded_opcode_table_matches_production_manifest(self):
         manifest = (
             inventory_tool.REPOSITORY_ROOT
-            / "src/frontends/riscv/opcode_manifest.zig"
+            / "src/frontends/riscv/isa/opcode_manifest.zig"
         )
         if not manifest.exists():
             self.skipTest("production manifest not in this tree slice")

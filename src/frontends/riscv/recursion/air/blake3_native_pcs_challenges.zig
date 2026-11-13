@@ -2,16 +2,16 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const vm = @import("../vm_air_composition_circuit.zig");
-const native = @import("blake3_native_transcript.zig");
+const native = @import("stwo_riscv_rv32").recursion.air.blake3_native_transcript;
 const vm_links = @import("blake3_native_challenge_links.zig");
 const deep_mod = @import("blake3_native_deep.zig");
 const fri_mod = @import("blake3_native_fri.zig");
-const t = @import("blake3_transcript_witness.zig");
-const scalar = @import("scalar_wire_source.zig");
-const lower = @import("verifier_arithmetic_lowering.zig");
+const t = @import("stwo_riscv_recursion_air").blake3.transcript_witness;
+const scalar = @import("stwo_riscv_air_lang").framework.scalar_wire_source;
+const lower = @import("stwo_riscv_rv32").recursion.air.verifier_arithmetic_lowering;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
-pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{12});
+pub const Columns = @import("stwo_riscv_recursion_air").blake3.upstream_source_columns.ForSlots(.{12});
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     /// Replaces the composition-only challenge routes, adding OODS fanout.

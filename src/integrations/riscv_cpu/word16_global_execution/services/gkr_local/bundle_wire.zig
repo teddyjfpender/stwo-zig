@@ -14,7 +14,7 @@ const P = @import("../protocol.zig");
 const Manifest = @import("manifest.zig");
 const StageWire = @import("manifest_wire.zig");
 const Cells = @import("../../../word16_execution/cells_wire.zig");
-const Receipt = @import("../../../rv64_ethereum_batch_receipt.zig");
+const Receipt = @import("../../../rv64_proof_artifact_support.zig");
 const Scope = @import("service_scope.zig");
 pub const Limits = Legacy.Limits;
 pub const CpuDeclaration = Legacy.CpuDeclaration;
@@ -194,7 +194,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, setups: []const *const R.Cpu
     }
     try Receipt.writeExclusive(dir, "stage-one.bin", bundle.stage_one_bytes);
     try Receipt.writeExclusive(dir, "bundle.json", json);
-    try std.posix.fsync(dir.fd);
+    try Receipt.syncDirectory(dir);
 }
 fn readFile(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, expected: File) ![]u8 {
     var file = try dir.openFile(name, .{});

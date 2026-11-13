@@ -11,8 +11,8 @@ const accumulation = engine.air.accumulation;
 const canonic = core.poly.circle.canonic;
 const geometry = @import("../geometry.zig");
 const provider = @import("tables.zig");
-const support = @import("../../../air/memory_commitment/hash_component_prepared_support.zig");
-const points = @import("../../../air/component_point_support.zig");
+const support = @import("stwo_riscv_memory").air.hash_component_prepared_support;
+const points = @import("stwo_riscv_air_lang").evaluation.component_point_support;
 
 const lane = @import("../lane.zig");
 const E = @import("../evaluation.zig");

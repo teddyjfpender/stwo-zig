@@ -7,7 +7,7 @@ that satisfies the stable prover transaction contract.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `1.0.0` |
 | Layer | `frontend` |
 | Owner | `riscv-frontend` |
 | Public Zig module | `stwo_riscv_frontend` |
@@ -17,7 +17,7 @@ that satisfies the stable prover transaction contract.
 The [package contract](package.contract.json) is the API/dependency authority;
 [mod.zig](mod.zig) is the public facade.
 
-The [composition preparation boundary](recursion/COMPOSITION_PREPARATION.md)
+The [composition preparation boundary](compat/product_tree/recursion/COMPOSITION_PREPARATION.md)
 documents immutable recursive preparation, explicit admission and audit checks,
 and its focused development commands.
 The [proving-stack development plan](../../../design/riscv/plan.md)
@@ -230,3 +230,25 @@ The CSP benchmark classifier reports these publication states:
   and memory measurements are available under admissible power conditions.
 - `host-qualified-non-comparable`: the host, matrix or memory evidence does not
   meet the publication contract. Keep its results separate from comparable runs.
+
+The compatibility umbrella directly composes these canonical child packages:
+
+- `stwo_riscv_isa`
+- `stwo_riscv_air_lang`
+- `stwo_riscv_memory`
+- `stwo_riscv_recursion_air`
+- `stwo_riscv_precompiles`
+- `stwo_riscv_rv32`
+- `stwo_riscv_rv64`
+- `stwo_riscv_recursion`
+- `stwo_riscv_testing`
+
+BUILD constructor contracts run in the default step and through
+`test-build-components`; `scripts/dev_test.py src/frontends/riscv/build.zig`
+executes that actual std.Build contract directly.
+`test-native-typed-components` owns the native mathematical subset. The
+complete mixed retained gate (original floor21) and SWAP gate (original floor7)
+now belong to `src/products/ethereum/statement/build.zig`; their product
+assertions remain in product default discovery. The BUILD-only
+`retainedTypedTestModule` constructor keeps the private native source layout
+below this boundary and reuses the caller’s exact dependency module pointers.

@@ -200,7 +200,7 @@ def repository_contract_errors(root: Path, phase: str) -> list[str]:
         "scripts/riscv/riscv_arch_tests.py",
         "scripts/riscv/riscv_staged_smoke.py",
         "scripts/riscv/riscv_trace_vectors.py",
-        "src/frontends/riscv/air/lang/typed_mulh_authority.zig",
+        "src/frontends/riscv/rv32/air/lang/typed_mulh_authority.zig",
         "src/products/riscv/cpu/capabilities.zig",
     )
     errors = [f"missing required release artifact: {path}" for path in required if not (root / path).is_file()]

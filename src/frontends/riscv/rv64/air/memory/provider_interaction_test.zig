@@ -2,8 +2,8 @@ const std = @import("std");
 const core = @import("stwo_core");
 const stream = @import("provider_interaction.zig");
 const values = @import("values.zig");
-const legacy = @import("../../../air/memory_commitment/poseidon2_air.zig");
-const Relations = @import("../../../air/relation_challenges.zig").Relations;
+const legacy = @import("stwo_riscv_memory").air.poseidon2_air;
+const Relations = @import("stwo_riscv_air_lang").evaluation.relation_challenges.Relations;
 fn failure(a: std.mem.Allocator, records: []const values.PermutationIO, relations: *const Relations) !void {
     var interaction = try stream.generate(a, records, 10, relations);
     defer interaction.deinit();

@@ -3,39 +3,39 @@
 from pathlib import Path
 
 
-PROGRAM_INTERACTION_PATH = Path("src/frontends/riscv/air/program/interaction.zig")
-PROGRAM_COMMITMENT_PATH = Path("src/frontends/riscv/air/program/commitment.zig")
+PROGRAM_INTERACTION_PATH = Path("src/frontends/riscv/rv32/air/program/interaction.zig")
+PROGRAM_COMMITMENT_PATH = Path("src/frontends/riscv/rv32/air/program/commitment.zig")
 MEMORY_INTERACTION_PATH = Path(
-    "src/frontends/riscv/air/memory_commitment/interaction.zig"
+    "src/frontends/riscv/memory/air/interaction.zig"
 )
 MEMORY_BOUNDARY_PATH = Path(
-    "src/frontends/riscv/air/memory_commitment/boundary.zig"
+    "src/frontends/riscv/memory/air/boundary.zig"
 )
-MEMORY_LOGUP_PATH = Path("src/frontends/riscv/air/memory_logup.zig")
+MEMORY_LOGUP_PATH = Path("src/frontends/riscv/rv32/air/memory_logup.zig")
 MERKLE_NODE_PATH = Path(
-    "src/frontends/riscv/air/memory_commitment/merkle_node.zig"
+    "src/frontends/riscv/memory/air/merkle_node.zig"
 )
 SPARSE_MERKLE_PATH = Path(
-    "src/frontends/riscv/air/memory_commitment/sparse_merkle.zig"
+    "src/frontends/riscv/memory/air/sparse_merkle.zig"
 )
 CLOCK_INTERACTION_PATH = Path(
-    "src/frontends/riscv/air/clock_update_interaction.zig"
+    "src/frontends/riscv/rv32/air/clock_update_interaction.zig"
 )
 CLOCK_COMPONENT_PATH = Path(
-    "src/frontends/riscv/air/clock_update_component.zig"
+    "src/frontends/riscv/rv32/air/clock_update_component.zig"
 )
-CLOCK_TRACE_PATH = Path("src/frontends/riscv/infra_trace/clock_update.zig")
-STATE_CHAIN_PATH = Path("src/frontends/riscv/runner/state_chain.zig")
-PUBLIC_LOGUP_PATH = Path("src/frontends/riscv/air/public_logup.zig")
+CLOCK_TRACE_PATH = Path("src/frontends/riscv/rv32/infra_trace/clock_update.zig")
+STATE_CHAIN_PATH = Path("src/frontends/riscv/isa/runner/state_chain.zig")
+PUBLIC_LOGUP_PATH = Path("src/frontends/riscv/rv32/air/public_logup.zig")
 M31_PATH = Path("src/waist/core/fields/m31.zig")
-STATE_COMMON_PATH = Path("src/frontends/riscv/air/semantics/common.zig")
-LOOKUP_ENTRY_PATH = Path("src/frontends/riscv/air/lookups/entry.zig")
-ACCESS_CLOCK_PATH = Path("src/frontends/riscv/access_clock.zig")
-STATEMENT_PATH = Path("src/frontends/riscv/air/statement.zig")
-STATEMENT_GEOMETRY_PATH = Path("src/frontends/riscv/air/statement_geometry.zig")
-PROVER_TYPES_PATH = Path("src/frontends/riscv/prover/types.zig")
+STATE_COMMON_PATH = Path("src/frontends/riscv/air_lang/shared/air/semantics/common.zig")
+LOOKUP_ENTRY_PATH = Path("src/frontends/riscv/air_lang/shared/air/lookups/entry.zig")
+ACCESS_CLOCK_PATH = Path("src/frontends/riscv/isa/access_clock.zig")
+STATEMENT_PATH = Path("src/frontends/riscv/rv32/air/statement.zig")
+STATEMENT_GEOMETRY_PATH = Path("src/frontends/riscv/rv32/air/statement_geometry.zig")
+PROVER_TYPES_PATH = Path("src/frontends/riscv/rv32/prover/types.zig")
 STATEMENT_VALIDATION_PATH = Path(
-    "src/frontends/riscv/prover/statement_validation.zig"
+    "src/frontends/riscv/rv32/prover/statement_validation.zig"
 )
 
 PRODUCTION_PATHS = (
@@ -412,7 +412,7 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "Merkle coefficient lift admission",
         STATEMENT_VALIDATION_PATH,
-        "try validateMerkleCoefficientLift( if (circuit_profile.programPolicy() == .sparse_merkle_v1) program.n_rows else 0, memory_shards, merkle_desc.n_rows, public_merkle_terms, );",
+        "try validateMerkleCoefficientLift( if (circuit_layout.programPolicy() == .sparse_merkle_v1) program.n_rows else 0, memory_shards, merkle_desc.n_rows, public_merkle_terms, );",
     ),
     (
         "Merkle node coefficient bound",

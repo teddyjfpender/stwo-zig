@@ -301,8 +301,7 @@ const Profile = struct {
     }
 };
 fn profileEnabled() bool {
-    const value = std.posix.getenv("STWO_RV64_CAPTURE_LEDGER_PROFILE") orelse return false;
-    return value.len != 0 and value[0] != '0';
+    return false;
 }
 fn mark(profile: ?*Profile) ?std.time.Instant {
     if (profile == null) return null;
@@ -375,10 +374,6 @@ pub fn hugePageAdvice() bool {
 }
 var thp_policy = std.atomic.Value(u8).init(0);
 fn thpAllowed() bool {
-    if (std.posix.getenv("STWO_RV64_CAPTURE_THP")) |value| {
-        if (value.len != 0 and value[0] == '1') return true;
-        if (value.len != 0 and value[0] == '0') return false;
-    }
     if (@import("builtin").os.tag != .linux) return false;
     var buffer: [256]u8 = undefined;
     const file = std.fs.openFileAbsolute("/sys/kernel/mm/transparent_hugepage/defrag", .{}) catch return false;
@@ -756,8 +751,7 @@ fn get(ledger: *Old.Ledger, address: u64) !A.memory.closed_ram.types.State {
 /// M8 two-phase ledger (`STWO_RV64_M8_CAPTURE_LOCAL_LEDGER=1`, default off).
 /// Producer scheduling only: outputs are byte-identical to the serial ledger.
 pub fn localLedgerEnabled() bool {
-    const value = std.posix.getenv("STWO_RV64_M8_CAPTURE_LOCAL_LEDGER") orelse return false;
-    return std.mem.eql(u8, value, "1");
+    return false;
 }
 /// Report-only counters of `Builder.appendLocal` (ordered thread only).
 pub var local_stats: struct { fallbacks: u64 = 0, touched: u64 = 0, resolve_ns: u64 = 0, patch_ns: u64 = 0 } = .{};

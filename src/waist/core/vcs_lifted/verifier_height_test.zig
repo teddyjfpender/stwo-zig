@@ -92,3 +92,51 @@ test "vcs_lifted verifier: explicit heights must dominate columns and be zero wh
     try std.testing.expectEqual(@as(u32, 0), empty.height);
     try empty.verify(alloc, &.{ 0, 1 }, &.{}, .{ .hash_witness = &.{} });
 }
+
+test "properties Merkle: CM31 seeded permutations and mutations of frozen Rust witnesses" {
+    const a = std.testing.allocator;
+    var prng = std.Random.DefaultPrng.init(0x012d_3293_6102_268b);
+    const rng = prng.random();
+    for (vectors.cases) |case| {
+        var oracle = try OracleDecommitment.init(a, case);
+        defer oracle.deinit(a);
+        const positions = try a.dupe(usize, case.positions);
+        defer a.free(positions);
+        const root = vectors.digest(case.root);
+        var tree = try Verifier.initWithHeight(a, root, &vectors.column_log_sizes, case.height);
+        defer tree.deinit(a);
+        for (0..8) |_| {
+            const left = rng.uintLessThan(usize, positions.len);
+            const right = rng.uintLessThan(usize, positions.len);
+            std.mem.swap(usize, &positions[left], &positions[right]);
+            for (oracle.values) |column| {
+                const mutable = @constCast(column);
+                std.mem.swap(M31, &mutable[left], &mutable[right]);
+            }
+            try tree.verify(a, positions, oracle.values, .{ .hash_witness = oracle.witness });
+            {
+                // Change every queried value of one column, retaining all
+                // duplicate-query equalities: this must reach root rejection.
+                const column = @constCast(oracle.values[rng.uintLessThan(usize, oracle.values.len)]);
+                const delta = M31.fromCanonical(1 + rng.uintLessThan(u32, 1024));
+                for (column) |*x| x.* = x.add(delta);
+                defer {
+                    for (column) |*x| x.* = x.sub(delta);
+                }
+                try std.testing.expectError(error.RootMismatch, tree.verify(a, positions, oracle.values, .{ .hash_witness = oracle.witness }));
+            }
+            {
+                const hash = &oracle.witness[rng.uintLessThan(usize, oracle.witness.len)];
+                const byte = rng.uintLessThan(usize, hash.len);
+                hash[byte] ^= 1;
+                defer hash[byte] ^= 1;
+                try std.testing.expectError(error.RootMismatch, tree.verify(a, positions, oracle.values, .{ .hash_witness = oracle.witness }));
+            }
+            {
+                tree.root[rng.uintLessThan(usize, tree.root.len)] ^= 1;
+                defer tree.root = root;
+                try std.testing.expectError(error.RootMismatch, tree.verify(a, positions, oracle.values, .{ .hash_witness = oracle.witness }));
+            }
+        }
+    }
+}

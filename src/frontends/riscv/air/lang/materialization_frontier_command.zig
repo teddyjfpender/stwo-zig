@@ -1,7 +1,7 @@
 //! Explicit check/update command for the reviewed H-009 Poseidon frontier.
 
 const std = @import("std");
-const frontier_artifact = @import("typed_poseidon2_frontier_artifact.zig");
+const frontier_artifact = @import("stwo_riscv_memory").testing.proposals.typed_poseidon2_frontier_artifact;
 
 const max_artifact_bytes: usize = 16 * 1024 * 1024;
 const Mode = enum { check, update };

@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest import mock
 from scripts.repo import check_product_closure as command
 from scripts.native import check_native_cpu_product
-from scripts.repo.product_closure.graph import ClosureError, inspect_sources
+from scripts.repo.product_closure.graph import ClosureError, inspect_sources as raw_inspect_sources
 from scripts.repo.product_closure.linkage import (
     DynamicLinkage,
     check_dynamic,
@@ -18,10 +18,42 @@ from scripts.repo.product_closure.linkage import (
     inspect_elf,
 )
 from scripts.repo.product_closure.model import Manifest, NamedImport
-from scripts.tests.product_closure_recursion_cases import RecursionOwnershipTest
+from scripts.tests.product_closure_recursion_cases import RecursionOwnershipTest, inspect_sources
 
 
 class NativeCpuProductCheckTest(unittest.TestCase):
+    def test_qualified_facades_keep_metadata_and_fail_closed_on_executable_code(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            (root / "src/tests").mkdir(parents=True)
+            for name in ("good.zig", "bad.zig", "tests/root.zig"):
+                (root / "src" / name).write_text("pub const Value = u32;\n")
+            caller = root / "src/caller.zig"
+            caller.write_text('const T = @import("api").primitives.fixed.Value;\n')
+            facade = root / "src/api.zig"
+            aliases = ('pub const primitives = struct { pub const fixed = @import("good.zig"); };\n'
+                       'pub const unrelated = @import("bad.zig");\n'
+                       'test { _ = @import("tests/root.zig"); }\n')
+            facade.write_text(aliases)
+            manifest = Manifest("facade", ("src/caller.zig",),
+                                (NamedImport("api", "src/api.zig"),),
+                                frozenset(), frozenset(), ("src",))
+            graph = inspect_sources(root, manifest)
+            self.assertEqual({"src/api.zig", "src/caller.zig", "src/good.zig"},
+                             set(graph.relative_sources()))
+            baseline_digest = graph.source_digest()
+            facade.write_text(aliases + "\n// metadata is still hashed\n")
+            self.assertNotEqual(baseline_digest, inspect_sources(root, manifest).source_digest())
+            for extra in ('comptime { _ = @import("bad.zig"); }',
+                          'pub const executed = @import("bad.zig").run();',
+                          'pub const arbitrary = 1;',
+                          'test { _ = @import("bad.zig"); }'):
+                facade.write_text(aliases + extra)
+                self.assertIn("src/bad.zig", inspect_sources(root, manifest).relative_sources())
+            facade.write_text(aliases)
+            caller.write_text(caller.read_text() + 'const whole = @import("api");\n')
+            self.assertIn("src/bad.zig", inspect_sources(root, manifest).relative_sources())
+
     def test_aggregate_facade_binds_only_existing_support_and_generic_cpu_engine(self):
         import re
         root = Path(__file__).resolve().parents[2]
@@ -33,6 +65,21 @@ class NativeCpuProductCheckTest(unittest.TestCase):
                              ("interop_riscv_artifact", "src/products/riscv/artifact/mod.zig")):
             self.assertEqual(source, modules[name])
             self.assertTrue((root / source).is_file())
+        from dataclasses import replace
+        def literals(name):
+            return re.findall(r'^    "([^"\n]+)"', descriptor.split("const " + name, 1)[1].split("\n};", 1)[0], re.M)
+        manifest = Manifest("aggregate-cpu", ("src/products/cairo/aggregate/cpu.zig", "src/products/stwo/tools/prove/main.zig"),
+                            tuple(NamedImport(name, path) for name, path in modules.items()) + (NamedImport("stwo", "src/products/cairo/aggregate/cpu.zig"),),
+                            frozenset({"std", "builtin", "build_identity", "product_identity", "aggregate_capabilities", "typed_air_artifacts",
+                                       "typed_air_h009_artifacts", "typed_air_h010_artifacts"}),
+                            frozenset(literals("common_allowed_files") + ["src/products/cairo/aggregate/cpu.zig"]),
+                            tuple(literals("common_allowed_prefixes")))
+        graph = raw_inspect_sources(root, manifest)
+        self.assertIn("src/frontends/riscv/isa/mod.zig", graph.relative_sources())
+        incomplete = replace(manifest, named_imports=tuple(
+            item for item in manifest.named_imports if item.name != "stwo_riscv_isa"))
+        with self.assertRaisesRegex(ClosureError, "undeclared named import 'stwo_riscv_isa'"):
+            raw_inspect_sources(root, incomplete)
         facade = (root / "src/products/cairo/aggregate/cpu.zig").read_text()
         self.assertIn("frontends.riscv.prover_mod.ProverEngineForBackend(backends.cpu.CpuBackend)", facade)
         self.assertNotIn('"stwo_riscv_cpu_integration"', facade)
@@ -95,9 +142,9 @@ class SourceClosureTest(unittest.TestCase):
         manifest = Manifest(
             product="typed-opcode-authority",
             entry_roots=(
-                "src/frontends/riscv/runner/trace.zig",
-                "src/frontends/riscv/air/constraint_program.zig",
-                "src/frontends/riscv/air/semantics/mod.zig",
+                "src/frontends/riscv/rv32/runner/trace.zig",
+                "src/frontends/riscv/rv32/air/constraint_program.zig",
+                "src/frontends/riscv/rv32/air/semantics/mod.zig",
             ),
             named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
@@ -105,7 +152,7 @@ class SourceClosureTest(unittest.TestCase):
             allowed_prefixes=("src/waist/core", "src/frontends/riscv"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
-        self.assertIn("src/frontends/riscv/air/x0_native_envelope.zig", sources)
+        self.assertIn("src/frontends/riscv/rv32/air/x0_native_envelope.zig", sources)
         for source in sources:
             self.assertNotIn("legacy_test_oracle", source)
             if source.startswith("src/frontends/riscv/"):
@@ -117,7 +164,7 @@ class SourceClosureTest(unittest.TestCase):
                 })
 
     def test_typed_opcode_authority_rejects_a_prover_dependency(self) -> None:
-        owner = Path(__file__).resolve().parents[2] / "src/frontends/riscv/air/x0_native_envelope.zig"
+        owner = Path(__file__).resolve().parents[2] / "src/frontends/riscv/rv32/air/x0_native_envelope.zig"
         read_text = Path.read_text
 
         def mutated_text(path: Path, *args: object, **kwargs: object) -> str:

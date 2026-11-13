@@ -491,3 +491,114 @@ test "fri proof containers: deinit owned buffers" {
     };
     extended.deinit(alloc);
 }
+
+fn propertySecure(comptime F: type, rng: std.Random) F {
+    var coordinates: [@typeInfo(@TypeOf(F.zero().toM31Array())).array.len]M31 = undefined;
+    for (&coordinates) |*x| x.* = M31.fromCanonical(rng.uintLessThan(u32, m31.Modulus));
+    return F.fromM31Array(coordinates);
+}
+fn propertyPinned(comptime F: type, low: [4]u32) F {
+    var coordinates = [_]M31{M31.zero()} ** @typeInfo(@TypeOf(F.zero().toM31Array())).array.len;
+    for (low, 0..) |x, i| coordinates[i] = M31.fromCanonical(x);
+    return F.fromM31Array(coordinates);
+}
+
+test "properties FRI: CM31 seeded degree-one polynomial and sequential fold laws" {
+    const a = std.testing.allocator;
+    var prng = std.Random.DefaultPrng.init(0x012d_3293_6102_268b);
+    const rng = prng.random();
+    inline for (.{ QM31, fields.om31.OM31 }) |F| {
+        const Fold = fri.ForField(F);
+        for (0..12) |trial| {
+            const log: u32 = @intCast(3 + trial % 3);
+            const n = @as(usize, 1) << @intCast(log);
+            const domain = try line.LineDomain.init(circle.Coset.halfOdds(log));
+            try std.testing.expectEqual(n, domain.size());
+            const alpha = if (trial == 0) propertyPinned(F, .{ 5, 7, 11, 13 }) else if (trial == 1) F.zero() else propertySecure(F, rng);
+            const constant = if (trial == 0) F.zero() else propertySecure(F, rng);
+            const slope = if (trial == 0) propertyPinned(F, .{ 1303640556, 459797465, 1763438021, 535549304 }) else propertySecure(F, rng);
+            var input = [_]F{F.zero()} ** 32;
+            for (input[0..n], 0..) |*value, i| {
+                const x = domain.at(core_utils.bitReverseIndex(i, log));
+                try std.testing.expect(!x.isZero()); // every fold denominator is invertible
+                value.* = constant.add(slope.mulM31(x));
+            }
+            std.mem.doNotOptimizeAway(&input);
+            var workspace = try Fold.FoldLineWorkspace.init(a, n / 2);
+            defer workspace.deinit(a);
+            const one = try Fold.foldLineSingleStep(a, input[0..n], domain, alpha, &workspace);
+            defer a.free(one.values);
+            // Coefficient-level identity: folding c+d*x produces 2*(c+alpha*d).
+            // Trial zero uses the existing independent pinned integer product,
+            // so this is not just agreement between two folding implementations.
+            const half = if (trial == 0) propertyPinned(F, .{ 1502722113, 2034726791, 546122166, 519690011 }) else constant.add(alpha.mul(slope));
+            const expected = half.add(half);
+            for (one.values) |value| try std.testing.expect(value.eql(expected));
+            const two = try Fold.foldLineSingleStep(a, one.values, one.domain, alpha.square(), &workspace);
+            defer a.free(two.values);
+            const batched = try Fold.foldLineNWithWorkspace(a, input[0..n], domain, alpha, &workspace, 2);
+            defer a.free(batched.values);
+            for (two.values, batched.values) |x, y| try std.testing.expect(x.eql(y));
+            try std.testing.expectEqual(two.domain.size(), batched.domain.size());
+            const owned = try a.dupe(F, input[0..n]);
+            var owns_original = true;
+            defer if (owns_original) a.free(owned);
+            const in_place = try Fold.foldLineInPlaceNWithWorkspace(a, owned, domain, alpha, &workspace, 2);
+            owns_original = false;
+            defer a.free(in_place.values);
+            for (batched.values, in_place.values) |x, y| try std.testing.expect(x.eql(y));
+        }
+    }
+}
+
+test "properties FRI: seeded circle linearity constant oracle and accumulator ownership" {
+    const a = std.testing.allocator;
+    var prng = std.Random.DefaultPrng.init(0x012d_3293_6102_268b);
+    const rng = prng.random();
+    inline for (.{ QM31, fields.om31.OM31 }) |F| {
+        const Fold = fri.ForField(F);
+        const degree = @typeInfo(@TypeOf(F.zero().toM31Array())).array.len;
+        for (0..8) |trial| {
+            const log: u32 = @intCast(3 + trial % 3);
+            const n = @as(usize, 1) << @intCast(log);
+            const domain = canonic.CanonicCoset.new(log).circleDomain();
+            try std.testing.expectEqual(n, domain.size());
+            for (0..n / 2) |i| try std.testing.expect(!domain.at(core_utils.bitReverseIndex(2 * i, log)).y.isZero());
+            const alpha = if (trial == 0) propertyPinned(F, .{ 5, 7, 11, 13 }) else if (trial == 1) F.zero() else propertySecure(F, rng);
+            const constant = propertyPinned(F, .{ 1303640556, 459797465, 1763438021, 535549304 });
+            var u: [32]F = undefined;
+            var v: [32]F = undefined;
+            var sum: [32]F = undefined;
+            var planes: [degree][32]M31 = undefined;
+            var columns: [degree][]const M31 = undefined;
+            for (u[0..n], v[0..n], sum[0..n], 0..) |*x, *y, *z, i| {
+                x.* = if (trial == 0) constant else propertySecure(F, rng);
+                const k: u32 = @intCast(i);
+                y.* = if (trial == 0) propertyPinned(F, .{ k + 1, 2 * k + 3, 3 * k + 5, 7 * k + 11 }) else propertySecure(F, rng);
+                z.* = x.add(y.*);
+                for (z.toM31Array(), 0..) |coordinate, limb| planes[limb][i] = coordinate;
+            }
+            for (&columns, &planes) |*column, *plane| column.* = plane[0..n];
+            var fu = [_]F{F.zero()} ** 16;
+            var fv = fu;
+            var fs = fu;
+            var fc = fu;
+            var accumulated = [_]F{F.zero()} ** 16;
+            for (accumulated[0 .. n / 2]) |*x| x.* = propertySecure(F, rng);
+            const initial = accumulated;
+            var workspace = try Fold.FoldCircleWorkspace.init(a, n / 2);
+            defer workspace.deinit(a);
+            try Fold.foldCircleIntoLineWithWorkspace(a, fu[0 .. n / 2], u[0..n], domain, alpha, &workspace);
+            try Fold.foldCircleIntoLineWithWorkspace(a, fv[0 .. n / 2], v[0..n], domain, alpha, &workspace);
+            try Fold.foldCircleIntoLineWithWorkspace(a, fs[0 .. n / 2], sum[0..n], domain, alpha, &workspace);
+            try Fold.foldCircleColumnsIntoLineWithWorkspace(a, fc[0 .. n / 2], columns, domain, alpha, &workspace);
+            try Fold.foldCircleIntoLineWithWorkspace(a, accumulated[0 .. n / 2], u[0..n], domain, alpha, &workspace);
+            for (0..n / 2) |i| {
+                try std.testing.expect(fs[i].eql(fu[i].add(fv[i])));
+                try std.testing.expect(fc[i].eql(fs[i]));
+                try std.testing.expect(accumulated[i].eql(initial[i].mul(alpha.square()).add(fu[i])));
+                if (trial == 0) try std.testing.expect(fu[i].eql(constant.add(constant)));
+            }
+        }
+    }
+}

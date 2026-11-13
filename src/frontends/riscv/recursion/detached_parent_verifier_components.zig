@@ -1,18 +1,18 @@
 //! Immutable parent component collection with verifier-only dependencies.
 const std = @import("std");
 const core = @import("stwo_core");
-const catalog = @import("air/detached_parent_catalog.zig");
-const catalog_entry = @import("air/universal_catalog_entry.zig");
-const binding = @import("air/universal_relation_binding.zig");
-const typed = @import("air/universal_typed_verifier_component.zig");
-const provider_relations = @import("air/universal_provider_relations.zig");
-const admission = @import("air/universal_provider_admission.zig");
-const range = @import("air/range_check_8_8_contract.zig");
-const table = @import("../air/lookups/tables/verifier.zig").LookupTableVerifier;
-const poseidon = @import("../air/memory_commitment/poseidon2_degree3_verifier.zig");
-const Compact = poseidon.Component(@import("../air/memory_commitment/poseidon2_universal_equations.zig"));
-pub const manifest_mod = @import("air/universal_manifest_contract.zig");
-pub const Relations = @import("air/universal_challenges.zig").UniversalRelations;
+const catalog = @import("stwo_riscv_recursion_air").detached.parent_catalog;
+const catalog_entry = @import("stwo_riscv_recursion_air").universal_catalog_entry;
+const binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
+const typed = @import("stwo_riscv_air_lang").framework.universal_typed_verifier_component;
+const provider_relations = @import("stwo_riscv_air_lang").framework.universal_provider_relations;
+const admission = @import("stwo_riscv_rv32").recursion.air.universal_provider_admission;
+const range = @import("stwo_riscv_rv32").recursion.air.range_check_8_8_contract;
+const table = @import("stwo_riscv_rv32").air.lookups.tables.verifier.LookupTableVerifier;
+const poseidon = @import("stwo_riscv_memory").air.poseidon2_degree3_verifier;
+const Compact = poseidon.Component(@import("stwo_riscv_memory").air.poseidon2_universal_equations);
+pub const manifest_mod = @import("stwo_riscv_air_lang").framework.universal_manifest_contract;
+pub const Relations = @import("stwo_riscv_air_lang").framework.universal_challenges.UniversalRelations;
 pub const LOGICAL_ROWS = catalog.LOGICAL_ROWS;
 
 pub fn Component(comptime entry: catalog_entry.Entry) type {

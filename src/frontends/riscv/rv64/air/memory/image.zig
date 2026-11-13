@@ -3,7 +3,6 @@
 const std = @import("std");
 const ram = @import("commitment.zig");
 const Memory = @import("../../memory.zig").Memory;
-const contract = @import("../../ethereum_contract.zig");
 
 pub fn readPage(memory: *const Memory, index: u64) !ram.Page {
     if (index >= @as(u64, 1) << ram.PAGE_DEPTH) return error.InvalidRamPage;
@@ -68,14 +67,3 @@ pub const Initial = struct {
     input_sha256: [32]u8,
     schema_version: u32 = ram.SCHEMA_VERSION,
 };
-
-pub fn fromEthereumElf(a: std.mem.Allocator, symbols: contract.Symbols, elf: []const u8, input: []const u8) !Initial {
-    var loaded = try contract.load(a, symbols, elf, input);
-    defer loaded.deinit();
-    var tree = try snapshot(a, &loaded.memory);
-    defer tree.deinit();
-    var initial = Initial{ .root = tree.root(), .elf_sha256 = undefined, .input_sha256 = undefined };
-    std.crypto.hash.sha2.Sha256.hash(elf, &initial.elf_sha256, .{});
-    std.crypto.hash.sha2.Sha256.hash(input, &initial.input_sha256, .{});
-    return initial;
-}

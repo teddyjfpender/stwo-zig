@@ -6,7 +6,7 @@ const L = @import("layout.zig");
 const N = @import("native.zig");
 const Eq = @import("equations.zig");
 const T = @import("trace.zig");
-const Candidate = @import("../../../ethereum_services/candidate_services.zig");
+const Candidate = @import("../../../services/reference_crypto.zig");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 

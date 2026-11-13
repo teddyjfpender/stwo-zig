@@ -146,7 +146,7 @@ fn trace(comptime what: []const u8, ordinal: u32) void {
     const on = struct {
         var value: ?bool = null;
     };
-    if (on.value == null) on.value = if (std.posix.getenv("STWO_RV64_M8_TRUTH_TRACE")) |v| std.mem.eql(u8, v, "1") else false;
+    if (on.value == null) on.value = false;
     if (on.value.?) std.debug.print("GPU_M8_TRUTH_TRACE ordinal={} at={s} host_ns={}\n", .{ ordinal, what, std.time.nanoTimestamp() });
 }
 fn feltWords(n: u32) usize {

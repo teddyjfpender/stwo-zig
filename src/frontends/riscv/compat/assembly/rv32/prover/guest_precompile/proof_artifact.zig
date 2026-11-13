@@ -1,0 +1,24 @@
+//! Immutable v1 guest artifact facade. New BLAKE3 products use Blake3 (v5).
+const core = @import("stwo_core");
+const implementation = @import("proof_artifact_impl.zig");
+const Legacy = implementation.ForSuite(core.proof_suites.Blake2s);
+pub const Blake3 = implementation.ForSuite(core.proof_suites.Blake3);
+pub const Limits = Legacy.Limits;
+pub const magic = Legacy.magic;
+pub const format_version = Legacy.format_version;
+pub const header_size = Legacy.header_size;
+pub const postcard_proof_encoding_v1 = Legacy.postcard_proof_encoding_v1;
+pub const blake2s_merkle_hasher_v1 = Legacy.blake2s_merkle_hasher_v1;
+pub const HeaderOffset = Legacy.HeaderOffset;
+pub const EncodeInput = Legacy.EncodeInput;
+pub const Decoded = Legacy.Decoded;
+pub const encodeAlloc = Legacy.encodeAlloc;
+pub const encodeAllocWithLimits = Legacy.encodeAllocWithLimits;
+pub const decodeAlloc = Legacy.decodeAlloc;
+pub const decodeAllocWithLimits = Legacy.decodeAllocWithLimits;
+pub const decodeAllocForConfig = Legacy.decodeAllocForConfig;
+pub const proofPreflightShape = Legacy.proofPreflightShape;
+pub const pcsConfigsEqual = Legacy.pcsConfigsEqual;
+
+pub const Header = @import("proof_artifact_header.zig").Header;
+pub const validatePcsConfig = @import("proof_artifact_header.zig").validatePcsConfig;

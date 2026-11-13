@@ -28,13 +28,11 @@ def main():
     for key, value in {
         "STWO_RV64_ALLOCATION_OBSERVER": "1",
         "STWO_RV64_DEVICE_ARENA": "2G",
-        "STWO_RV64_DEVICE_ARENA_CHUNK": "32M",
-        "STWO_RV64_DEVICE_ARENA_SMALL_CHUNKS": "16",
-        "STWO_RV64_DEVICE_ARENA_PREMAP": "1",
+
         "STWO_RV64_PINNED_STAGING": "0",
     }.items():
         os.environ[key] = value
-    os.environ.pop("STWO_RV64_DEVICE_ARENA_POISON", None)
+
     lib = C.CDLL(args.library)
 
     def fn(name, types):

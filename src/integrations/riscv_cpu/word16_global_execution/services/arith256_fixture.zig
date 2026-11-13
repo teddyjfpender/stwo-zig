@@ -12,7 +12,7 @@ const R = @import("roster.zig");
 const P = @import("protocol.zig");
 const C = @import("collector.zig");
 const E = @import("execution.zig");
-const Arith = front.rv64.ethereum_services.arith256;
+const Arith = front.rv64.arith256_mod;
 pub const ADDRESS: u64 = 0x8000000000000fe0;
 pub const TAG: u64 = 0x30021;
 pub const LOG: u32 = A.crypto.arith256.layout.MIN_LOG;
@@ -48,7 +48,7 @@ fn regs() [32]u64 {
 pub fn expectedFor(identity: [32]u8) P.Expected {
     return .{ .admission = .{ .image = image(), .image_identity = @splat(0x4d), .initial_pc = 4096, .initial_registers = regs(), .max_prefix_steps = 31 }, .program_identity = identity, .total_steps = 5, .max_total_steps = 5, .final_pc = 4116, .final_registers = regs() };
 }
-pub fn call(id: u64, clock: u64, pc: u64, before: [20]u64) front.rv64.ethereum_services.Arith256ModCall {
+pub fn call(id: u64, clock: u64, pc: u64, before: [20]u64) front.rv64.service_calls.Arith256ModCall {
     var after = before;
     after[16..20].* = Arith.mulAddModPacket(before);
     return .{ .call_id = id, .clock = clock, .pc = pc, .pointer = ADDRESS, .before = before, .after = after };

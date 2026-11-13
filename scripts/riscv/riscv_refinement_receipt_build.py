@@ -145,11 +145,11 @@ def _production_inputs(
             "generated manifest production source closure is invalid"
         )
     opcode_manifest_path = (
-        paths.root / "src/frontends/riscv/opcode_manifest.zig"
+        paths.root / "src/frontends/riscv/isa/opcode_manifest.zig"
     )
     return {
         "opcode_manifest": {
-            "artifact": "src/frontends/riscv/opcode_manifest.zig",
+            "artifact": "src/frontends/riscv/isa/opcode_manifest.zig",
             "sha256": codec.sha256_file(opcode_manifest_path),
         },
         "source_closure": {

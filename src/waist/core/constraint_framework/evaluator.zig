@@ -447,7 +447,7 @@ test "constraint framework evaluator: logup batching semantics" {
 test "constraint framework evaluator: vector parity" {
     const alloc = std.testing.allocator;
 
-    const input = try std.fs.cwd().readFileAlloc(alloc, "vectors/constraint_expr.json", 1 << 20);
+    const input = try std.fs.cwd().readFileAlloc(alloc, "vectors/waist/constraint_expr.json", 1 << 20);
     defer alloc.free(input);
 
     const Vectors = struct {

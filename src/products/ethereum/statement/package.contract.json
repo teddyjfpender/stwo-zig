@@ -1,0 +1,82 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_ethereum_statement",
+  "version": "0.1.0",
+  "layer": "product",
+  "owner": "ethereum-statement",
+  "public_modules": {
+    "stwo_ethereum_statement": "mod.zig",
+    "legacy_riscv_frontend": "frontend.zig",
+    "legacy_riscv_cpu_integration": "cpu.zig"
+  },
+  "dependencies": {
+    "stwo_circuit_cpu_integration": "../../../integrations/circuit_cpu",
+    "stwo_circuit_frontend": "../../../frontends/circuit",
+    "stwo_core": "../../../waist/core",
+    "stwo_cpu_backend": "../../../backends/cpu_scalar",
+    "stwo_metal_backend": "../../../backends/metal",
+    "stwo_proof_wire": "../../../waist/proof_wire",
+    "stwo_prover_api": "../../../waist/prover_api",
+    "stwo_prover_engine": "../../../engine/prover",
+    "stwo_riscv_air_lang": "../../../frontends/riscv/air_lang",
+    "stwo_riscv_cpu_integration": "../../../integrations/riscv_cpu",
+    "stwo_riscv_cuda_integration": "../../../integrations/riscv_cuda",
+    "stwo_riscv_frontend": "../../../frontends/riscv",
+    "stwo_riscv_isa": "../../../frontends/riscv/isa",
+    "stwo_riscv_memory": "../../../frontends/riscv/memory",
+    "stwo_riscv_precompiles": "../../../frontends/riscv/precompiles",
+    "stwo_riscv_recursion": "../../../frontends/riscv/recursion",
+    "stwo_riscv_recursion_air": "../../../frontends/riscv/recursion_air",
+    "stwo_riscv_rv32": "../../../frontends/riscv/rv32",
+    "stwo_riscv_rv64": "../../../frontends/riscv/rv64",
+    "stwo_riscv_testing": "../../../frontends/riscv/testing"
+  },
+  "injected_modules": [
+    "ethereum_cpu_component",
+    "ethereum_cuda_component",
+    "ethereum_frontend_component",
+    "interop_postcard",
+    "legacy_riscv_cpu_integration",
+    "legacy_riscv_frontend"
+  ],
+  "api_surface": [
+    "cpu",
+    "cuda",
+    "frontend",
+    "prover",
+    "runner",
+    "statement"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Ethereum product exposes its six owning domains"
+    ],
+    "invariant_tests": [
+      "mod.zig::api invariant: legacy exports share canonical components and records",
+      "tests/coordinator_boundary_test.zig::coordinator boundary: native operations cannot select product early owners",
+      "tests/coordinator_boundary_test.zig::coordinator boundary: product operations retain concrete owners and canonical records",
+      "tests/execution_providers_test.zig::execution providers: framing rejection order remains canonical",
+      "tests/execution_providers_test.zig::execution providers: native image and memory authority remain caller-owned",
+      "tests/shared_bindings_test.zig::shared binding: artifact owner retains framing and rejection precedence",
+      "tests/shared_bindings_test.zig::shared binding: curve arithmetic retains packet tags and field operations",
+      "tests/shared_bindings_test.zig::shared binding: native rungs retain the legacy table identity",
+      "tests/shared_bindings_test.zig::shared binding: native schema matches the existing chain authority"
+    ]
+  },
+  "ci": {
+    "lane": "ethereum_statement",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/products/ethereum/statement/build.zig",
+      "-Doptimize=Debug",
+      "-j2",
+      "--verbose",
+      "--summary",
+      "all"
+    ]
+  }
+}

@@ -6,9 +6,9 @@ pub const stwo_core = @import("stwo_core");
 pub const m31 = stwo_core.fields.m31;
 pub const QM31 = stwo_core.fields.qm31.QM31;
 
-pub const relation = @import("../air/lang/relation.zig");
+pub const relation = @import("stwo_riscv_air_lang").relation;
 pub const provider_authority = @import("outer_parent_range_authority.zig");
-pub const roster = @import("air/universal_roster.zig");
+pub const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SOURCE_AUTHORITY_FORMAT_VERSION: u16 = 1;

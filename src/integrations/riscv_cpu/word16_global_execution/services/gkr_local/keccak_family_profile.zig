@@ -5,7 +5,6 @@ const std = @import("std");
 const core = @import("stwo_core");
 const K = @import("stwo_riscv_frontend").rv64_air.crypto.keccak;
 pub const Config = core.pcs.PcsConfig;
-pub const ENV = "STWO_RV64_KECCAK_FAMILY_PROFILE";
 pub const DOMAIN = "rv64-m7/keccak-early-late/b16-q27-p20-fold4/v1";
 pub const Policy = enum {
     legacy,
@@ -75,9 +74,7 @@ fn validateTruths(truths: anytype) !u32 {
 }
 
 pub fn current() !Policy {
-    const text = std.posix.getenv(ENV) orelse return .legacy;
-    if (text.len > 96) return error.UnknownKeccakFamilyProfile;
-    return Policy.parse(text);
+    return .legacy;
 }
 /// First ceil(total/2) source calls, then the rest; no empty physical proof.
 pub fn split(total: u32) [2]u32 {

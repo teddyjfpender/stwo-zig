@@ -291,6 +291,7 @@ fn createStwoModule(
         optimize,
         module,
     );
+    integration_graph.addEthereumCpuCompatibility(b, target, optimize, module);
     graph.addFacadeSupportImports(
         b,
         protocol,

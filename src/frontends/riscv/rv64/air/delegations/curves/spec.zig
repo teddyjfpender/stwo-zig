@@ -25,7 +25,7 @@ pub const M31: u64 = (1 << 31) - 1;
 /// Wire35 program kind = Word16 bridge kind = the op's ordinal (5..11).
 /// Kinds 1..4 are secp ADD/DOUBLE, SHA-256 and arith256_mod. The op set,
 /// tags and packet geometry are owned by the execution ABI.
-pub const exec = @import("../../../ethereum_services/curves.zig");
+pub const exec = @import("../../../services/curve_packets.zig");
 pub const Op = exec.Op;
 pub const ALL = exec.ALL;
 pub const COUNT = exec.COUNT;
@@ -148,7 +148,7 @@ pub fn def(comptime op: Op) Def {
 /// op: the packet ABI, tags and Wire35 IDs are the secp service's own
 /// (`ethereum_services/secp256k1.zig`, `word16_bridge/types.zig`), and every
 /// output equals that program's canonical result.
-pub const secp = @import("../../../ethereum_services/secp256k1.zig");
+pub const secp = @import("stwo_riscv_precompiles").primitives.secp256k1;
 pub const SecpKind = secp.Kind;
 pub const SECP256K1_P: u256 = secp.MODULUS;
 

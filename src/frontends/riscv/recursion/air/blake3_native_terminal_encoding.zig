@@ -1,12 +1,12 @@
 //! FRI coefficient scalar inputs joined to canonical transcript bytes.
 const std = @import("std");
-const native = @import("blake3_native_transcript.zig");
+const native = @import("stwo_riscv_rv32").recursion.air.blake3_native_transcript;
 const fri_mod = @import("blake3_native_fri.zig");
-const rows_mod = @import("blake3_scalar_payload_rows.zig");
-const lower = @import("verifier_arithmetic_lowering.zig");
-const t = @import("blake3_transcript_witness.zig");
+const rows_mod = @import("stwo_riscv_recursion_air").blake3.scalar_payload_rows;
+const lower = @import("stwo_riscv_rv32").recursion.air.verifier_arithmetic_lowering;
+const t = @import("stwo_riscv_recursion_air").blake3.transcript_witness;
 pub const PACK_CIRCUIT: u32 = 5_000_011;
-pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{ 12, 11, 10 });
+pub const Columns = @import("stwo_riscv_recursion_air").blake3.upstream_source_columns.ForSlots(.{ 12, 11, 10 });
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     rows: []rows_mod.Rows,

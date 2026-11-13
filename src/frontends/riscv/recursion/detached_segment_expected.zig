@@ -2,7 +2,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
-const PublicData = @import("../air/public_data_v2.zig").PublicDataV2;
+const PublicData = @import("stwo_riscv_rv32").air.public_data_v2.PublicDataV2;
 pub const MAX_INPUT_BYTES: usize = 128 * 1024;
 
 pub const OwnedExpectedV1 = struct {

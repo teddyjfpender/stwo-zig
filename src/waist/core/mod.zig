@@ -1,3 +1,4 @@
+pub const error_codes = @import("error_codes.zig");
 const std = @import("std");
 
 pub const fields = @import("fields/mod.zig");
@@ -130,4 +131,8 @@ test "component vec: flatten and flatten cols" {
     const flat_cols = try nested.flattenCols(alloc);
     defer alloc.free(flat_cols);
     try std.testing.expectEqualSlices(u32, &[_]u32{ 1, 2, 3, 4, 5, 6 }, flat_cols);
+}
+
+test {
+    _ = error_codes;
 }

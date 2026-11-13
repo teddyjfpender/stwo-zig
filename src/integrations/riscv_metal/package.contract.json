@@ -16,10 +16,8 @@
     "stwo_riscv_cpu_integration": "../riscv_cpu"
   },
   "injected_modules": [
-    "blake3_runtime",
     "keccakf_proof_harness",
     "metal_aot_config",
-    "secp256k1_proof_harness",
     "stage101_degree5_provider_sweep_v1",
     "stage101_leaf_autoresearch_v1",
     "stwo_riscv_cpu_stage101_degree5_metal",

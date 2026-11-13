@@ -24,8 +24,8 @@ SOURCE_PATHS = (
     "src/waist/core/build.zig",
     "src/waist/core/build.zig.zon",
     "src/waist/core/mod.zig",
-    "src/frontends/riscv/refinement_ir_export_test.zig",
-    "src/frontends/riscv/refinement_program_export_test.zig",
+    "src/frontends/riscv/rv32/refinement_ir_export_test.zig",
+    "src/frontends/riscv/rv32/refinement_program_export_test.zig",
 )
 SOURCE_TREES = (
     "build_support/graph",

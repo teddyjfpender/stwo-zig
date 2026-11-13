@@ -280,7 +280,7 @@ The admission predicate narrows; it never alters the semantics of an admitted
 instruction.
 
 - The admitted set is exactly the 46 `proof(...)` entries in
-  `src/frontends/riscv/opcode_manifest.zig`. Team B owns 22 of them.
+  `src/frontends/riscv/isa/opcode_manifest.zig`. Team B owns 22 of them.
 - **FENCE.I is excluded.** The pinned model retires `FENCE.I` (word `0x0000100F`)
   despite `extensions.Zifencei.supported = false`. The zkVM rejects it. This is
   recorded in the profile's `decode_exclusions` with the disposition

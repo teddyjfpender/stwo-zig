@@ -492,13 +492,7 @@ constexpr uint32_t kFlowWideWidth = 32;
 inline auto flow_kernel() { return chain_flow<kFlowWideWidth>; }
 // 0: chain_run (default), 1: chain_flow. Read once per process.
 inline int flow_mode() {
-    static const int mode = [] {
-        const char* v = std::getenv("STWO_RV64_M8_ASSIGNMENT_FLOW");
-        if (!v || !std::strcmp(v, "0")) return 0;
-        if (!std::strcmp(v, "1")) return 1;
-        return -1;
-    }();
-    return mode;
+  return 0;
 }
 }  // namespace stwo::cuda::circuit_fill
 
@@ -596,40 +590,6 @@ int setNode(Graph& g, Node& node, const StwoCircuitAssignmentJob& base,
       previous ? &previous : nullptr, previous ? 1 : 0, &p));
   return int(cudaGraphExecKernelNodeSetParams(g.exec, node.handle, &p));
 }
-// Diagnostic only (STWO_RV64_M8_ASSIGNMENT_DUMP=<dir>, default unset): writes
-// the first node whose plan has >= STWO_RV64_M8_ASSIGNMENT_DUMP_MIN_LEVELS
-// (default 100000) levels, as the kernel sees it right before launch (seeded
-// values, records, indices, level ends, steps), for the chain microbenchmark
-// and parity test. Synchronises the lane stream; never changes any value.
-int dump(const Graph& g, const StwoCircuitAssignmentJob& j, const uint32_t* ends, cudaStream_t stream) {
-  static std::atomic<int> taken{0};
-  const char* dir = std::getenv("STWO_RV64_M8_ASSIGNMENT_DUMP");
-  if (!dir || !*dir) return 0;
-  const char* min_text = std::getenv("STWO_RV64_M8_ASSIGNMENT_DUMP_MIN_LEVELS");
-  const unsigned long min_levels = min_text ? std::strtoul(min_text, nullptr, 10) : 100000ul;
-  if (g.ends < min_levels || taken.exchange(1)) return 0;
-  if (const auto rc = cudaStreamSynchronize(stream)) return int(rc);
-  std::vector<uint32_t> host;
-  char path[4096];
-  std::snprintf(path, sizeof path, "%s/assignment-node.bin", dir);
-  FILE* f = std::fopen(path, "wb");
-  if (!f) return 0;
-  const uint32_t header[8] = {0x54324e44u, 1u, j.value_count, j.record_count, j.index_count, g.ends, uint32_t(g.nodes.size()), 0u};
-  std::fwrite(header, 4, 8, f);
-  for (const auto& node : g.nodes) std::fwrite(&node.step, sizeof node.step, 1, f);
-  const auto put = [&](const void* device, uint64_t words) {
-    host.resize(size_t(words));
-    if (cudaMemcpy(host.data(), device, size_t(words) * 4, cudaMemcpyDeviceToHost) == cudaSuccess)
-      std::fwrite(host.data(), 4, size_t(words), f);
-  };
-  put(ends, g.ends);
-  put(j.records, uint64_t(j.record_count) * 8);
-  if (j.index_count) put(j.indices, j.index_count);
-  put(j.values, uint64_t(j.value_count) * 4);
-  std::fclose(f);
-  std::fprintf(stderr, "GPU_M8_ASSIGNMENT_DUMP path=%s values=%u records=%u levels=%u steps=%zu\n", path, j.value_count, j.record_count, g.ends, g.nodes.size());
-  return 0;
-}
 } // namespace stwo::cuda::assignment_graph
 extern "C" int stwo_assignment_graph_create_v1(void* ctx, uint32_t lane,
     const StwoCircuitAssignmentJob* j, const StwoAssignmentGraphStep* steps,
@@ -687,7 +647,6 @@ extern "C" int stwo_assignment_graph_launch_v1(void* ctx, uint32_t lane, void* h
       j->index_count != g.indices || end_count != g.ends) return int(cudaErrorInvalidValue);
   for (auto& node : g.nodes)
     if (const int rc = assignment_graph::setNode(g, node, *j, ends, false, nullptr)) return rc;
-  if (const int rc = assignment_graph::dump(g, *j, ends, custody.stream)) return rc;
   return int(cudaGraphLaunch(g.exec, custody.stream));
 }
 extern "C" int stwo_assignment_graph_destroy_v1(void* ctx, void* handle) {
