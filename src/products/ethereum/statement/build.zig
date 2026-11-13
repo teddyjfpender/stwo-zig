@@ -105,6 +105,7 @@ pub fn build(b: *std.Build) void {
         const tests = b.addTest(.{ .root_module = root, .filters = spec.filters });
         const run = b.addRunArtifact(tests);
         run.has_side_effects = true;
+        if (std.mem.eql(u8, spec.step, "test-csp-ecdsa-proof") and b.graph.env_map.get("STWO_CSP_FIXTURE_ROOT") == null) run.setEnvironmentVariable("STWO_CSP_FIXTURE_ROOT", b.pathFromRoot("../../../../vectors/riscv_csp"));
         if (std.mem.eql(u8, spec.step, "test-ethereum-composition-program")) retained_vm_run = run;
         if (std.mem.eql(u8, spec.step, "test-ethereum-runner")) ethereum_runner = run;
         // Shared names compose independent images, each with its own floor.

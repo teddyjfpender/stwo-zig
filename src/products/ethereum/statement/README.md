@@ -104,6 +104,8 @@ Existing CSP qualification commands now belong to this product:
 `test-blake3-csp-ecdsa-aot` (with the same authenticated bundle option).
 The Metal commands are explicit device gates and are outside the default test
 step. This migration introduces no device qualification or performance claim.
+The CPU CSP target defaults to the committed `vectors/riscv_csp` fixtures.
+An explicit `STWO_CSP_FIXTURE_ROOT` retains its existing override behavior.
 
 The retained mixed gate now runs here as `test-retained-typed-components`:
 its original floor of21 joins the existing native typed cases and the product

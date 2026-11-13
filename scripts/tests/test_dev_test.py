@@ -19,6 +19,8 @@ class DevTestPlanTests(unittest.TestCase):
         self.assertNotIn('@import("csp_ecdsa_proof_test.zig")', (product / "cpu/test_inventory.zig").read_text())
         self.assertEqual(2, (product / "cpu/csp_ecdsa_proof_test.zig").read_text().count('test "'))
         self.assertRegex((product / "build.zig").read_text(), r'\.root = "cpu/csp_ecdsa_proof_test.zig"[^\n]+\.minimum = 2')
+        self.assertRegex((product / "build.zig").read_text(), r'if .*spec.step, "test-csp-ecdsa-proof".*run.setEnvironmentVariable\("STWO_CSP_FIXTURE_ROOT", b.pathFromRoot\("../../../../vectors/riscv_csp"\)\)')
+        self.assertIn('b.graph.env_map.get("STWO_CSP_FIXTURE_ROOT") == null', (product / "build.zig").read_text())
 
     def test_extracted_ethereum_contracts_keep_executed_focused_owners(self):
         prefix = "src/products/ethereum/statement/"

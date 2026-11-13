@@ -734,3 +734,19 @@ workspace pass; all9,676 original named source cases remain (9,688 current).
 Slice source +14/-3/net+11; C4 cumulative+3,238/+3,300, zero move credit.
 Flags+0/-0 (100 live), maintained scripts+0/-0. Hosted proof execution remains
 required before claiming the stack repair or combined extraction accepted.
+
+The remaining CSP host command also exposed a deterministic input prerequisite:
+its harness requires STWO_CSP_FIXTURE_ROOT, but the CPU BUILD target never sets
+it. Default the target to the existing committed vectors/riscv_csp tree,
+without changing guests, input bytes, q70/P26 or either proof/rejection case.
+Pre-edit allowance is +4 source within the unchanged C4 cap; docs are separate.
+This affects only the explicitly selected CSP run, not the live Debug/default
+proofs. The missing binding is checked RED before implementation; actual CSP
+proof execution remains required on the CPU host.
+An explicitly provided fixture root retains its original override behavior.
+The binding test fails RED, then99 developer/CI contracts and the final
+canonical/override check pass. Actual ReleaseFast BUILD configuration passes;
+both committed guest digests match their existing manifest and the161-byte
+input is retained unchanged. This does not qualify CSP proof execution yet.
+Source +3/-0/net+3; C4 cumulative+3,241/+3,300; flags+0/-0 (100 live),
+maintained scripts+0/-0. No vector or protocol pin changed.
