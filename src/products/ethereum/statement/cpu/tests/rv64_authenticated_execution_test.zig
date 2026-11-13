@@ -341,7 +341,8 @@ test "all27 private component recording is complete with identical proofs under 
         defer a.free(reference);
         for ([_]usize{ 3, 8, 16 }) |workers| {
             var pool: work.WorkPool = undefined;
-            try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = A.rv.full.parallel.MIN_STACK_BYTES, .backing_allocator = a });
+            // This exercises every provider, beyond the CPU-only stack minimum.
+            try pool.initInPlaceWithOptions(.{ .worker_count = workers, .backing_allocator = a });
             defer pool.deinit();
             var binding = try work.ScopedPoolBinding.init(&pool);
             defer binding.deinit();

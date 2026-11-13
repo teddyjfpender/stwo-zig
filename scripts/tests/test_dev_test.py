@@ -30,6 +30,8 @@ class DevTestPlanTests(unittest.TestCase):
                              ("tests/coordinator_boundary_test.zig", "test-component-boundaries"),
                              ("tests/composition_custody_test.zig", "test-component-boundaries"),
                              ("cpu/csp_ecdsa_proof_test.zig", "test-csp-ecdsa-proof"),
+                             ("cpu/rv64_authenticated_execution_test_root.zig", "test-authenticated-component-profile"),
+                             ("cpu/tests/rv64_authenticated_execution_test.zig", "test-authenticated-component-profile"),
                              ("cpu/rv64_services_gkr_policy_test_root.zig", "test-services-gkr-policy"),
                              ("cpu/rv64_word16_services_test_root.zig", "test-word16-services"),
                              ("cpu/rv64_word16_zbb_services_test_root.zig", "test-word16-zbb-services"),

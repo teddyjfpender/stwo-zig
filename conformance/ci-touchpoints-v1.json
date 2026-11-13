@@ -1457,6 +1457,18 @@
         [
           "zig",
           "build",
+          "test-authenticated-component-profile",
+          "--build-file",
+          "src/products/ethereum/statement/build.zig",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
           "test",
           "--build-file",
           "src/products/ethereum/statement/build.zig",

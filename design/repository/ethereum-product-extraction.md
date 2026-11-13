@@ -705,3 +705,32 @@ Source budget for this closure: +40/-30/net +10; C4 cumulative
 (100 live); docs/configuration are reported separately in the commit.
 The four full CPU-host runs remain live at 8a8abccb5 and retain their exact
 source scope; this closing BUILD-only delta is separately qualified above.
+
+## Complete-host pool-stack repair
+
+Debug run 43371426159 passes the retained mixed gate (26 tests), then crashes
+with signal11 in the all27 private-component scoped-pool parity case. That
+whole-prover fixture requests the CPU component's minimum stack (1MiB Debug),
+rather than the production pool's 16MiB default. The bounded repair removes
+that fixture override; worker counts3/8/16, both control encodings, all proof
+byte comparisons and recorder assertions remain unchanged. Component minimum
+stack and small-stack rejection tests retain their original contracts.
+
+A focused owner command will run that exact case before the broad Debug suite.
+Pre-edit source allowance is +20 within C4's unchanged +3,300; no new runtime
+API, dependency, flag or maintained script. Configuration/docs are separate.
+ReleaseFast run43371429662 passes all12 receiver negatives, the2 zero-register
+proof tests and the26 retained cases, then hits its90-minute limit during the
+broad suite. Product-host allowance becomes150minutes, covering measured cold
+compilation and the complete existing proof corpus; laptop caps remain1GiB,
+110CPU seconds and120wall seconds. No assertion, profile or floor is reduced.
+The stack diagnosis remains a hypothesis until the unchanged case executes
+successfully; failed/cancelled evidence is retained.
+
+The routing contracts fail RED before implementation, then all180 Python
+contracts pass. Actual product BUILD configuration exposes the focused target
+within the unchanged laptop guard; this is not proof execution. Formatting and
+workspace pass; all9,676 original named source cases remain (9,688 current).
+Slice source +14/-3/net+11; C4 cumulative+3,238/+3,300, zero move credit.
+Flags+0/-0 (100 live), maintained scripts+0/-0. Hosted proof execution remains
+required before claiming the stack repair or combined extraction accepted.

@@ -36,7 +36,8 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(["ethereum_statement"], ci_scope_plan.manual_cpu_selection("ethereum_statement", self.policy)[0])
         commands = self.policy["lanes"]["ethereum_statement"]["commands"]
         optimized = self.policy["lanes"]["ethereum_statement_releasefast"]["commands"]
-        self.assertEqual(2, len(commands))
+        self.assertEqual(3, len(commands))
+        self.assertIn("test-authenticated-component-profile", commands[1])
         for lane in ("ethereum_statement", "ethereum_statement_releasefast"):
             self.assertTrue(any("test-retained-typed-components" in cmd for cmd in self.policy["lanes"][lane]["commands"]))
         self.assertIn("retained_vm_run.? }, 21)", (ROOT / "src/products/ethereum/statement/build.zig").read_text())
@@ -51,7 +52,7 @@ class PlannerContractTests(unittest.TestCase):
             self.assertIn("--verbose", command)
             self.assertEqual(["--summary", "all"], command[-2:])
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        self.assertRegex(workflow, r"timeout-minutes:.*matrix.lane == 'ethereum_statement'.*90")
+        self.assertRegex(workflow, r"timeout-minutes:.*matrix.lane == 'ethereum_statement'.*150")
 
     def test_manual_cpu_selection_is_exact_and_refuses_device_or_foreign_lanes(self):
         for lane in ci_scope_plan.MANUAL_CPU_LANES:

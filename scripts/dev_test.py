@@ -46,6 +46,8 @@ FOCUSED_RULES = (
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/word16_execution/shift_read_induction_proof_test.zig", "test-word16-shift-read-induction-proof"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_ethereum_image_admission_test_root.zig", "test-receiver-boundaries"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_ethereum_receiver_boundary_test_root.zig", "test-receiver-boundaries"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_authenticated_execution_test_root.zig", "test-authenticated-component-profile"),
+    ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/tests/rv64_authenticated_execution_test.zig", "test-authenticated-component-profile"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/tests/rv64_ethereum_chain_test.zig", "test-receiver-boundaries"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/tests/rv64_word16_execution_image_test.zig", "test-receiver-boundaries"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/cpu/rv64_gkr_resources_test_root.zig", "test-gkr-resources"),

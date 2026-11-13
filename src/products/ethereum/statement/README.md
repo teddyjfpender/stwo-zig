@@ -117,3 +117,9 @@ subset; its default test command still collects all native assertions.
 retaining floors11 and1. The runner joins the product execution assertions
 with actual ISA, recovery-ABI and native signer tests over the selected
 module graph; importing a named module alone is not counted as execution.
+
+`test-authenticated-component-profile` isolates the complete all-provider
+proof/recorder parity case for3/8/16workers and both control encodings. It uses
+the production worker-stack default and remains in the full default suite.
+Run this proof-heavy gate on the qualified CPU host; configuration alone does
+not establish its proof or timing results.
