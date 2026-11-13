@@ -1,5 +1,5 @@
 {
-  "schema": "stwo-zig-package-contract-v2",
+  "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_circuit_recursion_wire",
   "version": "1.0.0-rc.1",
   "layer": "interchange",
@@ -55,5 +55,41 @@
   },
   "consumer_subdirs": [
     "postcard"
+  ],
+  "budget": {
+    "code_files": 15,
+    "code_lines": 2807,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 12,
+    "dependencies": 1,
+    "rv64_registry_flags": 0,
+    "versioned_files": 18
+  },
+  "consumers": [
+    {
+      "id": "package:stwo_circuit_cpu_integration",
+      "root": "src/integrations/circuit_cpu/contract_tests/stwo_circuit_recursion_wire_test.zig",
+      "route": "dependency:stwo_circuit_recursion_wire",
+      "imports": [
+        "stwo_circuit_recursion_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_circuit_cpu_integration recursive decoder preserves truncation and shape refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_cpu_integration",
+      "root": "src/integrations/riscv_cpu/contract_tests/stwo_circuit_recursion_wire_test.zig",
+      "route": "dependency:stwo_circuit_recursion_wire",
+      "imports": [
+        "stwo_circuit_recursion_wire"
+      ],
+      "tests": [
+        "cdc: RV64 recursion transport owns decoded storage and unwinds all allocation failures"
+      ]
+    }
   ]
 }

@@ -26,6 +26,18 @@ def digest(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+def runtime_identity() -> dict[str, Any]:
+    """Record the host that actually executed the command, not its lane label."""
+    cpu = {}
+    info = Path("/proc/cpuinfo")
+    if info.is_file():
+        for line in info.read_text().splitlines():
+            key, _, value = line.partition(":")
+            if key.strip() in {"model name", "flags", "Features", "Hardware"}:
+                cpu.setdefault(key.strip(), value.strip())
+    return {"python": sys.version, "os_release": platform.release(), "cpu": cpu}
+
+
 def expand(command: list[str], output_dir: Path, commit: str) -> list[str]:
     replacements = {"{output_dir}": str(output_dir), "{commit}": commit}
     expanded: list[str] = []
@@ -122,6 +134,23 @@ def run_lane(
         })
     records: list[dict[str, Any]] = []
     started_ns = time.monotonic_ns()
+    progress = {
+        "schema": "stwo-focused-ci-timing-v1",
+        "lane": lane,
+        "host": host,
+        "required_host": required_host,
+        "host_machine": platform.machine(),
+        "runtime": runtime_identity(),
+        "cache_mode": cache_mode,
+        "commit": commit,
+        "tree": tree,
+        "status": "INCOMPLETE",
+        "expected_commands": len(spec["commands"]),
+        "commands": records,
+    }
+    # Publish before launching: cancellation cannot leave a previous PASS in
+    # place, nor erase a completed owner's evidence behind the next compiler.
+    write_json(output, progress)
     status = "PASS"
     try:
         for ordinal, raw in enumerate(spec["commands"]):
@@ -158,6 +187,17 @@ def run_lane(
                 "stdout_sha256": digest(stdout_bytes),
                 "stderr_sha256": digest(stderr_bytes),
             })
+            write_json(output_dir / f"{lane}-{ordinal}.completed.json", {
+                "schema": "stwo-focused-ci-command-complete-v1",
+                "status": "PASS" if result.returncode == 0 else "FAIL",
+                "commit": commit,
+                "tree": tree,
+                "lane": lane,
+                "cache_mode": cache_mode,
+                "runtime": progress["runtime"],
+                "command": records[-1],
+            })
+            write_json(output, progress)
             if result.returncode != 0:
                 status = "FAIL"
                 break
@@ -176,6 +216,7 @@ def run_lane(
         "host": host,
         "required_host": required_host,
         "host_machine": platform.machine(),
+        "runtime": progress["runtime"],
         "cache_mode": cache_mode,
         "commit": commit,
         "tree": tree,

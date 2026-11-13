@@ -40,7 +40,7 @@ pub fn scopeManifest(b: *std.Build, scope: Scope, aggregate_metal: bool) ScopeMa
             .product_ids = configured.product_ids,
             .module_roots = configured.module_roots,
             .generated_module_roots = configured.generated_module_roots,
-            .dependency_module_roots = if (scope == .package) catalog.package_dependencies.withCoreConsumerRoots(b, configured.dependency_module_roots) else configured.dependency_module_roots,
+            .dependency_module_roots = if (scope == .package) catalog.package_dependencies.withWaistConsumerRoots(b, configured.dependency_module_roots) else configured.dependency_module_roots,
             .allowed_module_files = configured.allowed_module_files,
             .allowed_module_prefixes = configured.allowed_module_prefixes,
             .external_tools = configured.external_tools,

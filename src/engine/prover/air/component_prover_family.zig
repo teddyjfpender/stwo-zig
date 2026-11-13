@@ -383,70 +383,7 @@ pub fn ForField(comptime Secure: type) type {
             }
         };
 
-        /// Proof-scoped cold observer for the core component loops. Profile failures
-        /// never alter proof execution: they suppress publication, which makes the
-        /// terminal work ledger fail closed. Duplicate publication remains a hard
-        /// programming error at `Capture.publish`.
-        const OodsObserver = struct {
-            components: []const ComponentProver,
-            allocator: std.mem.Allocator,
-            max_log_degree_bound: u32,
-            builder: oods_work.Builder,
-            complete: bool = true,
-
-            fn init(
-                site: oods_work.Site,
-                components: []const ComponentProver,
-                allocator: std.mem.Allocator,
-                max_log_degree_bound: u32,
-            ) OodsObserver {
-                return .{
-                    .components = components,
-                    .allocator = allocator,
-                    .max_log_degree_bound = max_log_degree_bound,
-                    .builder = oods_work.Builder.init(site),
-                };
-            }
-
-            pub fn afterComponent(self: *OodsObserver, ordinal: usize) !void {
-                if (!self.complete) return;
-                if (ordinal >= self.components.len) {
-                    self.complete = false;
-                    return;
-                }
-                const profile = self.components[ordinal].oodsWorkProfile(
-                    self.allocator,
-                    self.max_log_degree_bound,
-                ) catch {
-                    self.complete = false;
-                    return;
-                } orelse {
-                    self.complete = false;
-                    return;
-                };
-                self.builder.addComponent(ordinal, &profile) catch {
-                    self.complete = false;
-                };
-            }
-
-            fn addCoordinator(
-                self: *OodsObserver,
-                label: []const u8,
-                operations: oods_work.FieldOperations,
-                geometry: []const u64,
-            ) void {
-                if (!self.complete) return;
-                self.builder.addCoordinator(label, operations, geometry) catch {
-                    self.complete = false;
-                };
-            }
-
-            fn publish(self: *OodsObserver, capture: *oods_work.Capture) !void {
-                if (!self.complete) return;
-                const receipt = self.builder.finish() catch return;
-                try capture.publish(receipt);
-            }
-        };
+        const OodsObserver = oods_work.Observer(ComponentProver);
 
         /// Test-only, read-only view of every composition input (component
         /// handles and the committed trace) before evaluation. Compiled out of
@@ -879,72 +816,6 @@ pub fn ForField(comptime Secure: type) type {
             }
         };
 
-        const CORE_COMPONENT_ADAPTER_VTABLE = core_air_components.ComponentVTable{
-            .nConstraints = coreAdapterNConstraints,
-            .maxConstraintLogDegreeBound = coreAdapterMaxConstraintLogDegreeBound,
-            .compositionLogSplit = coreAdapterCompositionLogSplit,
-            .traceLogDegreeBounds = coreAdapterTraceLogDegreeBounds,
-            .maskPoints = coreAdapterMaskPoints,
-            .preprocessedColumnIndices = coreAdapterPreprocessedColumnIndices,
-            .evaluateConstraintQuotientsAtPoint = coreAdapterEvaluateConstraintQuotientsAtPoint,
-        };
-
-        fn coreAdapterCast(ctx: *const anyopaque) *const ComponentProver {
-            return @ptrCast(@alignCast(ctx));
-        }
-
-        fn coreAdapterNConstraints(ctx: *const anyopaque) usize {
-            return coreAdapterCast(ctx).nConstraints();
-        }
-
-        fn coreAdapterMaxConstraintLogDegreeBound(ctx: *const anyopaque) u32 {
-            return coreAdapterCast(ctx).maxConstraintLogDegreeBound();
-        }
-
-        fn coreAdapterCompositionLogSplit(ctx: *const anyopaque) u32 {
-            return coreAdapterCast(ctx).compositionLogSplit();
-        }
-
-        fn coreAdapterTraceLogDegreeBounds(
-            ctx: *const anyopaque,
-            allocator: std.mem.Allocator,
-        ) anyerror!core_air_components.TraceLogDegreeBounds {
-            return coreAdapterCast(ctx).traceLogDegreeBounds(allocator);
-        }
-
-        fn coreAdapterMaskPoints(
-            ctx: *const anyopaque,
-            allocator: std.mem.Allocator,
-            point: CirclePointQM31,
-            max_log_degree_bound: u32,
-        ) anyerror!core_air_components.MaskPoints {
-            return coreAdapterCast(ctx).maskPoints(
-                allocator,
-                point,
-                max_log_degree_bound,
-            );
-        }
-
-        fn coreAdapterPreprocessedColumnIndices(
-            ctx: *const anyopaque,
-            allocator: std.mem.Allocator,
-        ) anyerror![]usize {
-            return coreAdapterCast(ctx).preprocessedColumnIndices(allocator);
-        }
-
-        fn coreAdapterEvaluateConstraintQuotientsAtPoint(
-            ctx: *const anyopaque,
-            point: CirclePointQM31,
-            mask: *const core_air_components.MaskValues,
-            evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
-            max_log_degree_bound: u32,
-        ) anyerror!void {
-            return coreAdapterCast(ctx).evaluateConstraintQuotientsAtPoint(
-                point,
-                mask,
-                evaluation_accumulator,
-                max_log_degree_bound,
-            );
-        }
+        const CORE_COMPONENT_ADAPTER_VTABLE = @import("component_core_adapter.zig").Adapter(Secure, ComponentProver).vtable;
     };
 }

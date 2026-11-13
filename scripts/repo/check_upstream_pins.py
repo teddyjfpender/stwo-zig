@@ -31,6 +31,7 @@ from scripts.repo.upstream_pins_lib.official_cairo_manifest import (
     check as _check_official_cairo_manifest,
 )
 from scripts.repo.upstream_pins_lib.sm83 import check as check_sm83_pins
+from scripts.repo.upstream_pins_lib.vector_ownership import check as check_vector_ownership
 
 
 ROOT = model.ROOT
@@ -677,6 +678,7 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
         return [f"{path}: {error}"]
 
     errors: list[str] = []
+    errors.extend(check_vector_ownership(root))
     errors.extend(check_sm83_pins(root, ledger))
     for pin in _text_pins(ledger):
         errors.extend(_check_text_pin(root, pin))

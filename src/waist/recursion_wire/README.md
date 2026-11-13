@@ -174,3 +174,10 @@ unpublished `1.0.0-rc.1` surface includes the approved pre-RC addition;
 meaning, origin, null/unknown refusal and existing rejection semantics remain
 those specified by the provider tests. Full five-provider D2 coverage remains
 open in the RFC coverage ledger.
+
+
+## Consumer-owned provider checks
+
+The RV64 CPU integration registers circuit-proof roundtrips, truncation/noncanonical refusal, and every allocation-failure cleanup. The provider contract also registers its Core dependency laws where applicable.
+
+The existing aggregate package graph exposes `zig build test-cdc-stwo-circuit-recursion-wire -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).

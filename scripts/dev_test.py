@@ -25,6 +25,13 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_cuda_integration", "src/integrations/riscv_cuda/rv64_source_owner_test_root.zig", "test-native-source-owner-dword"),
+    ("stwo_prover_engine", "src/engine/prover/gkr_parallel_test_root.zig", "test-gkr-rows"),
+    ("stwo_prover_engine", "src/engine/prover/gkr_resource_test_root.zig", "test-gkr-resources"),
+    *(("stwo_prover_engine", "src/engine/prover/lookups/" + name, "test-gkr") for name in (
+        "gkr_circuit_field.zig", "gkr_prover_fast.zig", "gkr_base_fraction.zig",
+        "gkr_fast_lanes.zig", "gkr_source_reductions.zig",
+    )),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/focused_test_ethereum_runner_0.zig", "test-ethereum-runner"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/runner/guest_precompile/tests/ethereum_runner_test.zig", "test-ethereum-runner"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/ethereum_minimal_trace_test_root.zig", "test-ethereum-minimal-trace"),
@@ -316,6 +323,13 @@ def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
     for owner, prefix, step in FOCUSED_RULES:
         if owner == package and owns(path, prefix):
             return step
+    if package == "stwo_ethereum_statement":
+        prefix = "src/products/ethereum/statement/"
+        for component, owner in (("frontend", "frontend"), ("cpu", "cpu"), ("cuda", "cuda-host")):
+            if path == prefix + component + ".zig" or path.startswith(prefix + component + "/"):
+                return "test-owner-" + owner
+        if path == prefix + "mod.zig" or path.startswith(prefix + "tests/"):
+            return "test-owner-primary"
     return frontend_root_step(root, path) if package == "stwo_riscv_frontend" else None
 
 

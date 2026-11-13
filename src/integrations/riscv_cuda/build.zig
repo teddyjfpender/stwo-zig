@@ -45,6 +45,11 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     const native_gkr_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_codegen_test_root.zig"), .target = target, .optimize = optimize, .strip = true });
     for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_frontend" }) |name| native_gkr_root.addImport(name, integration.import_table.get(name) orelse @panic("missing native GKR codegen dependency"));
+    const source_owner_root = b.createModule(.{ .root_source_file = b.path("rv64_source_owner_test_root.zig"), .target = target, .optimize = optimize });
+    for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_frontend" }) |name| source_owner_root.addImport(name, native_gkr_root.import_table.get(name) orelse @panic("missing source owner dependency"));
+    const source_owner_test = b.addTest(.{ .root_module = source_owner_root, .filters = &.{"LS-D64 descriptor45 seeded OWNER projection agrees across base lifted and symbolic lanes"} });
+    source_owner_test.linkLibC();
+    b.step("test-native-source-owner-dword", "Execute the exact shrunk LS-D64 source OWNER regression without compiling unrelated generators").dependOn(jobTestStep(b, source_owner_test, check_only));
     const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root });
     native_gkr_tests.linkLibC();
     b.step("test-native-gkr-codegen", "Check native raw source and reduced AIR against source authority").dependOn(jobTestStep(b, native_gkr_tests, check_only));

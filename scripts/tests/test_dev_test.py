@@ -14,6 +14,19 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_ethereum_component_fallback_selects_only_its_existing_owner(self):
+        prefix = "src/products/ethereum/statement/"
+        for path, owner in (("frontend/unknown_future_test.zig", "frontend"),
+                            ("cpu/unknown_future_test.zig", "cpu"),
+                            ("cuda/unknown_future_test.zig", "cuda-host"),
+                            ("mod.zig", "primary")):
+            with self.subTest(path=path):
+                self.assertEqual("test-owner-" + owner,
+                                 dev_test.focus_step("stwo_ethereum_statement", prefix + path))
+        # BUILD and ownership metadata still require the complete package.
+        for path in ("build.zig", "package.contract.json"):
+            self.assertIsNone(dev_test.focus_step("stwo_ethereum_statement", prefix + path))
+
     def test_csp_proofs_keep_original_focused_only_ownership(self):
         product = ROOT / "src/products/ethereum/statement"
         self.assertNotIn('@import("csp_ecdsa_proof_test.zig")', (product / "cpu/test_inventory.zig").read_text())

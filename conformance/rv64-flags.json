@@ -1920,20 +1920,6 @@
         "scripts/rv64/rv64_negative_mutations.py"
       ]
     },
-    "STWO_RV64_TAPE_POPULATE": {
-      "owner": "src/products/ethereum/statement/cpu/rv64_ethereum_native_prepare.zig",
-      "default": "null",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/products/ethereum/statement/cpu/rv64_ethereum_native_prepare.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/ethereum/statement/cpu/rv64_ethereum_native_prepare.zig",
-        "text": "        const v = std.posix.getenv(\"STWO_RV64_TAPE_POPULATE\") orelse return null;\n        if (!std.mem.eql(u8, v, \"1\")) return null;\n        // Ordinary RV64 code issues a load/store on well under half its steps.\n        tape.memory_before.ensureTotalCapacity(a, tape.storage.len / 2) catch {};\n        const regions = [2][]u8{ std.mem.sliceAsBytes(tape.storage), std.mem.sliceAsBytes(tape.memory_before.allocatedSlice()) };\n        const t = std.Thread.spawn(.{}, populate, .{regions}) catch return null;\n        return .{ .thread = t };\n    }"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_TEST_BATCH_FOLD_SUM": {
       "owner": "tests/cuda/rv64/gkr_loop_smoke.cu",
       "date": "2026-11-08",

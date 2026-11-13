@@ -42,7 +42,7 @@ pub fn build(b: *std.Build) void {
     addMetalCsp(b, target, optimize, frontend_component);
     const owner = b.step("test", "Run Ethereum product contracts and owned component suites");
     var runs: [4]*std.Build.Step.Run = undefined;
-    for ([_]*std.Build.Module{ product, frontend_component, cpu_component, cuda_component }, &runs) |component, *run| {
+    for ([_]*std.Build.Module{ product, frontend_component, cpu_component, cuda_component }, [_][]const u8{ "test-owner-primary", "test-owner-frontend", "test-owner-cpu", "test-owner-cuda-host" }, &runs) |component, name, *run| {
         const tests = b.addTest(.{ .root_module = component });
         // Host-only CUDA tests analyse real builders without linking a device
         // library. Zig ELF debug metadata retains unused extern references.
@@ -50,6 +50,11 @@ pub fn build(b: *std.Build) void {
         run.* = b.addRunArtifact(tests);
         run.*.has_side_effects = true;
         owner.dependOn(&run.*.step);
+        // Aliases of the exact default Run artifacts: no filters, duplicated
+        // modules or alternative collectors can change set/multiplicity.
+        const partition = b.step(name, "Run the complete existing component owner image");
+        partition.dependOn(&run.*.step);
+        partition.dependOn(@import("stwo_riscv_frontend").TestCountFloor.addMany(b, &.{run.*}, 1));
     }
     owner.dependOn(@import("stwo_riscv_frontend").TestCountFloor.addMany(b, &runs, 479));
     const build_tests = b.addRunArtifact(b.addTest(.{ .root_module = b.createModule(.{ .root_source_file = b.path("build_components_test.zig"), .target = b.graph.host, .optimize = optimize }) }));

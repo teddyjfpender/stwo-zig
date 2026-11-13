@@ -140,13 +140,17 @@
         "tools/stwo-cairo-vm-adapter-rs/src/execution/legacy_json.rs",
         "tools/stwo-cairo-vm-adapter-rs/tests/cli.rs",
         "tools/stwo-eval-program-abi/README.md"
-      ]
+      ],
+      "owner": "cairo-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/cairo/checkpoints": {
       "files": 3,
       "consumers": [
         "src/frontends/cairo/conformance/interaction_receipt.zig"
-      ]
+      ],
+      "owner": "cairo-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/cairo/csp": {
       "files": 6,
@@ -154,7 +158,9 @@
         "build_support/products/cairo_cpu/csp_fixtures.zig",
         "scripts/cairo/cairo_csp_fixtures.py",
         "scripts/tests/test_cairo_csp_fixtures.py"
-      ]
+      ],
+      "owner": "cairo-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/cairo/official": {
       "files": 27,
@@ -220,7 +226,9 @@
         "tools/stwo-cairo-trace-oracle/README.md",
         "tools/stwo-cairo-vm-adapter-rs/tests/cli.rs",
         "tools/stwo-eval-program-abi/README.md"
-      ]
+      ],
+      "owner": "cairo-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/cairo/programs": {
       "files": 13,
@@ -229,7 +237,9 @@
         "scripts/repo/upstream_pins_lib/cairo_vm_adapter.py",
         "scripts/tests/test_upstream_pins.py",
         "tools/stwo-cairo-vm-adapter-rs/tests/cli.rs"
-      ]
+      ],
+      "owner": "cairo-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/cairo/source_semantics": {
       "files": 38,
@@ -237,21 +247,27 @@
         "scripts/cairo/cairo_four_pie_source_coverage_lib/identity.py",
         "src/frontends/cairo/witness/source_semantic_pack.zig",
         "src/integrations/cairo_cuda/tests/program_test.zig"
-      ]
+      ],
+      "owner": "cairo-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/cairo/zkvm": {
       "files": 24,
       "consumers": [
         "build_support/products/cairo_cpu/zkvm_fixtures.zig",
         "scripts/tests/test_cairo_csp_fixtures.py"
-      ]
+      ],
+      "owner": "cairo-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/cairo_traces": {
       "files": 6,
       "consumers": [
         "src/frontends/cairo/prove_trace.zig",
         "src/products/cairo/cpu/tests/prove_trace_test.zig"
-      ]
+      ],
+      "owner": "cairo-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/circuit": {
       "files": 83,
@@ -327,7 +343,9 @@
         "tools/starknet-block-collector/circuit_pipeline.py",
         "tools/stwo-circuit-oracle-rs/README.md",
         "tools/stwo-eval-program-abi/README.md"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/official": {
       "files": 28,
@@ -377,7 +395,9 @@
         "tools/starknet-block-collector/benchmark_circuit_cuda_hybrid.py",
         "tools/starknet-block-collector/circuit_pipeline.py",
         "tools/stwo-eval-program-abi/README.md"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/r0": {
       "files": 1,
@@ -385,7 +405,9 @@
         "scripts/tests/test_upstream_pins_circuit_recursion.py",
         "src/frontends/circuit/builder/tests/r0_fri_test.zig",
         "src/frontends/circuit/conformance/fold_topology_test.zig"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/r10": {
       "files": 7,
@@ -394,14 +416,18 @@
         "src/products/cairo/recursion/cpu/README.md",
         "src/products/cairo/recursion/cpu/tests/r8_leaf_wrap_test.zig",
         "src/products/cairo/recursion/cpu/tests/r8b_leaf_chain_test.zig"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/r11": {
       "files": 27,
       "consumers": [
         "src/integrations/circuit_cpu/README.md",
         "src/integrations/circuit_cpu/tests/r11_verify_test.zig"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/r2": {
       "files": 1,
@@ -409,7 +435,9 @@
         "src/frontends/circuit/README.md",
         "src/frontends/circuit/build.zig",
         "src/frontends/circuit/builder/tests/r2_gadgets_test.zig"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/r3": {
       "files": 2,
@@ -421,7 +449,9 @@
         "src/frontends/circuit/air_eval/tests/statement_trace.zig",
         "src/frontends/circuit/common/component_list.zig",
         "src/frontends/circuit/conformance/fold_topology_test.zig"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/r4": {
       "files": 1,
@@ -429,14 +459,18 @@
         "src/frontends/circuit/README.md",
         "src/frontends/circuit/testing/verifier_stages.zig",
         "src/integrations/circuit_cpu/README.md"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/r5": {
       "files": 1,
       "consumers": [
         "src/frontends/circuit/README.md",
         "src/frontends/circuit/common/tests/r5_finalize_test.zig"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/r6": {
       "files": 2,
@@ -452,7 +486,9 @@
         "src/integrations/circuit_cpu/tests/r6_leaf_topology_test.zig",
         "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
         "src/waist/core/cairo_air_layout.zig"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/r7": {
       "files": 10,
@@ -467,14 +503,18 @@
         "src/integrations/circuit_cuda/geometry.zig",
         "src/integrations/circuit_cuda/tests/resident_bench.zig",
         "src/integrations/circuit_cuda/transcript_prefix.zig"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/circuit/r9": {
       "files": 1,
       "consumers": [
         "src/integrations/circuit_cpu/README.md",
         "src/integrations/circuit_cpu/tests/r9_fold_tree_test.zig"
-      ]
+      ],
+      "owner": "circuit-recursion",
+      "kind": "golden_fixture"
     },
     "vectors/reports": {
       "files": 3,
@@ -511,36 +551,46 @@
         "src/integrations/riscv_cuda/rv64/jobs/README.md",
         "src/integrations/riscv_cuda/rv64/jobs/plan.zig",
         "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
-      ]
+      ],
+      "owner": "riscv-cuda-integration",
+      "kind": "retained_contract_fixture"
     },
     "vectors/riscv/csp": {
-      "files": 1,
-      "consumers": []
+      "files": 2,
+      "consumers": [],
+      "owner": "riscv-frontend",
+      "kind": "retained_contract_fixture"
     },
     "vectors/riscv/fixtures": {
-      "files": 177,
+      "files": 179,
       "consumers": [
         "scripts/rv64/rv64_m7_integration_stack.py",
         "scripts/rv64/rv64_validation.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64/jobs/plan_test.zig"
-      ]
+      ],
+      "owner": "riscv-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/riscv/recursion-admissions": {
       "files": 26,
       "consumers": [
         "scripts/riscv/riscv_recursive_product.py",
         "src/frontends/riscv/leaf_manifest_contract_test_root.zig"
-      ]
+      ],
+      "owner": "riscv-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/riscv/rv64": {
-      "files": 20,
+      "files": 23,
       "consumers": [
         "conformance/rv64im-foundations-v1.json",
         "scripts/rv64/riscv64_foundations_benchmark.py",
         "scripts/rv64/rv64_m4_arena_job.sh",
         "scripts/rv64_m8_bench15.py"
-      ]
+      ],
+      "owner": "riscv-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/riscv_csp": {
       "files": 25,
@@ -561,7 +611,9 @@
         "src/integrations/riscv_cpu/README.md",
         "src/integrations/riscv_metal/README.md",
         "src/products/riscv/tools/recursive_csp_producer/contract.zig"
-      ]
+      ],
+      "owner": "ethereum-statement",
+      "kind": "golden_fixture"
     },
     "vectors/riscv_elfs": {
       "files": 41,
@@ -588,7 +640,9 @@
         "src/frontends/riscv/README.md",
         "src/products/riscv/cpu/tests/mulh_soundness_test.zig",
         "src/products/riscv/cpu/tests/rigidity_corpus.zig"
-      ]
+      ],
+      "owner": "riscv-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/riscv_guests": {
       "files": 28,
@@ -600,14 +654,18 @@
         "scripts/rv64/riscv64_csp_compare.py",
         "scripts/typed_air/typed_air_c013_capture_lib/plan.py",
         "scripts/typed_air/typed_air_r006_capture.py"
-      ]
+      ],
+      "owner": "riscv-frontend",
+      "kind": "guest_source"
     },
     "vectors/starknet/cuda-resident-pipeline-h100-20261001": {
       "files": 2,
       "consumers": [
         "src/integrations/circuit_cuda/README.md",
         "tools/starknet-block-collector/run_cuda_resident_paired.sh"
-      ]
+      ],
+      "owner": "cairo-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/starknet/mainnet": {
       "files": 31,
@@ -615,7 +673,9 @@
         "src/frontends/cairo/applicative/README.md",
         "tools/starknet-block-collector/README.md",
         "tools/starknet-block-collector/circuit_pipeline.py"
-      ]
+      ],
+      "owner": "cairo-frontend",
+      "kind": "golden_fixture"
     },
     "vectors/waist/air_derive.json": {
       "files": 1,
@@ -623,7 +683,9 @@
         "scripts/repo/parity_air_derive.py",
         "src/waist/core/air/derive.zig",
         "tools/stwo-air-derive-vector-gen/src/main.rs"
-      ]
+      ],
+      "owner": "protocol-core",
+      "kind": "golden_fixture"
     },
     "vectors/waist/constraint_expr.json": {
       "files": 1,
@@ -632,7 +694,9 @@
         "src/waist/core/constraint_framework/evaluator.zig",
         "src/waist/core/constraint_framework/expr.zig",
         "tools/stwo-cf-vector-gen/src/main.rs"
-      ]
+      ],
+      "owner": "protocol-core",
+      "kind": "golden_fixture"
     },
     "vectors/waist/fields.json": {
       "files": 1,
@@ -640,7 +704,9 @@
         "scripts/repo/parity_fields.py",
         "src/products/native/tests/parity/vectors/fixtures.zig",
         "tools/stwo-vector-gen/src/main.rs"
-      ]
+      ],
+      "owner": "protocol-core",
+      "kind": "golden_fixture"
     }
   },
   "files": [
@@ -1929,6 +1995,12 @@
       "group": "vectors/reports"
     },
     {
+      "path": "vectors/riscv/csp/README.md",
+      "sha256": "f8e42c5f022e8a85ce971ccfb77e3322615f9aacace78bd4bb8457a180c9d937",
+      "bytes": 541,
+      "group": "vectors/riscv/csp"
+    },
+    {
       "path": "vectors/riscv/csp/historical-benchmark-report.json",
       "sha256": "b1c9c5673f315cf4a9e8abd3da617fb3ab47342961b2672f68364fbed357e655",
       "bytes": 62843,
@@ -1938,6 +2010,18 @@
       "path": "vectors/riscv/fixtures/README.md",
       "sha256": "2f8f4068ef04be458b70432a09893819937edc230532da6a8c44140ff452624d",
       "bytes": 1008,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/pr-proof-smoke-main99f/prove.json",
+      "sha256": "9b21ef101862611fa70b8ec7870d90aea3f7c3d20a267cdc3e0e7c0d31120873",
+      "bytes": 2019,
+      "group": "vectors/riscv/fixtures"
+    },
+    {
+      "path": "vectors/riscv/fixtures/pr-proof-smoke-main99f/verify.json",
+      "sha256": "1023ac409d77d420a071d3b4d4f89f7c58cf15fdf4c8075d05d4428bf2739cc5",
+      "bytes": 1184,
       "group": "vectors/riscv/fixtures"
     },
     {
@@ -3156,6 +3240,24 @@
       "path": "vectors/riscv/rv64/foundations-baseline-source.json",
       "sha256": "74c54928aab20ce55612cbe7c4f262fca258cce8bf4c696ebf9c67936928b42b",
       "bytes": 50686,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/foundations-csp-execution.json",
+      "sha256": "5b0e5ed882c9809251578810f0cb1ecff146eb3b68ecb629a062e66f837356ee",
+      "bytes": 61202,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/foundations-oracle.json",
+      "sha256": "d04bf76ba69e473dbdc21b9786a25283bfd9831738b694fe16101ff2346e9b05",
+      "bytes": 769,
+      "group": "vectors/riscv/rv64"
+    },
+    {
+      "path": "vectors/riscv/rv64/foundations-paired-execution.json",
+      "sha256": "2c51b600d0a561c3e1b1a8d14f508d2ba3f3833972203035e32f5498c405bac7",
+      "bytes": 4392,
       "group": "vectors/riscv/rv64"
     },
     {

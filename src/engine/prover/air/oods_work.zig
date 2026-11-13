@@ -566,3 +566,69 @@ test "OODS extraction counts the executed split tree" {
         compositionExtractionWork(2, 2),
     );
 }
+
+/// Proof-scoped observer of the existing component evaluator authority.
+pub fn Observer(comptime ComponentProver: type) type {
+    return struct {
+        const OodsObserver = @This();
+
+        components: []const ComponentProver,
+        allocator: std.mem.Allocator,
+        max_log_degree_bound: u32,
+        builder: Builder,
+        complete: bool = true,
+
+        pub fn init(
+            site: Site,
+            components: []const ComponentProver,
+            allocator: std.mem.Allocator,
+            max_log_degree_bound: u32,
+        ) OodsObserver {
+            return .{
+                .components = components,
+                .allocator = allocator,
+                .max_log_degree_bound = max_log_degree_bound,
+                .builder = Builder.init(site),
+            };
+        }
+
+        pub fn afterComponent(self: *OodsObserver, ordinal: usize) !void {
+            if (!self.complete) return;
+            if (ordinal >= self.components.len) {
+                self.complete = false;
+                return;
+            }
+            const profile = self.components[ordinal].oodsWorkProfile(
+                self.allocator,
+                self.max_log_degree_bound,
+            ) catch {
+                self.complete = false;
+                return;
+            } orelse {
+                self.complete = false;
+                return;
+            };
+            self.builder.addComponent(ordinal, &profile) catch {
+                self.complete = false;
+            };
+        }
+
+        pub fn addCoordinator(
+            self: *OodsObserver,
+            label: []const u8,
+            operations: FieldOperations,
+            geometry: []const u64,
+        ) void {
+            if (!self.complete) return;
+            self.builder.addCoordinator(label, operations, geometry) catch {
+                self.complete = false;
+            };
+        }
+
+        pub fn publish(self: *OodsObserver, capture: *Capture) !void {
+            if (!self.complete) return;
+            const receipt = self.builder.finish() catch return;
+            try capture.publish(receipt);
+        }
+    };
+}

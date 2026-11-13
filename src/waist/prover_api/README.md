@@ -144,3 +144,10 @@ transitive review.
 - [Backend capability contracts](../backend/README.md)
 - [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 - [Package release policy](../../../design/repository/zig-package-release-policy.md)
+
+
+## Consumer-owned provider checks
+
+The generic prover registers pair-aligned column lifting, invalid-ingress refusal, and preservation of the first original failure. The provider contract also registers its Core dependency laws where applicable.
+
+The existing aggregate package graph exposes `zig build test-cdc-stwo-prover-api -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).

@@ -7,7 +7,7 @@ verification policy.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.1` |
+| Version | `1.0.0-rc.2` |
 | Layer | `interchange` |
 | Owner | `proof-wire` |
 | Public Zig module | `stwo_proof_wire` |
@@ -151,3 +151,41 @@ behavior. Do not silently reinterpret a prior binary version.
 
 Approved contract transaction: [RFC #325](https://github.com/teddyjfpender/stwo-zig/issues/325).
 No production codec implementation, proof bytes or protocol revisions changed.
+
+
+## Consumer-owned provider checks
+
+Native examples register malformed binary framing in both supported fields, with a zero-allocation admission budget. The provider contract also registers its Core dependency laws where applicable.
+
+The existing aggregate package graph exposes `zig build test-cdc-stwo-proof-wire -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
+
+## Origin-specific decode diagnostics
+
+`decodeProofBytesWithDiagnostic` and `decodeProofBytesBinaryWithDiagnostic`
+retain the existing decoder error/ownership behavior and accept an optional
+`?*?core.error_codes.Entry`. They clear that output on entry, including on
+success. The five existing `CodecError` tags carry these append-only meanings:
+
+| Code | Tag | Class |
+| --- | --- | --- |
+| `0x4001` | `NonCanonicalM31` | `invalid_input` |
+| `0x4002` | `ValueOutOfRange` | `invalid_input` |
+| `0x4003` | `InvalidBinaryProof` | `invalid_input` |
+| `0x4004` | `UnsupportedBinaryVersion` | `unsupported` |
+| `0x4005` | `NonCanonicalPoseidonDigest` | `invalid_input` |
+
+All are introduced in `1.0.0-rc.2`. `error_codes.fromCodec` takes only the owned
+`CodecError` set. The `error_codes` namespace owns this table and lookup.
+`lookup` returns null for unknown or foreign-provider codes.
+Parser, configuration and allocation errors are propagated without fabricated
+metadata. No code is a proof verdict, retry authorization, or global error-name
+mapping. Retrying unchanged invalid bytes is not useful; allocation failure
+retains the caller's existing resource policy. Decoder calls borrow input,
+return independently owned proofs, and publish no proof on failure.
+
+The Native interop verifier uses the JSON diagnostic entrypoint and emits a
+bounded best-effort `proof_wire_decode_rejection_v1` stderr line for a mapped
+rejection. It rethrows the original error, preserving stdout and process exit
+behavior; failure to write the optional line cannot replace that error. Existing
+entrypoints remain compatible. Other providers and parser-origin error ledgers
+remain open under [D2](https://github.com/teddyjfpender/stwo-zig/issues/359).

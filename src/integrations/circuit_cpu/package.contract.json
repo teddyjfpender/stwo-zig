@@ -56,5 +56,16 @@
       "-Doptimize=ReleaseSafe",
       "-j2"
     ]
+  },
+  "budget": {
+    "code_files": 61,
+    "code_lines": 9109,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 9,
+    "dependencies": 8,
+    "rv64_registry_flags": 2,
+    "versioned_files": 64
   }
 }

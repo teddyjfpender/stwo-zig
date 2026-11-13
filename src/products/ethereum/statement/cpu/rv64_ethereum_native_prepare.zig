@@ -195,11 +195,6 @@ pub const Walk = struct {
         for (&batch.curve_first, self.curve_calls) |*first, total| first.* = @intCast(total + 1);
         const memory = self.memory;
         var timer = std.time.Timer.start() catch null;
-        // M6: fault the tape (and a memory_before reserve) in on a helper
-        // while the walk writes it, instead of one fault per 85 steps on the
-        // walk's own thread. Scheduling only (MADV_POPULATE_WRITE keeps bytes).
-        var populate: ?Populate = if (self.fast != null and self.tape.len == 0) Populate.start(self.allocator, &self.tape) else null;
-        defer if (populate) |*p| p.join();
         while (self.tape.len < self.tape.storage.len) {
             if (self.fast) |*engine| {
                 // Fast traced run up to the next instruction it cannot
@@ -275,41 +270,6 @@ pub const Walk = struct {
         errdefer step.finished.deinit();
         const tape = try self.advanceTakingTape(&step.batch);
         return .{ .index = step.index, .finished = step.finished, .tape = tape };
-    }
-};
-/// Opt-in helper (`STWO_RV64_TAPE_POPULATE=1`) that pre-populates a fresh
-/// tape's storage and a memory_before reserve. Linux MADV_POPULATE_WRITE
-/// faults pages in writable without touching their bytes, so it may run
-/// while the walk writes the same pages; any failure only loses the hint.
-/// Measured NET LOSS on 24628607 (M6 capture receipt v3): fast steps 45 ->
-/// 31 ns, but 7 concurrent populates contend on the address space and slow
-/// the reference steps and the first pass (walk max 0.35 -> 0.79 s). Off.
-const Populate = struct {
-    thread: ?std.Thread = null,
-    fn start(a: std.mem.Allocator, tape: *rv.compact_tape.Tape) ?Populate {
-        if (@import("builtin").os.tag != .linux) return null;
-        const v = std.posix.getenv("STWO_RV64_TAPE_POPULATE") orelse return null;
-        if (!std.mem.eql(u8, v, "1")) return null;
-        // Ordinary RV64 code issues a load/store on well under half its steps.
-        tape.memory_before.ensureTotalCapacity(a, tape.storage.len / 2) catch {};
-        const regions = [2][]u8{ std.mem.sliceAsBytes(tape.storage), std.mem.sliceAsBytes(tape.memory_before.allocatedSlice()) };
-        const t = std.Thread.spawn(.{}, populate, .{regions}) catch return null;
-        return .{ .thread = t };
-    }
-    fn populate(regions: [2][]u8) void {
-        const page = std.heap.page_size_min;
-        for (regions) |bytes| {
-            if (bytes.len < 2 * page) continue;
-            const lo = std.mem.alignForward(usize, @intFromPtr(bytes.ptr), page);
-            const hi = std.mem.alignBackward(usize, @intFromPtr(bytes.ptr) + bytes.len, page);
-            if (hi <= lo) continue;
-            const MADV_POPULATE_WRITE = 23;
-            _ = std.os.linux.madvise(@ptrFromInt(lo), hi - lo, MADV_POPULATE_WRITE);
-        }
-    }
-    fn join(self: *Populate) void {
-        if (self.thread) |t| t.join();
-        self.thread = null;
     }
 };
 /// One batch's ordered publication: graph from the sparse cache, durable

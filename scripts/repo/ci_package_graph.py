@@ -86,7 +86,7 @@ def parse_contract_metadata(payload: Any, label: str) -> ContractMetadata:
     """Extension shape only; base validation and workspace v3 admission stay separate."""
     required = {"schema", "package", "version", "layer", "owner", "public_modules",
                 "dependencies", "injected_modules", "api_surface", "api_contract", "ci"}
-    optional = {"consumer_subdirs"}
+    optional = {"consumer_subdirs", "budget"}
     if not isinstance(payload, dict):
         raise ValueError(f"{label}: contract must be an object")
     schema = payload.get("schema")
@@ -97,8 +97,6 @@ def parse_contract_metadata(payload: Any, label: str) -> ContractMetadata:
         raise ValueError(f"{label}: unknown contract schema {schema!r}")
     if not required <= payload.keys() or payload.keys() - required - optional:
         raise ValueError(f"{label}: contract fields differ")
-    if schema == "stwo-zig-package-contract-v2":
-        return ContractMetadata()
 
     def strings(value: Any, field: str) -> tuple[str, ...]:
         if (not isinstance(value, list) or not value
@@ -108,7 +106,7 @@ def parse_contract_metadata(payload: Any, label: str) -> ContractMetadata:
             raise ValueError(f"{label}: {field} must be nonempty, sorted and unique")
         return tuple(value)
 
-    raw = payload["consumers"]
+    raw = payload.get("consumers", [])
     if not isinstance(raw, list):
         raise ValueError(f"{label}: consumers must be an array")
     consumers = []
@@ -528,6 +526,8 @@ def validate_package_consumer_sources(repository: Path, provider: Any, metadata:
     waist_modules = {module for contract in contracts.values()
                      if contract.layer in {"protocol", "contract", "api", "interchange"}
                      for module in contract.public_modules}
+    fixture_name = "waist_consumer_laws"
+    fixture = repository / "src/products/stwo/tests/waist_consumer_laws.zig"
     for entry in metadata.consumers:
         try:
             if not entry.id.startswith("package:"):
@@ -544,18 +544,39 @@ def validate_package_consumer_sources(repository: Path, provider: Any, metadata:
             if source.relative_to(owner.directory.resolve()).as_posix() != f"contract_tests/{provider.package}_test.zig":
                 raise GraphError("consumer root does not use its provider-owned test basename")
             route, module = entry.route.split(":", 1)
-            if module not in provider.public_modules:
+            postcard_route = (route == "injected" and module == "interop_postcard"
+                              and provider.package == "stwo_proof_wire")
+            if module not in provider.public_modules and not postcard_route:
                 raise GraphError("route does not name this public provider")
             if route == "injected":
                 if module not in owner.injected_modules:
                     raise GraphError("undeclared provider injection")
-                raise GraphError("injected provider builder binding validation is pending")
-            relative = owner.dependencies.get(module)
-            if route != "dependency" or relative is None or (owner.directory / relative).resolve() != provider.directory.resolve():
-                raise GraphError("consumer does not declare this provider dependency")
+                # Declaration admission only. The materialized provider target
+                # independently checks the real injected Module pointer.
+            else:
+                relative = owner.dependencies.get(module)
+                if route != "dependency" or relative is None or (owner.directory / relative).resolve() != provider.directory.resolve():
+                    raise GraphError("consumer does not declare this provider dependency")
             allowed = (set(owner.dependencies) | set(owner.injected_modules)) & waist_modules
             allowed |= set(owner.public_modules)  # Only the owning public module may be a type witness.
-            if module not in entry.imports or not set(entry.imports) <= allowed:
+            if provider.package == "stwo_proof_wire" and "interop_postcard" in owner.injected_modules:
+                allowed.add("interop_postcard")
+                if postcard_route:
+                    allowed.add("stwo_proof_wire")
+            if fixture_name in entry.imports:
+                relative_fixture = fixture.relative_to(repository).as_posix()
+                if (relative_fixture not in tracked or not fixture.is_file() or fixture.is_symlink()
+                        or fixture.resolve() != fixture):
+                    raise GraphError("consumer law fixture is not the canonical tracked source")
+                fixture_tokens = construction.source_tokens(fixture.read_text(encoding="utf-8"))
+                fixture_imports = [fixture_tokens[index + 3:index + 5]
+                                   for index in range(len(fixture_tokens) - 4)
+                                   if fixture_tokens[index:index + 3] == ["@", "import", "("]]
+                if fixture_imports != [['"std"', ')']]:
+                    raise GraphError("consumer law fixture must remain std-only")
+                allowed.add(fixture_name)
+            required_import = "stwo_proof_wire" if postcard_route else module
+            if required_import not in entry.imports or not set(entry.imports) <= allowed:
                 raise GraphError("consumer imports undeclared or nonpublic provider/witness modules")
             tokens = construction.source_tokens(source.read_text(encoding="utf-8"))
             imports, tests, depth = [], [], 0
@@ -570,7 +591,7 @@ def validate_package_consumer_sources(repository: Path, provider: Any, metadata:
                         raise GraphError("consumer tests must be named top-level cases")
                     tests.append(json.loads(tokens[index + 1]))
                 depth += (token == "{") - (token == "}")
-            if set(imports) != set(entry.imports) | {"std"}:
+            if set(imports) - {"std"} != set(entry.imports):
                 raise GraphError("consumer imports differ from the exact registration")
             if tuple(sorted(tests)) != entry.tests or len(tests) != len(set(tests)):
                 raise GraphError("consumer test discovery differs from the exact registration")
@@ -612,8 +633,21 @@ def validate_registered_consumers(repository: Path, contracts: Mapping[str, Any]
         return [f"CDC source/policy inventory failed: {error}"]
     failures = []
     for provider in active:
+        expected = {"package:" + owner.package for owner in contracts.values()
+                    if (set(provider.public_modules) & (set(owner.dependencies) | set(owner.injected_modules))
+                        or (provider.package == "stwo_proof_wire" and "interop_postcard" in owner.injected_modules))}
+        actual = {entry.id for entry in provider.metadata.consumers if entry.id.startswith("package:")}
+        if actual != expected:
+            failures.append(f"{provider.package}: consumer edge coverage differs: missing={sorted(expected - actual)}, extra={sorted(actual - expected)}")
         if not provider.metadata.consumers:
             failures.append(f"{provider.package}: v3 provider has no registered consumer tests")
         failures.extend(validate_package_consumer_sources(repository, provider, provider.metadata, contracts, tracked))
         failures.extend(consumer_ci_errors(provider, policy))
     return failures
+
+
+def registered_consumer_imports(repository: Path, contracts: Iterable[Any]) -> dict[Path, set[str]]:
+    """Exact test-root bindings only; source/owner admission is checked separately."""
+    return {(repository / entry.root).resolve(): set(entry.imports)
+            for provider in contracts if provider.metadata is not None
+            for entry in provider.metadata.consumers}

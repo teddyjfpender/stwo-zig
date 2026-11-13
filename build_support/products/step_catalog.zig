@@ -7,6 +7,11 @@ const Step = @import("catalog_types.zig").Step;
 /// consume this exact list.
 pub const steps = [_]Step{
     .{ .name = "test-cdc-stwo-core", .description = "Run registered consumer-owned Core contracts", .scope = .package },
+    .{ .name = "test-cdc-stwo-backend-contracts", .description = "Run registered consumer-owned waist contracts", .scope = .package },
+    .{ .name = "test-cdc-stwo-prover-api", .description = "Run registered consumer-owned waist contracts", .scope = .package },
+    .{ .name = "test-cdc-stwo-proof-wire", .description = "Run registered consumer-owned waist contracts", .scope = .package },
+    .{ .name = "test-cdc-stwo-circuit-recursion-wire", .description = "Run registered consumer-owned waist contracts", .scope = .package },
+
     .{ .name = "test-native-cpu-poseidon2", .description = "Qualify named Poseidon2 PCS and FS with fresh proof files", .scope = .native_cpu },
     .{ .name = "test-native-cpu-om31", .description = "Qualify wide STARKs, mixed heights and fresh proof-file receivers", .scope = .native_cpu },
     .{ .name = "test-native-cpu-wide-sampling", .description = "Qualify bounded shared wide sampled-point bases and ownership", .scope = .native_cpu },

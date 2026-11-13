@@ -87,28 +87,7 @@ pub const TestProofPoolAuditConfig = audit_mod.TestProofPoolAuditConfig;
 pub const TestProofPoolAuditSnapshot = audit_mod.TestProofPoolAuditSnapshot;
 pub const TestProofPoolAudit = audit_mod.TestProofPoolAudit;
 
-threadlocal var active_test_proof_pool_audit: ?*TestProofPoolAudit = null;
-
-pub const TestProofPoolAuditBinding = struct {
-    audit: *TestProofPoolAudit,
-    active: bool = true,
-
-    pub fn init(audit: *TestProofPoolAudit) !TestProofPoolAuditBinding {
-        if (comptime !builtin.is_test) return error.TestOnly;
-        if (active_test_proof_pool_audit != null) {
-            return error.TestProofPoolAuditAlreadyBound;
-        }
-        active_test_proof_pool_audit = audit;
-        return .{ .audit = audit };
-    }
-
-    pub fn deinit(self: *TestProofPoolAuditBinding) void {
-        std.debug.assert(self.active);
-        std.debug.assert(active_test_proof_pool_audit == self.audit);
-        active_test_proof_pool_audit = null;
-        self.active = false;
-    }
-};
+pub const TestProofPoolAuditBinding = audit_mod.TestProofPoolAuditBinding;
 
 /// Coordinator-thread binding for one caller-owned proof pool.
 ///
@@ -231,7 +210,7 @@ pub const WorkPool = struct {
             .worker_stack_size = options.stack_size,
             .backing_allocator = options.backing_allocator,
             .test_audit = if (comptime builtin.is_test)
-                active_test_proof_pool_audit
+                audit_mod.current()
             else {},
         };
         if (options.worker_count == 1) {
@@ -793,7 +772,7 @@ pub fn getGlobalPool() ?*WorkPool {
 
 inline fn recordGlobalResolutionForTest(pool: ?*WorkPool) void {
     if (comptime !builtin.is_test) return;
-    const audit = active_test_proof_pool_audit orelse return;
+    const audit = audit_mod.current() orelse return;
     audit.recordGlobalResolution(if (pool) |active| @intFromPtr(active) else 0);
 }
 
@@ -805,7 +784,7 @@ pub inline fn observeProofPoolStageForTest(
     pool: ?*WorkPool,
 ) !void {
     if (comptime !builtin.is_test) return;
-    const audit = active_test_proof_pool_audit orelse return;
+    const audit = audit_mod.current() orelse return;
     const address = if (pool) |active| @intFromPtr(active) else 0;
     const inject_failure = audit.recordStage(stage, address);
 
@@ -838,7 +817,7 @@ pub inline fn observeProofPoolStageForTest(
 /// proof may visit every computational boundary but must never publish output.
 pub inline fn recordProofPublicationForTest(pool: ?*WorkPool) void {
     if (comptime !builtin.is_test) return;
-    const audit = active_test_proof_pool_audit orelse return;
+    const audit = audit_mod.current() orelse return;
     audit.recordPublication(if (pool) |active| @intFromPtr(active) else 0);
 }
 

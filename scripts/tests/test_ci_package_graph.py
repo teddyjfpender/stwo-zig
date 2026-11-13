@@ -450,7 +450,7 @@ class PlanIntegrationTest(unittest.TestCase):
 class CoreConsumerExecutionContractTests(unittest.TestCase):
     def data(self):
         payload = json.loads((ROOT / "src/waist/core/package.contract.json").read_text())
-        return payload, payload["consumers"][0]
+        return payload, next(entry for entry in payload["consumers"] if entry["id"] == "package:stwo_cpu_backend")
 
     def test_core_registers_real_cpu_owned_root_and_preserves_provider_commands(self):
         payload, entry = self.data()
@@ -495,6 +495,42 @@ class CoreConsumerExecutionContractTests(unittest.TestCase):
             altered["lanes"]["core"]["commands"].remove(command)
             altered["lanes"]["core"]["commands"].append([*command, "-Dcheck-only=true"])
             self.assertTrue(graph.consumer_ci_errors(provider, altered))
+
+
+class FiveProviderConsumerExecutionTest(unittest.TestCase):
+    def test_test_only_import_authority_names_exact_registered_roots(self):
+        from types import SimpleNamespace
+        entry = SimpleNamespace(root="src/consumer/contract_tests/provider_test.zig", imports=("provider", "waist_consumer_laws"))
+        provider = SimpleNamespace(metadata=SimpleNamespace(consumers=(entry,)))
+        bindings = graph.registered_consumer_imports(ROOT, [provider, SimpleNamespace(metadata=None)])
+        self.assertEqual({(ROOT / entry.root).resolve(): set(entry.imports)}, bindings)
+        self.assertNotIn(ROOT / "src/consumer/mod.zig", bindings)
+
+    def test_every_live_declared_package_edge_has_an_exact_consumer_registration(self):
+        payloads = [json.loads(path.read_text()) for path in (ROOT / "src").rglob("package.contract.json")]
+        for provider in (ROOT / "src/waist").glob("*/package.contract.json"):
+            data = json.loads(provider.read_text())
+            expected = {"package:" + row["package"] for row in payloads
+                        if (data["package"] in row["dependencies"] or data["package"] in row["injected_modules"]
+                            or (data["package"] == "stwo_proof_wire" and "interop_postcard" in row["injected_modules"]))}
+            actual = {row["id"] for row in data.get("consumers", []) if row["id"].startswith("package:")}
+            self.assertEqual(expected, actual, data["package"])
+
+    def test_each_waist_provider_has_real_registered_roots_and_both_execution_modes(self):
+        from types import SimpleNamespace
+        policy = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text())
+        providers = sorted((ROOT / "src/waist").glob("*/package.contract.json"))
+        self.assertEqual(5, len(providers))
+        for path in providers:
+            payload = json.loads(path.read_text())
+            with self.subTest(provider=payload["package"]):
+                metadata = graph.parse_contract_metadata(payload, str(path))
+                self.assertTrue(metadata.consumers, "no consumer-owned behavioral root")
+                provider = SimpleNamespace(package=payload["package"], ci_lane=payload["ci"]["lane"])
+                self.assertEqual([], graph.consumer_ci_errors(provider, policy))
+                for consumer in metadata.consumers:
+                    self.assertTrue((ROOT / consumer.root).is_file())
+                    self.assertTrue(consumer.tests)
 
 
 if __name__ == "__main__":

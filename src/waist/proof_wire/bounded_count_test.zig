@@ -212,3 +212,46 @@ test "JSON and typed proof wire reject invalid FRI polynomial lengths without as
         try std.testing.expectError(error.ValueOutOfRange, Codec.decodeProofBytes(a, json));
     }
 }
+
+test "properties wire: seeded binary mutations preserve canonical encoding and bounded cleanup" {
+    const seed: u64 = 0xb0_0d_ed_34_7a_11_00_01;
+    var prng = std.Random.DefaultPrng.init(seed);
+    const rng = prng.random();
+    const original = try encoding(a);
+    defer a.free(original);
+    const mutated = try a.dupe(u8, original);
+    defer a.free(mutated);
+    var accepted: usize = 0;
+    var rejected: usize = 0;
+    for (0..256) |trial| {
+        errdefer std.debug.print("binary mutation seed=0x{x} trial={d}\n", .{ seed, trial });
+        @memcpy(mutated, original);
+        // Include an unchanged control, then mutations across all vector headers,
+        // field limbs, hashes and configuration rather than only known offsets.
+        if (trial != 0) for (0..1 + trial % 4) |_| {
+            const index = rng.uintLessThan(usize, mutated.len);
+            mutated[index] ^= @as(u8, 1) << rng.int(u3);
+        };
+        var storage: [64 * 1024]u8 = undefined;
+        var bounded = std.heap.FixedBufferAllocator.init(&storage);
+        var counted = std.testing.FailingAllocator.init(bounded.allocator(), .{});
+        const alloc = counted.allocator();
+        if (Codec.decodeProofBytesBinary(alloc, mutated)) |decoded_value| {
+            var decoded = decoded_value;
+            defer decoded.deinit(alloc);
+            const canonical = try Codec.encodeProofBytesBinary(a, decoded);
+            defer a.free(canonical);
+            try std.testing.expectEqualSlices(u8, mutated, canonical);
+            accepted += 1;
+            if (accepted <= 8) try std.testing.checkAllAllocationFailures(a, decodeProbe, .{mutated});
+        } else |err| {
+            // Input is bounded by the fixed fixture. A forged count must refuse
+            // structurally, never turn a small input into a large allocation.
+            try std.testing.expect(err != error.OutOfMemory);
+            rejected += 1;
+        }
+        try std.testing.expectEqual(counted.allocated_bytes, counted.freed_bytes);
+    }
+    try std.testing.expect(accepted > 0);
+    try std.testing.expect(rejected > 0);
+}

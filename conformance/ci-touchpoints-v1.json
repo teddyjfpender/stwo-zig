@@ -149,6 +149,20 @@
           "src/waist/backend/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-backend-contracts",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-backend-contracts",
+          "-Doptimize=ReleaseFast",
+          "-j2"
         ]
       ]
     },
@@ -185,6 +199,20 @@
           "test",
           "--build-file",
           "src/waist/prover_api/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-prover-api",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-prover-api",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -584,6 +612,20 @@
           "src/waist/proof_wire/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-proof-wire",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-proof-wire",
+          "-Doptimize=ReleaseFast",
+          "-j2"
         ]
       ]
     },
@@ -606,6 +648,20 @@
           "test",
           "--build-file",
           "src/waist/recursion_wire/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-circuit-recursion-wire",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-circuit-recursion-wire",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]

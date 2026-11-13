@@ -111,3 +111,10 @@ incorrectly typed implementations fail at compile time.
 - [Stable prover API](../prover_api/README.md)
 - [Prover engine](../../engine/prover/README.md)
 - [Package release policy](../../../design/repository/zig-package-release-policy.md)
+
+
+## Consumer-owned provider checks
+
+The scalar CPU backend registers checked Native trace geometry and its actual `CpuBackend` conformance witness. The provider contract also registers its Core dependency laws where applicable.
+
+The existing aggregate package graph exposes `zig build test-cdc-stwo-backend-contracts -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).

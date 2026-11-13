@@ -162,12 +162,16 @@ When changing this package:
 
 ## Consumer-owned contracts
 
-The closed v3 contract registers the scalar CPU consumer's Core batch-inverse
-contract. Its root is `src/backends/cpu_scalar/contract_tests/stwo_core_test.zig`.
-Run it through `scripts/dev_test.py` or `zig build test-cdc-stwo-core` with
-`-Doptimize=Debug` and `-Doptimize=ReleaseFast`. The provider lane retains raw
-execution receipts and binaries. Other consumer rows remain open in
-[RFC #367](https://github.com/teddyjfpender/stwo-zig/issues/367).
+The closed v3 contract registers the scalar CPU backend's exact batch-inverse
+ownership, refusal and allocation budget, plus Core laws consumed by the four
+other waist providers: canonical field inversion, FRI request admission,
+wire reconstruction configuration and recursive proof-shape geometry.
+
+Run `zig build test-cdc-stwo-core -Doptimize=Debug -j2` and its ReleaseFast
+counterpart. Each root runs through the assembled real consumer's canonical
+Core module. Exact named discovery is checked after execution; all original
+Core commands remain required. These five registrations are a subset of the
+live consumer graph, not full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
 
 ## Decoder diagnostic metadata
 

@@ -1129,7 +1129,72 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue336 / RFC352: one complete Ethereum product boundary with canonical shared types, explicit compatibility component identity and strict product-placement/dependency rejection. The single +800 source allowance includes private service-call/artifact ownership cuts, the already-approved three mathematical providers, product/build/consumer wiring and tests; moves receive no subtraction credit. Preserve original algorithms, protocol/profile identities, named discovery, errors, publication and teardown. Additional public providers/signature changes require their exact recorded RFC amendment before publication. Rollback the complete source/consumer/test transaction; no new flags or launchers."
+    },
+    {
+      "id": "ethereum_owner_incremental_receipts_383",
+      "net_code_budget": 200,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue383 comments6852650348/6852762485: atomically retain completed command receipts and expose four exact-same-Run owner aliases without changing the original479-test floor or production proof authorities. No new launcher, runtime flag or reduced acceptance; rollback aliases/receipts together."
+    },
+    {
+      "id": "vector_inventory_ownership_362",
+      "net_code_budget": 250,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue362: strict33-group owner/hash/path inventory, preserving568 existing pins and adding six previously unlisted file pins through the existing upstream entrypoint. No oracle regeneration or historical-evidence completion claim, no new launcher or runtime flag; rollback additive inventory/parser together."
+    },
+    {
+      "id": "source_size_owner_sweep_20261113",
+      "net_code_budget": 1400,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue343 owner-delegated first33-owner checkpoint under explicit maintainer completion authorization: private polynomial/GKR/PCS/backend owner phases and test-family fixture separation; measured source net1200 before final integration,129 original named test bodies token-identical,68to35 size breaches. Preserve public aliases, equations, source/proof pins, runtime defaults, floors and failure/teardown invariants. Moves earn no removal credit. No raised source ceiling, new launcher or GPU qualification. Revert full owner splits with their aliases and test imports together; remaining35 are explicit active work."
+    },
+    {
+      "id": "csp_required_failure_control_382",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue382 paired unchanged-main ReleaseFast failures: failure-only CSP guest/input/CPU identity and same-security one-worker control to diagnose required16-worker OODS failure. Never convert the original failure into acceptance, weaken assertions/profile or run heavy local proof. Successful canonical path/proof bytes unchanged. Bounded test-harness diagnostic; remove after root-cause regression is fixed and physical controls pass."
     }
   ],
-  "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
+  "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
+  "hot_path_budgets": [
+    {
+      "package": "stwo_core",
+      "source": "src/waist/core/fields/m31.zig",
+      "function": "pow",
+      "max_branches": 2,
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6852812776"
+    },
+    {
+      "package": "stwo_proof_wire",
+      "source": "src/waist/proof_wire/family.zig",
+      "function": "decodeProofBytesBinary",
+      "max_branches": 1,
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6852812776"
+    },
+    {
+      "package": "stwo_proof_wire",
+      "source": "src/waist/proof_wire/family.zig",
+      "function": "readProofWireBinary",
+      "max_branches": 13,
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6852878924"
+    },
+    {
+      "package": "stwo_proof_wire",
+      "source": "src/waist/proof_wire/family.zig",
+      "function": "readCount",
+      "max_branches": 1,
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6852878924"
+    },
+    {
+      "package": "stwo_proof_wire",
+      "source": "src/waist/proof_wire/family.zig",
+      "function": "readBytes",
+      "max_branches": 2,
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6852878924"
+    }
+  ]
 }
