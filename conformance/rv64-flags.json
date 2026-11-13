@@ -166,21 +166,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig",
-        "text": "    const artifact_dir = std.process.getEnvVarOwned(a, \"STWO_RV64_DIVISION_ARTIFACT_DIR\") catch null;\n    defer if (artifact_dir) |path| a.free(path);\n    const config = if (artifact_dir != null) rv.protocol.config() else core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 12) };\n    const reference = std.process.hasEnvVarConstant(\"STWO_RV64_DIVISION_REFERENCE\");\n    const requests = tests.fixtures();\n    var trace = try D.trace.Trace.init(a, &requests);\n    defer trace.deinit();\n    var fixed: [D.layout.FIXED]engine.pcs.ColumnEvaluation = undefined;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_DIVISION_REFERENCE": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig",
-      "default": "false (variable absent)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig",
-        "text": "    const reference = std.process.hasEnvVarConstant(\"STWO_RV64_DIVISION_REFERENCE\");\n    const requests = tests.fixtures();\n    var trace = try D.trace.Trace.init(a, &requests);\n    defer trace.deinit();\n    var fixed: [D.layout.FIXED]engine.pcs.ColumnEvaluation = undefined;\n    var main: [D.layout.MAIN]engine.pcs.ColumnEvaluation = undefined;\n    var interaction: [D.layout.INTERACTION]engine.pcs.ColumnEvaluation = undefined;\n    columns(trace.fixed, trace.log_size, &fixed);"
+        "text": "    const artifact_dir = std.process.getEnvVarOwned(a, \"STWO_RV64_DIVISION_ARTIFACT_DIR\") catch null;\n    defer if (artifact_dir) |path| a.free(path);"
       },
       "expires": "2026-12-09"
     },
@@ -247,7 +233,7 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_FOLD_CLASS_CACHE": {
-      "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
+      "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap_ownership.zig",
       "default": "\"1\"",
       "status": "runtime",
       "date": "2026-11-08",
@@ -261,10 +247,10 @@
         "scripts/rv64/rv64_negative_mutations.py",
         "scripts/rv64/rv64_validation.py",
         "scripts/tests/test_rv64_validation.py",
-        "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
+        "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap_ownership.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
+        "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap_ownership.zig",
         "text": "        const value = std.posix.getenv(\"STWO_RV64_FOLD_CLASS_CACHE\") orelse \"1\";\n        if (std.mem.eql(u8, value, \"0\")) return null;\n        return .{ .allocator = a, .check = std.mem.eql(u8, value, \"check\") };\n    }\n    pub fn deinit(self: *FoldClasses) void {\n        for (self.entries.items) |entry| {\n            entry.authority.deinit();\n            self.allocator.destroy(entry.authority);"
       },
       "expires": "2026-12-09"
@@ -599,18 +585,13 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_HARNESS_ALLOW_BLOCKS": {
-      "owner": "scripts/rv64/rv64_m4_resident.py",
-      "default": "empty additional block allowlist",
-      "status": "qualification",
-      "date": "2026-11-08",
+      "owner": "scripts/tests/test_rv64_gate.py",
+      "default": "not applicable: retired duplicate environment alias; --allow-block remains the owner gate",
+      "status": "reference-only",
+      "date": "2026-11-13",
       "references": [
-        "scripts/rv64/rv64_m4_resident.py"
-      ],
-      "default_evidence": {
-        "path": "scripts/rv64/rv64_m4_resident.py",
-        "text": "ALLOW_BLOCKS_ENV = \"STWO_RV64_HARNESS_ALLOW_BLOCKS\"\n\n\ndef allowed_blocks(args, environ=None):\n    \"\"\"Explicit owner opt-in for non-development blocks: --allow-block N (repeatable) or\n    STWO_RV64_HARNESS_ALLOW_BLOCKS=N[,M]. Harness-only: STWO_RV64_* keys never reach the producer.\"\"\"\n    environ = os.environ if environ is None else environ\n    result = set(getattr(args, \"allow_block\", None) or [])\n    for item in environ.get(ALLOW_BLOCKS_ENV, \"\").replace(\",\", \" \").split():\n        result.add(int(item))"
-      },
-      "expires": "2026-12-09"
+        "scripts/tests/test_rv64_gate.py"
+      ]
     },
     "STWO_RV64_JOBS_ABI_VERSION": {
       "owner": "src/backends/cuda/native/rv64/jobs/runtime.cu",
@@ -770,7 +751,8 @@
       "references": [
         "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
         "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+        "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig",
+        "src/integrations/riscv_cuda/rv64/outer_node_checks.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
@@ -779,16 +761,16 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_GN_INSTALL": {
-      "owner": "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "owner": "src/integrations/riscv_cuda/rv64/outer_node_prover.zig",
       "default": "false",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+        "src/integrations/riscv_cuda/rv64/outer_node_prover.zig",
         "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+        "path": "src/integrations/riscv_cuda/rv64/outer_node_prover.zig",
         "text": "        const v = std.posix.getenv(\"STWO_RV64_M8_GN_INSTALL\") orelse return false;\n        return std.mem.eql(u8, v, \"1\");\n    }\n    fn installNode(ordinal: u32, e: *Entry) !void {\n        mutex.lock();\n        defer mutex.unlock();\n        if (install_nodes.get(ordinal)) |old| {\n            if (old != e) return error.GnNodeInstallOrdinal;"
       },
       "expires": "2026-12-09"
@@ -809,16 +791,16 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_GN_NODE_FAULT_ORDINAL": {
-      "owner": "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "owner": "src/integrations/riscv_cuda/rv64/outer_node_checks.zig",
       "default": "null",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+        "src/integrations/riscv_cuda/rv64/outer_node_checks.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
-        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_FAULT_ORDINAL\") orelse return null;\n    return std.fmt.parseInt(u32, v, 10) catch error.InvalidGnNodeFaultOrdinal;\n}\nconst GnCheck = struct {\n    pub const field_index: u32 = 0x474e_4f44; // \"GNOD\"\n    /// Fold children: om31 node proofs under the diet-wire profile (fold\n    /// Merkle cap 2^3); leaf children: native proofs with full paths.\n    const cap_log: u32 = 3;"
+        "path": "src/integrations/riscv_cuda/rv64/outer_node_checks.zig",
+        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_FAULT_ORDINAL\") orelse return null;\n    return std.fmt.parseInt(u32, v, 10) catch error.InvalidGnNodeFaultOrdinal;\n}\npub const GnCheck = struct {\n    pub const field_index: u32 = 0x474e_4f44; // \"GNOD\"\n    /// Fold children: om31 node proofs under the diet-wire profile (fold\n    /// Merkle cap 2^3); leaf children: native proofs with full paths.\n    pub const cap_log: u32 = 3;"
       },
       "expires": "2026-12-09"
     },
@@ -846,21 +828,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
-        "text": "    const path = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_RECORDS\") orelse return error.SkipZigTest;\n    const a = std.heap.c_allocator;\n    var l = try load(a, path, std.posix.getenv(\"STWO_RV64_M8_GN_NODE_TREE\"));\n    defer l.deinit();\n    var gpu_opt = try Gpu.open();\n    defer if (gpu_opt) |*g| g.close();\n    // Fold children are om31 node proofs (diet-wire profile: cap 2^3);\n    // leaf children are native proofs, verified with full paths."
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GN_NODE_TREE": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
-      "default": "infer from record metadata (no explicit tree override)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
-        "text": "    var l = try load(a, path, std.posix.getenv(\"STWO_RV64_M8_GN_NODE_TREE\"));\n    defer l.deinit();\n    var gpu_opt = try Gpu.open();\n    defer if (gpu_opt) |*g| g.close();\n    // Fold children are om31 node proofs (diet-wire profile: cap 2^3);\n    // leaf children are native proofs, verified with full paths.\n    const cap_log: u32 = 3;\n    const leaf_cap_log: u32 = 0;"
+        "text": "    const path = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_RECORDS\") orelse return error.SkipZigTest;\n    const a = std.heap.c_allocator;"
       },
       "expires": "2026-12-09"
     },
@@ -1016,7 +984,7 @@
       "references": [
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
         "src/integrations/riscv_cuda/rv64/jobs/worker.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+        "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig",
         "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
         "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig",
         "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
@@ -1042,7 +1010,7 @@
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
         "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig",
         "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+        "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig",
         "src/integrations/riscv_cuda/rv64_jobs_parity_main.zig",
         "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
         "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
@@ -1145,7 +1113,7 @@
       "date": "2026-11-08",
       "references": [
         "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+        "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
@@ -1198,15 +1166,15 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_OUTER_FAULT_ORDINAL": {
-      "owner": "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "owner": "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig",
       "default": "null",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+        "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+        "path": "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig",
         "text": "        // Negative-path test hook (default unset): STWO_RV64_M8_OUTER_FAULT_ORDINAL=n\n        // fails node n before its job, exactly where a footprint refusal\n        // returns, so the request error path and teardown can be exercised.\n        if (self.hybrid.knobs.fault_ordinal == ordinal) {\n            if (input.prepared) |*p| p.deinit();\n            std.debug.print(\"GPU_M8_OUTER_NODE ordinal={d} device={d} error=M8OuterInjectedFault\\n\", .{ ordinal, self.physical_device });\n            return error.M8OuterInjectedFault;\n        }"
       },
       "expires": "2026-12-09"
@@ -1221,7 +1189,7 @@
         "scripts/rv64/rv64_validation.py",
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_m8_bench15.py",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+        "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig",
         "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
@@ -1508,21 +1476,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig",
-        "text": "    const artifact = std.process.getEnvVarOwned(a, \"STWO_RV64_MULTIPLICATION_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var dir = try std.fs.cwd().openDir(path, .{});\n        defer dir.close();\n        const pj = try std.json.Stringify.valueAlloc(a, public, .{});\n        defer a.free(pj);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_MULTIPLICATION_REFERENCE": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig",
-      "default": "false (variable absent)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig",
-        "text": "    var bundle = try native.prove(a, public, std.process.hasEnvVarConstant(\"STWO_RV64_MULTIPLICATION_REFERENCE\"));\n    defer bundle.deinit(a);\n    const claims = bundle.claims;\n    const wire = @import(\"stwo_proof_wire\");\n    const encoded = try wire.encodeProofBytesBinary(a, bundle.proof);\n    defer a.free(encoded);\n    try native.verifyOwned(a, public, claims, try wire.decodeProofBytesBinary(a, encoded));\n    for (0..2) |family| {"
+        "text": "    const artifact = std.process.getEnvVarOwned(a, \"STWO_RV64_MULTIPLICATION_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);"
       },
       "expires": "2026-12-09"
     },
@@ -1919,48 +1873,6 @@
       "references": [
         "scripts/rv64/rv64_negative_mutations.py"
       ]
-    },
-    "STWO_RV64_TAPE_POPULATE": {
-      "owner": "src/products/ethereum/statement/cpu/rv64_ethereum_native_prepare.zig",
-      "default": "null",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/products/ethereum/statement/cpu/rv64_ethereum_native_prepare.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/ethereum/statement/cpu/rv64_ethereum_native_prepare.zig",
-        "text": "        const v = std.posix.getenv(\"STWO_RV64_TAPE_POPULATE\") orelse return null;\n        if (!std.mem.eql(u8, v, \"1\")) return null;\n        // Ordinary RV64 code issues a load/store on well under half its steps.\n        tape.memory_before.ensureTotalCapacity(a, tape.storage.len / 2) catch {};\n        const regions = [2][]u8{ std.mem.sliceAsBytes(tape.storage), std.mem.sliceAsBytes(tape.memory_before.allocatedSlice()) };\n        const t = std.Thread.spawn(.{}, populate, .{regions}) catch return null;\n        return .{ .thread = t };\n    }"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_TEST_BATCH_FOLD_SUM": {
-      "owner": "tests/cuda/rv64/gkr_loop_smoke.cu",
-      "date": "2026-11-08",
-      "references": [
-        "tests/cuda/rv64/gkr_loop_smoke.cu"
-      ],
-      "status": "qualification",
-      "default": "false (variable absent)",
-      "default_evidence": {
-        "path": "tests/cuda/rv64/gkr_loop_smoke.cu",
-        "text": "      const bool fused=std::getenv(\"STWO_RV64_TEST_BATCH_FOLD_SUM\")&&left>1;\n      std::vector<StwoRv64BatchFoldSumJob> jobs;\n      std::vector<uint32_t> ready;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_TEST_BATCH_TAIL": {
-      "owner": "tests/cuda/rv64/gkr_loop_smoke.cu",
-      "date": "2026-11-08",
-      "references": [
-        "tests/cuda/rv64/gkr_loop_smoke.cu"
-      ],
-      "status": "qualification",
-      "default": "false (variable absent)",
-      "default_evidence": {
-        "path": "tests/cuda/rv64/gkr_loop_smoke.cu",
-        "text": "      if (std::getenv(\"STWO_RV64_TEST_BATCH_TAIL\") && left <= 4) {\n        std::vector<StwoRv64BatchTailOracle> jobs;\n        for (uint32_t j = 0; j < l.active; ++j) {"
-      },
-      "expires": "2026-12-09"
     },
     "STWO_RV64_VK_CACHE": {
       "owner": "scripts/rv64/rv64_negative_mutations.py",

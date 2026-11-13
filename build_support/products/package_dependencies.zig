@@ -379,6 +379,11 @@ pub const compatibility_package_roots = &([_][]const u8{
 // The retained public `stwo` compatibility facade binds these existing
 // modules in addition to the focused core/prover products.
 pub const public_package_roots = &([_][]const u8{
+    "dependency:../src/frontends/sm83:mod.zig",
+    "dependency:../src/integrations/sm83_cpu:mod.zig",
+    "dependency:../src/integrations/sm83_metal:mod.zig",
+    "dependency:../src/integrations/riscv_metal:mod.zig",
+    "dependency:../src/integrations/circuit_metal:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
     "dependency:../src/backends/metal/session:mod.zig",
@@ -424,21 +429,36 @@ pub const Consumer = struct {
     tests: []const []const u8,
 };
 
-pub fn coreConsumers(b: *std.Build) []const Consumer {
-    const bytes = std.fs.cwd().readFileAlloc(b.allocator, b.pathFromRoot("src/waist/core/package.contract.json"), 1 << 20) catch @panic("read core consumer metadata");
-    const parsed = std.json.parseFromSlice(std.json.Value, b.allocator, bytes, .{}) catch @panic("parse core consumer metadata");
-    const rows = parsed.value.object.get("consumers") orelse @panic("core consumer metadata missing");
-    return (std.json.parseFromValue([]Consumer, b.allocator, rows, .{}) catch @panic("invalid core consumer records")).value;
+pub const waist_providers = [_]struct { name: []const u8, directory: []const u8 }{
+    .{ .name = "stwo_core", .directory = "core" },
+    .{ .name = "stwo_backend_contracts", .directory = "backend" },
+    .{ .name = "stwo_prover_api", .directory = "prover_api" },
+    .{ .name = "stwo_proof_wire", .directory = "proof_wire" },
+    .{ .name = "stwo_circuit_recursion_wire", .directory = "recursion_wire" },
+};
+
+pub fn providerConsumers(b: *std.Build, directory: []const u8) []const Consumer {
+    const bytes = std.fs.cwd().readFileAlloc(b.allocator, b.pathFromRoot(b.fmt("src/waist/{s}/package.contract.json", .{directory})), 1 << 20) catch @panic("read waist consumer metadata");
+    const parsed = std.json.parseFromSlice(std.json.Value, b.allocator, bytes, .{}) catch @panic("parse waist consumer metadata");
+    const rows = parsed.value.object.get("consumers") orelse @panic("waist consumer metadata missing");
+    return (std.json.parseFromValue([]Consumer, b.allocator, rows, .{}) catch @panic("invalid waist consumer records")).value;
 }
 
-pub fn withCoreConsumerRoots(b: *std.Build, roots: []const []const u8) []const []const u8 {
-    const consumers = coreConsumers(b);
-    const result = b.allocator.alloc([]const u8, roots.len + consumers.len) catch @panic("OOM");
-    @memcpy(result[0..roots.len], roots);
-    for (consumers, result[roots.len..]) |consumer, *destination| {
-        const owner = ownership.resolve(consumer.root) orelse @panic("unowned core consumer");
-        const directory = consumer.root[0 .. consumer.root.len - owner.sub_path.len - 1];
-        destination.* = b.fmt("dependency:../{s}:{s}", .{ directory, owner.sub_path });
+pub fn withWaistConsumerRoots(b: *std.Build, roots: []const []const u8, kind: enum { package_roots, product_roots }) []const []const u8 {
+    var result: std.ArrayList([]const u8) = .empty;
+    result.appendSlice(b.allocator, roots) catch @panic("OOM");
+    for (waist_providers) |provider| {
+        for (providerConsumers(b, provider.directory)) |consumer| {
+            const is_product = std.mem.startsWith(u8, consumer.id, "product:");
+            if (is_product != (kind == .product_roots)) continue;
+            if (is_product) {
+                result.append(b.allocator, consumer.root) catch @panic("OOM");
+                continue;
+            }
+            const owner = ownership.resolve(consumer.root) orelse @panic("unowned waist consumer");
+            const directory = consumer.root[0 .. consumer.root.len - owner.sub_path.len - 1];
+            result.append(b.allocator, b.fmt("dependency:../{s}:{s}", .{ directory, owner.sub_path })) catch @panic("OOM");
+        }
     }
-    return result;
+    return result.toOwnedSlice(b.allocator) catch @panic("OOM");
 }

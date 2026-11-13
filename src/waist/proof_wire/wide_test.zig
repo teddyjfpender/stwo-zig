@@ -28,8 +28,10 @@ fn fixture(allocator: std.mem.Allocator) !W.Proof {
     });
 }
 fn roundtrip(allocator: std.mem.Allocator, binary: bool, bytes: []const u8) !void {
-    var proof = if (binary) try W.decodeProofBytesBinary(allocator, bytes) else try W.decodeProofBytes(allocator, bytes);
+    var diagnostic: ?Core.error_codes.Entry = Legacy.error_codes.fromCodec(error.ValueOutOfRange);
+    var proof = if (binary) try W.decodeProofBytesBinaryWithDiagnostic(allocator, bytes, &diagnostic) else try W.decodeProofBytesWithDiagnostic(allocator, bytes, &diagnostic);
     defer proof.deinit(allocator);
+    try std.testing.expect(diagnostic == null);
     const encoded = if (binary) try W.encodeProofBytesBinary(allocator, proof) else try W.encodeProofBytes(allocator, proof);
     defer allocator.free(encoded);
     try std.testing.expectEqualSlices(u8, bytes, encoded);
@@ -80,7 +82,9 @@ test "OM31 typed and JSON decode reject every noncanonical coordinate with owned
         try std.testing.expectError(error.NonCanonicalM31, W.wireToProof(a, wire));
         const json = try std.json.Stringify.valueAlloc(a, .{ .protocol = "stwo-om31-proof-v1", .proof = wire }, .{});
         defer a.free(json);
-        try std.testing.expectError(error.NonCanonicalM31, W.decodeProofBytes(a, json));
+        var diagnostic: ?Core.error_codes.Entry = null;
+        try std.testing.expectError(error.NonCanonicalM31, W.decodeProofBytesWithDiagnostic(a, json, &diagnostic));
+        try std.testing.expectEqual(@as(u16, 0x4001), diagnostic.?.code);
         wire.sampled_values[0][0][0][coordinate] = original;
     }
     wire.queried_values[0][0][0] = Core.fields.m31.Modulus;

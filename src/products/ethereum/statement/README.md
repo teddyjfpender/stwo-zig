@@ -133,3 +133,29 @@ of the full CSP/mixed-proof lane. Dispatch it with
 It preserves both receiver roots, their floors and all physical assertions.
 It is marked hosted-only because the physical ReleaseFast case exceeds the
 local compiler-memory cap. It does not replace complete product acceptance.
+
+The complete default images can also run independently as
+`test-owner-primary`, `test-owner-frontend`, `test-owner-cpu`, and
+`test-owner-cuda-host`. These names select the same unfiltered Run artifacts
+used by `test`, including the same imported module instances. They partition
+the default execution images, not the separately focused CSP and retained
+mixed-proof gates. The aggregate `test` target retains its floor of 479 and
+the BUILD-construction test. CUDA-host acceptance never executes a GPU.
+
+For example, on a qualified CPU host:
+
+```sh
+python3 scripts/dev_test.py src/products/ethereum/statement/frontend.zig --optimize Debug
+python3 scripts/dev_test.py src/products/ethereum/statement/cpu.zig --optimize ReleaseFast
+```
+
+Existing narrower focused rules take precedence over these component fallbacks.
+BUILD and package-contract changes still require complete package validation.
+Physical proof compilation remains hosted when it exceeds the unchanged local
+memory guard; selecting an owner does not authorize a heavy laptop build.
+
+The focused runner publishes each completed command's `.completed.json` beside
+its hash-bound stdout/stderr before launching the next command. Its lane receipt
+remains `INCOMPLETE` until the lane terminates normally, so interruption cannot
+turn a partial result into a complete acceptance claim. Owner cold/warm timings,
+peak RSS and the final full-corpus qualification remain tracked in #382/#383.

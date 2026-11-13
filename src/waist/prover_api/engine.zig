@@ -86,6 +86,8 @@ pub const EvaluationDiagnostic = struct {
 pub const ProveDiagnostic = struct {
     phase: ProvePhase,
     cause: anyerror,
+    /// Populated only by an authenticated owned origin, never an outer error-name mapping.
+    code: ?@import("stwo_core").error_codes.Entry = null,
     composition_subphase: ?CompositionSubphase = null,
     evaluation: ?EvaluationDiagnostic = null,
 

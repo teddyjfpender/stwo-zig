@@ -72,13 +72,7 @@ pub fn ForHasher(comptime Secure: type, comptime HashFamily: type) type {
             fri_proof: FriProofWire,
         };
 
-        pub const CodecError = error{
-            NonCanonicalM31,
-            ValueOutOfRange,
-            InvalidBinaryProof,
-            UnsupportedBinaryVersion,
-            NonCanonicalPoseidonDigest,
-        };
+        pub const CodecError = @import("error_codes.zig").CodecError;
 
         const BINARY_WIRE_MAGIC = if (is_poseidon_v2) (if (DEGREE == 4) "STP2QW02" else "STP2OW02") else if (is_poseidon) (if (DEGREE == 4) "STP2QW01" else "STP2OW01") else (if (DEGREE == 4) "STWOPRW1" else "STWOPRW8");
         const JSON_PROTOCOL = if (is_poseidon_v2) (if (DEGREE == 4) "stwo-p2m31-w24-d9-qm31-proof-v2" else "stwo-p2m31-w24-d9-om31-proof-v2") else if (is_poseidon) (if (DEGREE == 4) "stwo-p2m31-w24-d9-qm31-proof-v1" else "stwo-p2m31-w24-d9-om31-proof-v1") else "stwo-om31-proof-v1";
@@ -117,6 +111,31 @@ pub fn ForHasher(comptime Secure: type, comptime HashFamily: type) type {
 
             if (!legacy_json and !std.mem.eql(u8, parsed.value.protocol, JSON_PROTOCOL)) return CodecError.UnsupportedBinaryVersion;
             return wireToProof(allocator, if (legacy_json) parsed.value else parsed.value.proof);
+        }
+
+        /// Optional diagnostics belong only to this exact decode invocation. Parser,
+        /// configuration and allocator errors remain unmapped and propagate unchanged.
+        pub fn decodeProofBytesWithDiagnostic(allocator: std.mem.Allocator, encoded: []const u8, failure: ?*?core.error_codes.Entry) !Proof {
+            return decodeDiagnosed(false, allocator, encoded, failure);
+        }
+
+        pub fn decodeProofBytesBinaryWithDiagnostic(allocator: std.mem.Allocator, encoded: []const u8, failure: ?*?core.error_codes.Entry) !Proof {
+            return decodeDiagnosed(true, allocator, encoded, failure);
+        }
+
+        fn decodeDiagnosed(comptime binary: bool, allocator: std.mem.Allocator, encoded: []const u8, failure: ?*?core.error_codes.Entry) !Proof {
+            if (failure) |out| out.* = null;
+            return (if (binary) decodeProofBytesBinary(allocator, encoded) else decodeProofBytes(allocator, encoded)) catch |err| {
+                if (failure) |out| out.* = switch (err) {
+                    error.NonCanonicalM31 => @import("error_codes.zig").fromCodec(error.NonCanonicalM31),
+                    error.ValueOutOfRange => @import("error_codes.zig").fromCodec(error.ValueOutOfRange),
+                    error.InvalidBinaryProof => @import("error_codes.zig").fromCodec(error.InvalidBinaryProof),
+                    error.UnsupportedBinaryVersion => @import("error_codes.zig").fromCodec(error.UnsupportedBinaryVersion),
+                    error.NonCanonicalPoseidonDigest => @import("error_codes.zig").fromCodec(error.NonCanonicalPoseidonDigest),
+                    else => null,
+                };
+                return err;
+            };
         }
 
         /// Encodes a Stark proof into a compact binary wire format for internal benchmarking.

@@ -55,6 +55,13 @@ const FakeEngine = struct {
             .out_of_memory => error.OutOfMemory,
         };
     }
+
+    pub fn proveDiagnosed(allocator: std.mem.Allocator, components: []const prover_component.ComponentProver, channel: *Channel, scheme: Scheme, options: prover_api.ProveOptions, diagnostic: *?prover_api.ProveDiagnostic) !ExtendedProof {
+        return prove(allocator, components, channel, scheme, options) catch |err| {
+            prover_api.ProveDiagnostic.recordFirst(diagnostic, .fri, err);
+            return err;
+        };
+    }
 };
 
 const Fixture = struct {
@@ -140,4 +147,34 @@ fn expectPreTransferCleanup(state: *const SchemeState) !void {
     try std.testing.expectEqual(@as(usize, 1), state.deinit_calls);
     try std.testing.expectEqual(@as(usize, 0), state.prove_calls);
     try std.testing.expectEqual(@as(usize, 0), state.prove_consumptions);
+}
+
+test "base diagnosed finalizer clears stale metadata and transfers its scheme once" {
+    const allocator = std.testing.allocator;
+    var fixture = try Fixture.init(allocator);
+    defer fixture.deinit(allocator);
+    var state = SchemeState{};
+    var channel = FakeEngine.Channel{};
+    var diagnostic: ?prover_api.ProveDiagnostic = .{ .phase = .capture, .cause = error.StalePreviousAttempt };
+    FakeEngine.failure = .injected;
+    try std.testing.expectError(error.InjectedProveFailure, subject.proveWithOptionsDiagnosed(FakeEngine, allocator, .{}, .{ .state = &state }, &channel, fixture.workspace, &fixture.relations, fixture.claim, fixture.workspace.statement.nMainColumns(), fixture.workspace.statement.nInteractionColumns(), &diagnostic));
+    try std.testing.expectEqual(error.InjectedProveFailure, diagnostic.?.cause);
+    try std.testing.expectEqual(prover_api.ProvePhase.fri, diagnostic.?.phase);
+    try std.testing.expect(diagnostic.?.code == null);
+    try std.testing.expect(!state.live);
+    try std.testing.expectEqual(@as(usize, 1), state.prove_consumptions);
+    try std.testing.expectEqual(@as(usize, 0), state.deinit_calls);
+}
+
+test "base diagnosed finalizer leaves early admission failure unmapped and cleans up" {
+    const allocator = std.testing.allocator;
+    var fixture = try Fixture.init(allocator);
+    defer fixture.deinit(allocator);
+    fixture.claim.n_components = 0;
+    var state = SchemeState{};
+    var channel = FakeEngine.Channel{};
+    var diagnostic: ?prover_api.ProveDiagnostic = .{ .phase = .capture, .cause = error.StalePreviousAttempt };
+    try std.testing.expectError(error.InvalidInteractionClaim, subject.proveWithOptionsDiagnosed(FakeEngine, allocator, .{}, .{ .state = &state }, &channel, fixture.workspace, &fixture.relations, fixture.claim, fixture.workspace.statement.nMainColumns(), fixture.workspace.statement.nInteractionColumns(), &diagnostic));
+    try std.testing.expect(diagnostic == null);
+    try expectPreTransferCleanup(&state);
 }

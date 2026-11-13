@@ -26,6 +26,7 @@ from .codec import (
     EvidenceError,
     atomic_write_new,
     canonical_bytes,
+    decode_json,
     load_json,
     seal_document,
     sha256_bytes,
@@ -475,6 +476,49 @@ def validate_canonical_attempt(
     return attempt
 
 
+ORIGIN_SCHEMA = "stwo.riscv.csp-origin-rejection.v1"
+_COLUMN_ORIGINS = {0x3001: "ShapeMismatch", 0x3002: "InvalidColumnLogSize", 0x3003: "InvalidColumnLength"}
+
+
+def validate_origin_diagnostic(stderr: bytes, attempt: dict[str, Any]) -> dict[str, Any] | None:
+    """Consume optional typed-origin stderr without modifying the v3 attempt."""
+    # Bound additional parser storage even when unrelated child stderr is large.
+    line = None
+    offset = 0
+    token = ORIGIN_SCHEMA.encode()
+    while offset < len(stderr):
+        end = stderr.find(b"\n", offset)
+        if end < 0:
+            end = len(stderr)
+        if stderr.find(token, offset, end) >= 0:
+            if line is not None or end - offset > 512:
+                raise EvidenceError("origin diagnostic is duplicated or exceeds its bound")
+            line = stderr[offset:end]
+        offset = end + 1
+    if line is None:
+        return None
+    failure = attempt.get("failure")
+    request = attempt.get("request")
+    if type(failure) is not dict or type(request) is not dict:
+        raise EvidenceError("origin diagnostic has no typed attempt authority")
+    value = decode_json(line, label="origin diagnostic")
+    exact_object(value, {"schema", "request_sha256", "provider", "origin", "phase", "error_name", "code", "class", "since"}, "origin diagnostic")
+    code = value["code"]
+    if (attempt.get("status") != "failed"
+            or value["schema"] != ORIGIN_SCHEMA
+            or value["provider"] != "stwo_prover_api"
+            or value["origin"] != "quotient_column"
+            or value["phase"] != "fri"
+            or type(code) is not int or code not in _COLUMN_ORIGINS
+            or value["error_name"] != _COLUMN_ORIGINS.get(code)
+            or value["error_name"] != failure.get("error_name")
+            or value["class"] != "invalid_input" or value["since"] != "1.0.0-rc.2"
+            or value["request_sha256"] != request.get("request_sha256")):
+        raise EvidenceError("origin diagnostic contradicts its owned origin or attempt")
+    expect_digest(value["request_sha256"], "origin diagnostic request")
+    return value
+
+
 def collect_canonical_outer_report(
     plan: dict[str, Any],
     *,
@@ -571,6 +615,7 @@ def collect_canonical_outer_report(
                     check=False,
                 )
                 return_code: int | None = completed.returncode
+                stderr = completed.stderr
                 stderr_sha256 = sha256_bytes(completed.stderr)
                 stderr_bytes = len(completed.stderr)
             except subprocess.TimeoutExpired as error:
@@ -606,6 +651,9 @@ def collect_canonical_outer_report(
                 if (attempt["status"] == "verified") != (return_code == 0):
                     raise EvidenceError("child return code contradicts its typed attempt record")
                 workload_verified &= attempt["status"] == "verified"
+            origin = validate_origin_diagnostic(stderr, attempt)
+            if origin is not None:
+                atomic_write_new(workload_root / f"{ordinal:03d}.origin-diagnostic.json", canonical_bytes(origin))
             attempt_records.append(
                 {
                     "ordinal": ordinal,

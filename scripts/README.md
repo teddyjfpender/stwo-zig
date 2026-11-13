@@ -14,7 +14,7 @@ The top level holds only the developer entry points:
 | Entry point | Purpose |
 |---|---|
 | `dev_test.py` | local developer test runner |
-| `ci.py` | CI driver (`--fast` is the static lane; `--check-toolchains` checks declared versions without installation or compilation) |
+| `ci.py` | CI driver (`--fast` is static; `--check-toolchains` checks declarations; `--installed-toolchains cpu\|oracles\|formal` executes and fingerprints the selected installed tools) |
 | `rv64_gate.sh` | RV64 / CUDA gate on the pod (implementation in `rv64/rv64_gate.py`) |
 | `rv64_m8_bench15.py` | 15-block RV64 benchmark |
 
@@ -37,6 +37,22 @@ Everything else lives in one area package, each a Python package
 | `sm83/` | SM83 frontend gates and benchmarks |
 | `typed_air/` | typed-AIR performance protocol, captures and Zig lane |
 | `tests/` | the Python test suite (`python3 -m pytest -q scripts/tests`) |
+
+Toolchain declarations and artifact fingerprints live in `toolchain.json`.
+Run `python3 scripts/ci.py --check-toolchains` to check all declarations, then
+invoke `scripts/ci.py --installed-toolchains cpu` with the exact declared Python
+to execute and fingerprint the installed Python and Zig. The `oracles` profile
+also checks every declared Rust channel, component and target without selecting
+a global default. `formal` checks the exact Lean and Sail tools on its declared
+Linux host; it does not replace live Sail/Lean/source-binding qualification.
+
+Missing tools fail with explicit setup recipes. Verify the pinned archive hash
+before extracting Zig or Sail, and prepend an isolated directory to `PATH`.
+For Python, `uv python install --no-bin <toolchain.json version>` avoids replacing
+system executables; use the installed interpreter explicitly. No admission check
+downloads tools or falls back to a different installed version. Archive pins and
+the invoked executable fingerprints are distinct; the report does not certify
+the complete dynamic-library closure or establish proof/device correctness.
 
 Imports are always fully qualified (`from scripts.riscv import riscv_refinement`,
 `from scripts.cuda.cuda_build_lib import ...`); never put an area directory on

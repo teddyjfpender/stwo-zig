@@ -24,7 +24,13 @@ fn invert(allocator: std.mem.Allocator) !void {
 }
 
 test "cdc: CPU batch inverse owns canonical exact results without changing input" {
-    try invert(std.testing.allocator);
+    var counted = std.testing.FailingAllocator.init(std.testing.allocator, .{});
+    try invert(counted.allocator());
+    // Fixed three-element transaction: one input and one output, no scratch heap.
+    try std.testing.expect(counted.allocations <= 2);
+    try std.testing.expect(counted.allocated_bytes <= 6 * @sizeOf(M31));
+    try std.testing.expectEqual(counted.allocations, counted.deallocations);
+    try std.testing.expectEqual(counted.allocated_bytes, counted.freed_bytes);
 }
 
 test "cdc: CPU batch inverse zero refusal preserves input and releases output" {

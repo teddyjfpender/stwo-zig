@@ -47,5 +47,16 @@
   },
   "consumer_subdirs": [
     "tests"
-  ]
+  ],
+  "budget": {
+    "code_files": 403,
+    "code_lines": 94477,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 9,
+    "dependencies": 3,
+    "rv64_registry_flags": 8,
+    "versioned_files": 423
+  }
 }

@@ -212,3 +212,45 @@ If the reviewed design cannot fit, stop and revise its scope/budget before code.
 Before publication revert the first transaction as one unit. After publication
 preserve assigned code tombstones; never recycle a code, alter an error meaning,
 relax a decoder or remove a negative test to make a mapping pass.
+
+## 2026-11-13 bounded origin transactions
+
+The standing owner instruction authorizes necessary bounded amendments. The
+implementation delegate recorded exact additions in RFC #360 before editing;
+this is delegated authorization, not an independent owner/security signature.
+The older first-transaction tables above remain historical scope, not a claim
+that the later origins are unimplemented.
+
+| Provider / actual origin | Stable meanings | Live consumer wiring | Executed evidence |
+| --- | --- | --- | --- |
+| Core `FriConfig.init` | `0x1001` invalid last-layer bound; `0x1002` invalid blowup; both invalid_input, since rc.2 | Native interop `pcsConfigFromCli` exact typed catch rethrows original error and optionally emits bounded stderr | Three direct metadata/config tests in Debug and ReleaseFast; whole Native process remains pending |
+| Backend `arena_plan.build` | `0x2001`–`0x200c` twelve arena structural errors; `0x200d` allocator failure, since rc.2; budget/OOM resource_exhausted | Metal arena-plan runner exact build catch emits optional stderr, then the original failure JSON writer and return | Entire 26-test Backend provider and private formatter both modes; full Metal process remains pending |
+| Prover API quotient admission | `0x3001` shape, `0x3002` column log, `0x3003` column length, invalid_input, since rc.2 | Existing QM31 and OM31 lazy-provider checks annotate a borrowed per-attempt sink on the consumed PCS scheme; diagnosed proving retains nullable `ProveDiagnostic.code` | Ten direct API/first-cause tests and actual two-field consumer test (plus its two discovered anonymous checks), both modes; complete Engine/product process remains pending |
+| Proof wire JSON/binary | Five literal codec meanings `0x4001`–`0x4005`, since rc.2 | Native artifact decoder exact owned diagnostic catch | Canonical package 21/21 tests in each mode, including physical binary mutation/OOM; whole Native process pending |
+| Recursion circuit binary | `0x5001` NotEnoughData and `0x5002` ValueOutOfRange, since 0.2.0 | Existing circuit CPU verdict and Cairo recursion CLI | Previously retained provider/consumer evidence; canonical hosted lane qualification is a separate gate |
+
+Core, Backend and Prover API additions advance their unpublished candidate
+versions from `1.0.0-rc.1` to `1.0.0-rc.2`. Backend and API each add one root
+export, `error_codes`; Core already exports that module. The diagnostic field
+is host observability metadata, not a new proof/transcript/wire member. No
+ColumnEvaluation layout, validation pass or recorder mutation was added.
+Original constructor wrappers remain and pass a null sink for ordinary proving.
+Only exact owned checks write a code; generic component/backend errors and OOM
+in quotient construction stay unmapped. The Native private formatter extraction
+retains existing proof-wire stderr bytes and has no public helper ABI.
+
+Local receipts record explicit optimization for every Zig module. Provider and
+consumer execution is not inferred from import declarations or compile-only
+success. Guard peaks were below 400 MiB, with no GPU use. The runtime receipts
+and raw logs are retained outside the repository under `/tmp/stwo-d2-*.json`
+and `/tmp/stwo-backend-d2-*.log`; they are local evidence, not portable artifacts.
+The canonical hosted five-provider graph and real process receipts still have
+to qualify the committed source.
+
+Remaining full-D2 coverage includes Core verification/FRI/Merkle failures,
+backend recovery/native-AIR, prover work/task/lifetime failures, JSON parser and
+configuration/allocator decode origins, and recursion felt/postcard/request/
+registry/config origins. In particular, no global `anyerror` mapper was added
+and no same-named caller error is reclassified. Versioned CSP attempt producer
+and reader framing remains required before adding codes to its structured
+failure payload. These boundaries are not waived by five nonempty code bands.

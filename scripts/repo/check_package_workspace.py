@@ -12,7 +12,7 @@ from typing import Any
 
 if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
     __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
-from scripts.repo import ci_package_graph  # type: ignore[no-redef]
+from scripts.repo import ci_package_graph, package_budget  # type: ignore[no-redef]
 from scripts.repo.ci_scope_plan import owns as _owns
 
 
@@ -100,6 +100,7 @@ class Contract:
     # (product tools, benchmarks, system tests that consume the package).
     consumer_subdirs: tuple[str, ...] = ()
     metadata: ci_package_graph.ContractMetadata | None = None
+    budget: dict[str, int] | None = None
 
 
 def _object(value: Any, label: str) -> dict[str, Any]:
@@ -217,6 +218,7 @@ def load_contract(path: Path) -> Contract:
         ),
         consumer_subdirs=tuple(consumer_subdirs),
         metadata=metadata if payload["schema"] == "stwo-zig-package-contract-v3" else None,
+        budget=metadata.budget,
         ci_lane=ci["lane"],
         ci_host=ci["host"],
         ci_command=tuple(command),
@@ -315,6 +317,7 @@ def _validate_imports(
     module_to_package: dict[str, str],
     failures: list[str],
     generated_embeds: dict[str, Path] | None = None,
+    consumer_imports: dict[Path, set[str]] | None = None,
 ) -> None:
     allowed_named = (
         BUILTIN_MODULES
@@ -329,6 +332,7 @@ def _validate_imports(
         and owned_by(contract, source)
     )
     for source in sorted(sources):
+        test_imports = (consumer_imports or {}).get(source.resolve(), set())
         text = strip_comments(source.read_text(encoding="utf-8"))
         for embedded in EMBED_FILE_RE.findall(text):
             if (embedded in contract.injected_modules and generated_embeds is not None
@@ -359,7 +363,7 @@ def _validate_imports(
                         f"{source.relative_to(contract.directory)} -> {imported}"
                     )
                 continue
-            if imported not in allowed_named:
+            if imported not in allowed_named | test_imports:
                 failures.append(
                     f"{contract.package}: undeclared named import {imported!r} "
                     f"in {source.relative_to(contract.directory)}"
@@ -371,6 +375,7 @@ def _validate_imports(
                 and dependency_owner != contract.package
                 and imported not in contract.injected_modules
                 and dependency_owner not in contract.dependencies
+                and imported not in test_imports
             ):
                 failures.append(
                     f"{contract.package}: import {imported!r} is not a declared dependency"
@@ -727,6 +732,10 @@ def _validate_ownership_projection(
     for contract in contracts:
         base = "/" + contract.directory.relative_to(repository).as_posix()
         role_paths.setdefault(contract.owner, set()).update({base + "/package.contract.json", base + "/build.zig.zon"})
+    try:
+        role_paths["repository-maintainer"].update(ci_package_graph.registered_product_owner_paths(repository, contracts))
+    except (OSError, ValueError) as error:
+        failures.append(f"product owner routes: {error}")
     failures.extend(ci_package_graph.check_owner_roles(repository, role_paths))
     projection = repository / "build_support/graph/package_ownership.zig"
     if not projection.is_file():
@@ -786,9 +795,10 @@ def check_repository(repository: Path) -> list[str]:
     _validate_layers(contracts, packages, failures, repository)
     failures.extend(ci_package_graph.check_product_placement(repository, contracts))
     generated_embeds = ci_package_graph.generated_embedded_assets(repository)
+    consumer_imports = ci_package_graph.registered_consumer_imports(repository, contracts)
     for contract in contracts:
         _validate_manifest(contract, failures)
-        _validate_imports(contract, module_to_package, failures, generated_embeds)
+        _validate_imports(contract, module_to_package, failures, generated_embeds, consumer_imports)
         _validate_api(contract, failures)
         _validate_readme(repository, contract, failures)
         _validate_api_contract(contract, failures)
@@ -797,6 +807,7 @@ def check_repository(repository: Path) -> list[str]:
     _validate_ownership_projection(repository, contracts, failures)
     _validate_ci_contracts(repository, contracts, failures)
     failures.extend(ci_package_graph.validate_registered_consumers(repository, {c.package: c for c in contracts}))
+    failures.extend(package_budget.check(repository, contracts))
     return failures
 
 
@@ -807,15 +818,20 @@ def main() -> int:
         type=Path,
         default=Path(__file__).resolve().parents[2],
     )
+    parser.add_argument("--budget-report", type=Path, help="Write source-bound measured counters, including unowned files")
     arguments = parser.parse_args()
     failures = check_repository(arguments.repo)
     if failures:
+        if arguments.budget_report is not None:
+            package_budget.write_failure_report(arguments.repo, arguments.budget_report, failures)
         print("\n".join(failures))
         return 1
     contracts = [
         load_contract(path)
         for path in sorted(arguments.repo.resolve().glob(f"src/**/{CONTRACT_NAME}"))
     ]
+    if arguments.budget_report is not None:
+        arguments.budget_report.write_text(json.dumps(package_budget.report(arguments.repo, contracts), indent=2) + "\n")
     modules = sum(len(contract.public_modules) for contract in contracts)
     edges = sum(len(contract.dependencies) for contract in contracts)
     print(

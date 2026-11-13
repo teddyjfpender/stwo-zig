@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shlex
 import subprocess
 import sys
@@ -89,12 +90,24 @@ def main(argv: list[str] | None = None) -> int:
         "--check-toolchains", action="store_true",
         help="check declared toolchain versions without compiling or installing",
     )
+    tier.add_argument(
+        "--installed-toolchains", choices=("cpu", "oracles", "formal"),
+        help="execute pinned installed tools for this host profile; never install implicitly",
+    )
     parser.add_argument(
         "--optimize",
         choices=("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall"),
         default="ReleaseFast",
     )
     args = parser.parse_args(argv)
+
+    if args.installed_toolchains:
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+        from scripts.repo.installed_toolchains import inspect
+        report = inspect(ROOT, args.installed_toolchains)
+        print(json.dumps(report, sort_keys=True))
+        return 0 if report["status"] == "PASS" else 1
 
     plan = TOOLCHAIN_PLAN if args.check_toolchains else (
         FAST_PLAN if args.fast else command_plan(args.strict, args.optimize)

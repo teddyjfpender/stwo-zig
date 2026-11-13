@@ -1,7 +1,7 @@
 {
-  "schema": "stwo-zig-package-contract-v2",
+  "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_backend_contracts",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "layer": "contract",
   "owner": "backend-contracts",
   "public_modules": {
@@ -19,6 +19,7 @@
     "assertBackendForChannel",
     "capabilities",
     "column",
+    "error_codes",
     "field_ops",
     "fri_ops",
     "line_evaluation",
@@ -48,5 +49,144 @@
       "-Doptimize=ReleaseFast",
       "-j2"
     ]
-  }
+  },
+  "budget": {
+    "code_files": 20,
+    "code_lines": 3485,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 16,
+    "dependencies": 1,
+    "rv64_registry_flags": 0,
+    "versioned_files": 23
+  },
+  "consumers": [
+    {
+      "id": "package:stwo_cairo_cuda_integration",
+      "root": "src/integrations/cairo_cuda/contract_tests/stwo_backend_contracts_test.zig",
+      "route": "dependency:stwo_backend_contracts",
+      "imports": [
+        "stwo_backend_contracts",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cairo_cuda_integration native geometry overflow and domain refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_cairo_frontend",
+      "root": "src/frontends/cairo/contract_tests/stwo_backend_contracts_test.zig",
+      "route": "dependency:stwo_backend_contracts",
+      "imports": [
+        "stwo_backend_contracts",
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cairo_frontend line geometry rejects invalid storage"
+      ]
+    },
+    {
+      "id": "package:stwo_cairo_metal_integration",
+      "root": "src/integrations/cairo_metal/contract_tests/stwo_backend_contracts_test.zig",
+      "route": "dependency:stwo_backend_contracts",
+      "imports": [
+        "stwo_backend_contracts",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cairo_metal_integration arena admission and unknown binding refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_cpu_backend",
+      "root": "src/backends/cpu_scalar/contract_tests/stwo_backend_contracts_test.zig",
+      "route": "dependency:stwo_backend_contracts",
+      "imports": [
+        "stwo_backend_contracts",
+        "stwo_cpu_backend"
+      ],
+      "tests": [
+        "cdc: CPU trace geometry refuses invalid domains and checked overflow"
+      ]
+    },
+    {
+      "id": "package:stwo_cuda_backend",
+      "root": "src/backends/cuda/contract_tests/stwo_backend_contracts_test.zig",
+      "route": "dependency:stwo_backend_contracts",
+      "imports": [
+        "stwo_backend_contracts",
+        "stwo_cuda_backend",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cuda_backend native geometry overflow and domain refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_metal_backend",
+      "root": "src/backends/metal/contract_tests/stwo_backend_contracts_test.zig",
+      "route": "dependency:stwo_backend_contracts",
+      "imports": [
+        "stwo_backend_contracts",
+        "stwo_core",
+        "stwo_metal_backend",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_metal_backend line geometry rejects invalid storage"
+      ]
+    },
+    {
+      "id": "package:stwo_native_cuda_integration",
+      "root": "src/integrations/native_cuda/contract_tests/stwo_backend_contracts_test.zig",
+      "route": "dependency:stwo_backend_contracts",
+      "imports": [
+        "stwo_backend_contracts",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_native_cuda_integration native geometry overflow and domain refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_prover_engine",
+      "root": "src/engine/prover/contract_tests/stwo_backend_contracts_test.zig",
+      "route": "dependency:stwo_backend_contracts",
+      "imports": [
+        "stwo_backend_contracts",
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_prover_engine line geometry rejects invalid storage"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_cuda_integration",
+      "root": "src/integrations/riscv_cuda/contract_tests/stwo_backend_contracts_test.zig",
+      "route": "dependency:stwo_backend_contracts",
+      "imports": [
+        "stwo_backend_contracts",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_cuda_integration native geometry overflow and domain refusal"
+      ]
+    },
+    {
+      "id": "product:stwo",
+      "root": "build_support/products/contract_tests/stwo/stwo_backend_contracts_test.zig",
+      "route": "product:stwo",
+      "imports": [
+        "stwo",
+        "stwo_backend_contracts",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: SDK backend preserves provider behavior and refusal"
+      ]
+    }
+  ]
 }

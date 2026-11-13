@@ -816,7 +816,7 @@ fn hashInt(
     hash.update(&bytes);
 }
 
-fn compileConcreteExecution(
+pub fn compileConcreteExecution(
     prepared: *Prepared,
     transaction: *proof_transaction.ResidentProofTransaction,
     plan: *const resident_plan.Plan,
@@ -829,23 +829,6 @@ fn compileConcreteExecution(
     );
 }
 
-test "production coordinator names every remaining root boundary" {
-    try std.testing.expectEqualSlices(
-        Gap,
-        &.{
-            .production_ingress_binding_compiler,
-            .statement_bootstrap_payload_binding,
-            .oracle_verification,
-        },
-        &gaps,
-    );
-    try std.testing.expectError(
-        error.MissingProductionIngressBindingCompiler,
-        requireProductionReady(),
-    );
-    _ = &compileConcreteExecution;
-}
-
 test {
-    std.testing.refAllDeclsRecursive(@This());
+    _ = @import("proof_session_failure_atomicity_test.zig");
 }

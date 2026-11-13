@@ -32,6 +32,7 @@ pub const measurement = @import("measurement/mod.zig");
 pub const execution = @import("execution/mod.zig");
 
 test {
+    _ = @import("column_diagnostic_test_root.zig");
     _ = @import("tests/pcs/proof_of_work_single_worker_test.zig");
     _ = @import("vcs_lifted/blake2_stream4.zig");
     _ = @import("tests/fri_work_test.zig");

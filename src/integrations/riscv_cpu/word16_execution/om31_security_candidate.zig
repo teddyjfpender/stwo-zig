@@ -831,24 +831,6 @@ pub fn requireBenchmarkControlUnchanged() !void {
     try Policy.requireClaim(Policy.benchmarkControl(), .nominal_control_only_v1, .benchmark_control_only);
 }
 
-test "public boundary log23 policy v2 separates general clocks and historical identity" {
-    var facts = Facts.caps();
-    try facts.validate();
-    facts.max_trace_log = 23;
-    try std.testing.expectError(error.Om31CandidateScopeExceeded, facts.validate());
-    facts = Facts.caps();
-    facts.max_public_boundary_log = 24;
-    try std.testing.expectError(error.Om31CandidateScopeExceeded, facts.validate());
-    // Reconstruct the previously admitted v1 candidate identity. This checks
-    // intentional rejection of that protocol, rather than silently widening it.
-    var old = std.crypto.hash.sha2.Sha256.init(.{});
-    old.update("rv64-om31-rawblake-native-localgkr-128-CANDIDATE/v1\x00");
-    old.update(&Channel.profile.identity());
-    for ([_]u64{ 8, 256, 2, 4, 0, MAX_PROOFS, MAX_TRACE_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS, MAX_AUDITED_LOG_WORK }) |n| {
-        var bytes: [8]u8 = undefined;
-        std.mem.writeInt(u64, &bytes, n, .little);
-        old.update(&bytes);
-    }
-    try std.testing.expectError(error.UnrecognizedOm31CandidateIdentity, requireIdentity(old.finalResult()));
-    try std.testing.expect(!std.mem.eql(u8, &profileIdentity(.proven_beta2_q256_p0_fold4), &profileIdentity(.conjectured128_b2_q108_p20_fold4)));
+test {
+    _ = @import("om31_security_candidate_security_test.zig");
 }

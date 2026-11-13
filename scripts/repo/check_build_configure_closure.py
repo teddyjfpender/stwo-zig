@@ -742,5 +742,51 @@ def _add_constructed_products(source, repository, records):
             source.fail(catalog, "constructed/recorded identities differ")
 
 
+def read_constructed_product_module(repository: Path, identity: str) -> dict[str, Any]:
+    """Resolve a named module from its actual catalog-admitted public builder."""
+    repository = repository.resolve()
+    record = read_product_declarations(repository, include_constructed=True).get(identity)
+    if not record or record["scope"] != "package" or not record["builder_source"]:
+        raise ProductDeclarationError(f"{identity}: unsupported constructed module owner")
+    source = _ProductSource(repository)
+    builder = repository / record["builder_source"]
+    function = str(record["constructor"]).rsplit(".", 1)[-1]
+    declaration = source.declarations(builder).get(function)
+    if not declaration or declaration[0] != "fn" or not declaration[2]:
+        source.fail(builder, "public constructed module builder")
+    body, roots, depth = declaration[1], [], 0
+    for index in range(len(body) - 3):
+        depth += (body[index] == "{") - (body[index] == "}")
+        if depth != 0 or index < 7 or body[index - 7] != "const" or body[index - 5] != "=":
+            continue
+        if body[index:index + 3] != ["addModule", "(", json.dumps(identity)]:
+            continue
+        if body[index - 4:index] != ["context", ".", "b", "."]:
+            source.fail(builder, "named-module construction authority")
+        depth, end = 1, index + 2
+        while end < len(body) and depth:
+            depth += (body[end] == "(") - (body[end] == ")"); end += 1
+        args = source.split(body[index + 2:end - 1])
+        if len(args) != 2 or args[0] != [json.dumps(identity)]:
+            source.fail(builder, "named-module arguments")
+        root = source.fields(builder, args[1]).get("root_source_file", [])
+        if len(root) != 8 or root[:6] != ["context", ".", "b", ".", "path", "("] or root[-1] != ")":
+            source.fail(builder, "literal named-module root")
+        relative = json.loads(root[6])
+        path = repository / relative
+        if (not relative.startswith("src/") or not relative.endswith(".zig")
+                or path.is_symlink() or not path.is_file() or path.resolve() != path
+                or not path.is_relative_to(repository)):
+            source.fail(builder, "canonical named-module root")
+        roots.append(relative)
+    if len(roots) != 1:
+        source.fail(builder, "unique constructed named module")
+    exports = {}
+    for name, (kind, value, public) in source.declarations(repository / roots[0]).items():
+        if public and kind == "const" and len(value) == 5 and value[:3] == ["@", "import", "("] and value[-1] == ")":
+            exports[name] = json.loads(value[3])
+    return {**record, "module_root": roots[0], "module_name": identity, "exports": exports}
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

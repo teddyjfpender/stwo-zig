@@ -1,7 +1,7 @@
 {
-  "schema": "stwo-zig-package-contract-v2",
+  "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_prover_api",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "layer": "api",
   "owner": "prover-api",
   "public_modules": {
@@ -32,6 +32,7 @@
     "device_composition",
     "device_pcs",
     "engine",
+    "error_codes",
     "stage_profile",
     "task_profile",
     "work_profile"
@@ -70,5 +71,255 @@
       "-Doptimize=ReleaseFast",
       "-j2"
     ]
-  }
+  },
+  "budget": {
+    "code_files": 20,
+    "code_lines": 5869,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 24,
+    "dependencies": 1,
+    "rv64_registry_flags": 0,
+    "versioned_files": 23
+  },
+  "consumers": [
+    {
+      "id": "package:stwo_cairo_cpu_integration",
+      "root": "src/integrations/cairo_cpu/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_cairo_cpu_integration",
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cairo_cpu_integration request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_cairo_frontend",
+      "root": "src/frontends/cairo/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cairo_frontend request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_circuit_cpu_integration",
+      "root": "src/integrations/circuit_cpu/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_circuit_cpu_integration",
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_circuit_cpu_integration request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_circuit_metal_integration",
+      "root": "src/integrations/circuit_metal/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_circuit_metal_integration",
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_circuit_metal_integration request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_ethereum_statement",
+      "root": "src/products/ethereum/statement/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_ethereum_statement request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_metal_backend",
+      "root": "src/backends/metal/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_metal_backend",
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_metal_backend request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_native_examples",
+      "root": "src/products/native/examples/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_native_examples",
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_native_examples request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_prover_engine",
+      "root": "src/engine/prover/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_core",
+        "stwo_prover_api"
+      ],
+      "tests": [
+        "cdc: prover column lifting preserves pairs and rejects bad ingress without mutation",
+        "cdc: prover diagnostics retain the first original failure"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_air_lang",
+      "root": "src/frontends/riscv/air_lang/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_air_lang request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_cpu_integration",
+      "root": "src/integrations/riscv_cpu/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "stwo_riscv_cpu_integration",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_cpu_integration request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_cuda_integration",
+      "root": "src/integrations/riscv_cuda/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_cuda_integration request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_frontend",
+      "root": "src/frontends/riscv/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_frontend request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_memory",
+      "root": "src/frontends/riscv/memory/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_memory request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_metal_integration",
+      "root": "src/integrations/riscv_metal/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "stwo_riscv_metal_integration",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_metal_integration request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_recursion",
+      "root": "src/frontends/riscv/recursion/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_recursion request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_rv32",
+      "root": "src/frontends/riscv/rv32/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_rv32 request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_testing",
+      "root": "src/frontends/riscv/testing/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_testing request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "package:stwo_sm83_frontend",
+      "root": "src/frontends/sm83/contract_tests/stwo_prover_api_test.zig",
+      "route": "dependency:stwo_prover_api",
+      "imports": [
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_sm83_frontend request ownership and invalid input laws"
+      ]
+    },
+    {
+      "id": "product:stwo",
+      "root": "build_support/products/contract_tests/stwo/stwo_prover_api_test.zig",
+      "route": "product:stwo",
+      "imports": [
+        "stwo",
+        "stwo_prover_api",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: SDK prover_api preserves provider behavior and refusal"
+      ]
+    }
+  ]
 }

@@ -14,6 +14,7 @@ const tile_sink = @import("../quotient_tile_sink.zig");
 const planning = @import("planning.zig");
 const quotient_work = @import("../quotient_work_profile.zig");
 const secure_column = @import("../../secure_column.zig");
+const column_codes = @import("stwo_prover_api").error_codes;
 const work_profile = @import("stwo_prover_api").work_profile;
 
 const CirclePointQM31 = circle.CirclePointQM31;
@@ -111,6 +112,20 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
             lifting_log_size: u32,
             work_recorder: ?*quotient_work.WorkRecorder,
         ) !LazyQuotientProvider {
+            return initForBackendWithWorkRecorderDiagnosed(B, allocator, columns, sampled_points, sampled_values, random_coeff, lifting_log_size, work_recorder, null);
+        }
+
+        pub fn initForBackendWithWorkRecorderDiagnosed(
+            comptime B: type,
+            allocator: std.mem.Allocator,
+            columns: TreeVec([]const ColumnEvaluation),
+            sampled_points: TreeVec([][]CirclePointQM31),
+            sampled_values: TreeVec([][]QM31),
+            random_coeff: QM31,
+            lifting_log_size: u32,
+            work_recorder: ?*quotient_work.WorkRecorder,
+            diagnostic: ?*?column_codes.ColumnFailure,
+        ) !LazyQuotientProvider {
             const backend_raw = comptime B != void and @hasDecl(B, "rawQuotientInputs") and B.rawQuotientInputs;
             return initForBackendWithModeAndWorkRecorder(
                 B,
@@ -127,6 +142,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                 else
                     .combined_compatibility,
                 work_recorder,
+                diagnostic,
             );
         }
 
@@ -150,6 +166,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                 lifting_log_size,
                 input_mode,
                 null,
+                null,
             );
         }
 
@@ -163,6 +180,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
             lifting_log_size: u32,
             requested_mode: InputMode,
             work_recorder: ?*quotient_work.WorkRecorder,
+            diagnostic: ?*?column_codes.ColumnFailure,
         ) !LazyQuotientProvider {
             var coefficient_input = false;
             for (columns.items) |tree| for (tree) |column| {
@@ -175,16 +193,16 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                 !(requested_mode == .bounded_cpu and lifting_log_size >= 13)) .combined_compatibility else requested_mode;
             // The existing logical work model does not count coefficient folding/FFT.
             if (coefficient_input) if (work_recorder) |recorder| recorder.markIncomplete();
-            if (columns.items.len != sampled_points.items.len) return QuotientOpsError.ShapeMismatch;
-            if (columns.items.len != sampled_values.items.len) return QuotientOpsError.ShapeMismatch;
+            if (columns.items.len != sampled_points.items.len) return column_codes.recordColumnFailure(diagnostic, QuotientOpsError.ShapeMismatch);
+            if (columns.items.len != sampled_values.items.len) return column_codes.recordColumnFailure(diagnostic, QuotientOpsError.ShapeMismatch);
 
             for (columns.items, sampled_points.items, sampled_values.items) |tree_columns, tree_points, tree_values| {
-                if (tree_columns.len != tree_points.len) return QuotientOpsError.ShapeMismatch;
-                if (tree_columns.len != tree_values.len) return QuotientOpsError.ShapeMismatch;
+                if (tree_columns.len != tree_points.len) return column_codes.recordColumnFailure(diagnostic, QuotientOpsError.ShapeMismatch);
+                if (tree_columns.len != tree_values.len) return column_codes.recordColumnFailure(diagnostic, QuotientOpsError.ShapeMismatch);
                 for (tree_columns, tree_points) |column, points| {
-                    try column.validateRetained();
+                    column.validateRetained() catch |err| return column_codes.recordColumnFailure(diagnostic, err);
                     if (points.len != 0 and column.log_size > lifting_log_size) {
-                        return QuotientOpsError.InvalidColumnLogSize;
+                        return column_codes.recordColumnFailure(diagnostic, QuotientOpsError.InvalidColumnLogSize);
                     }
                 }
             }
@@ -192,7 +210,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
             var column_log_sizes = try column_geometry.buildColumnLogSizes(allocator, columns);
             defer column_log_sizes.deinitDeep(allocator);
 
-            const domain_size = try column_geometry.checkedPow2(lifting_log_size);
+            const domain_size = column_geometry.checkedPow2(lifting_log_size) catch |err| return column_codes.recordColumnFailure(diagnostic, err);
             var flat_columns = try column_geometry.flattenColumnsBorrowed(allocator, columns);
             errdefer allocator.free(flat_columns);
 

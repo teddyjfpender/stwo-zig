@@ -1,7 +1,7 @@
 {
-  "schema": "stwo-zig-package-contract-v2",
+  "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_proof_wire",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "layer": "interchange",
   "owner": "proof-wire",
   "public_modules": {
@@ -27,9 +27,12 @@
     "Qm31Wire",
     "decodeProofBytes",
     "decodeProofBytesBinary",
+    "decodeProofBytesBinaryWithDiagnostic",
+    "decodeProofBytesWithDiagnostic",
     "encodeProofBytes",
     "encodeProofBytesBinary",
     "encodeProofHexAlloc",
+    "error_codes",
     "proofToWire",
     "wireToProof",
     "wireToProofFor"
@@ -40,6 +43,8 @@
       "mod.zig::api signature: proof wire codecs preserve owned byte and proof results"
     ],
     "invariant_tests": [
+      "error_codes_test.zig::proof wire diagnostics pin owned codes and refuse unknown provider bands",
+      "error_codes_test.zig::proof wire diagnostics retain exact decode errors and leave parser and allocation origins unmapped",
       "hash_family_test.zig::Poseidon wire rejects every noncanonical digest word before allocation without mutating input",
       "hash_family_test.zig::caller selected hash reconstruction owns bytes and does not authenticate algorithm choice",
       "hash_family_test.zig::explicit hash families preserve framing coordinates and allocation ownership",
@@ -58,5 +63,135 @@
       "-Doptimize=ReleaseFast",
       "-j2"
     ]
-  }
+  },
+  "budget": {
+    "code_files": 9,
+    "code_lines": 1538,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 24,
+    "dependencies": 1,
+    "rv64_registry_flags": 0,
+    "versioned_files": 12
+  },
+  "consumers": [
+    {
+      "id": "package:stwo_circuit_cpu_integration",
+      "root": "src/integrations/circuit_cpu/contract_tests/stwo_proof_wire_test.zig",
+      "route": "dependency:stwo_proof_wire",
+      "imports": [
+        "stwo_core",
+        "stwo_proof_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_circuit_cpu_integration proof framing refuses malformed input without allocation"
+      ]
+    },
+    {
+      "id": "package:stwo_ethereum_statement",
+      "root": "src/products/ethereum/statement/contract_tests/stwo_proof_wire_test.zig",
+      "route": "dependency:stwo_proof_wire",
+      "imports": [
+        "interop_postcard",
+        "stwo_core",
+        "stwo_proof_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_ethereum_statement proof framing refuses malformed input without allocation"
+      ]
+    },
+    {
+      "id": "package:stwo_native_cuda_integration",
+      "root": "src/integrations/native_cuda/contract_tests/stwo_proof_wire_test.zig",
+      "route": "dependency:stwo_proof_wire",
+      "imports": [
+        "stwo_proof_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_native_cuda_integration proof framing refuses malformed input without allocation"
+      ]
+    },
+    {
+      "id": "package:stwo_native_examples",
+      "root": "src/products/native/examples/contract_tests/stwo_proof_wire_test.zig",
+      "route": "dependency:stwo_proof_wire",
+      "imports": [
+        "stwo_core",
+        "stwo_proof_wire"
+      ],
+      "tests": [
+        "cdc: Native proof decoders refuse malformed framing before allocation in both fields"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_cpu_integration",
+      "root": "src/integrations/riscv_cpu/contract_tests/stwo_proof_wire_test.zig",
+      "route": "injected:stwo_proof_wire",
+      "imports": [
+        "interop_postcard",
+        "stwo_core",
+        "stwo_proof_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_cpu_integration proof framing refuses malformed input without allocation"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_frontend",
+      "root": "src/frontends/riscv/contract_tests/stwo_proof_wire_test.zig",
+      "route": "injected:interop_postcard",
+      "imports": [
+        "interop_postcard",
+        "stwo_proof_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_frontend injected postcard retains proof authority and bounded refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_recursion",
+      "root": "src/frontends/riscv/recursion/contract_tests/stwo_proof_wire_test.zig",
+      "route": "injected:interop_postcard",
+      "imports": [
+        "interop_postcard",
+        "stwo_proof_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_recursion injected postcard retains proof authority and bounded refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_rv32",
+      "root": "src/frontends/riscv/rv32/contract_tests/stwo_proof_wire_test.zig",
+      "route": "injected:interop_postcard",
+      "imports": [
+        "interop_postcard",
+        "stwo_proof_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_rv32 injected postcard retains proof authority and bounded refusal"
+      ]
+    },
+    {
+      "id": "product:stwo",
+      "root": "build_support/products/contract_tests/stwo/stwo_proof_wire_test.zig",
+      "route": "product:stwo",
+      "imports": [
+        "stwo",
+        "stwo_proof_wire",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: SDK proof_wire preserves provider behavior and refusal"
+      ]
+    }
+  ]
 }

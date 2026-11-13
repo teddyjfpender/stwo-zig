@@ -40,7 +40,7 @@ flowchart LR
 | Quotients, FRI folds, decommitment | device | `MetalCommitBackend` |
 
 The composition library is
-`vectors/circuit/official/circuit_air_composition_bounded.metallib`, admitted
+`vectors/metal/circuit/circuit_air_composition_bounded.metallib`, admitted
 only by its SHA-256 (`composition_aot.circuit_bounded_sha256_hex`); its recipe
 and mint host are recorded next to it
 (`circuit_air_composition_bounded.provenance.json`). Metallib bytes are not

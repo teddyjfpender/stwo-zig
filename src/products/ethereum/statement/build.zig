@@ -42,7 +42,7 @@ pub fn build(b: *std.Build) void {
     addMetalCsp(b, target, optimize, frontend_component);
     const owner = b.step("test", "Run Ethereum product contracts and owned component suites");
     var runs: [4]*std.Build.Step.Run = undefined;
-    for ([_]*std.Build.Module{ product, frontend_component, cpu_component, cuda_component }, &runs) |component, *run| {
+    for ([_]*std.Build.Module{ product, frontend_component, cpu_component, cuda_component }, [_][]const u8{ "test-owner-primary", "test-owner-frontend", "test-owner-cpu", "test-owner-cuda-host" }, &runs) |component, name, *run| {
         const tests = b.addTest(.{ .root_module = component });
         // Host-only CUDA tests analyse real builders without linking a device
         // library. Zig ELF debug metadata retains unused extern references.
@@ -50,6 +50,11 @@ pub fn build(b: *std.Build) void {
         run.* = b.addRunArtifact(tests);
         run.*.has_side_effects = true;
         owner.dependOn(&run.*.step);
+        // Aliases of the exact default Run artifacts: no filters, duplicated
+        // modules or alternative collectors can change set/multiplicity.
+        const partition = b.step(name, "Run the complete existing component owner image");
+        partition.dependOn(&run.*.step);
+        partition.dependOn(@import("stwo_riscv_frontend").TestCountFloor.addMany(b, &.{run.*}, 1));
     }
     owner.dependOn(@import("stwo_riscv_frontend").TestCountFloor.addMany(b, &runs, 479));
     const build_tests = b.addRunArtifact(b.addTest(.{ .root_module = b.createModule(.{ .root_source_file = b.path("build_components_test.zig"), .target = b.graph.host, .optimize = optimize }) }));
@@ -65,6 +70,7 @@ pub fn build(b: *std.Build) void {
     var retained_vm_run: ?*std.Build.Step.Run = null;
     var ethereum_runner: ?*std.Build.Step.Run = null;
     inline for (.{
+        .{ .component = frontend_component, .step = "test-fast-execution", .description = "Run all existing reference-versus-fast RV64 state, tape and service differential cases", .root = "frontend/rv64_fast_execution_test_root.zig", .filters = &[_][]const u8{}, .minimum = 7 },
         .{ .component = cpu_component, .step = "test-receiver-boundaries", .description = "Test real receipt, image and independently configured receiver rejection boundaries", .root = "cpu/rv64_ethereum_receiver_boundary_test_root.zig", .filters = &[_][]const u8{ "serialized Ethereum receipt", "Ethereum cursor rejects", "serialized physical receipt", "merged RAM BYTE mass rejects" }, .minimum = 5 },
         .{ .component = cpu_component, .step = "test-authenticated-component-profile", .description = "Check all-provider recorder and scoped-pool proof parity", .root = "cpu/rv64_authenticated_execution_test_root.zig", .filters = &[_][]const u8{"all27 private component recording"}, .minimum = 2 },
         .{ .component = cpu_component, .step = "test-receiver-boundaries", .description = "Test real receipt, image and independently configured receiver rejection boundaries", .root = "cpu/rv64_ethereum_image_admission_test_root.zig", .filters = &[_][]const u8{ "pristine expected image retains", "pristine image pin terminal", "new execution packet path reads", "execution receiver binds independently", "execution memory count preflight", "resident pinned image program cache" }, .minimum = 7 },
@@ -92,7 +98,8 @@ pub fn build(b: *std.Build) void {
         .{ .component = cpu_component, .step = "test-services-recursion", .description = "Test product-owned service execution policy", .root = "cpu/rv64_services_recursion_test_root.zig", .filters = &[_][]const u8{}, .minimum = 8 },
         .{ .component = frontend_component, .step = "test-vm-leaf-context-v2", .description = "Test SegmentV2 verifier-instance and capture authority", .root = "frontend.zig", .filters = &[_][]const u8{ "SegmentV2 VM leaf ContextV2", "Ethereum selected base claim admission" }, .minimum = 16 },
         .{ .component = frontend_component, .step = "test-vm-air-profile-authority-v2", .description = "Check VM profile identity and authority without composition-program or provider-shard tests", .root = "frontend.zig", .filters = &[_][]const u8{ "authenticated VM AIR ProfileV2 binds fixed program", "authenticated VM AIR ProfileV2 binds selected physical", "authenticated VM AIR ProfileV2 rejects authority and vtable", "authenticated VM AIR ProfileV2 focused inventory compiles" }, .minimum = 17 },
-        .{ .component = cpu_component, .step = "test-csp-ecdsa-proof", .description = "Prove both canonical CSP ECDSA suites on CPU", .root = "cpu/csp_ecdsa_proof_test.zig", .filters = &[_][]const u8{ "CSP ECDSA guest proves caller memory", "BLAKE3 CSP ECDSA guest proves" }, .minimum = 2 },
+        .{ .component = cpu_component, .step = "test-csp-ecdsa-proof", .description = "Prove both canonical CSP ECDSA suites on CPU", .root = "cpu/csp_ecdsa_proof_test.zig", .filters = &[_][]const u8{"CSP ECDSA guest proves caller memory"}, .minimum = 1 },
+        .{ .component = cpu_component, .step = "test-csp-ecdsa-proof", .description = "Prove both canonical CSP ECDSA suites on CPU", .root = "cpu/csp_ecdsa_proof_test.zig", .filters = &[_][]const u8{"BLAKE3 CSP ECDSA guest proves"}, .minimum = 1 },
         .{ .component = frontend_component, .step = "test-composition-custody", .description = "Check ownership, OOM, mutation and Initial38 policy", .root = "frontend.zig", .filters = &[_][]const u8{ "composition ownership", "composition finalization", "composition borrowed", "Initial38 composition descriptor" }, .minimum = 17 },
         .{ .component = product, .step = "test-component-boundaries", .description = "Check canonical components, coordinator owners and read capabilities", .root = "mod.zig", .filters = &[_][]const u8{ "api signature: Ethereum product", "api invariant: legacy exports", "coordinator boundary:", "composition boundary:" }, .minimum = 7 },
         .{ .component = frontend_component, .step = "test-ethereum-runner", .description = "Check product execution and native runner service domains", .root = "frontend.zig", .filters = &[_][]const u8{"ethereum_runner_test."}, .minimum = 4 },

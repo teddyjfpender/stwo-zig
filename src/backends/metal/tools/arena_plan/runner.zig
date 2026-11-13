@@ -316,6 +316,7 @@ pub fn runOne(
     };
     if (cached_full_plan == null) {
         owned_full_plan = arena.build(allocator, logical, budget_bytes) catch |err| {
+            @import("error_diagnostic.zig").emitTo(std.fs.File.stderr(), stwo.backend.error_codes.fromArena(err));
             try writeFailure(report_writer, err, schedule.len, logical_plan.component_count, budget_bytes);
             return;
         };

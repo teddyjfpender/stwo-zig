@@ -807,115 +807,15 @@ fn validatePlan(
     }
 }
 
-fn locateSlots(plan: *const resident_plan.Plan) !Slots {
-    return .{
-        .base_parameters = if (plan.evaluation_codegen_version == 2)
-            (try requireSlotKind(plan, .eval_base_parameters)).id
-        else
-            null,
-        .diagnostic = if (plan.slot(.writer_scratch, 1)) |slot| slot.id else null,
-        .args = (try requireSlotKind(plan, .eval_arguments)).id,
-        .trace_offsets = (try requireSlotKind(plan, .eval_trace_offsets)).id,
-        .interaction_offsets = (try requireSlotKind(plan, .eval_interaction_offsets)).id,
-        .lde_descriptors = (try requireSlotKind(plan, .eval_lde_descriptors)).id,
-        .extended_descriptors = (try requireSlotKind(
-            plan,
-            .eval_extended_parameter_descriptors,
-        )).id,
-        .extended_parameters = (try requireSlotKind(plan, .eval_extended_parameters)).id,
-        .relation_z = (try requireSlotKind(plan, .relation_z)).id,
-        .relation_alpha_powers = (try requireSlotKind(plan, .relation_alpha_powers)).id,
-        .relation_claimed_sums = (try requireSlotKind(plan, .relation_claimed_sums)).id,
-        .random_powers = (try requireSlotKind(plan, .constraint_random_powers)).id,
-        .denominators = (try requireSlotKind(plan, .constraint_denominators)).id,
-        .lde_tile = (try requireSlotKind(plan, .eval_lde_tile)).id,
-        .accumulators = (try requireSlotKind(
-            plan,
-            .constraint_composition_accumulator,
-        )).id,
-    };
-}
-
-fn accumulatorMatrix(
-    storage: common.Words,
-    descriptor: topology_module.Accumulator,
-) !common.WordMatrix {
-    const words = try usizeCount(descriptor.words);
-    return .{
-        .storage = try storage.sub(
-            try usizeCount(descriptor.offset_words),
-            words,
-        ),
-        .column_stride_words = @as(usize, 1) <<
-            @intCast(descriptor.evaluation_log_size),
-    };
-}
-
-fn slotWords(transaction: anytype, id: u32) !common.Words {
-    return transaction.slot(id);
-}
-
-fn requireSlotKind(
-    plan: *const resident_plan.Plan,
-    kind: resident_plan.SlotKind,
-) !resident_plan.Slot {
-    return plan.slot(kind, 0) orelse error.InvalidKernelDescriptor;
-}
-
-fn requireSlotId(
-    plan: *const resident_plan.Plan,
-    id: u32,
-) !resident_plan.Slot {
-    for (plan.slots) |slot| {
-        if (slot.id == id) return slot;
-    }
-    return error.InvalidKernelDescriptor;
-}
-
-fn requireSlot(
-    plan: *const resident_plan.Plan,
-    kind: resident_plan.SlotKind,
-    ordinal: u32,
-) !resident_plan.Slot {
-    return plan.slot(kind, ordinal) orelse error.InvalidKernelDescriptor;
-}
-
-fn physicalOffset(physical: *const arena_module.Plan, id: u32) !u64 {
-    const placement = try physical.placement(id);
-    return placement.offset_words;
-}
-
-fn add64(left: anytype, right: anytype) !u64 {
-    const lhs = std.math.cast(u64, left) orelse return error.SizeOverflow;
-    const rhs = std.math.cast(u64, right) orelse return error.SizeOverflow;
-    return std.math.add(u64, lhs, rhs) catch error.SizeOverflow;
-}
-
-fn addSize(left: usize, right: usize) !usize {
-    return std.math.add(usize, left, right) catch error.SizeOverflow;
-}
-
-fn usizeCount(value: anytype) !usize {
-    return std.math.cast(usize, value) orelse error.SizeOverflow;
-}
-
-fn preparedIdentity(
-    plan: proof_ir.Digest,
-    topology: proof_ir.Digest,
-    catalog: proof_ir.Digest,
-    slots: Slots,
-    arguments: []const eval_stage.Args,
-    lde_descriptors: []const transform.AddressedLdeDescriptor,
-    trace_offsets: []const u32,
-) proof_ir.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/cairo/cuda/eval-controller/v2\x00");
-    hash.update(&plan);
-    hash.update(&topology);
-    hash.update(&catalog);
-    hash.update(std.mem.asBytes(&slots));
-    hash.update(std.mem.sliceAsBytes(arguments));
-    hash.update(std.mem.sliceAsBytes(lde_descriptors));
-    hash.update(std.mem.sliceAsBytes(trace_offsets));
-    return hash.finalResult();
-}
+const binding_geometry = @import("binding_geometry.zig");
+const locateSlots = binding_geometry.locateSlots;
+const accumulatorMatrix = binding_geometry.accumulatorMatrix;
+const slotWords = binding_geometry.slotWords;
+const requireSlotKind = binding_geometry.requireSlotKind;
+const requireSlotId = binding_geometry.requireSlotId;
+const requireSlot = binding_geometry.requireSlot;
+const physicalOffset = binding_geometry.physicalOffset;
+const add64 = binding_geometry.add64;
+const addSize = binding_geometry.addSize;
+const usizeCount = binding_geometry.usizeCount;
+const preparedIdentity = binding_geometry.preparedIdentity;

@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_core",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "layer": "protocol",
   "owner": "protocol-core",
   "public_modules": {
@@ -65,6 +65,112 @@
   },
   "consumers": [
     {
+      "id": "package:stwo_backend_contracts",
+      "root": "src/waist/backend/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core"
+      ],
+      "tests": [
+        "cdc: backend field inversion preserves canonical values and rejects zero"
+      ]
+    },
+    {
+      "id": "package:stwo_cairo_cpu_integration",
+      "root": "src/integrations/cairo_cpu/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cairo_cpu_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_cairo_cuda_integration",
+      "root": "src/integrations/cairo_cuda/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cairo_cuda_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_cairo_frontend",
+      "root": "src/frontends/cairo/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cairo_frontend field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_cairo_metal_integration",
+      "root": "src/integrations/cairo_metal/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cairo_metal_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_circuit_cpu_integration",
+      "root": "src/integrations/circuit_cpu/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_circuit_cpu_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_circuit_frontend",
+      "root": "src/frontends/circuit/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_circuit_frontend field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_circuit_metal_integration",
+      "root": "src/integrations/circuit_metal/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_circuit_metal_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_circuit_recursion_wire",
+      "root": "src/waist/recursion_wire/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core"
+      ],
+      "tests": [
+        "cdc: recursion wire proof shape identifies cumulative columns and rejects malformed schedules"
+      ]
+    },
+    {
       "id": "package:stwo_cpu_backend",
       "root": "src/backends/cpu_scalar/contract_tests/stwo_core_test.zig",
       "route": "dependency:stwo_core",
@@ -77,6 +183,316 @@
         "cdc: CPU batch inverse owns canonical exact results without changing input",
         "cdc: CPU batch inverse zero refusal preserves input and releases output"
       ]
+    },
+    {
+      "id": "package:stwo_cuda_backend",
+      "root": "src/backends/cuda/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_cuda_backend field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_ethereum_statement",
+      "root": "src/products/ethereum/statement/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_ethereum_statement field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_metal_backend",
+      "root": "src/backends/metal/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_metal_backend field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_native_cuda_integration",
+      "root": "src/integrations/native_cuda/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_native_cuda_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_native_examples",
+      "root": "src/products/native/examples/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_native_examples field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_proof_wire",
+      "root": "src/waist/proof_wire/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core"
+      ],
+      "tests": [
+        "cdc: proof wire config keeps fold schedule and refuses zero fold step"
+      ]
+    },
+    {
+      "id": "package:stwo_prover_api",
+      "root": "src/waist/prover_api/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core"
+      ],
+      "tests": [
+        "cdc: prover API FRI request preserves query geometry and rejects invalid bounds"
+      ]
+    },
+    {
+      "id": "package:stwo_prover_engine",
+      "root": "src/engine/prover/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_prover_engine field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_air_lang",
+      "root": "src/frontends/riscv/air_lang/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_air_lang field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_cpu_integration",
+      "root": "src/integrations/riscv_cpu/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_cpu_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_cuda_integration",
+      "root": "src/integrations/riscv_cuda/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_cuda_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_frontend",
+      "root": "src/frontends/riscv/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_frontend field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_isa",
+      "root": "src/frontends/riscv/isa/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_isa field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_memory",
+      "root": "src/frontends/riscv/memory/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_memory field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_metal_integration",
+      "root": "src/integrations/riscv_metal/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_metal_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_precompiles",
+      "root": "src/frontends/riscv/precompiles/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_precompiles field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_recursion",
+      "root": "src/frontends/riscv/recursion/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_recursion field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_recursion_air",
+      "root": "src/frontends/riscv/recursion_air/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_recursion_air field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_rv32",
+      "root": "src/frontends/riscv/rv32/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_rv32 field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_rv64",
+      "root": "src/frontends/riscv/rv64/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_rv64 field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_riscv_testing",
+      "root": "src/frontends/riscv/testing/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_riscv_testing field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_sm83_cpu_integration",
+      "root": "src/integrations/sm83_cpu/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_sm83_cpu_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_sm83_frontend",
+      "root": "src/frontends/sm83/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_sm83_frontend field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "package:stwo_sm83_metal_integration",
+      "root": "src/integrations/sm83_metal/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: stwo_sm83_metal_integration field authority preserves inverse and zero refusal"
+      ]
+    },
+    {
+      "id": "product:stwo",
+      "root": "build_support/products/contract_tests/stwo/stwo_core_test.zig",
+      "route": "product:stwo",
+      "imports": [
+        "stwo",
+        "stwo_core",
+        "waist_consumer_laws"
+      ],
+      "tests": [
+        "cdc: SDK core preserves provider behavior and refusal"
+      ]
     }
-  ]
+  ],
+  "budget": {
+    "code_files": 154,
+    "code_lines": 28696,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 30,
+    "dependencies": 0,
+    "rv64_registry_flags": 0,
+    "versioned_files": 157
+  }
 }

@@ -15,6 +15,10 @@ pub fn build(b: *std.Build) void {
     module.addImport("stwo_prover_engine", dep2);
     module.addImport("stwo_riscv_air_lang", dep3);
     module.addImport("stwo_riscv_isa", dep4);
+    const focused_tests = b.addTest(.{ .root_module = module, .filters = &.{"provider order"} });
+    const focused_run = b.addRunArtifact(focused_tests);
+    focused_run.has_side_effects = true;
+    b.step("test-provider-order", "Qualify the existing owned source-size decomposition cases").dependOn(&focused_run.step);
     const tests = b.addTest(.{ .root_module = module });
     const run = b.addRunArtifact(tests);
     run.has_side_effects = true;

@@ -41,7 +41,7 @@
       "tests/native_contracts.zig::C3 native API identity: RV64 machine memory and session types"
     ],
     "invariant_tests": [
-      "air/delegations/bulk_memory/tests.zig::jumpdest: honest scenario satisfies every constraint and closes every relation",
+      "air/delegations/bulk_memory/tests_jumpdest.zig::jumpdest: honest scenario satisfies every constraint and closes every relation",
       "tests/zbb_binary_test.zig::pinned encodings decode exactly under the Zbb BINARY ISA and are illegal under RV64IM"
     ]
   },
@@ -57,5 +57,16 @@
       "-Doptimize=Debug",
       "-j2"
     ]
+  },
+  "budget": {
+    "code_files": 525,
+    "code_lines": 69342,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 18,
+    "dependencies": 6,
+    "rv64_registry_flags": 0,
+    "versioned_files": 529
   }
 }

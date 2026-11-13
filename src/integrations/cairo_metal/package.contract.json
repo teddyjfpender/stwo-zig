@@ -63,5 +63,16 @@
   },
   "consumer_subdirs": [
     "bench"
-  ]
+  ],
+  "budget": {
+    "code_files": 62,
+    "code_lines": 18369,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 22,
+    "dependencies": 6,
+    "rv64_registry_flags": 0,
+    "versioned_files": 65
+  }
 }

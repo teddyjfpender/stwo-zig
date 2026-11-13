@@ -39,6 +39,38 @@ def runner_policy(commands: list[list[str]], host: str | None = None) -> dict[st
     }
 
 class RunnerReceiptTests(unittest.TestCase):
+    def test_interruption_keeps_completed_command_receipt_and_unfinished_lane(self) -> None:
+        policy = runner_policy([["first"], ["interrupted"], ["must-not-run"]])
+        captured: list[tuple[list[str], dict[str, object]]] = []
+        fake = self.fake_run([(0, b"completed\n", b"")], captured)
+        streams = SimpleNamespace(buffer=io.BytesIO())
+        with tempfile.TemporaryDirectory() as raw:
+            output = Path(raw) / "focused.json"
+
+            def run(argv, **kwargs):
+                if argv == ["interrupted"]:
+                    completed = json.loads((output.parent / "focused-0.completed.json").read_text())
+                    self.assertEqual("PASS", completed["status"])
+                    self.assertEqual(COMMIT, completed["commit"])
+                    self.assertEqual(TREE, completed["tree"])
+                    self.assertEqual(ci_scope_run.digest(b"completed\n"), completed["command"]["stdout_sha256"])
+                    progress = json.loads(output.read_text())
+                    self.assertEqual("INCOMPLETE", progress["status"])
+                    self.assertEqual(1, len(progress["commands"]))
+                    raise KeyboardInterrupt
+                return fake(argv, **kwargs)
+
+            with (
+                mock.patch.object(ci_scope_run.subprocess, "run", side_effect=run),
+                mock.patch.object(ci_scope_run.sys, "stdout", streams),
+                mock.patch.object(ci_scope_run.sys, "stderr", streams),
+                self.assertRaises(KeyboardInterrupt),
+            ):
+                ci_scope_run.run_lane(root=ROOT, policy=policy, lane="focused", output=output,
+                                      cache_mode="inherit", cache_root=None)
+            self.assertEqual("INCOMPLETE", json.loads(output.read_text())["status"])
+            self.assertFalse((output.parent / "focused-1.completed.json").exists())
+
     def test_local_build_preserves_limits_and_runtime_args_while_serializing(self) -> None:
         for jobs in (["-j2"], ["-j", "2"], ["-j"]):
             command = [

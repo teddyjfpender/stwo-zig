@@ -19,7 +19,7 @@ const Q = core.fields.qm31.QM31;
 const recursion = circuit_cpu.recursion;
 const blake2_hash = core.vcs.blake2_hash;
 
-pub const registry_path = "vectors/circuit/official/registries/production.json";
+pub const registry_path = "vectors/recursion/registries/production.json";
 
 const projection_bytes = @embedFile("circuit_air_projection");
 const air_programs_bytes = @embedFile("circuit_air_programs");

@@ -20,6 +20,7 @@ test {
     _ = @import("../primitives/recursion/poseidon2_channel.zig");
     _ = @import("../prover/authority_test.zig");
     _ = @import("../prover/provider_order_component.zig");
+    _ = @import("../prover/provider_order_row_evaluation_test.zig");
     _ = @import("../typed/poseidon_layout_benchmark_artifact.zig");
     _ = @import("../typed/poseidon_layout_benchmark_protocol.zig");
     _ = @import("../typed/poseidon_layout_benchmark_rss.zig");

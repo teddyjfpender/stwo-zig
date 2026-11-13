@@ -14,11 +14,41 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_ethereum_component_fallback_selects_only_its_existing_owner(self):
+        prefix = "src/products/ethereum/statement/"
+        for path, owner in (("frontend/unknown_future_test.zig", "frontend"),
+                            ("cpu/unknown_future_test.zig", "cpu"),
+                            ("cuda/unknown_future_test.zig", "cuda-host"),
+                            ("mod.zig", "primary")):
+            with self.subTest(path=path):
+                self.assertEqual("test-owner-" + owner,
+                                 dev_test.focus_step("stwo_ethereum_statement", prefix + path))
+        # BUILD and ownership metadata still require the complete package.
+        for path in ("build.zig", "package.contract.json"):
+            self.assertIsNone(dev_test.focus_step("stwo_ethereum_statement", prefix + path))
+
     def test_csp_proofs_keep_original_focused_only_ownership(self):
         product = ROOT / "src/products/ethereum/statement"
         self.assertNotIn('@import("csp_ecdsa_proof_test.zig")', (product / "cpu/test_inventory.zig").read_text())
         self.assertEqual(2, (product / "cpu/csp_ecdsa_proof_test.zig").read_text().count('test "'))
-        self.assertRegex((product / "build.zig").read_text(), r'\.root = "cpu/csp_ecdsa_proof_test.zig"[^\n]+\.minimum = 2')
+        build = (product / "build.zig").read_text()
+        partitions = [line for line in build.splitlines()
+                      if '.step = "test-csp-ecdsa-proof"' in line]
+        self.assertEqual(2, len(partitions))
+        selected = []
+        for partition in partitions:
+            self.assertIn('.component = cpu_component', partition)
+            self.assertIn('.root = "cpu/csp_ecdsa_proof_test.zig"', partition)
+            self.assertRegex(partition, r'\.minimum = 1 \}')
+            match = re.search(r'\.filters = &\[_\]\[\]const u8\{\s*"([^"]+)"\s*\}', partition)
+            self.assertIsNotNone(match, "each physical image owns exactly one suite")
+            selected.append(match[1])
+        self.assertCountEqual(selected, ["CSP ECDSA guest proves caller memory",
+                                         "BLAKE3 CSP ECDSA guest proves"])
+        self.assertIn('for (spec.component.import_table.keys(), spec.component.import_table.values())', build)
+        self.assertIn('b.top_level_steps.get(spec.step)', build)
+        self.assertIn('step.dependOn(&run.step)', build)
+        self.assertIn('TestCountFloor.addMany(b, &.{run}, spec.minimum)', build)
         self.assertRegex((product / "build.zig").read_text(), r'if .*spec.step, "test-csp-ecdsa-proof".*run.setEnvironmentVariable\("STWO_CSP_FIXTURE_ROOT", b.pathFromRoot\("../../../../vectors/riscv_csp"\)\)')
         self.assertIn('b.graph.env_map.get("STWO_CSP_FIXTURE_ROOT") == null', (product / "build.zig").read_text())
 

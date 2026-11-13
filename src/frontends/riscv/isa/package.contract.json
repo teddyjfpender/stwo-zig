@@ -51,5 +51,16 @@
       "-Doptimize=Debug",
       "-j2"
     ]
+  },
+  "budget": {
+    "code_files": 40,
+    "code_lines": 4736,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 18,
+    "dependencies": 1,
+    "rv64_registry_flags": 0,
+    "versioned_files": 43
   }
 }

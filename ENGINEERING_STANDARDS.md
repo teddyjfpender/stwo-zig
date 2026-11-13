@@ -131,7 +131,7 @@ Every boundary MUST have:
 | BC-4 | **Consumer-driven contract tests.** Each consumer of a waist package owns tests, run in the provider's lane, that pin the behavior it relies on. A failing CDC test means a collaboration rule was broken. | *Phase 1.* CPU-owned Core contracts execute in both provider modes; the remaining consumer obligations are open. |
 | BC-5 | **Property tests** for core invariants (field laws, transcript determinism, serialization round-trips, fold/commit equivalence), with fixed seeds. | *Phase 2.* Fixed-seed field, FRI, Merkle and wire properties are installed; complete boundary/fuzz coverage is open. |
 | BC-6 | **Golden vectors** for trusted behavior: proofs and transcripts that MUST stay byte-identical unless the protocol revision changes. | *Enforced*: committed vectors under `vectors/`, `zig build vectors`, Rust-oracle parity (`conformance/upstream.md`), and `scripts/rv64_gate.sh` (frozen D2 golden fingerprints, fresh CPU receivers, semantic negative corpus). |
-| BC-7 | **Explicit compatibility policy.** `version` follows semantic versioning: a removed or changed public symbol or behavior is a major bump; an addition is a minor bump. | *Phase 1.* Five waist surfaces have an unpublished `1.0.0-rc.1` candidate; full API-diff compatibility and release qualification remain incomplete. |
+| BC-7 | **Explicit compatibility policy.** `version` follows semantic versioning: a removed or changed public symbol or behavior is a major bump; an addition is a minor bump. | *Phase 1.* The five waist surfaces have unpublished release candidates; full API-diff compatibility and release qualification remain incomplete. |
 | BC-8 | **Named owner.** `owner` names the invariant owner role (section 6) for the boundary. | *Enforced* for declared roles and exact CODEOWNERS routes by the workspace check. Review routing does not itself grant an RFC decision or configure branch protection. |
 
 Rules for contributors:
@@ -375,7 +375,9 @@ Reproducibility is an invariant, not a convenience:
 - **DR-1.** Builds are self-contained: Zig dependencies are path-local or
   content-hash pinned in `build.zig.zon`. *Enforced* by the Zig build.
 - **DR-2.** Toolchains are pinned in-repo (Zig, Rust, Python, Lean). *Phase 0*:
-  CI pins Zig `0.15.2` in workflows, but no toolchain pin file exists.
+  `toolchain.json` declares Zig, Rust, Python, Lean and Sail pins; the fast
+  gate checks their manifest/workflow consistency. Complete supported-host
+  provisioning and runtime reproducibility remain unqualified.
 - **DR-3.** One command runs the whole suite for a change: `python3 scripts/ci.py`
   (`--fast` for the compile-free subset). *Enforced* by hosted CI and hooks.
 - **DR-4.** Randomness in tests is seeded and the seed is printed on failure.
@@ -422,11 +424,11 @@ These results do not establish complete boundary, security or release coverage.
 | Gap | Rules | Phase |
 | --- | --- | --- |
 | Branch lifetime/push discipline is reviewed; no blanket automated branch-age or two-unpushed-commit check is claimed. | WW-2 | 0 |
-| Remaining RISC-V subpackage and Ethereum product ownership work; zero workspace findings do not prove every product boundary. | TW-2, RS-1, RS-3; issues #335, #336 | 0 |
+| RISC-V subpackage and Ethereum product extraction is merged; complete extracted proof-corpus qualification and owner-partition evidence remain open (#382/#383). Zero workspace findings do not prove every product boundary. | TW-2, RS-1, RS-3; issues #335, #336 | 0 |
 | Complete reproducible setup across all pinned toolchains and supported hosts. CI version checks alone are insufficient. | DR-1, DR-2 | 0 |
 | Stable process/wire error codes and semantics across all waist boundaries remain incomplete. | BC-2; issue #359 | 1 |
 | Consumer-owned execution across all five waist providers remains incomplete; one candidate consumer is not full coverage. | BC-4; issue #366 | 1 |
-| Waist release-candidate freeze and API-diff compatibility enforcement remain incomplete. | BC-7; issue #354 | 1 |
+| The initial five-surface release-candidate freeze is complete (#354); API-diff compatibility enforcement and release qualification remain incomplete. | BC-7; issue #354 | 1 |
 | Populated, blocking per-package complexity budgets, hot-path complexity and runtime ceilings remain incomplete. | CB-1, CB-2; issue #370 | 1/2 |
 | RV64 live-flag target remains below 60; other flag families also need complete registration. Read the registry for current counts. | CB-4; issue #332 | 2 |
 | Complete property/fuzz coverage, including both Debug and ReleaseFast for numerical invariants. | BC-5, SL-3; issue #347 | 1/2 |

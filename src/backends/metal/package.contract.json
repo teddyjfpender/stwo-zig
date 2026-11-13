@@ -65,5 +65,16 @@
     "bench",
     "tests/system",
     "tools"
-  ]
+  ],
+  "budget": {
+    "code_files": 240,
+    "code_lines": 56300,
+    "generated_code_files": 3,
+    "generated_code_lines": 58096,
+    "script_files": 0,
+    "api_entries": 24,
+    "dependencies": 4,
+    "rv64_registry_flags": 0,
+    "versioned_files": 298
+  }
 }

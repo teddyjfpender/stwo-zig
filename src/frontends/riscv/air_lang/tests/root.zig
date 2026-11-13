@@ -7,6 +7,7 @@ test {
     _ = @import("../framework/direct_constraint_program.zig");
     _ = @import("../framework/framework_device_interaction.zig");
     _ = @import("../framework/framework_interaction.zig");
+    _ = @import("../framework/framework_interaction_test.zig");
     _ = @import("../framework/framework_parallel_interaction.zig");
     _ = @import("../framework/relation_effect.zig");
     _ = @import("../framework/relation_interaction_fixture.zig");

@@ -45,6 +45,17 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     const native_gkr_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_codegen_test_root.zig"), .target = target, .optimize = optimize, .strip = true });
     for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_frontend" }) |name| native_gkr_root.addImport(name, integration.import_table.get(name) orelse @panic("missing native GKR codegen dependency"));
+    const source_owner_root = b.createModule(.{ .root_source_file = b.path("rv64_source_owner_test_root.zig"), .target = target, .optimize = optimize });
+    for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_frontend" }) |name| source_owner_root.addImport(name, native_gkr_root.import_table.get(name) orelse @panic("missing source owner dependency"));
+    const source_owner_test = b.addTest(.{ .root_module = source_owner_root, .filters = &.{"LS-D64 descriptor45 seeded OWNER projection agrees across base lifted and symbolic lanes"} });
+    source_owner_test.linkLibC();
+    b.step("test-native-source-owner-dword", "Execute the exact shrunk LS-D64 source OWNER regression without compiling unrelated generators").dependOn(jobTestStep(b, source_owner_test, check_only));
+    const outer_codec_root = b.createModule(.{ .root_source_file = b.path("rv64_outer_codec_test_root.zig"), .target = target, .optimize = optimize });
+    const outer_codec_tests = b.addTest(.{ .root_module = outer_codec_root, .filters = &.{ "outer encode:", "seed program:", "gn-pack v2:" } });
+    b.step("test-rv64-outer-codecs", "Exercise native chunk capture and outer proof/seed codecs against independent host oracles").dependOn(jobTestStep(b, outer_codec_tests, check_only));
+    const worker_lifecycle_root = b.createModule(.{ .root_source_file = b.path("rv64_worker_lifecycle_test_root.zig"), .target = target, .optimize = optimize });
+    worker_lifecycle_root.addImport("stwo_core", native_gkr_root.import_table.get("stwo_core") orelse @panic("missing worker Core identity"));
+    b.step("test-rv64-worker-lifecycle", "Execute the complete host-device-model worker lifetime, failure and custody corpus").dependOn(jobTestStep(b, b.addTest(.{ .root_module = worker_lifecycle_root }), check_only));
     const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root });
     native_gkr_tests.linkLibC();
     b.step("test-native-gkr-codegen", "Check native raw source and reduced AIR against source authority").dependOn(jobTestStep(b, native_gkr_tests, check_only));

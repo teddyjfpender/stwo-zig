@@ -1,6 +1,7 @@
 //! Test-only proof-pool lifecycle and identity audit model.
 
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub const ProofPoolStage = enum(u8) {
     tree1,
@@ -247,3 +248,30 @@ pub const TestProofPoolAudit = struct {
         if (self.pool_address != address) self.stage_identity_mismatches += 1;
     }
 };
+
+threadlocal var active_test_proof_pool_audit: ?*TestProofPoolAudit = null;
+
+pub const TestProofPoolAuditBinding = struct {
+    audit: *TestProofPoolAudit,
+    active: bool = true,
+
+    pub fn init(audit: *TestProofPoolAudit) !TestProofPoolAuditBinding {
+        if (comptime !builtin.is_test) return error.TestOnly;
+        if (active_test_proof_pool_audit != null) {
+            return error.TestProofPoolAuditAlreadyBound;
+        }
+        active_test_proof_pool_audit = audit;
+        return .{ .audit = audit };
+    }
+
+    pub fn deinit(self: *TestProofPoolAuditBinding) void {
+        std.debug.assert(self.active);
+        std.debug.assert(active_test_proof_pool_audit == self.audit);
+        active_test_proof_pool_audit = null;
+        self.active = false;
+    }
+};
+
+pub fn current() ?*TestProofPoolAudit {
+    return active_test_proof_pool_audit;
+}

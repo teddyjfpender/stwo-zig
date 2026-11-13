@@ -13,7 +13,8 @@
 using namespace stwo::cuda::rv64;
 using rv64_fixture::equal;
 using rv64_fixture::Fixture;
-static uint64_t fused_calls=0,fused_kernel_launches=0;
+enum class Fusion { separate, fold_sum, tail };
+static uint64_t fused_calls=0,fused_kernel_launches=0,tail_calls=0;
 struct LayerFraction {
   StwoRv64Plane n, d;
   uint32_t count;
@@ -31,7 +32,7 @@ struct Layer {
 };
 __global__ void corrupt_word(uint32_t *out, uint32_t value) { *out = value; }
 __global__ void add_word(uint32_t *out) { *out = q::add(*out, 1u); }
-static void exercise(const std::string &directory, uint32_t id,
+static void exercise(const std::string &directory, uint32_t id, Fusion fusion,
                      uint32_t attack = 0, uint32_t binding_attack = 0) {
   Fixture f(directory + "/case-" + std::to_string(id) + ".bin");
   const auto h = f.take(8);
@@ -233,7 +234,7 @@ static void exercise(const std::string &directory, uint32_t id,
     std::vector<bool> prefetched(l.active,false);
     for (uint32_t round = 0; round < l.depth; ++round) {
       const auto left = l.depth - round;
-      if (std::getenv("STWO_RV64_TEST_BATCH_TAIL") && left <= 4) {
+      if (fusion == Fusion::tail && left <= 4) {
         std::vector<StwoRv64BatchTailOracle> jobs;
         for (uint32_t j = 0; j < l.active; ++j) {
           const auto c = current[j]; auto &w = workers[ids[j]];
@@ -261,6 +262,7 @@ static void exercise(const std::string &directory, uint32_t id,
         CHECK(stwo_rv64_batch_tail_on(o.ctx,1,batch.words,jobs.data(),l.active,
                                       l.depth,round,point,eq,lambda,
                                       l.records.words+round*round_record_words));
+        ++tail_calls;
         tail_packed_masks = true;
         break;
       }
@@ -275,7 +277,7 @@ static void exercise(const std::string &directory, uint32_t id,
       CHECK(stwo_rv64_batch_round_on(o.ctx, 1, batch.words, descriptors.data(),
                                      l.active, l.depth, round, point, record));
       std::fill(prefetched.begin(),prefetched.end(),false);
-      const bool fused=std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")&&left>1;
+      const bool fused=fusion == Fusion::fold_sum && left>1;
       std::vector<StwoRv64BatchFoldSumJob> jobs;
       std::vector<uint32_t> ready;
       for (uint32_t j = 0; j < l.active; ++j)
@@ -443,28 +445,38 @@ static void exercise(const std::string &directory, uint32_t id,
 }
 int main(int argc, char **argv) {
   try {
-    if(std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")&&std::getenv("STWO_RV64_TEST_BATCH_TAIL"))
-      throw std::runtime_error("select one GKR fusion at a time");
     if (argc != 2)
       throw std::runtime_error("expected full native GKR fixture directory");
-    for (uint32_t id = 0; id < 9; ++id)
-      exercise(argv[1], id);
-    for (uint32_t attack = 1; attack <= 9; ++attack)
-      exercise(argv[1], 3, attack);
-    for (uint32_t attack = 1; attack <= 11; ++attack)
-      exercise(argv[1], 5, 0, attack);
-    if(std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")) {
-      if(!fused_calls||!fused_kernel_launches)throw std::runtime_error("fold-sum route not exercised");
-      std::printf("BATCH_FOLD_SUM_ROUTE calls=%llu kernel_launches=%llu\n",static_cast<unsigned long long>(fused_calls),static_cast<unsigned long long>(fused_kernel_launches));
+    for (const auto fusion : {Fusion::separate, Fusion::fold_sum, Fusion::tail}) {
+      fused_calls = fused_kernel_launches = tail_calls = 0;
+      for (uint32_t id = 0; id < 9; ++id)
+        exercise(argv[1], id, fusion);
+      for (uint32_t attack = 1; attack <= 9; ++attack)
+        exercise(argv[1], 3, fusion, attack);
+      for (uint32_t attack = 1; attack <= 11; ++attack)
+        exercise(argv[1], 5, fusion, 0, attack);
+      if (fusion == Fusion::fold_sum && (!fused_calls || !fused_kernel_launches))
+        throw std::runtime_error("fold-sum route not exercised");
+      if (fusion == Fusion::tail && !tail_calls)
+        throw std::runtime_error("small-tail route not exercised");
+      if ((fusion != Fusion::fold_sum && (fused_calls || fused_kernel_launches)) ||
+          (fusion != Fusion::tail && tail_calls))
+        throw std::runtime_error("unexpected GKR fusion route");
+      const char *variant = fusion == Fusion::separate ? "separate" :
+                            fusion == Fusion::fold_sum ? "fold_sum" : "small_tail";
+      std::printf("GKR_VARIANT variant=%s fold_sum_calls=%llu fold_sum_launches=%llu tail_calls=%llu\n", variant,
+          static_cast<unsigned long long>(fused_calls),
+          static_cast<unsigned long long>(fused_kernel_launches),
+          static_cast<unsigned long long>(tail_calls));
+      std::printf(
+          "{\"schema\":\"rv64-om31-full-gkr-binding-v3\",\"variant\":\"%s\",\"cases\":9,\"poison_"
+          "cases\":9,"
+          "\"native_proof_and_"
+          "artifact_parity\":true,\"hot_h2d_bytes\":0,\"hot_d2h_bytes\":0,"
+          "\"binding_metadata_cases\":178,\"binding_witness_cases\":178,"
+          "\"binding_poison_cases\":11,\"physical_"
+          "binding_verified\":false,\"full_block_verified\":false}\n", variant);
     }
-    std::printf(
-        "{\"schema\":\"rv64-om31-full-gkr-binding-v3\",\"cases\":9,\"poison_"
-        "cases\":9,"
-        "\"native_proof_and_"
-        "artifact_parity\":true,\"hot_h2d_bytes\":0,\"hot_d2h_bytes\":0,"
-        "\"binding_metadata_cases\":178,\"binding_witness_cases\":178,"
-        "\"binding_poison_cases\":11,\"physical_"
-        "binding_verified\":false,\"full_block_verified\":false}\n");
     return 0;
   } catch (const std::exception &e) {
     std::fprintf(stderr, "%s\n", e.what());

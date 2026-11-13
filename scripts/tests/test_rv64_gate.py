@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.rv64 import rv64_gate as gate
@@ -151,14 +152,16 @@ class GateTests(unittest.TestCase):
     def test_daemon_owner_rule_needs_explicit_block_opt_in(self):
         def args(blocks, repeat=2, allow=(), probe=False):
             return SimpleNamespace(blocks=list(blocks), repeat=repeat, allow_block=list(allow), allow_scale_probe=probe)
-        resident.require_measurement_blocks(args([24628607]), {})
-        with self.assertRaises(SystemExit): resident.require_measurement_blocks(args([26235159]), {})
-        resident.require_measurement_blocks(args([26235159], allow=[26235159]), {})
-        resident.require_measurement_blocks(args([26235159]), {resident.ALLOW_BLOCKS_ENV: '26235159,24697070'})
+        resident.require_measurement_blocks(args([24628607]))
+        with self.assertRaises(SystemExit): resident.require_measurement_blocks(args([26235159]))
+        resident.require_measurement_blocks(args([26235159], allow=[26235159]))
+        with patch.dict(resident.os.environ, {"STWO_RV64_HARNESS_ALLOW_BLOCKS": "26235159,24697070"}):
+            with self.assertRaises(SystemExit):
+                resident.require_measurement_blocks(args([26235159]))
         for bad in (args([26235159], repeat=3, allow=[26235159]), args([26235159, 24628611], allow=[26235159, 24628611]),
                     args([26235159], allow=[24697070]), args([26235159, 24628607], allow=[26235159])):
-            with self.assertRaises(SystemExit): resident.require_measurement_blocks(bad, {})
-        resident.require_measurement_blocks(args([24697070], repeat=1, probe=True), {})
+            with self.assertRaises(SystemExit): resident.require_measurement_blocks(bad)
+        resident.require_measurement_blocks(args([24697070], repeat=1, probe=True))
 
 if __name__ == '__main__':
     unittest.main()
