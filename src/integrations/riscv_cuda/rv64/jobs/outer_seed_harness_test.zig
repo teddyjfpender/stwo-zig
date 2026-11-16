@@ -17,6 +17,7 @@
 const std = @import("std");
 const S = @import("outer_seed_device.zig");
 const O = @import("ops.zig");
+const GpuPolicy = @import("native_gpu_support_test.zig");
 const Association = @import("recorded_children_test.zig");
 
 const Loaded = struct {
@@ -119,9 +120,10 @@ const Gpu = struct {
     ctx: *anyopaque,
     stream: *anyopaque,
     fn open() !?Gpu {
-        const base = std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return null;
-        const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return null;
-        var libs = try O.Libraries.open(base, addon);
+        const base = std.posix.getenv("STWO_RV64_GPU_LIBRARY");
+        const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY");
+        if (!try GpuPolicy.librariesAvailable(base, addon, GpuPolicy.required())) return null;
+        var libs = try O.Libraries.open(base.?, addon.?);
         errdefer libs.close();
         var ctx: ?*anyopaque = null;
         try O.check(libs.ops.wait.context_create(&.{ .device_ordinal = 0 }, &ctx));

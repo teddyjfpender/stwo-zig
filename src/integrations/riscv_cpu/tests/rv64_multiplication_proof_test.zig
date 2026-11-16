@@ -1,4 +1,5 @@
 const std = @import("std");
+const artifacts = @import("native_artifact_root.zig");
 const core = @import("stwo_core");
 const rv = @import("stwo_riscv_frontend").rv64_air;
 const native = @import("../delegations/multiplication/native.zig");
@@ -8,7 +9,7 @@ const fixture = @import("rv64_multiplication_test.zig");
 const Q = core.fields.qm31.QM31;
 const a = std.testing.allocator;
 test "MUL and BYTE one PCS production proof fresh receiver and previous masks" {
-    const artifact = std.process.getEnvVarOwned(a, "STWO_RV64_MULTIPLICATION_ARTIFACT_DIR") catch null;
+    const artifact = try artifacts.directory(a, .multiplication);
     defer if (artifact) |path| a.free(path);
     // Exercise both evaluators on every run, publishing optimized artifacts once.
     try proveAndReject(false, artifact);

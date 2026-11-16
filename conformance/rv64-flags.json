@@ -3876,20 +3876,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_ARITH_NONE_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_arithmetic_roster_test.zig",
-      "default": "disabled (no artifact output directory)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_arithmetic_roster_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_arithmetic_roster_test.zig",
-        "text": "    const artifact = std.process.getEnvVarOwned(a, \"STWO_RV64_ARITH_NONE_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var directory = try std.fs.cwd().openDir(path, .{});\n        defer directory.close();\n        const json = try std.json.Stringify.valueAlloc(a, omitted, .{});\n        defer a.free(json);"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_ARTIFACT_STORE": {
       "owner": "scripts/rv64/rv64_negative_mutations.py",
       "default": "not applicable: reference only; no runtime reader found",
@@ -4013,48 +3999,6 @@
       "references": [
         "tests/cuda/rv64/native/rv64/lease_diagnostics.cpp"
       ]
-    },
-    "STWO_RV64_DIVISION_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig",
-      "default": "disabled (no artifact output directory)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig",
-        "text": "    const artifact_dir = std.process.getEnvVarOwned(a, \"STWO_RV64_DIVISION_ARTIFACT_DIR\") catch null;\n    defer if (artifact_dir) |path| a.free(path);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_ETH_CPU_V1_ARTIFACT_DIR": {
-      "owner": "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig",
-      "default": "disabled (no artifact output directory)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig",
-        "text": "    const artifact = std.process.getEnvVarOwned(a, if (profile == .ethereum_services_v1) \"STWO_RV64_ETH_CPU_V1_ARTIFACT_DIR\" else \"STWO_RV64_ETH_CPU_V2_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var directory = try std.fs.cwd().openDir(path, .{});\n        defer directory.close();\n        const public_json = try std.json.Stringify.valueAlloc(a, public, .{});\n        defer a.free(public_json);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_ETH_CPU_V2_ARTIFACT_DIR": {
-      "owner": "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig",
-      "default": "disabled (no artifact output directory)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/ethereum/statement/cpu/tests/rv64_ethereum_cpu_proof_test.zig",
-        "text": "    const artifact = std.process.getEnvVarOwned(a, if (profile == .ethereum_services_v1) \"STWO_RV64_ETH_CPU_V1_ARTIFACT_DIR\" else \"STWO_RV64_ETH_CPU_V2_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var directory = try std.fs.cwd().openDir(path, .{});\n        defer directory.close();\n        const public_json = try std.json.Stringify.valueAlloc(a, public, .{});\n        defer a.free(public_json);"
-      },
-      "expires": "2026-12-09"
     },
     "STWO_RV64_FIRST_CASE": {
       "owner": "tests/cuda/rv64/joined_domain_smoke.cu",
@@ -4479,48 +4423,6 @@
         "tests/cuda/rv64/joined_smoke.cu"
       ]
     },
-    "STWO_RV64_KECCAK_CPU_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig",
-      "default": "disabled (no artifact output directory)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig",
-        "text": "    const artifact = std.process.getEnvVarOwned(a, if (arithmetic_policy == .division_multiplication_services_v3) \"STWO_RV64_MUL_CPU_ARTIFACT_DIR\" else if (state_policy == .inverse_v1) \"STWO_RV64_KECCAK_CPU_ARTIFACT_DIR\" else \"STWO_RV64_KECCAK_CPU_CYCLIC_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var directory = try std.fs.cwd().openDir(path, .{});\n        defer directory.close();\n        const public_json = try std.json.Stringify.valueAlloc(a, public, .{});\n        defer a.free(public_json);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_KECCAK_CPU_CYCLIC_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig",
-      "default": "disabled (no artifact output directory)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig",
-        "text": "    const artifact = std.process.getEnvVarOwned(a, if (arithmetic_policy == .division_multiplication_services_v3) \"STWO_RV64_MUL_CPU_ARTIFACT_DIR\" else if (state_policy == .inverse_v1) \"STWO_RV64_KECCAK_CPU_ARTIFACT_DIR\" else \"STWO_RV64_KECCAK_CPU_CYCLIC_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var directory = try std.fs.cwd().openDir(path, .{});\n        defer directory.close();\n        const public_json = try std.json.Stringify.valueAlloc(a, public, .{});\n        defer a.free(public_json);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_KECCAK_CPU_NONE_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_keccak_roster_test.zig",
-      "default": "disabled (no artifact output directory)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_keccak_roster_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_keccak_roster_test.zig",
-        "text": "    const artifact = std.process.getEnvVarOwned(a, \"STWO_RV64_KECCAK_CPU_NONE_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var dir = try std.fs.cwd().openDir(path, .{});\n        defer dir.close();\n        const p = try std.json.Stringify.valueAlloc(a, public, .{});\n        defer a.free(p);"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_KECCAK_WITNESS": {
       "owner": "tests/cuda/rv64/cpu_witness_smoke.cu",
       "date": "2026-11-08",
@@ -4546,16 +4448,25 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_LEAN_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_lean_proof_test.zig",
-      "default": "disabled (no artifact output directory)",
+      "owner": "src/integrations/riscv_cpu/tests/native_artifact_root.zig",
+      "default": "disabled; when set, one run root with eleven fixed provider subdirectories",
       "status": "qualification",
-      "date": "2026-11-08",
+      "date": "2026-11-16",
       "references": [
-        "src/integrations/riscv_cpu/tests/rv64_lean_proof_test.zig"
+        "src/integrations/riscv_cpu/tests/native_artifact_root.zig",
+        "src/integrations/riscv_cpu/tests/native_artifact_root_test.zig",
+        "src/products/ethereum/statement/cpu/tests/native_artifact_root.zig",
+        "src/products/ethereum/statement/cpu/tests/native_artifact_root_test.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_lean_proof_test.zig",
-        "text": "    const artifact_dir = std.process.getEnvVarOwned(a, \"STWO_RV64_LEAN_ARTIFACT_DIR\") catch null;\n    defer if (artifact_dir) |path| a.free(path);\n    try std.testing.checkAllAllocationFailures(a, initializeRelease, .{ &records, public, &setup });\n    // Same-allocator failures at all four header allocations preserve exactly\n    // one owner. Once the CPU transfer succeeds, a later failure may consume\n    // its source; DIV remains owned until the combined transfer succeeds.\n    var provider_columns: [4]@import(\"stwo_prover_engine\").pcs.ColumnEvaluation = undefined;\n    const logs = [_]u32{ setup.base.program.log_size, 8, 16, 11 };"
+        "path": "src/integrations/riscv_cpu/tests/native_artifact_root.zig",
+        "text": "    const root = std.process.getEnvVarOwned(a, \"STWO_RV64_LEAN_ARTIFACT_DIR\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return null,\n        else => return err,\n    };",
+        "readers": [
+          {
+            "path": "src/products/ethereum/statement/cpu/tests/native_artifact_root.zig",
+            "text": "pub fn directory(a: std.mem.Allocator, provider: Provider) !?[]u8"
+          }
+        ]
       },
       "expires": "2026-12-09"
     },
@@ -5169,7 +5080,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig",
-        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_REQUIRE_GPU\") orelse return false;\n    return std.mem.eql(u8, v, \"1\");\n}\n\npub const Gpu = struct {\n    libs: O.Libraries,\n    pub fn open() !?Gpu {\n        return openNamed(\"unnamed\");"
+        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_REQUIRE_GPU\") orelse return false;\n    return std.mem.eql(u8, v, \"1\");"
       },
       "expires": "2026-12-09"
     },
@@ -5282,34 +5193,6 @@
         "src/backends/cuda/native/rv64/m9_class_unpack.cu",
         "src/backends/cuda/native/rv64/m9_class_unpack.h"
       ]
-    },
-    "STWO_RV64_MULTIPLICATION_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig",
-      "default": "disabled (no artifact output directory)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig",
-        "text": "    const artifact = std.process.getEnvVarOwned(a, \"STWO_RV64_MULTIPLICATION_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_MUL_CPU_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig",
-      "default": "disabled (no artifact output directory)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig",
-        "text": "    const artifact = std.process.getEnvVarOwned(a, if (arithmetic_policy == .division_multiplication_services_v3) \"STWO_RV64_MUL_CPU_ARTIFACT_DIR\" else if (state_policy == .inverse_v1) \"STWO_RV64_KECCAK_CPU_ARTIFACT_DIR\" else \"STWO_RV64_KECCAK_CPU_CYCLIC_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var directory = try std.fs.cwd().openDir(path, .{});\n        defer directory.close();\n        const public_json = try std.json.Stringify.valueAlloc(a, public, .{});\n        defer a.free(public_json);"
-      },
-      "expires": "2026-12-09"
     },
     "STWO_RV64_NATIVE_ROLE_DISPATCH": {
       "owner": "tests/cuda/rv64/joined_domain_smoke.cu",
@@ -5452,20 +5335,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig",
         "text": "pub const SHAPE_ENV = \"STWO_RV64_OUTER_SHAPE\";\n/// Elementwise maximum of the 33 node shapes of 24628607 (diet census\n/// `24628607-cell-census-q108.json`, leaf-dominated): log2 rows of eq,\n/// qm31_ops, triple_xor, m31_to_u32, blake_g_gate. [D] tax +19.5% cells.\npub const S_OUT_V1 = struct { eq: u32 = 18, qm31_ops: u32 = 23, triple_xor: u32 = 20, m31_to_u32: u32 = 21, blake_g_gate: u32 = 23 }{};\nvar shape_selected = std.atomic.Value(u8).init(0xff);\n/// Process-wide; resolved once from `STWO_RV64_OUTER_SHAPE` (default exact).\n/// Unknown or unreadable values fail closed.\npub fn shape() Shape {\n    const current = shape_selected.load(.acquire);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_PACKED_FULL_ARTIFACT_DIR": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_packed_full_proof_test.zig",
-      "default": "disabled (no artifact output directory)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_packed_full_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_packed_full_proof_test.zig",
-        "text": "    const artifact = std.process.getEnvVarOwned(a, \"STWO_RV64_PACKED_FULL_ARTIFACT_DIR\") catch null;\n    defer if (artifact) |path| a.free(path);\n    if (artifact) |path| {\n        try std.fs.cwd().makePath(path);\n        var dir = try std.fs.cwd().openDir(path, .{});\n        defer dir.close();\n        const statement_json = try std.json.Stringify.valueAlloc(a, public, .{});\n        defer a.free(statement_json);"
       },
       "expires": "2026-12-09"
     },

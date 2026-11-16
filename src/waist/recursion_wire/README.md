@@ -11,7 +11,7 @@ bytes the Rust would write for it.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.2` |
+| Version | `1.0.0-rc.3` |
 | Layer | `interchange` |
 | Owner | `circuit-recursion` |
 | Public Zig module | `stwo_circuit_recursion_wire` |
@@ -170,7 +170,7 @@ from the repository root and round-trips the upstream goldens copied into
 ## Decoder diagnostic metadata
 
 `error_codes` exposes the RFC #360 metadata owned by this boundary. The
-unpublished `1.0.0-rc.2` surface includes the approved typed postcard addition;
+unpublished `1.0.0-rc.3` surface includes the approved typed postcard addition;
 meaning, origin, null/unknown refusal and existing rejection semantics remain
 those specified by the provider tests. Full five-provider D2 coverage remains
 open in the RFC coverage ledger. `fromPostcard` accepts exactly the ten-tag
@@ -179,6 +179,11 @@ the independently owned parser before projecting codes `0x5101`–`0x510a`.
 Resource-limit failure is resource exhaustion, and the other nine are invalid
 input. The receiver emits best-effort `recursion_postcard_rejection_v1` stderr
 without changing the original failure or successful proof bytes.
+`fromJsonRead` and `fromRegistryDefinition` bind exact owned input error sets to
+`0x5201`–`0x5205`; the CPU recursion product emits
+`recursion_input_rejection_v1` only at its seven selected parser operations.
+Diagnostic output failure preserves the primary parser error, and the legacy
+circuit-only writer refuses these unrelated code bands.
 
 
 ## Consumer-owned provider checks

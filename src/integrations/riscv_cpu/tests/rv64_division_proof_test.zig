@@ -1,4 +1,5 @@
 const std = @import("std");
+const artifacts = @import("native_artifact_root.zig");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const B = @import("stwo_cpu_backend").CpuBackend;
@@ -18,7 +19,7 @@ fn columns(storage: []const M, log: u32, output: []engine.pcs.ColumnEvaluation) 
     for (output, 0..) |*column, i| column.* = .{ .log_size = log, .values = storage[i * n ..][0..n] };
 }
 test "division native artifact proves all eight operations and receiver rejects changed prefix" {
-    const artifact_dir = std.process.getEnvVarOwned(a, "STWO_RV64_DIVISION_ARTIFACT_DIR") catch null;
+    const artifact_dir = try artifacts.directory(a, .division);
     defer if (artifact_dir) |path| a.free(path);
     const config = if (artifact_dir != null) rv.protocol.config() else core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 12) };
     // Both evaluators protect live proof semantics. Artifact selection controls

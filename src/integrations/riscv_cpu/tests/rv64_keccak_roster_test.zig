@@ -1,6 +1,7 @@
 //! No-call batches still admit ECALL in immutable program support. Its absence
 //! follows from the CPU's constrained counter, not a path-pruned opcode policy.
 const std = @import("std");
+const artifacts = @import("native_artifact_root.zig");
 const frontend = @import("stwo_riscv_frontend");
 const rv = frontend.rv64;
 const air = frontend.rv64_air;
@@ -90,7 +91,7 @@ test "absent Keccak roster proves ECALL absence and omits all crypto providers" 
     try fresh_paired.verifyOwned(a, paired, paired_bundle.claims, try wire.decodeProofBytesBinary(a, paired_encoded));
     try std.testing.expect(encoded.len < paired_encoded.len);
     std.debug.print("K roster same execution proof bytes none={d} pairedC0={d}\n", .{ encoded.len, paired_encoded.len });
-    const artifact = std.process.getEnvVarOwned(a, "STWO_RV64_KECCAK_CPU_NONE_ARTIFACT_DIR") catch null;
+    const artifact = try artifacts.directory(a, .keccak_cpu_none);
     defer if (artifact) |path| a.free(path);
     if (artifact) |path| {
         try std.fs.cwd().makePath(path);

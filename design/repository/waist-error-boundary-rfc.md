@@ -329,3 +329,41 @@ its minimum test floor rises from five to seven; no new launcher is introduced.
 Full proof construction and native process verification remain outside this
 small local check, and other recursion parser/registry/framing origins still
 need typed coverage.
+
+
+## Seven recursion JSON input origins after c0fb190d8
+
+The next delegated RFC #360 / #359 tranche has a pre-edit ceiling of 700 net
+source/test lines, targeting below 450. Its finite live scope is registry,
+verify request, leaf input, leaf manifest, registry definition, prover parameters
+and FRI configuration in the existing circuit-recursion CPU command. There is
+no new module, launcher, runtime flag or public facade helper. The existing
+private product diagnostic owner selects these seven parsers at comptime;
+callers cannot inject a callback or parser into the classification boundary.
+The original application stays below its 850-line limit.
+
+Recursion-wire rc.3 appends codes 0x5201 InvalidJson, 0x5202 MissingField,
+0x5203 InvalidValue, 0x5204 OutOfMemory and 0x5205 EmptyTraceRange. Only allocation
+failure is resource_exhausted; the others are invalid_input. The first four
+accept exactly json_text.ReadError; definition admission additionally accepts
+its owned EmptyTraceRange. Existing 0x5001/0x5002 and 0x5101–0x510a meanings and
+since values remain unchanged. The old binary diagnostic writer now refuses
+other valid provider code bands, avoiding incorrect circuit-decode origins.
+
+All twelve live parser call sites across the seven families route through the
+closed input owner, immediately around their actual parser operations. Input
+file reading remains outside these catches. Returned value/arena ownership,
+original parser errors, standard output, receipts and successful bytes remain
+unchanged; optional recursion_input_rejection_v1 stderr binds the selected
+origin. Writer failure returns the original parser error, including allocation
+failure, without broad error-name classification.
+
+Local bounded tests execute all seven real operations with retained fixtures
+and public-codec-generated leaf input, silent byte-preserving success, public
+writer/reparse/rewrite identity for registry/request/leaf/FRI, every allocation
+failure cleanup, all three JSON refusal classes at each operation, empty-range
+refusal, and diagnostic-writer failure. Exact JSON frames assert origin/code and
+class. Code-table tests pin exact typed signatures, tags, class, version and
+unknown refusal. Full process execution and proof construction are not inferred
+from these operation tests. Registry query, packed-tree, felt framing and other
+owned failure origins still require their own typed consumer coverage.

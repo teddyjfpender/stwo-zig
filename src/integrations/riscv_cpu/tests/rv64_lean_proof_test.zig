@@ -1,4 +1,5 @@
 const std = @import("std");
+const artifacts = @import("native_artifact_root.zig");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 const rv = frontend.rv64;
@@ -54,7 +55,7 @@ test "lean one PCS proof joins CPU ROM bytes AND SHIFT DIV signedW zero and RAM"
     defer setup.deinit();
     try std.testing.expectEqual(@as(u32, 7), setup.base.log_size);
     try std.testing.expectEqual(@as(u32, 5), setup.division_log);
-    const artifact_dir = std.process.getEnvVarOwned(a, "STWO_RV64_LEAN_ARTIFACT_DIR") catch null;
+    const artifact_dir = try artifacts.directory(a, .lean);
     defer if (artifact_dir) |path| a.free(path);
     try std.testing.checkAllAllocationFailures(a, initializeRelease, .{ &records, public, &setup });
     // Same-allocator failures at all four header allocations preserve exactly

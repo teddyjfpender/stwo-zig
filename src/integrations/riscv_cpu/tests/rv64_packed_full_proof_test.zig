@@ -1,4 +1,5 @@
 const std = @import("std");
+const artifacts = @import("native_artifact_root.zig");
 const frontend = @import("stwo_riscv_frontend");
 const rv = frontend.rv64;
 const native = @import("../rv64_full.zig");
@@ -52,7 +53,7 @@ test "standalone packed Full proves wrapped AUIPC and JALR with receiver-selecte
     var wrong_pc = public;
     wrong_pc.final_pc = 1 << 48;
     if (receiver.verifyOwned(a, wrong_pc, bundle.claims, try wire.decodeProofBytesBinary(a, encoded))) |_| return error.WrongTerminalPcAccepted else |_| {}
-    const artifact = std.process.getEnvVarOwned(a, "STWO_RV64_PACKED_FULL_ARTIFACT_DIR") catch null;
+    const artifact = try artifacts.directory(a, .packed_full);
     defer if (artifact) |path| a.free(path);
     if (artifact) |path| {
         try std.fs.cwd().makePath(path);

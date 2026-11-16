@@ -1,6 +1,6 @@
 # RV64 flag lifecycle review
 
-Issue [#332](https://github.com/teddyjfpender/stwo-zig/issues/332). This inventories the 99 live names before this slice; eleven genuine removals leave 88. It is not a declaration that the `<60` promotion gate passes. Constants and historical reference-only symbols are excluded from the starting 99.
+Issue [#332](https://github.com/teddyjfpender/stwo-zig/issues/332). This inventories the 99 live names before this slice; twenty-one genuine removals leave 78. It is not a declaration that the `<60` promotion gate passes. Constants and historical reference-only symbols are excluded from the starting 99.
 
 The existing registry owns exact source paths, absence defaults, expiry and generated reference sets. No second configuration registry or launcher is introduced. All full names below have prefix `STWO_RV64_`.
 
@@ -16,7 +16,7 @@ The existing registry owns exact source paths, absence defaults, expiry and gene
 
 ## Remaining dependency
 
-37 names are frozen behind ordered GPU-native promotion and 11 artifact selectors are explicitly protected. Thus 48 names remain before considering any other controls. Reaching 59 now requires removing **29 of the other 40** controls. Changing live controls to reference-only, renaming them, moving independent choices into one JSON switch, selecting an unqualified GPU path by default, or deleting negative coverage does not meet that requirement.
+37 names are frozen behind ordered GPU-native promotion. Eleven stronger physical-artifact consumers remain protected under one common run-root selector, with fixed provider directories. Reaching 59 now requires **19 more genuine reductions** from the remaining 78 controls. Changing live controls to reference-only, renaming them, moving independent choices into one JSON switch, selecting an unqualified GPU path by default, or deleting negative coverage does not meet that requirement.
 
 The inventory does **not** establish a mathematical minimum of 60. Several controls can eventually disappear through compulsory test variants, deterministic ownership decisions, or qualified native-default retirement. Those replacements require engineering and qualification; a missing maintained literal setter is not proof that a runtime branch is dead.
 
@@ -188,3 +188,13 @@ the unsuccessful cold packing attempt cost 574us/537us, while the warm raw
 owner requires no decode. This records the CPU/storage tradeoff without a
 prover-speedup claim. Linux native-LZ4 and full cache/proof integration remain
 qualification gates.
+
+## Common qualification artifact destination (2026-11-16)
+
+Owner decision [#332](https://github.com/teddyjfpender/stwo-zig/issues/332#issuecomment-6920870578) consolidates eleven independent destinations into the existing `STWO_RV64_LEAN_ARTIFACT_DIR` run root. It preserves every physical proof case and all stronger parameter selection; no production parameter is weakened. The complete starting inventory above is historical, not a list of remaining controls.
+
+Each provider writes beneath its fixed subdirectory: `arith_none`, `division`, `keccak_cpu`, `keccak_cpu_cyclic`, `keccak_cpu_none`, `lean`, `multiplication`, `mul_cpu`, `packed_full`, `ethereum_cpu_v1`, or `ethereum_cpu_v2`. Existing file names and paired-C0 nesting are unchanged. Operators must read LEAN output from `<root>/lean` instead of directly from `<root>`. No maintained downstream reader depended on the old direct-root layout.
+
+An absent common root preserves no-output behavior. An empty root is rejected; allocation and environment errors propagate instead of silently selecting weaker test parameters. Each owner retains its original stronger-configuration expression and all publication/receiver/mutation bodies. An independent whole-source ledger checks all eight owners and all 38 writer expressions after normalizing only the exact getter and private import. Tiny path tests cover all eleven mappings, allocation failures and positive/absent environment ownership. Full physical proof publication is not re-run locally.
+
+The filtered recorded-node GPU harness also honors the existing required-GPU policy for either missing library. Optional mode may retain its host-only arm; required mode cannot claim GPU coverage after skipping that arm. A pure eight-case missing-base/addon/required matrix checks that policy without executing a GPU.
