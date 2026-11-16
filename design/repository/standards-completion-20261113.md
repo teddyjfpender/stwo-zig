@@ -234,3 +234,15 @@ canonical semantic checking in5.80s/5.82s at1.084GB/1.086GB. This validates the
 corrected call sites, not proving. The first actual Debug image emission then
 exceeded2GiB (2,166,472,704B); no executable was admitted, no proof case ran and
 no larger lease or retry followed. The old resource refusals remain unchanged.
+
+## Retained diagnostic reuse
+
+An actual small Native proof regression reproduced stale OODS evidence when a
+second transaction rejected a differently typed device stage before entering
+the deep prover. The retained entrypoint now clears its diagnostic before that
+fallible admission, matching the ordinary diagnosed entrypoint. Original error,
+scheme consumption, failed-proof output and byte assertions remain unchanged.
+
+The reused-diagnostic regression fails before the fix and passes in Debug and
+ReleaseFast afterward, including unchanged proof bytes, errors and ownership.
+Both use the default1GiB/120s/110CPU guard; no cap increase or retry was needed.

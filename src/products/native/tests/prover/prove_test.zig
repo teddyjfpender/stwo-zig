@@ -447,6 +447,37 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
                 else => return error.ExpectedQm31Mismatch,
             }
         }
+        if (mode == .retained_mismatch) {
+            // Reuse the actual failed transaction's evidence. Admission must
+            // clear it before refusing a differently typed device stage.
+            const WrongFieldStage = struct {
+                fn evaluate(raw: *anyopaque, _: std.mem.Allocator, _: @import("stwo_core").fields.om31.OM31, _: u32, _: usize, _: *const anyopaque, _: *anyopaque) anyerror!bool {
+                    @as(*bool, @ptrCast(@alignCast(raw))).* = true;
+                    return false;
+                }
+            };
+            var called = false;
+            var next_scheme = try Scheme.init(alloc, config);
+            var owns_next = true;
+            defer if (owns_next) next_scheme.deinit(alloc);
+            _ = try next_scheme.twiddle_source.get(alloc, 6);
+            var next_channel = Channel{};
+            var next_failed: ?Engine.ExtendedProof = null;
+            defer if (next_failed) |*retained| retained.deinit(alloc);
+            owns_next = false;
+            try std.testing.expectError(error.DeviceCompositionFieldMismatch, Engine.proveDiagnosedRetainingFailure(
+                alloc,
+                &.{},
+                &next_channel,
+                next_scheme,
+                .{ .om31_composition_stage = .{ .context = &called, .evaluate = WrongFieldStage.evaluate } },
+                &diagnostic,
+                &next_failed,
+            ));
+            try std.testing.expect(!called);
+            try std.testing.expect(next_failed == null);
+            try std.testing.expect(diagnostic == null);
+        }
     }
 }
 

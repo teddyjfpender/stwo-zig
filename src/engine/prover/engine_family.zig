@@ -257,6 +257,7 @@ pub fn ForField(comptime Secure: type) type {
                     diagnostic: *?ProveDiagnostic,
                     failed: *?ExtendedProof,
                 ) !ExtendedProof {
+                    diagnostic.* = null;
                     return prove_mod.proveExWithExecutionDiagnosedRetainingFailure(
                         B,
                         H,
