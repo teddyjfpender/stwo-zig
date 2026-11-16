@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_core",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.3",
   "layer": "protocol",
   "owner": "protocol-core",
   "public_modules": {
@@ -206,7 +206,8 @@
       ],
       "tests": [
         "cdc: stwo_ethereum_statement field authority preserves inverse and zero refusal"
-      ]
+      ],
+      "owner_module": "legacy_riscv_cpu_integration"
     },
     {
       "id": "package:stwo_metal_backend",
@@ -486,7 +487,7 @@
   ],
   "budget": {
     "code_files": 154,
-    "code_lines": 28696,
+    "code_lines": 28815,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

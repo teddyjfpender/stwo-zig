@@ -58,6 +58,18 @@ class PackageBudgetTests(unittest.TestCase):
         self.assertEqual((row["script_files"], row["generated_code_files"], row["generated_code_lines"]), (1, 1, 3))
         self.assertEqual(row["code_lines"], 0)
 
+    def test_native_and_formal_source_languages_are_not_selected_by_flag_scanner(self):
+        owner = self.contract("src/a")
+        for suffix in (".m", ".mm", ".cc", ".cairo", ".lean", ".sail", ".S"):
+            with self.subTest(suffix=suffix):
+                plain = self.write("src/a/owner" + suffix, "first\nsecond\n")
+                generated = self.write("src/a/generated/owner" + suffix,
+                                       "// generated\n// generator: tool\n// regenerate: command\n")
+                row = budget.measure(self.root, [owner], [plain, generated])["packages"]["owner"]
+                self.assertEqual((1, 2), (row["code_files"], row["code_lines"]))
+                self.assertEqual((1, 3), (row["generated_code_files"], row["generated_code_lines"]))
+                self.assertEqual(0, row["script_files"])
+
     def test_moving_file_transfers_count_without_subtraction_credit(self):
         a, b = self.contract("src/a", "a"), self.contract("src/b", "b")
         path = self.write("src/a/a.zig", "one\ntwo\n")
@@ -70,9 +82,10 @@ class PackageBudgetTests(unittest.TestCase):
     def test_stale_api_dependency_and_flag_counts_are_measured(self):
         owner = self.contract("src/a")
         self.write("conformance/rv64-flags.json", json.dumps({"flags": {
-            "live": {"status": "runtime", "owner": "src/a/a.zig"},
-            "constant": {"status": "constant", "owner": "src/a/a.zig"},
-            "outside": {"status": "qualification", "owner": "scripts/tool.py"}}}))
+            "STWO_RV64_" + "LIVE": {"status": "runtime", "owner": "src/a/a.zig"},
+            "STWO_RV64_" + "CONSTANT": {"status": "constant", "owner": "src/a/a.zig"},
+            "STWO_RV64_" + "OUTSIDE": {"status": "qualification", "owner": "scripts/tool.py"},
+            "STWO_CAIRO_" + "LIVE": {"status": "runtime", "owner": "src/a/a.zig"}}}))
         result = budget.measure(self.root, [owner], [])
         row = result["packages"]["owner"]
         self.assertEqual((row["api_entries"], row["dependencies"], row["rv64_registry_flags"]), (1, 1, 1))
@@ -82,8 +95,11 @@ class PackageBudgetTests(unittest.TestCase):
         owner = self.contract("src/a")
         self.write("external.zig", "secret\n")
         (self.root / "src/a/link.zig").symlink_to(self.root / "external.zig")
-        with self.assertRaisesRegex(ValueError, "symlink"):
-            budget.measure(self.root, [owner], ["src/a/link.zig"])
+        for dangling in (False, True):
+            if dangling:
+                (self.root / "external.zig").unlink()
+            with self.subTest(dangling=dangling), self.assertRaisesRegex(ValueError, "symlink"):
+                budget.measure(self.root, [owner], ["src/a/link.zig"])
 
     def test_missing_and_exceeded_budget_fail_closed(self):
         owner = self.contract("src/a")

@@ -145,7 +145,8 @@
       ],
       "tests": [
         "cdc: stwo_ethereum_statement request ownership and invalid input laws"
-      ]
+      ],
+      "owner_module": "legacy_riscv_cpu_integration"
     },
     {
       "id": "package:stwo_metal_backend",

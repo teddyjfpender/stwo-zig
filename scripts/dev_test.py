@@ -552,9 +552,23 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="continuously type-check one focused package using Zig incremental compilation",
     )
+    parser.add_argument("--case-binary", type=Path, help="Run every case of a retained canonical Zig test binary")
+    parser.add_argument("--case-sha256", help="Caller-admitted retained executable SHA256")
+    parser.add_argument("--case-seed", type=lambda value: int(value, 0), help="Original u32 test seed")
+    parser.add_argument("--case-output", type=Path, help="Durable exact-case evidence directory")
+    parser.add_argument("--case-max-count", type=int, help="Clean partition width; default1, never skips remaining cases")
+    parser.add_argument("--case-resume-digest", help="Caller-admitted SHA256 of the completed-prefix receipt")
     args = parser.parse_args(argv)
     try:
         root = args.root.resolve(strict=True)
+        case_values = (args.case_binary, args.case_sha256, args.case_seed, args.case_output)
+        if any(value is not None for value in (*case_values, args.case_resume_digest, args.case_max_count)):
+            if any(value is None for value in case_values) or args.paths or args.check or args.watch or args.optimize or args.dry_run:
+                raise DevTestError("exact-case mode requires binary/SHA/seed/output and excludes normal planning options")
+            from scripts.repo.zig_case_execution import execute
+            receipt = execute(*case_values, root, args.case_resume_digest, 1 if args.case_max_count is None else args.case_max_count)
+            print(f"dev test cases: {receipt['status']} passed={receipt['passed']} skipped={receipt['skipped']} failed={receipt['failed']}")
+            return 0 if receipt["status"] == "PASS" else 3 if receipt["status"] == "INCOMPLETE" else 1
         paths = args.paths or worktree_paths(root)
         if not paths:
             print("dev test: no worktree changes")

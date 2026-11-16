@@ -11,7 +11,13 @@ import subprocess
 from pathlib import Path
 
 from scripts.repo.check_source_conformance import is_generated
-from scripts.repo.source_conformance_lib.rv64_flags import LIVE, SUFFIXES
+from scripts.repo.source_conformance_lib.rv64_flags import LIVE
+
+# Budget all admitted source languages, independently of environment-reader syntax.
+SOURCE_SUFFIXES = frozenset({
+    ".zig", ".py", ".sh", ".cu", ".cuh", ".c", ".cpp", ".cc", ".h", ".hpp",
+    ".m", ".mm", ".rs", ".metal", ".cairo", ".lean", ".sail", ".s", ".S", ".asm", ".ld",
+})
 
 COUNTERS = ("code_files", "code_lines", "generated_code_files", "generated_code_lines",
             "script_files", "api_entries", "dependencies", "rv64_registry_flags", "versioned_files")
@@ -40,15 +46,15 @@ def measure(repository: Path, contracts, paths=None) -> dict:
     unowned = empty()
     for path in sorted(set(paths) - {""}):
         source = repository / path
-        if not source.is_file():
-            continue
         if source.is_symlink():
             raise ValueError(f"package budget refuses tracked symlink: {path}")
+        if not source.is_file():
+            continue
         row = rows.get(owner_for(repository, path, contracts), unowned)
         row["versioned_files"] += 1
         if source.suffix in {".py", ".sh"}:
             row["script_files"] += 1
-        if source.suffix in SUFFIXES:
+        if source.suffix in SOURCE_SUFFIXES:
             text = source.read_text(encoding="utf-8")
             generated = is_generated(text)
             prefix = "generated_code_" if generated else "code_"
@@ -59,8 +65,8 @@ def measure(repository: Path, contracts, paths=None) -> dict:
         rows[contract.package]["dependencies"] = len(contract.dependencies)
     registry = repository / "conformance/rv64-flags.json"
     if registry.is_file():
-        for flag in json.loads(registry.read_text())["flags"].values():
-            if flag["status"] in LIVE:
+        for name, flag in json.loads(registry.read_text())["flags"].items():
+            if name.startswith("STWO_RV64_") and flag["status"] in LIVE:
                 row = rows.get(owner_for(repository, flag["owner"], contracts), unowned)
                 row["rv64_registry_flags"] += 1
     return {"packages": rows, "unowned": unowned}
@@ -97,6 +103,8 @@ def report(repository: Path, contracts) -> dict:
                   for path in new_files if path and (repository / path).is_file()}
     return {"schema": "package-complexity-census/v1",
             "new_file_sha256": new_hashes,
+            "source_suffixes": sorted(SOURCE_SUFFIXES),
+            "collector_policy": "tracked-source-languages-v2",
             "source_commit": git("rev-parse", "HEAD").decode().strip(),
             "index_tree": git("write-tree").decode().strip(),
             "tracked_worktree_diff_sha256": hashlib.sha256(git("diff", "HEAD", "--binary")).hexdigest(),

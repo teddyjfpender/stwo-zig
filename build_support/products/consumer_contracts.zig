@@ -18,10 +18,34 @@ fn findPublicModule(b: *std.Build, facade: *std.Build.Module, name: []const u8) 
         }
         for (module.import_table.values()) |child| pending.append(b.allocator, child) catch @panic("OOM");
     }
-    return selected orelse @panic("missing actual consumer public module");
+    return selected orelse std.debug.panic("missing actual consumer public module {s}", .{name});
+}
+
+fn selectedProtocol(b: *std.Build, facade: *std.Build.Module) graph.ProtocolModules {
+    return graph.ProtocolModules{
+        .core = findPublicModule(b, facade, "stwo_core"),
+        .backend_contracts = findPublicModule(b, facade, "stwo_backend_contracts"),
+        .prover_api = findPublicModule(b, facade, "stwo_prover_api"),
+        .prover = findPublicModule(b, facade, "stwo_prover_engine"),
+    };
+}
+
+// Executed by the existing consumer BUILD harness, not a runtime backend API.
+fn assertCudaFactoryCallerBindings(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, facade: *std.Build.Module, product: graph.Product) void {
+    const selected = selectedProtocol(b, facade);
+    const actual = graph.createCudaBackend(b, selected, product, target, optimize);
+    if (actual.import_table.get("stwo_core") != selected.core or
+        actual.import_table.get("stwo_prover_engine") != selected.prover or
+        actual.import_table.get("stwo_backend_contracts") != selected.backend_contracts)
+        @panic("CUDA factory lost caller-selected protocol identity");
+    if (actual.import_table.get("stwo_prover_api") != null)
+        @panic("CUDA factory acquired undeclared blanket protocol imports");
 }
 
 fn addMissingConsumerModules(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, facade: *std.Build.Module, product: graph.Product) void {
+    // Construct the missing CUDA seam through its real factory and selected predecessors.
+    const cuda = @import("../graph/integrations.zig").createRiscVCuda(b, selectedProtocol(b, facade), product, target, optimize, findPublicModule(b, facade, "stwo_cuda_backend"), findPublicModule(b, facade, "stwo_riscv_frontend"), findPublicModule(b, facade, "stwo_riscv_cpu_integration"));
+    facade.addImport("stwo_riscv_cuda_integration", cuda);
     // These actual package adapters are absent from the deprecated SDK facade.
     // Their contracts own roots and dependencies; this list selects composition,
     // never defines a second API/dependency registry or a runtime product.
@@ -45,10 +69,23 @@ fn addMissingConsumerModules(b: *std.Build, target: std.Build.ResolvedTarget, op
     }
 }
 
+fn selectedOwnerModule(b: *std.Build, registration: @import("package_dependencies.zig").Consumer, package_name: []const u8) []const u8 {
+    const selected = registration.owner_module orelse return package_name;
+    const owned = @import("../graph/package_ownership.zig").resolve(registration.root) orelse @panic("unowned consumer module selection");
+    const directory = registration.root[0 .. registration.root.len - owned.sub_path.len - 1];
+    const bytes = std.fs.cwd().readFileAlloc(b.allocator, b.pathFromRoot(b.fmt("{s}/package.contract.json", .{directory})), 1 << 20) catch @panic("read consumer module owner");
+    const payload = (std.json.parseFromSlice(std.json.Value, b.allocator, bytes, .{}) catch @panic("parse consumer module owner")).value;
+    if (!std.mem.eql(u8, payload.object.get("package").?.string, package_name) or
+        !payload.object.get("public_modules").?.object.contains(selected))
+        @panic("consumer module is not a declared public root of its owner");
+    return selected;
+}
+
 pub fn add(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, facade: *std.Build.Module, product: graph.Product) void {
     const context = .{ .b = b, .target = target, .optimize = optimize };
     const cdc = @import("package_dependencies.zig");
     addMissingConsumerModules(b, target, optimize, facade, product);
+    assertCudaFactoryCallerBindings(b, target, optimize, facade, product);
     const laws = b.createModule(.{ .root_source_file = b.path("build_support/products/consumer_laws.zig"), .target = target, .optimize = optimize });
     const source_check = context.b.addSystemCommand(&.{ "python3", "scripts/repo/check_package_workspace.py" });
     source_check.setCwd(context.b.path("."));
@@ -64,12 +101,14 @@ pub fn add(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builti
             const is_product = std.mem.startsWith(u8, registration.id, "product:");
             const owner_name = if (is_product) registration.id["product:".len..] else if (std.mem.startsWith(u8, registration.id, "package:")) registration.id["package:".len..] else @panic("unsupported consumer kind");
             if (is_product and (!std.mem.eql(u8, owner_name, product.name) or !std.mem.eql(u8, registration.route, registration.id))) @panic("consumer does not name the actual constructed SDK product");
-            const owner = if (is_product) facade else findPublicModule(context.b, facade, owner_name);
+            if (is_product and registration.owner_module != null) @panic("product consumer cannot select a package owner module");
+            const actual_owner_name = if (is_product) owner_name else selectedOwnerModule(context.b, registration, owner_name);
+            const owner = if (is_product) facade else findPublicModule(context.b, facade, actual_owner_name);
             const bound = if (std.mem.eql(u8, registration.route, "injected:interop_postcard")) (owner.import_table.get("interop_postcard") orelse @panic("consumer missing actual postcard injection")).import_table.get(provider.name) orelse @panic("postcard missing canonical provider") else owner.import_table.get(provider.name) orelse std.debug.panic("consumer {s} missing declared provider {s}; route={s}; root={s}", .{ registration.id, provider.name, registration.route, registration.root });
             if (bound != canonical) @panic("consumer/provider module identity mismatch");
             const root = graph.create(context.b, .{ .product = product, .root_source_file = registration.root, .target = context.target, .optimize = context.optimize });
             for (registration.imports) |name| {
-                const binding = if (std.mem.eql(u8, name, "waist_consumer_laws")) laws else if (std.mem.eql(u8, name, provider.name)) bound else if (std.mem.eql(u8, name, owner_name)) owner else owner.import_table.get(name) orelse @panic("unbound consumer public import");
+                const binding = if (std.mem.eql(u8, name, "waist_consumer_laws")) laws else if (std.mem.eql(u8, name, provider.name)) bound else if (std.mem.eql(u8, name, actual_owner_name)) owner else owner.import_table.get(name) orelse @panic("unbound consumer public import");
                 root.addImport(name, binding);
             }
             const name = context.b.fmt("cdc-{s}-{s}-{s}", .{ provider.name, owner_name, @tagName(context.optimize) });

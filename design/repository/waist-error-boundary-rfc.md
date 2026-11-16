@@ -247,10 +247,47 @@ and `/tmp/stwo-backend-d2-*.log`; they are local evidence, not portable artifact
 The canonical hosted five-provider graph and real process receipts still have
 to qualify the committed source.
 
-Remaining full-D2 coverage includes Core verification/FRI/Merkle failures,
+At the rc.2 checkpoint, remaining full-D2 coverage included Core verification/FRI/Merkle failures,
 backend recovery/native-AIR, prover work/task/lifetime failures, JSON parser and
 configuration/allocator decode origins, and recursion felt/postcard/request/
 registry/config origins. In particular, no global `anyerror` mapper was added
-and no same-named caller error is reclassified. Versioned CSP attempt producer
-and reader framing remains required before adding codes to its structured
-failure payload. These boundaries are not waived by five nonempty code bands.
+and no same-named caller error is reclassified. The optional versioned CSP stderr/sidecar framing is now implemented. Primary
+v3 structured failure payloads remain unchanged; adding codes there still
+requires a versioned framing decision. These boundaries are not waived by five nonempty code bands.
+
+## Core verification continuation after checkpoint 204639fff
+
+The delegated RFC #360 continuation adds `PcsVerificationError`, the exact typed
+`VerificationError || Allocator.Error` boundary of PCS verification. Codes
+`0x1101`–`0x111a` pin the existing verifier/FRI/lifted-Merkle meanings; `0x111b`
+pins PCS allocation failure. The candidate Core version advances to rc.3 and
+Native examples to 0.2.0 for nested additive methods. The rc.2 configuration
+entries retain their original codes and since values; no root export names,
+dependencies, proof/config wire fields or transcript draws change.
+
+Opt-in `verifyDiagnosed`/`verifyExDiagnosed` annotate exact typed PCS catches and
+explicit Core-owned structure/OODS checks. Their shared implementation leaves
+caller component mask/evaluation callbacks untouched. A same-tag callback error
+therefore remains unmapped; this is executed behavior, not an error-name rule.
+Legacy entrypoints pass a null output and retain ownership/capture behavior.
+Native XOR forwards diagnostics from the actual receiver and its interop branch
+uses bounded optional stderr, retaining the original error. Earlier Native
+statement/preprocessed-root failures remain unmapped and clear stale metadata.
+
+Local focused Debug and ReleaseFast checks execute all four metadata tests and
+12 verifier/capture cases, including owned structure/OODS, identical-tag custom
+callback refusal, typed PCS shape refusal and a physically absent FRI-layer
+refusal. Existing Merkle capture and every-allocation-failure cases also pass.
+The actual Native receiver executes both rejection origins in each mode using
+its real fixed preprocessed commitment, without constructing a STARK proof.
+Peak guarded RSS is below 800 MiB. Full prover-dependent successful roundtrip
+and FRI-mutation additions remain unrun under the local compilation boundary;
+they are not counted as qualification evidence. The original revision-target grinding
+case separately reached SIGXCPU; the broader unfiltered diagnostic-root crash
+remains unclassified. Neither is established as an arithmetic/compiler defect.
+
+These checks qualify the declared typed verification origin, not all Core
+arithmetic/input-decode origins or every product consumer. Remaining full-D2
+work still includes backend recovery/native-AIR, prover work/task/lifetime,
+other parser/resource and recursion framing boundaries. Component callback
+errors deliberately remain unclassified by Core.

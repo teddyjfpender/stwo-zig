@@ -72,6 +72,7 @@ class ConsumerContract:
     route: str
     imports: tuple[str, ...]
     tests: tuple[str, ...]
+    owner_module: str | None = None
 
 
 @dataclass(frozen=True)
@@ -111,9 +112,12 @@ def parse_contract_metadata(payload: Any, label: str) -> ContractMetadata:
         raise ValueError(f"{label}: consumers must be an array")
     consumers = []
     for row in raw:
-        if not isinstance(row, dict) or set(row) != {"id", "root", "route", "imports", "tests"}:
+        if not isinstance(row, dict) or not {"id", "root", "route", "imports", "tests"} <= row.keys() or row.keys() - {"id", "root", "route", "imports", "tests", "owner_module"}:
             raise ValueError(f"{label}: consumer fields differ")
         identity, root, route = row["id"], row["root"], row["route"]
+        owner_module = row.get("owner_module")
+        if "owner_module" in row and (not isinstance(owner_module, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", owner_module) or not isinstance(identity, str) or not identity.startswith("package:")):
+            raise ValueError(f"{label}: invalid consumer owner module")
         if not isinstance(identity, str) or not re.fullmatch(
             r"(?:package:[a-z][a-z0-9_]*|product:[a-z][a-z0-9_-]*)", identity,
         ):
@@ -133,7 +137,7 @@ def parse_contract_metadata(payload: Any, label: str) -> ContractMetadata:
         imports = strings(row["imports"], "consumer imports")
         if any(name == "std" or not re.fullmatch(r"[a-z][a-z0-9_]*", name) for name in imports):
             raise ValueError(f"{label}: invalid named consumer import")
-        consumers.append(ConsumerContract(identity, root, route, imports, strings(row["tests"], "consumer tests")))
+        consumers.append(ConsumerContract(identity, root, route, imports, strings(row["tests"], "consumer tests"), owner_module))
     identities = [row.id for row in consumers]
     if identities != sorted(set(identities)):
         raise ValueError(f"{label}: consumer identities must be sorted and unique")
@@ -551,6 +555,8 @@ def validate_package_consumer_sources(repository: Path, provider: Any, metadata:
                 owner = contracts.get(entry.id.removeprefix("package:"))
                 if owner is None:
                     raise GraphError("unknown consumer package")
+                if entry.owner_module is not None and entry.owner_module not in owner.public_modules:
+                    raise GraphError("consumer public module is not declared by its owner package")
                 if package_owner(contracts, source) is not owner:
                     raise GraphError("consumer source belongs to another or excluded owner")
                 if source.relative_to(owner.directory.resolve()).as_posix() != f"contract_tests/{provider.package}_test.zig":

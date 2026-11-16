@@ -7,7 +7,7 @@ input preparation, proving entry points, and verification wrapper.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `example` |
 | Owner | `native-examples` |
 | Public Zig module | `stwo_native_examples` |
@@ -130,3 +130,5 @@ proof-equivalent results.
 - [Native CUDA integration](../../../integrations/native_cuda/README.md)
 - [Repository prove guide](../../../../README.md#prove)
 - [API parity policy](../../../../conformance/api-parity.md)
+
+XOR exposes an additive `verifyDiagnosed` wrapper. It clears optional metadata before its own admission, reports only owned Core verification failures, and preserves the existing `verify` entrypoint and proof format. Native statement/preprocessed-root failures stay unmapped; the interop CLI emits bounded optional stderr only for a mapped Core refusal.

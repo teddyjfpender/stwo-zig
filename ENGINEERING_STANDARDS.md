@@ -244,11 +244,15 @@ spends budget without payoff is rejected.
 repository-wide subtraction budget. Its default is zero net code growth, zero
 new flags and zero new top-level scripts; each entry records a change's
 `net_code_budget`, flag and script budgets and, for positive growth, a
-`positive_growth_justification`. `STWO_RV64_*` environment flags are declared
-in `conformance/rv64-flags.json` with owner, default and status; an undeclared
-flag fails the source conformance check. Other flag families are not yet
-registered (*Phase 2*). *Enforced* (`zig build source-conformance`,
-`scripts/repo/check_source_conformance.py`); per-PR budget comparison *Phase 0*.
+`positive_growth_justification`. `STWO_*` configuration names are declared
+in `conformance/rv64-flags.json` with owner, default and status; undeclared
+names, expired live entries and stale source/reference pins fail source
+conformance. Objective-C/C++ and indirect readers are included. Constants and
+reference-only names cannot conceal runtime reads. The below-60 live target
+and legacy M7/M8 retirement check remain specifically RV64 obligations; full
+family registration does not satisfy that target. *Enforced* (`zig build
+source-conformance`, `scripts/repo/check_source_conformance.py`); per-PR budget
+comparison *Phase 0*.
 
 **Module budget.** Track public surface (`api_surface` size), dependency count
 and allowed dependency classes, cyclomatic complexity on hot paths, and
@@ -429,8 +433,8 @@ These results do not establish complete boundary, security or release coverage.
 | Stable process/wire error codes and semantics across all waist boundaries remain incomplete. | BC-2; issue #359 | 1 |
 | Consumer-owned execution across all five waist providers remains incomplete; one candidate consumer is not full coverage. | BC-4; issue #366 | 1 |
 | The initial five-surface release-candidate freeze is complete (#354); API-diff compatibility enforcement and release qualification remain incomplete. | BC-7; issue #354 | 1 |
-| Populated, blocking per-package complexity budgets, hot-path complexity and runtime ceilings remain incomplete. | CB-1, CB-2; issue #370 | 1/2 |
-| RV64 live-flag target remains below 60; other flag families also need complete registration. Read the registry for current counts. | CB-4; issue #332 | 2 |
+| Source-derived package counters and blocking ceilings are implemented; complete hot-path complexity and runtime ceilings remain incomplete. | CB-1, CB-2; issue #370 | 1/2 |
+| All STWO families are registered and checked; the RV64 below-60 live target and legacy retirement remain incomplete. Read the registry for current counts. | CB-4; issue #332 | 2 |
 | Complete property/fuzz coverage, including both Debug and ReleaseFast for numerical invariants. | BC-5, SL-3; issue #347 | 1/2 |
 | Remaining vector ownership and historical evidence/source-snapshot extraction. | RS-4; issue #362 | 3 |
 

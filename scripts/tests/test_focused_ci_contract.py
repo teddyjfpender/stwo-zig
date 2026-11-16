@@ -666,8 +666,9 @@ class PlannerContractTests(unittest.TestCase):
 from scripts.tests.focused_ci_runner_contracts import runner_policy
 
 
-from scripts.tests.focused_ci_runner_contracts import RunnerReceiptTests
+from scripts.tests.focused_ci_runner_contracts import RunnerReceiptTests, CommandResourceReceiptTests
 RunnerReceiptTests.__module__ = __name__
+CommandResourceReceiptTests.__module__ = __name__
 
 
 if __name__ == "__main__":

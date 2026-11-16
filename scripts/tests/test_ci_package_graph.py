@@ -498,6 +498,30 @@ class CoreConsumerExecutionContractTests(unittest.TestCase):
 
 
 class FiveProviderConsumerExecutionTest(unittest.TestCase):
+    def test_explicit_owner_module_is_one_actual_public_root_of_its_package(self):
+        from dataclasses import replace
+        from scripts.repo import check_package_workspace as workspace
+        contracts = {c.package: c for c in (workspace.load_contract(path) for path in (ROOT / "src").rglob("package.contract.json"))}
+        provider = contracts["stwo_core"]
+        payload = json.loads((ROOT / "src/waist/core/package.contract.json").read_text())
+        row = next(entry for entry in payload["consumers"] if entry["id"] == "package:stwo_ethereum_statement")
+        row["owner_module"] = "legacy_riscv_cpu_integration"
+        metadata = graph.parse_contract_metadata(payload, "owner module fixture")
+        self.assertEqual([], graph.validate_package_consumer_sources(ROOT, provider, metadata, contracts, graph.tracked_regular_sources(ROOT)))
+        chosen = next(entry for entry in metadata.consumers if entry.id == row["id"])
+        for foreign in ("unknown_public_module", "stwo_cpu_backend"):
+            altered = replace(metadata, consumers=tuple(replace(entry, owner_module=foreign) if entry.id == row["id"] else entry for entry in metadata.consumers))
+            self.assertTrue(any("consumer public module" in error for error in graph.validate_package_consumer_sources(ROOT, provider, altered, contracts, graph.tracked_regular_sources(ROOT))))
+        for invalid in ("", "../foreign", 7, None):
+            row["owner_module"] = invalid
+            with self.assertRaisesRegex(ValueError, "owner module"):
+                graph.parse_contract_metadata(payload, "owner module fixture")
+        product = next(entry for entry in payload["consumers"] if entry["id"] == "product:stwo")
+        payload["consumers"] = [{**product, "owner_module": "legacy_riscv_cpu_integration"}]
+        with self.assertRaisesRegex(ValueError, "owner module"):
+            graph.parse_contract_metadata(payload, "product owner module fixture")
+
+
     def test_test_only_import_authority_names_exact_registered_roots(self):
         from types import SimpleNamespace
         entry = SimpleNamespace(root="src/consumer/contract_tests/provider_test.zig", imports=("provider", "waist_consumer_laws"))

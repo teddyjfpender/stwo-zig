@@ -82,3 +82,26 @@ must be registered in
 [`conformance/tooling-surface-v1.json`](../conformance/tooling-surface-v1.json).
 Retired implementations remain recoverable from Git; they are not carried as
 disabled jobs, dormant parsers, or archival compatibility layers on `main`.
+
+### Bounded execution of canonical test images
+
+`dev_test.py --case-binary <image> --case-sha256 <admitted-sha256>
+--case-seed <original-u32-seed> --case-output <evidence-directory>` executes
+one original Zig test case by default. It queries the complete inventory from
+the pinned0.15.2 image, with no recompilation or test filtering. Use the existing
+enforced local memory/time guard around each invocation. `--case-max-count`
+changes only clean partition width; it cannot remove cases from final coverage.
+
+An incomplete prefix exits3 and prints its receipt digest. The next invocation
+requires that admitted digest through `--case-resume-digest`; it verifies the
+binary, seed, environment, complete inventory and saved raw evidence before
+advancing. An unfinished attempt is not automatically retried. PASS requires
+complete exact coverage; skipped cases are reported separately from passes.
+The caller must establish the image's canonical compiler/source provenance:
+this runner records trusted local execution, not remote proof attestation.
+
+Completed lane commands also retain exact-PID kernel CPU/RSS/fault measurements.
+Kernel maximum individual-process RSS is explicitly distinct from sampled
+concurrent child-tree RSS and from the external aggregate local memory guard.
+Package complexity reports use an independent source-language policy, including
+Objective-C, Cairo, Lean and assembly, rather than a flag-scanner suffix list.

@@ -467,7 +467,11 @@ fn runVerifyImpl(allocator: std.mem.Allocator, cli: Cli, use_std_shims: bool) !v
         if (use_std_shims) {
             try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);
         } else {
-            try xor.verify(allocator, config, statement, proof);
+            var core_failure: ?stwo.core.error_codes.Entry = null;
+            xor.verifyDiagnosed(allocator, config, statement, proof, &core_failure) catch |err| {
+                if (core_failure) |entry| cli_mod.emitBoundaryDiagnostic("core_verify_rejection_v1", "stwo_core", "verify", entry);
+                return err;
+            };
         }
         return;
     }

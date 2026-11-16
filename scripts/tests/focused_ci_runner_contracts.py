@@ -5,6 +5,7 @@ import contextlib
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -39,6 +40,14 @@ def runner_policy(commands: list[list[str]], host: str | None = None) -> dict[st
     }
 
 class RunnerReceiptTests(unittest.TestCase):
+    def setUp(self):
+        # Receipt-shape fixtures mock the command boundary; real measurements
+        # and cancellation are exercised by CommandResourceReceiptTests below.
+        patch = mock.patch.object(ci_scope_run, "run_measured", side_effect=lambda argv, **kw:
+            (ci_scope_run.subprocess.run(argv, check=False, **kw), {"collector": "unit-fixture"}))
+        patch.start()
+        self.addCleanup(patch.stop)
+
     def test_interruption_keeps_completed_command_receipt_and_unfinished_lane(self) -> None:
         policy = runner_policy([["first"], ["interrupted"], ["must-not-run"]])
         captured: list[tuple[list[str], dict[str, object]]] = []
@@ -359,3 +368,93 @@ class RunnerReceiptTests(unittest.TestCase):
             [sys.executable, "scripts/repo/zig_serial_build.py", "-j1", "test", "-Doptimize=ReleaseFast"],
             captured[0][0],
         )
+
+
+class CommandResourceReceiptTests(unittest.TestCase):
+    def test_real_high_then_low_commands_have_independent_kernel_resources(self):
+        high = [sys.executable, "-c", "import os,time; x=bytearray(96<<20); "
+                "x[::4096]=b'x'*len(x[::4096]); end=time.process_time()+0.03; "
+                "exec('while time.process_time()<end: pass'); os.write(1,b'large\\n')"]
+        low = [sys.executable, "-c", "import os,signal; os.write(2,b'small\\n'); "
+               "os.kill(os.getpid(),signal.SIGTERM)"]
+        with tempfile.TemporaryDirectory() as raw, mock.patch.object(
+            ci_scope_run.sys, "stdout", SimpleNamespace(buffer=io.BytesIO())
+        ), mock.patch.object(ci_scope_run.sys, "stderr", SimpleNamespace(buffer=io.BytesIO())):
+            output = Path(raw) / "lane.json"
+            receipt = ci_scope_run.run_lane(root=ROOT, policy=runner_policy([high, low]),
+                lane="focused", output=output, cache_mode="inherit", cache_root=None)
+            self.assertEqual("FAIL", receipt["status"])
+            self.assertEqual([0, -signal.SIGTERM], [c["exit_code"] for c in receipt["commands"]])
+            resources = [c["resources"] for c in receipt["commands"]]
+            self.assertGreater(resources[0]["peak_rss_bytes"], resources[1]["peak_rss_bytes"])
+            for ordinal, resource in enumerate(resources):
+                self.assertEqual("os.wait4", resource["collector"])
+                self.assertIn("not concurrent", resource["rss_scope"])
+                self.assertGreater(resource["peak_rss_bytes"], 0)
+                self.assertGreater(resource["user_cpu_ns"] + resource["system_cpu_ns"], 0)
+                completed = json.loads((output.parent / f"focused-{ordinal}.completed.json").read_text())
+                self.assertEqual(resource, completed["command"]["resources"])
+            self.assertEqual(b"large\n", (output.parent / "focused-0.stdout").read_bytes())
+            self.assertEqual(b"small\n", (output.parent / "focused-1.stderr").read_bytes())
+
+    def test_cancellation_keeps_completed_resources_and_reaps_interrupted_child(self):
+        first = [sys.executable, "-c", "print('completed')"]
+        launcher = ("from pathlib import Path; import json,sys; "
+                    "from scripts.repo.ci_scope_run import run_lane; "
+                    "run_lane(root=Path.cwd(),policy=json.loads(sys.argv[2]),lane='focused',"
+                    "output=Path(sys.argv[1]),cache_mode='inherit',cache_root=None)")
+        for cancellation in (signal.SIGTERM, signal.SIGINT):
+            with self.subTest(signal=cancellation), tempfile.TemporaryDirectory() as raw:
+                second = [sys.executable, "-c", "import os,signal,time; "
+                    "print(os.getpid(),flush=True); os.write(1,b'partial\\n'); "
+                    f"os.kill(os.getppid(),{cancellation}); "
+                    + ("time.sleep(10)" if cancellation == signal.SIGINT else "pass")]
+                output = Path(raw) / "lane.json"
+                child = subprocess.run([sys.executable, "-c", launcher, str(output),
+                    json.dumps(runner_policy([first, second]))], cwd=ROOT, capture_output=True, timeout=10)
+                self.assertIn(child.returncode, {-cancellation, 128 + cancellation})
+                progress = json.loads(output.read_text())
+                self.assertEqual("INCOMPLETE", progress["status"])
+                self.assertEqual(1, len(progress["commands"]))
+                self.assertGreater(progress["commands"][0]["resources"]["peak_rss_bytes"], 0)
+                self.assertFalse((output.parent / "focused-1.completed.json").exists())
+                pid, partial = (output.parent / "focused-1.stdout").read_bytes().split(b"\n", 1)
+                self.assertEqual(b"partial\n", partial)
+                if cancellation == signal.SIGINT:
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(int(pid), 0)
+
+    def test_kernel_units_and_exact_pid_are_platform_explicit(self):
+        usage = SimpleNamespace(ru_maxrss=73, ru_utime=0.25, ru_stime=0.5, ru_minflt=3, ru_majflt=2)
+        for platform, scale in (("darwin", 1), ("linux", 1024)):
+            with mock.patch.object(ci_scope_run.sys, "platform", platform), mock.patch.object(
+                ci_scope_run.subprocess, "Popen"
+            ) as popen, mock.patch.object(ci_scope_run.os, "wait4", return_value=(123, 0, usage)) as wait:
+                popen.return_value.__enter__.return_value.pid = 123
+                completed, resource = ci_scope_run.run_measured(["command"])
+                wait.assert_called_once_with(123, 0)
+                self.assertEqual(0, completed.returncode)
+                self.assertEqual(73 * scale, resource["peak_rss_bytes"])
+                self.assertEqual((250000000, 500000000), (resource["user_cpu_ns"], resource["system_cpu_ns"]))
+                self.assertEqual((3, 2), (resource["minor_page_faults"], resource["major_page_faults"]))
+
+    def test_post_spawn_callback_failure_kills_the_owned_process_group(self):
+        child_pid = []
+        script = ("import subprocess,sys,time; "
+                  "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(10)']); "
+                  "print(p.pid,flush=True); time.sleep(10)")
+        def interrupt(child):
+            child_pid.append(int(child.stdout.readline()))
+            raise RuntimeError("callback interrupted")
+        with self.assertRaisesRegex(RuntimeError, "callback interrupted"):
+            ci_scope_run.run_measured([sys.executable, "-c", script], stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL, start_new_session=True, on_start=interrupt)
+        remaining = subprocess.run(["ps", "-p", str(child_pid[0]), "-o", "stat="],
+                                   capture_output=True, text=True)
+        self.assertTrue(remaining.returncode != 0 or remaining.stdout.strip().startswith("Z"))
+
+    def test_unsupported_measurement_never_launches_or_fabricates_usage(self):
+        with mock.patch.object(ci_scope_run.sys, "platform", "unsupported"), mock.patch.object(
+            ci_scope_run.subprocess, "Popen", side_effect=AssertionError("must not execute")
+        ), self.assertRaisesRegex(ci_scope_run.PlanError, "resource measurement"):
+            ci_scope_run.run_measured(["unused"])

@@ -7,7 +7,7 @@ contains no prover orchestration and has no dependency on a compute backend.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.2` |
+| Version | `1.0.0-rc.3` |
 | Layer | `protocol` |
 | Owner | `protocol-core` |
 | Public Zig module | `stwo_core` |
@@ -182,3 +182,5 @@ those specified by the provider tests. Full five-provider D2 coverage remains
 open in the RFC coverage ledger.
 
 `error_codes.fromFriConfig` accepts the exact FRI configuration error set. Codes `0x1001` and `0x1002` retain invalid-degree and invalid-blowup meanings; unknown/foreign IDs are refused by lookup. Native interop emits them only at its typed configuration admission catch, preserving the original error. This does not classify arbitrary verifier or caller-component errors.
+
+`verifier.verifyDiagnosed` and `verifyExDiagnosed` add opt-in error metadata for explicit Core checks and the typed PCS verification boundary. `error_codes.fromPcs` pins verifier/FRI/Merkle meanings in `0x1101`–`0x111a` and PCS allocation failure at `0x111b`, since rc.3. Component callback errors remain unmapped even when their tags match; the original verifier error, transcript, ownership and capture rules are preserved. Existing entries retain their original since versions.

@@ -101,7 +101,8 @@
       ],
       "tests": [
         "cdc: stwo_ethereum_statement proof framing refuses malformed input without allocation"
-      ]
+      ],
+      "owner_module": "legacy_riscv_cpu_integration"
     },
     {
       "id": "package:stwo_native_cuda_integration",

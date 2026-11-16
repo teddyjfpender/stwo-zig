@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import platform
+import signal
 import subprocess
 import sys
 import tempfile
@@ -73,6 +74,44 @@ def local_build_command(command: list[str]) -> list[str]:
         result.append(argument)
         index += 1
     return result
+
+
+def run_measured(argv: list[str], *, on_start=None, **kwargs: Any) -> tuple[subprocess.CompletedProcess, dict[str, Any]]:
+    """Wait for this exact child, retaining native output, parentage and exit semantics."""
+    if not (sys.platform == "darwin" or sys.platform.startswith("linux")) or not hasattr(os, "wait4"):
+        raise PlanError("command resource measurement requires Linux/macOS os.wait4")
+    with subprocess.Popen(argv, **kwargs) as child:
+        try:
+            if on_start is not None:
+                on_start(child)
+            _, status, usage = os.wait4(child.pid, 0)
+            # Public wait-status conversion preserves negative signal return codes.
+            # Mark the externally reaped child before Popen's context manager waits.
+            child.returncode = os.waitstatus_to_exitcode(status)
+        except BaseException:
+            if kwargs.get("start_new_session"):
+                try:
+                    os.killpg(child.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                except PermissionError:
+                    if child.poll() is None:  # Darwin may deny signaling an already-dead group.
+                        raise
+            else:
+                child.kill()
+            child.wait()
+            raise
+    return subprocess.CompletedProcess(argv, child.returncode), {
+        "schema": "stwo-command-resources-v1",
+        "collector": "os.wait4",
+        "rss_scope": "kernel maximum individual process RSS; not concurrent process-tree aggregate",
+        "cpu_scope": "wait4 child and reaped descendant usage; unaccounted detached descendants excluded",
+        "peak_rss_bytes": usage.ru_maxrss * (1 if sys.platform == "darwin" else 1024),
+        "user_cpu_ns": round(usage.ru_utime * 1_000_000_000),
+        "system_cpu_ns": round(usage.ru_stime * 1_000_000_000),
+        "minor_page_faults": usage.ru_minflt,
+        "major_page_faults": usage.ru_majflt,
+    }
 
 
 def run_lane(
@@ -171,9 +210,8 @@ def run_lane(
                 "completed_commands": records,
             })
             with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
-                result = subprocess.run(
-                    argv, cwd=root, env=environment, check=False,
-                    stdout=stdout, stderr=stderr,
+                result, resources = run_measured(
+                    argv, cwd=root, env=environment, stdout=stdout, stderr=stderr,
                 )
             duration_ns = time.monotonic_ns() - command_started
             stdout_bytes, stderr_bytes = stdout_path.read_bytes(), stderr_path.read_bytes()
@@ -184,6 +222,7 @@ def run_lane(
                 "argv": argv,
                 "duration_ns": duration_ns,
                 "exit_code": result.returncode,
+                "resources": resources,
                 "stdout_sha256": digest(stdout_bytes),
                 "stderr_sha256": digest(stderr_bytes),
             })

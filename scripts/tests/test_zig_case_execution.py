@@ -1,0 +1,152 @@
+from __future__ import annotations
+
+import contextlib
+import io
+import json
+import os
+from pathlib import Path
+import struct
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest import mock
+
+from scripts import dev_test
+from scripts.repo import zig_case_execution as cases
+from scripts.repo.ci_scope_plan import PlanError, write_json
+
+ROOT = Path(__file__).resolve().parents[2]
+SERVER = r'''
+import json,struct,sys,os
+from pathlib import Path
+cfg=json.loads(Path(CONFIG).read_text()); count=Path(CONFIG+'.count')
+k=int(count.read_text())+1 if count.exists() else 1; count.write_text(str(k))
+def send(tag,body):
+ sys.stdout.buffer.write(struct.pack('<II',tag,len(body))+body);sys.stdout.buffer.flush()
+send(0,cfg.get('version','0.15.2').encode())
+while True:
+ header=sys.stdin.buffer.read(8)
+ if not header:break
+ tag,n=struct.unpack('<II',header);body=sys.stdin.buffer.read(n)
+ if tag==0:break
+ if tag==4:
+  names=cfg.get('names',['first','second']); names=names[::-1] if cfg.get('change') and k>1 else names
+  text=b'\0';offsets=[]
+  for name in names:offsets.append(len(text));text+=name.encode()+b'\0'
+  send(3,struct.pack('<II',len(text),len(names))+struct.pack('<%dI'%len(names),*offsets)+struct.pack('<%dI'%len(names),*[cfg.get('panic',0)]*len(names))+text)
+ if tag==5:
+  i,=struct.unpack('<I',body)
+  with Path(CONFIG+'.runs').open('a') as f:f.write(str(i)+'\n')
+  if cfg.get('crash')==i:os._exit(7)
+  send(99 if cfg.get('unknown') else 4,struct.pack('<II',i+1 if cfg.get('forged') else i,cfg.get('flags',[0,0])[i]))
+  if cfg.get('duplicate'):send(4,struct.pack('<II',i,0))
+'''
+
+
+class ExactCaseTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.folder = Path(self.temp.name).resolve()
+        self.binary, self.config = self.folder / "server", self.folder / "config.json"
+        self.binary.write_text("#!" + sys.executable + "\nCONFIG=" + repr(str(self.config)) + "\n" + SERVER)
+        self.binary.chmod(0o755)
+        self.config.write_text("{}")
+        self.out = self.folder / "output"
+        self.addCleanup(mock.patch.stopall)
+        mock.patch("sys.stdout", new=io.StringIO()).start()
+
+    def run_cases(self, resume=None):
+        return cases.execute(self.binary, cases.sha(self.binary), 17, self.out, ROOT, resume, max_cases=65536)
+
+    def test_complete_original_coverage_and_verified_resume(self):
+        result = self.run_cases()
+        self.assertEqual(("PASS", 2, 0), (result["status"], result["passed"], result["skipped"]))
+        self.run_cases(cases.sha(self.out / "receipt.json"))
+        self.assertEqual("0\n1\n", Path(str(self.config) + ".runs").read_text())
+
+    def test_skip_fail_leak_log_and_fuzz_flags_preserve_meaning(self):
+        self.config.write_text(json.dumps({"names": list("abcde"), "flags": [2, 1, 4, 16, 8]}))
+        result = self.run_cases()
+        self.assertEqual(("FAIL", 1, 1, 3, 1),
+                         (result["status"], result["passed"], result["skipped"], result["failed"], result["fuzz_initial_cases"]))
+        self.run_cases(cases.sha(self.out / "receipt.json"))
+        self.assertEqual("0\n1\n2\n3\n4\n", Path(str(self.config) + ".runs").read_text())
+
+    def test_clean_prefix_resume_never_reexecutes_a_completed_case(self):
+        def interrupt(path, value):
+            write_json(path, value)
+            if path == self.out / "receipt.json" and len(value["results"]) == 1:
+                raise KeyboardInterrupt
+        with mock.patch.object(cases, "write_json", side_effect=interrupt), self.assertRaises(KeyboardInterrupt):
+            self.run_cases()
+        self.assertEqual("INCOMPLETE", json.loads((self.out / "receipt.json").read_text())["status"])
+        self.assertEqual("PASS", self.run_cases(cases.sha(self.out / "receipt.json"))["status"])
+        self.assertEqual("0\n1\n", Path(str(self.config) + ".runs").read_text())
+
+    def test_ambiguous_crashed_case_is_not_automatically_retried(self):
+        self.config.write_text('{"crash":1}')
+        with self.assertRaises(PlanError):
+            self.run_cases()
+        self.assertEqual(1, len(json.loads((self.out / "receipt.json").read_text())["results"]))
+        with self.assertRaisesRegex(PlanError, "cannot automatically retry"):
+            self.run_cases(cases.sha(self.out / "receipt.json"))
+        self.assertEqual("0\n1\n", Path(str(self.config) + ".runs").read_text())
+
+    def test_bad_version_inventory_panic_and_frames_fail_closed(self):
+        for key, value in (("version", "0.16.0"), ("change", True), ("panic", 1), ("names", ["same", "same"]),
+                           ("forged", True), ("duplicate", True), ("unknown", True)):
+            with self.subTest(key=key):
+                self.out = self.folder / key
+                Path(str(self.config) + ".count").unlink(missing_ok=True)
+                self.config.write_text(json.dumps({key: value}))
+                with self.assertRaises(PlanError):
+                    self.run_cases()
+                self.assertEqual("INCOMPLETE", json.loads((self.out / "receipt.json").read_text())["status"])
+
+    def test_resume_rejects_changed_anchor_record_flags_and_evidence(self):
+        self.run_cases()
+        anchor = cases.sha(self.out / "receipt.json")
+        with self.assertRaisesRegex(PlanError, "receipt digest"):
+            self.run_cases("0" * 64)
+        record = self.out / "000000.completed.json"
+        before = record.read_bytes()
+        modified = json.loads(before); modified["flags"] = 1; write_json(record, modified)
+        with self.assertRaisesRegex(PlanError, "forged completed"):
+            self.run_cases(anchor)
+        record.write_bytes(before)
+        (self.out / "000000.stdout.bin").write_bytes(b"bad")
+        with self.assertRaises(PlanError):
+            self.run_cases(anchor)
+
+    def test_metadata_bounds_names_and_truncation_are_checked(self):
+        for body in (b"", struct.pack("<II", 1, 0) + b"\0", struct.pack("<II", 1, 999999)):
+            with self.assertRaises(PlanError):
+                cases.inventory(body)
+        with self.assertRaises(PlanError):
+            cases.frame(io.BytesIO(struct.pack("<II", 0, cases.MAX_FRAME + 1)))
+        with self.assertRaises(PlanError):
+            cases.frame(io.BytesIO(b"\0"))
+
+    def test_guard_failure_keeps_the_aggregate_incomplete(self):
+        with mock.patch.object(cases, "RSS_CAP", -1), self.assertRaises(PlanError):
+            self.run_cases()
+        self.assertEqual("INCOMPLETE", json.loads((self.out / "receipt.json").read_text())["status"])
+
+    def test_binary_and_seed_admission_cannot_change_on_resume(self):
+        with self.assertRaisesRegex(PlanError, "SHA256"):
+            cases.execute(self.binary, "0" * 64, 17, self.out, ROOT)
+        self.run_cases()
+        with self.assertRaisesRegex(PlanError, "identity"):
+            cases.execute(self.binary, cases.sha(self.binary), 18, self.out, ROOT,
+                          cases.sha(self.out / "receipt.json"))
+
+    def test_existing_entrypoint_excludes_recompile_and_planning_modes(self):
+        self.assertEqual(2, dev_test.main(["--case-binary", str(self.binary)]))
+        argv = ["--case-binary", str(self.binary), "--case-sha256", cases.sha(self.binary),
+                "--case-seed", "17", "--case-output", str(self.out)]
+        self.assertEqual(2, dev_test.main([*argv, "--optimize", "ReleaseFast"]))
+        self.assertEqual(3, dev_test.main(argv))
+        anchor = cases.sha(self.out / "receipt.json")
+        self.assertEqual(0, dev_test.main([*argv, "--case-resume-digest", anchor]))

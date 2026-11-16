@@ -1,6 +1,6 @@
 # RV64 flag lifecycle review
 
-Issue [#332](https://github.com/teddyjfpender/stwo-zig/issues/332). This inventories the 99 live names before this slice; six genuine removals leave 93. It is not a declaration that the `<60` promotion gate passes. Constants and historical reference-only symbols are excluded from the starting 99.
+Issue [#332](https://github.com/teddyjfpender/stwo-zig/issues/332). This inventories the 99 live names before this slice; seven genuine removals leave 92. It is not a declaration that the `<60` promotion gate passes. Constants and historical reference-only symbols are excluded from the starting 99.
 
 The existing registry owns exact source paths, absence defaults, expiry and generated reference sets. No second configuration registry or launcher is introduced. All full names below have prefix `STWO_RV64_`.
 
@@ -12,9 +12,11 @@ The existing registry owns exact source paths, absence defaults, expiry and gene
 - The GPU GKR parity harness now requires separate, fold/sum-fused and small-tail-fused execution on every invocation. Every variant retains the full positive and poison matrix, independent expected artifacts, and route-use assertions. CUDA compilation and hardware replay remain **UNRUN**.
 - Recorded fold children now derive from unique predecessor FIXED+MAIN root pairs in the parent seed tape, with ambiguity, duplicate, missing and geometry refusals. The external tree override is removed; existing host/device seed, output and checkpoint comparisons remain. Actual real-record replay remains **UNRUN**.
 
+- Standalone outer recursion now uses the existing `GPU_DEVICES` list selector, requiring exactly one ID through the shared parser; the duplicate singular selector is removed. Default ordinal0 and device budget are unchanged. Its entrypoint tests are registered; full entrypoint execution remains **UNRUN** locally.
+
 ## Remaining dependency
 
-37 names are frozen behind ordered GPU-native promotion and 11 artifact selectors are explicitly protected. Thus 48 names remain before considering any other controls. Reaching 59 now requires removing **34 of the other 45** controls. Changing live controls to reference-only, renaming them, moving independent choices into one JSON switch, selecting an unqualified GPU path by default, or deleting negative coverage does not meet that requirement.
+37 names are frozen behind ordered GPU-native promotion and 11 artifact selectors are explicitly protected. Thus 48 names remain before considering any other controls. Reaching 59 now requires removing **33 of the other 44** controls. Changing live controls to reference-only, renaming them, moving independent choices into one JSON switch, selecting an unqualified GPU path by default, or deleting negative coverage does not meet that requirement.
 
 The inventory does **not** establish a mathematical minimum of 60. Several controls can eventually disappear through compulsory test variants, deterministic ownership decisions, or qualified native-default retirement. Those replacements require engineering and qualification; a missing maintained literal setter is not proof that a runtime branch is dead.
 
@@ -45,7 +47,7 @@ The eleven integration-preset optimization switches are particularly concrete bl
 | `GPU_BYTE_CAP` | Set legacy single-device/hybrid allocation ceiling; basket derives its value from worker capacity. | [rv64_hybrid_ethereum_main.zig](../../src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig) | none in maintained presets |
 | `GPU_COMPOSITION_HELPER` | Select optional subprocess composition offload; no maintained setter found, but live route remains. | [rv64_hybrid_ethereum_main.zig](../../src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig) | none in maintained presets |
 | `GPU_CPU_REPLAY` | Choose retained device-ledger CPU replay; rejects unless device trace and binding are selected. | [resident_pool.zig](../../src/products/ethereum/statement/cuda/rv64/resident_pool.zig) | 1 |
-| `GPU_DEVICE` | Select standalone outer-recursion CUDA ordinal; this route rejects GPU_DEVICES outright. | [rv64_outer_recursion_main.zig](../../src/products/ethereum/statement/cuda/rv64_outer_recursion_main.zig) | none in maintained presets |
+| `GPU_DEVICE` | Duplicate standalone selector removed; existing GPU_DEVICES parser requires exactly one ordinal. **Retired in this slice.** | [rv64_outer_recursion_main.zig](../../src/products/ethereum/statement/cuda/rv64_outer_recursion_main.zig) | none in maintained presets |
 | `GPU_DEVICES` | Select one or more resident-worker CUDA ordinals; basket supplies routed worker devices. | [mod.zig](../../src/integrations/riscv_cuda/rv64/jobs/mod.zig) | none in maintained presets |
 | `GPU_DEVICE_BINDING` | Select device binding stage; fully resident and replay modes require its presence. | [resident_batch.zig](../../src/products/ethereum/statement/cuda/rv64/resident_batch.zig) | none in maintained presets |
 | `GPU_DEVICE_CAPS` | Per-device admission ceilings; validated against router and combined-recursion geometry. | [resident_batch.zig](../../src/products/ethereum/statement/cuda/rv64/resident_batch.zig) | none in maintained presets |
@@ -132,3 +134,32 @@ The eleven integration-preset optimization switches are particularly concrete bl
 | `TEST_BATCH_TAIL` | Small-tail fusion is now compulsory alongside separate and fold/sum variants. **Retired in this slice.** | [gkr_loop_smoke.cu](../../tests/cuda/rv64/gkr_loop_smoke.cu) | none in maintained presets |
 
 The source reference scanner also includes maintained shell/Python setters, native code, workflow references and both active preset files. Keyword setters and named-helper readers must be followed through their owning function; simple getenv counts undercount those cases. The temporary operator inventory includes every literal occurrence with source context; the canonical registry reference arrays remain the maintained path inventory.
+
+## Other repository-owned namespaces
+
+The same registry and source gate now cover every literal `STWO_*` name in the
+maintained source scan, including Objective-C `.m`/`.mm` and C++ `.cc` owners.
+The historical registry/schema/CLI names remain compatible. No runtime controls
+or defaults were added by recording existing controls.
+
+The additional 561 names comprise 234 runtime controls, 79 qualification
+controls, 238 compile-time constants/macros/domain tags and 10 fixture/reference
+names. They are not all counted as runtime flags. Existing RV64 promotion and
+package-budget flag counters still count only `STWO_RV64_*` names; the RV64
+under-60 target remains open.
+
+Every new live entry records its real owner, absence default, status, review
+date, expiry and exact source evidence. Indirect constant-key/helper controls
+can additionally pin actual getter/default consumers through
+`default_evidence.readers`, including consumers in a different module. Changing
+those pinned expressions fails source conformance. Reference refresh cannot
+invent declarations, change defaults or renew expired controls. Objective-C and
+Rust environment readers cannot be reclassified as constants to escape the
+live inventory. This is source/configuration enforcement; runtime unknown-env
+rejection and full application-path execution are not implied.
+
+Before implementation, four focused tests failed: another namespace was
+ignored, its metadata was invalid, its live names spent the RV64 promotion
+budget, and its entries inflated a package's RV64 flag counter. The existing
+checker and budget owner were corrected. The combined registry/budget/source-conformance suite now passes 60 cases,
+including typed-reader source drift, status, expiry and unknown-name refusals. No GPU execution was performed.

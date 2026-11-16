@@ -427,6 +427,7 @@ pub const Consumer = struct {
     route: []const u8,
     imports: []const []const u8,
     tests: []const []const u8,
+    owner_module: ?[]const u8 = null,
 };
 
 pub const waist_providers = [_]struct { name: []const u8, directory: []const u8 }{
