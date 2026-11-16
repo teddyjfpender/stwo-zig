@@ -22,6 +22,7 @@ const std = @import("std");
 const Om31 = @import("stwo_circuit_cpu_integration").om31;
 const Bridge = @import("om31_outer.zig");
 const Owner = @import("root_verify.zig");
+const VerifierKey = Owner.VerifierKey;
 const SCHEMA = Owner.SCHEMA;
 const Profile = Owner.Profile;
 const foldClassKey = Owner.foldClassKey;

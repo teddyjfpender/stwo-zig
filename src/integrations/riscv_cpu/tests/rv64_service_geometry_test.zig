@@ -7,8 +7,6 @@ test "immutable executable ELF service opcode geometry diagnostic" {
     const a = std.testing.allocator;
     const path = std.process.getEnvVarOwned(a, "STWO_RV64_SERVICE_GEOMETRY_ELF") catch return;
     defer a.free(path);
-    const output = try std.process.getEnvVarOwned(a, "STWO_RV64_SERVICE_GEOMETRY_OUTPUT");
-    defer a.free(output);
     const bytes = try std.fs.cwd().readFileAlloc(a, path, 64 * 1024 * 1024);
     defer a.free(bytes);
     _ = try rv.elf.inspect(bytes, .{});
@@ -48,5 +46,6 @@ test "immutable executable ELF service opcode geometry diagnostic" {
     std.debug.print("immutable ELF MUL model oldCPUmain={d} new={d} oldInter={d} newInterIncludingMulBus={d} oldBYTE={d} newBYTE={d} providerMain={d}/inter={d}/BYTE={d}\n", .{ plan.main_count + air.full.frame.width(.keccak_service_v1), mul_plan.main_count + air.full.frame.width(.keccak_service_v1), interaction, mul_interaction, plan.range_count, mul_plan.range_count, air.arithmetic.multiplication.layout.MAIN, air.arithmetic.multiplication.layout.INTERACTION, air.arithmetic.multiplication.layout.BYTE_QUERIES });
     const json = try std.json.Stringify.valueAlloc(a, .{ .schema = "rv64-immutable-rom-cpu-geometry-v1", .opcodes_from_immutable_rom = true, .execution_profile = "keccak_service_v1", .arithmetic_policy = "division_service_v2", .elf_sha256 = hex[0..], .executable_words = words.items.len, .admitted_opcodes = allowed, .admitted_opcode_count = n, .fixed_columns = 3, .main_columns = plan.main_count + air.full.frame.width(.keccak_service_v1), .interaction_columns = interaction, .range_queries_per_row = plan.range_count, .multiplication_service_model = .{ .arithmetic_policy = "division_multiplication_services_v3", .proven = false, .main_columns = mul_plan.main_count + air.full.frame.width(.keccak_service_v1), .interaction_columns_including_cpu_mul_bus8 = mul_interaction, .range_queries_per_row = mul_plan.range_count, .provider_main = air.arithmetic.multiplication.layout.MAIN, .provider_interaction = air.arithmetic.multiplication.layout.INTERACTION, .provider_byte_queries_per_padded_row = air.arithmetic.multiplication.layout.BYTE_QUERIES } }, .{ .whitespace = .indent_2 });
     defer a.free(json);
-    try std.fs.cwd().writeFile(.{ .sub_path = output, .data = json });
+    try std.fs.File.stdout().writeAll(json);
+    try std.fs.File.stdout().writeAll("\n");
 }

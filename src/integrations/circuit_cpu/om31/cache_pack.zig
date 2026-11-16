@@ -4,11 +4,6 @@ const std = @import("std");
 pub const Error = error{ CachePackShape, CachePackLength, CachePackOverflow, CachePackNoncanonical, CachePackDecoderUnavailable };
 pub const Encoding = enum { raw, delta_varint, lz4_blocks };
 pub const BLOCK_WORDS: usize = 16384;
-pub fn compressClass(is_leaf: bool) bool {
-    if (is_leaf) return true;
-    const value = std.posix.getenv("STWO_RV64_PACK_FOLD_CACHE") orelse return false;
-    return std.mem.eql(u8, value, "1");
-}
 pub const Block = struct { offset: usize, bytes: u32, raw: bool };
 const Lz4 = struct {
     library: std.DynLib,
@@ -47,6 +42,13 @@ pub const Packed = struct {
     blocks: []Block = &.{},
     pub fn heldBytes(self: Packed) usize {
         return self.data.len + self.blocks.len * @sizeOf(Block);
+    }
+    /// Compare requested retained bytes, including caller-specific metadata.
+    /// An equal-size encoding keeps the existing raw representation.
+    pub fn reducesStorage(self: Packed, raw_words: usize, metadata_bytes: usize) bool {
+        const raw_bytes = std.math.mul(usize, raw_words, @sizeOf(u32)) catch return false;
+        const encoded_bytes = std.math.add(usize, self.heldBytes(), metadata_bytes) catch return false;
+        return encoded_bytes < raw_bytes;
     }
     pub fn workItems(self: Packed) usize {
         return if (self.encoding == .lz4_blocks) self.blocks.len else 1;
@@ -252,4 +254,43 @@ test "parallel block boundaries roundtrip independently and reject corrupt lengt
     try std.testing.expectEqualSlices(u32, words, output);
     encoded.blocks[1].bytes += 1;
     try std.testing.expectError(error.CachePackLength, encoded.unpack(output));
+}
+
+test "cache representation follows actual retained bytes for columns and task records" {
+    const a = std.testing.allocator;
+    const zeros: [256]u32 = @splat(0);
+    var random_words: [zeros.len]u32 = undefined;
+    var random = std.Random.DefaultPrng.init(0x6361636865706163);
+    for (&random_words) |*word| word.* = random.random().int(u32);
+    for ([_]u8{ 1, 8 }) |channels| {
+        var compact = try packPortable(a, &zeros, channels);
+        defer compact.deinit(a);
+        try std.testing.expect(compact.reducesStorage(zeros.len, 0));
+        try std.testing.expect(!compact.reducesStorage(zeros.len, zeros.len * 4 - compact.heldBytes()));
+        try std.testing.expect(!compact.reducesStorage(zeros.len, std.math.maxInt(usize)));
+        var raw = try packPortable(a, &random_words, channels);
+        defer raw.deinit(a);
+        try std.testing.expectEqual(Encoding.raw, raw.encoding);
+        try std.testing.expect(!raw.reducesStorage(random_words.len, 0));
+        var reconstructed: [zeros.len]u32 = undefined;
+        try compact.unpack(&reconstructed);
+        try std.testing.expectEqualSlices(u32, &zeros, &reconstructed);
+        try raw.unpack(&reconstructed);
+        try std.testing.expectEqualSlices(u32, &random_words, &reconstructed);
+        var truncated = raw;
+        truncated.data = raw.data[0 .. raw.data.len - 1];
+        try std.testing.expectError(error.CachePackLength, truncated.unpack(&reconstructed));
+        for ([_][]const u32{ &zeros, &random_words }) |words| {
+            try std.testing.checkAllAllocationFailures(a, struct {
+                fn run(allocator: std.mem.Allocator, input: []const u32, fields: u8) !void {
+                    var encoded = try pack(allocator, input, fields);
+                    defer encoded.deinit(allocator);
+                    const output = try allocator.alloc(u32, input.len);
+                    defer allocator.free(output);
+                    try encoded.unpack(output);
+                    try std.testing.expectEqualSlices(u32, input, output);
+                }
+            }.run, .{ words, channels });
+        }
+    }
 }

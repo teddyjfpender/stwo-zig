@@ -2,15 +2,55 @@ const std = @import("std");
 const Entry = @import("stwo_core").error_codes.Entry;
 const DecodeError = @import("circuit_serialize.zig").DecodeError;
 
+// Structural ABI contract: the actual postcard consumer asserts exact equality
+// with its separately owned parser Error set before mapping any rejection.
+const PostcardPreflightError = error{
+    EndOfStream,
+    InvalidOptionTag,
+    InvalidProofConfig,
+    InvalidProofShape,
+    InvalidPreflightShape,
+    NonCanonicalM31,
+    NonCanonicalVarint,
+    ProofResourceLimitExceeded,
+    TrailingProofBytes,
+    VarintOverflow,
+};
+
 /// Append-only meanings owned by the circuit binary decoder, not error ordinals.
 pub const table = [_]Entry{
     .{ .tag = "NotEnoughData", .code = 0x5001, .class = .invalid_input, .since = "0.2.0" },
     .{ .tag = "ValueOutOfRange", .code = 0x5002, .class = .invalid_input, .since = "0.2.0" },
+    .{ .tag = "EndOfStream", .code = 0x5101, .class = .invalid_input, .since = "1.0.0-rc.2" },
+    .{ .tag = "InvalidOptionTag", .code = 0x5102, .class = .invalid_input, .since = "1.0.0-rc.2" },
+    .{ .tag = "InvalidProofConfig", .code = 0x5103, .class = .invalid_input, .since = "1.0.0-rc.2" },
+    .{ .tag = "InvalidProofShape", .code = 0x5104, .class = .invalid_input, .since = "1.0.0-rc.2" },
+    .{ .tag = "InvalidPreflightShape", .code = 0x5105, .class = .invalid_input, .since = "1.0.0-rc.2" },
+    .{ .tag = "NonCanonicalM31", .code = 0x5106, .class = .invalid_input, .since = "1.0.0-rc.2" },
+    .{ .tag = "NonCanonicalVarint", .code = 0x5107, .class = .invalid_input, .since = "1.0.0-rc.2" },
+    .{ .tag = "ProofResourceLimitExceeded", .code = 0x5108, .class = .resource_exhausted, .since = "1.0.0-rc.2" },
+    .{ .tag = "TrailingProofBytes", .code = 0x5109, .class = .invalid_input, .since = "1.0.0-rc.2" },
+    .{ .tag = "VarintOverflow", .code = 0x510a, .class = .invalid_input, .since = "1.0.0-rc.2" },
 };
 pub fn fromCircuitDecode(err: DecodeError) Entry {
     return switch (err) {
         error.NotEnoughData => table[0],
         error.ValueOutOfRange => table[1],
+    };
+}
+/// Only an exact parser-owned catch may call this typed ABI projection.
+pub fn fromPostcard(err: PostcardPreflightError) Entry {
+    return switch (err) {
+        error.EndOfStream => table[2],
+        error.InvalidOptionTag => table[3],
+        error.InvalidProofConfig => table[4],
+        error.InvalidProofShape => table[5],
+        error.InvalidPreflightShape => table[6],
+        error.NonCanonicalM31 => table[7],
+        error.NonCanonicalVarint => table[8],
+        error.ProofResourceLimitExceeded => table[9],
+        error.TrailingProofBytes => table[10],
+        error.VarintOverflow => table[11],
     };
 }
 pub fn lookup(code: u16) ?Entry {
@@ -26,7 +66,7 @@ test "api signature: circuit decode codes require the owned error set" {
 }
 
 test "circuit decode code table pins meanings classes versions and unknown refusal" {
-    try std.testing.expectEqual(@as(usize, 2), table.len);
+    try std.testing.expectEqual(@as(usize, 12), table.len);
     const errors = [_]@import("circuit_serialize.zig").DecodeError{ error.NotEnoughData, error.ValueOutOfRange };
     for (errors, [_]u16{ 0x5001, 0x5002 }) |err, code| {
         const entry = fromCircuitDecode(err);
@@ -37,4 +77,19 @@ test "circuit decode code table pins meanings classes versions and unknown refus
         try std.testing.expectEqualStrings(entry.tag, lookup(code).?.tag);
     }
     for ([_]u16{ 0, 0x1001, 0x4001, 0x5000, 0x5003, 65535 }) |code| try std.testing.expect(lookup(code) == null);
+}
+
+test "postcard preflight codes pin exact owned error set and append-only meanings" {
+    const Error = PostcardPreflightError;
+    try std.testing.expect(@typeInfo(@TypeOf(fromPostcard)).@"fn".params[0].type.? == Error);
+    const errors = [_]Error{ error.EndOfStream, error.InvalidOptionTag, error.InvalidProofConfig, error.InvalidProofShape, error.InvalidPreflightShape, error.NonCanonicalM31, error.NonCanonicalVarint, error.ProofResourceLimitExceeded, error.TrailingProofBytes, error.VarintOverflow };
+    for (errors, 0..) |err, index| {
+        const entry = fromPostcard(err);
+        try std.testing.expectEqual(@as(u16, @intCast(0x5101 + index)), entry.code);
+        try std.testing.expectEqualStrings(@errorName(err), entry.tag);
+        try std.testing.expectEqualStrings("1.0.0-rc.2", entry.since);
+        try std.testing.expectEqual(if (err == error.ProofResourceLimitExceeded) @import("stwo_core").error_codes.Class.resource_exhausted else .invalid_input, entry.class);
+        try std.testing.expectEqualStrings(entry.tag, lookup(entry.code).?.tag);
+    }
+    for ([_]u16{ 0, 0x1101, 0x2001, 0x4001, 0x5100, 0x510b, 65535 }) |id| try std.testing.expect(lookup(id) == null);
 }

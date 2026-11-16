@@ -278,10 +278,15 @@ pub const ClassCache = struct {
             if (try file.read(&extra) != 0) return error.ClassStoreFormat;
             const recomputed = try @import("schedule_identity.zig").digest(gpa, .{ std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices), std.mem.sliceAsBytes(level_ends) });
             if (!std.mem.eql(u8, &recomputed, &identity)) return error.ClassStoreIdentity;
-            const encoded = try CachePack.pack(gpa, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(tasks)), 8);
-            const bytes = encoded.heldBytes() + indices.len * 4 + level_ends.len * @sizeOf(usize) + seed_vars.len * 4 + constants.len * 16;
-            gpa.free(tasks);
-            t.* = .{ .key = key, .n_vars = n_vars, .n_constants = n_constants, .n_origins = n_origins, .seed_vars = seed_vars, .constants = constants, .tasks = &.{}, .packed_tasks = encoded, .indices = indices, .level_ends = level_ends, .identity = identity, .bytes = bytes, .persisted = true, .capability_checked = false };
+            var encoded: ?CachePack.Packed = try CachePack.pack(gpa, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(tasks)), 8);
+            if (!encoded.?.reducesStorage(tasks.len * 8, 0)) {
+                encoded.?.deinit(gpa);
+                encoded = null;
+            }
+            const task_bytes = if (encoded) |value| value.heldBytes() else tasks.len * @sizeOf(Task);
+            const bytes = @sizeOf(Template) + task_bytes + indices.len * 4 + level_ends.len * @sizeOf(usize) + seed_vars.len * 4 + constants.len * 16;
+            if (encoded != null) gpa.free(tasks);
+            t.* = .{ .key = key, .n_vars = n_vars, .n_constants = n_constants, .n_origins = n_origins, .seed_vars = seed_vars, .constants = constants, .tasks = if (encoded != null) &.{} else tasks, .packed_tasks = encoded, .indices = indices, .level_ends = level_ends, .identity = identity, .bytes = bytes, .persisted = true, .capability_checked = false };
             return t;
         }
         /// Service boot: loads every class template in the store (in parallel,
@@ -403,10 +408,14 @@ pub const ClassCache = struct {
     fn insertImpl(key: [32]u8, p: *const Prepared, ctx: *const Circuit.builder.Context(Q)) !void {
         const n_constants = ctx.constants.count();
         if (n_constants > p.seeds.len) return error.PlanClassSeedLayout;
-        var encoded: ?CachePack.Packed = if (CachePack.compressClass(Dev.class_is_leaf)) try CachePack.pack(gpa, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(p.tasks)), 8) else null;
+        var encoded: ?CachePack.Packed = try CachePack.pack(gpa, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(p.tasks)), 8);
         errdefer if (encoded) |*value| value.deinit(gpa);
+        if (!encoded.?.reducesStorage(p.tasks.len * 8, 0)) {
+            encoded.?.deinit(gpa);
+            encoded = null;
+        }
         const task_bytes = if (encoded) |value| value.heldBytes() else p.tasks.len * @sizeOf(Task);
-        const bytes = task_bytes + p.indices.len * 4 + p.plan.level_ends.len * @sizeOf(usize) + p.seeds.len * 4 + n_constants * 16;
+        const bytes = @sizeOf(Template) + task_bytes + p.indices.len * 4 + p.plan.level_ends.len * @sizeOf(usize) + p.seeds.len * 4 + n_constants * 16;
         mutex.lock();
         defer mutex.unlock();
         for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) {

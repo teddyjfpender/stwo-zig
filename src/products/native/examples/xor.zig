@@ -590,7 +590,7 @@ test "examples xor: prove/verify wrapper roundtrip" {
         PROOF_COMMITMENTS,
         output.proof.commitment_scheme_proof.commitments.items.len,
     );
-    const codec = @import("stwo_proof_wire").ForHasher(Hasher);
+    const codec = @import("stwo_proof_wire").ForHasher(QM31, Hasher);
     const encoded = try codec.encodeProofBytes(std.testing.allocator, output.proof);
     defer std.testing.allocator.free(encoded);
     var clone = try codec.decodeProofBytes(std.testing.allocator, encoded);

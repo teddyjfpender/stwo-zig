@@ -1,6 +1,6 @@
 # RV64 flag lifecycle review
 
-Issue [#332](https://github.com/teddyjfpender/stwo-zig/issues/332). This inventories the 99 live names before this slice; seven genuine removals leave 92. It is not a declaration that the `<60` promotion gate passes. Constants and historical reference-only symbols are excluded from the starting 99.
+Issue [#332](https://github.com/teddyjfpender/stwo-zig/issues/332). This inventories the 99 live names before this slice; eleven genuine removals leave 88. It is not a declaration that the `<60` promotion gate passes. Constants and historical reference-only symbols are excluded from the starting 99.
 
 The existing registry owns exact source paths, absence defaults, expiry and generated reference sets. No second configuration registry or launcher is introduced. All full names below have prefix `STWO_RV64_`.
 
@@ -16,7 +16,7 @@ The existing registry owns exact source paths, absence defaults, expiry and gene
 
 ## Remaining dependency
 
-37 names are frozen behind ordered GPU-native promotion and 11 artifact selectors are explicitly protected. Thus 48 names remain before considering any other controls. Reaching 59 now requires removing **33 of the other 44** controls. Changing live controls to reference-only, renaming them, moving independent choices into one JSON switch, selecting an unqualified GPU path by default, or deleting negative coverage does not meet that requirement.
+37 names are frozen behind ordered GPU-native promotion and 11 artifact selectors are explicitly protected. Thus 48 names remain before considering any other controls. Reaching 59 now requires removing **29 of the other 40** controls. Changing live controls to reference-only, renaming them, moving independent choices into one JSON switch, selecting an unqualified GPU path by default, or deleting negative coverage does not meet that requirement.
 
 The inventory does **not** establish a mathematical minimum of 60. Several controls can eventually disappear through compulsory test variants, deterministic ownership decisions, or qualified native-default retirement. Those replacements require engineering and qualification; a missing maintained literal setter is not proof that a runtime branch is dead.
 
@@ -27,7 +27,7 @@ The eleven integration-preset optimization switches are particularly concrete bl
 1. Qualify the mandatory three-variant GPU parity harness and recorded-root association against retained real recordings on an authorized GPU. The stricter source is implemented; hardware acceptance is not claimed.
 2. Consolidate duplicate legacy standalone and resident resource admission through the existing typed request owner. Establish equivalence for device selection, capacity, workers, scopes and cache reservation before removing environment overrides. Merely moving their independent choices into a manifest is not a reduction.
 3. Keep recorded fixture association bound to actual source roots. Missing, ambiguous, duplicate or non-predecessor child matches fail closed; no neighbouring tree-file heuristic is used.
-4. Retire measured losing optimization variants only with matching full-path evidence. In particular packed-fold-cache is actively enabled by the integration preset; it is not obsolete.
+4. Retire measured losing optimization variants with matching full-path evidence. PACK_FOLD_CACHE was active; its input has now been replaced with deterministic byte-cost selection while both raw and compressed representations remain.
 
 ## Complete starting inventory
 
@@ -78,7 +78,7 @@ The eleven integration-preset optimization switches are particularly concrete bl
 | `M8_GN_PACK_RECORD_MAIN` | Native-default retirement gate: gn pack record main; retain until ordered promotion gates pass. | [gn_pack_record.zig](../../src/integrations/riscv_cuda/rv64/gn_pack_record.zig) | none in maintained presets |
 | `M8_GN_SHAPE_MISS_BLOCK` | Native-default retirement gate: gn shape miss block; retain until ordered promotion gates pass. | [rv64_m8_class_build_parity_main.zig](../../src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig) | none in maintained presets |
 | `M8_GN_SHAPE_MISS_REQUEST` | Native-default retirement gate: gn shape miss request; retain until ordered promotion gates pass. | [rv64_m8_class_build_parity_main.zig](../../src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig) | none in maintained presets |
-| `M8_GPU_BASE` | Select base native shared library in GPU-only tests, separately from job addon. | [native_gpu_support_test.zig](../../src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig) | none in maintained presets |
+| `M8_GPU_BASE` | Uses the existing GPU_LIBRARY base-ABI selector; JOBS_LIBRARY remains separate. **Retired in the next tranche.** | [native_gpu_support_test.zig](../../src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig) | none in maintained presets |
 | `M8_GPU_NATIVE` | Native-default retirement gate: gpu native; retain until ordered promotion gates pass. | [driver.zig](../../src/integrations/riscv_cuda/rv64/jobs/driver.zig) | 1 |
 | `M8_GPU_NATIVE_REUSE` | Native-default retirement gate: gpu native reuse; retain until ordered promotion gates pass. | [driver_ge.zig](../../src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig) | 1 |
 | `M8_JOBS` | Native-default retirement gate: jobs; retain until ordered promotion gates pass. | [mod.zig](../../src/integrations/riscv_cuda/rv64/jobs/mod.zig) | 1 |
@@ -106,7 +106,7 @@ The eleven integration-preset optimization switches are particularly concrete bl
 | `M8_PCS_SCALE` | Opt into native-segment-sized GPU PCS scale parity, skipped otherwise. | [native_pcs_scale_test.zig](../../src/integrations/riscv_cuda/rv64/jobs/native_pcs_scale_test.zig) | none in maintained presets |
 | `M8_REQUIRE_GPU` | Make missing GPU libraries a failure instead of an optional test skip; receipt integrity guard. | [native_gpu_support_test.zig](../../src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig) | none in maintained presets |
 | `M8_SAMPLE_LEGACY` | Native-default retirement gate: sample legacy; retain until ordered promotion gates pass. | [samples.cu](../../src/backends/cuda/native/rv64/samples.cu) | none in maintained presets |
-| `M8_TAIL_POW_BITS` | Choose tail-harness PoW strength; zero default, arbitrary selected value changes host/device parity work. | [native_tail_test.zig](../../src/integrations/riscv_cuda/rv64/jobs/native_tail_test.zig) | none in maintained presets |
+| `M8_TAIL_POW_BITS` | Tail parity now obligatorily exercises pow0 and pow20; q8 remains diagnostic. **Retired in the next tranche.** | [native_tail_test.zig](../../src/integrations/riscv_cuda/rv64/jobs/native_tail_test.zig) | none in maintained presets |
 | `M8_TRUTH_SPLIT` | Native-default retirement gate: truth split; retain until ordered promotion gates pass. | [truth_plan.zig](../../src/products/ethereum/statement/cpu/word16_global_execution/ethereum/truth_plan.zig) | none in maintained presets |
 | `M9_CLASS_PACKED_INGRESS` | Choose compressed class upload/device unpack and matching resource prewarm. | [driver_ge.zig](../../src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig) | 1 |
 | `MULTIPLICATION_ARTIFACT_DIR` | Select artifact publication and/or stronger physical-proof qualification; explicitly protected from cleanup. | [rv64_multiplication_proof_test.zig](../../src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig) | none in maintained presets |
@@ -121,7 +121,7 @@ The eleven integration-preset optimization switches are particularly concrete bl
 | `OUTER_PROFILE` | Select outer proof/security profile shared by producer and receiver; wrong-profile corpus retained. | [protocol.zig](../../src/integrations/circuit_cpu/om31/protocol.zig) | m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 |
 | `OUTER_SHAPE` | Select diagnostic exact/uniform/set-v2 geometry subject to canonical-profile restrictions. | [outer_wrap.zig](../../src/integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig) | none in maintained presets |
 | `PACKED_FULL_ARTIFACT_DIR` | Select artifact publication and/or stronger physical-proof qualification; explicitly protected from cleanup. | [rv64_packed_full_proof_test.zig](../../src/integrations/riscv_cpu/tests/rv64_packed_full_proof_test.zig) | none in maintained presets |
-| `PACK_FOLD_CACHE` | Choose fold cache compression; integration preset enables it; leaf compression is unconditional. | [cache_pack.zig](../../src/integrations/circuit_cpu/om31/cache_pack.zig) | 1 |
+| `PACK_FOLD_CACHE` | Raw/encoded retention derives from actual requested retained bytes, including owner metadata. **Retired in the next tranche.** | [cache_pack.zig](../../src/integrations/circuit_cpu/om31/cache_pack.zig) | 1 |
 | `PCS_IDLE_CACHE_BYTES` | Bound native idle cache retention; zero used for phase-bound retirement qualification. | [pcs_native.cu](../../src/backends/cuda/native/rv64/pcs_native.cu) | none in maintained presets |
 | `PCS_ROLLING_BETA2` | Choose beta-2 rolling PCS schedule; affects actual memory plan and execution path. | [pcs_enqueue.cu](../../src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu) | 1 |
 | `PHASE_CACHE_TRIM` | Choose release of idle device cache at stage boundary, trading residency against reuse. | [pcs_native.zig](../../src/integrations/riscv_cuda/rv64/pcs_native.zig) | 1 |
@@ -129,7 +129,7 @@ The eleven integration-preset optimization switches are particularly concrete bl
 | `PROCESS_MEMORY_OBSERVE` | Choose process/host memory observation; integration preset enables it. | [process_memory_observer.cu](../../tests/cuda/rv64/native/rv64/process_memory_observer.cu) | 1 |
 | `RECURSION_HOST_BYTES` | Bound host reservation for legacy combined recursion, batch manifest has separate owned budget. | [rv64_combined_ethereum_main.zig](../../src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig) | none in maintained presets |
 | `SERVICE_GEOMETRY_ELF` | Select executable ELF for immutable service geometry diagnostic; absent does not run it. | [rv64_service_geometry_test.zig](../../src/integrations/riscv_cpu/tests/rv64_service_geometry_test.zig) | none in maintained presets |
-| `SERVICE_GEOMETRY_OUTPUT` | Select file receiving explicit ELF geometry diagnostic, required when ELF selected. | [rv64_service_geometry_test.zig](../../src/integrations/riscv_cpu/tests/rv64_service_geometry_test.zig) | none in maintained presets |
+| `SERVICE_GEOMETRY_OUTPUT` | Canonical geometry JSON goes to stdout; no second destination input. **Retired in the next tranche.** | [rv64_service_geometry_test.zig](../../src/integrations/riscv_cpu/tests/rv64_service_geometry_test.zig) | none in maintained presets |
 | `TEST_BATCH_FOLD_SUM` | Fold/sum fusion is now compulsory alongside separate and small-tail variants. **Retired in this slice.** | [gkr_loop_smoke.cu](../../tests/cuda/rv64/gkr_loop_smoke.cu) | none in maintained presets |
 | `TEST_BATCH_TAIL` | Small-tail fusion is now compulsory alongside separate and fold/sum variants. **Retired in this slice.** | [gkr_loop_smoke.cu](../../tests/cuda/rv64/gkr_loop_smoke.cu) | none in maintained presets |
 
@@ -163,3 +163,28 @@ ignored, its metadata was invalid, its live names spent the RV64 promotion
 budget, and its entries inflated a package's RV64 flag counter. The existing
 checker and budget owner were corrected. The combined registry/budget/source-conformance suite now passes 60 cases,
 including typed-reader source drift, status, expiry and unknown-name refusals. No GPU execution was performed.
+
+## Deterministic host-cache representation tranche
+
+Four more controls are retired: tail parity runs both pow0 and pow20, the
+geometry diagnostic writes JSON to stdout, piece-only GPU tests use the existing
+base-library selector, and cache representation follows actual retained bytes.
+The pow20 tail uses a diagnostic q8 fixture; it does not establish production
+whole-protocol security. GPU and physical tail execution remain unrun locally.
+
+PP caches retain the existing raw owner when encoding plus its metadata is no
+smaller, and retain the encoded owner otherwise. Requested-byte admission now
+includes PP and assignment-template headers. Both decoders remain. The
+non-pipelined PP consumer now uses the existing acquire/Lease contract, which
+can return either a borrowed raw PP or an owned reconstructed PP; cleanup and
+independent receiver authority remain explicit.
+
+The externally retained CPU cost receipt measures median3 on synthetic
+512KiB payloads. Structured columns retained
+214234 bytes (59.1% less), and structured eight-field task records retained
+131072 bytes (75% less). Packing cost 178us/99us and decoding cost 120us/91us,
+versus raw cold-copy cost 39us/34us. Random payloads retained the raw owner;
+the unsuccessful cold packing attempt cost 574us/537us, while the warm raw
+owner requires no decode. This records the CPU/storage tradeoff without a
+prover-speedup claim. Linux native-LZ4 and full cache/proof integration remain
+qualification gates.

@@ -1,5 +1,5 @@
 //! gn-pack piece-only GPU harness on REAL recorded segments (opt-in):
-//!   STWO_RV64_M8_GPU_BASE / STWO_RV64_M8_JOBS_LIBRARY (native_gpu_support_test.zig)
+//!   STWO_RV64_GPU_LIBRARY / STWO_RV64_M8_JOBS_LIBRARY (native_gpu_support_test.zig)
 //!   STWO_RV64_M8_GN_PACK_RECORDS=<dir>[:<dir>...]  recorder output (rv64/gn_pack_record.zig)
 //! Per recorded segment: the v2 chunk stream is copied into pinned buffers (the
 //! capture ring's role), parsed, and run as ONE worker job: zero/h2d/launch

@@ -291,3 +291,41 @@ arithmetic/input-decode origins or every product consumer. Remaining full-D2
 work still includes backend recovery/native-AIR, prover work/task/lifetime,
 other parser/resource and recursion framing boundaries. Component callback
 errors deliberately remain unclassified by Core.
+
+
+## Postcard preflight continuation after checkpoint 0534f6b46
+
+RFC #360 issue #359 delegates this bounded origin-owned addition under the
+owner's standing approval: at most 500 net source/test lines, targeting below
+250, with no new flags, scripts, runtime dependencies or public root names.
+The recursion-wire candidate advances rc.1 to rc.2. Existing binary codes
+0x5001/0x5002 and their since values remain unchanged. Postcard's ten exact
+preflight errors receive append-only codes 0x5101–0x510a in declaration order;
+only ProofResourceLimitExceeded is resource_exhausted, the others invalid_input.
+
+The parser belongs to a separately named canonical interop_postcard module.
+Importing its source again from recursion-wire would violate Zig module
+ownership. The approved alternative is an explicit structural ten-tag error
+contract in error_codes, with an exact-type comptime equality check against the
+actual parser Error at the real consumer catch. Adding or removing a parser tag
+fails closed. This is a typed ABI projection, not an anyerror/name classifier;
+no parser algorithm, new injected module or helper ABI is duplicated.
+
+The live RISC-V artifact verifier applies this projection only around its
+allocation-free, callback-free preflight immediately before allocating decode.
+It writes optional bounded recursion_postcard_rejection_v1 stderr with provider,
+origin, code and class, then returns the original error. Writer failure cannot
+replace or classify the parser error. Provenance, framing and downstream
+verification errors remain unmapped. Proof bytes, parser acceptance, primary
+receipts, stdout, exit causes and transcripts are unchanged.
+
+The actual consumer executes a public-serializer positive fixture, every
+truncation of that fixture, physical examples of all ten errors, byte-preserving
+success and a same-tag diagnostic-writer failure. Debug and ReleaseFast both
+pass the two cases through actual SDK/provider namespaces under 295 MB guarded
+aggregate RSS. The serializer fixture is not claimed to be a valid STARK proof.
+The existing canonical adapter test root explicitly collects these cases and
+its minimum test floor rises from five to seven; no new launcher is introduced.
+Full proof construction and native process verification remain outside this
+small local check, and other recursion parser/registry/framing origins still
+need typed coverage.

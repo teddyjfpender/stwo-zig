@@ -1,5 +1,5 @@
 //! native_device_stage1 on a REAL GPU worker versus the host scheme (opt-in,
-//! env as native_commit_test.zig: STWO_RV64_M8_GPU_BASE, STWO_RV64_M8_JOBS_LIBRARY):
+//! env as native_commit_test.zig: STWO_RV64_GPU_LIBRARY, STWO_RV64_M8_JOBS_LIBRARY):
 //!
 //!   warm     the class FIXED region is committed once (fresh persistent), its
 //!            device root equals the host FIXED root;

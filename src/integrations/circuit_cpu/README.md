@@ -15,7 +15,7 @@ prover, `recursion` folds leaf proofs into a root exactly as
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.3.0` |
+| Version | `0.4.0` |
 | Layer | `integration` |
 | Owner | `circuit-cpu-integration` |
 | Public Zig module | `stwo_circuit_cpu_integration` |
@@ -317,3 +317,6 @@ No hash family, wire bytes, profile admission or device qualification changes.
 
 Binary decode rejections preserve their stage/reason and optionally carry the
 origin-owned `wire_failure` diagnostic; allocation failure still propagates.
+
+Version0.4.0 adds the lossless cache owner’s `Packed.reducesStorage` helper;
+root exports, dependencies and supported cache encodings are unchanged.

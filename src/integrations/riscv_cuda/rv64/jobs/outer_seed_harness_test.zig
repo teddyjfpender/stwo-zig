@@ -3,7 +3,7 @@
 //!   STWO_RV64_M8_GN_NODE_RECORDS=<dir>   node-*.gnr + pcs-*.gnp from
 //!                                        outer_seed_record.zig (legacy path)
 //! Child order is derived from recorded PCS root pairs in the parent seed tape.
-//!   STWO_RV64_M8_GPU_BASE / STWO_RV64_M8_JOBS_LIBRARY  (device arm)
+//!   STWO_RV64_GPU_LIBRARY / STWO_RV64_M8_JOBS_LIBRARY  (device arm)
 //!
 //! For every recorded fold/root node: build the class seed program from its
 //! children's recorded classes, run the host mirror and (device arm) the
@@ -119,7 +119,7 @@ const Gpu = struct {
     ctx: *anyopaque,
     stream: *anyopaque,
     fn open() !?Gpu {
-        const base = std.posix.getenv("STWO_RV64_M8_GPU_BASE") orelse return null;
+        const base = std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return null;
         const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return null;
         var libs = try O.Libraries.open(base, addon);
         errdefer libs.close();

@@ -21,6 +21,46 @@ fn findPublicModule(b: *std.Build, facade: *std.Build.Module, name: []const u8) 
     return selected orelse std.debug.panic("missing actual consumer public module {s}", .{name});
 }
 
+fn reachesModule(b: *std.Build, root: *std.Build.Module, selected: *std.Build.Module) bool {
+    var pending: std.ArrayList(*std.Build.Module) = .empty;
+    var seen = std.AutoHashMap(*std.Build.Module, void).init(b.allocator);
+    pending.append(b.allocator, root) catch @panic("OOM");
+    var index: usize = 0;
+    while (index < pending.items.len) : (index += 1) {
+        const module = pending.items[index];
+        if (module == selected) return true;
+        const entry = seen.getOrPut(module) catch @panic("OOM");
+        if (entry.found_existing) continue;
+        for (module.import_table.values()) |child| pending.append(b.allocator, child) catch @panic("OOM");
+    }
+    return false;
+}
+
+// Assert actual link inputs, not just the presence of a helper invocation.
+fn assertMetalRuntime(b: *std.Build, artifact: *std.Build.Step.Compile) void {
+    const metal = @import("../backends/metal.zig");
+    const expected = @import("stwo_metal_backend").runtime_source.flags(b, b.pathFromRoot(metal.runtime_source));
+    var sources: usize = 0;
+    var objc = false;
+    for (artifact.root_module.link_objects.items) |object| switch (object) {
+        .c_source_file => |source_file| {
+            if (!std.mem.eql(u8, source_file.file.getPath(b), b.pathFromRoot(metal.runtime_source))) continue;
+            if (source_file.flags.len != expected.len) @panic("CDC Metal runtime flags drifted");
+            for (source_file.flags, expected) |actual, wanted| if (!std.mem.eql(u8, actual, wanted)) {
+                @panic("CDC Metal runtime lost ARC or source-closure identity");
+            };
+            sources += 1;
+        },
+        .system_lib => |library| if (std.mem.eql(u8, library.name, "objc")) {
+            objc = true;
+        },
+        else => {},
+    };
+    if (sources != 1 or !objc or artifact.root_module.link_libc != true or
+        !artifact.root_module.frameworks.contains("Foundation") or !artifact.root_module.frameworks.contains("Metal"))
+        @panic("CDC actual Metal consumer is missing its canonical native runtime linkage");
+}
+
 fn selectedProtocol(b: *std.Build, facade: *std.Build.Module) graph.ProtocolModules {
     return graph.ProtocolModules{
         .core = findPublicModule(b, facade, "stwo_core"),
@@ -113,6 +153,10 @@ pub fn add(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builti
             }
             const name = context.b.fmt("cdc-{s}-{s}-{s}", .{ provider.name, owner_name, @tagName(context.optimize) });
             const artifact = context.b.addTest(.{ .name = name, .root_module = root, .filters = registration.tests });
+            if (context.target.result.os.tag == .macos and reachesModule(context.b, root, findPublicModule(context.b, facade, "stwo_metal_backend"))) {
+                @import("../backends/metal.zig").linkRuntime(context.b, artifact);
+                assertMetalRuntime(context.b, artifact);
+            }
             artifact.step.dependOn(&source_check.step);
             const run = context.b.addRunArtifact(artifact);
             run.has_side_effects = true;

@@ -4339,6 +4339,8 @@
         "scripts/rv64/rv64_m4_resident.py",
         "scripts/rv64/rv64_resident_basket.py",
         "scripts/tests/test_rv64_resident_basket.py",
+        "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig",
+        "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
         "src/integrations/riscv_cuda/rv64_jobs_parity_main.zig",
         "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
         "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
@@ -4743,21 +4745,6 @@
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
         "text": "    if (env(\"STWO_RV64_M8_GN_SHAPE_MISS_REQUEST\")) |miss_request| {\n        const miss_block = std.fmt.parseUnsigned(u64, env(\"STWO_RV64_M8_GN_SHAPE_MISS_BLOCK\") orelse \"0\", 10) catch return error.InvalidParityEnvironment;\n        builder.miss_cache = &cache;\n        builder.miss_devices = 1;\n        const warm2 = try Warm.init(a, miss_request, manifest.resources);\n        defer warm2.deinit();\n        var mt = try std.time.Timer.start();\n        const before = builder.classes.count();"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GPU_BASE": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig",
-      "default": "missing()",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig",
-        "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig",
-        "text": "        const base_path = std.posix.getenv(\"STWO_RV64_M8_GPU_BASE\") orelse return missing();\n        const addon_path = std.posix.getenv(\"STWO_RV64_M8_JOBS_LIBRARY\") orelse return missing();\n        const gpu = Gpu{ .libs = try O.Libraries.open(base_path, addon_path) };\n        std.debug.print(\"GPU_M8_TEST_RAN {s}\\n\", .{name});\n        return gpu;\n    }\n    fn missing() !?Gpu {\n        if (required()) return error.GpuTestsRequired;"
       },
       "expires": "2026-12-09"
     },
@@ -5201,20 +5188,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_M8_TAIL_POW_BITS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/native_tail_test.zig",
-      "default": "0",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/native_tail_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/native_tail_test.zig",
-        "text": "    const pow_bits: u32 = if (std.posix.getenv(\"STWO_RV64_M8_TAIL_POW_BITS\")) |v| try std.fmt.parseInt(u32, v, 10) else 0;\n    const config = core.pcs.PcsConfig{ .pow_bits = pow_bits, .fri_config = .{ .log_blowup_factor = 1, .log_last_layer_degree_bound = 0, .n_queries = 8, .fold_step = 2 } };\n\n    // Host reference transcript and proof.\n    var prng = std.Random.DefaultPrng.init(0x7461696c);\n    var coefficients: [2][][]M = undefined;\n    var evaluations: [2][][]M = undefined;\n    for (tree_shapes, &coefficients, &evaluations) |shapes, *cs, *es| {"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_M8_TRUTH_SPLIT": {
       "owner": "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/truth_plan.zig",
       "default": "false",
@@ -5496,21 +5469,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_PACK_FOLD_CACHE": {
-      "owner": "src/integrations/circuit_cpu/om31/cache_pack.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/circuit_cpu/om31/cache_pack.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/om31/cache_pack.zig",
-        "text": "    const value = std.posix.getenv(\"STWO_RV64_PACK_FOLD_CACHE\") orelse return false;\n    return std.mem.eql(u8, value, \"1\");\n}\npub const Block = struct { offset: usize, bytes: u32, raw: bool };\nconst Lz4 = struct {\n    library: std.DynLib,\n    compress: *const fn ([*]const u8, [*]u8, c_int, c_int) callconv(.c) c_int,\n    decompress: *const fn ([*]const u8, [*]u8, c_int, c_int) callconv(.c) c_int,"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_PARTITIONED_ROLE_DISPATCH": {
       "owner": "tests/cuda/rv64/joined_domain_smoke.cu",
       "date": "2026-11-08",
@@ -5691,21 +5649,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/tests/rv64_service_geometry_test.zig",
-        "text": "    const path = std.process.getEnvVarOwned(a, \"STWO_RV64_SERVICE_GEOMETRY_ELF\") catch return;\n    defer a.free(path);\n    const output = try std.process.getEnvVarOwned(a, \"STWO_RV64_SERVICE_GEOMETRY_OUTPUT\");\n    defer a.free(output);\n    const bytes = try std.fs.cwd().readFileAlloc(a, path, 64 * 1024 * 1024);\n    defer a.free(bytes);\n    _ = try rv.elf.inspect(bytes, .{});\n    var words: std.ArrayList(u32) = .empty;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_SERVICE_GEOMETRY_OUTPUT": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_service_geometry_test.zig",
-      "default": "required when SERVICE_GEOMETRY_ELF is provided",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_service_geometry_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_service_geometry_test.zig",
-        "text": "    const output = try std.process.getEnvVarOwned(a, \"STWO_RV64_SERVICE_GEOMETRY_OUTPUT\");\n    defer a.free(output);\n    const bytes = try std.fs.cwd().readFileAlloc(a, path, 64 * 1024 * 1024);\n    defer a.free(bytes);\n    _ = try rv.elf.inspect(bytes, .{});\n    var words: std.ArrayList(u32) = .empty;\n    defer words.deinit(a);\n    const table = std.mem.readInt(u64, bytes[32..40], .little);"
+        "text": "    const path = std.process.getEnvVarOwned(a, \"STWO_RV64_SERVICE_GEOMETRY_ELF\") catch return;\n    defer a.free(path);"
       },
       "expires": "2026-12-09"
     },

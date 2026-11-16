@@ -38,7 +38,7 @@ pub const frontend_test_floor = 440;
 /// step had one -- which is how `test "adapter fail-closes through the shared
 /// run-admission gate"` came to be written against a step that would never
 /// compile it.
-pub const adapter_test_floor = 5;
+pub const adapter_test_floor = 7;
 
 /// Generated names reached only through the frontend package's lexical test
 /// inventory. Product executables never receive these design-time modules.

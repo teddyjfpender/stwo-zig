@@ -130,6 +130,7 @@ test "adapter preserves the complete sampled benchmark contract" {
 }
 
 test {
+    _ = @import("proof_adapter/artifact_verifier.zig");
     _ = @import("proof_adapter/benchmark_report.zig");
     _ = @import("proof_adapter/provenance_test.zig");
     _ = @import("proof_adapter/staged_pcs_profile_test.zig");
