@@ -7,7 +7,7 @@ transaction contract in `stwo_prover_api`.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.4.0` |
+| Version | `0.5.0` |
 | Layer | `engine` |
 | Owner | `prover-engine` |
 | Public Zig module | `stwo_prover_engine` |

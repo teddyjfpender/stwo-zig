@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_prover_api",
-  "version": "1.0.0-rc.5",
+  "version": "1.0.0-rc.6",
   "layer": "api",
   "owner": "prover-api",
   "public_modules": {
@@ -44,6 +44,7 @@
     "invariant_tests": [
       "column.zig::column evaluation validates storage and lifting geometry",
       "device_pcs.zig::device admission diagnosed validators reset scope and preserve foreign retire callback",
+      "engine.zig::OODS mismatch capture owns exact QM31 and OM31 values with one field tag",
       "error_codes_test.zig::admission and joined custody codes require their exact typed origins",
       "error_codes_test.zig::task lifecycle codes pin exact owned error contracts and stable meanings",
       "error_codes_test.zig::work accounting codes pin exact owned error signatures and stable meanings",
@@ -78,7 +79,7 @@
   },
   "budget": {
     "code_files": 20,
-    "code_lines": 6174,
+    "code_lines": 6230,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_ethereum_statement",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "layer": "product",
   "owner": "ethereum-statement",
   "public_modules": {
@@ -81,7 +81,7 @@
   },
   "budget": {
     "code_files": 427,
-    "code_lines": 76227,
+    "code_lines": 76238,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

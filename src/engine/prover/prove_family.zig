@@ -184,6 +184,7 @@ pub fn ForField(comptime Secure: type) type {
                 &ignored_subphase,
                 &ignored_evaluation,
                 null,
+                null,
             );
         }
 
@@ -248,6 +249,7 @@ pub fn ForField(comptime Secure: type) type {
             diagnosed_scheme.device_admission_failure = &device_failure;
             diagnosed_scheme.revision_configuration_failure = &revision_failure;
             var evaluation_diagnostic: ?prover_api.EvaluationDiagnostic = null;
+            var oods_mismatch: ?prover_api.ProveDiagnostic.OodsMismatch = null;
             return proveExComponentsWithRecorder(
                 B,
                 H,
@@ -263,6 +265,7 @@ pub fn ForField(comptime Secure: type) type {
                 &diagnostic_phase,
                 &diagnostic_subphase,
                 &evaluation_diagnostic,
+                &oods_mismatch,
                 failed,
             ) catch |err| {
                 prover_api.ProveDiagnostic.recordFirstDetailed(
@@ -272,6 +275,9 @@ pub fn ForField(comptime Secure: type) type {
                     evaluation_diagnostic,
                     err,
                 );
+                if (diagnostic.*) |*retained| {
+                    if (retained.cause == err and retained.phase == .finalize) retained.oods_mismatch = oods_mismatch;
+                }
                 inline for (.{ column_failure, device_failure, revision_failure }) |owned| {
                     if (owned) |origin| if (diagnostic.*) |*retained| {
                         if (retained.cause == origin.cause) retained.code = origin.entry;
@@ -419,6 +425,7 @@ pub fn ForField(comptime Secure: type) type {
                 &ignored_subphase,
                 &ignored_evaluation,
                 null,
+                null,
             );
         }
 
@@ -437,6 +444,7 @@ pub fn ForField(comptime Secure: type) type {
             diagnostic_phase: *prover_api.ProvePhase,
             diagnostic_subphase: *?prover_api.CompositionSubphase,
             evaluation_diagnostic: *?prover_api.EvaluationDiagnostic,
+            oods_mismatch: ?*?prover_api.ProveDiagnostic.OodsMismatch,
             failed: ?*?proof_mod.ExtendedStarkProof(H),
         ) !proof_mod.ExtendedStarkProof(H) {
             var scheme = commitment_scheme;
@@ -737,6 +745,16 @@ pub fn ForField(comptime Secure: type) type {
                     .constraint_evaluation,
                 );
                 if (!composition_oods_eval.eql(expected)) {
+                    if (comptime Secure == qm31.QM31 or Secure == @import("stwo_core").fields.om31.OM31) {
+                        if (oods_mismatch) |output| output.* = prover_api.ProveDiagnostic.OodsMismatch.initFor(
+                            Secure,
+                            composition_oods_eval,
+                            expected,
+                            oods_sampling.point,
+                            random_coeff,
+                            .{ .max_log_degree_bound = max_log_degree_bound, .composition_log_size = composition_log_size, .extraction_log_size = extraction_log_size, .composition_log_split = composition_log_split },
+                        );
+                    }
                     if (failed) |output| {
                         output.* = ext_proof;
                         owns_ext_proof = false;

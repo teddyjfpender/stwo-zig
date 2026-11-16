@@ -62,7 +62,8 @@ pub fn proveWithRecorder(comptime Engine: type, allocator: std.mem.Allocator, el
     try validateIo(public.value, input);
     const execution_ns = timer.lap();
     var prove_channel = Engine.Channel{};
-    var output = try orchestration.proveWithEngineUsingChannelAndExecution(
+    var diagnostic: ?@import("stwo_prover_api").ProveDiagnostic = null;
+    var output = orchestration.proveWithEngineUsingChannelAndExecution(
         Engine,
         allocator,
         config,
@@ -76,8 +77,14 @@ pub fn proveWithRecorder(comptime Engine: type, allocator: std.mem.Allocator, el
         recorder,
         public.value,
         &prove_channel,
-        .{ .cpu = .{ .worker_count = workers, .host_byte_budget = std.math.maxInt(usize), .contention_policy = .strict } },
-    );
+        .{
+            .cpu = .{ .worker_count = workers, .host_byte_budget = std.math.maxInt(usize), .contention_policy = .strict },
+            .diagnostic = if (recorder != null) &diagnostic else null,
+        },
+    ) catch |err| {
+        if (recorder != null) std.debug.print("CSP proving diagnostic: {any}\n", .{diagnostic});
+        return err;
+    };
     defer output.deinit(allocator);
     const proving_ns = timer.lap();
     const encoded = try artifact.encodeAlloc(allocator, .{

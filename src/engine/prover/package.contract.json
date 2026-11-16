@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_prover_engine",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "layer": "engine",
   "owner": "prover-engine",
   "public_modules": {
@@ -74,7 +74,7 @@
   },
   "budget": {
     "code_files": 295,
-    "code_lines": 75449,
+    "code_lines": 75467,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

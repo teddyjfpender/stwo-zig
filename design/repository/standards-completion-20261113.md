@@ -175,3 +175,32 @@ enables all available capture roles, including their downloads/hash/file costs.
 Capture-enabled timings are instrumented. Recording errors leave incomplete
 evidence and do not replace the proof verdict. Focused dev_test routing covers
 only the five pure owner paths; production edits retain their broad obligations.
+
+## Local native-CPU diagnosis and failure evidence
+
+The original native-feature CSP failure remains unresolved. Local independent
+scalar, packed, FFT and point-evaluation probes, including explicit16-lane
+optimized-IR playback, found no counterexample. Such playback on ARM is not
+native x86 execution. The original small full-OODS proof control passes both
+modes, including fresh verification and real retained/ordinary mismatch
+rejection; it is not canonical q70/P26 CSP qualification.
+
+The bounded [delegated owner decision](https://github.com/teddyjfpender/stwo-zig/issues/359#issuecomment-6931333505)
+adds value-owned final-comparison evidence to the existing diagnosed transaction.
+The CSP path requests it only under its existing profiling opt-in; ordinary
+engines remain supported and missing evidence is explicitly unavailable. No
+proof bytes, transcript, security profile or original error are changed.
+
+Local capture qualification executes seven API target cases per mode and both
+original Native proof cases in Debug and ReleaseFast. Exact point/coefficient,
+actual/expected values, geometry, retained-proof bytes and an earlier same-tag
+error are checked. Combined ReleaseFast compilation exceeded1GiB; its two
+unchanged cases pass as separate canonical-filter partitions. The failed test
+replay attempt and capped compilation remain retained, not relabeled passes.
+
+The one canonical no-emit CSP semantic attempt stopped in its generated Circuit
+CPU C-library prerequisite at1,510,539,264B aggregate RSS, before the CSP
+compiler ran. All23 borrowed provider imports and Core identity checks were
+preserved. CSP profiling-call-site semantic qualification is therefore UNRUN;
+its formatting/AST checks and review are not a replacement. No retry or
+substitute graph followed. The native CSP defect is still open.
