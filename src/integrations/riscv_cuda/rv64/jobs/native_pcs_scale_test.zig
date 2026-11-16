@@ -2,7 +2,7 @@
 //! base image's production in-process PCS service (stwo_rv64_pcs_native_prove)
 //! on the same 17-section request: words must be identical. Records the job's
 //! receipt (enqueue / wait / arena peak) next to the legacy device_ns.
-//! Opt-in: STWO_RV64_M8_PCS_SCALE=1 plus the GPU env of native_commit_test.zig.
+//! Runs whenever the existing GPU library/required-GPU admission permits the suite.
 const std = @import("std");
 const core = @import("stwo_core");
 const api = @import("api.zig");
@@ -86,7 +86,6 @@ const Done = struct {
 };
 
 test "GPU scale: enqueue-only PCS equals the production PCS service on a native-segment-sized request" {
-    if (std.posix.getenv("STWO_RV64_M8_PCS_SCALE") == null) return error.SkipZigTest;
     var gpu = (try @import("native_gpu_support_test.zig").Gpu.openNamed("native_pcs_scale_test")) orelse return error.SkipZigTest;
     defer gpu.close();
     const a = std.heap.page_allocator;

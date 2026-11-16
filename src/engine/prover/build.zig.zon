@@ -1,7 +1,7 @@
 .{
     .fingerprint = 0x2877591a748fc68d,
     .name = .stwo_prover_engine,
-    .version = "0.1.0",
+    .version = "0.2.0",
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{

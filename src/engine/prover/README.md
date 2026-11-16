@@ -7,7 +7,7 @@ transaction contract in `stwo_prover_api`.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `engine` |
 | Owner | `prover-engine` |
 | Public Zig module | `stwo_prover_engine` |
@@ -152,3 +152,7 @@ session reuse, and verifier round-trips.
 - [Protocol core](../../waist/core/README.md)
 - [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 - [Universal AIR to Sail refinement plan](../../../design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)
+
+Version0.2 reexports the API rc.3 optional task diagnostics. Ordinary task
+execution and profile serialization retain their previous behavior; diagnostics
+are opt-in and do not classify arbitrary task or clock callback errors.

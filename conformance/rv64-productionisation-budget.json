@@ -1325,6 +1325,28 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue332 under standing maintainer approval: bind device generation and binding as one opt-in after independent mixed-state refusal audit; make composition/PCS comparisons mandatory in existing full/focused qualification modes. Preserve all stronger checks, actual consumers, fault/poison comparisons and defaults; no new JSON controls or unqualified GPU default promotion. Retire three controls78to75, tests included, no new launcher. Scalar capacity consolidation excluded because ignoring a legacy explicit cap could exceed operator intent; existing capacity authority/defaults remain exact. Compatibility: obsolete binding acknowledgement alone is ignored and may select default hybrid rather than old marker mismatch rejection; it never grants residency. Actual installed binding/trace mismatch and CPU replay refusal remain authoritative."
+    },
+    {
+      "id": "prover_task_lifecycle_origins_359",
+      "net_code_budget": 700,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "RFC360 comment6922323907 under standing maintainer approval:24 typed task reservation/publication/contribution/snapshot meanings through actual Engine Capture and API stage recorder. Per-call sinks; only Capture borrows coordinator-only through join/deinit. Preserve actual callback same-tag nonannotation and original task/clock regressions, abort/OOM cleanup. Coherent private clock owner retains original aliases and atomic failure precedence; moves earn no source-removal credit. Actual Engine26/API14 cases eachmode; three impossible-host/global cases golden-only. No heavyproof/GPU claim or new launcher/flag/dependency; optional interfaces and source helpers roll back together."
+    },
+    {
+      "id": "pcs_scale_mandatory_qualification_332",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "flags_removed_target": 1,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue332 comment6922195238: remove only extra PCS_SCALE boolean guard from the existing native-segment-scale GPU comparison. Preserve complete physical test after exact single-line normalization, including trees/logs/masks/seeds/security/repeats/budgets. Existing GPU library/required-GPU admission remains; hardware run unqualified. Mandatory qualification coverage is not production GPU default promotion. No new script/API; rollback guard and registry metadata together."
+    },
+    {
+      "id": "production_fault_injection_ownership_332",
+      "net_code_budget": 1200,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue332 comments6922138831/6922293884 under standing approval: move production sabotage authority to explicit test-owned fields, only after executable actual-host checks and Driver publication/cancel/lifetime coverage. Preserve nine GN cases and add exact original MAIN+0 mutation, not replace +3. Target four executable fault families plus duplicate single NODE record-directory authority; keep two OODS ordinals and arm live until actual checker qualification. No invented OODS evaluator, enum-to-verdict substitute, GPUdefault promotion or new launcher. Source/host evidence never certifies full encoded-node/GPU proof execution."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
@@ -2310,6 +2332,60 @@
         "versioned_files": 23
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6921939838"
+    },
+    {
+      "package": "stwo_prover_engine",
+      "base_commit": "50eea5dddaeb05f0a4dd2e32817bba7c0cd95e85",
+      "before": {
+        "code_files": 293,
+        "code_lines": 75081,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 29,
+        "dependencies": 3,
+        "rv64_registry_flags": 0,
+        "versioned_files": 297
+      },
+      "after": {
+        "code_files": 294,
+        "code_lines": 75248,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 29,
+        "dependencies": 3,
+        "rv64_registry_flags": 0,
+        "versioned_files": 298
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6922432570"
+    },
+    {
+      "package": "stwo_prover_api",
+      "base_commit": "50eea5dddaeb05f0a4dd2e32817bba7c0cd95e85",
+      "before": {
+        "code_files": 20,
+        "code_lines": 5869,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 24,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 23
+      },
+      "after": {
+        "code_files": 20,
+        "code_lines": 5971,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 24,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 23
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6922432570"
     }
   ]
 }

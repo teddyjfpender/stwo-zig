@@ -215,41 +215,30 @@ pub const Recorder = struct {
         };
     }
 
-    /// Compatibility reservation for producers without semantic attribution.
-    /// Existing stage timing remains independent from this reservation.
-    pub fn reserveTaskGraph(
-        self: *Recorder,
-        event_count: usize,
-        component_work_count: usize,
-    ) !task_profile.PendingGraph {
-        return self.task_recorder.reserveTaskGraph(event_count, component_work_count);
+    /// Closed API-owned task operation; optional diagnostics are coordinator-only.
+    pub fn reserveTaskGraph(self: *Recorder, event_count: usize, component_work_count: usize) task_profile.ReservationError!task_profile.PendingGraph {
+        return self.reserveTaskGraphDiagnosed(event_count, component_work_count, null);
     }
-
-    /// Reserves exact schema-v2 event, contribution, and aggregate storage
-    /// before launch.
-    pub fn reserveTaskGraphShape(
-        self: *Recorder,
-        shape: task_profile.ReservationShape,
-    ) !task_profile.PendingGraph {
-        return self.task_recorder.reserveTaskGraphShape(shape);
+    pub fn reserveTaskGraphDiagnosed(self: *Recorder, event_count: usize, component_work_count: usize, failure: ?*?@import("stwo_core").error_codes.Entry) task_profile.ReservationError!task_profile.PendingGraph {
+        return taskResult(self.task_recorder.reserveTaskGraph(event_count, component_work_count), failure);
     }
-
-    /// Moves a fully joined task graph into the separate flat recorder without
-    /// allocation or event copying.
-    pub fn publishTaskGraphAfterJoin(
-        self: *Recorder,
-        pending: *task_profile.PendingGraph,
-        header: task_profile.GraphHeader,
-        summary: task_profile.RequestSummary,
-    ) !void {
-        try self.task_recorder.publishTaskGraphAfterJoin(pending, header, summary);
+    pub fn reserveTaskGraphShape(self: *Recorder, shape: task_profile.ReservationShape) task_profile.ReservationError!task_profile.PendingGraph {
+        return self.reserveTaskGraphShapeDiagnosed(shape, null);
     }
-
-    pub fn taskSnapshot(
-        self: *const Recorder,
-        allocator: std.mem.Allocator,
-    ) !task_profile.TaskProfile {
-        return self.task_recorder.snapshot(allocator);
+    pub fn reserveTaskGraphShapeDiagnosed(self: *Recorder, shape: task_profile.ReservationShape, failure: ?*?@import("stwo_core").error_codes.Entry) task_profile.ReservationError!task_profile.PendingGraph {
+        return taskResult(self.task_recorder.reserveTaskGraphShape(shape), failure);
+    }
+    pub fn publishTaskGraphAfterJoin(self: *Recorder, pending: *task_profile.PendingGraph, header: task_profile.GraphHeader, summary: task_profile.RequestSummary) task_profile.PublicationError!void {
+        return self.publishTaskGraphAfterJoinDiagnosed(pending, header, summary, null);
+    }
+    pub fn publishTaskGraphAfterJoinDiagnosed(self: *Recorder, pending: *task_profile.PendingGraph, header: task_profile.GraphHeader, summary: task_profile.RequestSummary, failure: ?*?@import("stwo_core").error_codes.Entry) task_profile.PublicationError!void {
+        return taskResult(self.task_recorder.publishTaskGraphAfterJoin(pending, header, summary), failure);
+    }
+    pub fn taskSnapshot(self: *const Recorder, allocator: std.mem.Allocator) task_profile.SnapshotError!task_profile.TaskProfile {
+        return self.taskSnapshotDiagnosed(allocator, null);
+    }
+    pub fn taskSnapshotDiagnosed(self: *const Recorder, allocator: std.mem.Allocator, failure: ?*?@import("stwo_core").error_codes.Entry) task_profile.SnapshotError!task_profile.TaskProfile {
+        return taskResult(self.task_recorder.snapshot(allocator), failure);
     }
 
     /// Returns the recorder only when flat task capture is enabled. Prover
@@ -750,4 +739,14 @@ fn exerciseProcessStages(a: std.mem.Allocator) !void {
 test "stage process usage: nested and adopted intervals survive snapshot and OOM" {
     try exerciseProcessStages(std.testing.allocator);
     try std.testing.checkAllAllocationFailures(std.testing.allocator, exerciseProcessStages, .{});
+}
+
+// The result comes only from one of the four closed task-recorder operations
+// above. No user callback or arbitrary operation can enter this private seam.
+fn taskResult(result: anytype, failure: ?*?@import("stwo_core").error_codes.Entry) @TypeOf(result) {
+    if (failure) |sink| sink.* = null;
+    return result catch |err| {
+        if (failure) |sink| sink.* = @import("error_codes.zig").fromTaskProfile(err);
+        return err;
+    };
 }

@@ -5021,20 +5021,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_M8_PCS_SCALE": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/native_pcs_scale_test.zig",
-      "default": "qualification test skipped unless explicitly selected",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/native_pcs_scale_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/native_pcs_scale_test.zig",
-        "text": "    if (std.posix.getenv(\"STWO_RV64_M8_PCS_SCALE\") == null) return error.SkipZigTest;\n    var gpu = (try @import(\"native_gpu_support_test.zig\").Gpu.openNamed(\"native_pcs_scale_test\")) orelse return error.SkipZigTest;\n    defer gpu.close();\n    const a = std.heap.page_allocator;\n    var arena_state = std.heap.ArenaAllocator.init(a);\n    defer arena_state.deinit();\n    const ar = arena_state.allocator();\n    const sym = try N.Symbols.load(&gpu.libs.addon);"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_M8_REQUIRE_GPU": {
       "owner": "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig",
       "default": "false",

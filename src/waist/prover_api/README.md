@@ -7,7 +7,7 @@ check without importing the prover implementation.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.2` |
+| Version | `1.0.0-rc.3` |
 | Layer | `api` |
 | Owner | `prover-api` |
 | Public Zig module | `stwo_prover_api` |
@@ -153,3 +153,12 @@ The generic prover registers pair-aligned column lifting, invalid-ingress refusa
 The existing aggregate package graph exposes `zig build test-cdc-stwo-prover-api -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
 
 `error_codes` owns codes `0x3001`–`0x3003` for exact column admission. Diagnosed proving may attach a nullable stable `ProveDiagnostic.code` from the current attempt's typed quotient admission; arbitrary caller/backend errors remain unmapped. The original first error, column layout and proof transcript are unchanged.
+
+
+Task recorder reservation, pending ownership, publication and snapshot have
+exact typed error contracts. Optional diagnosed stage-recorder calls expose
+`error_codes` entries `0x3101`–`0x3118` only for these closed operations;
+column codes remain unchanged. Diagnostic sinks are borrowed per call. The
+engine's opt-in capture holds a sink only through coordinator publication/join
+and deinit, never across worker writes or recorder ownership. Ordinary cleanup
+preserves the primary failure, and foreign clock/task callbacks remain unmapped.

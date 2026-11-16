@@ -401,3 +401,44 @@ goldens pin exact typed signatures, meanings, class, since values and unknown
 refusal. Debug/ReleaseFast execute the three consumer cases and 27 provider
 cases under 385 MB guarded aggregate RSS; no full proof or GPU claim follows.
 Recovery callback/I/O and prover task/lifetime boundaries remain separate work.
+
+
+## Task reservation, publication and capture lifetime after 50eea5dd
+
+RFC #360 / #359 delegates a 700-net-line ceiling (target below 500) to the
+callback-free task-recorder lifecycle: twelve recorder errors, eleven semantic
+contribution errors and allocator failure. API rc.3 appends literal codes
+0x3101–0x3118 while retaining the three existing column codes. Exact
+ReservationError, PendingError, PublicationError and SnapshotError signatures
+are compiler-enforced; their union is limited to these owned task operations.
+Counter/identity exhaustion and allocation failure are resource_exhausted;
+shape, ownership, range and lifecycle misuse are invalid_input.
+
+The actual stage recorder's diagnosed reservation/publication/snapshot calls
+project only these concrete recorder operations. Sinks are per call, never
+stored in a Recorder. The actual Engine Capture's opt-in initDiagnosed clears
+stale output before earlier attribution and clock operations, and borrows the
+sink only until coordinator publication/join and Capture.deinit. Workers never
+write it. No ownership transfer or concurrent write path is introduced. Legacy
+entrypoints pass null. Exact PendingGraph.abortDiagnosed can clear a prior
+failure on explicit successful abort; ordinary cleanup/deinit uses the legacy
+null path and cannot erase the primary capture diagnostic.
+
+The existing monotonic clock, callback transport and atomic failure-precedence
+implementation move together into one private clock owner; original public
+names and function types remain available. This keeps the Capture owner below
+850 lines. The clock algorithm, proof/transcript/schema bytes and callback
+rejection semantics do not change. A foreign clock callback returning the same
+tag as an owned reservation failure remains unmapped, as do earlier engine
+attribution/allocation failures outside the selected recorder operation.
+
+Bounded Debug and ReleaseFast execution passes 26 actual engine capture/clock
+cases and 14 API lifecycle/property cases each, below 391 MB aggregate RSS.
+Physical diagnostic cases cover all eleven contribution errors, reservation
+shape/generation limits, active/wrong/stale/storage capability rejection,
+joined-summary refusal, snapshot exclusion, explicit abort/success/reset and
+every allocation failure cleanup. Process-global recorder-identity exhaustion,
+u64 task-count overflow on this 64-bit host and an impossible scheduler enum
+are typed golden cases only, not physical execution claims. Full proof/process
+and cross-host qualification remain separate. Work-profile validation and
+backend recovery callback/I/O origins remain open.

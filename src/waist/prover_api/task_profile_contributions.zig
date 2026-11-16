@@ -4,6 +4,7 @@
 //! derivation only after every physical task has joined.
 
 const std = @import("std");
+pub const Error = error{ TaskProfileComponentKindDrift, TaskProfileComponentWorkCountMismatch, TaskProfileComponentWorkOverflow, TaskProfileContributionCompletionExceedsPlan, TaskProfileContributionCompletionStateMismatch, TaskProfileContributionRangeCoverageMismatch, TaskProfileContributionRangeNotContiguous, TaskProfileContributionRangeOutOfBounds, TaskProfileContributionRoleDrift, TaskProfileDuplicateComponentContribution, TaskProfileExclusiveContributionNotExclusive };
 
 /// The semantic relationship between a physical task and a registry
 /// component. `exclusive` is reserved for lanes that execute exactly one
@@ -89,7 +90,7 @@ pub fn deriveComponentWork(
     events: anytype,
     contributions: []const Contribution,
     component_work: []ComponentWork,
-) !void {
+) Error!void {
     @memset(component_work, .{});
     var range_cursor: usize = 0;
     var component_count: usize = 0;
@@ -173,7 +174,7 @@ pub fn deriveComponentWork(
     }
 }
 
-fn validateCompletion(event: anytype, contribution: Contribution) !void {
+fn validateCompletion(event: anytype, contribution: Contribution) Error!void {
     const rows = contribution.completed_rows;
     const tiles = contribution.completed_tiles;
     if (!event.started) {
@@ -212,12 +213,12 @@ fn findComponent(
     return null;
 }
 
-fn checkedAdd(lhs: u64, rhs: u64) !u64 {
+fn checkedAdd(lhs: u64, rhs: u64) Error!u64 {
     return std.math.add(u64, lhs, rhs) catch
         return error.TaskProfileComponentWorkOverflow;
 }
 
-fn addCompleted(total: *?u64, amount: ?u64) !void {
+fn addCompleted(total: *?u64, amount: ?u64) Error!void {
     if (total.* == null or amount == null) {
         total.* = null;
         return;

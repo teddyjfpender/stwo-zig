@@ -7,6 +7,23 @@
 const std = @import("std");
 const attribution = @import("task_profile_contributions.zig");
 
+pub const ReservationError = std.mem.Allocator.Error || error{
+    TaskGraphReservationActive,
+    TaskProfileContributionCountOverflow,
+    TaskProfileComponentWorkCountImpossible,
+    TaskGraphReservationGenerationExhausted,
+    TaskGraphRecorderIdentityExhausted,
+};
+pub const PendingError = error{ TaskGraphReservationWrongRecorder, TaskGraphReservationStale, TaskGraphReservationStorageMismatch };
+pub const PublicationError = PendingError || attribution.Error || error{
+    TaskProfileTaskCountOverflow,
+    TaskProfilePlannedTaskCountMismatch,
+    TaskProfileUnsupportedScheduler,
+    TaskProfileUnexpectedStealCount,
+};
+pub const SnapshotError = std.mem.Allocator.Error || error{TaskGraphReservationActive};
+pub const Error = ReservationError || PublicationError || SnapshotError;
+
 /// Version of the flat task-profile schema. This is intentionally independent
 /// from `stage_profile.SCHEMA_VERSION`.
 pub const TASK_PROFILE_SCHEMA_VERSION: u32 = 2;
@@ -272,7 +289,7 @@ const ActiveReservation = struct {
 // remains the invalid identity carried by consumed handles.
 var next_recorder_identity = std.atomic.Value(u64).init(1);
 
-fn claimRecorderIdentity() !u64 {
+fn claimRecorderIdentity() error{TaskGraphRecorderIdentityExhausted}!u64 {
     var candidate = next_recorder_identity.load(.monotonic);
     while (true) {
         if (candidate == std.math.maxInt(u64)) {
@@ -307,8 +324,16 @@ pub const PendingGraph = struct {
 
     /// Aborts only when this handle is the recorder's current capability.
     /// Stale copies return an error and cannot free a later reservation.
-    pub fn abort(self: *PendingGraph) !void {
-        try self.recorder.abortTaskGraph(self);
+    pub fn abort(self: *PendingGraph) PendingError!void {
+        return self.abortDiagnosed(null);
+    }
+
+    pub fn abortDiagnosed(self: *PendingGraph, failure: ?*?@import("stwo_core").error_codes.Entry) PendingError!void {
+        if (failure) |sink| sink.* = null;
+        self.recorder.abortTaskGraph(self) catch |err| {
+            if (failure) |sink| sink.* = @import("error_codes.zig").fromTaskProfile(err);
+            return err;
+        };
     }
 
     pub fn deinit(self: *PendingGraph) void {
@@ -369,7 +394,7 @@ pub const Recorder = struct {
         self: *Recorder,
         event_count: usize,
         component_work_count: usize,
-    ) !PendingGraph {
+    ) ReservationError!PendingGraph {
         return self.reserveTaskGraphInternal(.{
             .event_count = event_count,
             .contribution_count = event_count,
@@ -382,7 +407,7 @@ pub const Recorder = struct {
     pub fn reserveTaskGraphShape(
         self: *Recorder,
         shape: ReservationShape,
-    ) !PendingGraph {
+    ) ReservationError!PendingGraph {
         return self.reserveTaskGraphInternal(shape, false);
     }
 
@@ -390,7 +415,7 @@ pub const Recorder = struct {
         self: *Recorder,
         shape: ReservationShape,
         compatibility_one_contribution_per_event: bool,
-    ) !PendingGraph {
+    ) ReservationError!PendingGraph {
         if (self.active_reservation != null) {
             return error.TaskGraphReservationActive;
         }
@@ -455,7 +480,7 @@ pub const Recorder = struct {
         pending: *PendingGraph,
         header: GraphHeader,
         summary: RequestSummary,
-    ) !void {
+    ) PublicationError!void {
         const active = try self.validatePending(pending);
         const event_count = std.math.cast(u64, active.events.len) orelse
             return error.TaskProfileTaskCountOverflow;
@@ -488,7 +513,7 @@ pub const Recorder = struct {
         pending.invalidate();
     }
 
-    pub fn snapshot(self: *const Recorder, allocator: std.mem.Allocator) !TaskProfile {
+    pub fn snapshot(self: *const Recorder, allocator: std.mem.Allocator) SnapshotError!TaskProfile {
         if (self.active_reservation != null) {
             return error.TaskGraphReservationActive;
         }
@@ -503,7 +528,7 @@ pub const Recorder = struct {
         };
     }
 
-    fn abortTaskGraph(self: *Recorder, pending: *PendingGraph) !void {
+    fn abortTaskGraph(self: *Recorder, pending: *PendingGraph) PendingError!void {
         const active = try self.validatePending(pending);
         self.allocator.free(active.events);
         self.allocator.free(active.contributions);
@@ -515,7 +540,7 @@ pub const Recorder = struct {
     fn validatePending(
         self: *const Recorder,
         pending: *const PendingGraph,
-    ) !ActiveReservation {
+    ) PendingError!ActiveReservation {
         if (pending.recorder != self) {
             return error.TaskGraphReservationWrongRecorder;
         }
