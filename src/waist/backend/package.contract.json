@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_backend_contracts",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.3",
   "layer": "contract",
   "owner": "backend-contracts",
   "public_modules": {
@@ -34,6 +34,7 @@
       "mod.zig::api signature: backend accepts a truthful minimum capability set"
     ],
     "invariant_tests": [
+      "error_codes_test.zig::backend program diagnostics pin exact program and native AIR origins",
       "proof_program_native_air.zig::native AIR contract rejects unbound and inconsistent ingress"
     ]
   },
@@ -52,7 +53,7 @@
   },
   "budget": {
     "code_files": 20,
-    "code_lines": 3485,
+    "code_lines": 3575,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

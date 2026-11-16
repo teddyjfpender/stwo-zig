@@ -26,18 +26,16 @@
 //!                                   24628607, 20 GiB passes 127/127)
 //!   STWO_RV64_M8_JOBS_PINNED_BYTES  pinned slot size (default 1 GiB)
 //!   STWO_RV64_M8_PARITY_ONLY        "" (default: GKR/Stage1/binding, global,
-//!                                   commits; + composition/PCS when enabled),
+//!                                   commits, composition and PCS),
 //!                                   "composition" (composition only; with
 //!                                   DEVICE_CLAIMS=1 also the global decorator,
 //!                                   the source of the device claims) or "pcs"
 //!   STWO_RV64_M8_PARITY_STAGE1      1 (default) / 0: Stage1 job checks
 //!   STWO_RV64_M8_PARITY_BINDING     1 (default) / 0: binding tail in Stage1
-//!   STWO_RV64_M8_PARITY_COMPOSITION 0 (default) / 1: composition parity
 //!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots
 //!                                   patched from the native_global jobs' claims
 //!                                   (Stage2 layout, jobs/native_claims.zig)
 //!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too
-//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity
 const std = @import("std");
 const ProductCPU = @import("ethereum_cpu_component");
 const CPU = @import("stwo_riscv_cpu_integration");
@@ -153,7 +151,8 @@ pub fn main() !void {
     try pool.stages().requireFullyResident();
     const peer = Peer{ .copy = libs.addon.lookup(PeerCopy, "stwo_rv64_jobs_native_peer_copy_v1") orelse return error.ParityRequiresPeerCopy, .source_device = std.fmt.parseUnsigned(c_int, env("STWO_RV64_M8_PARITY_SOURCE_DEVICE") orelse "0", 10) catch return error.InvalidParityEnvironment };
     // STWO_RV64_M8_PARITY_ONLY (parsed once): see the header.
-    const Only = enum { all, composition, pcs };
+    const Coverage = @import("rv64/parity/coverage_policy.zig");
+    const Only = Coverage.Mode;
     const only_mode = env("STWO_RV64_M8_PARITY_ONLY") orelse "";
     const only: Only = if (only_mode.len == 0) .all else std.meta.stringToEnum(Only, only_mode) orelse return error.InvalidParityEnvironment;
     const only_composition = only == .composition;
@@ -183,19 +182,17 @@ pub fn main() !void {
     var composition = CompositionDecorator{ .a = a, .inner = stages.resident_composition orelse return error.ParityRequiresResidentComposition, .context = &pool.devices[0].composition, .events = &events_api, .worker = worker, .symbols = try NComp.Symbols.load(&libs.base, &libs.addon), .compare = compare, .peer = peer };
     defer composition.rows.deinit(a);
     const wrapped_composition = composition.stage();
-    const composition_flag = env("STWO_RV64_M8_PARITY_COMPOSITION") orelse "0";
-    const check_composition = only_composition or !std.mem.eql(u8, composition_flag, "0");
+    const check_composition = Coverage.composition(only);
     if (check_composition) stages.resident_composition = &wrapped_composition;
     composition.device_claims = device_claims;
     if (only == .all or only_composition) composition.global = &global;
     // Truth/service compositions through the same producer (truth kernel).
-    if (check_composition and !std.mem.eql(u8, "1", "0")) {
+    if (check_composition) {
         composition.truth_inner = stages.truth_composition orelse return error.ParityRequiresTruthComposition;
         stages.truth_composition = composition.truthStage();
     }
-    // STWO_RV64_M8_PARITY_PCS=1 (default 0): OODS + enqueue-only PCS at every
-    // legacy PCS (CPU segments and truths).
-    const check_pcs = std.mem.eql(u8, env("STWO_RV64_M8_PARITY_PCS") orelse "0", "1") or only == .pcs;
+    // Every selected PCS check includes CPU segments and truth proofs.
+    const check_pcs = Coverage.pcs(only);
     var pcs_mutex: std.Thread.Mutex = .{};
     var pcs_rows: std.ArrayListUnmanaged(PcsRow) = .empty;
     defer pcs_rows.deinit(a);

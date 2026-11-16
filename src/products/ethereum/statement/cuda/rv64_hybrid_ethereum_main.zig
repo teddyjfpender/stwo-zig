@@ -22,18 +22,18 @@ pub fn main() !void {
         return @import("rv64/resident_batch.zig").run(a, native_library orelse return error.ResidentBatchRequiresNativeLibrary, arguments[2], arguments[3]);
     }
     const host_retained = std.process.hasEnvVarConstant("STWO_RV64_GPU_HOST_RETAINED");
-    try @import("rv64/host_retained_policy.zig").validate(host_retained, native_library != null, std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES"), std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE"), std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING"));
-    if (std.process.hasEnvVarConstant("STWO_RV64_GPU_CPU_REPLAY") and (host_retained or native_library == null or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES") or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE") or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING"))) return error.CpuReplayRequiresFullyResidentPool;
+    const device_trace = std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE");
+    try @import("rv64/host_retained_policy.zig").validate(host_retained, native_library != null, std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES"), device_trace, device_trace);
+    if (std.process.hasEnvVarConstant("STWO_RV64_GPU_CPU_REPLAY") and (host_retained or native_library == null or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES") or !device_trace)) return error.CpuReplayRequiresFullyResidentPool;
     if (native_library) |path| {
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES")) {
-            if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) return error.ResidentPoolRequiresDeviceTrace;
-            if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING")) return error.FullyResidentBindingRequired;
+            if (!device_trace) return error.ResidentPoolRequiresDeviceTrace;
             const planned_text = try std.process.getEnvVarOwned(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS");
             defer a.free(planned_text);
             const planned = std.fmt.parseInt(usize, planned_text, 10) catch return error.InvalidResidentPlan;
             var config = try @import("stwo_riscv_cuda_integration").rv64.execution.runtime.resident_router.Config.fromEnv(a);
             defer config.deinit(a);
-            const pool = try @import("rv64/resident_pool.zig").Pool.createWithBinding(a, path, config, planned, std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING"));
+            const pool = try @import("rv64/resident_pool.zig").Pool.createWithBinding(a, path, config, planned, true);
             defer pool.deinit();
             std.debug.print("GPU_RESIDENT_PLAN devices={d} planned_cpu_workers={d} retained_scopes_per_device={d} host_budget=resource_file gpu_caps_bytes={any}\n", .{ config.ids.len, planned, config.scope_limit, config.caps });
             try CPU.rv64_ethereum_gkr_main.mainWithResidentPipeline(pool.stages());
@@ -61,17 +61,16 @@ pub fn main() !void {
         // GKR ingress is temporary: never publish device MAIN across the barrier.
         if (!host_retained) gkr.coefficient_sink = .{ .context = &native, .publish = Native.Context.publishCoefficients };
         if (host_retained) std.debug.print("GPU_EXECUTION_MODE host_retained_hybrid stage1_device_main_retention=0 stage2=resident_composition_pcs\n", .{});
-        if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING")) {
-            if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) return error.DeviceBindingRequiresResidentTraceCommit;
+        if (device_trace) {
             try gkr.enableDeviceBinding(&native.library);
         }
-        if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) gkr.fixed_provider = .{ .context = &native, .acquire = Native.Context.provideFixed, .release = Native.Context.releaseProvidedFixed };
+        if (device_trace) gkr.fixed_provider = .{ .context = &native, .acquire = Native.Context.provideFixed, .release = Native.Context.releaseProvidedFixed };
         const gkr_stage = gkr.stage();
+        try @import("rv64/host_retained_policy.zig").requireBinding(device_trace, gkr_stage.bind != null);
         var composition = try ResidentComposition.Context.init(a, &native);
         defer composition.deinit();
         const resident_composition_stage = composition.stage();
-        if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) {
-            if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING")) return error.FullyResidentBindingRequired;
+        if (device_trace) {
             var trace = try TraceCommit.Context.init(&native);
             defer trace.deinit();
             const trace_stage = trace.stage();

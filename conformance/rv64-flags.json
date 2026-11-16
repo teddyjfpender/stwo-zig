@@ -4200,21 +4200,14 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_GPU_DEVICE_BINDING": {
-      "owner": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
-      "default": "required in fully resident CPU replay mode; otherwise optional",
-      "status": "runtime",
-      "date": "2026-11-08",
+      "owner": "scripts/rv64/rv64_ethereum_basket.py",
+      "default": "retired marker is scrubbed; trace opt-in requires actual installed binding capability",
+      "status": "reference-only",
+      "date": "2026-11-16",
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
-        "scripts/tests/test_rv64_ethereum_basket.py",
-        "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
-        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_TRACE\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_BINDING\")) return error.ResidentBatchRequiresDevicePipeline;\n    if (manifest.resources != .object or (manifest.resources.object.get(\"park_main\") orelse return error.ResidentPipelineCannotParkMain) != .bool or manifest.resources.object.get(\"park_main\").?.bool) return error.ResidentPipelineCannotParkMain;\n    var config = try Router.Config.fromEnv(a);\n    defer config.deinit(a);\n    var first_name: [24]u8 = undefined;\n    const first = manifest.blocks.map.get(try std.fmt.bufPrint(&first_name, \"{d}\", .{manifest.execution_order[0]})) orelse return error.MissingResidentBatchBlock;\n    if (combined) {\n        _ = try ReadyPolicy.workers(manifest.recursion_mode, config.ids, manifest.recursion_worker_budget, manifest.recursion_max_pending_authorities);"
-      },
-      "expires": "2026-12-09"
+        "scripts/tests/test_rv64_ethereum_basket.py"
+      ]
     },
     "STWO_RV64_GPU_DEVICE_CAPS": {
       "owner": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
@@ -4238,7 +4231,7 @@
       "owner": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
       "default": "false (variable absent)",
       "status": "runtime",
-      "date": "2026-11-08",
+      "date": "2026-11-16",
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
@@ -4248,7 +4241,7 @@
       ],
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_TRACE\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_BINDING\")) return error.ResidentBatchRequiresDevicePipeline;\n    if (manifest.resources != .object or (manifest.resources.object.get(\"park_main\") orelse return error.ResidentPipelineCannotParkMain) != .bool or manifest.resources.object.get(\"park_main\").?.bool) return error.ResidentPipelineCannotParkMain;\n    var config = try Router.Config.fromEnv(a);\n    defer config.deinit(a);\n    var first_name: [24]u8 = undefined;\n    const first = manifest.blocks.map.get(try std.fmt.bufPrint(&first_name, \"{d}\", .{manifest.execution_order[0]})) orelse return error.MissingResidentBatchBlock;\n    if (combined) {\n        _ = try ReadyPolicy.workers(manifest.recursion_mode, config.ids, manifest.recursion_worker_budget, manifest.recursion_max_pending_authorities);"
+        "text": "    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_TRACE\")) return error.ResidentBatchRequiresDevicePipeline;"
       },
       "expires": "2026-12-09"
     },
@@ -4256,7 +4249,7 @@
       "owner": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
       "default": "false (variable absent)",
       "status": "runtime",
-      "date": "2026-11-08",
+      "date": "2026-11-16",
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/rv64/rv64_m3_pod.py",
@@ -4269,7 +4262,7 @@
       ],
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_TRACE\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_BINDING\")) return error.ResidentBatchRequiresDevicePipeline;\n    if (manifest.resources != .object or (manifest.resources.object.get(\"park_main\") orelse return error.ResidentPipelineCannotParkMain) != .bool or manifest.resources.object.get(\"park_main\").?.bool) return error.ResidentPipelineCannotParkMain;\n    var config = try Router.Config.fromEnv(a);\n    defer config.deinit(a);\n    var first_name: [24]u8 = undefined;\n    const first = manifest.blocks.map.get(try std.fmt.bufPrint(&first_name, \"{d}\", .{manifest.execution_order[0]})) orelse return error.MissingResidentBatchBlock;\n    if (combined) {\n        _ = try ReadyPolicy.workers(manifest.recursion_mode, config.ids, manifest.recursion_worker_budget, manifest.recursion_max_pending_authorities);"
+        "text": "    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\") or !std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_TRACE\")) return error.ResidentBatchRequiresDevicePipeline;"
       },
       "expires": "2026-12-09"
     },
@@ -4968,20 +4961,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_M8_PARITY_COMPOSITION": {
-      "owner": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
-      "default": "\"0\"",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
-        "text": "//!   STWO_RV64_M8_PARITY_COMPOSITION 0 (default) / 1: composition parity\n//!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots\n//!                                   patched from the native_global jobs' claims\n//!                                   (Stage2 layout, jobs/native_claims.zig)\n//!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too\n//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity\nconst std = @import(\"std\");\nconst ProductCPU = @import(\"ethereum_cpu_component\");\nconst CPU = @import(\"stwo_riscv_cpu_integration\");"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_M8_PARITY_DEVICE": {
       "owner": "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
       "default": "1",
@@ -5009,7 +4988,7 @@
       ],
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
-        "text": "//!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots\n//!                                   patched from the native_global jobs' claims\n//!                                   (Stage2 layout, jobs/native_claims.zig)\n//!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too\n//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity\nconst std = @import(\"std\");\nconst ProductCPU = @import(\"ethereum_cpu_component\");\nconst CPU = @import(\"stwo_riscv_cpu_integration\");\nconst Main = ProductCPU.rv64_ethereum_gkr_main;"
+        "text": "    const device_claims = std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_DEVICE_CLAIMS\") orelse \"0\", \"1\");"
       },
       "expires": "2026-12-09"
     },
@@ -5024,20 +5003,6 @@
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
         "text": "    const only_mode = env(\"STWO_RV64_M8_PARITY_ONLY\") orelse \"\";\n    const only: Only = if (only_mode.len == 0) .all else std.meta.stringToEnum(Only, only_mode) orelse return error.InvalidParityEnvironment;\n    const only_composition = only == .composition;\n    const device_claims = std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_DEVICE_CLAIMS\") orelse \"0\", \"1\");\n    var stages = pool.stages();\n    var decorator = Decorator{ .a = a, .inner = pool.stages().numerical.?.*, .worker = worker, .symbols = try NG.Symbols.load(&libs.base), .catalogue = try Sources.Catalogue.init(a), .arena_bytes = arena_bytes, .peer = peer, .csym = try NC.Symbols.load(&libs.base) };\n    defer decorator.catalogue.deinit();\n    defer decorator.rows.deinit(a);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_PARITY_PCS": {
-      "owner": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
-      "default": "false unless only_mode is pcs",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/ethereum/statement/cuda/rv64_m8_native_parity_main.zig",
-        "text": "    const check_pcs = std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_PCS\") orelse \"0\", \"1\") or only == .pcs;\n    var pcs_mutex: std.Thread.Mutex = .{};\n    var pcs_rows: std.ArrayListUnmanaged(PcsRow) = .empty;\n    defer pcs_rows.deinit(a);\n    const Version = *const fn () callconv(.c) u32;\n    const wide = if (libs.base.lookup(Version, \"stwo_rv64_pcs_request_version\")) |version| version() >= 3 else false;\n    const pcs_sym = try NP.Symbols.load(&libs.addon);\n    var cpu_pcs = PcsDecorator{ .a = a, .inner = stages.pcs orelse return error.ParityRequiresDevicePcs, .kind = \"cpu\", .worker = worker, .sym = pcs_sym, .peer = peer, .events = &events_api, .wide = wide, .mutex = &pcs_mutex, .rows = &pcs_rows };"
       },
       "expires": "2026-12-09"
     },

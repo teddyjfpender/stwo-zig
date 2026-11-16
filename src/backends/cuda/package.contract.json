@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_cuda_backend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "layer": "backend",
   "owner": "cuda-backend",
   "public_modules": {
@@ -50,7 +50,7 @@
   ],
   "budget": {
     "code_files": 403,
-    "code_lines": 94477,
+    "code_lines": 94626,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

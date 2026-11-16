@@ -99,6 +99,14 @@ class BasketTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             B.worker_environment({"device": "0,1", "device_caps_bytes": [20, 30], "planned_cpu_workers": 7, "retained_scopes": 3}, {})
 
+    def test_retired_binding_marker_cannot_change_resident_pipeline_selection(self):
+        worker = {"device": "2", "device_caps_bytes": [100], "planned_cpu_workers": 1, "retained_scopes": 1}
+        for inherited in ("0", "1", "invalid"):
+            env = B.worker_environment(worker, {"STWO_RV64_GPU_DEVICE_BINDING": inherited})
+            self.assertEqual(env["STWO_RV64_GPU_DEVICE_TRACE"], "1")
+            self.assertEqual(env["STWO_RV64_GPU_DEVICE_CAPS"], "100")
+            self.assertNotIn("STWO_RV64_GPU_DEVICE_BINDING", env)
+
     def test_execution_order_preserves_all_selected_block_ids(self):
         blocks = [{"block": 1}, {"block": 2}, {"block": 3}]
         self.assertEqual([b["block"] for b in B.ordered_blocks(blocks, {1, 2, 3}, [2, 1, 3])], [2, 1, 3])

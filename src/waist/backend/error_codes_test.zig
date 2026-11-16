@@ -9,7 +9,7 @@ test "backend arena diagnostics pin typed append-only meanings and foreign refus
     try std.testing.expect(function.params[0].type.? == (backend.arena_plan.Error || std.mem.Allocator.Error));
     try std.testing.expect(function.return_type.? == core.error_codes.Entry);
     const errors = [_]C.ArenaPlanError{ error.EmptySchedule, error.DuplicateLogicalId, error.UnsortedBindings, error.InvalidAlignment, error.InvalidTick, error.InvalidUseOrder, error.SizeOverflow, error.BudgetExceeded, error.AliasOverlap, error.UnknownBinding, error.BindingOutOfBounds, error.NarrowAddressOverflow, error.OutOfMemory };
-    try std.testing.expectEqual(errors.len, C.table.len);
+    try std.testing.expectEqual(@as(usize, 35), C.table.len);
     for (errors, 0..) |err, index| {
         const entry = C.fromArena(err);
         try std.testing.expectEqual(@as(u16, @intCast(0x2001 + index)), entry.code);
@@ -37,4 +37,23 @@ test "backend coded arena refusals retain primary errors and allocation cleanup"
     var failure = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
     try std.testing.expectError(error.OutOfMemory, backend.arena_plan.build(failure.allocator(), &buffers, 16 * 1024));
     try std.testing.expectEqual(failure.allocated_bytes, failure.freed_bytes);
+}
+
+test "backend program diagnostics pin exact program and native AIR origins" {
+    const C = backend.error_codes;
+    try std.testing.expect(@typeInfo(@TypeOf(C.fromProofProgram)).@"fn".params[0].type.? == backend.proof_program.Error);
+    try std.testing.expect(@typeInfo(@TypeOf(C.fromNativeAir)).@"fn".params[0].type.? == @import("proof_program_native_air.zig").Error);
+    const program_errors = [_]backend.proof_program.Error{ error.DuplicateBuffer, error.DuplicateColumn, error.EmptyCommitmentSet, error.EmptyConstraintSet, error.EmptyExecutionGraph, error.EmptyIdentity, error.EmptyTrace, error.InvalidBuffer, error.InvalidCommitment, error.InvalidConstraint, error.InvalidDependency, error.InvalidFriSchedule, error.InvalidNode, error.InvalidNativeAir, error.InvalidQuotientSchedule, error.InvalidTranscript };
+    const native_errors = [_]@import("proof_program_native_air.zig").Error{ error.EmptyIdentity, error.GeometryOverflow, error.InvalidGeometry, error.InvalidIngress, error.InvalidSampling, error.UnsupportedVersion };
+    inline for (.{ program_errors, native_errors }, .{ @as(u16, 0x2201), @as(u16, 0x2301) }) |errors, first| {
+        for (errors, 0..) |err, index| {
+            const entry = if (first == 0x2201) C.fromProofProgram(err) else C.fromNativeAir(err);
+            try std.testing.expectEqual(first + @as(u16, @intCast(index)), entry.code);
+            try std.testing.expectEqualStrings(@errorName(err), entry.tag);
+            try std.testing.expectEqualStrings("1.0.0-rc.3", entry.since);
+            try std.testing.expectEqual(core.error_codes.Class.invalid_input, entry.class);
+            try std.testing.expectEqualStrings(entry.tag, C.lookup(entry.code).?.tag);
+        }
+    }
+    for ([_]u16{ 0x2200, 0x2211, 0x2300, 0x2307, 65535 }) |code| try std.testing.expect(C.lookup(code) == null);
 }

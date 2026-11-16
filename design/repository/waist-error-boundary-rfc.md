@@ -367,3 +367,37 @@ class. Code-table tests pin exact typed signatures, tags, class, version and
 unknown refusal. Full process execution and proof construction are not inferred
 from these operation tests. Registry query, packed-tree, felt framing and other
 owned failure origins still require their own typed consumer coverage.
+
+
+## Backend proof-program and Native AIR admission after 23e1f06f0
+
+The delegated RFC #360 / #359 batch has a pre-edit ceiling of 700 net source
+and test lines (target below 400), with no flags, scripts, dependencies or root
+exports. Backend advances rc.2 to rc.3 and CUDA 0.1 to 0.2 for additive nested
+opt-in methods. Codes 0x2201–0x2210 pin the sixteen exact proof_program.Error
+meanings, and 0x2301–0x2306 pin the six exact Native AIR contract errors, all
+invalid_input since rc.3. Existing arena codes and since values remain unchanged.
+
+ProofProgram.validateDiagnosed shares the released validator body. Its exact
+native-contract catch records that owned cause before returning the existing
+InvalidNativeAir wrapper; other program validator failures receive the exact
+program code. Native AIR mismatch checks in the program validator remain the
+program-owned InvalidNativeAir origin. No callback or arbitrary error-name
+classifier exists. Legacy validate passes null. Every diagnosed admission
+clears stale output first and does not change the program or its digests.
+
+The actual CUDA host execution-plan compiler exposes compileDiagnosed over the
+same compilation body. Its pure program admission forwards this origin data;
+subsequent compile-target, planner and allocator failures stay unmapped. The
+legacy compile entrypoint passes null. This CPU-only planning operation does
+not initialize a CUDA context, execute a kernel or establish GPU qualification.
+
+Tests-first physical cases execute all sixteen program failures and all six
+native sub-contract failures through the actual CUDA module. Successful legacy
+and diagnosed plans match cache keys, schedules, prediction and arena geometry.
+A later target failure clears stale metadata, and every allocation failure
+preserves cleanup without falsely assigning a backend program code. Provider
+goldens pin exact typed signatures, meanings, class, since values and unknown
+refusal. Debug/ReleaseFast execute the three consumer cases and 27 provider
+cases under 385 MB guarded aggregate RSS; no full proof or GPU claim follows.
+Recovery callback/I/O and prover task/lifetime boundaries remain separate work.

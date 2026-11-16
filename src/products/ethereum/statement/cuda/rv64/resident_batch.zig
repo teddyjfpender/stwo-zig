@@ -57,7 +57,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     };
     if (!std.mem.eql(u8, manifest.schema, "rv64-ethereum-basket-inputs/v1") or manifest.execution_order.len == 0 or manifest.execution_order.len > 256 or manifest.repeat == 0 or manifest.repeat > 16) return error.InvalidResidentBatchManifest;
     // This entry never admits the host-retained comparison route.
-    if (std.process.hasEnvVarConstant("STWO_RV64_GPU_HOST_RETAINED") or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE") or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING")) return error.ResidentBatchRequiresDevicePipeline;
+    if (std.process.hasEnvVarConstant("STWO_RV64_GPU_HOST_RETAINED") or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) return error.ResidentBatchRequiresDevicePipeline;
     if (manifest.resources != .object or (manifest.resources.object.get("park_main") orelse return error.ResidentPipelineCannotParkMain) != .bool or manifest.resources.object.get("park_main").?.bool) return error.ResidentPipelineCannotParkMain;
     var config = try Router.Config.fromEnv(a);
     defer config.deinit(a);

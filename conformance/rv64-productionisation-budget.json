@@ -1311,6 +1311,20 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue332 decision6920870578: consolidate ten redundant artifact destination controls onto existing canonical root with eleven fixed owner subdirectories. Preserve all eight complete writer bodies, eleven stronger configuration branches and38writer expressions; only typed getter/import changes. Two private std-only owner helpers and actual-env/path/OOM/refusal tests, no runtimeSDK helper API. RequiredGPU missingbase/addon must failclosed through existing policy. No GPU/default promotion/physical proof qualification. Measured225net source within300; runtimecontrols88to78."
+    },
+    {
+      "id": "backend_program_native_admission_359",
+      "net_code_budget": 700,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue359/RFC360 under explicit standing maintainer approval: optional typed origin diagnostics for pure ProofProgram admission and its NativeAirContract validation, reaching actual CUDA host execution-plan compilation. Preserve ordinary validate/compile primary errors, successful schedules/cache identity and foreign target/planner/allocation nonannotation. Literal append-only22tag codes, BackendRC3/CUDA0.2 additive nested entries, physical malformed inputs and every-allocation cleanup. No GPU initialization, new launcher, root export or dependency; rollback optional APIs/codes/tests together."
+    },
+    {
+      "id": "rv64_binding_mandatory_parity_332",
+      "net_code_budget": 260,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue332 under standing maintainer approval: bind device generation and binding as one opt-in after independent mixed-state refusal audit; make composition/PCS comparisons mandatory in existing full/focused qualification modes. Preserve all stronger checks, actual consumers, fault/poison comparisons and defaults; no new JSON controls or unqualified GPU default promotion. Retire three controls78to75, tests included, no new launcher. Scalar capacity consolidation excluded because ignoring a legacy explicit cap could exceed operator intent; existing capacity authority/defaults remain exact. Compatibility: obsolete binding acknowledgement alone is ignored and may select default hybrid rather than old marker mismatch rejection; it never grants residency. Actual installed binding/trace mismatch and CPU replay refusal remain authoritative."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
@@ -2215,6 +2229,87 @@
         "versioned_files": 18
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6921342123"
+    },
+    {
+      "package": "stwo_cuda_backend",
+      "base_commit": "23e1f06f0b45a6981f8bac8d0d07a0955254bf96",
+      "before": {
+        "code_files": 403,
+        "code_lines": 94477,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 3,
+        "rv64_registry_flags": 8,
+        "versioned_files": 423
+      },
+      "after": {
+        "code_files": 403,
+        "code_lines": 94626,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 3,
+        "rv64_registry_flags": 8,
+        "versioned_files": 423
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6921939838"
+    },
+    {
+      "package": "stwo_ethereum_statement",
+      "base_commit": "23e1f06f0b45a6981f8bac8d0d07a0955254bf96",
+      "before": {
+        "code_files": 420,
+        "code_lines": 75876,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 6,
+        "dependencies": 20,
+        "rv64_registry_flags": 28,
+        "versioned_files": 423
+      },
+      "after": {
+        "code_files": 421,
+        "code_lines": 75903,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 6,
+        "dependencies": 20,
+        "rv64_registry_flags": 28,
+        "versioned_files": 424
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6921939838"
+    },
+    {
+      "package": "stwo_backend_contracts",
+      "base_commit": "23e1f06f0b45a6981f8bac8d0d07a0955254bf96",
+      "before": {
+        "code_files": 20,
+        "code_lines": 3485,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 16,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 23
+      },
+      "after": {
+        "code_files": 20,
+        "code_lines": 3575,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 16,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 23
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6921939838"
     }
   ]
 }
