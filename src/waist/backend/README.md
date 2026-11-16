@@ -7,7 +7,7 @@ implementations; it contains contracts, not a working backend.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.3` |
+| Version | `1.0.0-rc.4` |
 | Layer | `contract` |
 | Owner | `backend-contracts` |
 | Public Zig module | `stwo_backend_contracts` |
@@ -129,3 +129,26 @@ Native contract detail accompanies the released `InvalidNativeAir` wrapper;
 program-level mismatch remains a program origin. The literal `error_codes`
 table reserves `0x2201`–`0x2210` and `0x2301`–`0x2306`; these are typed origins,
 not a classifier for arbitrary same-named caller errors.
+
+### Recovery diagnostics
+
+The optional per-call diagnosed registry, spill and engine operations assign
+codes only at explicit owned return sites. They retain no output pointer and
+preserve ordinary error-set members. Recipe/buffer/group callbacks, allocator
+failures and file I/O retain separate provenance, even with matching error tags.
+
+| Code | Owned cause | Retry rule |
+|---|---|---|
+|0x2401|DuplicateRecipe|Fix the registry; failed admission frees its private copy.|
+|0x2402|MissingRecipe|Fix the registry or plan before retry.|
+|0x2403|MissingSpillEntry|Fix the spill plan before retry.|
+|0x2404|SpillNotMaterialized|Materialize the binding before retry.|
+|0x2405|SpillCorrupted|Discard destination contents; rematerialize from authority.|
+|0x2406|BindingSizeMismatch|Fix sizes before retry; admission precedes I/O/callbacks.|
+
+A failed restore may have modified destination bytes; no automatic replay is
+performed. The existing checksum detects corruption and is not a cryptographic
+authentication claim. File ownership transfers only on successful initialization.
+Empty recipe registries are valid for resident-only plans. Actual temporary-file
+and Cairo-recipe tests exercise these operations; full device-hook campaigns
+remain separate. Version rc.4 adds these nested optional methods and meanings.

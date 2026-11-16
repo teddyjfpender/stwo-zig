@@ -92,9 +92,9 @@ def native_comparison_environment(preset, assets):
         raise RuntimeError('exact six-service order is required')
     candidate = arm_environment(preset, 'fullstack', assets)
     baseline = arm_environment(preset, 'baseline', assets)
-    if any(candidate.get(key) != '1' for key in ('STWO_RV64_M8_JOBS', 'STWO_RV64_M8_GPU_NATIVE')):
+    if candidate.get('STWO_RV64_M8_GPU_NATIVE') != '1':
         raise RuntimeError('canonical candidate must select GPU-native jobs')
-    if any(baseline.get(key) == '1' for key in (*JOBS_FLAGS, 'STWO_RV64_M8_GPU_NATIVE')):
+    if any(baseline.get(key) == '1' for key in JOBS_FLAGS):
         raise RuntimeError('canonical baseline must use the default request path')
     return candidate
 

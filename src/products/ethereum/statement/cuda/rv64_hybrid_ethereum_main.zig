@@ -92,9 +92,9 @@ pub fn main() !void {
     }
     const helper = try std.process.getEnvVarOwned(a, "STWO_RV64_GPU_PCS_HELPER");
     defer a.free(helper);
-    const directory = try std.process.getEnvVarOwned(a, "STWO_RV64_GPU_WORKDIR");
-    defer a.free(directory);
-    try std.fs.cwd().makePath(directory);
+    const scratch = try @import("rv64/hybrid_scratch_output.zig").directory(a, arguments);
+    defer if (scratch) |value| a.free(value);
+    const directory = scratch orelse "";
     var context = H.Context{ .helper = helper, .directory = directory };
     const stage = context.stage();
     const composition_helper = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_COMPOSITION_HELPER") catch |err| switch (err) {

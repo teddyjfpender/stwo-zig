@@ -12,7 +12,7 @@ being launched. A memory-cap stop is UNRUN, never a passing test.
 | Source ownership/size (#343) | All manual source owners fit unchanged ceilings; full non-strict source conformance passes with zero findings. Private helpers retain the original named cases and arithmetic authority. | Formal-source rebinding and full physical qualification are separate gates below. No ceiling was raised and moves earned no subtraction credit. |
 | Waist contracts (#359/#366) | 76 consumer roots /79 named cases registered; 67 roots /70 cases per optimization mode actually executed. Origin-owned diagnostics reach real Backend, Native and CSP consumers, with nullable unknown origins and unchanged primary v3 report serializers. | Actual consumer semantics now cover all76 roots/79cases in ReleaseFast and75roots/78cases in Debug; the final RISC-V Metal Debug closure exceeded1GiB and is deferred. Canonical SDK configuration validates all76 actual owner/provider selections; aggregate execution remains separate. Broader error origins remain unqualified. Canonical CUDA factory Core/Prover wiring was repaired with a materialized pointer-identity test; the strict consumer guard remains. A compiled declaration or source search does not satisfy consumer execution. |
 | Complexity budgets (#370) | 37 measured package contracts, blocking nine-counter ceilings and five explicitly identified hot-function branch-token proxies. Failed budget reports now preserve refusal and measurement errors. | Every increase must have its exact reviewed transaction. Branch-token proxies and selected allocation tests are not blanket runtime, cyclomatic or throughput qualification. |
-| Configuration reduction (#332) | Live flags reduced from 100 to 68 through mandatory reference/fusion coverage, explicit authorization and authenticated recorded-root association; full lifecycle inventory is retained;561 previously unregistered other-family names now have enforced declarations. | Below 60 live flags still requires at least 9 further retirements. Do not hide live controls in configuration files or promote unqualified GPU variants to meet the count. |
+| Configuration reduction (#332) | Live flags reduced from 100 to 66 through mandatory reference/fusion coverage, explicit authorization and authenticated recorded-root association; full lifecycle inventory is retained;561 previously unregistered other-family names now have enforced declarations. | Below 60 live flags still requires at least 7 further retirements. Do not hide live controls in configuration files or promote unqualified GPU variants to meet the count. |
 | Formal/projection (#328/#358) | Actual local export of all 46 opcode programs passes complete normalized-object comparison. Actual Dword owner projection has independent integer-oracle Debug/ReleaseFast tests. | Seventeen-family exporter exceeded the 1 GiB cap even with the exact direct compiler graph. Actual Sail/Lean bridge/source receipts and descriptor-45 native projection qualification remain open. No generated pin was hand-rebound. |
 | Reproducibility/evidence (#347/#362/#386) | Exact Python/Rust patches, official Zig/Sail archive hashes, installed-tool admission, fixed-seed properties and strict vector owner/path/hash inventory. All required Core+Wire cases now pass both modes:71fields,22FRI,193revision,21wire (transitive overlap). Debug revision uses exhaustive partitions of its unchanged canonical binary; its single-process target remains CPU-limit incomplete. All 568 previous vector hashes preserved; six unlisted files explicitly admitted. | Remaining supported-host execution and two remaining circuit-oracle provenance refusals after byte-identical artifact-owner transfer. Installed version admission does not certify dynamic-library closure or proof correctness. |
 
@@ -101,3 +101,17 @@ CPU lookup terms independently agree. Two OODS selectors and their arming
 control remain live because their actual acceptance authority is unqualified.
 The duplicated node-record directory and unread optional rawMAIN dump are
 retired; required SHA evidence and all maintained replay comparisons remain.
+
+Joined-stage custody, pure device admission and Core revision configuration
+now have typed scoped diagnostics through actual consumers. Same-tag callbacks
+remain foreign even after an earlier owned failure. Trace metadata is borrowed
+only for synchronous validation and does not enter scope/headers/wire/transcript.
+The recovery batch captures only six explicit owned causes and preserves file,
+allocator and callback provenance. Full Backend33/Cairorecipe2 cases pass both
+modes. Empty registries now admit actual resident-only plans, and filtered
+Backend commands execute their intended child test while preserving inventory.
+
+Native selection now has one explicit default-off authority. Hybrid scratch
+uses the existing producer output, creates files lazily/exclusively, refuses
+collisions and cleans owned files only. Real selector/resource/argv cases pass
+eachmode, plus98 Python checks; full subprocess/GPU proving remains unqualified.

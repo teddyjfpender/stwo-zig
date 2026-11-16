@@ -1,4 +1,4 @@
-//! `combined-serve` under STWO_RV64_M8_GPU_NATIVE=1 (requires STWO_RV64_M8_JOBS=1):
+//! `combined-serve` under STWO_RV64_M8_GPU_NATIVE=1:
 //! the GPU-native resident service (rv64-m8-gpu-native.md §1, §3.8; driver).
 //!
 //! Install (never per request):

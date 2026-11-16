@@ -33,13 +33,9 @@ pub fn main() !void {
     }
     if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], "combined-serve")) {
         if (arguments.len != 4) return error.ExpectedCombinedServeManifestAndSpool;
-        // M8 GPU-native (STWO_RV64_M8_GPU_NATIVE=1, requires JOBS=1): the
-        // jobs/driver_ge.zig service (streamed GE capture -> driver, one host
-        // wait per request). Missing class/factory hooks fail closed; unset
-        // keeps the legacy reference path. JOBS=1 alone no longer selects
-        // anything (the feeder is retired) and fails closed.
+        // Explicit GPU-native selection remains default-off. Installed class,
+        // factory and library checks fail closed on the selected path.
         if (try @import("stwo_riscv_cuda_integration").rv64.execution.jobs.driver.selected(posixEnv)) return @import("rv64/jobs/driver_ge.zig").serve(a, library, arguments[2], arguments[3], @import("rv64/m8_class_build_composition.zig"));
-        if (try @import("stwo_riscv_cuda_integration").rv64.execution.jobs.runtime.selected()) return error.M8JobsRequireGpuNative;
         return @import("rv64/resident_batch.zig").runServe(a, library, arguments[2], arguments[3]);
     }
     const planned_text = (try env(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS")) orelse return error.CombinedRequiresResidentPlan;

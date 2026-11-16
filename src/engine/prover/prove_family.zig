@@ -241,8 +241,12 @@ pub fn ForField(comptime Secure: type) type {
             var diagnostic_phase: prover_api.ProvePhase = .composition;
             var diagnostic_subphase: ?prover_api.CompositionSubphase = .geometry;
             var column_failure: ?prover_api.error_codes.ColumnFailure = null;
+            var device_failure: ?prover_api.error_codes.DeviceFailure = null;
+            var revision_failure: ?@import("stwo_core").error_codes.RevisionConfigurationFailure = null;
             var diagnosed_scheme = commitment_scheme;
             diagnosed_scheme.column_failure = &column_failure;
+            diagnosed_scheme.device_admission_failure = &device_failure;
+            diagnosed_scheme.revision_configuration_failure = &revision_failure;
             var evaluation_diagnostic: ?prover_api.EvaluationDiagnostic = null;
             return proveExComponentsWithRecorder(
                 B,
@@ -268,9 +272,11 @@ pub fn ForField(comptime Secure: type) type {
                     evaluation_diagnostic,
                     err,
                 );
-                if (column_failure) |origin| if (diagnostic.*) |*retained| {
-                    if (retained.cause == origin.cause) retained.code = origin.entry;
-                };
+                inline for (.{ column_failure, device_failure, revision_failure }) |owned| {
+                    if (owned) |origin| if (diagnostic.*) |*retained| {
+                        if (retained.cause == origin.cause) retained.code = origin.entry;
+                    };
+                }
                 return err;
             };
         }
@@ -491,8 +497,7 @@ pub fn ForField(comptime Secure: type) type {
                     defer trace.polys.deinitDeep(allocator);
                     var total_constraints: usize = 0;
                     for (components) |component| total_constraints = try std.math.add(usize, total_constraints, component.nConstraints());
-                    const tree = try resident.evaluate_and_commit(resident.context, allocator, random_coeff, composition_log_size, composition_log_split, total_constraints, &trace);
-                    try prover_api.device_composition.validateResidentTree(tree, composition_log_size, composition_log_split);
+                    const tree = try @import("air/device_composition.zig").evaluateResidentDiagnosed(resident, allocator, random_coeff, composition_log_size, composition_log_split, total_constraints, &trace, scheme.device_admission_failure);
                     scheme.device_om31_composition_tree = tree;
                     MC.mixRoot(channel, tree.root);
                     break :composition_execution;

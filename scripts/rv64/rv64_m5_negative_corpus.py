@@ -696,7 +696,6 @@ def run_case(case, ctx):
     argv = {"profile": ctx["profile"], "table_root": ctx.get("table_root") or ""}
     env = environment()
     (work / "gpu-disabled").mkdir()
-    env["STWO_RV64_GPU_WORKDIR"] = str(work / "gpu-disabled")
     mctx = {"proof": proof, "donor": ctx["donor"], "root_donor": ctx.get("root_donor"), "root_path": ctx["root_path"],
             "request": request, "env": env, "argv": argv, "alt_proof": ctx.get("alt_proof"),
             "donor_table_root": ctx.get("donor_table_root")}

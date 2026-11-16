@@ -34,6 +34,17 @@ pub const table = [_]Entry{
     .{ .tag = "InvalidCounterGroup", .code = 0x3202, .class = .invalid_input, .since = "1.0.0-rc.4" },
     .{ .tag = "InvalidProducerCoverage", .code = 0x3203, .class = .invalid_input, .since = "1.0.0-rc.4" },
     .{ .tag = "InvalidWorkProfile", .code = 0x3204, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "IncompatibleJoinedRecorder", .code = 0x3401, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "JoinedRecorderStillActive", .code = 0x3402, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "OutOfMemory", .code = 0x3403, .class = .resource_exhausted, .since = "1.0.0-rc.5" },
+    .{ .tag = "InvalidDeviceTraceColumn", .code = 0x3501, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "InvalidTraceInputRetirementScope", .code = 0x3502, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "DeviceMainReplayRootMismatch", .code = 0x3503, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "DeviceTraceHostColumn", .code = 0x3504, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "DeviceMainReplayNotAdmitted", .code = 0x3505, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "InvalidDeviceTraceTree", .code = 0x3506, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "InvalidResidentCompositionTree", .code = 0x3507, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "ResidentCompositionHostColumn", .code = 0x3508, .class = .invalid_input, .since = "1.0.0-rc.5" },
 };
 
 pub fn fromColumn(err: ColumnError) Entry {
@@ -89,6 +100,31 @@ pub fn fromWorkProfile(err: @import("work_profile.zig").Error) Entry {
         error.InvalidProducerCoverage => table[29],
         error.InvalidWorkProfile => table[30],
     };
+}
+
+pub const DeviceAdmissionError = @import("device_pcs.zig").TraceColumnError || @import("device_pcs.zig").RetirementScopeError || @import("device_pcs.zig").ReplayError || @import("device_composition.zig").CompositionTreeError;
+pub const DeviceFailure = struct { cause: DeviceAdmissionError, entry: Entry };
+pub fn fromJoined(err: @import("stage_profile.zig").JoinedError) Entry {
+    return switch (err) {
+        error.IncompatibleJoinedRecorder => table[31],
+        error.JoinedRecorderStillActive => table[32],
+        error.OutOfMemory => table[33],
+    };
+}
+pub fn fromDeviceAdmission(err: DeviceAdmissionError) Entry {
+    return switch (err) {
+        error.InvalidDeviceTraceColumn => table[34],
+        error.InvalidTraceInputRetirementScope => table[35],
+        error.DeviceMainReplayRootMismatch => table[36],
+        error.DeviceTraceHostColumn => table[37],
+        error.DeviceMainReplayNotAdmitted => table[38],
+        error.InvalidDeviceTraceTree => table[39],
+        error.InvalidResidentCompositionTree => table[40],
+        error.ResidentCompositionHostColumn => table[41],
+    };
+}
+pub fn recordDeviceAdmission(failure: ?*?DeviceFailure, err: DeviceAdmissionError) void {
+    if (failure) |sink| sink.* = .{ .cause = err, .entry = fromDeviceAdmission(err) };
 }
 
 pub fn lookup(code: u16) ?Entry {

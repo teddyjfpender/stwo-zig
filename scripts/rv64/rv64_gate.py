@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RUNTIME = stack.DEFAULT_RUNTIME
 
 def extra_environment(items):
-    """--env KEY=VALUE for the proving service (e.g. STWO_RV64_M8_JOBS=1).
+    """--env KEY=VALUE for the proving service (e.g. STWO_RV64_M8_GPU_NATIVE=1).
 
     Only STWO_* keys; each key once. The values are recorded in the receipt
     and appended after the preset's environment, so they override it.
@@ -55,7 +55,7 @@ def main():
     p.add_argument('--nsys', action='store_true', help='profile the same correctness requests; walls remain unqualified')
     p.add_argument('--nsys-root', type=Path, help='raw profile filesystem, forwarded to the resident harness')
     p.add_argument('--env', action='append', default=[], metavar='KEY=VALUE',
-                   help='extra STWO_* service environment (repeatable), e.g. STWO_RV64_M8_JOBS=1')
+                   help='extra STWO_* service environment (repeatable), e.g. STWO_RV64_M8_GPU_NATIVE=1')
     args = p.parse_args()
     try:
         extra_env = extra_environment(args.env)

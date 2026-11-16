@@ -4312,7 +4312,7 @@
       ],
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
-        "text": "    const helper = try std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_PCS_HELPER\");\n    defer a.free(helper);\n    const directory = try std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_WORKDIR\");\n    defer a.free(directory);\n    try std.fs.cwd().makePath(directory);\n    var context = H.Context{ .helper = helper, .directory = directory };\n    const stage = context.stage();\n    const composition_helper = std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_COMPOSITION_HELPER\") catch |err| switch (err) {"
+        "text": "    const helper = try std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_PCS_HELPER\");\n    defer a.free(helper);"
       },
       "expires": "2026-12-09"
     },
@@ -4347,23 +4347,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/resident_router.zig",
         "text": "        const scopes = std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_RETAINED_SCOPES\") catch |err| switch (err) {\n            error.EnvironmentVariableNotFound => null,\n            else => return err,\n        };\n        defer if (scopes) |value| a.free(value);\n        if (scopes) |value| config.scope_limit = std.fmt.parseInt(usize, value, 10) catch return error.InvalidResidentScopeLimit;\n        if (config.scope_limit == 0 or config.scope_limit > MAX_SCOPES_PER_DEVICE) return error.InvalidResidentScopeLimit;\n        return config;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_GPU_WORKDIR": {
-      "owner": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
-      "default": "required by subprocess hybrid path",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64/rv64_m5_negative_corpus.py",
-        "scripts/rv64/rv64_m5_rootverify_corpus.py",
-        "scripts/rv64/rv64_resident_basket.py",
-        "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig",
-        "text": "    const directory = try std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_WORKDIR\");\n    defer a.free(directory);\n    try std.fs.cwd().makePath(directory);\n    var context = H.Context{ .helper = helper, .directory = directory };\n    const stage = context.stage();\n    const composition_helper = std.process.getEnvVarOwned(a, \"STWO_RV64_GPU_COMPOSITION_HELPER\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => null,\n        else => return err,"
       },
       "expires": "2026-12-09"
     },
@@ -4618,18 +4601,20 @@
       "owner": "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
       "default": "false",
       "status": "retire-after-native-default",
-      "date": "2026-11-08",
+      "date": "2026-11-16",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
+        "scripts/rv64/rv64_gate.py",
         "scripts/rv64/rv64_m7_integration_stack.py",
         "scripts/rv64/rv64_validation.py",
         "scripts/rv64_m8_bench15.py",
+        "scripts/tests/test_rv64_gate.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64/jobs/driver.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
-        "text": "pub const env_select = \"STWO_RV64_M8_GPU_NATIVE\";\n\npub fn selected(env: *const fn ([]const u8) ?[]const u8) !bool {\n    const v = env(env_select) orelse return false;\n    if (std.mem.eql(u8, v, \"0\")) return false;\n    if (!std.mem.eql(u8, v, \"1\")) return error.InvalidM8GpuNativeSelection;\n    const jobs = env(\"STWO_RV64_M8_JOBS\") orelse return error.M8GpuNativeRequiresJobs;\n    if (!std.mem.eql(u8, jobs, \"1\")) return error.M8GpuNativeRequiresJobs;\n    return true;\n}"
+        "text": "pub const env_select = \"STWO_RV64_M8_GPU_NATIVE\";\n\npub fn selected(env: *const fn ([]const u8) ?[]const u8) !bool {\n    const v = env(env_select) orelse return false;\n    if (std.mem.eql(u8, v, \"0\")) return false;\n    if (!std.mem.eql(u8, v, \"1\")) return error.InvalidM8GpuNativeSelection;\n    return true;\n}"
       },
       "expires": "2026-12-09"
     },
@@ -4651,27 +4636,13 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_JOBS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-      "default": "false",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
+      "owner": "scripts/tests/test_rv64_gate.py",
+      "default": "retired acknowledgement has no selection or asset-injection authority",
+      "status": "reference-only",
+      "date": "2026-11-16",
       "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "scripts/rv64/rv64_gate.py",
-        "scripts/rv64/rv64_m7_integration_stack.py",
-        "scripts/rv64/rv64_validation.py",
-        "scripts/rv64_m8_bench15.py",
-        "scripts/tests/test_rv64_gate.py",
-        "scripts/tests/test_rv64_validation.py",
-        "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
-        "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-        "src/products/ethereum/statement/cuda/rv64/native_recursion_install.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-        "text": "    const value = std.posix.getenv(\"STWO_RV64_M8_JOBS\") orelse return false;\n    if (std.mem.eql(u8, value, \"0\")) return false;\n    if (std.mem.eql(u8, value, \"1\")) return true;\n    return error.InvalidM8JobsSelection;"
-      },
-      "expires": "2026-12-09"
+        "scripts/tests/test_rv64_gate.py"
+      ]
     },
     "STWO_RV64_M8_JOBS_ARENA_BYTES": {
       "owner": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",

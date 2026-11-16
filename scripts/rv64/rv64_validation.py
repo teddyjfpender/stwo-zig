@@ -33,7 +33,7 @@ CORPUS_ISOLATION = {'CUDA_VISIBLE_DEVICES': '', 'STWO_RV64_GPU_PCS_HELPER': '/bi
                     'STWO_RV64_OUTER_PLAN_CLASS_STORE': 'unset'}
 
 
-JOBS_FLAGS = ('STWO_RV64_M8_JOBS',)
+JOBS_FLAGS = ('STWO_RV64_M8_GPU_NATIVE',)
 NATIVE_LIBRARIES = ('STWO_RV64_M8_JOBS_LIBRARY', 'STWO_RV64_M8_OUTER_FS_LIBRARY')
 
 
@@ -51,7 +51,7 @@ def jobs_environment(runtime, extra_env):
     Applied only when --env selects a job path (one of JOBS_FLAGS = 1), so the
     default gate is unchanged; an explicit --env of the same key wins. Every
     shipped library is pinned by SHA-256 like the runtime assets (gate-14
-    MissingM8OuterFsLibrary was a JOBS=1 gate without the outer-fs addon).
+    MissingM8OuterFsLibrary requires the outer-fs addon).
     """
     selected = any(extra_env.get(flag) == '1' for flag in JOBS_FLAGS)
     shipped = dict(runtime.get('jobs_env', {})) if selected else {}

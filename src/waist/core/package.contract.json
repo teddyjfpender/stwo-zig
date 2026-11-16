@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_core",
-  "version": "1.0.0-rc.3",
+  "version": "1.0.0-rc.4",
   "layer": "protocol",
   "owner": "protocol-core",
   "public_modules": {
@@ -47,6 +47,7 @@
       "mod.zig::api signature: core vector constructors preserve element types"
     ],
     "invariant_tests": [
+      "error_codes.zig::revision configuration diagnostics pin exact owned lifting errors",
       "mod.zig::component vec: flatten and flatten cols"
     ]
   },
@@ -487,7 +488,7 @@
   ],
   "budget": {
     "code_files": 154,
-    "code_lines": 28815,
+    "code_lines": 28841,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

@@ -76,3 +76,22 @@ test "work accounting codes pin exact owned error signatures and stable meanings
     }
     for ([_]u16{ 0x3200, 0x3205, 65535 }) |code| try std.testing.expect(codes.lookup(code) == null);
 }
+
+test "admission and joined custody codes require their exact typed origins" {
+    try std.testing.expect(@typeInfo(@TypeOf(codes.fromJoined)).@"fn".params[0].type.? == @import("stage_profile.zig").JoinedError);
+    try std.testing.expect(@typeInfo(@TypeOf(codes.fromDeviceAdmission)).@"fn".params[0].type.? == codes.DeviceAdmissionError);
+    const joined = [_]@import("stage_profile.zig").JoinedError{ error.IncompatibleJoinedRecorder, error.JoinedRecorderStillActive, error.OutOfMemory };
+    for (joined, 0..) |err, i| {
+        const entry = codes.fromJoined(err);
+        try std.testing.expectEqual(@as(u16, @intCast(0x3401 + i)), entry.code);
+        try std.testing.expectEqualStrings(@errorName(err), entry.tag);
+        try std.testing.expectEqualStrings("1.0.0-rc.5", entry.since);
+    }
+    const device = [_]codes.DeviceAdmissionError{ error.InvalidDeviceTraceColumn, error.InvalidTraceInputRetirementScope, error.DeviceMainReplayRootMismatch, error.DeviceTraceHostColumn, error.DeviceMainReplayNotAdmitted, error.InvalidDeviceTraceTree, error.InvalidResidentCompositionTree, error.ResidentCompositionHostColumn };
+    for (device, 0..) |err, i| {
+        const entry = codes.fromDeviceAdmission(err);
+        try std.testing.expectEqual(@as(u16, @intCast(0x3501 + i)), entry.code);
+        try std.testing.expectEqualStrings(@errorName(err), entry.tag);
+        try std.testing.expectEqualStrings("1.0.0-rc.5", entry.since);
+    }
+}

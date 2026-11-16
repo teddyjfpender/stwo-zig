@@ -36,7 +36,8 @@
       "mod.zig::RISC-V binds formal evidence to NVIDIA and CuMetal plan identities"
     ],
     "invariant_tests": [
-      "mod.zig::RISC-V structural admission rejects missing formal evidence"
+      "mod.zig::RISC-V structural admission rejects missing formal evidence",
+      "rv64/trace_admission.zig::trace admission actual headers isolate metadata custody and integration policy refusal"
     ]
   },
   "ci": {
@@ -53,14 +54,14 @@
     ]
   },
   "budget": {
-    "code_files": 339,
-    "code_lines": 79357,
+    "code_files": 342,
+    "code_lines": 79504,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 8,
     "dependencies": 9,
     "rv64_registry_flags": 37,
-    "versioned_files": 344
+    "versioned_files": 347
   }
 }

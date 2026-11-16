@@ -1,8 +1,8 @@
 //! M8 GPU-native request driver (stream: driver). Contract: gpu_native.zig;
 //! design: design/riscv/rv64-m8-gpu-native.md §3, §6.
 //!
-//! Selection (`STWO_RV64_M8_GPU_NATIVE=1`, requires `STWO_RV64_M8_JOBS=1`)
-//! and the pieces of the JOBS=1 GPU-native request driver:
+//! Selection (`STWO_RV64_M8_GPU_NATIVE=1`)
+//! and the pieces of the GPU-native request driver:
 //!   driver_install.zig  installed class cache, memory plans, slabs and events
 //!   driver_request.zig  request: DAG batches per GPU, ONE host wait, one
 //!                       slab D2H per GPU, publication from status words
@@ -15,7 +15,7 @@ const std = @import("std");
 const api = @import("api.zig");
 const G = @import("gpu_native.zig");
 
-/// STWO_RV64_M8_GPU_NATIVE=1 (requires STWO_RV64_M8_JOBS=1) selects the GPU-native
+/// STWO_RV64_M8_GPU_NATIVE=1 selects the GPU-native
 /// driver; unset keeps the separately gated feeder/reference path. Missing
 /// installed classes and factory hooks fail closed on the selected path.
 pub const env_select = "STWO_RV64_M8_GPU_NATIVE";
@@ -24,8 +24,6 @@ pub fn selected(env: *const fn ([]const u8) ?[]const u8) !bool {
     const v = env(env_select) orelse return false;
     if (std.mem.eql(u8, v, "0")) return false;
     if (!std.mem.eql(u8, v, "1")) return error.InvalidM8GpuNativeSelection;
-    const jobs = env("STWO_RV64_M8_JOBS") orelse return error.M8GpuNativeRequiresJobs;
-    if (!std.mem.eql(u8, jobs, "1")) return error.M8GpuNativeRequiresJobs;
     return true;
 }
 
@@ -90,24 +88,24 @@ test "probe topology: one leaf per artifact, binary folds, root last" {
     try std.testing.expectEqual(G.ProofKind.root, d.nodes[d.recursion[topo.len - 1]].proof.?.kind);
 }
 
-test "selection: default off, requires JOBS=1, strict values" {
+test "selection: primary default off and strict values" {
     const E = struct {
         var gpu: ?[]const u8 = null;
-        var jobs: ?[]const u8 = null;
         fn get(name: []const u8) ?[]const u8 {
             if (std.mem.eql(u8, name, env_select)) return gpu;
-            if (std.mem.eql(u8, name, "STWO_RV64_M8_JOBS")) return jobs;
             return null;
         }
     };
     E.gpu = null;
     try testing.expect(!try selected(E.get));
+    E.gpu = "0";
+    try testing.expect(!try selected(E.get));
     E.gpu = "1";
-    try testing.expectError(error.M8GpuNativeRequiresJobs, selected(E.get));
-    E.jobs = "1";
     try testing.expect(try selected(E.get));
-    E.gpu = "yes";
-    try testing.expectError(error.InvalidM8GpuNativeSelection, selected(E.get));
+    for ([_][]const u8{ "", "yes", "2", "01" }) |invalid| {
+        E.gpu = invalid;
+        try testing.expectError(error.InvalidM8GpuNativeSelection, selected(E.get));
+    }
 }
 
 test "host exchange: a root published on GPU 0 lands in GPU 1's replica" {

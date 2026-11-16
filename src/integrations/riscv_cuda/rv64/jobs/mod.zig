@@ -1,4 +1,4 @@
-//! Shared M8 worker runtime and explicit JOBS selection. `combined-serve`
+//! Shared M8 worker runtime and explicit GPU-native selection. `combined-serve`
 //! dispatches in rv64_combined_ethereum_main.zig: GPU_NATIVE selects
 //! driver_ge.serve; otherwise resident_batch.runServe owns the reference path.
 //!
@@ -20,13 +20,13 @@ pub const scheduler = @import("scheduler.zig");
 pub const request = @import("request.zig");
 pub const channel_parity = @import("channel_parity.zig");
 
-/// STWO_RV64_M8_JOBS: unset or "0" → legacy path; "1" → job runtime (only
-/// with STWO_RV64_M8_GPU_NATIVE=1, see driver.zig); else fail closed.
+/// Compatibility entry point: the primary GPU-native selector owns admission.
 pub fn selected() !bool {
-    const value = std.posix.getenv("STWO_RV64_M8_JOBS") orelse return false;
-    if (std.mem.eql(u8, value, "0")) return false;
-    if (std.mem.eql(u8, value, "1")) return true;
-    return error.InvalidM8JobsSelection;
+    return @import("driver.zig").selected(selectionEnvironment);
+}
+
+fn selectionEnvironment(name: []const u8) ?[]const u8 {
+    return std.posix.getenv(name);
 }
 
 fn envBytes(name: []const u8, default: usize) !usize {
@@ -233,7 +233,7 @@ pub fn writePlans(a: std.mem.Allocator, workers: []const *worker.Worker, path: [
 }
 
 test "selection is explicit and fails closed" {
-    // The test process environment does not set STWO_RV64_M8_JOBS.
+    // The test process environment does not select GPU-native requests.
     try std.testing.expect(!(try selected()));
 }
 

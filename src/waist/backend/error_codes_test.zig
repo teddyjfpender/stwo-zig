@@ -9,7 +9,7 @@ test "backend arena diagnostics pin typed append-only meanings and foreign refus
     try std.testing.expect(function.params[0].type.? == (backend.arena_plan.Error || std.mem.Allocator.Error));
     try std.testing.expect(function.return_type.? == core.error_codes.Entry);
     const errors = [_]C.ArenaPlanError{ error.EmptySchedule, error.DuplicateLogicalId, error.UnsortedBindings, error.InvalidAlignment, error.InvalidTick, error.InvalidUseOrder, error.SizeOverflow, error.BudgetExceeded, error.AliasOverlap, error.UnknownBinding, error.BindingOutOfBounds, error.NarrowAddressOverflow, error.OutOfMemory };
-    try std.testing.expectEqual(@as(usize, 35), C.table.len);
+    try std.testing.expectEqual(@as(usize, 41), C.table.len);
     for (errors, 0..) |err, index| {
         const entry = C.fromArena(err);
         try std.testing.expectEqual(@as(u16, @intCast(0x2001 + index)), entry.code);
@@ -56,4 +56,32 @@ test "backend program diagnostics pin exact program and native AIR origins" {
         }
     }
     for ([_]u16{ 0x2200, 0x2211, 0x2300, 0x2307, 65535 }) |code| try std.testing.expect(C.lookup(code) == null);
+}
+
+test "recovery codes pin singleton origins and unchanged legacy error contracts" {
+    const R = backend.recovery;
+    const C = backend.error_codes;
+    try std.testing.expect(@typeInfo(@TypeOf(C.fromRecovery)).@"fn".params[0].type.? == R.RecoveryError);
+    const errors = [_]R.RecoveryError{ error.DuplicateRecipe, error.MissingRecipe, error.MissingSpillEntry, error.SpillNotMaterialized, error.SpillCorrupted, error.BindingSizeMismatch };
+    for (errors, 0..) |cause, i| {
+        const entry = C.fromRecovery(cause);
+        try std.testing.expectEqual(@as(u16, @intCast(0x2401 + i)), entry.code);
+        try std.testing.expectEqualStrings(@errorName(cause), entry.tag);
+        try std.testing.expectEqualStrings("1.0.0-rc.4", entry.since);
+        try std.testing.expectEqual(core.error_codes.Class.invalid_input, entry.class);
+    }
+    const WriteError = @typeInfo(@typeInfo(@TypeOf(std.fs.File.pwriteAll)).@"fn".return_type.?).error_union.error_set;
+    const ReadError = @typeInfo(@typeInfo(@TypeOf(std.fs.File.preadAll)).@"fn".return_type.?).error_union.error_set;
+    try std.testing.expect(resolvedErrorSet(@TypeOf(R.FileSpillStore.spill)) == (WriteError || error{ MissingSpillEntry, BindingSizeMismatch }));
+    try std.testing.expect(resolvedErrorSet(@TypeOf(R.FileSpillStore.restore)) == (ReadError || error{ MissingSpillEntry, SpillNotMaterialized, BindingSizeMismatch, EndOfStream, SpillCorrupted }));
+    try std.testing.expect(resolvedErrorSet(@TypeOf(R.RecipeRegistry.init)) == (std.mem.Allocator.Error || error{DuplicateRecipe}));
+    try std.testing.expect(resolvedErrorSet(@TypeOf(R.RecoveryEngine.validatePlan)) == error{ MissingSpillEntry, MissingRecipe });
+    for ([_]u16{ 0x2400, 0x2407, 65535 }) |code| try std.testing.expect(C.lookup(code) == null);
+}
+
+// Inferred sets are deferred function-specific types; resolve their members
+// before comparing the exact public error contract with a concrete union.
+fn resolvedErrorSet(comptime Function: type) type {
+    const E = @typeInfo(@typeInfo(Function).@"fn".return_type.?).error_union.error_set;
+    return @Type(.{ .error_set = @typeInfo(E).error_set.? });
 }

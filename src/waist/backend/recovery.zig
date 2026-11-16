@@ -10,6 +10,17 @@ pub const RecoveryError = error{
     BindingSizeMismatch,
 };
 
+// Singleton compile-time causes preserve each operation's inferred error set.
+// Callback and I/O catches must never pass through this owned projection.
+fn ownedFailure(comptime cause: anytype, failure: ?*?@import("stwo_core").error_codes.Entry) @TypeOf(cause) {
+    comptime {
+        const tags = @typeInfo(@TypeOf(cause)).error_set orelse @compileError("owned cause must be a singleton");
+        if (tags.len != 1) @compileError("owned cause must be a singleton");
+    }
+    if (failure) |sink| sink.* = @import("error_codes.zig").fromRecovery(cause);
+    return cause;
+}
+
 /// Type-erased access to storage owned by a concrete backend.
 pub const BufferAccess = struct {
     context: *anyopaque,
@@ -77,8 +88,13 @@ pub const FileSpillStore = struct {
     }
 
     pub fn spill(self: *FileSpillStore, binding: arena_plan.Binding, source: []const u8) !void {
-        const spill_entry = self.findEntry(binding.logical_id) orelse return RecoveryError.MissingSpillEntry;
-        if (source.len != spill_entry.size or binding.size_bytes != spill_entry.size) return RecoveryError.BindingSizeMismatch;
+        return self.spillDiagnosed(binding, source, null);
+    }
+
+    pub fn spillDiagnosed(self: *FileSpillStore, binding: arena_plan.Binding, source: []const u8, failure: ?*?@import("stwo_core").error_codes.Entry) !void {
+        if (failure) |sink| sink.* = null;
+        const spill_entry = self.findEntry(binding.logical_id) orelse return ownedFailure(error.MissingSpillEntry, failure);
+        if (source.len != spill_entry.size or binding.size_bytes != spill_entry.size) return ownedFailure(error.BindingSizeMismatch, failure);
         try self.file.pwriteAll(source, spill_entry.offset);
         spill_entry.checksum = std.hash.Wyhash.hash(binding.logical_id, source);
         spill_entry.materialized = true;
@@ -86,11 +102,17 @@ pub const FileSpillStore = struct {
     }
 
     pub fn restore(self: *FileSpillStore, binding: arena_plan.Binding, destination: []u8) !void {
-        const spill_entry = self.findEntry(binding.logical_id) orelse return RecoveryError.MissingSpillEntry;
-        if (!spill_entry.materialized) return RecoveryError.SpillNotMaterialized;
-        if (destination.len != spill_entry.size or binding.size_bytes != spill_entry.size) return RecoveryError.BindingSizeMismatch;
+        return self.restoreDiagnosed(binding, destination, null);
+    }
+
+    /// A failed read/checksum invalidates destination contents; no retry is implicit.
+    pub fn restoreDiagnosed(self: *FileSpillStore, binding: arena_plan.Binding, destination: []u8, failure: ?*?@import("stwo_core").error_codes.Entry) !void {
+        if (failure) |sink| sink.* = null;
+        const spill_entry = self.findEntry(binding.logical_id) orelse return ownedFailure(error.MissingSpillEntry, failure);
+        if (!spill_entry.materialized) return ownedFailure(error.SpillNotMaterialized, failure);
+        if (destination.len != spill_entry.size or binding.size_bytes != spill_entry.size) return ownedFailure(error.BindingSizeMismatch, failure);
         if (try self.file.preadAll(destination, spill_entry.offset) != destination.len) return error.EndOfStream;
-        if (std.hash.Wyhash.hash(binding.logical_id, destination) != spill_entry.checksum) return RecoveryError.SpillCorrupted;
+        if (std.hash.Wyhash.hash(binding.logical_id, destination) != spill_entry.checksum) return ownedFailure(error.SpillCorrupted, failure);
         self.bytes_read += destination.len;
     }
 
@@ -120,12 +142,17 @@ pub const RecipeRegistry = struct {
     recipes: []Recipe,
 
     pub fn init(allocator: std.mem.Allocator, input: []const Recipe) !RecipeRegistry {
+        return initDiagnosed(allocator, input, null);
+    }
+
+    pub fn initDiagnosed(allocator: std.mem.Allocator, input: []const Recipe, failure: ?*?@import("stwo_core").error_codes.Entry) !RecipeRegistry {
+        if (failure) |sink| sink.* = null;
         const recipes = try allocator.dupe(Recipe, input);
         errdefer allocator.free(recipes);
         std.mem.sortUnstable(Recipe, recipes, {}, lessThan);
-        for (recipes[1..], recipes[0 .. recipes.len - 1]) |current, previous| {
-            if (current.logical_id == previous.logical_id) return RecoveryError.DuplicateRecipe;
-        }
+        if (recipes.len > 1) for (recipes[1..], recipes[0 .. recipes.len - 1]) |current, previous| {
+            if (current.logical_id == previous.logical_id) return ownedFailure(error.DuplicateRecipe, failure);
+        };
         return .{ .allocator = allocator, .recipes = recipes };
     }
 
@@ -135,8 +162,13 @@ pub const RecipeRegistry = struct {
     }
 
     pub fn execute(self: RecipeRegistry, tick: u16, binding: arena_plan.Binding, destination: []u8) !void {
-        const recipe = self.find(binding.logical_id) orelse return RecoveryError.MissingRecipe;
-        if (destination.len != binding.size_bytes) return RecoveryError.BindingSizeMismatch;
+        return self.executeDiagnosed(tick, binding, destination, null);
+    }
+
+    pub fn executeDiagnosed(self: RecipeRegistry, tick: u16, binding: arena_plan.Binding, destination: []u8, failure: ?*?@import("stwo_core").error_codes.Entry) !void {
+        if (failure) |sink| sink.* = null;
+        const recipe = self.find(binding.logical_id) orelse return ownedFailure(error.MissingRecipe, failure);
+        if (destination.len != binding.size_bytes) return ownedFailure(error.BindingSizeMismatch, failure);
         try recipe.run(recipe.context, tick, binding, destination);
     }
 
@@ -210,26 +242,46 @@ pub const RecoveryEngine = struct {
     /// Must pass before the resident slab is allocated or any proof command is
     /// submitted. A planned recomputation without an exact recipe is fatal.
     pub fn validatePlan(self: RecoveryEngine, plan: arena_plan.Plan) !void {
+        return self.validatePlanDiagnosed(plan, null);
+    }
+
+    pub fn validatePlanDiagnosed(self: RecoveryEngine, plan: arena_plan.Plan, failure: ?*?@import("stwo_core").error_codes.Entry) !void {
+        if (failure) |sink| sink.* = null;
         for (plan.bindings) |binding| switch (binding.materialization) {
             .resident => {},
-            .spill => if (!self.spill_store.contains(binding.logical_id)) return RecoveryError.MissingSpillEntry,
-            .recompute => if (!self.recipes.contains(binding.logical_id)) return RecoveryError.MissingRecipe,
+            .spill => if (!self.spill_store.contains(binding.logical_id)) return ownedFailure(error.MissingSpillEntry, failure),
+            .recompute => if (!self.recipes.contains(binding.logical_id)) return ownedFailure(error.MissingRecipe, failure),
         };
+    }
+
+    pub fn spillDiagnosed(self: *RecoveryEngine, binding: arena_plan.Binding, failure: ?*?@import("stwo_core").error_codes.Entry) !void {
+        if (failure) |sink| sink.* = null;
+        try self.spill_store.spillDiagnosed(binding, try self.access.bytes(binding), failure);
+    }
+
+    pub fn restoreDiagnosed(self: *RecoveryEngine, binding: arena_plan.Binding, failure: ?*?@import("stwo_core").error_codes.Entry) !void {
+        if (failure) |sink| sink.* = null;
+        try self.spill_store.restoreDiagnosed(binding, try self.access.bytes(binding), failure);
+    }
+
+    pub fn recomputeDiagnosed(self: *RecoveryEngine, tick: u16, binding: arena_plan.Binding, failure: ?*?@import("stwo_core").error_codes.Entry) !void {
+        if (failure) |sink| sink.* = null;
+        try self.recipes.executeDiagnosed(tick, binding, try self.access.bytes(binding), failure);
     }
 
     fn spillHook(raw: *anyopaque, _: u16, binding: arena_plan.Binding) !void {
         const self: *RecoveryEngine = @ptrCast(@alignCast(raw));
-        try self.spill_store.spill(binding, try self.access.bytes(binding));
+        try self.spillDiagnosed(binding, null);
     }
 
     fn restoreHook(raw: *anyopaque, _: u16, binding: arena_plan.Binding) !void {
         const self: *RecoveryEngine = @ptrCast(@alignCast(raw));
-        try self.spill_store.restore(binding, try self.access.bytes(binding));
+        try self.restoreDiagnosed(binding, null);
     }
 
     fn recomputeHook(raw: *anyopaque, tick: u16, binding: arena_plan.Binding) !void {
         const self: *RecoveryEngine = @ptrCast(@alignCast(raw));
-        try self.recipes.execute(tick, binding, try self.access.bytes(binding));
+        try self.recomputeDiagnosed(tick, binding, null);
     }
 };
 
@@ -324,4 +376,183 @@ test "recovery: grouped operation dispatches once per tick" {
     try std.testing.expectEqual(@as(usize, 1), context.calls);
     try registry.execute(10, bindings[0], &destination);
     try std.testing.expectEqual(@as(usize, 2), context.calls);
+}
+
+test "recovery: empty recipe registry admits resident-only planning" {
+    var registry = try RecipeRegistry.init(std.testing.allocator, &.{});
+    defer registry.deinit();
+    try std.testing.expectEqual(@as(usize, 0), registry.recipes.len);
+    try std.testing.expect(!registry.contains(0));
+    const logical = [_]arena_plan.LogicalBuffer{.{ .id = 1, .size_bytes = 8, .alignment = 16, .live_ranges = &.{.{ .first = 0, .last = 1 }} }};
+    var plan = try arena_plan.build(std.testing.allocator, &logical, 16 * 1024);
+    defer plan.deinit();
+    try std.testing.expectEqual(arena_plan.Materialization.resident, (try plan.binding(1)).materialization);
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const file = try temporary.dir.createFile("resident.bin", .{ .read = true });
+    var store = try FileSpillStore.init(std.testing.allocator, file, true, plan);
+    defer store.deinit();
+    const Guard = struct {
+        fn get(_: *anyopaque, _: arena_plan.Binding) ![]u8 {
+            return error.ResidentPlanMustNotAccessRecoveryStorage;
+        }
+    };
+    var marker: u8 = 0;
+    const engine = RecoveryEngine{ .access = .{ .context = &marker, .bytes_fn = Guard.get }, .spill_store = &store, .recipes = &registry };
+    var failure: ?@import("stwo_core").error_codes.Entry = @import("error_codes.zig").fromRecovery(error.MissingRecipe);
+    try engine.validatePlanDiagnosed(plan, &failure);
+    try std.testing.expect(failure == null);
+}
+
+test "recovery diagnostics preserve owned registry failures and foreign callback provenance" {
+    const C = @import("error_codes.zig");
+    const Entry = @import("stwo_core").error_codes.Entry;
+    const Context = struct {
+        cause: ?RecoveryError = null,
+        bytes: [8]u8 = @splat(0),
+        fn run(raw: *anyopaque, _: u16, _: arena_plan.Binding, out: []u8) !void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            if (self.cause) |cause| return cause;
+            @memset(out, 0x5a);
+        }
+    };
+    var context: Context = .{};
+    const recipe = Recipe{ .logical_id = 9, .context = &context, .run = Context.run };
+    var failure: ?Entry = null;
+    try std.testing.expectError(error.DuplicateRecipe, RecipeRegistry.initDiagnosed(std.testing.allocator, &.{ recipe, recipe }, &failure));
+    try std.testing.expectEqual(@as(u16, 0x2401), failure.?.code);
+    var registry = try RecipeRegistry.initDiagnosed(std.testing.allocator, &.{recipe}, &failure);
+    defer registry.deinit();
+    try std.testing.expect(failure == null);
+    const binding = arena_plan.Binding{ .logical_id = 9, .slot = 0, .offset_bytes = 0, .size_bytes = 8, .materialization = .recompute, .occupied = @splat(0) };
+    var missing = binding;
+    missing.logical_id = 10;
+    try std.testing.expectError(error.MissingRecipe, registry.executeDiagnosed(1, missing, &context.bytes, &failure));
+    try std.testing.expectEqual(@as(u16, 0x2402), failure.?.code);
+    try std.testing.expectError(error.BindingSizeMismatch, registry.executeDiagnosed(1, binding, context.bytes[0..7], &failure));
+    try std.testing.expectEqual(@as(u16, 0x2406), failure.?.code);
+    for ([_]RecoveryError{ error.DuplicateRecipe, error.MissingRecipe, error.MissingSpillEntry, error.SpillNotMaterialized, error.SpillCorrupted, error.BindingSizeMismatch }) |cause| {
+        context.cause = cause;
+        failure = C.fromRecovery(error.DuplicateRecipe);
+        try std.testing.expectError(cause, registry.executeDiagnosed(1, binding, &context.bytes, &failure));
+        try std.testing.expect(failure == null);
+    }
+    context.cause = null;
+    try registry.executeDiagnosed(1, binding, &context.bytes, &failure);
+    try std.testing.expectEqualSlices(u8, &([_]u8{0x5a} ** 8), &context.bytes);
+    try std.testing.expect(failure == null);
+    const Runner = struct {
+        fn run(a: std.mem.Allocator, item: Recipe) !void {
+            var detail: ?Entry = C.fromRecovery(error.MissingRecipe);
+            var owned = RecipeRegistry.initDiagnosed(a, &.{item}, &detail) catch |err| {
+                try std.testing.expect(detail == null);
+                return err;
+            };
+            defer owned.deinit();
+            try std.testing.expect(detail == null);
+        }
+    };
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, Runner.run, .{recipe});
+}
+
+test "recovery diagnostics execute real spill corruption and retain uncoded file failures" {
+    const Entry = @import("stwo_core").error_codes.Entry;
+    const logical = [_]arena_plan.LogicalBuffer{.{ .id = 7, .size_bytes = 32, .alignment = 16, .live_ranges = &.{ .{ .first = 1, .last = 1 }, .{ .first = 2, .last = 2 } }, .spill_cost_ns = 1 }};
+    var plan = try arena_plan.build(std.testing.allocator, &logical, 16 * 1024);
+    defer plan.deinit();
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const file = try temporary.dir.createFile("diagnosed.bin", .{ .read = true });
+    var store = try FileSpillStore.init(std.testing.allocator, file, true, plan);
+    defer store.deinit();
+    const binding = try plan.binding(7);
+    var source: [32]u8 = @splat(0x33);
+    var destination: [32]u8 = @splat(0);
+    var failure: ?Entry = null;
+    try std.testing.expectError(error.SpillNotMaterialized, store.restoreDiagnosed(binding, &destination, &failure));
+    try std.testing.expectEqual(@as(u16, 0x2404), failure.?.code);
+    var missing = binding;
+    missing.logical_id = 8;
+    try std.testing.expectError(error.MissingSpillEntry, store.spillDiagnosed(missing, &source, &failure));
+    try std.testing.expectEqual(@as(u16, 0x2403), failure.?.code);
+    try std.testing.expectError(error.BindingSizeMismatch, store.spillDiagnosed(binding, source[0..31], &failure));
+    try std.testing.expectEqual(@as(u16, 0x2406), failure.?.code);
+    try std.testing.expectEqual(@as(u64, 0), store.bytes_written);
+    try store.spillDiagnosed(binding, &source, &failure);
+    try std.testing.expect(failure == null);
+    try store.restoreDiagnosed(binding, &destination, &failure);
+    try std.testing.expectEqualSlices(u8, &source, &destination);
+    try std.testing.expect(failure == null);
+    try store.file.pwriteAll(&.{0xff}, 0);
+    try std.testing.expectError(error.SpillCorrupted, store.restoreDiagnosed(binding, &destination, &failure));
+    try std.testing.expectEqual(@as(u16, 0x2405), failure.?.code);
+    try std.testing.expectEqual(@as(u64, 32), store.bytes_read);
+    try store.file.setEndPos(0);
+    try std.testing.expectError(error.EndOfStream, store.restoreDiagnosed(binding, &destination, &failure));
+    try std.testing.expect(failure == null);
+}
+
+test "recovery diagnostics follow actual engine hooks and keep buffer errors foreign" {
+    const C = @import("error_codes.zig");
+    const Context = struct {
+        storage: [8]u8 = @splat(0x55),
+        access_error: ?RecoveryError = null,
+        recipe_error: ?RecoveryError = null,
+        fn get(raw: *anyopaque, _: arena_plan.Binding) ![]u8 {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            if (self.access_error) |cause| return cause;
+            return &self.storage;
+        }
+        fn run(raw: *anyopaque, _: u16, _: arena_plan.Binding, out: []u8) !void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            if (self.recipe_error) |cause| return cause;
+            @memset(out, 0x5a);
+        }
+    };
+    const logical = [_]arena_plan.LogicalBuffer{.{ .id = 7, .size_bytes = 8, .alignment = 16, .live_ranges = &.{ .{ .first = 1, .last = 1 }, .{ .first = 2, .last = 2 } }, .spill_cost_ns = 1 }};
+    var plan = try arena_plan.build(std.testing.allocator, &logical, 16 * 1024);
+    defer plan.deinit();
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const file = try temporary.dir.createFile("hooks.bin", .{ .read = true });
+    var store = try FileSpillStore.init(std.testing.allocator, file, true, plan);
+    defer store.deinit();
+    var context: Context = .{};
+    var registry = try RecipeRegistry.init(std.testing.allocator, &.{.{ .logical_id = 7, .context = &context, .run = Context.run }});
+    defer registry.deinit();
+    var engine = RecoveryEngine{ .access = .{ .context = &context, .bytes_fn = Context.get }, .spill_store = &store, .recipes = &registry };
+    var failure: ?@import("stwo_core").error_codes.Entry = C.fromRecovery(error.SpillCorrupted);
+    try engine.validatePlanDiagnosed(plan, &failure);
+    try std.testing.expect(failure == null);
+    const binding = try plan.binding(7);
+    const hooks = engine.hooks();
+    try hooks.spill(hooks.context, 1, binding);
+    @memset(&context.storage, 0);
+    try engine.restoreDiagnosed(binding, &failure);
+    try std.testing.expectEqualSlices(u8, &([_]u8{0x55} ** 8), &context.storage);
+    try hooks.recompute(hooks.context, 2, binding);
+    try std.testing.expectEqualSlices(u8, &([_]u8{0x5a} ** 8), &context.storage);
+    for ([_]RecoveryError{ error.DuplicateRecipe, error.MissingRecipe, error.MissingSpillEntry, error.SpillNotMaterialized, error.SpillCorrupted, error.BindingSizeMismatch }) |cause| {
+        context.access_error = cause;
+        failure = C.fromRecovery(error.MissingRecipe);
+        try std.testing.expectError(cause, engine.spillDiagnosed(binding, &failure));
+        try std.testing.expect(failure == null);
+        try std.testing.expectError(cause, engine.restoreDiagnosed(binding, &failure));
+        try std.testing.expect(failure == null);
+        try std.testing.expectError(cause, engine.recomputeDiagnosed(3, binding, &failure));
+        try std.testing.expect(failure == null);
+        context.access_error = null;
+        context.recipe_error = cause;
+        try std.testing.expectError(cause, engine.recomputeDiagnosed(3, binding, &failure));
+        try std.testing.expect(failure == null);
+    }
+    var absent = [_]arena_plan.Binding{binding};
+    absent[0].logical_id = 8;
+    var invalid = plan;
+    invalid.bindings = &absent;
+    try std.testing.expectError(error.MissingSpillEntry, engine.validatePlanDiagnosed(invalid, &failure));
+    try std.testing.expectEqual(@as(u16, 0x2403), failure.?.code);
+    absent[0].materialization = .recompute;
+    try std.testing.expectError(error.MissingRecipe, engine.validatePlanDiagnosed(invalid, &failure));
+    try std.testing.expectEqual(@as(u16, 0x2402), failure.?.code);
 }

@@ -7,7 +7,7 @@ check without importing the prover implementation.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.4` |
+| Version | `1.0.0-rc.5` |
 | Layer | `api` |
 | Owner | `prover-api` |
 | Public Zig module | `stwo_prover_api` |
@@ -169,3 +169,10 @@ exhaustion; invalid counter groups, producer coverage and authenticated profiles
 are input failures. Disabled recorders retain zero state, and no diagnostic
 output is retained across calls. This is library-operation qualification, not
 a complete proof or process-level error report.
+
+
+Joined recorder adoption and pure device header admission have exact typed
+error sets and per-call diagnosed operations (`0x3401`–`0x3403`,
+`0x3501`–`0x3508`). TraceCommitRequest's optional diagnostic pointer is borrowed
+for its synchronous call, excluded from Scope/protocol identity, never retained
+or written by workers. Foreign device/retirement callbacks remain unclassified.

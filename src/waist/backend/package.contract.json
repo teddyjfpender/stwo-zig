@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_backend_contracts",
-  "version": "1.0.0-rc.3",
+  "version": "1.0.0-rc.4",
   "layer": "contract",
   "owner": "backend-contracts",
   "public_modules": {
@@ -35,7 +35,12 @@
     ],
     "invariant_tests": [
       "error_codes_test.zig::backend program diagnostics pin exact program and native AIR origins",
-      "proof_program_native_air.zig::native AIR contract rejects unbound and inconsistent ingress"
+      "error_codes_test.zig::recovery codes pin singleton origins and unchanged legacy error contracts",
+      "proof_program_native_air.zig::native AIR contract rejects unbound and inconsistent ingress",
+      "recovery.zig::recovery diagnostics execute real spill corruption and retain uncoded file failures",
+      "recovery.zig::recovery diagnostics follow actual engine hooks and keep buffer errors foreign",
+      "recovery.zig::recovery diagnostics preserve owned registry failures and foreign callback provenance",
+      "recovery.zig::recovery: empty recipe registry admits resident-only planning"
     ]
   },
   "ci": {
@@ -53,7 +58,7 @@
   },
   "budget": {
     "code_files": 20,
-    "code_lines": 3575,
+    "code_lines": 3859,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

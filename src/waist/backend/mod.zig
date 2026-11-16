@@ -76,7 +76,15 @@ test "api signature: backend accepts a truthful minimum capability set" {
     comptime assertBackend(MinimumBackend);
 }
 
+test {
+    collectContractModules();
+}
+
 test "backend: contract modules compile" {
+    collectContractModules();
+}
+
+fn collectContractModules() void {
     // Smoke test — importing all contract modules triggers comptime validation.
     _ = column;
     _ = capabilities;

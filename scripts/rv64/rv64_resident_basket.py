@@ -301,9 +301,6 @@ def receiver_environment(environment, directory=None):
     result = {k: v for k, v in environment.items() if not k.startswith("STWO_RV64_GPU_")}
     result["CUDA_VISIBLE_DEVICES"] = ""
     result["STWO_RV64_GPU_PCS_HELPER"] = "/bin/false"
-    if directory is not None:
-        directory.mkdir(exist_ok=True)
-        result["STWO_RV64_GPU_WORKDIR"] = str(directory)
     return result
 
 

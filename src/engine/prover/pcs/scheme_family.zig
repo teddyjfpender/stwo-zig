@@ -121,6 +121,10 @@ pub fn ForField(comptime Secure: type) type {
                 wide_quotient_group_byte_limit: ?usize = null,
                 /// Borrowed only within one consumed diagnosed transaction.
                 column_failure: ?*?prover_api.error_codes.ColumnFailure = null,
+                // Per-proof coordinator-only outputs; append/lifting occurs after
+                // deferred tree workers join. No worker retains these pointers.
+                device_admission_failure: ?*?prover_api.error_codes.DeviceFailure = null,
+                revision_configuration_failure: ?*?@import("stwo_core").error_codes.RevisionConfigurationFailure = null,
                 /// Optional storage for retained LDE values only. Its owner must outlive
                 /// every tree; descriptors, source columns and Merkle layers use the caller allocator.
                 retained_column_allocator: ?std.mem.Allocator = null,
@@ -222,11 +226,15 @@ pub fn ForField(comptime Secure: type) type {
                 /// replay. The committed root and complete original geometry
                 /// stay unchanged; this method never mixes the transcript.
                 pub fn refreshDeviceOm31Main(self: *Self, tree: prover_api.device_pcs.Tree) !void {
+                    return self.refreshDeviceOm31MainDiagnosed(tree, self.device_admission_failure);
+                }
+                pub fn refreshDeviceOm31MainDiagnosed(self: *Self, tree: prover_api.device_pcs.Tree, failure: ?*?prover_api.error_codes.DeviceFailure) !void {
+                    if (failure) |sink| sink.* = null;
                     const D = prover_api.device_pcs;
                     if (comptime Secure != D.O or H != D.H) return error.UnsupportedDevicePcsProtocol;
                     if (self.revision_config != null) return error.UnsupportedDevicePcsProtocol;
                     const original = self.device_om31_trace_trees[1] orelse return error.DeviceMainReplayNotAdmitted;
-                    try D.validateMainReplay(original, tree);
+                    try D.validateMainReplayDiagnosed(original, tree, failure);
                     self.device_om31_trace_trees[1] = tree;
                 }
 

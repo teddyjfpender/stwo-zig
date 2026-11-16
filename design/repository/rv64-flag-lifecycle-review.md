@@ -1,6 +1,6 @@
 # RV64 flag lifecycle review
 
-Issue [#332](https://github.com/teddyjfpender/stwo-zig/issues/332). This inventories the 99 live names before this slice; thirty-one genuine removals leave 68. It is not a declaration that the `<60` promotion gate passes. Constants and historical reference-only symbols are excluded from the starting 99.
+Issue [#332](https://github.com/teddyjfpender/stwo-zig/issues/332). This inventories the 99 live names before this slice; thirty-three genuine removals leave 66. It is not a declaration that the `<60` promotion gate passes. Constants and historical reference-only symbols are excluded from the starting 99.
 
 The existing registry owns exact source paths, absence defaults, expiry and generated reference sets. No second configuration registry or launcher is introduced. All full names below have prefix `STWO_RV64_`.
 
@@ -16,7 +16,7 @@ The existing registry owns exact source paths, absence defaults, expiry and gene
 
 ## Remaining dependency
 
-30 names are frozen behind ordered GPU-native promotion. Eleven stronger physical-artifact consumers remain protected under one common run-root selector, with fixed provider directories. Reaching 59 now requires **9 more genuine reductions** from the remaining 68 controls. Changing live controls to reference-only, renaming them, moving independent choices into one JSON switch, selecting an unqualified GPU path by default, or deleting negative coverage does not meet that requirement.
+29 names are frozen behind ordered GPU-native promotion. Eleven stronger physical-artifact consumers remain protected under one common run-root selector, with fixed provider directories. Reaching 59 now requires **7 more genuine reductions** from the remaining 66 controls. Changing live controls to reference-only, renaming them, moving independent choices into one JSON switch, selecting an unqualified GPU path by default, or deleting negative coverage does not meet that requirement.
 
 The inventory does **not** establish a mathematical minimum of 60. Several controls can eventually disappear through compulsory test variants, deterministic ownership decisions, or qualified native-default retirement. Those replacements require engineering and qualification; a missing maintained literal setter is not proof that a runtime branch is dead.
 
@@ -214,3 +214,9 @@ Decisions [6922138831](https://github.com/teddyjfpender/stwo-zig/issues/332#issu
 The two OODS fault selectors and their arm remain live. There is no small existing host OODS interpreter; inventing another authority solely for a flag count would increase soundness risk. Their retirement needs an executable real acceptance fixture.
 
 The former plural recorded-node input selector now shares the existing singular producer directory authority with identical file layout. Independently, the real-scale PCS comparison runs whenever its existing GPU-library admission succeeds, without an extra selector. The unread raw MAIN dump option is retired while mandatory per-column SHA artifacts and every maintained replay consumer remain; existing raw files are not deleted. These changes leave 68 live RV64 controls, so the `<60` gate remains open.
+
+## One native selection and producer-owned scratch (2026-11-16)
+
+Decision [6923663392](https://github.com/teddyjfpender/stwo-zig/issues/332#issuecomment-6923663392) retires two redundant process controls. `GPU_NATIVE` is the sole explicit native-driver selector; its invalid values still reject, and shipped addon/FS assets remain hash-pinned. Compatibility is explicit: native1 without the former JOBS acknowledgement now selects native, JOBS-only now selects the unchanged default reference route, and obsolete acknowledgement values are ignored. The acknowledgement cannot inject shipped assets. Default native selection remains off; this does not promote a GPU backend.
+
+Subprocess scratch derives from the existing producer CLI OUT as `OUT/.gpu-hybrid`. Only the CPU dispatcher claims OUT. The wrapper creates no early directories and leaves invalid, nonproducer and profile admission to the CPU owner. Request callbacks create only the scratch child, exclusively claim their fixed-role request/output files, and clean those owned files after success or failure. A collision refuses without deleting foreign files. PCS and composition names are disjoint; composition’s existing keep-jobs behavior remains. Fresh receivers retain their empty CUDA visibility and false PCS helper, and need no scratch destination override. Private path, collision, allocation-failure and mode tests execute without a prover. Full subprocess proof production remains **UNRUN** locally. The current live count is66; seven further genuine retirements are required.

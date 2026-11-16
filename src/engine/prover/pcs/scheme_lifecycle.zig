@@ -91,22 +91,25 @@ pub fn Lifecycle(comptime B: type, comptime H: type, comptime MC: type, comptime
         /// `proving_5a7c5ed` scheme without its configuration fails closed
         /// instead of committing at the largest column.
         pub fn liftCommittedTree(self: *Self, allocator: std.mem.Allocator, tree: *BackendCommitmentTree) !void {
+            if (self.revision_configuration_failure) |sink| sink.* = null;
             if (comptime revision != .proving_5a7c5ed) return;
             const config = self.revision_config orelse return error.MissingRevisionConfig;
-            try revision_lifting.liftCommittedTree(B, H, config, allocator, tree, self.trees.items.len);
+            try revision_lifting.liftCommittedTreeDiagnosed(B, H, config, allocator, tree, self.trees.items.len, self.revision_configuration_failure);
         }
 
         /// `max_log_degree_bound` of upstream `prove_ex` for a revision
         /// scheme; null for the existing lanes, whose bound follows the
         /// composition split.
         pub fn revisionMaskLogSize(self: Self, include_all_preprocessed_columns: bool) !?u32 {
+            if (self.revision_configuration_failure) |sink| sink.* = null;
             const config = self.revision_config orelse return null;
             if (self.trees.items.len <= PREPROCESSED_TRACE_IDX) return CommitmentSchemeError.InvalidPreprocessedTree;
-            return try revision_lifting.maskLogSize(
+            return try revision_lifting.maskLogSizeDiagnosed(
                 config,
                 try self.proofLiftingLogSize(),
                 self.trees.items[PREPROCESSED_TRACE_IDX].commitment.maxLogSize(),
                 include_all_preprocessed_columns,
+                self.revision_configuration_failure,
             );
         }
 

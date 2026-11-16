@@ -508,3 +508,74 @@ whole CLI input loading, GPU execution or the full native root proof. Remaining
 families include generic felt/postcard transports, standalone encoding/shape,
 Core setup, backend recovery and device admission; they are not waived by this
 finite matrix or its table counts.
+
+
+## Joined custody, pure device admission and revision configuration after 9b6450a9c
+
+The delegated RFC #360 / #359 batch is bounded at 1200 net source/test lines,
+targeting 650. API rc.5 adds joined-custody codes 0x3401–0x3403 and pure device
+admission codes 0x3501–0x3508. Core rc.4 adds exact V2 configuration meanings
+0x1201 InvalidTreeHeight and 0x1202 InvalidLiftingLogSize. Engine 0.4 exposes
+additive diagnosed replay/revision operations. Existing column, task, work and
+verification meanings remain unchanged. No flags, scripts or dependencies are
+introduced; the existing shape code 0x5501 is not duplicated.
+
+| Origin | Actual consumer | Local exercised scope |
+| --- | --- | --- |
+| Joined stage custody, exact JoinedError | RV64 component profile Group.join | Active/self refusal, success, ownership preservation and every allocation failure |
+| TraceColumnError and RetirementScopeError | RISC-V CUDA trace admission and joined-input retirement | Pure header validation, scope failure and identical-tag foreign retirement callback |
+| ReplayError four-tag set | Actual PCS Scheme.refreshDeviceOm31MainDiagnosed | All four typed refusals, identical-tag pre-validator Engine refusal, accepted header replacement |
+| CompositionTreeError two-tag set | Engine resident evaluator after callback join | Both typed refusals, success and identical-tag callback failure after prior owned failure |
+| PcsConfigV2.Error two-tag set | Engine revision lifting and mask-size admission | Both typed config failures, success/reset and identical-tag backend callback refusal |
+
+The existing legacy operations delegate to the same algorithms or retain their
+bodies and pass null outputs. Exact typed validators precede their projections;
+callback invocation is outside these catches. The diagnostic origin slots are
+per proof and coordinator-owned. Deferred commit workers join before lifting
+and append; resident evaluation returns before the coordinator validates its
+descriptors. Forwarding into ProveDiagnostic requires the captured typed cause
+to equal the primary failure. No arbitrary outer error-name classifier exists.
+
+TraceCommitRequest's approved default-null diagnostic field is borrowed only
+for the synchronous operation. It is never retained by returned column/tree
+owners or written by workers. Two distinct sink addresses preserve the actual
+authenticated Scope and column headers. This in-memory request has no separate
+serialized identity function; native queue/commit identities are selected from
+explicit scope/geometry fields, not raw struct bytes. No GPU identity/timing
+qualification is inferred from these host checks. Integration-owned protocol
+refusals before the selected pure validators remain unmapped even when their
+tags coincide. Earlier/later device and backend callbacks also remain unmapped.
+
+The actual Engine collector explicitly includes its existing device-composition
+owner, so the callback discrimination case is executed rather than merely
+registered. Final bounded Debug/ReleaseFast run 5 Engine cases, 13 API cases,
+1 Core golden, 2 actual Group cases and 1 actual trace-header case each under
+315 MB aggregate RSS. Descriptor pointers are never dereferenced as device
+memory; the backend callback fixture exercises provenance only. Full prove and
+CUDA Context execution, hardware qualification and byte-parity proof runs remain
+unrun. Constructor-only InvalidFoldStep stays typed library behavior without
+an invented process path. Other Core setup/arithmetic helpers retain their
+owned typed contracts; this matrix does not create a code for every helper.
+
+## Recovery operations and focused discovery after9b6450a9c
+
+RFC360 decision6923691634 adds six exact RecoveryError meanings at0x2401–2406
+under Backendrc.4. A singleton compile-time cause is recorded only where an
+owned check returns it; no outer anyerror mapper exists. Actual engine methods
+share the arena hook bodies and retain no output pointer. File reads/writes,
+allocations and buffer/recipe/group callbacks remain unannotated at this origin.
+Real spill files cover unmaterialized, missing, size and checksum failure; short
+reads retain EndOfStream with no fabricated recovery code. Actual Cairo column
+recipes preserve successful results and keep a same-tag callback failure foreign.
+
+Tests first exposed a genuine empty-registry slice panic; a bounded loop guard
+now admits an actual resident-only plan without any recovery storage access.
+An anonymous Backend collector makes filtered child tests reachable while the
+original named collector and canonical module list remain. #383 decision
+6923868302 is bounded to30net source. Actual old metadata28cases is preserved
+in the new33-case executed inventory; all33 pass each mode under389MB. The
+identical focused command changes from zero discovered cases to two passing
+cases (collector+intended test). Existing inferred error sets are compared by
+resolved members, not deferred type identity. Earlier panic, zero-case and
+signature-identity diagnostic evidence remains retained. No complete process,
+proof or GPU qualification is inferred.

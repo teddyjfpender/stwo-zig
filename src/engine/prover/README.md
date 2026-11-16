@@ -7,7 +7,7 @@ transaction contract in `stwo_prover_api`.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.3.0` |
+| Version | `0.4.0` |
 | Layer | `engine` |
 | Owner | `prover-engine` |
 | Public Zig module | `stwo_prover_engine` |
@@ -163,3 +163,10 @@ exhaustion; invalid counter groups, producer coverage and authenticated profiles
 are input failures. Disabled recorders retain zero state, and no diagnostic
 output is retained across calls. This is library-operation qualification, not
 a complete proof or process-level error report.
+
+
+Optional replay/revision diagnostics and the resident composition receiver
+forward only exact typed admission failures. Per-proof coordinator-owned slots
+are cleared at entry, and a code is forwarded only when its captured cause
+matches the primary failure. Device/backend callbacks remain separate origins;
+this metadata does not change proof, transcript or commitment identities.

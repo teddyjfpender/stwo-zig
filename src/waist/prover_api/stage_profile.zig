@@ -3,6 +3,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const task_profile = @import("task_profile.zig");
+pub const JoinedError = std.mem.Allocator.Error || error{ IncompatibleJoinedRecorder, JoinedRecorderStillActive };
 const work_profile = @import("work_profile.zig");
 pub const process_usage = @import("stage_process_usage.zig");
 
@@ -164,7 +165,7 @@ pub const Recorder = struct {
     /// Both owners must use the same allocator. All admission and reservation
     /// happen before ownership moves; the child remains independently reusable.
     /// Exact-work capture uses the serial coordinator instead of this seam.
-    pub fn adoptJoined(self: *Recorder, child: *Recorder) !void {
+    pub fn adoptJoined(self: *Recorder, child: *Recorder) JoinedError!void {
         if (self == child or !sameAllocator(self.allocator, child.allocator) or
             self.capture_tasks != child.capture_tasks or self.capture_work or child.capture_work)
             return error.IncompatibleJoinedRecorder;
@@ -188,7 +189,7 @@ pub const Recorder = struct {
     /// Parent task reservations and exact-work capture remain untouched; child
     /// task graphs, reservations and exact-work capture cannot cross this seam.
     /// Matching allocators let the parent reclaim the moved nodes directly.
-    pub fn adoptJoinedStages(self: *Recorder, child: *Recorder) !void {
+    pub fn adoptJoinedStages(self: *Recorder, child: *Recorder) JoinedError!void {
         if (self == child or !sameAllocator(self.allocator, child.allocator) or child.capture_work or
             child.task_recorder.graphs.items.len != 0)
             return error.IncompatibleJoinedRecorder;
@@ -204,6 +205,21 @@ pub const Recorder = struct {
         try destination.ensureUnusedCapacity(self.allocator, child.roots.items.len);
         destination.appendSliceAssumeCapacity(child.roots.items);
         child.roots.clearRetainingCapacity();
+    }
+
+    pub fn adoptJoinedDiagnosed(self: *Recorder, child: *Recorder, failure: ?*?@import("stwo_core").error_codes.Entry) JoinedError!void {
+        if (failure) |sink| sink.* = null;
+        self.adoptJoined(child) catch |err| {
+            if (failure) |sink| sink.* = @import("error_codes.zig").fromJoined(err);
+            return err;
+        };
+    }
+    pub fn adoptJoinedStagesDiagnosed(self: *Recorder, child: *Recorder, failure: ?*?@import("stwo_core").error_codes.Entry) JoinedError!void {
+        if (failure) |sink| sink.* = null;
+        self.adoptJoinedStages(child) catch |err| {
+            if (failure) |sink| sink.* = @import("error_codes.zig").fromJoined(err);
+            return err;
+        };
     }
 
     pub fn snapshot(self: *const Recorder, allocator: std.mem.Allocator) !StageProfile {

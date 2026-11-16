@@ -39,6 +39,12 @@ pub const table = [_]Entry{
     .{ .tag = "InvalidIngress", .code = 0x2304, .class = .invalid_input, .since = "1.0.0-rc.3" },
     .{ .tag = "InvalidSampling", .code = 0x2305, .class = .invalid_input, .since = "1.0.0-rc.3" },
     .{ .tag = "UnsupportedVersion", .code = 0x2306, .class = .invalid_input, .since = "1.0.0-rc.3" },
+    .{ .tag = "DuplicateRecipe", .code = 0x2401, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "MissingRecipe", .code = 0x2402, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "MissingSpillEntry", .code = 0x2403, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "SpillNotMaterialized", .code = 0x2404, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "SpillCorrupted", .code = 0x2405, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "BindingSizeMismatch", .code = 0x2406, .class = .invalid_input, .since = "1.0.0-rc.4" },
 };
 
 pub fn fromArena(err: ArenaPlanError) Entry {
@@ -87,6 +93,17 @@ pub fn fromNativeAir(err: @import("proof_program_native_air.zig").Error) Entry {
         error.InvalidIngress => table[32],
         error.InvalidSampling => table[33],
         error.UnsupportedVersion => table[34],
+    };
+}
+
+pub fn fromRecovery(err: @import("recovery.zig").RecoveryError) Entry {
+    return switch (err) {
+        error.DuplicateRecipe => table[35],
+        error.MissingRecipe => table[36],
+        error.MissingSpillEntry => table[37],
+        error.SpillNotMaterialized => table[38],
+        error.SpillCorrupted => table[39],
+        error.BindingSizeMismatch => table[40],
     };
 }
 

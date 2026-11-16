@@ -34,6 +34,8 @@ pub const table = [_]Entry{
     .{ .tag = "InvalidQueryShape", .code = 0x1119, .class = .verification_failed, .since = "1.0.0-rc.3" },
     .{ .tag = "DuplicateQueryMismatch", .code = 0x111a, .class = .verification_failed, .since = "1.0.0-rc.3" },
     .{ .tag = "OutOfMemory", .code = 0x111b, .class = .resource_exhausted, .since = "1.0.0-rc.3" },
+    .{ .tag = "InvalidTreeHeight", .code = 0x1201, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "InvalidLiftingLogSize", .code = 0x1202, .class = .invalid_input, .since = "1.0.0-rc.4" },
 };
 
 pub fn fromFriConfig(err: @import("fri/config.zig").FriConfig.Error) Entry {
@@ -83,6 +85,18 @@ pub fn recordPcsFailure(output: ?*?Entry, err: PcsVerificationError) PcsVerifica
         sink.* = fromPcs(err);
     };
     return err;
+}
+
+pub const RevisionConfigurationError = @import("pcs/config.zig").PcsConfigV2.Error;
+pub const RevisionConfigurationFailure = struct { cause: RevisionConfigurationError, entry: Entry };
+pub fn fromRevisionConfig(err: RevisionConfigurationError) Entry {
+    return switch (err) {
+        error.InvalidTreeHeight => table[29],
+        error.InvalidLiftingLogSize => table[30],
+    };
+}
+pub fn recordRevisionConfig(failure: ?*?RevisionConfigurationFailure, err: RevisionConfigurationError) void {
+    if (failure) |sink| sink.* = .{ .cause = err, .entry = fromRevisionConfig(err) };
 }
 
 pub fn lookup(code: u16) ?Entry {
@@ -141,4 +155,16 @@ test "Core verification diagnostics pin typed owned meanings and foreign refusal
     try std.testing.expectEqual(error.RootMismatch, recordPcsFailure(&retained, error.RootMismatch));
     try std.testing.expectEqual(error.OodsNotMatching, recordPcsFailure(&retained, error.OodsNotMatching));
     try std.testing.expectEqual(@as(u16, 0x1118), retained.?.code);
+}
+
+test "revision configuration diagnostics pin exact owned lifting errors" {
+    const Error = @import("pcs/config.zig").PcsConfigV2.Error;
+    try std.testing.expect(@typeInfo(@TypeOf(fromRevisionConfig)).@"fn".params[0].type.? == Error);
+    for ([_]Error{ error.InvalidTreeHeight, error.InvalidLiftingLogSize }, [_]u16{ 0x1201, 0x1202 }) |err, code| {
+        const entry = fromRevisionConfig(err);
+        try std.testing.expectEqual(code, entry.code);
+        try std.testing.expectEqualStrings(@errorName(err), entry.tag);
+        try std.testing.expectEqualStrings("1.0.0-rc.4", entry.since);
+        try std.testing.expectEqual(Class.invalid_input, entry.class);
+    }
 }

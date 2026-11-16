@@ -77,7 +77,9 @@ pub const ResidentOm31Stage = struct {
     ) anyerror!@import("device_pcs.zig").Tree,
 };
 
-pub fn validateResidentTree(tree: @import("device_pcs.zig").Tree, log: u32, split: u32) !void {
+pub const CompositionTreeError = error{ InvalidResidentCompositionTree, ResidentCompositionHostColumn };
+
+pub fn validateResidentTree(tree: @import("device_pcs.zig").Tree, log: u32, split: u32) CompositionTreeError!void {
     if (split < 1 or split > 2 or log > 28 or log <= split + 1) return error.InvalidResidentCompositionTree;
     const count = @as(usize, 8) << @intCast(split);
     if (tree.columns.len != count) return error.InvalidResidentCompositionTree;
@@ -89,4 +91,12 @@ pub fn validateResidentTree(tree: @import("device_pcs.zig").Tree, log: u32, spli
             if (device.context_token != token) return error.InvalidResidentCompositionTree;
         } else owner = device.context_token;
     }
+}
+
+pub fn validateResidentTreeDiagnosed(tree: @import("device_pcs.zig").Tree, log: u32, split: u32, failure: ?*?@import("error_codes.zig").DeviceFailure) CompositionTreeError!void {
+    if (failure) |sink| sink.* = null;
+    validateResidentTree(tree, log, split) catch |err| {
+        @import("error_codes.zig").recordDeviceAdmission(failure, err);
+        return err;
+    };
 }
