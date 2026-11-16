@@ -360,7 +360,7 @@ pub fn proveWithEngineUsingChannelAndExecution(
             "Ethereum composition, FRI, and openings",
         );
         defer stage.end();
-        const options = .{
+        const options: prover_api.ProveOptions = .{
             .recorder = recorder,
             .cpu_composition_execution = execution.cpu,
         };

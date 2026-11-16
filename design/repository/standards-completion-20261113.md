@@ -44,8 +44,9 @@ specific contracts; they do not qualify GPU hardware or timings.
 
 ## Local execution policy
 
-Small checks use the enforced 1 GiB /120 s aggregate watchdog and the existing
-Zig build lock. Do not retry an identical oversized closure or raise the cap.
+Small checks default to the enforced 1 GiB /120 s aggregate watchdog and the
+existing Zig build lock. Do not retry an identical oversized closure or silently
+raise the cap. The scoped CSP lease below is the sole recorded exception.
 Do not remove canonical imports, security, test discovery, acceptance floors,
 pins or rejection checks to make a local command fit. Capture a remaining
 physical gate explicitly when the admitted host cannot execute it.
@@ -204,3 +205,32 @@ compiler ran. All23 borrowed provider imports and Core identity checks were
 preserved. CSP profiling-call-site semantic qualification is therefore UNRUN;
 its formatting/AST checks and review are not a replacement. No retry or
 substitute graph followed. The native CSP defect is still open.
+
+## Generated C compiler-job admission
+
+The Circuit CPU prerequisite already has11 small C translation units; its
+single compiler command ran them internally in parallel despite outer`-j1`.
+An exact all-input/flag control with internal`-j1` passes at255,639,552B, versus
+the prior1.51GB cap. Both canonical BUILD owners now expose one object step per
+unchanged C file, retaining the same archive, flags, program identities and
+providers. Existing outer admission controls the actual compilation jobs.
+
+All11 rebuilt kernel instruction sections and exported symbols match the
+pre-change archive exactly. The canonical CSP compiler now runs but exceeds
+the cap; exact original suite partitions remain incomplete too. Direct exact
+compiler execution removed scheduler overhead and exposed an inferred-options
+type error; the explicit canonical `ProveOptions` correction is applied. Its
+corrected Debug suite bodies still exceed the cap, so no CSP semantic or
+runtime pass is claimed. All failed/capped receipts remain preserved.
+
+For the two original CSP suites only, the [delegated local resource lease](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6932201167)
+admits short canonical checks at2GiB aggregate RSS with unchanged120s wall and
+110s CPU limits. All64GiB of host RAM is not a lease: this exception is limited
+to those cases, expires after their qualification, and forbids another increase.
+Old1GiB stops remain incomplete. Other checks retain their original budgets.
+
+Under that scoped lease both original Debug CSP suites pass full direct
+canonical semantic checking in5.80s/5.82s at1.084GB/1.086GB. This validates the
+corrected call sites, not proving. The first actual Debug image emission then
+exceeded2GiB (2,166,472,704B); no executable was admitted, no proof case ran and
+no larger lease or retry followed. The old resource refusals remain unchanged.
