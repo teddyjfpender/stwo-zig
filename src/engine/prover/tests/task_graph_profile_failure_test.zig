@@ -755,3 +755,46 @@ test "task lifecycle diagnostic records resource storage and joined summary refu
     try pending.abortDiagnosed(&failure);
     try std.testing.expect(failure == null);
 }
+
+test "work accounting diagnostics retain actual stage state and all four owned failures" {
+    const work = prover_api.work_profile;
+    const codes = prover_api.error_codes;
+    var stage = prover_api.stage_profile.Recorder.initWithOptions(std.testing.allocator, "Debug", "work-diagnostic", .{ .capture_work = true });
+    defer stage.deinit();
+    const active = stage.workCaptureRecorder().?;
+    const good = work.Delta{ .producer = .column_preparation_fft, .source_mask = work.SourceMask.one(.fft_butterflies), .counters = .{ .fft_butterflies = std.math.maxInt(u64) } };
+    var failure: ?@import("stwo_core").error_codes.Entry = codes.fromWorkProfile(error.InvalidWorkProfile);
+    try active.recordDiagnosed(good, &failure);
+    try std.testing.expect(failure == null);
+    const before = try stage.workSnapshot();
+    try std.testing.expectEqualDeep(before, try stage.workSnapshotDiagnosed(&failure));
+    var next = good;
+    next.counters.fft_butterflies = 1;
+    try std.testing.expectError(error.CounterOverflow, active.recordDiagnosed(next, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3201), failure.?.code);
+    try std.testing.expectEqualDeep(before, try stage.workSnapshot());
+    next.source_mask = work.SourceMask.one(.fri_folds);
+    try std.testing.expectError(error.InvalidCounterGroup, active.recordDiagnosed(next, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3202), failure.?.code);
+    next = good;
+    next.site = .main_witness_field;
+    try std.testing.expectError(error.InvalidProducerCoverage, active.recordDiagnosed(next, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3203), failure.?.code);
+    try std.testing.expectEqualDeep(before, try stage.workSnapshot());
+    active.record_count += 1;
+    try std.testing.expectError(error.InvalidWorkProfile, stage.workSnapshotDiagnosed(&failure));
+    try std.testing.expectEqual(@as(u16, 0x3204), failure.?.code);
+    active.record_count -= 1;
+    try std.testing.expectEqualDeep(before, try stage.workSnapshotDiagnosed(&failure));
+    try std.testing.expect(failure == null);
+    var disabled: work.Recorder(false) = .{};
+    try std.testing.expectEqual(@as(usize, 0), @sizeOf(@TypeOf(disabled)));
+    failure = codes.fromWorkProfile(error.CounterOverflow);
+    try disabled.recordDiagnosed(next, &failure);
+    try std.testing.expect(failure == null);
+    try std.testing.expectEqualDeep(work.Profile.unavailable(), try disabled.snapshotDiagnosed(&failure));
+    stage.capture_work = false;
+    failure = codes.fromWorkProfile(error.InvalidWorkProfile);
+    try std.testing.expectEqualDeep(work.Profile.unavailable(), try stage.workSnapshotDiagnosed(&failure));
+    try std.testing.expect(failure == null);
+}

@@ -193,12 +193,6 @@ pub const EncodeCheck = struct {
 /// from the host seeds / expected outputs before they are erased.
 /// Verdicts seed_tape / child_binding and the device outputs/checkpoint copy
 /// are read back from the node's job slab and must match the host values.
-fn gnFaultOrdinal() !?u32 {
-    const two = std.posix.getenv("STWO_RV64_M8_FAULT_INJECTION") orelse return null;
-    if (!std.mem.eql(u8, two, "1")) return null;
-    const v = std.posix.getenv("STWO_RV64_M8_GN_NODE_FAULT_ORDINAL") orelse return null;
-    return std.fmt.parseInt(u32, v, 10) catch error.InvalidGnNodeFaultOrdinal;
-}
 pub const GnCheck = struct {
     pub const field_index: u32 = 0x474e_4f44; // "GNOD"
     /// Fold children: om31 node proofs under the diet-wire profile (fold
@@ -356,14 +350,6 @@ pub const GnCheck = struct {
         }
         harvest.tail = if (input.is_leaf) @intCast(n - found.items[0].at - try Seed.leafTapeLength(a, classes[0], leaf_cap_log)) else 0;
         harvest.statement = .{ .kind = program.header(Seed.P.statement), .outputs_at = program.header(Seed.P.outputs_at), .domain = program.header(Seed.P.domain), .version_word = program.header(Seed.P.version_word), .n_outputs = program.header(Seed.P.n_outputs), .prefix = prefix, .identity = identity, .fixed_root = fixed_root, .profile = program.words[program.header(Seed.P.profile)..][0..8].* };
-        // Negative test (two-key: STWO_RV64_M8_FAULT_INJECTION=1 and
-        // STWO_RV64_M8_GN_NODE_FAULT_ORDINAL=n): one MAIN-tree Merkle path
-        // word of child 0's image flips; seed_tape must refuse the node.
-        if (try gnFaultOrdinal()) |f| if (f == input.ordinal) {
-            const L = try Seed.Layout.of(shapes[0]);
-            regions[0][wire_words + L.trees[1].paths] ^= 1;
-            std.debug.print("GN_NODE fault_injected ordinal={d}\n", .{input.ordinal});
-        };
         var key: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(program.words), &key, .{});
         // Erase the host values: the node can only be proved from the device's.

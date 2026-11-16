@@ -260,8 +260,13 @@ pub const Recorder = struct {
     /// Produces an unavailable receipt for the ordinary path and for an opted-
     /// in request before any source boundary has published completed work.
     pub fn workSnapshot(self: *Recorder) work_profile.Error!work_profile.Profile {
+        return self.workSnapshotDiagnosed(null);
+    }
+
+    pub fn workSnapshotDiagnosed(self: *Recorder, failure: ?*?@import("stwo_core").error_codes.Entry) work_profile.Error!work_profile.Profile {
+        if (failure) |sink| sink.* = null;
         if (!self.capture_work) return work_profile.Profile.unavailable();
-        return self.work_recorder.snapshot();
+        return self.work_recorder.snapshotDiagnosed(failure);
     }
 
     fn pushStage(self: *Recorder, id: []const u8, label: []const u8) !*MutableNode {

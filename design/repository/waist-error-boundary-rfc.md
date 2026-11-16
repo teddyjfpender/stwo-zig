@@ -442,3 +442,69 @@ u64 task-count overflow on this 64-bit host and an impossible scheduler enum
 are typed golden cases only, not physical execution claims. Full proof/process
 and cross-host qualification remain separate. Work-profile validation and
 backend recovery callback/I/O origins remain open.
+
+## Logical-work operation origins after dee870158
+
+RFC360 decision6922612001 adds four exact API-owned meanings at0x3201–0x3204,
+with APIrc.4 and Engine0.3 reexport metadata. Per-call record/snapshot wrappers
+call the existing authorities and preserve their errors, locks, arithmetic and
+serialized profile digest. No output pointer is stored. Disabled capabilities
+retain zero state and no counter work. CounterOverflow is resource exhaustion;
+invalid counter grouping, producer coverage and profile authentication are input
+failures. The actual Engine stage consumer physically exercises allfour causes,
+snapshot equality, failure atomicity, stale reset and disabled behavior. Each
+mode passes one named consumer case plus the root container and27 API target
+cases (transitive cases included), peak315MB. This does not qualify a complete
+proof, command-level error report or device execution.
+
+
+## Concrete byte-input and root admission matrix after dee870158
+
+RFC #360 / #359 delegates at most 1200 net source/test lines to the finite
+matrix below, with no new flags, launchers or dependencies. ProofWire rc.3 and
+RecursionWire rc.4 expose additive nested ledger functions; Circuit CPU moves
+0.4 to 0.5 for verifyProofBytesDiagnosed. Root facade names remain unchanged.
+Unallocated 0x5502 stays reserved for a future encoder transaction; an encoder
+helper without a live consumer is not declared covered by this batch.
+
+| Concrete operation | Actual consumer | Local executed qualification |
+| --- | --- | --- |
+| Canonical QM31/OM31 JSON and binary proof bytes | Native verifier's existing diagnosed decoder; Native interop framing | Full codec suite, public roundtrips, malformed JSON/config, every allocator failure, actual CLI frame |
+| Circuit binary decode/config/resource catch | Circuit CPU receiver and Cairo CPU verify command | Actual public decoder InvalidProofShape and physical allocation failure, typed receiver rejection, foreign same-tag build refusal |
+| Registry config/leaf/multiverifier lookup | Circuit CPU canonical and leaf admission | Actual retained registry, positive lookups, three physical failures, optional writer failure |
+| Packed root JSON/depth | RV64 fold_root receiver | Public codec roundtrip, maximum-depth refusal, every allocation failure, writer failure |
+| Fold checkpoint JSON | Cairo CPU stage loader | Actual public checkpoint writer/parser, roundtrip and all allocation failures via closed input owner |
+| Registry JSON before CUDA asset selection | Cairo CUDA canonical_paths | Actual byte parser success/refusal and optional writer failure; no device execution |
+
+ProofWire appends literal std.json.ParseError(Scanner) codes 0x4101–0x410e and
+native FRI config codes 0x4201/0x4202, retaining all 0x400x meanings. This is a
+complete-buffer operation, not arbitrary reader I/O. ForHasher already rejects
+all fields except exact Core QM31/OM31; expanded annotation additionally requires
+primitive canonical hash arrays. A permitted custom 32-byte Hash struct's
+jsonParse can return the same SyntaxError: physical tests show it remains
+unmapped. No foreign callback name is assigned a code. Typed scanner/schema
+cases that cannot occur for complete buffers/plain schema stay golden-only.
+
+Recursion adds QueryError four-tag meanings 0x5301–0x5304, TooDeep 0x5401,
+InvalidProofShape 0x5501 and binary-owned OutOfMemory 0x5503. The maximum-leaf
+query has direct public-query qualification only; it is not called a live
+process path. Existing JSON resource metadata is reused only by the exact
+packed/checkpoint/registry parser operations. Binary allocator failure has its
+own distinct origin and resource class. Optional diagnostics cannot replace a
+primary failure. File I/O and later circuit/statement/verification errors remain
+outside these narrow parser catches, preserving original causes and cleanup.
+
+The legacy circuit verifier delegates to the same implementation with a null
+sink. The CPU command uses the diagnosed form for binary allocator failure;
+old stdout/exit and rejection verdict behavior remain. Invalid binary config
+is now coded at its exact decoder catch; the binary-only diagnostic writer
+still refuses unrelated postcard/JSON/query code bands. Callback supplied
+writers are not assigned decoder codes.
+
+Local Debug/ReleaseFast run the full 24-case proof codec suite and seven real
+consumer/provider roots under the existing 1 GiB guard (peak below 616 MB).
+These are operation/receiver-catch qualifications, not full proof construction,
+whole CLI input loading, GPU execution or the full native root proof. Remaining
+families include generic felt/postcard transports, standalone encoding/shape,
+Core setup, backend recovery and device admission; they are not waived by this
+finite matrix or its table counts.

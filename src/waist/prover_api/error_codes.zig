@@ -1,4 +1,4 @@
-//! Exact column-admission diagnostics, not an outer anyerror classifier.
+//! Origin-owned admission and profile diagnostics, never an outer anyerror classifier.
 const Entry = @import("stwo_core").error_codes.Entry;
 const ColumnError = @import("column.zig").QuotientOpsError;
 pub const ColumnFailure = struct { cause: ColumnError, entry: Entry };
@@ -30,6 +30,10 @@ pub const table = [_]Entry{
     .{ .tag = "TaskProfileDuplicateComponentContribution", .code = 0x3116, .class = .invalid_input, .since = "1.0.0-rc.3" },
     .{ .tag = "TaskProfileExclusiveContributionNotExclusive", .code = 0x3117, .class = .invalid_input, .since = "1.0.0-rc.3" },
     .{ .tag = "OutOfMemory", .code = 0x3118, .class = .resource_exhausted, .since = "1.0.0-rc.3" },
+    .{ .tag = "CounterOverflow", .code = 0x3201, .class = .resource_exhausted, .since = "1.0.0-rc.4" },
+    .{ .tag = "InvalidCounterGroup", .code = 0x3202, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "InvalidProducerCoverage", .code = 0x3203, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "InvalidWorkProfile", .code = 0x3204, .class = .invalid_input, .since = "1.0.0-rc.4" },
 };
 
 pub fn fromColumn(err: ColumnError) Entry {
@@ -74,6 +78,16 @@ pub fn fromTaskProfile(err: @import("task_profile.zig").Error) Entry {
         error.TaskProfileDuplicateComponentContribution => table[24],
         error.TaskProfileExclusiveContributionNotExclusive => table[25],
         error.OutOfMemory => table[26],
+    };
+}
+
+/// Only closed logical-work operations may assign this origin.
+pub fn fromWorkProfile(err: @import("work_profile.zig").Error) Entry {
+    return switch (err) {
+        error.CounterOverflow => table[27],
+        error.InvalidCounterGroup => table[28],
+        error.InvalidProducerCoverage => table[29],
+        error.InvalidWorkProfile => table[30],
     };
 }
 

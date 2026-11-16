@@ -3,7 +3,7 @@ const wire = @import("stwo_circuit_recursion_wire");
 
 // This scoped diagnostic is optional and never changes a primary verdict.
 pub fn write(out: *std.Io.Writer, entry: @import("stwo_core").error_codes.Entry) void {
-    if (entry.code != 0x5001 and entry.code != 0x5002) return;
+    if (entry.code != 0x5001 and entry.code != 0x5002 and entry.code != 0x5501 and entry.code != 0x5503) return;
     const known = wire.error_codes.lookup(entry.code) orelse return;
     if (known.class != entry.class or !std.mem.eql(u8, known.tag, entry.tag) or !std.mem.eql(u8, known.since, entry.since)) return;
     std.json.Stringify.value(.{ .schema = "circuit_decode_rejection_v1", .provider = "stwo_circuit_recursion_wire", .origin = "circuit_serialize.deserializeProof", .code = entry.code, .class = entry.class }, .{}, out) catch return;
@@ -21,6 +21,7 @@ const Parsers = struct {
     pub const definition = wire.registry_definition.parseRegistryDefinition;
     pub const parameters = wire.registry.parseProverParameters;
     pub const fri = wire.registry.parseFriConfig;
+    pub const checkpoint = wire.checkpoint.parse;
 };
 pub const InputFormat = std.meta.DeclEnum(Parsers);
 
@@ -38,6 +39,8 @@ fn parseInputTo(comptime format: InputFormat, out: *std.Io.Writer, allocator: st
     return @field(Parsers, @tagName(format))(allocator, text) catch |err| {
         const entry = if (comptime format == .definition)
             wire.error_codes.fromRegistryDefinition(err)
+        else if (comptime format == .checkpoint)
+            wire.error_codes.fromPacked(err)
         else
             wire.error_codes.fromJsonRead(err);
         // Failure of this optional side channel never replaces the parser cause.
@@ -115,6 +118,12 @@ const InputCases = struct {
             .parameters => std.fs.cwd().readFileAlloc(a, "vectors/circuit/official/registry_definitions/canonical_small/cairo_prover_params.json", 1 << 20),
             .fri => std.fs.cwd().readFileAlloc(a, "vectors/circuit/official/registry_definitions/canonical_small/circuit_fri_config.json", 1 << 20),
             .definition => std.fs.cwd().readFileAlloc(a, "vectors/circuit/official/registry_definitions/canonical_small/definition.json", 1 << 20),
+            .checkpoint => blk: {
+                var out: std.Io.Writer.Allocating = .init(a);
+                defer out.deinit();
+                try wire.checkpoint.write(&out.writer, .{ .proof = "abc", .preprocessed_root = @splat(1), .output_digest = @splat(2), .packed_output = .{ .composite = .{ .circuit_hash = @splat(3), .subtasks = &.{} } } });
+                break :blk a.dupe(u8, out.written());
+            },
             .manifest => a.dupe(u8, "{\"leaves\":[\"b.json\",\"a.json\"]}"),
             .request => a.dupe(u8,
                 \\{"pcs_config":{"fri_config":{"pow_bits":10,"log_blowup_factor":1,"log_last_layer_degree_bound":0,"n_queries":3,"fold_step":1},"trace_lifting_log_size":21,"preprocessed_lifting_log_size":21},"preprocessed_column_log_sizes":[["eq_in0_address",4]],"preprocessed_root":[1,2,3,4,5,6,7,8],"output_digest":[0,0,0,0,0,0,0,9]}
@@ -138,6 +147,7 @@ const InputCases = struct {
             .registry => try wire.registry.writeRegistry(out, value.registry),
             .request => try wire.verify_request.writeVerifyRequest(out, value.request),
             .leaf => try wire.leaf_proof_json.writeLeafInput(out, value.value),
+            .checkpoint => try wire.checkpoint.write(out, value.node),
             .fri => {
                 var writer = wire.json_text.Writer.init(out, false);
                 try wire.registry.writeFriConfig(&writer, value);
@@ -160,7 +170,7 @@ test "recursion JSON actual admissions preserve public codec bytes and every all
         defer InputCases.cleanup(&parsed);
         try std.testing.expectEqual(@as(usize, 0), out.written().len);
         try std.testing.expectEqual(before, std.hash.Wyhash.hash(0, text));
-        if (comptime format == .registry or format == .request or format == .leaf or format == .fri) {
+        if (comptime format == .registry or format == .request or format == .leaf or format == .fri or format == .checkpoint) {
             try InputCases.encode(format, &out.writer, parsed);
             var silence: [0]u8 = .{};
             var sink = std.Io.Writer.fixed(&silence);

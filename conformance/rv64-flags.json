@@ -464,7 +464,7 @@
       ],
       "default_evidence": {
         "path": "src/products/cairo/cuda/canonical_paths.zig",
-        "text": "        const variant_name = std.process.getEnvVarOwned(allocator, \"STWO_CAIRO_CUDA_PREPROCESSED_VARIANT\") catch |err| switch (err) {\n            error.EnvironmentVariableNotFound => \"canonical_small\",\n            else => return err,\n        };\n        const variant = std.meta.stringToEnum(stwo.frontend.preprocessed.trace.Variant, variant_name) orelse return error.InvalidPreprocessedVariant;\n        const leaf_lane = if (circuit_registry) |registry_path| blk: {\n            const wire = @import(\"stwo_circuit_recursion_wire\");"
+        "text": "        const variant_name = std.process.getEnvVarOwned(allocator, \"STWO_CAIRO_CUDA_PREPROCESSED_VARIANT\") catch |err| switch (err) {\n            error.EnvironmentVariableNotFound => \"canonical_small\",\n            else => return err,\n        };\n        const variant = std.meta.stringToEnum(stwo.frontend.preprocessed.trace.Variant, variant_name) orelse return error.InvalidPreprocessedVariant;"
       },
       "expires": "2026-12-13"
     },
@@ -4494,19 +4494,16 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_FAULT_INJECTION": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
-      "default": "false",
+      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
+      "default": "false; remaining OODS negative selectors require an explicit arm",
       "status": "retire-after-native-default",
-      "date": "2026-11-08",
+      "date": "2026-11-16",
       "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
-        "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
-        "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig",
-        "src/integrations/riscv_cuda/rv64/outer_node_checks.zig"
+        "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
-        "text": "    if (!try Env.flag(\"STWO_RV64_M8_FAULT_INJECTION\", false)) return error.M8FaultInjectionNotArmed;\n    return n;\n}\n\n/// Slab field of the node's check words: [lookup verdict, lookup tag].\npub const field_index: u32 = 0x4348_4b31; // \"CHK1\"\npub const field_words: u32 = 2;\n"
+        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
+        "text": "    const armed = std.posix.getenv(\"STWO_RV64_M8_FAULT_INJECTION\") orelse return error.M8FaultInjectionNotArmed;\n    if (!std.mem.eql(u8, armed, \"1\")) return error.M8FaultInjectionNotArmed;"
       },
       "expires": "2026-12-09"
     },
@@ -4540,45 +4537,24 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_M8_GN_NODE_FAULT_ORDINAL": {
-      "owner": "src/integrations/riscv_cuda/rv64/outer_node_checks.zig",
-      "default": "null",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/outer_node_checks.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/outer_node_checks.zig",
-        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_FAULT_ORDINAL\") orelse return null;\n    return std.fmt.parseInt(u32, v, 10) catch error.InvalidGnNodeFaultOrdinal;\n}\npub const GnCheck = struct {\n    pub const field_index: u32 = 0x474e_4f44; // \"GNOD\"\n    /// Fold children: om31 node proofs under the diet-wire profile (fold\n    /// Merkle cap 2^3); leaf children: native proofs with full paths.\n    pub const cap_log: u32 = 3;"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_M8_GN_NODE_RECORD": {
       "owner": "src/integrations/riscv_cuda/rv64/outer_seed_record.zig",
-      "default": "null",
+      "default": "disabled producer recording and skipped recorded fixture when unset; one common output/input directory",
       "status": "retire-after-native-default",
-      "date": "2026-11-08",
+      "date": "2026-11-16",
       "references": [
+        "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
         "src/integrations/riscv_cuda/rv64/outer_seed_record.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/outer_seed_record.zig",
-        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_RECORD\") orelse return null;\n    return if (v.len == 0) null else v;\n}\n\n/// Appends the PCS shape words: config (6), degree_log, n_trees, then per\n/// tree: n_columns, coefficient_logs, sorted_to_original, sample_counts.\npub fn appendShape(a: std.mem.Allocator, out: *std.ArrayListUnmanaged(u32), shape: anytype) !void {\n    const c = shape.config;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GN_NODE_RECORDS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
-      "default": "error.SkipZigTest",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
-        "text": "    const path = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_RECORDS\") orelse return error.SkipZigTest;\n    const a = std.heap.c_allocator;"
+        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_RECORD\") orelse return null;\n    return if (v.len == 0) null else v;\n}\n\n/// Appends the PCS shape words: config (6), degree_log, n_trees, then per\n/// tree: n_columns, coefficient_logs, sorted_to_original, sample_counts.\npub fn appendShape(a: std.mem.Allocator, out: *std.ArrayListUnmanaged(u32), shape: anytype) !void {\n    const c = shape.config;",
+        "readers": [
+          {
+            "path": "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
+            "text": "    const path = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_RECORD\") orelse return error.SkipZigTest;"
+          }
+        ]
       },
       "expires": "2026-12-09"
     },
@@ -4607,20 +4583,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/native_pack_gpu_test.zig",
         "text": "    const dirs = std.posix.getenv(\"STWO_RV64_M8_GN_PACK_RECORDS\") orelse return error.SkipZigTest;\n    var gpu = (try @import(\"native_gpu_support_test.zig\").Gpu.openNamed(\"native_pack_gpu_test\")) orelse return error.SkipZigTest;\n    defer gpu.close();\n    const a = std.heap.page_allocator;\n    const sym = try P.Symbols.load(&gpu.libs.base, &gpu.libs.addon);\n    const events = try EventApi.load(&gpu.libs.base);\n    const copy = gpu.libs.addon.lookup(P.H2dFn, \"stwo_rv64_jobs_copy_async\") orelse return error.MissingSymbol;\n    var it = std.mem.splitScalar(u8, dirs, ':');"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GN_PACK_RECORD_MAIN": {
-      "owner": "src/integrations/riscv_cuda/rv64/gn_pack_record.zig",
-      "default": "false",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/gn_pack_record.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/gn_pack_record.zig",
-        "text": "    if (std.posix.getenv(\"STWO_RV64_M8_GN_PACK_RECORD_MAIN\")) |v| if (std.mem.eql(u8, v, \"1\")) {\n        var mf = try r.dir.createFile(try std.fmt.bufPrint(&name_buf, \"seg-{}.main\", .{r.ordinal}), .{});\n        defer mf.close();\n        try mf.writeAll(std.mem.sliceAsBytes(host));\n    };\n    std.debug.print(\"GN_PACK_RECORD ordinal={} main_columns={} main_bytes={}\\n\", .{ r.ordinal, r.logs.len, total * 4 });\n}"
       },
       "expires": "2026-12-09"
     },
@@ -4812,20 +4774,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
-      "default": "null",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
-        "text": "    const n = try Env.optionalUnsigned(u32, \"STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL\") orelse return null;\n    if (!try Env.flag(\"STWO_RV64_M8_FAULT_INJECTION\", false)) return error.M8FaultInjectionNotArmed;\n    return n;\n}\n\n/// Slab field of the node's check words: [lookup verdict, lookup tag].\npub const field_index: u32 = 0x4348_4b31; // \"CHK1\"\npub const field_words: u32 = 2;"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_M8_OUTER_CLASS_PLAN": {
       "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_class_plan.zig",
       "default": "false",
@@ -4867,7 +4815,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
-        "text": "    return Env.flag(\"STWO_RV64_M8_OUTER_DEVICE_CHECKS\", false);\n}\npub fn faultOrdinal() !?u32 {\n    const n = try Env.optionalUnsigned(u32, \"STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL\") orelse return null;\n    if (!try Env.flag(\"STWO_RV64_M8_FAULT_INJECTION\", false)) return error.M8FaultInjectionNotArmed;\n    return n;\n}\n"
+        "text": "    return Env.flag(\"STWO_RV64_M8_OUTER_DEVICE_CHECKS\", false);"
       },
       "expires": "2026-12-09"
     },
@@ -4882,35 +4830,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
-        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_OUTER_DEVICE_ENCODE\") orelse return .off;\n    if (std.mem.eql(u8, v, \"0\")) return .off;\n    if (std.mem.eql(u8, v, \"1\")) return .on;\n    if (std.mem.eql(u8, v, \"check\")) return .check;\n    return error.InvalidOuterDeviceEncode;\n}\n\n/// STWO_RV64_M8_OUTER_ENCODE_FAULT_ORDINAL=n (negative test, two-key with"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_OUTER_ENCODE_FAULT_ORDINAL": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
-      "default": "null",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
-        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_OUTER_ENCODE_FAULT_ORDINAL\") orelse return null;\n    const n = std.fmt.parseUnsigned(u32, v, 10) catch return error.InvalidOuterEncodeFaultOrdinal;\n    const armed = std.posix.getenv(\"STWO_RV64_M8_FAULT_INJECTION\") orelse return error.M8FaultInjectionNotArmed;\n    if (!std.mem.eql(u8, armed, \"1\")) return error.M8FaultInjectionNotArmed;\n    return n;\n}\n\n/// STWO_RV64_M8_OUTER_OODS_FAULT_ORDINAL=n (two-key like faultOrdinal):"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_OUTER_FAULT_ORDINAL": {
-      "owner": "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig",
-      "default": "null",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/outer_hybrid_owner.zig",
-        "text": "        // Negative-path test hook (default unset): STWO_RV64_M8_OUTER_FAULT_ORDINAL=n\n        // fails node n before its job, exactly where a footprint refusal\n        // returns, so the request error path and teardown can be exercised.\n        if (self.hybrid.knobs.fault_ordinal == ordinal) {\n            if (input.prepared) |*p| p.deinit();\n            std.debug.print(\"GPU_M8_OUTER_NODE ordinal={d} device={d} error=M8OuterInjectedFault\\n\", .{ ordinal, self.physical_device });\n            return error.M8OuterInjectedFault;\n        }"
+        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_OUTER_DEVICE_ENCODE\") orelse return .off;\n    if (std.mem.eql(u8, v, \"0\")) return .off;\n    if (std.mem.eql(u8, v, \"1\")) return .on;\n    if (std.mem.eql(u8, v, \"check\")) return .check;\n    return error.InvalidOuterDeviceEncode;"
       },
       "expires": "2026-12-09"
     },
@@ -4943,7 +4863,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
-        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_OUTER_OODS_FAULT_ORDINAL\") orelse return null;\n    const n = std.fmt.parseUnsigned(u32, v, 10) catch return error.InvalidOuterOodsFaultOrdinal;\n    const armed = std.posix.getenv(\"STWO_RV64_M8_FAULT_INJECTION\") orelse return error.M8FaultInjectionNotArmed;\n    if (!std.mem.eql(u8, armed, \"1\")) return error.M8FaultInjectionNotArmed;\n    return n;\n}\n\n/// STWO_RV64_M8_OUTER_OODS_POINT_FAULT_ORDINAL=n (two-key like faultOrdinal):"
+        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_OUTER_OODS_FAULT_ORDINAL\") orelse return null;\n    const n = std.fmt.parseUnsigned(u32, v, 10) catch return error.InvalidOuterOodsFaultOrdinal;\n    const armed = std.posix.getenv(\"STWO_RV64_M8_FAULT_INJECTION\") orelse return error.M8FaultInjectionNotArmed;\n    if (!std.mem.eql(u8, armed, \"1\")) return error.M8FaultInjectionNotArmed;\n    return n;"
       },
       "expires": "2026-12-09"
     },

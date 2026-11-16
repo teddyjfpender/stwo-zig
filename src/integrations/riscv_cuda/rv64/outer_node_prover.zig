@@ -187,7 +187,6 @@ pub const Prover = struct {
             if (self.shared.encode_mode != .check) return error.M8OuterDeviceEncodePublishNotLanded;
             encode = try Checks.EncodeCheck.init(a, &job, self.shared, input.key, staged);
             encode.?.arm();
-            encode.?.node.fault = if (try Enc.faultOrdinal()) |n| n == input.ordinal else false;
             encode.?.node.oods_fault = if (try Enc.oodsFaultOrdinal()) |n| n == input.ordinal else false;
             encode.?.node.oods_point_fault = if (try Enc.oodsPointFaultOrdinal()) |n| n == input.ordinal else false;
         }

@@ -36,6 +36,13 @@ pub const table = [_]Entry{
     .{ .tag = "InvalidValue", .code = 0x5203, .class = .invalid_input, .since = "1.0.0-rc.3" },
     .{ .tag = "OutOfMemory", .code = 0x5204, .class = .resource_exhausted, .since = "1.0.0-rc.3" },
     .{ .tag = "EmptyTraceRange", .code = 0x5205, .class = .invalid_input, .since = "1.0.0-rc.3" },
+    .{ .tag = "UnknownConfig", .code = 0x5301, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "UnsupportedLeaf", .code = 0x5302, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "NoLeafVerifiers", .code = 0x5303, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "NotExactlyOneMultiverifier", .code = 0x5304, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "TooDeep", .code = 0x5401, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "InvalidProofShape", .code = 0x5501, .class = .invalid_input, .since = "1.0.0-rc.4" },
+    .{ .tag = "OutOfMemory", .code = 0x5503, .class = .resource_exhausted, .since = "1.0.0-rc.4" },
 };
 pub fn fromCircuitDecode(err: DecodeError) Entry {
     return switch (err) {
@@ -75,6 +82,37 @@ pub fn fromRegistryDefinition(err: @import("registry_definition.zig").ReadError)
         error.OutOfMemory => fromJsonRead(error.OutOfMemory),
     };
 }
+pub fn fromRegistryQuery(err: @import("registry.zig").QueryError) Entry {
+    return switch (err) {
+        error.UnknownConfig => table[17],
+        error.UnsupportedLeaf => table[18],
+        error.NoLeafVerifiers => table[19],
+        error.NotExactlyOneMultiverifier => table[20],
+    };
+}
+pub fn fromPacked(err: @import("packed_node.zig").ReadError) Entry {
+    return switch (err) {
+        error.TooDeep => table[21],
+        error.InvalidJson => fromJsonRead(error.InvalidJson),
+        error.MissingField => fromJsonRead(error.MissingField),
+        error.InvalidValue => fromJsonRead(error.InvalidValue),
+        error.OutOfMemory => fromJsonRead(error.OutOfMemory),
+    };
+}
+pub fn fromCircuitConfig(err: @import("circuit_serialize.zig").ConfigError) Entry {
+    return switch (err) {
+        error.InvalidProofShape => table[22],
+    };
+}
+pub const CircuitInputError = DecodeError || @import("circuit_serialize.zig").ConfigError || std.mem.Allocator.Error;
+pub fn fromCircuitInput(err: CircuitInputError) Entry {
+    return switch (err) {
+        error.NotEnoughData => fromCircuitDecode(error.NotEnoughData),
+        error.ValueOutOfRange => fromCircuitDecode(error.ValueOutOfRange),
+        error.InvalidProofShape => fromCircuitConfig(error.InvalidProofShape),
+        error.OutOfMemory => table[23],
+    };
+}
 pub fn lookup(code: u16) ?Entry {
     for (table) |entry| if (entry.code == code) return entry;
     return null;
@@ -88,7 +126,7 @@ test "api signature: circuit decode codes require the owned error set" {
 }
 
 test "circuit decode code table pins meanings classes versions and unknown refusal" {
-    try std.testing.expectEqual(@as(usize, 17), table.len);
+    try std.testing.expectEqual(@as(usize, 24), table.len);
     const errors = [_]@import("circuit_serialize.zig").DecodeError{ error.NotEnoughData, error.ValueOutOfRange };
     for (errors, [_]u16{ 0x5001, 0x5002 }) |err, code| {
         const entry = fromCircuitDecode(err);
@@ -133,4 +171,21 @@ test "recursion JSON codes pin owned parser signatures and append-only meanings"
     for ([_]Error{ error.InvalidJson, error.MissingField, error.InvalidValue, error.OutOfMemory }) |err|
         try std.testing.expectEqual(fromRegistryDefinition(err).code, fromJsonRead(err).code);
     for ([_]u16{ 0x5200, 0x5206, 65535 }) |code| try std.testing.expect(lookup(code) == null);
+}
+
+test "recursion registry packed and config codes pin exact concrete input origins" {
+    const Query = @import("registry.zig").QueryError;
+    try std.testing.expect(@typeInfo(@TypeOf(fromRegistryQuery)).@"fn".params[0].type.? == Query);
+    const queries = [_]Query{ error.UnknownConfig, error.UnsupportedLeaf, error.NoLeafVerifiers, error.NotExactlyOneMultiverifier };
+    for (queries, 0..) |err, index| {
+        const entry = fromRegistryQuery(err);
+        try std.testing.expectEqual(@as(u16, @intCast(0x5301 + index)), entry.code);
+        try std.testing.expectEqualStrings(@errorName(err), entry.tag);
+        try std.testing.expectEqualStrings("1.0.0-rc.4", entry.since);
+    }
+    try std.testing.expectEqual(@as(u16, 0x5401), fromPacked(error.TooDeep).code);
+    try std.testing.expectEqual(@as(u16, 0x5204), fromPacked(error.OutOfMemory).code);
+    try std.testing.expectEqual(@as(u16, 0x5501), fromCircuitConfig(error.InvalidProofShape).code);
+    try std.testing.expectEqual(@as(u16, 0x5503), fromCircuitInput(error.OutOfMemory).code);
+    for ([_]u16{ 0x5300, 0x5305, 0x5400, 0x5402, 0x5500, 0x5502, 0x5504 }) |id| try std.testing.expect(lookup(id) == null);
 }

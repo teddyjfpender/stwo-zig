@@ -7,7 +7,7 @@ check without importing the prover implementation.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.3` |
+| Version | `1.0.0-rc.4` |
 | Layer | `api` |
 | Owner | `prover-api` |
 | Public Zig module | `stwo_prover_api` |
@@ -162,3 +162,10 @@ column codes remain unchanged. Diagnostic sinks are borrowed per call. The
 engine's opt-in capture holds a sink only through coordinator publication/join
 and deinit, never across worker writes or recorder ownership. Ordinary cleanup
 preserves the primary failure, and foreign clock/task callbacks remain unmapped.
+
+The optional per-call logical-work diagnostics preserve the ordinary record and
+snapshot arithmetic, locks, schemas and digests. CounterOverflow is resource
+exhaustion; invalid counter groups, producer coverage and authenticated profiles
+are input failures. Disabled recorders retain zero state, and no diagnostic
+output is retained across calls. This is library-operation qualification, not
+a complete proof or process-level error report.

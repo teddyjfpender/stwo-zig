@@ -221,7 +221,7 @@ pub const Lane = struct {
             if (input.prepared) |*p| p.deinit();
             return err;
         };
-        // Negative-path test hook (default unset): STWO_RV64_M8_OUTER_FAULT_ORDINAL=n
+        // Typed negative-test hook (default null): a chosen ordinal
         // fails node n before its job, exactly where a footprint refusal
         // returns, so the request error path and teardown can be exercised.
         if (self.hybrid.knobs.fault_ordinal == ordinal) {
@@ -294,7 +294,7 @@ pub const Hybrid = struct {
         /// STWO_RV64_M8_OUTER_PERSISTENT_CLASSES=1: fold class regions in
         /// worker-persistent memory (default off in the hybrid window).
         persistent_classes: bool = false,
-        /// STWO_RV64_M8_OUTER_FAULT_ORDINAL=n: fail node n (negative test).
+        /// Typed fixture-only failure ordinal; production environment never sets it.
         fault_ordinal: ?u32 = null,
         /// STWO_RV64_M8_OUTER_RESERVE_BYTES (default 1 GiB).
         reserve_bytes: u64 = 1 << 30,
@@ -303,11 +303,6 @@ pub const Hybrid = struct {
             var k = Knobs{};
 
             k.fixed_handoff = k.fixed_handoff and k.fixed_job;
-
-            // Two-key fault injection (outer_checks.zig): a leftover ordinal
-            // alone refuses service start instead of failing production nodes.
-            k.fault_ordinal = try Env.optionalUnsigned(u32, "STWO_RV64_M8_OUTER_FAULT_ORDINAL");
-            if (k.fault_ordinal != null and !try Env.flag("STWO_RV64_M8_FAULT_INJECTION", false)) return error.M8FaultInjectionNotArmed;
 
             k.graphs = try Graphs.Policy.fromEnv();
             // Node-job knobs are parsed per job; check them here so a bad
@@ -320,9 +315,7 @@ pub const Hybrid = struct {
             _ = try CP.selected();
             _ = try CP.hostBudgetBytes();
             _ = try Checks.selected();
-            _ = try Checks.faultOrdinal();
             _ = try Enc.mode();
-            _ = try Enc.faultOrdinal();
             _ = try Enc.oodsFaultOrdinal();
             _ = try Enc.oodsPointFaultOrdinal();
             return k;

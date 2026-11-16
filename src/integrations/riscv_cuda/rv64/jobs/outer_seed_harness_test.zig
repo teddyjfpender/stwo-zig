@@ -1,6 +1,6 @@
 //! gn-node piece-only harness on REAL recorded data (test-only file; opt-in).
 //!
-//!   STWO_RV64_M8_GN_NODE_RECORDS=<dir>   node-*.gnr + pcs-*.gnp from
+//!   STWO_RV64_M8_GN_NODE_RECORD=<dir>   node-*.gnr + pcs-*.gnp from
 //!                                        outer_seed_record.zig (legacy path)
 //! Child order is derived from recorded PCS root pairs in the parent seed tape.
 //!   STWO_RV64_GPU_LIBRARY / STWO_RV64_M8_JOBS_LIBRARY  (device arm)
@@ -246,7 +246,7 @@ fn firstDiff(x: []const u32, y: []const u32) ?usize {
 }
 
 test "gn-node harness: device seed fill, statement and checkpoint on recorded real nodes" {
-    const path = std.posix.getenv("STWO_RV64_M8_GN_NODE_RECORDS") orelse return error.SkipZigTest;
+    const path = std.posix.getenv("STWO_RV64_M8_GN_NODE_RECORD") orelse return error.SkipZigTest;
     const a = std.heap.c_allocator;
     var l = try load(a, path);
     defer l.deinit();
@@ -445,6 +445,7 @@ fn negatives(a: std.mem.Allocator, gpu_opt: *?Gpu, prog: S.Program, regions: []c
     const t0 = L.trees[1];
     const cases = [_]Case{
         .{ .name = "path_sibling", .at = wire_words + t0.paths + 3, .value = null, .xor = 1, .seed = &.{ .cap_root, .cap_mismatch }, .bind = null },
+        .{ .name = "path_first_word", .at = wire_words + t0.paths, .value = null, .xor = 1, .seed = &.{ .cap_root, .cap_mismatch }, .bind = null },
         .{ .name = "queried_value", .at = wire_words + t0.values + 5, .value = 0x7fff_ffff, .xor = 0, .seed = &.{.noncanonical}, .bind = null },
         .{ .name = "query_range", .at = wire_words + L.queries, .value = 0xffff_fff0, .xor = 0, .seed = &.{.query_range}, .bind = null },
         .{ .name = "image_header", .at = wire_words, .value = 0, .xor = 0, .seed = &.{.image_header}, .bind = null },

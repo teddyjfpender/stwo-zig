@@ -12,13 +12,7 @@
 //!
 //! STWO_RV64_M8_OUTER_DEVICE_CHECKS (default 0): "1" enqueues the device checks
 //! (needs an addon exporting stwo_rv64_outer_lookup_sum_check_v1_on).
-//! STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL=n (negative test, default unset):
-//! node n gets one corrupted lookup constant on the device side only; its
-//! check must reject (detail 5, nonzero sum) and the request fail closed.
-//! Fault injection is two-key: the ordinal is honoured only when
-//! STWO_RV64_M8_FAULT_INJECTION=1 is also set (a leftover ordinal alone
-//! cannot corrupt production requests; it fails closed at the first node
-//! with error.M8FaultInjectionNotArmed instead of being silently ignored).
+//! Lookup corruption is owned by typed qualification fixtures, never process policy.
 //!
 //! The check field [verdict, tag] is set to `Verdict.unset` on the device
 //! at the start of the node body, so a check kernel that never ran reads
@@ -62,11 +56,6 @@ pub const Symbols = struct {
 
 pub fn selected() !bool {
     return Env.flag("STWO_RV64_M8_OUTER_DEVICE_CHECKS", false);
-}
-pub fn faultOrdinal() !?u32 {
-    const n = try Env.optionalUnsigned(u32, "STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL") orelse return null;
-    if (!try Env.flag("STWO_RV64_M8_FAULT_INJECTION", false)) return error.M8FaultInjectionNotArmed;
-    return n;
 }
 
 /// Slab field of the node's check words: [lookup verdict, lookup tag].

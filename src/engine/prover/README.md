@@ -7,7 +7,7 @@ transaction contract in `stwo_prover_api`.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.2.0` |
+| Version | `0.3.0` |
 | Layer | `engine` |
 | Owner | `prover-engine` |
 | Public Zig module | `stwo_prover_engine` |
@@ -153,6 +153,13 @@ session reuse, and verifier round-trips.
 - [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 - [Universal AIR to Sail refinement plan](../../../design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)
 
-Version0.2 reexports the API rc.3 optional task diagnostics. Ordinary task
-execution and profile serialization retain their previous behavior; diagnostics
-are opt-in and do not classify arbitrary task or clock callback errors.
+Version0.3 reexports the API rc.4 optional task and work diagnostics. Ordinary
+execution and profile serialization retain their previous behavior. These
+operations do not classify arbitrary task, clock or producer callback errors.
+
+The optional per-call logical-work diagnostics preserve the ordinary record and
+snapshot arithmetic, locks, schemas and digests. CounterOverflow is resource
+exhaustion; invalid counter groups, producer coverage and authenticated profiles
+are input failures. Disabled recorders retain zero state, and no diagnostic
+output is retained across calls. This is library-operation qualification, not
+a complete proof or process-level error report.

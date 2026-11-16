@@ -32,6 +32,7 @@ pub const LayerEntry = fold.LayerEntry;
 pub const Stats = tree.Stats;
 
 test {
+    _ = @import("registry_admission.zig");
     _ = leaf_wrap;
     _ = topology_key;
     _ = topology_cache;

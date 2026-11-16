@@ -264,7 +264,6 @@ pub const OuterNodeJob = struct {
         if (self.whole.?.checks == null) return error.MissingOuterCheckKernel;
         if (self.staged.lookup == null or self.staged.image.expected.words != self.staged.expected.len) return error.OuterCheckInputsNotStaged;
         self.device_checks = true;
-        self.check_fault = if (try Checks.faultOrdinal()) |n| n == self.staged.ordinal else false;
         self.check_tag = Checks.tagOf(&self.staged.checkpoint, self.staged.ordinal);
         _ = try self.layout.add(.opaque_words, Checks.field_index, Checks.field_words);
     }

@@ -1347,6 +1347,28 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue332 comments6922138831/6922293884 under standing approval: move production sabotage authority to explicit test-owned fields, only after executable actual-host checks and Driver publication/cancel/lifetime coverage. Preserve nine GN cases and add exact original MAIN+0 mutation, not replace +3. Target four executable fault families plus duplicate single NODE record-directory authority; keep two OODS ordinals and arm live until actual checker qualification. No invented OODS evaluator, enum-to-verdict substitute, GPUdefault promotion or new launcher. Source/host evidence never certifies full encoded-node/GPU proof execution."
+    },
+    {
+      "id": "logical_work_origin_diagnostics_359",
+      "net_code_budget": 220,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "RFC360 comment6922612001 under standing maintainer approval: four exact logical-work meanings via optional per-call recorder/stage outputs. Preserve ordinary record/snapshot authority, locks, failure atomicity, digest/schema and disabled zero-state behavior. Actual Engine stage consumer physically exercises allfour causes plus ordinary/diagnosed equality and cleanup/reset, provider covers existing work/stage properties. No arbitrary callbacks, persistent output, runtime controls, rootexports or dependencies. APIrc4/Engine0.3 additive metadata; no fullproof/process/GPU claim. Rollback optional wrappers/codes/tests together."
+    },
+    {
+      "id": "concrete_wire_input_origins_359",
+      "net_code_budget": 1200,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "RFC360 comments6922653434/6923120534 under standing maintainer approval: concrete complete-buffer proofwire parser/config/OOM and recursion registry/packed/config/decoder resource origins at actual fixed consumer catches. ExistingQM31/OM31 restriction and canonicalHashWire guard keepcustomsame-tagparsercallbacks unmapped. Actualfullwire24 +sevenboundedownerroots eachmode, realdecoder OOM/publiccodecdepth/allocationcleanup and NativeCLIphysicalJSONframe.455net source incltwo privateadmissionowners fits1200; no newruntimeflag/launcher/dependency/rootexport. ProofWirerc3/RecursionWirerc4/CircuitCPU0.5 metadata; no wholeprocess/fullproof/GPU claim. Rollback typed projections/admissionconsumers/tests together."
+    },
+    {
+      "id": "unread_raw_main_dump_retirement_332",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "flags_removed_target": 1,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue332 comment6923099113: retireonlyunusedoptionalrawMAINdump andselector, notlegacyproducer/default/feeder. No maintainedrawreader/setter; everyreplayuses retainedper-columnSHAfiles. CompletefinishInbody identical afterexactfive-linebranchdeletion. Boundedexceptionto broadregistryretire-after-native-default staging forunreaddebugoutput; allrealSHAchecks/ownership/cleanup remain. No GPUproducerqualification/defaultspeedupclaim or existingartifactdeletion; restorescopebyrevertingbranch+registrymetadata."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
@@ -2386,6 +2408,195 @@
         "versioned_files": 23
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6922432570"
+    },
+    {
+      "package": "stwo_prover_engine",
+      "base_commit": "dee870158674a949ec14f1c7b055b440c99ac9d5",
+      "before": {
+        "code_files": 294,
+        "code_lines": 75248,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 29,
+        "dependencies": 3,
+        "rv64_registry_flags": 0,
+        "versioned_files": 298
+      },
+      "after": {
+        "code_files": 294,
+        "code_lines": 75291,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 29,
+        "dependencies": 3,
+        "rv64_registry_flags": 0,
+        "versioned_files": 298
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6923276375"
+    },
+    {
+      "package": "stwo_circuit_cpu_integration",
+      "base_commit": "dee870158674a949ec14f1c7b055b440c99ac9d5",
+      "before": {
+        "code_files": 61,
+        "code_lines": 9150,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 8,
+        "rv64_registry_flags": 2,
+        "versioned_files": 64
+      },
+      "after": {
+        "code_files": 62,
+        "code_lines": 9288,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 8,
+        "rv64_registry_flags": 2,
+        "versioned_files": 65
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6923276375"
+    },
+    {
+      "package": "stwo_riscv_cpu_integration",
+      "base_commit": "dee870158674a949ec14f1c7b055b440c99ac9d5",
+      "before": {
+        "code_files": 948,
+        "code_lines": 137253,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 1,
+        "api_entries": 93,
+        "dependencies": 9,
+        "rv64_registry_flags": 19,
+        "versioned_files": 960
+      },
+      "after": {
+        "code_files": 949,
+        "code_lines": 137307,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 1,
+        "api_entries": 93,
+        "dependencies": 9,
+        "rv64_registry_flags": 19,
+        "versioned_files": 961
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6923276375"
+    },
+    {
+      "package": "stwo_riscv_cuda_integration",
+      "base_commit": "dee870158674a949ec14f1c7b055b440c99ac9d5",
+      "before": {
+        "code_files": 335,
+        "code_lines": 79045,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 37,
+        "versioned_files": 340
+      },
+      "after": {
+        "code_files": 339,
+        "code_lines": 79357,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 37,
+        "versioned_files": 344
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6923276375"
+    },
+    {
+      "package": "stwo_proof_wire",
+      "base_commit": "dee870158674a949ec14f1c7b055b440c99ac9d5",
+      "before": {
+        "code_files": 9,
+        "code_lines": 1538,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 24,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 12
+      },
+      "after": {
+        "code_files": 9,
+        "code_lines": 1715,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 24,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 12
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6923276375"
+    },
+    {
+      "package": "stwo_prover_api",
+      "base_commit": "dee870158674a949ec14f1c7b055b440c99ac9d5",
+      "before": {
+        "code_files": 20,
+        "code_lines": 5971,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 24,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 23
+      },
+      "after": {
+        "code_files": 20,
+        "code_lines": 6031,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 24,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 23
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6923276375"
+    },
+    {
+      "package": "stwo_circuit_recursion_wire",
+      "base_commit": "dee870158674a949ec14f1c7b055b440c99ac9d5",
+      "before": {
+        "code_files": 15,
+        "code_lines": 2903,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 12,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 18
+      },
+      "after": {
+        "code_files": 15,
+        "code_lines": 2958,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 12,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 18
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6923276375"
     }
   ]
 }

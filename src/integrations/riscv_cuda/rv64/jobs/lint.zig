@@ -4,7 +4,7 @@
 //! `@import("*.zig")` it reaches (legacy files included) is scanned, plus the
 //! addon CUDA under `NAT/rv64/jobs/`. The worker's single host wait and the
 //! op-table entry for it are the only exceptions, fenced by
-//! `lint:host-wait-begin` / `lint:host-wait-end` and allowed only in worker.zig
+//! `lint:host-wait-begin` / `lint:host-wait-end` and allowed only in worker.zig, worker_execution_phase.zig
 //! and ops.zig (and the exported wait in runtime.cu). Extern declarations are
 //! not calls and are ignored. Test-only files (`*_test.zig`, fake.zig, lint.zig)
 //! are not job code.
@@ -26,7 +26,7 @@ pub const forbidden = [_][]const u8{
 };
 const fence_begin = "lint:host-wait-begin";
 const fence_end = "lint:host-wait-end";
-const fenced_files = [_][]const u8{ "rv64/jobs/worker.zig", "rv64/jobs/ops.zig", "../../backends/cuda/native/rv64/jobs/runtime.cu" };
+const fenced_files = [_][]const u8{ "rv64/jobs/worker.zig", "rv64/jobs/worker_execution_phase.zig", "rv64/jobs/ops.zig", "../../backends/cuda/native/rv64/jobs/runtime.cu" };
 
 pub const Finding = struct { file: []const u8, line: usize, symbol: []const u8 };
 
@@ -80,25 +80,56 @@ fn isTestOnly(name: []const u8) bool {
 pub fn scan(path: []const u8, text: []const u8) !?Finding {
     var fenced = false;
     const may_fence = for (fenced_files) |f| {
-        if (std.mem.endsWith(u8, path, f[std.mem.lastIndexOfScalar(u8, f, '/').? + 1 ..])) break true;
+        if (std.mem.eql(u8, path, f) or (path.len > f.len and path[path.len - f.len - 1] == '/' and std.mem.endsWith(u8, path, f))) break true;
     } else false;
+    const worker_signature: ?[]const u8 = if (std.mem.eql(u8, std.fs.path.basename(path), "worker_execution_phase.zig"))
+        "pub fn requestWait(self: *Worker, event: *anyopaque) !u64 {"
+    else if (std.mem.eql(u8, std.fs.path.basename(path), "worker.zig"))
+        "fn complete(self: *Worker, slot: *Slot) void {"
+    else
+        null;
+    const wait_statement = if (std.mem.eql(u8, std.fs.path.basename(path), "worker.zig"))
+        "const waited = self.ops.wait.event_sync(slot.done_event.?);"
+    else
+        "const waited = self.ops.wait.event_sync(event);";
+    var in_wait_owner = false;
+    var wait_fences: usize = 0;
+    var wait_calls: usize = 0;
     var lines = std.mem.splitScalar(u8, text, '\n');
     var number: usize = 0;
     while (lines.next()) |line| {
         number += 1;
+        const trimmed = std.mem.trim(u8, line, " \t\r");
+        if (worker_signature) |signature| if (std.mem.startsWith(u8, trimmed, "fn ") or std.mem.startsWith(u8, trimmed, "pub fn ")) {
+            in_wait_owner = std.mem.eql(u8, trimmed, signature);
+        };
         if (std.mem.indexOf(u8, line, fence_begin) != null) {
             if (!may_fence) return .{ .file = path, .line = number, .symbol = fence_begin };
             if (fenced) return error.NestedLintFence;
+            if (worker_signature != null) {
+                if (!in_wait_owner or wait_fences != 0) return .{ .file = path, .line = number, .symbol = "unreviewed worker wait fence" };
+                wait_fences += 1;
+            }
             fenced = true;
             continue;
         }
         if (std.mem.indexOf(u8, line, fence_end) != null) {
             if (!fenced) return error.UnbalancedLintFence;
+            if (worker_signature != null and wait_calls != 1) return .{ .file = path, .line = number, .symbol = "worker wait call count" };
             fenced = false;
             continue;
         }
-        if (fenced) continue;
         const code = if (std.mem.indexOf(u8, line, "//")) |c| line[0..c] else line;
+        if (fenced) {
+            if (worker_signature != null) {
+                const statement = std.mem.trim(u8, code, " \t\r");
+                if (statement.len != 0) {
+                    if (!std.mem.eql(u8, statement, wait_statement)) return .{ .file = path, .line = number, .symbol = "unreviewed worker wait body" };
+                    wait_calls += 1;
+                }
+            }
+            continue;
+        }
         if (std.mem.indexOf(u8, code, "extern fn") != null or std.mem.indexOf(u8, code, "extern \"C\"") != null and std.mem.indexOf(u8, code, "{") == null) continue;
         for (forbidden) |symbol| if (std.mem.indexOf(u8, code, symbol) != null) return .{ .file = path, .line = number, .symbol = symbol };
     }
@@ -154,7 +185,9 @@ pub fn scanTree(a: std.mem.Allocator, root: std.fs.Dir) !?Finding {
         if (entry.kind != .file) continue;
         const text = try native.readFileAlloc(a, entry.name, 16 << 20);
         defer a.free(text);
-        if (try scan(entry.name, text)) |f| return .{ .file = try a.dupe(u8, entry.name), .line = f.line, .symbol = f.symbol };
+        const path = try std.fs.path.join(a, &.{ "../../backends/cuda/native/rv64/jobs", entry.name });
+        defer a.free(path);
+        if (try scan(path, text)) |f| return .{ .file = try a.dupe(u8, path), .line = f.line, .symbol = f.symbol };
     }
     return null;
 }
@@ -165,9 +198,22 @@ test "lint rejects sync symbols and lease APIs outside the worker's fenced wait"
     try std.testing.expect((try scan("rv64/jobs/outer_node.zig", "// cudaStreamSynchronize in a comment\nconst y = 1;")) == null);
     try std.testing.expect((try scan("rv64/jobs/outer_node.zig", "pub extern fn stwo_exec_context_sync(*anyopaque) c_int;")) == null);
     // A fence outside the worker is itself a finding.
+    try std.testing.expect((try scan("rv64/jobs/other_worker.zig", "// lint:host-wait-begin\nevent_sync(e);\n// lint:host-wait-end")) != null);
     try std.testing.expect((try scan("rv64/jobs/native_stage1.zig", "// lint:host-wait-begin\nevent_sync(e);\n// lint:host-wait-end")) != null);
-    try std.testing.expect((try scan("rv64/jobs/worker.zig", "// lint:host-wait-begin\nevent_sync(e);\n// lint:host-wait-end")) == null);
-    try std.testing.expectError(error.UnbalancedLintFence, scan("rv64/jobs/worker.zig", "// lint:host-wait-begin\n"));
+    try std.testing.expect((try scan("rv64/jobs/worker_execution_phase.zig", "pub fn requestWait(self: *Worker, event: *anyopaque) !u64 {\n// lint:host-wait-begin\nconst waited = self.ops.wait.event_sync(event);\n// lint:host-wait-end\n}")) == null);
+    try std.testing.expect((try scan("rv64/jobs/worker.zig", "fn complete(self: *Worker, slot: *Slot) void {\n// lint:host-wait-begin\nconst waited = self.ops.wait.event_sync(slot.done_event.?);\n// lint:host-wait-end\n}")) == null);
+    try std.testing.expectError(error.UnbalancedLintFence, scan("rv64/jobs/worker_execution_phase.zig", "pub fn requestWait(self: *Worker, event: *anyopaque) !u64 {\n// lint:host-wait-begin\n"));
+}
+
+test "wait ownership: phase extraction admits no added fences or extra wait calls" {
+    const path = "rv64/jobs/worker_execution_phase.zig";
+    const actual = @embedFile("worker_execution_phase.zig");
+    try std.testing.expect((try scan(path, actual)) == null);
+    const extra = actual ++ "\npub fn other() void {\n// lint:host-wait-begin\nconst waited = self.ops.wait.event_sync(event);\n// lint:host-wait-end\n}\n";
+    try std.testing.expect((try scan(path, extra)) != null);
+    const duplicated = try std.mem.replaceOwned(u8, std.testing.allocator, actual, "const waited = self.ops.wait.event_sync(event);", "const waited = self.ops.wait.event_sync(event);\nconst waited_again = self.ops.wait.event_sync(event);");
+    defer std.testing.allocator.free(duplicated);
+    try std.testing.expect((try scan(path, duplicated)) != null);
 }
 
 test "D2: driver files allocate and create events only inside install fences" {

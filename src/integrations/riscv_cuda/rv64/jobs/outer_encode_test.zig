@@ -252,7 +252,7 @@ const Ref = struct {
     }
 };
 
-const Synth = struct {
+pub const Synth = struct {
     // Deterministic, internally consistent PCS image of a class: every value
     // and sibling hash is a function of its tree position, so duplicated
     // queries read back equal words (as a correct PCS does).
@@ -262,7 +262,7 @@ const Synth = struct {
         z = (z ^ (z >> 27)) *% 0x94d0_49bb_1331_11eb;
         return @as(u32, @truncate(z ^ (z >> 31))) % Schema.modulus;
     }
-    fn image(a: std.mem.Allocator, desc: []const u32, raw: []const u32, seed: u64) ![]u32 {
+    pub fn image(a: std.mem.Allocator, desc: []const u32, raw: []const u32, seed: u64) ![]u32 {
         const im = Schema.Image.of(desc);
         const w = try a.alloc(u32, im.words);
         for (w, 0..) |*x, i| x.* = mix(seed ^ (i *% 0x1234_5678_9abc));

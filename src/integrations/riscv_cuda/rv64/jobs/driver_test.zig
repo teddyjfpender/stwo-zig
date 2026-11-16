@@ -596,4 +596,5 @@ test "D1: two-stage truths: roots exchanged before the seal, proofs after it, on
 
 test {
     _ = @import("driver_service_test.zig");
+    _ = @import("outer_fault_publication_test.zig");
 }

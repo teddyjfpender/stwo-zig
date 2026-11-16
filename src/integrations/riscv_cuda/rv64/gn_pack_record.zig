@@ -5,8 +5,7 @@
 //!      request the legacy builds from (read-only, before the legacy consumes
 //!      it) into in-memory 4 MiB chunks -> <dir>/seg-<n>.gnp (+ rom-<key>.bin);
 //!   2. after the legacy device MAIN is complete, download every MAIN column
-//!      and write its SHA-256 -> <dir>/seg-<n>.main.sha (and, with
-//!      STWO_RV64_M8_GN_PACK_RECORD_MAIN=1, the raw words -> seg-<n>.main).
+//!      and write its SHA-256 -> <dir>/seg-<n>.main.sha.
 //! The piece-only GPU harness (jobs/native_pack_gpu_test.zig) replays seg-<n>.gnp
 //! through the Stage-1 witness program and compares MAIN column by column.
 //! Recording never changes the legacy result (it reads inputs and outputs).
@@ -184,10 +183,5 @@ fn finishIn(r: *Recording, service: anytype, columns: anytype) !void {
         try file.writeAll(&d);
         at += n;
     }
-    if (std.posix.getenv("STWO_RV64_M8_GN_PACK_RECORD_MAIN")) |v| if (std.mem.eql(u8, v, "1")) {
-        var mf = try r.dir.createFile(try std.fmt.bufPrint(&name_buf, "seg-{}.main", .{r.ordinal}), .{});
-        defer mf.close();
-        try mf.writeAll(std.mem.sliceAsBytes(host));
-    };
     std.debug.print("GN_PACK_RECORD ordinal={} main_columns={} main_bytes={}\n", .{ r.ordinal, r.logs.len, total * 4 });
 }

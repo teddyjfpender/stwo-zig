@@ -7,7 +7,7 @@ verification policy.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.2` |
+| Version | `1.0.0-rc.3` |
 | Layer | `interchange` |
 | Owner | `proof-wire` |
 | Public Zig module | `stwo_proof_wire` |
@@ -177,8 +177,10 @@ success. The five existing `CodecError` tags carry these append-only meanings:
 All are introduced in `1.0.0-rc.2`. `error_codes.fromCodec` takes only the owned
 `CodecError` set. The `error_codes` namespace owns this table and lookup.
 `lookup` returns null for unknown or foreign-provider codes.
-Parser, configuration and allocation errors are propagated without fabricated
-metadata. No code is a proof verdict, retry authorization, or global error-name
+The rc.3 complete-buffer ledger adds typed JSON parser codes
+`0x4101`–`0x410e` and native FRI conversion codes `0x4201`–`0x4202`.
+`ValueTooLong` and `OutOfMemory` are resource exhaustion; the other new
+entries are invalid input. Original errors still propagate unchanged. No code is a proof verdict, retry authorization, or global error-name
 mapping. Retrying unchanged invalid bytes is not useful; allocation failure
 retains the caller's existing resource policy. Decoder calls borrow input,
 return independently owned proofs, and publish no proof on failure.
@@ -187,5 +189,13 @@ The Native interop verifier uses the JSON diagnostic entrypoint and emits a
 bounded best-effort `proof_wire_decode_rejection_v1` stderr line for a mapped
 rejection. It rethrows the original error, preserving stdout and process exit
 behavior; failure to write the optional line cannot replace that error. Existing
-entrypoints remain compatible. Other providers and parser-origin error ledgers
+entrypoints remain compatible. Other provider origins and generic reader/writer transports
 remain open under [D2](https://github.com/teddyjfpender/stwo-zig/issues/359).
+
+
+Expanded decoder annotation requires the existing exact QM31/OM31 field
+restriction plus a primitive canonical hash representation. A permitted custom
+32-byte hash struct can define a foreign `jsonParse` callback; same-tag parser
+errors from that path remain unmapped. Public custom-generic acceptance is not
+removed to obtain diagnostics. Complete-buffer scanner-only/unreachable schema
+variants have typed goldens, not claimed physical negative execution.

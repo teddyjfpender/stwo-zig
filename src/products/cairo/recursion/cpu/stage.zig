@@ -30,9 +30,9 @@ pub fn loadInputs(allocator: std.mem.Allocator, path: []const u8) ![]Input {
     for (parsed.value.entries, inputs) |entry, *input| {
         const bytes = try std.fs.cwd().readFileAlloc(allocator, entry.path, 64 << 20);
         input.* = if (std.mem.eql(u8, entry.kind, "leaf"))
-            .{ .leaf = (try wire.leaf_proof_json.parseLeafInput(allocator, bytes)).value }
+            .{ .leaf = (try @import("verify_output.zig").parseInput(.leaf, allocator, bytes)).value }
         else if (std.mem.eql(u8, entry.kind, "checkpoint"))
-            .{ .checkpoint = (try wire.checkpoint.parse(allocator, bytes)).node }
+            .{ .checkpoint = (try @import("verify_output.zig").parseInput(.checkpoint, allocator, bytes)).node }
         else
             return error.InvalidFoldStageEntry;
     }

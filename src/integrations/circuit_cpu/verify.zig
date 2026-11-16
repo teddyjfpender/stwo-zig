@@ -58,6 +58,17 @@ pub fn verifyProofBytes(
     request: *const Request,
     proof_bytes: []const u8,
 ) std.mem.Allocator.Error!Verdict {
+    return verifyProofBytesDiagnosed(gpa, table, request, proof_bytes, null);
+}
+
+pub fn verifyProofBytesDiagnosed(
+    gpa: std.mem.Allocator,
+    table: *const component_table.Table,
+    request: *const Request,
+    proof_bytes: []const u8,
+    failure: ?*?core.error_codes.Entry,
+) std.mem.Allocator.Error!Verdict {
+    if (failure) |sink| sink.* = null;
     var arena_state = std.heap.ArenaAllocator.init(gpa);
     defer arena_state.deinit();
     const arena = arena_state.allocator();
@@ -75,7 +86,7 @@ pub fn verifyProofBytes(
         };
         break :blk proof_config.shape();
     };
-    var decoded = wire.circuit_serialize.deserializeProof(gpa, proof_bytes, shape) catch |err| return rejectCircuitDecode(err);
+    var decoded = wire.circuit_serialize.deserializeProof(gpa, proof_bytes, shape) catch |err| return rejectCircuitDecodeDiagnosed(err, failure);
     defer decoded.deinit();
     const values = verifier_proof.circuitVerifierValues(arena, &decoded.proof, shape) catch |err| switch (err) {
         error.OutOfMemory => return error.OutOfMemory,
@@ -99,13 +110,13 @@ pub fn verifyProofBytes(
 }
 
 // Only the owned binary-decoder catch calls this typed boundary.
-fn rejectCircuitDecode(reason: (wire.circuit_serialize.DecodeError || wire.circuit_serialize.ConfigError || std.mem.Allocator.Error)) std.mem.Allocator.Error!Verdict {
-    const entry = switch (reason) {
-        error.OutOfMemory => return error.OutOfMemory,
-        error.NotEnoughData => wire.error_codes.fromCircuitDecode(error.NotEnoughData),
-        error.ValueOutOfRange => wire.error_codes.fromCircuitDecode(error.ValueOutOfRange),
-        else => return reject(.deserialize, reason),
-    };
+fn rejectCircuitDecode(reason: wire.error_codes.CircuitInputError) std.mem.Allocator.Error!Verdict {
+    return rejectCircuitDecodeDiagnosed(reason, null);
+}
+fn rejectCircuitDecodeDiagnosed(reason: wire.error_codes.CircuitInputError, failure: ?*?core.error_codes.Entry) std.mem.Allocator.Error!Verdict {
+    const entry = wire.error_codes.fromCircuitInput(reason);
+    if (failure) |sink| sink.* = entry;
+    if (reason == error.OutOfMemory) return error.OutOfMemory;
     return .{ .rejected = .{ .stage = .deserialize, .reason = reason, .wire_failure = entry } };
 }
 
@@ -146,8 +157,42 @@ test "coded decoder rejection preserves origin reason and allocation failure" {
     try std.testing.expect(foreign.rejected.wire_failure == null);
     try std.testing.expectEqual(error.ValueOutOfRange, foreign.rejected.reason);
     const config = try rejectCircuitDecode(error.InvalidProofShape);
-    try std.testing.expect(config.rejected.wire_failure == null);
+    try std.testing.expectEqual(@as(u16, 0x5501), config.rejected.wire_failure.?.code);
     try std.testing.expectEqual(error.InvalidProofShape, config.rejected.reason);
     try std.testing.expectError(error.OutOfMemory, rejectCircuitDecode(error.OutOfMemory));
     try std.testing.expect((Verdict{ .accepted = @splat(0) }).isAccepted());
+}
+
+test "coded circuit input catches real invalid config and owned allocation without foreign relabel" {
+    const shape = wire.circuit_serialize.ProofConfig{
+        .n_preprocessed_columns = 0,
+        .component_shapes = &.{},
+        .log_trace_size = 5,
+        .fri = .{ .pow_bits = 0, .log_blowup_factor = 1, .log_last_layer_degree_bound = 0, .n_queries = 1, .fold_step = 0 },
+    };
+    var failure: ?core.error_codes.Entry = null;
+    if (wire.circuit_serialize.deserializeProof(std.testing.allocator, "", shape)) |value| {
+        var unexpected = value;
+        unexpected.deinit();
+        return error.ExpectedInvalidShape;
+    } else |err| {
+        const verdict = try rejectCircuitDecodeDiagnosed(err, &failure);
+        try std.testing.expectEqual(@as(u16, 0x5501), verdict.rejected.wire_failure.?.code);
+    }
+    try std.testing.expectEqual(@as(u16, 0x5501), failure.?.code);
+    var valid_shape = shape;
+    valid_shape.fri.fold_step = 1;
+    valid_shape.n_preprocessed_columns = 1;
+    var exhausted = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
+    const prefix = [_]u8{0} ** 112; // salt + three roots, before owned allocations
+    if (wire.circuit_serialize.deserializeProof(exhausted.allocator(), &prefix, valid_shape)) |value| {
+        var unexpected = value;
+        unexpected.deinit();
+        return error.ExpectedAllocationFailure;
+    } else |err| {
+        try std.testing.expectError(error.OutOfMemory, rejectCircuitDecodeDiagnosed(err, &failure));
+    }
+    try std.testing.expectEqual(@as(u16, 0x5503), failure.?.code);
+    try std.testing.expectEqual(exhausted.allocated_bytes, exhausted.freed_bytes);
+    try std.testing.expect(reject(.build, error.InvalidProofShape).rejected.wire_failure == null);
 }

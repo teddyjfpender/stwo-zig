@@ -113,8 +113,8 @@ pub fn ForHasher(comptime Secure: type, comptime HashFamily: type) type {
             return wireToProof(allocator, if (legacy_json) parsed.value else parsed.value.proof);
         }
 
-        /// Optional diagnostics belong only to this exact decode invocation. Parser,
-        /// configuration and allocator errors remain unmapped and propagate unchanged.
+        /// Concrete primitive-hash byte decoders capture owned parser/config/resource
+        /// origins. Custom Hash jsonParse callbacks remain foreign and unmapped.
         pub fn decodeProofBytesWithDiagnostic(allocator: std.mem.Allocator, encoded: []const u8, failure: ?*?core.error_codes.Entry) !Proof {
             return decodeDiagnosed(false, allocator, encoded, failure);
         }
@@ -126,7 +126,10 @@ pub fn ForHasher(comptime Secure: type, comptime HashFamily: type) type {
         fn decodeDiagnosed(comptime binary: bool, allocator: std.mem.Allocator, encoded: []const u8, failure: ?*?core.error_codes.Entry) !Proof {
             if (failure) |out| out.* = null;
             return (if (binary) decodeProofBytesBinary(allocator, encoded) else decodeProofBytes(allocator, encoded)) catch |err| {
-                if (failure) |out| out.* = switch (err) {
+                const primitive_hash = HashWire == [32]u8 or is_poseidon;
+                if (failure) |out| out.* = if (comptime primitive_hash)
+                    @import("error_codes.zig").fromDecode(err)
+                else switch (err) {
                     error.NonCanonicalM31 => @import("error_codes.zig").fromCodec(error.NonCanonicalM31),
                     error.ValueOutOfRange => @import("error_codes.zig").fromCodec(error.ValueOutOfRange),
                     error.InvalidBinaryProof => @import("error_codes.zig").fromCodec(error.InvalidBinaryProof),

@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_proof_wire",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.3",
   "layer": "interchange",
   "owner": "proof-wire",
   "public_modules": {
@@ -43,8 +43,11 @@
       "mod.zig::api signature: proof wire codecs preserve owned byte and proof results"
     ],
     "invariant_tests": [
+      "error_codes_test.zig::proof wire complete-buffer input codes pin parser config and resource origins",
+      "error_codes_test.zig::proof wire custom hash JSON callback same-tag refusal remains foreign",
       "error_codes_test.zig::proof wire diagnostics pin owned codes and refuse unknown provider bands",
-      "error_codes_test.zig::proof wire diagnostics retain exact decode errors and leave parser and allocation origins unmapped",
+      "error_codes_test.zig::proof wire diagnostics retain exact decode errors and code owned parser allocation origins",
+      "error_codes_test.zig::proof wire real byte decoders bind parser config and owned allocation errors",
       "hash_family_test.zig::Poseidon wire rejects every noncanonical digest word before allocation without mutating input",
       "hash_family_test.zig::caller selected hash reconstruction owns bytes and does not authenticate algorithm choice",
       "hash_family_test.zig::explicit hash families preserve framing coordinates and allocation ownership",
@@ -66,7 +69,7 @@
   },
   "budget": {
     "code_files": 9,
-    "code_lines": 1538,
+    "code_lines": 1715,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

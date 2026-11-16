@@ -15,7 +15,7 @@ prover, `recursion` folds leaf proofs into a root exactly as
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.4.0` |
+| Version | `0.5.0` |
 | Layer | `integration` |
 | Owner | `circuit-cpu-integration` |
 | Public Zig module | `stwo_circuit_cpu_integration` |
@@ -320,3 +320,8 @@ origin-owned `wire_failure` diagnostic; allocation failure still propagates.
 
 Version0.4.0 adds the lossless cache owner’s `Packed.reducesStorage` helper;
 root exports, dependencies and supported cache encodings are unchanged.
+
+Version0.5 adds optional diagnosed proof-byte admission and concrete registry
+query reporting. Exact typed config and owned decoder-allocation failures keep
+their original errors; diagnostic writer failure cannot replace the cause.
+This does not qualify a complete circuit proof or process campaign.

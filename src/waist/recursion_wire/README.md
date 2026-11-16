@@ -11,7 +11,7 @@ bytes the Rust would write for it.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.3` |
+| Version | `1.0.0-rc.4` |
 | Layer | `interchange` |
 | Owner | `circuit-recursion` |
 | Public Zig module | `stwo_circuit_recursion_wire` |
@@ -170,7 +170,7 @@ from the repository root and round-trips the upstream goldens copied into
 ## Decoder diagnostic metadata
 
 `error_codes` exposes the RFC #360 metadata owned by this boundary. The
-unpublished `1.0.0-rc.3` surface includes the approved typed postcard addition;
+unpublished `1.0.0-rc.4` surface includes the approved typed postcard addition;
 meaning, origin, null/unknown refusal and existing rejection semantics remain
 those specified by the provider tests. Full five-provider D2 coverage remains
 open in the RFC coverage ledger. `fromPostcard` accepts exactly the ten-tag
@@ -181,7 +181,7 @@ input. The receiver emits best-effort `recursion_postcard_rejection_v1` stderr
 without changing the original failure or successful proof bytes.
 `fromJsonRead` and `fromRegistryDefinition` bind exact owned input error sets to
 `0x5201`–`0x5205`; the CPU recursion product emits
-`recursion_input_rejection_v1` only at its seven selected parser operations.
+`recursion_input_rejection_v1` only at its eight selected parser operations (including fold checkpoint).
 Diagnostic output failure preserves the primary parser error, and the legacy
 circuit-only writer refuses these unrelated code bands.
 
@@ -191,3 +191,13 @@ circuit-only writer refuses these unrelated code bands.
 The RV64 CPU integration registers circuit-proof roundtrips, truncation/noncanonical refusal, and every allocation-failure cleanup. The provider contract also registers its Core dependency laws where applicable.
 
 The existing aggregate package graph exposes `zig build test-cdc-stwo-circuit-recursion-wire -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
+
+
+The rc.4 ledger adds typed registry query codes `0x5301`–`0x5304`, packed-tree
+depth code `0x5401`, binary config code `0x5501` and owned binary-decoder
+allocation code `0x5503`. `0x5502` remains unallocated. The circuit receiver
+retains its `InvalidProofShape`/allocation causes; root/registry admission
+writes optional origin-specific diagnostics and preserves ownership. The
+public maximum-leaf query is qualified as a query contract, not described as
+a live CLI path. Generic felt/postcard reader/writer callbacks remain separate
+from this concrete-input ledger.

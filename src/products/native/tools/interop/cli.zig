@@ -337,3 +337,19 @@ test "native CLI core configuration catch preserves original admission" {
     cli.fri_log_blowup = 1;
     try std.testing.expectEqual(@as(u32, 1), (try pcsConfigFromCli(cli)).fri_config.log_blowup_factor);
 }
+
+test "native CLI emits real complete-buffer parser rejection preserving the cause" {
+    const W = stwo.proof_wire;
+    var detail: ?stwo.core.error_codes.Entry = null;
+    if (W.decodeProofBytesWithDiagnostic(std.testing.allocator, "!", &detail)) |value| {
+        var unexpected = value;
+        unexpected.deinit(std.testing.allocator);
+        return error.ExpectedWireRejection;
+    } else |err| {
+        try std.testing.expectEqual(error.SyntaxError, err);
+        var buffer: [384]u8 = undefined;
+        var writer = std.Io.Writer.fixed(&buffer);
+        emitTo(&writer, "proof_wire_decode_rejection_v1", "stwo_proof_wire", "decodeProofBytes", detail.?);
+        try std.testing.expectEqualStrings("{\"schema\":\"proof_wire_decode_rejection_v1\",\"provider\":\"stwo_proof_wire\",\"origin\":\"decodeProofBytes\",\"code\":16641,\"class\":\"invalid_input\"}\n", writer.buffered());
+    }
+}

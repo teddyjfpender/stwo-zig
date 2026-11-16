@@ -769,7 +769,13 @@ fn verifyCommand(gpa: std.mem.Allocator, command: cli.Verify) !bool {
     defer air.deinit();
     var circuit_table = try air.circuitTable(gpa);
     defer circuit_table.deinit();
-    const verdict = try circuit_cpu.verify.verifyProofBytes(gpa, &circuit_table, &request.request, proof);
+    var decode_failure: ?@import("stwo_core").error_codes.Entry = null;
+    const verdict = circuit_cpu.verify.verifyProofBytesDiagnosed(gpa, &circuit_table, &request.request, proof, &decode_failure) catch |err| {
+        var diagnostic_buffer: [256]u8 = undefined;
+        var diagnostic = std.fs.File.stderr().writer(&diagnostic_buffer);
+        if (decode_failure) |entry| input_admission.write(&diagnostic.interface, entry);
+        return err;
+    };
 
     var buffer: [256]u8 = undefined;
     var stdout = std.fs.File.stdout().writer(&buffer);

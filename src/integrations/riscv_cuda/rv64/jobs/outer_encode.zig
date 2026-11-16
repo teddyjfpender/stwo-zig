@@ -416,18 +416,7 @@ pub fn mode() !Mode {
     return error.InvalidOuterDeviceEncode;
 }
 
-/// STWO_RV64_M8_OUTER_ENCODE_FAULT_ORDINAL=n (negative test, two-key with
-/// STWO_RV64_M8_FAULT_INJECTION=1): node n's PCS image gets one corrupted
-/// word on the device before the encoder; its node_pcs_status must reject.
-pub fn faultOrdinal() !?u32 {
-    const v = std.posix.getenv("STWO_RV64_M8_OUTER_ENCODE_FAULT_ORDINAL") orelse return null;
-    const n = std.fmt.parseUnsigned(u32, v, 10) catch return error.InvalidOuterEncodeFaultOrdinal;
-    const armed = std.posix.getenv("STWO_RV64_M8_FAULT_INJECTION") orelse return error.M8FaultInjectionNotArmed;
-    if (!std.mem.eql(u8, armed, "1")) return error.M8FaultInjectionNotArmed;
-    return n;
-}
-
-/// STWO_RV64_M8_OUTER_OODS_FAULT_ORDINAL=n (two-key like faultOrdinal):
+/// STWO_RV64_M8_OUTER_OODS_FAULT_ORDINAL=n (requires the fault-injection arm):
 /// node n's first composition sample coordinate is zeroed on the device; the
 /// device node_oods_constraint check must refuse it.
 pub fn oodsFaultOrdinal() !?u32 {
@@ -438,7 +427,7 @@ pub fn oodsFaultOrdinal() !?u32 {
     return n;
 }
 
-/// STWO_RV64_M8_OUTER_OODS_POINT_FAULT_ORDINAL=n (two-key like faultOrdinal):
+/// STWO_RV64_M8_OUTER_OODS_POINT_FAULT_ORDINAL=n (requires the fault-injection arm):
 /// node n's OODS point status word is set nonzero on the device; the device
 /// node_oods_constraint check must refuse it (detail point).
 pub fn oodsPointFaultOrdinal() !?u32 {

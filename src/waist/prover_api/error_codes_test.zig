@@ -61,3 +61,18 @@ test "task lifecycle codes pin exact owned error contracts and stable meanings" 
     }
     for ([_]u16{ 0x3100, 0x3119, 65535 }) |code| try std.testing.expect(codes.lookup(code) == null);
 }
+
+test "work accounting codes pin exact owned error signatures and stable meanings" {
+    const work = @import("work_profile.zig");
+    try std.testing.expect(@typeInfo(@TypeOf(codes.fromWorkProfile)).@"fn".params[0].type.? == work.Error);
+    const errors = [_]work.Error{ error.CounterOverflow, error.InvalidCounterGroup, error.InvalidProducerCoverage, error.InvalidWorkProfile };
+    for (errors, 0..) |err, i| {
+        const entry = codes.fromWorkProfile(err);
+        try std.testing.expectEqual(@as(u16, @intCast(0x3201 + i)), entry.code);
+        try std.testing.expectEqualStrings(@errorName(err), entry.tag);
+        try std.testing.expectEqualStrings("1.0.0-rc.4", entry.since);
+        try std.testing.expectEqual(if (i == 0) @import("stwo_core").error_codes.Class.resource_exhausted else .invalid_input, entry.class);
+        try std.testing.expectEqualStrings(entry.tag, codes.lookup(entry.code).?.tag);
+    }
+    for ([_]u16{ 0x3200, 0x3205, 65535 }) |code| try std.testing.expect(codes.lookup(code) == null);
+}

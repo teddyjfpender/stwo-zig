@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_circuit_cpu_integration",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "layer": "integration",
   "owner": "circuit-cpu-integration",
   "public_modules": {
@@ -41,6 +41,8 @@
     "invariant_tests": [
       "mod.zig::invariant: OM31 retains its concrete transcript and rejects unknown profiles",
       "mod.zig::invariant: both profiles commit with the plain Blake2s Merkle hasher",
+      "recursion/registry_admission.zig::registry admission executes actual query origins and preserves writer failure",
+      "verify.zig::coded circuit input catches real invalid config and owned allocation without foreign relabel",
       "verify.zig::coded decoder rejection preserves origin reason and allocation failure"
     ]
   },
@@ -58,14 +60,14 @@
     ]
   },
   "budget": {
-    "code_files": 61,
-    "code_lines": 9150,
+    "code_files": 62,
+    "code_lines": 9288,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 9,
     "dependencies": 8,
     "rv64_registry_flags": 2,
-    "versioned_files": 64
+    "versioned_files": 65
   }
 }

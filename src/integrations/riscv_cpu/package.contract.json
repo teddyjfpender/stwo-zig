@@ -136,7 +136,8 @@
     ],
     "invariant_tests": [
       "mod.zig::api invariant: RISC-V CPU integration selects only the CPU backend",
-      "rv64_proof_artifact_support.zig::artifact directory sync accepts borrowed non-iterable handles and preserves ownership"
+      "rv64_proof_artifact_support.zig::artifact directory sync accepts borrowed non-iterable handles and preserves ownership",
+      "rv64_recursion/packed_admission.zig::packed root admission executes public codec bytes depth refusal and every allocation cleanup"
     ]
   },
   "ci": {
@@ -156,14 +157,14 @@
     ]
   },
   "budget": {
-    "code_files": 948,
-    "code_lines": 137253,
+    "code_files": 949,
+    "code_lines": 137307,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 1,
     "api_entries": 93,
     "dependencies": 9,
     "rv64_registry_flags": 19,
-    "versioned_files": 960
+    "versioned_files": 961
   }
 }

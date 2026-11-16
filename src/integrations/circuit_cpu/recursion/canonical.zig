@@ -18,6 +18,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const wire = @import("stwo_circuit_recursion_wire");
+const registry_admission = @import("registry_admission.zig");
 const verifier_proof = @import("../verifier_proof.zig");
 const prove = @import("../prove.zig");
 const circuit_params = @import("circuit_params.zig");
@@ -120,12 +121,12 @@ pub const CanonicalCircuit = struct {
         registry: wire.registry.CircuitRegistry,
         mode: BuildMode,
     ) !CanonicalCircuit {
-        const entry = try registry.multiverifier();
+        const entry = try registry_admission.query(.multiverifier, registry, {});
         if (mode == .terminal_compact and
             (!std.mem.eql(u32, &entry.preprocessed_root.words, &terminal_key.child_root) or
                 !std.mem.eql(u32, &entry.circuit_hash.words, &terminal_key.child_hash)))
             return error.UnsupportedCompactTerminalRegistry;
-        const config = try registry.config(entry.config);
+        const config = try registry_admission.query(.config, registry, entry.config);
         const target = ComponentSizes.fromLogSizes(config.component_log_sizes);
 
         // 1. The shared config of a child proof, derived from the target.
@@ -241,8 +242,8 @@ pub const Cache = topology_cache.TopologyCache(CanonicalCircuit);
 
 /// The fold `TopologyKey` of `registry`'s multiverifier.
 pub fn foldKey(registry: wire.registry.CircuitRegistry) !topology_key.TopologyKey {
-    const entry = try registry.multiverifier();
-    const config = try registry.config(entry.config);
+    const entry = try registry_admission.query(.multiverifier, registry, {});
+    const config = try registry_admission.query(.config, registry, entry.config);
     return (topology_key.FoldKey{
         .config_name = entry.config,
         .circuit_fri = config.fri_config,
@@ -263,7 +264,7 @@ pub fn acquire(
     options: prove.Options,
 ) !*const CanonicalCircuit {
     const key = try foldKey(registry);
-    const expected = (try registry.multiverifier()).circuit_hash.toBytes();
+    const expected = (try registry_admission.query(.multiverifier, registry, {})).circuit_hash.toBytes();
     if (cache.get(key)) |hit| {
         if (!std.mem.eql(u8, &hit.circuit_hash, &expected)) return error.MultiverifierCircuitHash;
         return hit;

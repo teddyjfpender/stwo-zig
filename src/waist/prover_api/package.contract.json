@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_prover_api",
-  "version": "1.0.0-rc.3",
+  "version": "1.0.0-rc.4",
   "layer": "api",
   "owner": "prover-api",
   "public_modules": {
@@ -44,6 +44,7 @@
     "invariant_tests": [
       "column.zig::column evaluation validates storage and lifting geometry",
       "error_codes_test.zig::task lifecycle codes pin exact owned error contracts and stable meanings",
+      "error_codes_test.zig::work accounting codes pin exact owned error signatures and stable meanings",
       "stage_profile.zig::prover stage profile: stage-only recorder suppresses flat task capture",
       "stage_profile.zig::prover stage profile: task publication propagates capability errors",
       "task_profile_reservation_test.zig::task profile reservation: completion state and aggregate overflow fail closed",
@@ -75,7 +76,7 @@
   },
   "budget": {
     "code_files": 20,
-    "code_lines": 5971,
+    "code_lines": 6031,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
