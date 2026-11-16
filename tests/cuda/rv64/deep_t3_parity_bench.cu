@@ -1,7 +1,7 @@
 // M8 T3 kernel parity + CUDA-event microbenchmark for the DEEP/OODS kernels.
 // Self-contained: links deep.cu and samples.cu directly and stubs the two
 // execution-context hooks RangeCustody needs. Every case runs the legacy
-// kernels (STWO_RV64_M8_{DEEP,SAMPLE}_LEGACY=1) and the M8 kernels on the
+// kernels through private typed launch arguments and the M8 kernels on the
 // same device inputs and requires bit-identical outputs, valid words and
 // status words. Timing: CUDA events around the exported entry point.
 //   nvcc -O3 -std=c++17 -gencode arch=compute_120,code=sm_120 \
@@ -9,6 +9,7 @@
 //     src/backends/cuda/native/rv64/deep.cu src/backends/cuda/native/rv64/samples.cu
 //   ./a.out [parity|bench] [reps]
 #include "rv64/deep.h"
+#include "rv64/detail/kernel_variants.h"
 #include "rv64/om31.cuh"
 #include "rv64/samples.h"
 #include <algorithm>
@@ -78,10 +79,7 @@ static std::vector<uint32_t> down(const uint32_t *p, size_t words) {
   CK(cudaMemcpy(h.data(), p, words * 4, cudaMemcpyDeviceToHost));
   return h;
 }
-static void set_legacy(bool legacy) {
-  setenv("STWO_RV64_M8_DEEP_LEGACY", legacy ? "1" : "0", 1);
-  setenv("STWO_RV64_M8_SAMPLE_LEGACY", legacy ? "1" : "0", 1);
-}
+
 struct Timing {
   std::vector<float> ms;
   void print(const char *what, const char *arm) const {
@@ -198,10 +196,9 @@ static void combine_case(const CombineCase &cc, bool bench, int reps) {
     j.evaluation_words = eval_words;
     j.group_count = gc;
     j.output_log = cc.output_log;
-    set_legacy(arm == 0);
     auto run = [&] {
       CK(cudaMemcpyAsync(j.status, &status0, 4, cudaMemcpyHostToDevice, g_stream));
-      CK(stwo_rv64_deep_combine_on(nullptr, 1, &j));
+      CK(detail::deep_combine(nullptr, 1, &j, arm == 0));
     };
     if (bench) {
       timings[arm] = time_it(run, reps);
@@ -322,10 +319,9 @@ static void prepare_case(uint32_t fault, uint32_t gc, uint32_t terms_per_group,
     j.source_count = sc;
     j.term_count = tc;
     j.group_count = gc;
-    set_legacy(arm == 0);
     auto run = [&] {
       CK(cudaMemcpyAsync(j.status, &status0, 4, cudaMemcpyHostToDevice, g_stream));
-      CK(stwo_rv64_deep_prepare_on(nullptr, 1, &j));
+      CK(detail::deep_prepare(nullptr, 1, &j, arm == 0));
     };
     if (bench) {
       // Time only the validation step by running the whole prepare with
@@ -415,8 +411,7 @@ static void sample_case(uint32_t coefficient_log, uint32_t count,
     j.first = first;
     j.count = count;
     j.coefficient_log = coefficient_log;
-    set_legacy(arm == 0);
-    auto run = [&] { CK(stwo_rv64_sample_evaluate_on(nullptr, 1, &j)); };
+    auto run = [&] { CK(detail::sample_evaluate(nullptr, 1, &j, arm == 0)); };
     if (bench)
       timings[arm] = time_it(run, reps);
     else

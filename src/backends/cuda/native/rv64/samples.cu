@@ -2,6 +2,7 @@
 #include "deep_lazy.cuh"
 #include "om31.cuh"
 #include "samples.h"
+#include "detail/kernel_variants.h"
 namespace stwo::cuda::rv64 {
 constexpr uint32_t sample_threads = 128, sample_tile = 1024, factor_stride = 28;
 __device__ void sample_put(uint32_t *words, OM31 value) {
@@ -434,9 +435,8 @@ stwo_rv64_sample_points_from_point_on(void *ctx, uint32_t lane,
                                       const StwoRv64SamplePoints *input) {
   return sample_points_dispatch(ctx, lane, input, true);
 }
-extern "C" int
-stwo_rv64_sample_evaluate_on(void *ctx, uint32_t lane,
-                             const StwoRv64SampleEvaluation *input) {
+int stwo::cuda::rv64::detail::sample_evaluate(void *ctx, uint32_t lane,
+                             const StwoRv64SampleEvaluation *input, bool legacy) {
   using namespace stwo::cuda::rv64;
   if (!input || !input->count || input->count > 65535 || !input->source_count ||
       input->source_count > 65536 || !input->group_count ||
@@ -478,8 +478,7 @@ stwo_rv64_sample_evaluate_on(void *ctx, uint32_t lane,
   sample_validate<<<(j.count + 127) / 128, 128, 0, c.stream>>>(j);
   // The basis lives in scratch_b, so it needs a custody-checked bank of at
   // least one tile basis plus its group word; smaller launches (and
-  // STWO_RV64_M8_SAMPLE_LEGACY=1) keep the per-sample tree kernel.
-  const bool legacy = m8_env_is_one("STWO_RV64_M8_SAMPLE_LEGACY");
+  // typed legacy parity calls) keep the per-sample tree kernel.
   if (!legacy && scratch_words > sample_basis_words) {
     sample_basis<<<1, 512, 0, c.stream>>>(j, j.scratch_b);
     if (blocks >= sample_chunk_large_tiles)
@@ -507,4 +506,8 @@ stwo_rv64_sample_evaluate_on(void *ctx, uint32_t lane,
   }
   sample_store<<<(j.count + 127) / 128, 128, 0, c.stream>>>(j, in);
   return int(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_rv64_sample_evaluate_on(void *ctx, uint32_t lane, const StwoRv64SampleEvaluation *input) {
+  return stwo::cuda::rv64::detail::sample_evaluate(ctx, lane, input, false);
 }
