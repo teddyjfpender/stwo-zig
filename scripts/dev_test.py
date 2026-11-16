@@ -24,7 +24,17 @@ from scripts.repo import ci_package_graph, ci_scope_plan, ci_scope_push, ci_scop
 from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
+# Exact std-only owners: neither native execution nor worker/CLI ownership belongs here.
+STD_ONLY_OWNERS = {
+    ("stwo_riscv_cuda_integration", "test-recording-datasets"): (
+        "rv64/recording_dataset.zig", ("rv64/recording_dataset.zig", "rv64/recording_dataset_test.zig", "rv64/recorded_replay.zig")),
+    ("stwo_ethereum_statement", "test-capture-inputs"): (
+        "cuda/rv64/capture_inputs.zig", ("cuda/rv64/capture_inputs.zig", "cuda/rv64/capture_inputs_test.zig")),
+}
+
 FOCUSED_RULES = (
+    *((package, ("src/integrations/riscv_cuda/" if package == "stwo_riscv_cuda_integration" else "src/products/ethereum/statement/") + path, step)
+      for (package, step), (_, paths) in STD_ONLY_OWNERS.items() for path in paths),
     ("stwo_riscv_cuda_integration", "src/integrations/riscv_cuda/rv64_source_owner_test_root.zig", "test-native-source-owner-dword"),
     ("stwo_prover_engine", "src/engine/prover/gkr_parallel_test_root.zig", "test-gkr-rows"),
     ("stwo_prover_engine", "src/engine/prover/gkr_resource_test_root.zig", "test-gkr-resources"),
@@ -493,6 +503,14 @@ def commands_for_paths(
             commands.append(broad_command(root, package, optimize or "ReleaseSafe"))
             continue
         selected_steps = sorted(value for value in steps if value is not None)
+        std_roots = [STD_ONLY_OWNERS.get((package_name, step)) for step in selected_steps]
+        if std_roots and all(owner is not None for owner in std_roots):
+            for filename, _ in std_roots:
+                command = ["zig", "test", "-O" + (optimize or "Debug")]
+                if check_only:
+                    command.append("-fno-emit-bin")
+                commands.append(command + [package.directory + "/" + filename])
+            continue
         if check_only and (package_name == "stwo_ethereum_statement" or (package_name == "stwo_riscv_frontend" and selected_steps == ["test-build-components"])):
             if deferred is None:
                 raise DevTestError("Ethereum consumer contracts require focused contract execution")

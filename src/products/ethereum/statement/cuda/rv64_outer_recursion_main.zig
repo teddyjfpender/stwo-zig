@@ -3,6 +3,7 @@
 const std = @import("std");
 const ProductCPU = @import("ethereum_cpu_component");
 const CPU = @import("stwo_riscv_cpu_integration");
+const Capture = @import("rv64/capture_execution.zig");
 const Native = @import("stwo_riscv_cuda_integration").rv64.execution.pcs.pcs_native;
 const Trace = @import("stwo_riscv_cuda_integration").rv64.trace_commit;
 const Composition = @import("stwo_riscv_cuda_integration").rv64.resident_composition;
@@ -18,6 +19,8 @@ fn selectedDevice(a: std.mem.Allocator, devices: ?[]const u8) !u32 {
 
 pub fn main() !void {
     const a = std.heap.page_allocator;
+    var capture = Capture.Session.process(a);
+    defer capture.deinit();
     const library = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_LIBRARY") catch |err| switch (err) {
         error.EnvironmentVariableNotFound => return error.GpuOuterRequiresNativeLibrary,
         else => return err,
@@ -38,6 +41,7 @@ pub fn main() !void {
     if (cap == 0) return error.InvalidGpuByteCap;
     var native = try Native.Context.init(library, device, cap);
     defer native.deinit();
+    capture.attach(&native.recording);
     var trace = try Trace.Context.init(&native);
     defer trace.deinit();
     var composition = try Composition.Context.initNumerical(a, &native);
@@ -47,6 +51,7 @@ pub fn main() !void {
     const factory = try source.factoryForTraceOnly();
     std.log.info("CUDA outer requested: device={d} byte_cap={d}; GPU assignments from original circuit graph; host graph/setup; no CPU proving fallback", .{ device, cap });
     try ProductCPU.rv64_ethereum_gkr_main.mainWithRecursionFactory(factory);
+    capture.success = true;
 }
 
 test "outer recursion selects exactly one canonical resident device" {

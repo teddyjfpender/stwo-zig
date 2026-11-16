@@ -1,6 +1,7 @@
 //! Same Ethereum producer/receiver, with explicit experimental GPU PCS offload.
 const std = @import("std");
 const CPU = @import("ethereum_cpu_component");
+const Capture = @import("rv64/capture_execution.zig");
 const Native = @import("stwo_riscv_cuda_integration").rv64.execution.pcs.pcs_native;
 const Gkr = @import("stwo_riscv_cuda_integration").rv64.gkr_stage;
 const TraceCommit = @import("stwo_riscv_cuda_integration").rv64.trace_commit;
@@ -17,6 +18,8 @@ pub fn main() !void {
     defer if (native_library) |path| a.free(path);
     const arguments = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, arguments);
+    var capture = Capture.Session{};
+    defer capture.deinit();
     if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], "resident-batch")) {
         if (arguments.len != 4) return error.ExpectedResidentBatchManifestAndOutput;
         return @import("rv64/resident_batch.zig").run(a, native_library orelse return error.ResidentBatchRequiresNativeLibrary, arguments[2], arguments[3]);
@@ -26,6 +29,7 @@ pub fn main() !void {
     try @import("rv64/host_retained_policy.zig").validate(host_retained, native_library != null, std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES"), device_trace, device_trace);
     if (std.process.hasEnvVarConstant("STWO_RV64_GPU_CPU_REPLAY") and (host_retained or native_library == null or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES") or !device_trace)) return error.CpuReplayRequiresFullyResidentPool;
     if (native_library) |path| {
+        capture = Capture.Session.args(a, arguments);
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES")) {
             if (!device_trace) return error.ResidentPoolRequiresDeviceTrace;
             const planned_text = try std.process.getEnvVarOwned(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS");
@@ -35,8 +39,10 @@ pub fn main() !void {
             defer config.deinit(a);
             const pool = try @import("rv64/resident_pool.zig").Pool.createWithBinding(a, path, config, planned, true);
             defer pool.deinit();
+            for (pool.devices) |*device| capture.attach(&device.native.recording);
             std.debug.print("GPU_RESIDENT_PLAN devices={d} planned_cpu_workers={d} retained_scopes_per_device={d} host_budget=resource_file gpu_caps_bytes={any}\n", .{ config.ids.len, planned, config.scope_limit, config.caps });
             try CPU.rv64_ethereum_gkr_main.mainWithResidentPipeline(pool.stages());
+            capture.success = true;
             return;
         }
         const cap_text = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_BYTE_CAP") catch |err| switch (err) {
@@ -48,6 +54,7 @@ pub fn main() !void {
         if (cap == 0) return error.InvalidGpuByteCap;
         var native = try Native.Context.init(path, 0, cap);
         defer native.deinit();
+        capture.attach(&native.recording);
         const scope_text = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_RETAINED_SCOPES") catch |err| switch (err) {
             error.EnvironmentVariableNotFound => null,
             else => return err,
@@ -88,6 +95,7 @@ pub fn main() !void {
             const truth_composition = try composition.truthStage();
             try CPU.rv64_ethereum_gkr_main.mainWithResidentPipeline(.{ .source = source.stage(), .truth_source = truth_source.stage(), .truth_composition = truth_composition, .truth_pcs = &native_stage, .pcs = &native_stage, .numerical = &gkr_stage, .resident_composition = &resident_composition_stage, .trace_commit = &trace_stage, .global_interaction = global_interaction.stage(), .cpu_projection = projection.stage() });
         } else try CPU.rv64_ethereum_gkr_main.mainWithResidentStages(&native_stage, null, &gkr_stage, &resident_composition_stage);
+        capture.success = true;
         return;
     }
     const helper = try std.process.getEnvVarOwned(a, "STWO_RV64_GPU_PCS_HELPER");
@@ -105,4 +113,5 @@ pub fn main() !void {
     var composition = Composition.Context{ .helper = composition_helper orelse "", .directory = directory, .keep_jobs = false };
     const composition_stage = composition.stage();
     try CPU.rv64_ethereum_gkr_main.mainWithStages(&stage, if (composition_helper != null) &composition_stage else null);
+    capture.success = true;
 }

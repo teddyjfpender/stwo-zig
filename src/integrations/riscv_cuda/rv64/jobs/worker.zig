@@ -68,6 +68,8 @@ pub const Worker = struct {
     next_seq: u64 = 0,
     // submission (any thread)
     thread: ?std.Thread = null,
+    /// Serializes external joins; metadata is released only by the owner destroy.
+    lifecycle_mutex: std.Thread.Mutex = .{},
     mutex: std.Thread.Mutex = .{},
     cond: std.Thread.Condition = .{},
     mailbox: ?Submission = null,
@@ -185,14 +187,40 @@ pub const Worker = struct {
         return api.DeviceWorker.of(self);
     }
 
-    /// Drain every submitted job, then destroy device resources and join.
-    pub fn destroy(self: *Worker) void {
+    /// Close submissions, drain and join once, retaining final plan metadata.
+    /// External callers may repeat/concurrently quiesce; destroy still consumes
+    /// the owned pointer exactly once after all such callers have returned.
+    pub fn quiesce(self: *Worker) error{WorkerQuiesceFromWorkerThread}!void {
+        self.mutex.lock();
+        const on_worker = !self.stopped and self.thread_id == std.Thread.getCurrentId();
+        self.mutex.unlock();
+        if (on_worker) return error.WorkerQuiesceFromWorkerThread;
+        self.lifecycle_mutex.lock();
+        defer self.lifecycle_mutex.unlock();
         self.mutex.lock();
         self.closing = true;
         self.cond.broadcast();
         self.mutex.unlock();
-        if (self.thread) |t| t.join();
-        if (std.posix.getenv(MP.env_plan_dir)) |dir| self.writePlanDir(dir) catch |err| std.log.err("M8 worker class plan output failed: {s}", .{@errorName(err)});
+        if (self.thread) |thread| {
+            thread.join();
+            self.thread = null;
+        }
+    }
+
+    /// Final diagnostic publication at post-join/pre-metadata-release.
+    /// Self-thread refusal retains ownership; after quiescence every outcome
+    /// consumes the owner, including allocation/path/publication failures.
+    pub fn destroyWithPlan(self: *Worker, output: []const u8) !void {
+        try self.quiesce();
+        defer self.destroy();
+        const directory = try std.fs.path.join(self.a, &.{ output, "class-plans" });
+        defer self.a.free(directory);
+        try self.writePlanDir(directory);
+    }
+
+    /// Consume the owner once, after closing every caller's borrowed phase.
+    pub fn destroy(self: *Worker) void {
+        self.quiesce() catch @panic("worker destruction cannot join its own thread");
         self.classes.deinit(self.a);
         self.regions.deinit(self.a);
         self.retained.deinit(self.a);
@@ -212,7 +240,7 @@ pub const Worker = struct {
     /// not fit is still correct on this worker (it serializes), just not overlapped.
     pub const fits = @import("worker_planning_phase.zig").fits;
 
-    /// Measured class plans + allocator state (STWO_RV64_M8_JOBS_PLAN_DIR).
+    /// Measured class plans and allocator state; callers choose the output directory.
     pub const writePlanDir = @import("worker_planning_phase.zig").writePlanDir;
 
     /// True when the scheduler may submit another job to this worker.

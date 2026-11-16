@@ -122,6 +122,34 @@ class DevTestPlanTests(unittest.TestCase):
                     self.assertIn("-Mstwo_riscv_cpu_integration=src/integrations/riscv_cpu/mod.zig", commands[0])
                     self.assertEqual(check, "-fno-emit-bin" in commands[0])
 
+    def test_diagnostic_filesystem_owners_use_exact_std_roots_and_honor_check(self):
+        owners = {
+            "src/integrations/riscv_cuda/rv64/recording_dataset.zig": (
+                "src/integrations/riscv_cuda/rv64/recording_dataset.zig", "recording_dataset_test.zig", "recorded_replay.zig"),
+            "src/products/ethereum/statement/cuda/rv64/capture_inputs.zig": (
+                "src/products/ethereum/statement/cuda/rv64/capture_inputs.zig", "capture_inputs_test.zig"),
+        }
+        for root, names in owners.items():
+            for name in names:
+                path = name if "/" in name else root.rsplit("/", 1)[0] + "/" + name
+                for mode in ("Debug", "ReleaseFast"):
+                    for check in (False, True):
+                        with self.subTest(path=path, mode=mode, check=check):
+                            command, = dev_test.commands_for_paths(ROOT, [path], optimize=mode, check_only=check)
+                            self.assertEqual(["zig", "test", "-O" + mode] + (["-fno-emit-bin"] if check else []) + [root], command)
+        for build, step, source in (
+            ("src/integrations/riscv_cuda/BUILD.zig", "test-recording-datasets", "rv64/recording_dataset.zig"),
+            ("src/products/ethereum/statement/BUILD.zig", "test-capture-inputs", "cuda/rv64/capture_inputs.zig"),
+        ):
+            text = (ROOT / build).read_text()
+            self.assertIn('b.step("' + step + '"', text)
+            self.assertIn('b.path("' + source + '")', text)
+        for path in ("src/integrations/riscv_cuda/rv64/jobs/worker.zig",
+                     "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"):
+            commands = dev_test.commands_for_paths(ROOT, [*owners, path])
+            self.assertTrue(any(c[:2] == ["zig", "build"] for c in commands))
+            self.assertFalse(any(c[:2] == ["zig", "test"] and path in c for c in commands))
+
     def test_direct_zig_test_obeys_the_canonical_build_lock(self):
         for held in ("", dev_test.zig_serial_build.DEFAULT_LOCK, "/tmp/foreign-build.lock"):
             with mock.patch.object(dev_test, "commands_for_paths", return_value=[["zig", "test", "owner.zig"]]), mock.patch.dict(

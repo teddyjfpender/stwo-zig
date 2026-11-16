@@ -107,7 +107,7 @@ pub const Owner = struct {
             defer a.free(output);
             Outer.NodeClasses.beginInstall();
             var timer = try std.time.Timer.start();
-            try @import("resident_batch.zig").runCombined(a, library, path, output);
+            try @import("resident_batch.zig").runCombinedForInstall(a, library, path, output);
             const nodes = try Outer.NodeClasses.installedNodes(a);
             errdefer a.free(nodes);
             if (nodes.len == 0) return error.GpuNativeNoRecursionClasses;

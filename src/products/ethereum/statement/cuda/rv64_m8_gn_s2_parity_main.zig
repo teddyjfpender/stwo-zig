@@ -103,6 +103,8 @@ const sealInputs = @import("rv64/parity/gn_s2_tail.zig").sealInputs;
 const NegativeRow = @import("rv64/parity/gn_s2_tail.zig").NegativeRow;
 const Row = @import("rv64/parity/gn_s2_tail.zig").Row;
 pub fn main() !void {
+    var capture = @import("rv64/capture_execution.zig").Session{};
+    defer capture.deinit();
     const a = std.heap.page_allocator;
     const argv = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, argv);
@@ -125,7 +127,10 @@ pub fn main() !void {
     const device = std.fmt.parseUnsigned(u32, env("STWO_RV64_M8_PARITY_DEVICE") orelse "1", 10) catch return error.InvalidParityEnvironment;
     const arena_bytes = try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 20 << 30);
     const worker = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignBackward(usize, arena_bytes / 4, W.Arena.granule), .pinned_slot_words = try envBytes("STWO_RV64_M8_JOBS_PINNED_BYTES", 1 << 30) / 4 });
-    defer worker.destroy();
+    defer {
+        worker.destroyWithPlan(out_dir) catch |err|
+            std.log.err("M8 worker class plan output failed: {s}", .{@errorName(err)});
+    }
     const events = try Events.Api.load(&libs.base);
     const esym = try NE.Symbols.load(&libs.addon);
     const osym = try NO.Symbols.load(&libs.addon);
@@ -167,6 +172,8 @@ pub fn main() !void {
     for (parts, &args) |part, *arg| arg.* = try a.dupeZ(u8, part);
     var identity: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash("rv64-m8-gn-s2-parity", &identity, .{});
+    capture = @import("rv64/capture_execution.zig").Session.config(a, request, identity, .execution);
+    for (pool.devices) |*record_device| capture.attach(&record_device.native.recording);
     for (pool.devices, config.caps) |*d, cap| try d.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
     var timer = try std.time.Timer.start();
     std.debug.print("GPU_M8_GN_S2 phase=legacy_start block={}\n", .{block});
@@ -231,6 +238,7 @@ pub fn main() !void {
     std.debug.print("GPU_M8_GN_S2_DONE block={} segments={} all_equal={} negatives_all_fired={} report={s}\n", .{ block, rows.items.len, all, negatives_all, report });
     if (!all) return error.GnS2ParityMismatch;
     if (negatives and !negatives_all) return error.GnS2NegativeNotFired;
+    capture.success = true;
 }
 
 const runTail = @import("rv64/parity/gn_s2_tail.zig").runTail;

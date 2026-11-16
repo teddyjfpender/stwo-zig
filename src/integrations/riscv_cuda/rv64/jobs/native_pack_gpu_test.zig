@@ -1,6 +1,7 @@
 //! gn-pack piece-only GPU harness on REAL recorded segments (opt-in):
 //!   STWO_RV64_GPU_LIBRARY / STWO_RV64_M8_JOBS_LIBRARY (native_gpu_support_test.zig)
-//!   STWO_RV64_M8_GN_PACK_RECORDS=<dir>[:<dir>...]  recorder output (rv64/gn_pack_record.zig)
+//!   STWO_RV64_LEAN_ARTIFACT_DIR=<root>
+//!   root/recordings/executions/<capture>/pack or historical/pack/<family>.
 //! Per recorded segment: the v2 chunk stream is copied into pinned buffers (the
 //! capture ring's role), parsed, and run as ONE worker job: zero/h2d/launch
 //! program into an arena MAIN image, CUDA events around it [M]; the image is
@@ -11,6 +12,8 @@
 //! record fires the CPU status word, and a dropped chunk / a launch removed
 //! from the program are refused at parse (nothing enqueued).
 const std = @import("std");
+const Dataset = @import("../recording_dataset.zig");
+const Replay = @import("../recorded_replay.zig");
 const api = @import("api.zig");
 const W = @import("worker.zig");
 const G = @import("gpu_native.zig");
@@ -350,17 +353,19 @@ test "GPU: gn-pack v2 witness program on recorded real segments is byte-identica
     };
 }
 fn gpuParity() !void {
-    const dirs = std.posix.getenv("STWO_RV64_M8_GN_PACK_RECORDS") orelse return error.SkipZigTest;
+    const a = std.heap.page_allocator;
+    const root = (try Dataset.rootFromEnv(a)) orelse return error.SkipZigTest;
+    defer a.free(root);
+    var datasets = try Replay.paths(a, root, .pack);
+    defer datasets.deinit();
     var gpu = (try @import("native_gpu_support_test.zig").Gpu.openNamed("native_pack_gpu_test")) orelse return error.SkipZigTest;
     defer gpu.close();
-    const a = std.heap.page_allocator;
     const sym = try P.Symbols.load(&gpu.libs.base, &gpu.libs.addon);
     const events = try EventApi.load(&gpu.libs.base);
     const copy = gpu.libs.addon.lookup(P.H2dFn, "stwo_rv64_jobs_copy_async") orelse return error.MissingSymbol;
-    var it = std.mem.splitScalar(u8, dirs, ':');
     var total_columns: usize = 0;
     var total_equal: usize = 0;
-    while (it.next()) |path| {
+    for (datasets.items) |path| {
         var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
         defer dir.close();
         var roms = P.Roms.init(a);

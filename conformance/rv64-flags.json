@@ -4270,7 +4270,7 @@
       "owner": "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
       "default": "required by native/resident entrypoints; subprocess hybrid may run without it",
       "status": "runtime",
-      "date": "2026-11-08",
+      "date": "2026-11-16",
       "references": [
         "scripts/rv64/rv64_m3_pod.py",
         "scripts/rv64/rv64_m4_resident.py",
@@ -4289,7 +4289,7 @@
       ],
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
-        "text": "    const library = (try env(a, \"STWO_RV64_GPU_LIBRARY\")) orelse return error.CombinedRequiresNativeLibrary;\n    defer a.free(library);\n    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\")) return error.CombinedRequiresFullyResidentNative;\n    const arguments = try std.process.argsAlloc(a);\n    defer std.process.argsFree(a, arguments);\n    if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], \"combined-batch\")) {\n        if (arguments.len != 4) return error.ExpectedCombinedBatchManifestAndOutput;\n        return @import(\"rv64/resident_batch.zig\").runCombined(a, library, arguments[2], arguments[3]);"
+        "text": "    const library = (try env(a, \"STWO_RV64_GPU_LIBRARY\")) orelse return error.CombinedRequiresNativeLibrary;\n    defer a.free(library);\n    if (std.process.hasEnvVarConstant(\"STWO_RV64_GPU_HOST_RETAINED\")) return error.CombinedRequiresFullyResidentNative;\n    const arguments = try std.process.argsAlloc(a);\n    defer std.process.argsFree(a, arguments);\n    var capture = Capture.Session{};\n    defer capture.deinit();\n    if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], \"combined-batch\")) {"
       },
       "expires": "2026-12-09"
     },
@@ -4425,14 +4425,16 @@
     },
     "STWO_RV64_LEAN_ARTIFACT_DIR": {
       "owner": "src/integrations/riscv_cpu/tests/native_artifact_root.zig",
-      "default": "disabled; when set, one run root with eleven fixed provider subdirectories",
+      "default": "disabled; selected run root owns fixed provider artifacts and all available request-owned pack/node diagnostic captures; capture-enabled timing is instrumented",
       "status": "qualification",
       "date": "2026-11-16",
       "references": [
         "src/integrations/riscv_cpu/tests/native_artifact_root.zig",
         "src/integrations/riscv_cpu/tests/native_artifact_root_test.zig",
+        "src/integrations/riscv_cuda/rv64/recording_dataset.zig",
         "src/products/ethereum/statement/cpu/tests/native_artifact_root.zig",
-        "src/products/ethereum/statement/cpu/tests/native_artifact_root_test.zig"
+        "src/products/ethereum/statement/cpu/tests/native_artifact_root_test.zig",
+        "src/products/ethereum/statement/cuda/rv64/capture_execution_consumer_test.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/tests/native_artifact_root.zig",
@@ -4441,6 +4443,10 @@
           {
             "path": "src/products/ethereum/statement/cpu/tests/native_artifact_root.zig",
             "text": "pub fn directory(a: std.mem.Allocator, provider: Provider) !?[]u8"
+          },
+          {
+            "path": "src/integrations/riscv_cuda/rv64/recording_dataset.zig",
+            "text": "    const root = std.process.getEnvVarOwned(a, \"STWO_RV64_LEAN_ARTIFACT_DIR\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return null,\n        else => return err,\n    };"
           }
         ]
       },
@@ -4487,55 +4493,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/outer_seed_record.zig",
         "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_GN_NODE\") orelse return false;\n    if (std.mem.eql(u8, v, \"0\")) return false;\n    if (std.mem.eql(u8, v, \"check\") or std.mem.eql(u8, v, \"job\")) return true;\n    return error.InvalidGnNodeSelection;\n}\n/// STWO_RV64_M8_GN_NODE=job: check mode, plus every node is proved a second\n/// time through the production GPU-native node job (outer_device.NodeJob over\n/// its NodeClasses template) and its device-encoded bytes must equal the"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GN_NODE_RECORD": {
-      "owner": "src/integrations/riscv_cuda/rv64/outer_seed_record.zig",
-      "default": "disabled producer recording and skipped recorded fixture when unset; one common output/input directory",
-      "status": "retire-after-native-default",
-      "date": "2026-11-16",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
-        "src/integrations/riscv_cuda/rv64/outer_seed_record.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/outer_seed_record.zig",
-        "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_RECORD\") orelse return null;\n    return if (v.len == 0) null else v;\n}\n\n/// Appends the PCS shape words: config (6), degree_log, n_trees, then per\n/// tree: n_columns, coefficient_logs, sorted_to_original, sample_counts.\npub fn appendShape(a: std.mem.Allocator, out: *std.ArrayListUnmanaged(u32), shape: anytype) !void {\n    const c = shape.config;",
-        "readers": [
-          {
-            "path": "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
-            "text": "    const path = std.posix.getenv(\"STWO_RV64_M8_GN_NODE_RECORD\") orelse return error.SkipZigTest;"
-          }
-        ]
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GN_PACK_RECORD": {
-      "owner": "src/integrations/riscv_cuda/rv64/gn_pack_record.zig",
-      "default": "disabled (no record directory)",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/gn_pack_record.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/gn_pack_record.zig",
-        "text": "    return std.posix.getenv(\"STWO_RV64_M8_GN_PACK_RECORD\");\n}\n\nconst Mem = struct {\n    a: std.mem.Allocator,\n    chunks: std.ArrayListUnmanaged(Chunk) = .empty,\n    current: ?[]u32 = null,\n    const Chunk = struct { words: []u32, used: usize, rows: u32, last: bool };"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GN_PACK_RECORDS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/native_pack_gpu_test.zig",
-      "default": "error.SkipZigTest",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/native_pack_gpu_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/native_pack_gpu_test.zig",
-        "text": "    const dirs = std.posix.getenv(\"STWO_RV64_M8_GN_PACK_RECORDS\") orelse return error.SkipZigTest;\n    var gpu = (try @import(\"native_gpu_support_test.zig\").Gpu.openNamed(\"native_pack_gpu_test\")) orelse return error.SkipZigTest;\n    defer gpu.close();\n    const a = std.heap.page_allocator;\n    const sym = try P.Symbols.load(&gpu.libs.base, &gpu.libs.addon);\n    const events = try EventApi.load(&gpu.libs.base);\n    const copy = gpu.libs.addon.lookup(P.H2dFn, \"stwo_rv64_jobs_copy_async\") orelse return error.MissingSymbol;\n    var it = std.mem.splitScalar(u8, dirs, ':');"
       },
       "expires": "2026-12-09"
     },
@@ -4695,25 +4652,21 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/plan.zig",
-        "text": "pub const env_policy = \"STWO_RV64_M8_JOBS_PLAN\";\n/// Measurement: every Worker.destroy writes its class plans into this directory.\npub const env_plan_dir = \"STWO_RV64_M8_JOBS_PLAN_DIR\";\n/// Worker channel state (Channel.state_words = 32) occupies one granule.\npub const state_granule: usize = W.Arena.granule;\n\npub const Allocator = enum { lifo, reuse };\n"
+        "text": "pub const env_policy = \"STWO_RV64_M8_JOBS_PLAN\";\n/// Historical selector spelling retained for source compatibility; no environment reader.\npub const env_plan_dir = \"STWO_RV64_M8_JOBS_PLAN_DIR\";\n/// Worker channel state (Channel.state_words = 32) occupies one granule.\npub const state_granule: usize = W.Arena.granule;\n\npub const Allocator = enum { lifo, reuse };\n"
       },
       "expires": "2026-12-09"
     },
     "STWO_RV64_M8_JOBS_PLAN_DIR": {
       "owner": "src/integrations/riscv_cuda/rv64/jobs/plan.zig",
-      "default": "disabled (no per-worker plan directory)",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
+      "default": "historical spelling only; no environment authority",
+      "status": "reference-only",
+      "date": "2026-11-16",
       "references": [
         "scripts/rv64/rv64_m8_plan_sweep.py",
+        "scripts/tests/test_rv64_m8_plan_sweep.py",
         "src/integrations/riscv_cuda/rv64/jobs/plan.zig",
         "src/integrations/riscv_cuda/rv64/jobs/plan_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/plan.zig",
-        "text": "pub const env_plan_dir = \"STWO_RV64_M8_JOBS_PLAN_DIR\";\n/// Worker channel state (Channel.state_words = 32) occupies one granule.\npub const state_granule: usize = W.Arena.granule;\n\npub const Allocator = enum { lifo, reuse };\n\npub const Gpu = struct {\n    /// Static arena per GPU (words, granule-aligned).\n    arena_words: u64,\n    /// Pool for class-persistent regions (0 = today's per-key allocations, never evicted)."
-      },
-      "expires": "2026-12-09"
+      ]
     },
     "STWO_RV64_M8_OUTER_CLASS_PLAN": {
       "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_class_plan.zig",
@@ -4826,7 +4779,7 @@
       "owner": "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
       "default": "1",
       "status": "retire-after-native-default",
-      "date": "2026-11-08",
+      "date": "2026-11-16",
       "references": [
         "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
         "src/products/ethereum/statement/cuda/rv64_m8_gn_s2_parity_main.zig",
@@ -4835,7 +4788,7 @@
       ],
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64_m8_class_build_parity_main.zig",
-        "text": "    const device = std.fmt.parseUnsigned(u32, env(\"STWO_RV64_M8_PARITY_DEVICE\") orelse \"1\", 10) catch return error.InvalidParityEnvironment;\n    const arena_bytes = try envBytes(\"STWO_RV64_M8_JOBS_ARENA_BYTES\", 8 << 30);\n    const worker = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignBackward(usize, arena_bytes / 4, W.Arena.granule), .pinned_slot_words = try envBytes(\"STWO_RV64_M8_JOBS_PINNED_BYTES\", 1 << 30) / 4 });\n    defer worker.destroy();\n    const gsym = try NG.Symbols.load(&libs.base);\n    const s1sym = try S1.Symbols.load(&libs.base, &libs.addon, &gsym);\n    const s2sym = S2.Symbols{ .encode = try NE.Symbols.load(&libs.addon), .seal = try S2.SealSymbols.load(&libs.addon), .commit = try NC.Symbols.load(&libs.base), .pcs = build_env.psym, .composition = try NComp.Symbols.load(&libs.base, &libs.addon), .global = try NGl.Symbols.load(&libs.base) };\n    var timer_api = Timer{ .events = try Events.Api.load(&libs.base) };"
+        "text": "    const device = std.fmt.parseUnsigned(u32, env(\"STWO_RV64_M8_PARITY_DEVICE\") orelse \"1\", 10) catch return error.InvalidParityEnvironment;\n    const arena_bytes = try envBytes(\"STWO_RV64_M8_JOBS_ARENA_BYTES\", 8 << 30);\n    const worker = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignBackward(usize, arena_bytes / 4, W.Arena.granule), .pinned_slot_words = try envBytes(\"STWO_RV64_M8_JOBS_PINNED_BYTES\", 1 << 30) / 4 });\n    defer {\n        worker.destroyWithPlan(out_dir) catch |err|\n            std.log.err(\"M8 worker class plan output failed: {s}\", .{@errorName(err)});\n    }\n    const gsym = try NG.Symbols.load(&libs.base);"
       },
       "expires": "2026-12-09"
     },

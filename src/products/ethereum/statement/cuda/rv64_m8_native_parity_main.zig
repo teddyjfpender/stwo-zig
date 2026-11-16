@@ -112,6 +112,8 @@ const deepEql = @import("rv64/parity/native_common.zig").deepEql;
 const env = @import("rv64/parity/native_common.zig").env;
 const envBytes = @import("rv64/parity/native_common.zig").envBytes;
 pub fn main() !void {
+    var capture = @import("rv64/capture_execution.zig").Session{};
+    defer capture.deinit();
     const a = std.heap.page_allocator;
     const argv = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, argv);
@@ -137,7 +139,10 @@ pub fn main() !void {
     // 20 GiB: headroom for the legacy global kernels' out-of-arena scratch (see header).
     const arena_bytes = try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 20 << 30);
     const worker = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignBackward(usize, arena_bytes / 4, W.Arena.granule), .pinned_slot_words = try envBytes("STWO_RV64_M8_JOBS_PINNED_BYTES", 1 << 30) / 4 });
-    defer worker.destroy();
+    defer {
+        worker.destroyWithPlan(out_dir) catch |err|
+            std.log.err("M8 worker class plan output failed: {s}", .{@errorName(err)});
+    }
 
     var config = try Router.Config.fromEnv(a);
     defer config.deinit(a);
@@ -223,6 +228,8 @@ pub fn main() !void {
     defer for (args) |arg| a.free(arg);
     var identity: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash("rv64-m8-native-parity", &identity, .{});
+    capture = @import("rv64/capture_execution.zig").Session.config(a, request, identity, .execution);
+    for (pool.devices) |*record_device| capture.attach(&record_device.native.recording);
     for (pool.devices, config.caps) |*d, cap| try d.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
     var timer = try std.time.Timer.start();
     try Main.runWithResidentArgs(&recycler, &args, stages, &session);
@@ -290,4 +297,5 @@ pub fn main() !void {
         if (!binding_all) return error.NativeBindingParityMismatch;
     }
     if (check_composition and !composition_all) return error.NativeCompositionParityMismatch;
+    capture.success = true;
 }

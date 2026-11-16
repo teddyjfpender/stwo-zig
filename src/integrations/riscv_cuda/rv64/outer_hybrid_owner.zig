@@ -470,6 +470,17 @@ pub const Hybrid = struct {
         for (provers, workers[0..provers.len]) |*p, worker| {
             p.* = Schema.Prover.init(self.allocator, &w.shared, worker, self.knobs.graphs);
             p.persistent_classes = self.knobs.persistent_classes;
+            const Recording = @import("recording_dataset.zig");
+            var selected: ?*Recording.Slot = null;
+            var ambiguous = false;
+            for (self.services) |service| if (service.device_ordinal == worker.device_ordinal) {
+                selected = Recording.selectSlot(selected, &service.recording) catch |err| blk: {
+                    ambiguous = true;
+                    for (self.services) |candidate| if (candidate.recording.held) |held| held.owner.fail(err);
+                    break :blk null;
+                };
+            };
+            p.recording = if (ambiguous) null else selected;
         }
         self.windows += 1;
         std.debug.print("GPU_M8_OUTER_WINDOW open window={d} arena_words={d} available_bytes={d} reserve_bytes={d} handoff_words={d} trimmed_bytes={d} trim_ns={d} start_ns={d} unpark_ns={d} moved=false persistent={} lanes={d} provers={d}\n", .{ self.windows, words, available, reserve, handoff_words, released, trim_ns, timer.read(), unpark_ns, self.persist, self.lanes.len, unique });

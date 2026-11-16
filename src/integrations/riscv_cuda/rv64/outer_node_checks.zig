@@ -17,14 +17,12 @@ const GnRecord = @import("outer_seed_record.zig");
 pub const Recorder = struct {
     const Rec = @import("outer_seed_record.zig");
     pub const magic = Rec.node_magic;
-    pub const dir = Rec.dir;
     pub fn words8(bytes: [32]u8) [8]u32 {
         var w: [8]u32 = undefined;
         for (&w, 0..) |*x, i| x.* = std.mem.readInt(u32, bytes[4 * i ..][0..4], .little);
         return w;
     }
-    pub fn write(a: std.mem.Allocator, input: Prestage.Input, staged: *const @import("jobs/outer_staged.zig").Staged, job: *Job.OuterNodeJob, produced: *const Outer.prove.Produced, image: []const u32) !void {
-        const path = dir() orelse return;
+    pub fn write(lease: *const @import("recording_dataset.zig").Borrow, a: std.mem.Allocator, input: Prestage.Input, staged: *const @import("jobs/outer_staged.zig").Staged, job: *Job.OuterNodeJob, produced: *const Outer.prove.Produced, image: []const u32) !void {
         const wire = try Outer.wire.encode(a, input.key.identity, produced.outputs, produced.claims, &produced.proof.proof);
         defer a.free(wire);
         var digest: [32]u8 = undefined;
@@ -62,7 +60,7 @@ pub const Recorder = struct {
         }
         var name_buf: [96]u8 = undefined;
         const name = try std.fmt.bufPrint(&name_buf, "node-{d:0>4}-{x}.gnr", .{ input.ordinal, digest[0..8].* });
-        if (try Rec.writeOnce(path, name, out.items)) std.debug.print("GN_NODE_RECORD ordinal={d} leaf={} seeds={d} image_words={d} wire_bytes={d} file={s}\n", .{ input.ordinal, input.is_leaf, staged.assignment.seeds.len / 5, image.len, wire.len, name });
+        if (try lease.owner.write(.nodes, name, std.mem.sliceAsBytes(out.items))) std.debug.print("GN_NODE_RECORD ordinal={d} leaf={} seeds={d} image_words={d} wire_bytes={d} file={s}\n", .{ input.ordinal, input.is_leaf, staged.assignment.seeds.len / 5, image.len, wire.len, name });
     }
 };
 

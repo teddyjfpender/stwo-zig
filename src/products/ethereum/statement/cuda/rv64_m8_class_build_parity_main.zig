@@ -420,6 +420,8 @@ fn expectError(a: std.mem.Allocator, list: *std.ArrayListUnmanaged(Negative), na
 }
 
 pub fn main() !void {
+    var capture = @import("rv64/capture_execution.zig").Session{};
+    defer capture.deinit();
     const a = std.heap.page_allocator;
     const argv = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, argv);
@@ -487,6 +489,8 @@ pub fn main() !void {
         for (parts, &args) |part, *arg| arg.* = try a.dupeZ(u8, part);
         var identity: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash("rv64-m8-gn-shape-parity", &identity, .{});
+        capture = @import("rv64/capture_execution.zig").Session.config(a, request_path, identity, .execution);
+        for (pool.devices) |*record_device| capture.attach(&record_device.native.recording);
         for (pool.devices, rconfig.caps) |*d, cap| try d.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = manifest.immutable_device_bytes, .max_scopes = rconfig.scope_limit });
         var timer = try std.time.Timer.start();
         std.debug.print("GPU_M8_GN_SHAPE phase=legacy_start block={}\n", .{block});
@@ -510,7 +514,10 @@ pub fn main() !void {
     const device = std.fmt.parseUnsigned(u32, env("STWO_RV64_M8_PARITY_DEVICE") orelse "1", 10) catch return error.InvalidParityEnvironment;
     const arena_bytes = try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 8 << 30);
     const worker = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignBackward(usize, arena_bytes / 4, W.Arena.granule), .pinned_slot_words = try envBytes("STWO_RV64_M8_JOBS_PINNED_BYTES", 1 << 30) / 4 });
-    defer worker.destroy();
+    defer {
+        worker.destroyWithPlan(out_dir) catch |err|
+            std.log.err("M8 worker class plan output failed: {s}", .{@errorName(err)});
+    }
     const gsym = try NG.Symbols.load(&libs.base);
     const s1sym = try S1.Symbols.load(&libs.base, &libs.addon, &gsym);
     const s2sym = S2.Symbols{ .encode = try NE.Symbols.load(&libs.addon), .seal = try S2.SealSymbols.load(&libs.addon), .commit = try NC.Symbols.load(&libs.base), .pcs = build_env.psym, .composition = try NComp.Symbols.load(&libs.base, &libs.addon), .global = try NGl.Symbols.load(&libs.base) };
@@ -781,4 +788,5 @@ pub fn main() !void {
     try std.fs.cwd().writeFile(.{ .sub_path = report, .data = text.written() });
     std.debug.print("GPU_M8_GN_SHAPE done block={} stage1_all_equal={} full_all_equal={} negatives_all_fired={} report={s}\n", .{ block, all_stage1, all_full, negatives_all, report });
     if ((run_legacy and !(all_stage1 and all_full)) or !negatives_all or !framing_exclusive) std.process.exit(2);
+    capture.success = true;
 }

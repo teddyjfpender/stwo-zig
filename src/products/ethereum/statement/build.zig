@@ -7,6 +7,12 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const options = .{ .target = target, .optimize = optimize };
+    const capture_tests = b.addTest(.{ .root_module = b.createModule(.{
+        .root_source_file = b.path("cuda/rv64/capture_inputs.zig"),
+        .target = target,
+        .optimize = optimize,
+    }) });
+    b.step("test-capture-inputs", "Test diagnostic input identity and producer framing without native proving").dependOn(&b.addRunArtifact(capture_tests).step);
     const neutral_frontend = b.dependency("stwo_riscv_frontend", options).module("stwo_riscv_frontend");
     const neutral_cpu = b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration");
     const neutral_cuda = b.dependency("stwo_riscv_cuda_integration", options).module("stwo_riscv_cuda_integration");

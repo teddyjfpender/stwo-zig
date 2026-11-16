@@ -1,4 +1,4 @@
-//! gn-node piece-harness recorder (STWO_RV64_M8_GN_NODE_RECORD=<dir>, default
+//! gn-node piece-harness recorder (request-owned common artifact root, default
 //! off; diagnostics only, never changes a proof byte). It records the legacy
 //! path's inputs and outputs of the GPU-native node job so the device seed
 //! fill, statement mix and checks can be run against REAL data in the
@@ -20,11 +20,6 @@ const std = @import("std");
 pub const node_magic: u32 = 0x31524e47; // "GNR1"
 pub const pcs_magic: u32 = 0x31504e47; // "GNP1"
 
-pub fn dir() ?[]const u8 {
-    const v = std.posix.getenv("STWO_RV64_M8_GN_NODE_RECORD") orelse return null;
-    return if (v.len == 0) null else v;
-}
-
 /// Appends the PCS shape words: config (6), degree_log, n_trees, then per
 /// tree: n_columns, coefficient_logs, sorted_to_original, sample_counts.
 pub fn appendShape(a: std.mem.Allocator, out: *std.ArrayListUnmanaged(u32), shape: anytype) !void {
@@ -38,25 +33,17 @@ pub fn appendShape(a: std.mem.Allocator, out: *std.ArrayListUnmanaged(u32), shap
     }
 }
 
-pub fn writeOnce(path: []const u8, name: []const u8, words: []const u32) !bool {
-    var d = try std.fs.cwd().makeOpenPath(path, .{});
-    defer d.close();
-    const file = d.createFile(name, .{ .exclusive = true }) catch |err| switch (err) {
-        error.PathAlreadyExists => return false,
-        else => return err,
-    };
-    defer file.close();
-    try file.writeAll(std.mem.sliceAsBytes(words));
-    return true;
-}
-
 /// pcs_native.zig hook: one legacy PCS readback image and its shape.
 /// Never fails the proof (a recorder error is printed and dropped).
-pub fn pcsImage(shape: anytype, image: []const u32) void {
-    const path = dir() orelse return;
-    pcsImageInner(path, shape, image) catch |err| std.debug.print("GN_NODE_RECORD pcs error={s}\n", .{@errorName(err)});
+pub fn pcsImage(slot: *const @import("recording_dataset.zig").Slot, shape: anytype, image: []const u32) void {
+    var lease = slot.borrowDiagnostic() orelse return;
+    defer lease.release() catch unreachable;
+    pcsImageInner(&lease, shape, image) catch |err| {
+        lease.owner.fail(err);
+        std.debug.print("GN_NODE_RECORD pcs error={s}\n", .{@errorName(err)});
+    };
 }
-fn pcsImageInner(path: []const u8, shape: anytype, image: []const u32) !void {
+fn pcsImageInner(lease: *const @import("recording_dataset.zig").Borrow, shape: anytype, image: []const u32) !void {
     const a = std.heap.c_allocator;
     var out: std.ArrayListUnmanaged(u32) = .empty;
     defer out.deinit(a);
@@ -68,7 +55,7 @@ fn pcsImageInner(path: []const u8, shape: anytype, image: []const u32) !void {
     std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(image), &digest, .{});
     var name_buf: [64]u8 = undefined;
     const name = try std.fmt.bufPrint(&name_buf, "pcs-{x}.gnp", .{digest[0..8].*});
-    if (try writeOnce(path, name, out.items)) std.debug.print("GN_NODE_RECORD pcs trees={d} image_words={d} file={s}\n", .{ shape.trees.len, image.len, name });
+    if (try lease.owner.write(.nodes, name, std.mem.sliceAsBytes(out.items))) std.debug.print("GN_NODE_RECORD pcs trees={d} image_words={d} file={s}\n", .{ shape.trees.len, image.len, name });
 }
 
 /// STWO_RV64_M8_GN_NODE=check: the in-process registry of child seed

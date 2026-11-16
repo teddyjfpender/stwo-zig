@@ -2,6 +2,7 @@
 const std = @import("std");
 const ProductCPU = @import("ethereum_cpu_component");
 const Main = ProductCPU.rv64_ethereum_gkr_main;
+const Capture = @import("capture_execution.zig");
 const Pool = @import("resident_pool.zig").Pool;
 const Router = @import("stwo_riscv_cuda_integration").rv64.execution.runtime.resident_router;
 const ReadyPolicy = @import("stwo_riscv_cuda_integration").rv64.execution.runtime.resident_ready_policy;
@@ -29,18 +30,22 @@ const Manifest = struct {
     warm_order: []const u64 = &.{},
 };
 pub fn run(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8) !void {
-    return runMode(a, library, manifest_path, output, false, null);
+    return runMode(a, library, manifest_path, output, false, null, .execution);
 }
 pub fn runCombined(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8) !void {
-    return runMode(a, library, manifest_path, output, true, null);
+    return runMode(a, library, manifest_path, output, true, null, .execution);
+}
+/// One explicit installation invocation; ordinals are global within this execution.
+pub fn runCombinedForInstall(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8) !void {
+    return runMode(a, library, manifest_path, output, true, null, .class_install);
 }
 /// Resident prover service (stwo-rv64d): one process, both CUDA contexts, the
 /// image/authority session and the ArtifactStore-backed SetupCache stay live
 /// while requests arrive through a spool directory (see serveSpool).
 pub fn runServe(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8) !void {
-    return runMode(a, library, manifest_path, spool, true, spool);
+    return runMode(a, library, manifest_path, spool, true, spool, .execution);
 }
-fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8, comptime combined: bool, serve_spool: ?[]const u8) !void {
+fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8, comptime combined: bool, serve_spool: ?[]const u8, capture_purpose: Capture.Purpose) !void {
     var init_timer = try std.time.Timer.start();
     const raw = try std.fs.cwd().readFileAlloc(a, manifest_path, 1 << 20);
     defer a.free(raw);
@@ -176,7 +181,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
         const preload = try @import("stwo_riscv_cuda_integration").rv64.execution.runtime.outer_assignment.ClassCache.Store.preloadAll();
         std.debug.print("GPU_RESIDENT_CLASS_PRELOAD loaded={} ns={}\n", .{ preload.loaded, preload.ns });
     }
-    const svc = .{ .a = a, .base = base, .manifest = &manifest, .pool = pool, .config = &config, .session = &session, .recycler = &recycler, .factory = factory, .ready = ready, .ready_mode = ready_mode, .resource_json = resource_json, .parent = parent, .manifest_sha256 = manifest_sha256, .outer_jobs = outer_jobs };
+    const svc = .{ .a = a, .base = base, .manifest = &manifest, .pool = pool, .config = &config, .session = &session, .recycler = &recycler, .factory = factory, .ready = ready, .ready_mode = ready_mode, .resource_json = resource_json, .parent = parent, .manifest_sha256 = manifest_sha256, .outer_jobs = outer_jobs, .capture_purpose = capture_purpose };
     if (combined) {
         if (serve_spool) |spool| return serveSpool(svc, spool, init_timer.read());
     } else if (serve_spool != null) return error.ResidentServiceRequiresCombinedBatch;
@@ -213,11 +218,14 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
     const resource_json = svc.resource_json;
     const parent = svc.parent;
     const manifest_sha256 = svc.manifest_sha256;
-    // M8 Stage A: the recursion window's workers return their memory before
-    // the next request's native window.
-    defer if (combined) {
-        if (svc.outer_jobs) |hybrid| hybrid.endRequest();
-    };
+    var capture = Capture.Session{};
+    defer capture.deinit();
+    // Quiesce actual hybrid callbacks before detaching the Native slots or
+    // finalizing their common dataset, including every early-error path.
+    defer {
+        if (combined) if (svc.outer_jobs) |hybrid| hybrid.endRequest();
+        for (pool.devices) |*device| device.native.recording.detach();
+    }
     var name_buf: [24]u8 = undefined;
     const name = try std.fmt.bufPrint(&name_buf, "{d}", .{block});
     const item = manifest.blocks.map.get(name) orelse return error.MissingResidentBatchBlock;
@@ -257,6 +265,8 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
     std.mem.writeInt(u64, transaction[8..16], iteration, .little);
     hash.update(&transaction);
     const identity = hash.finalResult();
+    capture = Capture.Session.config(a, request, identity, svc.capture_purpose);
+    for (pool.devices) |*device| capture.attach(&device.native.recording);
     // Charge request-boundary audits and any cache retirement to this request.
     var timer = try std.time.Timer.start();
     for (pool.devices, config.caps) |*device, cap| try device.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = if (combined) manifest.combined_immutable_device_bytes else manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
@@ -309,6 +319,7 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
         try @import("stwo_riscv_cuda_integration").rv64.execution.runtime.combined_publication.write(proof, entry);
     }
     std.debug.print("GPU_RESIDENT_BLOCK block={} trial={} iteration={} request_wall_ns={} cached_host_keys={} host_key_cache_hits={} host_key_cache_misses={} host_key_cache_evictions={} gpu_contexts={} setup_cache={} setup_resident_hits={} setup_disk_hits={} setup_misses={} setup_persist_ns={}\n", .{ block, trial, iteration, request_wall_ns, session.keyCount(), session.hits, session.misses, session.evictions, pool.devices.len, setup_stats != null, if (setup_stats) |v| v.resident_hits else 0, if (setup_stats) |v| v.disk_hits else 0, if (setup_stats) |v| v.misses else 0, persist_ns });
+    capture.success = true;
     return request_wall_ns;
 }
 

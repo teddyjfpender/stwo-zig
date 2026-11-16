@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """M8 memory-plan sweep and per-class policy generator (spec §3.7, frontier-delta §4 item 3).
 
-Measure: run each job-class harness (a binary or test that drives a real DeviceWorker) with
-STWO_RV64_M8_JOBS_PLAN_DIR=<dir>; every Worker.destroy writes worker-*.json there (schema
+Measure: run each job-class harness with one whole {out} argv token. The existing diagnostic
+producer owns that fresh OUT and writes final worker-*.json under OUT/class-plans (schema
 rv64-m8-jobs-class-plans/v2: per class and per side the arena peak, live peak, staged, slab,
 pinned, persistent words, declared footprint). `collect` folds those files into one sweep record.
 
@@ -274,30 +274,38 @@ def check(policy: dict) -> list[str]:
 def run_spec(spec: dict, out: Path) -> list[Path]:
     """spec = {"harnesses": [{"label", "argv", "env": {}, "cwd", "classes": {hex: name}, "default_label",
     "only_labeled", "timeout_s", "measure_with_policy"}]}. The policy env is dropped unless measure_with_policy
-    (a validation run of a generated policy)."""
+    (a validation run of a generated policy). argv must contain exactly one whole
+    {out} token; the harness exclusively creates that output and writes class-plans."""
     written = []
     for h in spec['harnesses']:
         label = h['label']
         d = out / label
-        plans = d / 'plans'
+        argv = h['argv']
+        if argv.count('{out}') != 1 or any('{out}' in arg and arg != '{out}' for arg in argv):
+            raise ValueError('harness argv requires exactly one whole {out} output token')
+        if 'STWO_RV64_M8_JOBS_PLAN_DIR' in (h.get('env') or {}) or 'plan_dir' in h:
+            raise ValueError('retired plan destination: use argv {out}; reports are OUT/class-plans')
+        harness_out = d.resolve() / 'harness'
+        argv = [str(harness_out) if arg == '{out}' else arg for arg in argv]
+        plans = harness_out / 'class-plans'
         if d.exists():
             raise ValueError(f'{d} exists: use a fresh --out (unique run dirs)')
-        plans.mkdir(parents=True)
+        d.mkdir(parents=True)  # Logs belong to the wrapper; OUT remains unclaimed.
         env = dict(os.environ)
         env.update({k: str(v) for k, v in (h.get('env') or {}).items()})
-        env['STWO_RV64_M8_JOBS_PLAN_DIR'] = str(plans)
+        env.pop('STWO_RV64_M8_JOBS_PLAN_DIR', None)
         if not h.get('measure_with_policy'):
             env.pop('STWO_RV64_M8_JOBS_PLAN', None)  # measure with declared footprints
         t0 = time.time()
         with open(d / 'log.txt', 'wb') as log:
-            rc = subprocess.run(h['argv'], cwd=h.get('cwd'), env=env, stdout=log, stderr=subprocess.STDOUT,
+            rc = subprocess.run(argv, cwd=h.get('cwd'), env=env, stdout=log, stderr=subprocess.STDOUT,
                                 timeout=h.get('timeout_s', 1800)).returncode
-        meta = {'label': label, 'argv': h['argv'], 'env': h.get('env') or {}, 'rc': rc,
+        meta = {'label': label, 'argv': argv, 'env': h.get('env') or {}, 'rc': rc,
                 'wall_s': round(time.time() - t0, 3), 'log_sha256': sha256(d / 'log.txt')}
         (d / 'run.json').write_text(json.dumps(meta, indent=1))
         if rc != 0:
             raise RuntimeError(f'harness {label} exited {rc} (log {d / "log.txt"})')
-        sweep = collect(plans, label, h.get('classes') or {}, harness=' '.join(h['argv']),
+        sweep = collect(plans, label, h.get('classes') or {}, harness=' '.join(argv),
                         default_label=h.get('default_label'), only_labeled=bool(h.get('only_labeled')))
         sweep['run'] = meta
         (d / 'sweep.json').write_text(json.dumps(sweep, indent=1))

@@ -231,8 +231,36 @@ concrete CircuitCPU prepared-input teardown is unchanged and is not newly
 qualified by the model.
 
 The recorded-node physical harness retains its nine existing cases and adds
-the exact first MAIN-path-word corruption. Both recording and replay use
-`STWO_RV64_M8_GN_NODE_RECORD` as their common directory. Actual replay with
-retained production records and CUDA remains unrun locally. OODS sample and
+the exact first MAIN-path-word corruption. Recording and replay use the existing `STWO_RV64_LEAN_ARTIFACT_DIR` run root.
+Modern execution attempts own independent `recordings/executions/<identity>`
+datasets with fixed `nodes` and `pack` roles, manifest identities and completion
+inventories. Historical directories remain separate families below
+`recordings/historical/{nodes,pack}/<family>`, including every formerly
+colon-separated pack input. An absent role skips; provided incomplete/corrupt
+captures reject. Actual retained production record replay on CUDA remains unrun. OODS sample and
 point selectors, plus their arming control, remain live until their real
 acceptance authority has an executable negative fixture.
+
+Final diagnostic plans are explicitly owned: `Worker.quiesce` closes admission
+and joins once, preserving metadata for `writePlanDir`. External owners may use
+`destroyWithPlan(OUT)` to write the unchanged v2 rows in `OUT/class-plans` and
+consume the worker. Calling either method from its own worker thread refuses;
+`destroyWithPlan` retains ownership on that refusal and consumes it on later
+output errors. Destruction itself has no environment-selected output. Collect
+measurement sweeps from the explicit `class-plans` subdirectory.
+
+
+Selecting the common artifact root enables all available diagnostic captures:
+extra GPU readback, host serialization, hashing and I/O are instrumented work,
+not clean proving timings. Unset keeps capture off. An explicit request-owned
+lease connects Native, pack and node writers; completion follows callback/worker
+quiescence, never an ordinal-only/global directory. Capture errors record
+incompleteness and preserve the original proof verdict. No per-role capture
+switch or new artifact policy is introduced.
+
+Memory-plan sweep `run` specs must pass exactly one whole `{out}` argv token
+to the existing parity producer. The runner substitutes a fresh
+`<run>/<label>/harness` path, owns only its log parent, and collects
+`harness/class-plans`. Migrate old hardcoded OUT argv and plan-directory env
+setters to that token; obsolete destination setters are explicitly refused.
+The wrapper does not pre-create the producer OUT or change plan/policy schemas.

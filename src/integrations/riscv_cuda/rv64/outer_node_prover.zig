@@ -21,6 +21,7 @@ const Runtime = @import("native_node_class.zig");
 const Recorder = @import("outer_node_checks.zig").Recorder;
 
 pub const Prover = struct {
+    recording: ?*@import("recording_dataset.zig").Slot = null,
     shared: *const Schema.Shared,
     worker: *Worker.Worker,
     graphs: Graphs.Cache,
@@ -158,6 +159,8 @@ pub const Prover = struct {
     /// `fixed`: the lane's FIXED precommit handoff for this node, used only
     /// when its root is this node's FIXED root (else the node recommits).
     pub fn prove(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, fixed: ?Schema.FixedHandoff, report: ?*Schema.Report) !Outer.prove.Produced {
+        var capture = if (self.recording) |slot| slot.borrowDiagnostic() else null;
+        defer if (capture) |*lease| lease.release() catch unreachable;
         var timer = try std.time.Timer.start();
         const staged = try Prestage.prestage(a, input);
         // gn-node: the first node of a class leaves its Staged as the class
@@ -252,9 +255,12 @@ pub const Prover = struct {
         try done.result;
         // The host mirror reads the PCS image decodeProof releases.
         if (encode) |*c| try c.mirror(a, &job, staged);
-        // gn-node recorder (STWO_RV64_M8_GN_NODE_RECORD=<dir>): keep the PCS
+        // Request-owned gn-node recorder: keep the PCS
         // image decodeProof releases; written with the node's proof below.
-        const record_image: ?[]u32 = if ((Recorder.dir() != null or gn != null) and job.pcs_words.len != 0) try a.dupe(u32, job.pcs_words) else null;
+        const record_image: ?[]u32 = if (job.pcs_words.len == 0) null else if (gn != null) try a.dupe(u32, job.pcs_words) else if (capture != null) a.dupe(u32, job.pcs_words) catch |err| blk: {
+            capture.?.owner.fail(err);
+            break :blk null;
+        } else null;
         defer if (record_image) |w| a.free(w);
         try job.decodeProof();
         r.decode_ns = job.report.decode_ns;
@@ -284,9 +290,9 @@ pub const Prover = struct {
             if (GnRecord.jobSelected()) try self.gnJob(a, input, staged, g, wire, image, job.fixed_handoff);
             if (report) |out| out.* = r;
         }
-        if (record_image) |image| if (Recorder.dir() != null) Recorder.write(a, input, staged, &job, &produced, image) catch |err| {
+        if (record_image) |image| if (capture) |*lease| Recorder.write(lease, a, input, staged, &job, &produced, image) catch |err| {
+            lease.owner.fail(err);
             std.debug.print("GN_NODE_RECORD ordinal={d} error={s}\n", .{ input.ordinal, @errorName(err) });
-            return err;
         };
         return produced;
     }

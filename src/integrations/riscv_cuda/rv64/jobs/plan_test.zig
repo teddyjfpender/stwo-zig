@@ -447,7 +447,7 @@ test "worker with a persistent budget: a warm class keeps its region (no refill)
 }
 
 test "worker plan output: STWO_RV64_M8_JOBS_PLAN_DIR rows parse back (sweep input)" {
-    // The env var is read at destroy; write directly through the same code path.
+    // Historical selector name retained in discovery; the final writer is typed.
     fake.reset();
     const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 3, .arena_words = 64 * g, .pinned_slot_words = 1 << 12, .reuse_frees = true });
     var job = Sized{ .k = 7, .staged = g, .work = 2 * g, .declared_device = 6 * g };
@@ -458,6 +458,7 @@ test "worker plan output: STWO_RV64_M8_JOBS_PLAN_DIR rows parse back (sweep inpu
     defer tmp.cleanup();
     const dir = try tmp.dir.realpathAlloc(std.testing.allocator, ".");
     defer std.testing.allocator.free(dir);
+    try w.quiesce();
     try w.writePlanDir(dir);
     w.destroy();
     var it = tmp.dir.iterate();
@@ -476,4 +477,106 @@ test "worker plan output: STWO_RV64_M8_JOBS_PLAN_DIR rows parse back (sweep inpu
     try std.testing.expectEqual(@as(u64, 5 * g), row.stat.sides[0].peak_arena_words);
     try std.testing.expectEqual(@as(u64, 6 * g), row.stat.declared_device_words);
     try std.testing.expectEqual(@as(u64, g), row.stat.sides[0].staged_words);
+}
+
+test "worker final plans: quiesce drains and retains exact postshutdown snapshot until destroy" {
+    fake.reset();
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 3, .arena_words = 64 * g, .pinned_slot_words = 1 << 12 });
+    var owned = true;
+    defer if (owned) w.destroy();
+    var job = Sized{ .k = 21, .staged = g, .work = 2 * g, .declared_device = 6 * g, .persistent = .{ .k = 221, .words = g } };
+    var done = Done{};
+    put(w, api.Job.from(Sized, &job), done.sink());
+    const Joiner = struct {
+        fn run(worker: *W.Worker) void {
+            worker.quiesce() catch @panic("external quiesce failed");
+        }
+    };
+    // Neither caller waits for job completion; both must observe one shutdown.
+    const first = try std.Thread.spawn(.{}, Joiner.run, .{w});
+    const second = std.Thread.spawn(.{}, Joiner.run, .{w}) catch |err| {
+        first.join();
+        return err;
+    };
+    first.join();
+    second.join();
+    try std.testing.expect(w.stopped and w.shut_down and w.thread == null);
+    try std.testing.expectError(error.WorkerClosing, w.submit(api.Job.from(Sized, &job), done.sink()));
+    try std.testing.expectEqual(@as(u64, 1), w.completed);
+    try std.testing.expectEqual(@as(usize, 1), w.unbudgeted_regions);
+    try std.testing.expect(w.pinned_allocated_bytes > 0);
+    const frees = fake.counters.frees;
+    try w.quiesce();
+    try std.testing.expectEqual(frees, fake.counters.frees);
+    var tmp = std.testing.tmpDir(.{ .iterate = true });
+    defer tmp.cleanup();
+    const dir = try tmp.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(dir);
+    const expected_completed = w.completed;
+    const expected_unbudgeted = w.unbudgeted_regions;
+    const expected_pinned = w.pinned_allocated_bytes;
+    owned = false; // this external joined-owner call consumes on every outcome
+    try w.destroyWithPlan(dir);
+    var plans = try tmp.dir.openDir("class-plans", .{ .iterate = true });
+    defer plans.close();
+    var it = plans.iterate();
+    const entry = (try it.next()).?;
+    const bytes = try plans.readFileAlloc(std.testing.allocator, entry.name, 1 << 20);
+    defer std.testing.allocator.free(bytes);
+    const Doc = struct { completed: u64, persistent: struct { unbudgeted_regions: usize }, service: struct { pinned_allocated_bytes: u64 }, classes: []const struct { stat: W.ClassStat } };
+    const parsed = try std.json.parseFromSlice(Doc, std.testing.allocator, bytes, .{ .ignore_unknown_fields = true });
+    defer parsed.deinit();
+    try std.testing.expectEqual(expected_completed, parsed.value.completed);
+    try std.testing.expectEqual(expected_unbudgeted, parsed.value.persistent.unbudgeted_regions);
+    try std.testing.expectEqual(expected_pinned, parsed.value.service.pinned_allocated_bytes);
+    try std.testing.expectEqual(@as(u64, 1), parsed.value.classes[0].stat.jobs);
+    try std.testing.expectEqual(@as(usize, 0), fake.liveEvents());
+}
+
+test "worker final plans: own worker cannot join itself or close healthy submissions" {
+    fake.reset();
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 64 * g, .pinned_slot_words = 1 << 12 });
+    defer w.destroy();
+    const Probe = struct {
+        healthy: bool = false,
+        fn run(raw: *anyopaque, worker: *W.Worker) !void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            try std.testing.expectError(error.WorkerQuiesceFromWorkerThread, worker.quiesce());
+            try std.testing.expectError(error.WorkerQuiesceFromWorkerThread, worker.destroyWithPlan("unused"));
+            self.healthy = !worker.closing;
+        }
+    };
+    var probe: Probe = .{};
+    try w.call(.{ .ctx = &probe, .run = Probe.run });
+    try std.testing.expect(probe.healthy);
+    try w.quiesce();
+}
+
+test "worker final plans: output failure still destroys every joined resource" {
+    fake.reset();
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(.{ .sub_path = "file", .data = "foreign" });
+    const root = try tmp.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(root);
+    const path = try std.fs.path.join(std.testing.allocator, &.{ root, "file" });
+    defer std.testing.allocator.free(path);
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 64 * g, .pinned_slot_words = 1 << 12 });
+    try std.testing.expectError(error.NotDir, w.destroyWithPlan(path));
+    try std.testing.expectEqual(@as(usize, 0), fake.liveEvents());
+    try std.testing.expectEqual(@as(usize, 0), fake.counters.bad_frees);
+    const value = try tmp.dir.readFileAlloc(std.testing.allocator, "file", 32);
+    defer std.testing.allocator.free(value);
+    try std.testing.expectEqualStrings("foreign", value);
+}
+
+test "worker final plans: postjoin output allocation failure consumes metadata exactly once" {
+    fake.reset();
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{});
+    const w = try W.Worker.create(failing.allocator(), &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 64 * g, .pinned_slot_words = 1 << 12 });
+    failing.fail_index = failing.alloc_index;
+    try std.testing.expectError(error.OutOfMemory, w.destroyWithPlan("unused"));
+    try std.testing.expectEqual(failing.allocated_bytes, failing.freed_bytes);
+    try std.testing.expectEqual(@as(usize, 0), fake.liveEvents());
+    try std.testing.expectEqual(@as(usize, 0), fake.counters.bad_frees);
 }

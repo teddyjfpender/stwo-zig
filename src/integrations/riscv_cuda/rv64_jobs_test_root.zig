@@ -1,6 +1,7 @@
 //! M8 job runtime host tests (no GPU): contract, worker pipeline on the host
 //! device model, channel parity on the model, slab layout, scheduler, lint.
 test {
+    _ = @import("rv64/recording_dataset.zig");
     _ = @import("rv64/jobs/api.zig");
     _ = @import("rv64/jobs/worker.zig");
     _ = @import("rv64/jobs/retained.zig");

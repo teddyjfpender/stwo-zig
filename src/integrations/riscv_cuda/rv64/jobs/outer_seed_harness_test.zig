@@ -1,7 +1,8 @@
 //! gn-node piece-only harness on REAL recorded data (test-only file; opt-in).
 //!
-//!   STWO_RV64_M8_GN_NODE_RECORD=<dir>   node-*.gnr + pcs-*.gnp from
-//!                                        outer_seed_record.zig (legacy path)
+//!   STWO_RV64_LEAN_ARTIFACT_DIR=<root>
+//!   root/recordings/executions/<capture>/nodes or historical/nodes/<family>.
+//!   Each independent dataset holds node-*.gnr + pcs-*.gnp.
 //! Child order is derived from recorded PCS root pairs in the parent seed tape.
 //!   STWO_RV64_GPU_LIBRARY / STWO_RV64_M8_JOBS_LIBRARY  (device arm)
 //!
@@ -15,6 +16,8 @@
 //! check and require the named verdict. Prints one GN_NODE_HARNESS line per
 //! node ([M] GPU time by CUDA events, host enqueue time) and a summary.
 const std = @import("std");
+const Dataset = @import("../recording_dataset.zig");
+const Replay = @import("../recorded_replay.zig");
 const S = @import("outer_seed_device.zig");
 const O = @import("ops.zig");
 const GpuPolicy = @import("native_gpu_support_test.zig");
@@ -246,8 +249,15 @@ fn firstDiff(x: []const u32, y: []const u32) ?usize {
 }
 
 test "gn-node harness: device seed fill, statement and checkpoint on recorded real nodes" {
-    const path = std.posix.getenv("STWO_RV64_M8_GN_NODE_RECORD") orelse return error.SkipZigTest;
     const a = std.heap.c_allocator;
+    const root = (try Dataset.rootFromEnv(a)) orelse return error.SkipZigTest;
+    defer a.free(root);
+    var datasets = try Replay.paths(a, root, .nodes);
+    defer datasets.deinit();
+    for (datasets.items) |path| try replayNode(a, path);
+}
+
+fn replayNode(a: std.mem.Allocator, path: []const u8) !void {
     var l = try load(a, path);
     defer l.deinit();
     var gpu_opt = try Gpu.open();

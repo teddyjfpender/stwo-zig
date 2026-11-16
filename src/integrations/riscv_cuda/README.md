@@ -8,7 +8,7 @@ evidence into one content-addressed receipt.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `integration` |
 | Owner | `riscv-cuda-integration` |
 | Public Zig module | `stwo_riscv_cuda_integration` |
@@ -205,3 +205,27 @@ from the submitted kernel schedule, not CUPTI. A current real prefix receipt
 is `vectors/reports/rv64-cuda-real-segment-20261103/deferred-binding-real-prefix.json`:
 one CPU segment plus six CPU truth proofs, native byte parity and independent
 CPU acceptance. It does not establish a complete resident Ethereum block.
+
+## RV64 diagnostic lifecycle additions in 0.2
+
+The nested Worker API adds `quiesce` and `destroyWithPlan`. Quiescence closes
+submission, drains work and serializes concurrent joins while retaining final
+plan metadata. Calling from the worker thread refuses before changing custody.
+`destroyWithPlan` retains ownership on that refusal; after successful quiescence
+it consumes the worker on every outcome, including output/OOM failure. The
+owner may destroy once after all borrowed callers return. Final plan JSON is
+written at the former post-join/pre-metadata-release point.
+
+Optional RV64 recording uses one execution/attempt owner and the existing
+`STWO_RV64_LEAN_ARTIFACT_DIR`. An absent root keeps capture disabled. Selecting
+it enables the available capture roles, including downloads, hashing and file
+I/O; these instrumented runs are not clean production timings. Actual producers
+hash request/program/input files under the same stable-files assumption as the
+CPU request; this is no atomic filesystem snapshot or proof authority.
+
+Native/recursion slots borrow a dataset through callback quiescence. Completion
+requires released borrows and successful capture; cancellation or recording
+failure leaves incomplete evidence. Capture failures preserve the proof verdict.
+Replay isolates executions and historical families, rejects incomplete/corrupt
+provided data, and treats an absent role as no test input. Host tests do not
+qualify CUDA compilation, physical replay, a complete proof or device timings.

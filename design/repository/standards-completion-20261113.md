@@ -10,9 +10,9 @@ being launched. A memory-cap stop is UNRUN, never a passing test.
 | Ethereum physical corpus (#382) | Historical CSP successes preserved; current native Linux failures diagnosed separately from baseline-CPU success. Required security and original failure propagation retained. | Broad Debug/ReleaseFast corpus and all 21 historical physical cases, publication and recursion; actual native-feature root-cause fix. |
 | Validation partitions (#383) | Four default-owner aliases reuse the exact Run artifacts and retain the 479-case aggregate floor. Completed-command receipts survive interruption and record exact-child kernel resources with explicit RSS scope; a killed lane remains INCOMPLETE. CSP has two exact original suite images with floor one each under the original aggregate target. | Current-source physical owner timing/memory and broad coverage qualification. CSP still inherits Cairo AOT prerequisites through its actual CPU integration graph. |
 | Source ownership/size (#343) | All manual source owners fit unchanged ceilings; full non-strict source conformance passes with zero findings. Private helpers retain the original named cases and arithmetic authority. | Formal-source rebinding and full physical qualification are separate gates below. No ceiling was raised and moves earned no subtraction credit. |
-| Waist contracts (#359/#366) | 76 consumer roots /79 named cases registered; 67 roots /70 cases per optimization mode actually executed. Origin-owned diagnostics reach real Backend, Native and CSP consumers, with nullable unknown origins and unchanged primary v3 report serializers. | Actual consumer semantics now cover all76 roots/79cases in ReleaseFast and75roots/78cases in Debug; the final RISC-V Metal Debug closure exceeded1GiB and is deferred. Canonical SDK configuration validates all76 actual owner/provider selections; aggregate execution remains separate. Broader error origins remain unqualified. Canonical CUDA factory Core/Prover wiring was repaired with a materialized pointer-identity test; the strict consumer guard remains. A compiled declaration or source search does not satisfy consumer execution. |
+| Waist contracts (#359/#366) | All76 consumer roots/79 named cases are registered and configure with canonical SDK identities. Earlier standalone execution passed76/79 in ReleaseFast and75/78 in Debug. Latest focused Debug/ReleaseFast qualification executes complete Backend39, recursion provider32, actual transport consumer3 and upstream golden6 target cases, with finite origin-specific failure semantics. | Fresh complete consumer-matrix/aggregate execution remains open. The final-source RISC-V Metal Debug check again exceeded the unchanged1GiB cap (sampled1,113,538,560B); no case executed. Full proof/process behavior is separate from focused contracts. Canonical CUDA factory pointer identity and strict Engine guards remain enforced. |
 | Complexity budgets (#370) | 37 measured package contracts, blocking nine-counter ceilings and five explicitly identified hot-function branch-token proxies. Failed budget reports now preserve refusal and measurement errors. | Every increase must have its exact reviewed transaction. Branch-token proxies and selected allocation tests are not blanket runtime, cyclomatic or throughput qualification. |
-| Configuration reduction (#332) | Live flags reduced from 100 to 63 through mandatory reference/fusion coverage, explicit authorization, authenticated recorded-root association and typed private comparison paths; full lifecycle inventory is retained;561 previously unregistered other-family names now have enforced declarations. | Below 60 live flags still requires at least 4 further retirements. Do not hide live controls in configuration files or promote unqualified GPU variants to meet the count. |
+| Configuration reduction (#332) | Live RV64 controls reduced from 100 to 59, meeting the below-60 target. Recording now has execution/attempt ownership; final plans use the existing typed fixture output. All 561 other-family names remain registered. | GPU promotion and physical record/replay remain separate unqualified gates. Retained capacity/security controls remain effective; no selector was hidden in JSON or directory-presence policy. |
 | Formal/projection (#328/#358) | Actual local export of all 46 opcode programs passes complete normalized-object comparison. Actual Dword owner projection has independent integer-oracle Debug/ReleaseFast tests. | Seventeen-family exporter exceeded the 1 GiB cap even with the exact direct compiler graph. Actual Sail/Lean bridge/source receipts and descriptor-45 native projection qualification remain open. No generated pin was hand-rebound. |
 | Reproducibility/evidence (#347/#362/#386) | Exact Python/Rust patches, official Zig/Sail archive hashes, installed-tool admission, fixed-seed properties and strict vector owner/path/hash inventory. All required Core+Wire cases now pass both modes:71fields,22FRI,193revision,21wire (transitive overlap). Debug revision uses exhaustive partitions of its unchanged canonical binary; its single-process target remains CPU-limit incomplete. All 568 previous vector hashes preserved; six unlisted files explicitly admitted. | Remaining supported-host execution and two remaining circuit-oracle provenance refusals after byte-identical artifact-owner transfer. Installed version admission does not certify dynamic-library closure or proof correctness. |
 
@@ -132,3 +132,40 @@ cleanup, allocation failure and retry. A temporary-buffer leak after inconsisten
 public-state mutation is fixed without changing valid interpolation arithmetic.
 Owned in-place arithmetic failures may mutate values; unchanged retry is not
 promised. Broad proof and hardware qualification remain separate.
+
+## Final-source Metal consumer qualification — 2026-11-16
+
+The single fresh Debug attempt after the final public-framing/scalar batch used
+the exact admitted concrete module graph and unchanged limits. Its native ARC
+object and51-member runtime source closure matched their recorded SHA256 pins.
+The aggregate watchdog stopped compilation at1,113,538,560B; no test case ran.
+This remains DEFERRED_MEMORY_CAP, not a substitute for the missing consumer
+execution. No repeat, cap increase, graph simplification, fabricated backend or
+GPU initialization followed. The distinct receipt is retained under
+`rv64-proof-artifacts/20261116/standards-completion/riscv-metal-debug-final/`.
+
+## Request-owned capture and final-plan checkpoint
+
+The final-plan lifecycle cases execute four named behaviors in each mode
+(18 target executions including14 discovery collectors). Two external joins
+serialize once; self-thread refusal retains ownership; later output/OOM errors
+consume the joined owner. The original final-plan writer and schema are retained.
+The memory-plan runner binds its existing argv OUT to a fresh owned directory
+and collects `OUT/class-plans`; real subprocess checks cover collection and
+failed-run receipts. Old specs need the documented `{out}` argv migration.
+
+Recording uses one shared attempt owner for each real execution or installation
+invocation. Modern completion inventories and independent historical families
+preserve ordinal isolation. All original per-dataset SHA checks and ten GN
+negative cases remain. Pure owners execute11 dataset and3 input target cases
+per mode; the real capture consumer executes its named behavior plus a collector
+in Debug/ReleaseFast using canonical provider pointers and actual native slot
+types, without initializing a GPU. This does not type-check every Native/Outer
+proving path or qualify hardware replay. Stable request files remain an explicit
+assumption; these diagnostic hashes are not an atomic input handoff.
+
+An absent artifact root keeps capture disabled. Selecting the existing root now
+enables all available capture roles, including their downloads/hash/file costs.
+Capture-enabled timings are instrumented. Recording errors leave incomplete
+evidence and do not replace the proof verdict. Focused dev_test routing covers
+only the five pure owner paths; production edits retain their broad obligations.

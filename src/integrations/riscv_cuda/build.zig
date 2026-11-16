@@ -5,6 +5,12 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const check_only = b.option(bool, "check-only", "Check focused job roots without executing tests") orelse false;
     const options = .{ .target = target, .optimize = optimize };
+    const recording_tests = b.addTest(.{ .root_module = b.createModule(.{
+        .root_source_file = b.path("rv64/recording_dataset.zig"),
+        .target = target,
+        .optimize = optimize,
+    }) });
+    b.step("test-recording-datasets", "Test diagnostic dataset filesystem and replay admission without a GPU").dependOn(jobTestStep(b, recording_tests, check_only));
     const contracts = b.dependency(
         "stwo_backend_contracts",
         options,

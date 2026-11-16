@@ -1418,6 +1418,27 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Decision360#6927884606: pin caller custody after refused construction, QM31/OM31 borrowed/resident allocation cleanup and retry, and exactly-once resident destruction. Fix a reproduced temporary leak after unsupported public domain mutation with an early length check and temporary-only errdefer, preserving valid arithmetic and owned in-place reuse. Document possible mutation after later owned arithmetic errors. No new errors, dependencies, flags or launchers."
+    },
+    {
+      "id": "rv64_final_plan_quiescence_332",
+      "net_code_budget": 600,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Delegated decisions332#6928329335/6928513614: replace process-selected auto-output with typed existing fixture OUT. Add nested Worker quiesce and destroyWithPlan, preserving exact post-join/pre-release writer and stats; self-thread refusal retains ownership and later output/OOM failures consume. Require real concurrent join, refusal, final-stat and cleanup tests in both modes. No new root export, dependency, runtime flag or launcher; native GPU behavior remains separately unqualified."
+    },
+    {
+      "id": "rv64_request_owned_recording_332",
+      "net_code_budget": 1600,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Delegated decision332#6928435957: replace three independent recording destinations with one execution/attempt-owned dataset under the existing artifact root. Bind actual request/program/input hashes under stable-file assumptions, borrow through native/outer callback quiescence, serialize real writes, preserve incomplete failures without changing proof verdict, isolate all replay families and retain full negative/SHA bodies. No process/TLS identity or C ABI/proof/Scope changes. Host and real consumer checks remain separate from full Native/Outer compilation and physical GPU replay; rollback source, readers and tests together."
+    },
+    {
+      "id": "diagnostic_std_owner_dev_loop_383",
+      "net_code_budget": 220,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Delegated decision383#6929190994: route only five exact std-only diagnostic owner paths through existing dev_test and two additive canonical BUILD targets. Execute actual unchanged owners without constructing unrelated native/prover graphs. Retain check-only semantics, serial lock/resource guard, all full collectors/floors and original production-path obligations; no new launcher, dependencies, flags or public modules. Mixed Native/Worker/CLI edits must still select broader owners."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
@@ -2970,6 +2991,60 @@
         "versioned_files": 19
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6928120551"
+    },
+    {
+      "package": "stwo_riscv_cuda_integration",
+      "base_commit": "1223e7cff0688c95b99107f8426a2f68f9f71561",
+      "before": {
+        "code_files": 342,
+        "code_lines": 79504,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 37,
+        "versioned_files": 347
+      },
+      "after": {
+        "code_files": 345,
+        "code_lines": 80276,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 350
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6929948887"
+    },
+    {
+      "package": "stwo_ethereum_statement",
+      "base_commit": "1223e7cff0688c95b99107f8426a2f68f9f71561",
+      "before": {
+        "code_files": 423,
+        "code_lines": 75942,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 6,
+        "dependencies": 20,
+        "rv64_registry_flags": 28,
+        "versioned_files": 426
+      },
+      "after": {
+        "code_files": 427,
+        "code_lines": 76227,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 6,
+        "dependencies": 20,
+        "rv64_registry_flags": 21,
+        "versioned_files": 430
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-6929948887"
     }
   ]
 }

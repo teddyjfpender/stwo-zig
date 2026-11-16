@@ -86,7 +86,7 @@ The eleven integration-preset optimization switches are particularly concrete bl
 | `M8_JOBS_LIBRARY` | Native-default retirement gate: jobs library; retain until ordered promotion gates pass. | [driver_ge.zig](../../src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig) | /workspace/m3/build/m8-gn-codec/addon-5/libstwo-rv64-jobs.so, a8691a96b4192036147e9810e0ab4a5ada929cb55726d2d876a047774c9cfebb |
 | `M8_JOBS_PINNED_BYTES` | Native-default retirement gate: jobs pinned bytes; retain until ordered promotion gates pass. | [mod.zig](../../src/integrations/riscv_cuda/rv64/jobs/mod.zig) | 2365587456 |
 | `M8_JOBS_PLAN` | Native-default retirement gate: jobs plan; retain until ordered promotion gates pass. | [plan.zig](../../src/integrations/riscv_cuda/rv64/jobs/plan.zig) | none in maintained presets |
-| `M8_JOBS_PLAN_DIR` | Native-default retirement gate: jobs plan dir; retain until ordered promotion gates pass. | [plan.zig](../../src/integrations/riscv_cuda/rv64/jobs/plan.zig) | none in maintained presets |
+| `M8_JOBS_PLAN_DIR` | Retired destination: explicit parity fixtures publish final plans to their typed OUT/class-plans. | [plan.zig](../../src/integrations/riscv_cuda/rv64/jobs/plan.zig) | none in maintained presets |
 | `M8_OUTER_CHECK_FAULT_ORDINAL` | Native-default retirement gate: outer check fault ordinal; retain until ordered promotion gates pass. | [outer_checks.zig](../../src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig) | none in maintained presets |
 | `M8_OUTER_CLASS_PLAN` | Native-default retirement gate: outer class plan; retain until ordered promotion gates pass. | [outer_class_plan.zig](../../src/integrations/riscv_cuda/rv64/jobs/outer_class_plan.zig) | none in maintained presets |
 | `M8_OUTER_DECLARE_WORDS` | Native-default retirement gate: outer declare words; retain until ordered promotion gates pass. | [outer_job.zig](../../src/integrations/riscv_cuda/rv64/jobs/outer_job.zig) | none in maintained presets |
@@ -227,65 +227,88 @@ Decision [6927542834](https://github.com/teddyjfpender/stwo-zig/issues/332#issue
 
 AOT register scheduling uses the existing immutable replacement build path. The compatibility `--replace` spelling is accepted as a no-op, not another selector. Original baseline objects/artifacts remain the independent physical oracle; generated kernel bodies/reports and catalogue identities match the former explicit replacement path. Existing physical before/after benchmark sources are preserved. Runtime rollback now means choosing the original baseline artifact, rather than switching catalogues within an admitted artifact. No artifact is re-pinned and no currently-disabled GPU feature is promoted. The live RV64 count is63; the strict `<60` gate still requires four genuine retirements.
 
-## Follow-up boundary: request-owned recording datasets (not implemented)
+## Request-owned recording datasets (host qualified)
 
-There are **63 live RV64 controls**. Four further genuine retirements are still
-needed for `<60`. The record selectors and `M8_JOBS_PLAN_DIR` remain live;
-this design is not a delivered reduction or a new acceptance authority.
+The three NODE/PACK recording selectors are retired into the existing
+`STWO_RV64_LEAN_ARTIFACT_DIR` policy. Combined with typed final-plan publication,
+this leaves **59 live RV64 controls**. The numeric `<60` gate is met; ordered
+GPU-native promotion and physical record/replay qualification remain separate.
+No runtime control is hidden in a JSON menu, role option or thread-local ID.
 
-The proposed recording namespace is the existing `LEAN_ARTIFACT_DIR` run root,
-with separate execution dataset directories and fixed `pack` / `nodes` roles.
-Each dataset needs a manifest binding its execution identity, input/program
-identity, capture role and completion state. Replay must process each dataset
-independently; colon-separated historical pack roots must never be flattened
-into one ordinal namespace or silently omitted. Their migration needs explicit
-inventory and payload preservation before retiring their input selector.
+With the root absent, capture is disabled. Selecting it now opts into every
+available pack and node capture as well as the existing CPU artifact writers.
+Capture downloads, serialization, hashing and disk I/O consume extra resources;
+these runs are instrumented and must not be presented as clean production
+proving timings. Capture failures never replace the underlying proof verdict.
+An unsuccessful proof, failed capture or live borrow cannot publish completion.
 
-The concrete lifecycle and propagation work is:
+Each actual execution attempt owns one explicit Dataset under
+`ROOT/recordings/executions/<identity>/`, with fixed `pack` and `nodes` roles.
+The immutable manifest binds execution and attempt identities, purpose,
+request bytes and freshly computed program/input hashes checked against their
+request pins. Completion binds the exact independent role inventory, file sizes
+and hashes. Exclusive admission refuses identity conflicts; identical node/PCS
+publication is serialized and conflicting contents refuse. A node ordinal alone
+never selects a dataset.
 
-- `pcs_native.Context.beginBlock/endBlock` already own `active_block` and an
-  identity per context. `resident_batch` supplies an identity derived from
-  request bytes, trial and iteration. This can own a recording lease, rather
-  than introducing a process-global or thread-local current dataset.
-- Direct `rv64_hybrid_ethereum_main` and `rv64_outer_recursion_main` do not use
-  that block lifecycle. They need explicit execution-scoped lease ownership;
-  a missing identity must not fall back to one shared process directory.
-- `device_source.Context.buildSource` calls `gn_pack_record.begin` before
-  consumption and `finish` after MAIN. Pass the owned lease explicitly through
-  the native service/context; each `Recording` must retain its dataset directory
-  until its synchronous download/serialization finishes.
-- `pcs_native.prove` calls `outer_seed_record.pcsImage`; it needs the same
-  lease so native/truth PCS images stay with their eventual recursion nodes.
-- `outer_node_checks.Recorder.write` receives `Prestage.Input` and the staged
-  node, whose identity and ordinal describe a local proof, not the execution.
-  Propagate the lease through `outer_source` / `outer_hybrid_owner` shared
-  request state into the node recorder. Do not add diagnostic fields to the
-  serialized proof, C ABI or authenticated `Scope` tuple.
-- Class installation is a distinct lifecycle. `native_recursion_install` and
-  the `M8_GN_INSTALL` path can reset ordinals across classes. They need explicit
-  dataset boundaries/class identity, not an assumption that a process has one
-  execution or one monotonically increasing node ordinal.
-- End/abort must follow worker/callback quiescence. Only a successful complete
-  capture publishes a completion marker; cancellation leaves an explicitly
-  incomplete dataset. Repeated identities must compare existing content or
-  reject conflict, never reuse an ordinal-only file merely because it exists.
+The lifecycle is concrete:
 
-Required bounded host tests include two executions both starting at ordinal0,
-concurrent contexts sharing one run root, class-install ordinal resets,
-abort/retry, dataset-conflict refusal and preservation of every independent
-historical pack dataset. Tests must prove no borrowed lease outlives its owner
-and that replay never joins child roots or coverage across datasets. Preserve
-all nine GN physical cases plus the exact offset-zero case and every pack SHA
-comparison. Actual record/replay integration and CUDA execution remain separate
-qualified-host gates; directory tests alone cannot qualify the physical replay.
+- `resident_batch.requestOne` shares one owner across its Native contexts and
+  closes it after `hybrid.endRequest` quiescence and slot detachment.
+- Native `beginBlock` checks the installed execution binding; `endBlock`
+  releases its slot after the existing lease audit. Context destruction releases
+  remaining capture ownership only after the native C owner joins callbacks.
+- Direct combined, hybrid and standalone recursion entries own explicit sessions.
+  The latter includes both `recurse-candidate` and `resume-recursion-candidate`;
+  receiver-only commands do not enable capture.
+- Source assembly and each in-flight pack recording borrow the same owner;
+  every source-build error aborts the capture and releases its recording lease.
+  PCS and node serializers retain synchronous borrows through publication.
+- Hybrid node provers receive the matching Native slot. Ambiguous duplicate
+  device contexts disable capture and mark it incomplete; no first-match guess
+  or new service-count ceiling chooses a foreign execution.
+- Class installation calls `runCombinedForInstall` explicitly. Each one-block,
+  repeat-one installation invocation gets a fresh `.class_install` attempt.
+  `NodeClasses.installNode` refuses a different class at the same ordinal;
+  its installed inventory is dense and global to that invocation. Classes do
+  not reset node ordinals inside one warm execution, so child PCS records stay
+  together instead of being split into incomplete per-class datasets.
 
-`PLAN_DIR` has a separate prerequisite. `Worker.destroy` currently joins the
-worker, then calls `writePlanDir`, then frees classes/regions and retained state.
-The writer observes final `shut_down`, unbudgeted-region and pinned-service
-statistics. Publishing before destruction is not an equivalent snapshot.
-A bounded quiesce/final-snapshot ownership split must preserve that exact
-post-join/pre-release point and cleanup ordering, with a package API decision
-if another worker method must become public. Existing explicit diagnostic
-fixtures may then publish to their existing typed OUT without a new selector
-or production I/O. Keep `M8_JOBS_PLAN` independent: it changes actual class
-admission/peak policy and is not a redundant destination.
+Replay visits every complete modern dataset independently and deterministically.
+Historical colon-separated pack roots migrate one-for-one, with unchanged
+payloads or directory links, into
+`ROOT/recordings/historical/pack/<family>/`; historical node roots use
+`historical/nodes/<family>/`. Never flatten families, select the first old root
+as a writer, or join child roots across datasets. All explicitly imported
+historical families are passed to the unchanged per-family harness. An absent
+role skips; incomplete or corrupt provided data rejects. A modern nodes role
+containing only auxiliary PCS images does not claim node replay coverage.
+
+Host tests exercise simultaneous contexts, ordinal-zero reuse in independent
+executions/installations, actual file-pin checks, exclusive/content conflicts,
+abort/retry, live-borrow destruction refusal, post-completion write refusal and
+manifest corruption/inventory mismatch. The actual Session consumer executes
+against the real `Native.Context.recording` type and its admission refusal,
+without GPU initialization. All nine original GN negatives plus the exact
+first MAIN-path-word case, every pack SHA comparison and complete per-family
+replay bodies remain intact. Full Native/Outer/CLI typing and actual retained
+GPU record/replay remain **UNRUN**; host filesystem tests do not qualify them.
+
+`PLAN_DIR` retirement is implemented by two explicit nested Worker methods.
+`quiesce` closes admission, drains accepted jobs and serializes the worker join;
+repeated and concurrent external calls join once. `destroyWithPlan(OUT)` first
+quiesces, writes the unchanged v2 schema to `OUT/class-plans`, then releases the
+worker. Its self-thread refusal retains ownership; after successful quiescence,
+path, allocation and write failures consume the worker. Ordinary `destroy` has
+no diagnostic environment lookup or output side effect.
+
+The four existing native, truth, class-build and GN-S2 parity tools use their
+existing typed OUT. The sweep collects that `class-plans` subdirectory, avoiding
+proof JSON. Final snapshots retain the exact post-join/pre-metadata-release
+point: shutdown statistics and class, region and retained records remain alive
+until writing finishes. The original parse-back case is retained. Four host
+cases cover final parsed counters, concurrent joins, self-thread refusal,
+post-quiescence admission refusal, foreign-path failure and allocation failure;
+all 18 discovered cases pass in Debug and ReleaseFast under the 1 GiB cap.
+These are real Worker/FakeOps lifecycle checks, not GPU execution qualification.
+Keep `M8_JOBS_PLAN` independent: it changes actual class admission/peak policy.
