@@ -99,4 +99,5 @@ fn collectContractModules() void {
     _ = proof_program;
     _ = @import("proof_program_native_air_test.zig");
     _ = @import("error_codes_test.zig");
+    _ = @import("scalar_ownership_test.zig");
 }

@@ -47,6 +47,7 @@ test "invariant: OM31 retains its concrete transcript and rejects unknown profil
 }
 
 test {
+    _ = @import("wire_admission.zig");
     _ = air;
     _ = prove;
     _ = verifier_proof;

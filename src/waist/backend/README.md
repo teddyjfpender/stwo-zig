@@ -7,7 +7,7 @@ implementations; it contains contracts, not a working backend.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.4` |
+| Version | `1.0.0-rc.5` |
 | Layer | `contract` |
 | Owner | `backend-contracts` |
 | Public Zig module | `stwo_backend_contracts` |
@@ -152,3 +152,26 @@ authentication claim. File ownership transfers only on successful initialization
 Empty recipe registries are valid for resident-only plans. Actual temporary-file
 and Cairo-recipe tests exercise these operations; full device-hook campaigns
 remain separate. Version rc.4 adds these nested optional methods and meanings.
+
+### Scalar ownership and retry
+
+The scalar `line_evaluation` and `secure_column` libraries retain their typed
+error sets. These library errors are not serialized diagnostic codes.
+Constructors adopt caller buffers or resident storage only on success; rejected
+lengths leave caller ownership intact and do not destroy a resident handle.
+
+| Operation | Failure and retry contract |
+|---|---|
+| Allocating construction, cloning and conversion | OOM leaves the source and its ownership unchanged; retry with an allocator that can satisfy the request. |
+| Line interpolation with inconsistent length | Reject before allocation or mutation; correct the length/domain relationship before retry. |
+| Borrowed/resident interpolation | Source values and resident storage remain owned by the source on success or failure; temporary coefficients are released on failure. The returned polynomial owns independent host storage. |
+| Owned in-place interpolation | Success transfers values to the polynomial. A later arithmetic error may mutate values: discard them rather than assuming an unchanged retry. |
+
+Public line-domain fields must preserve their initialized invariants. The
+malformed-domain tests deliberately violate that precondition to exercise
+existing error cleanup; they are not examples of valid proof inputs.
+`scalar_ownership_test.zig` executes six registered invariant families for
+QM31 and OM31, including actual allocation refusal, corrected retries and
+exactly-once destruction of counted host resident handles. The original full
+package test passes 39 cases in each optimization profile. These host storage
+checks do not claim device execution or whole-proof qualification.

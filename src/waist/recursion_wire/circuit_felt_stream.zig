@@ -116,6 +116,27 @@ pub fn decode(gpa: std.mem.Allocator, felts: []const u64) DecodeError!DecodedPro
     return .{ .arena = arena, .proof = proof };
 }
 
+/// The optional output is borrowed for this synchronous call, cleared first,
+/// and written only for this concrete array decoder (no reader callback).
+pub fn decodeDiagnosed(gpa: std.mem.Allocator, felts: []const u64, failure: ?*?core.error_codes.Entry) DecodeError!DecodedProof {
+    if (failure) |sink| sink.* = null;
+    return decode(gpa, felts) catch |err| {
+        if (failure) |sink| sink.* = @import("error_codes.zig").fromFeltStream(err);
+        return err;
+    };
+}
+
+/// Public felt-JSON codec composition, not a claim of a live CLI receiver.
+pub fn decodeJsonDiagnosed(gpa: std.mem.Allocator, text: []const u8, failure: ?*?core.error_codes.Entry) (DecodeError || cairo_serialize.FeltJsonError)!DecodedProof {
+    if (failure) |sink| sink.* = null;
+    const felts = cairo_serialize.parseFeltJson(gpa, text) catch |err| {
+        if (failure) |sink| sink.* = @import("error_codes.zig").fromFeltJson(err);
+        return err;
+    };
+    defer gpa.free(felts);
+    return decodeDiagnosed(gpa, felts, failure);
+}
+
 fn readStarkProof(reader: *FeltReader, allocator: std.mem.Allocator) DecodeError!CairoStarkProof {
     var proof: CairoStarkProof = undefined;
     proof.fri_config = try reader.friConfig();
@@ -185,6 +206,23 @@ pub fn writeJson(out: *std.Io.Writer, proof: *const CairoCircuitProof) (cairo_se
     var sink = try cairo_serialize.FeltJsonWriter.begin(out);
     try encode(&sink, proof);
     try sink.end();
+}
+
+/// The concrete sink can return only WriteFailed. InvalidLinePoly in this
+/// error union therefore comes from the owned encoder, never a foreign sink.
+/// This concrete writer can raise only WriteFailed; generic felt sinks use
+/// encode unchanged and never pass through this origin-specific projection.
+pub fn writeJsonDiagnosed(out: *std.Io.Writer, proof: *const CairoCircuitProof, failure: ?*?core.error_codes.Entry) (cairo_serialize.EncodeError || std.Io.Writer.Error)!void {
+    if (failure) |sink| sink.* = null;
+    writeJson(out, proof) catch |err| {
+        switch (err) {
+            error.InvalidLinePoly => if (failure) |sink| {
+                sink.* = @import("error_codes.zig").fromFeltEncode(error.InvalidLinePoly);
+            },
+            error.WriteFailed => {},
+        }
+        return err;
+    };
 }
 
 fn m31s(comptime values: anytype) [values.len]M31 {

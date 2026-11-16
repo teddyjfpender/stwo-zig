@@ -15,6 +15,7 @@
 //! so at most one layer of proofs is live.
 
 const std = @import("std");
+const transport = @import("../wire_admission.zig");
 const prover = @import("stwo_prover_engine");
 const wire = @import("stwo_circuit_recursion_wire");
 const fold_mod = @import("fold.zig");
@@ -262,7 +263,7 @@ pub fn writeRootOutputs(
     packed_out: *std.Io.Writer,
 ) !void {
     switch (root.proof) {
-        .root => |*proof| try wire.circuit_felt_stream.writeJson(proof_out, proof),
+        .root => |*proof| try transport.writeRoot(proof_out, proof),
         .circuit => return error.NotARootProof,
     }
     try wire.packed_node.writeRootOutputs(outputs_out, root.output_digest);
@@ -282,7 +283,7 @@ pub fn writeCheckpoint(
         .circuit => |*value| value,
         .root => return error.RootProofFolded,
     };
-    const bytes = try wire.circuit_serialize.serializeProofAlloc(gpa, proof, fold.canonical.proofConfig());
+    const bytes = try transport.encodeBinary(gpa, proof, fold.canonical.proofConfig());
     defer gpa.free(bytes);
     try wire.checkpoint.write(out, .{
         .proof = bytes,

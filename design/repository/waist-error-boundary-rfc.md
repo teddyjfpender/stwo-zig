@@ -579,3 +579,72 @@ cases (collector+intended test). Existing inferred error sets are compared by
 resolved members, not deferred type identity. Earlier panic, zero-case and
 signature-identity diagnostic evidence remains retained. No complete process,
 proof or GPU qualification is inferred.
+
+## Final public framing origins after086eaafad
+
+Delegated RFC360 decision6927701491 authorizes this bounded RecursionWire
+rc.4 to rc.5 transaction under the user's standing owner approval, at most
+1200 net source/test lines. This records delegated implementation authority,
+not an independent security review. No Core/API/Backend edits, dependencies,
+flags or launchers are introduced. Root facade names stay unchanged; nested
+public diagnosed codec variants are additive. Existing overloads, transport
+pins, primary errors and partial writes remain compatible. The binary encoder
+now shares one validated writer body, eliminating its former repeated shape
+validation without changing what it accepts.
+
+This is the final finite interchange matrix for the selected production
+process/wire origins and public codec boundary. Earlier rc.2/rc.3/rc.4 tables
+remain historical evidence; their reserved5502 note is superseded here.
+
+| Owned operation and literal band | Actual operation/consumer | Evidence and exact limit |
+| --- | --- | --- |
+| Circuit binary decoder5001/5002, config5501, allocation5503 | Existing receiver plus CircuitCPU leaf/checkpoint decode | Typed public decoder and actual private transport execute; legacy leaf ignores trailing bytes, checkpoint rejects them at its own integration return site |
+| Binary encoder shape5502 and allocation5901 | CircuitCPU verifier-proof, leaf and checkpoint serialization | Positive public bytes match legacy; physical shape failure, all allocator failures and cleanup; writer WriteFailed remains foreign |
+| Decimal felt5801/5802 | LeafInput.outputDigest at LayerEntry.fromLeaf | Actual private leaf consumer, invalid decimal and every allocation failure; signed/modular upstream decimal behavior unchanged |
+| Felt-array primitives5601–5604, trailing5605, allocation5606 | Public circuit_felt_stream.decodeDiagnosed | Public codec only: no live CLI decoder is invented; actual canonical encoder supplies positive fixture, every truncated prefix has its exact deterministic refusal |
+| Felt JSON5701–5704 then felt-array decode | Public decodeJsonDiagnosed | Actual byte parser then actual array decoder; malformed/noncanonical/out-of-range scalars, every allocation failure and canonical roundtrip |
+| Concrete felt root writer5902 | CircuitCPU tree root writeRoot | Actual consumer positive bytes, exact rejection frame, partial-output parity and failed primary/diagnostic writers |
+| Registry5301–5304, packed5401, concrete JSON5201–5205 | Existing CPU admission, RV64 fold_root, eight concrete parser input routes | Prior retained public fixtures and actual scoped consumer tests; maximum-leaf query is a public query, not a fabricated CLI path |
+| Postcard5101–510a | Actual artifact receiver preflight | Exact parser error-set equality at origin, resource/structural separation, physical mutations; never generic reader/writer mapping |
+
+The concrete felt JSON writer callbacks can raise only std.Io.Writer.Error
+WriteFailed; InvalidLinePoly can only arise in its owned line-poly encoder.
+Its diagnosed wrapper maps that typed branch only. Generic encode(Sink) remains
+unchanged, including an actual foreign sink returning InvalidLinePoly. No
+outer generic writer/parser catch or arbitrary anyerror classifier is added.
+All optional output pointers are synchronous borrowed call outputs, cleared at
+entry and never retained. Canonical successful proof bytes, writer failure and
+failed diagnostic publication preserve the original primary behavior.
+
+New literal meanings are append-only:5601–5606 array decoder;
+5701–5704 felt JSON;5801/5802 decimal;5502 encoder shape;5901 encoder allocation;
+5902 concrete felt writer shape. All have since1.0.0-rc.5. Only OutOfMemory is
+resource_exhausted. Old code5501/5503 and all older meanings retain their since
+versions. Invalid input is not retry permission; transient I/O and foreign
+callbacks remain unmapped, and resource retry belongs to the actual caller.
+No stale metadata or diagnostic writer failure converts a refusal to success.
+
+Tests first produced missing-diagnosed-operation RED. The first physical
+32-case run exposed an overly broad test expectation: at the line-poly length
+prefix, the existing bounded length admission returns ValueOutOfRange before
+any scalar read; other truncated prefixes return EndOfStream. The preserved
+failure is corrected by pinning each exact prefix, without changing admission.
+Provider32, actual private consumer3 and existing upstream golden6 cases pass
+in Debug and ReleaseFast under the unchanged1GiB cap (sampled peak465MB).
+These are actual codec/consumer operations, not declaration-only coverage.
+Full CircuitCPU proof/CLI execution and hardware qualification remain unrun;
+small serializer fixtures establish transport behavior, not valid STARKs.
+
+The five-provider process boundary ledger is now finite: Core verification,
+revision config and shape at Native/RV64 receivers; Backend program/native-AIR
+and recovery at actual engine/Cairo admission; API quotient, task/work,
+joined-custody and device admission at real Capture/Engine/RV64 routes;
+ProofWire canonical byte codecs at Native verification/interop; RecursionWire
+operations in the matrix above. Each family preserves its cause and captured
+origin rather than relabeling coincident foreign tags. Independent callback
+and device failures, generic codecs with custom field/hash hooks and direct
+library scalar helpers stay typed/unmapped where no owned process boundary
+exists. This does not inflate the global ledger with a code for every internal
+helper or assert whole D2 completion before the invariant owner's final
+library-contract and matrix review. Previously deferred Linux/Sail/native
+qualification and full proof timings are separate, still-unrun obligations.

@@ -122,3 +122,13 @@ Scheduled AOT kernels use the existing immutable replacement mode; the original
 artifact remains the independent comparison baseline. Host tests preserve launch
 bodies, benchmark cases, catalog geometry and linker authority. CUDA compilation,
 physical replay and runtime artifact repinning remain unrun.
+
+Final public recursion framing now records typed binary encoder, felt codec and
+decimal failures. Actual CircuitCPU adapters preserve the primary failure even
+if diagnostic I/O fails. Provider32/consumer3/upstream golden6 cases pass each
+mode; codec-only input tests do not establish a live CLI receiver. Full Backend
+39 cases pass each mode, including QM31/OM31 constructor ownership, resident
+cleanup, allocation failure and retry. A temporary-buffer leak after inconsistent
+public-state mutation is fixed without changing valid interpolation arithmetic.
+Owned in-place arithmetic failures may mutate values; unchanged retry is not
+promised. Broad proof and hardware qualification remain separate.

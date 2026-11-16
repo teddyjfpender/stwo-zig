@@ -222,7 +222,19 @@ pub fn serializeProof(
     proof: *const Proof,
     config: ProofConfig,
 ) (ShapeError || ConfigError || std.Io.Writer.Error)!void {
-    try proof.validateShape(config);
+    return serializeProofDiagnosed(writer, proof, config, null);
+}
+
+pub fn serializeProofDiagnosed(writer: *std.Io.Writer, proof: *const Proof, config: ProofConfig, failure: ?*?core.error_codes.Entry) (ShapeError || ConfigError || std.Io.Writer.Error)!void {
+    if (failure) |sink| sink.* = null;
+    proof.validateShape(config) catch |err| {
+        if (failure) |sink| sink.* = @import("error_codes.zig").fromCircuitEncode(err);
+        return err;
+    };
+    return writeValidatedProof(writer, proof);
+}
+
+fn writeValidatedProof(writer: *std.Io.Writer, proof: *const Proof) std.Io.Writer.Error!void {
     try writeQm31(writer, proof.channel_salt);
     try writer.writeAll(&proof.trace_root);
     try writer.writeAll(&proof.interaction_root);
@@ -248,22 +260,33 @@ pub fn serializeProof(
 }
 
 /// Encodes `proof` into a new allocation of exactly `config.serializedLen()`.
-pub fn serializeProofAlloc(
-    allocator: std.mem.Allocator,
-    proof: *const Proof,
-    config: ProofConfig,
-) (ShapeError || ConfigError || std.mem.Allocator.Error)![]u8 {
-    try proof.validateShape(config);
-    const bytes = try allocator.alloc(u8, config.serializedLen());
+pub fn serializeProofAlloc(allocator: std.mem.Allocator, proof: *const Proof, config: ProofConfig) (ShapeError || ConfigError || std.mem.Allocator.Error)![]u8 {
+    return serializeProofAllocDiagnosed(allocator, proof, config, null);
+}
+
+pub fn serializeProofAllocDiagnosed(allocator: std.mem.Allocator, proof: *const Proof, config: ProofConfig, failure: ?*?core.error_codes.Entry) (ShapeError || ConfigError || std.mem.Allocator.Error)![]u8 {
+    if (failure) |sink| sink.* = null;
+    proof.validateShape(config) catch |err| {
+        if (failure) |sink| sink.* = @import("error_codes.zig").fromCircuitEncode(err);
+        return err;
+    };
+    const bytes = allocator.alloc(u8, config.serializedLen()) catch |err| {
+        if (failure) |sink| sink.* = @import("error_codes.zig").fromCircuitEncode(err);
+        return err;
+    };
     errdefer allocator.free(bytes);
     var writer = std.Io.Writer.fixed(bytes);
-    serializeProof(&writer, proof, config) catch |err| switch (err) {
-        // The shape check above sized the buffer exactly.
-        error.WriteFailed => unreachable,
-        else => |other| return other,
-    };
+    writeValidatedProof(&writer, proof) catch unreachable;
     std.debug.assert(writer.end == bytes.len);
     return bytes;
+}
+
+pub fn deserializeProofDiagnosed(gpa: std.mem.Allocator, bytes: []const u8, config: ProofConfig, failure: ?*?core.error_codes.Entry) (DecodeError || ConfigError || std.mem.Allocator.Error)!DecodedProof {
+    if (failure) |sink| sink.* = null;
+    return deserializeProof(gpa, bytes, config) catch |err| {
+        if (failure) |sink| sink.* = @import("error_codes.zig").fromCircuitInput(err);
+        return err;
+    };
 }
 
 fn writeQm31(writer: *std.Io.Writer, value: QM31) std.Io.Writer.Error!void {
@@ -396,4 +419,37 @@ test "circuit serialize: encoding rejects a proof whose shape differs from the c
     var bad_config = test_config;
     bad_config.fri.fold_step = 0;
     try std.testing.expectError(error.InvalidProofShape, deserializeProof(allocator, bytes, bad_config));
+}
+
+test "binary encoder diagnostics preserve bytes shape resource and writer error origins" {
+    const a = std.testing.allocator;
+    const bytes = try patternBytes(a, test_config.serializedLen());
+    defer a.free(bytes);
+    var decoded = try deserializeProof(a, bytes, test_config);
+    defer decoded.deinit();
+    var failure: ?@import("stwo_core").error_codes.Entry = null;
+    const encoded = try serializeProofAllocDiagnosed(a, &decoded.proof, test_config, &failure);
+    defer a.free(encoded);
+    try std.testing.expectEqualSlices(u8, bytes, encoded);
+    try std.testing.expect(failure == null);
+    var malformed = decoded.proof;
+    malformed.claimed_sums = &.{};
+    try std.testing.expectError(error.ShapeMismatch, serializeProofAllocDiagnosed(a, &malformed, test_config, &failure));
+    try std.testing.expectEqual(@as(u16, 0x5502), failure.?.code);
+    var none: [0]u8 = .{};
+    var writer = std.Io.Writer.fixed(&none);
+    try std.testing.expectError(error.WriteFailed, serializeProofDiagnosed(&writer, &decoded.proof, test_config, &failure));
+    try std.testing.expect(failure == null);
+    const Runner = struct {
+        fn run(allocator: std.mem.Allocator, proof: *const Proof) !void {
+            var detail: ?@import("stwo_core").error_codes.Entry = null;
+            const result = serializeProofAllocDiagnosed(allocator, proof, test_config, &detail) catch |err| {
+                try std.testing.expectEqual(@as(u16, 0x5901), detail.?.code);
+                return err;
+            };
+            defer allocator.free(result);
+            try std.testing.expect(detail == null);
+        }
+    };
+    try std.testing.checkAllAllocationFailures(a, Runner.run, .{&decoded.proof});
 }

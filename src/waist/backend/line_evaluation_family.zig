@@ -29,6 +29,7 @@ pub fn ForField(comptime Secure: type) type {
                 DivisionByZero,
             };
 
+            /// Takes caller ownership only on success; refusal leaves values untouched.
             pub fn initOwned(line_domain: LineDomain, values: []Secure) Error!LineEvaluation {
                 if (values.len != line_domain.size()) return Error.InvalidLength;
                 return .{
@@ -54,6 +55,7 @@ pub fn ForField(comptime Secure: type) type {
                 self.* = undefined;
             }
 
+            /// Adopts the resident lease only on success; refusal does not destroy it.
             pub fn initResident(
                 line_domain: LineDomain,
                 values: []Secure,
@@ -97,14 +99,21 @@ pub fn ForField(comptime Secure: type) type {
             /// Interpolates this evaluation into a line polynomial.
             ///
             /// Consumes ownership of `values` when this evaluation owns them.
+            /// Public fields must retain the validated domain invariants. Length
+            /// refusal and OOM leave the evaluation unchanged. A later arithmetic
+            /// error may mutate owned in-place values; discard rather than retry
+            /// them. Borrowed/resident values and their lease are never consumed.
             pub fn interpolate(
                 self: *LineEvaluation,
                 allocator: std.mem.Allocator,
             ) (std.mem.Allocator.Error || Error)!LinePoly {
-                const coeffs: []Secure = if (self.owns_values and self.resident_storage == null)
+                if (self.values.len != self.domain_value.size()) return Error.InvalidLength;
+                const takes_values = self.owns_values and self.resident_storage == null;
+                const coeffs: []Secure = if (takes_values)
                     @constCast(self.values)
                 else
                     try allocator.dupe(Secure, self.values);
+                errdefer if (!takes_values) allocator.free(coeffs);
 
                 core_utils.bitReverse(Secure, coeffs);
                 try lineIfft(coeffs, self.domain_value);
@@ -113,7 +122,7 @@ pub fn ForField(comptime Secure: type) type {
                 const len_inv = len_m31.inv() catch return Error.DivisionByZero;
                 for (coeffs) |*v| v.* = v.mulM31(len_inv);
 
-                if (self.owns_values and self.resident_storage == null) {
+                if (takes_values) {
                     self.values = &[_]Secure{};
                     self.owns_values = false;
                 }

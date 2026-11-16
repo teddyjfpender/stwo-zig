@@ -86,6 +86,9 @@ pub const LeafInput = struct {
     pub fn outputDigest(self: LeafInput, allocator: std.mem.Allocator) blake2_felt252.Error![n_digest_words]u32 {
         return blake2_felt252.outputDigest(allocator, self.output_preimage);
     }
+    pub fn outputDigestDiagnosed(self: LeafInput, allocator: std.mem.Allocator, failure: ?*?@import("stwo_core").error_codes.Entry) blake2_felt252.Error![n_digest_words]u32 {
+        return blake2_felt252.outputDigestDiagnosed(allocator, self.output_preimage, failure);
+    }
 };
 
 pub const ReadError = json_text.ReadError;

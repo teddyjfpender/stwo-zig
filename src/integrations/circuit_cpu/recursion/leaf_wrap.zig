@@ -34,6 +34,7 @@
 //! (rung R10c).
 
 const std = @import("std");
+const transport = @import("../wire_admission.zig");
 const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
@@ -418,7 +419,7 @@ fn wrapCairoProofImpl(
                 .root => return error.WrongProofProfile,
             };
             const config_shape = try verifier_proof.proofConfig(topology.preprocessed.columns.len, pcs_config);
-            break :blk try wire.circuit_serialize.serializeProofAlloc(allocator, internal_proof, config_shape);
+            break :blk try transport.encodeBinary(allocator, internal_proof, config_shape);
         }
         var prepared = try verifier_proof.prepare(allocator, &circuit_proof.?);
         defer prepared.deinit();

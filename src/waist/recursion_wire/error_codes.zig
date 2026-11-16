@@ -43,6 +43,21 @@ pub const table = [_]Entry{
     .{ .tag = "TooDeep", .code = 0x5401, .class = .invalid_input, .since = "1.0.0-rc.4" },
     .{ .tag = "InvalidProofShape", .code = 0x5501, .class = .invalid_input, .since = "1.0.0-rc.4" },
     .{ .tag = "OutOfMemory", .code = 0x5503, .class = .resource_exhausted, .since = "1.0.0-rc.4" },
+    .{ .tag = "EndOfStream", .code = 0x5601, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "ValueOutOfRange", .code = 0x5602, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "InvalidDiscriminant", .code = 0x5603, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "InvalidLinePoly", .code = 0x5604, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "TrailingData", .code = 0x5605, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "OutOfMemory", .code = 0x5606, .class = .resource_exhausted, .since = "1.0.0-rc.5" },
+    .{ .tag = "InvalidFeltJson", .code = 0x5701, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "NonCanonicalFelt", .code = 0x5702, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "ValueOutOfRange", .code = 0x5703, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "OutOfMemory", .code = 0x5704, .class = .resource_exhausted, .since = "1.0.0-rc.5" },
+    .{ .tag = "InvalidDecimalFelt", .code = 0x5801, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "OutOfMemory", .code = 0x5802, .class = .resource_exhausted, .since = "1.0.0-rc.5" },
+    .{ .tag = "ShapeMismatch", .code = 0x5502, .class = .invalid_input, .since = "1.0.0-rc.5" },
+    .{ .tag = "OutOfMemory", .code = 0x5901, .class = .resource_exhausted, .since = "1.0.0-rc.5" },
+    .{ .tag = "InvalidLinePoly", .code = 0x5902, .class = .invalid_input, .since = "1.0.0-rc.5" },
 };
 pub fn fromCircuitDecode(err: DecodeError) Entry {
     return switch (err) {
@@ -113,6 +128,52 @@ pub fn fromCircuitInput(err: CircuitInputError) Entry {
         error.OutOfMemory => table[23],
     };
 }
+pub fn fromFeltPrimitive(err: @import("interop_felt_json").DecodeError) Entry {
+    return switch (err) {
+        error.EndOfStream => table[24],
+        error.ValueOutOfRange => table[25],
+        error.InvalidDiscriminant => table[26],
+        error.InvalidLinePoly => table[27],
+    };
+}
+pub fn fromFeltStream(err: @import("circuit_felt_stream.zig").DecodeError) Entry {
+    return switch (err) {
+        error.TrailingData => table[28],
+        error.OutOfMemory => table[29],
+        error.EndOfStream => fromFeltPrimitive(error.EndOfStream),
+        error.ValueOutOfRange => fromFeltPrimitive(error.ValueOutOfRange),
+        error.InvalidDiscriminant => fromFeltPrimitive(error.InvalidDiscriminant),
+        error.InvalidLinePoly => fromFeltPrimitive(error.InvalidLinePoly),
+    };
+}
+pub fn fromFeltJson(err: @import("interop_felt_json").FeltJsonError) Entry {
+    return switch (err) {
+        error.InvalidFeltJson => table[30],
+        error.NonCanonicalFelt => table[31],
+        error.ValueOutOfRange => table[32],
+        error.OutOfMemory => table[33],
+    };
+}
+pub fn fromDecimal(err: @import("blake2_felt252.zig").Error) Entry {
+    return switch (err) {
+        error.InvalidDecimalFelt => table[34],
+        error.OutOfMemory => table[35],
+    };
+}
+pub const CircuitEncodeError = @import("circuit_serialize.zig").ShapeError || @import("circuit_serialize.zig").ConfigError || std.mem.Allocator.Error;
+pub fn fromCircuitEncode(err: CircuitEncodeError) Entry {
+    return switch (err) {
+        error.ShapeMismatch => table[36],
+        error.OutOfMemory => table[37],
+        error.InvalidProofShape => fromCircuitConfig(error.InvalidProofShape),
+    };
+}
+pub fn fromFeltEncode(err: @import("interop_felt_json").EncodeError) Entry {
+    return switch (err) {
+        error.InvalidLinePoly => table[38],
+    };
+}
+
 pub fn lookup(code: u16) ?Entry {
     for (table) |entry| if (entry.code == code) return entry;
     return null;
@@ -126,7 +187,7 @@ test "api signature: circuit decode codes require the owned error set" {
 }
 
 test "circuit decode code table pins meanings classes versions and unknown refusal" {
-    try std.testing.expectEqual(@as(usize, 24), table.len);
+    try std.testing.expectEqual(@as(usize, 39), table.len);
     const errors = [_]@import("circuit_serialize.zig").DecodeError{ error.NotEnoughData, error.ValueOutOfRange };
     for (errors, [_]u16{ 0x5001, 0x5002 }) |err, code| {
         const entry = fromCircuitDecode(err);
@@ -187,5 +248,23 @@ test "recursion registry packed and config codes pin exact concrete input origin
     try std.testing.expectEqual(@as(u16, 0x5204), fromPacked(error.OutOfMemory).code);
     try std.testing.expectEqual(@as(u16, 0x5501), fromCircuitConfig(error.InvalidProofShape).code);
     try std.testing.expectEqual(@as(u16, 0x5503), fromCircuitInput(error.OutOfMemory).code);
-    for ([_]u16{ 0x5300, 0x5305, 0x5400, 0x5402, 0x5500, 0x5502, 0x5504 }) |id| try std.testing.expect(lookup(id) == null);
+    for ([_]u16{ 0x5300, 0x5305, 0x5400, 0x5402, 0x5500, 0x5504 }) |id| try std.testing.expect(lookup(id) == null);
+}
+
+test "final framing codes pin public codec errors and append-only meanings" {
+    const errors = [_]@import("circuit_felt_stream.zig").DecodeError{ error.EndOfStream, error.ValueOutOfRange, error.InvalidDiscriminant, error.InvalidLinePoly, error.TrailingData, error.OutOfMemory };
+    try std.testing.expect(@typeInfo(@TypeOf(fromFeltStream)).@"fn".params[0].type.? == @import("circuit_felt_stream.zig").DecodeError);
+    for (errors, 0..) |err, index| {
+        const entry = fromFeltStream(err);
+        try std.testing.expectEqual(@as(u16, @intCast(0x5601 + index)), entry.code);
+        try std.testing.expectEqualStrings(@errorName(err), entry.tag);
+        try std.testing.expectEqualStrings("1.0.0-rc.5", entry.since);
+        try std.testing.expectEqual(if (err == error.OutOfMemory) @import("stwo_core").error_codes.Class.resource_exhausted else .invalid_input, entry.class);
+    }
+    try std.testing.expectEqual(@as(u16, 0x5502), fromCircuitEncode(error.ShapeMismatch).code);
+    try std.testing.expectEqual(@as(u16, 0x5901), fromCircuitEncode(error.OutOfMemory).code);
+    try std.testing.expectEqual(@as(u16, 0x5902), fromFeltEncode(error.InvalidLinePoly).code);
+    try std.testing.expectEqual(@as(u16, 0x5801), fromDecimal(error.InvalidDecimalFelt).code);
+    try std.testing.expectEqual(@as(u16, 0x5802), fromDecimal(error.OutOfMemory).code);
+    for ([_]u16{ 0x5600, 0x5607, 0x5700, 0x5705, 0x5800, 0x5803, 0x5900, 0x5903 }) |code| try std.testing.expect(lookup(code) == null);
 }

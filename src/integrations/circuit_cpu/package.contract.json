@@ -43,7 +43,10 @@
       "mod.zig::invariant: both profiles commit with the plain Blake2s Merkle hasher",
       "recursion/registry_admission.zig::registry admission executes actual query origins and preserves writer failure",
       "verify.zig::coded circuit input catches real invalid config and owned allocation without foreign relabel",
-      "verify.zig::coded decoder rejection preserves origin reason and allocation failure"
+      "verify.zig::coded decoder rejection preserves origin reason and allocation failure",
+      "wire_admission.zig::actual recursion transports preserve positive bytes digest and owned causes",
+      "wire_admission.zig::actual root writer emits only concrete codec failure and preserves primary writer errors",
+      "wire_admission.zig::decimal digest every allocation failure is owned and diagnostic write cannot replace it"
     ]
   },
   "ci": {
@@ -60,14 +63,14 @@
     ]
   },
   "budget": {
-    "code_files": 62,
-    "code_lines": 9288,
+    "code_files": 63,
+    "code_lines": 9428,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 9,
     "dependencies": 8,
-    "rv64_registry_flags": 2,
-    "versioned_files": 65
+    "rv64_registry_flags": 1,
+    "versioned_files": 66
   }
 }

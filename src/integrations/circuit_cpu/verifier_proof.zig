@@ -16,6 +16,7 @@
 //! (what a fold node guesses).
 
 const std = @import("std");
+const transport = @import("wire_admission.zig");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const wire = @import("stwo_circuit_recursion_wire").circuit_serialize;
@@ -68,7 +69,7 @@ pub const VerifierProof = struct {
 
     /// `CircuitSerialize::serialize`.
     pub fn serialize(self: *const VerifierProof, allocator: std.mem.Allocator) ![]u8 {
-        return wire.serializeProofAlloc(allocator, &self.proof, self.config);
+        return transport.encodeBinary(allocator, &self.proof, self.config);
     }
 };
 

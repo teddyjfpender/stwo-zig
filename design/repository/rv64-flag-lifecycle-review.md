@@ -226,3 +226,66 @@ Subprocess scratch derives from the existing producer CLI OUT as `OUT/.gpu-hybri
 Decision [6927542834](https://github.com/teddyjfpender/stwo-zig/issues/332#issuecomment-6927542834) removes three process variant selectors. Public DEEP and SAMPLE C entrypoints call their unchanged current default path with `legacy=false`. Hidden internal C++ launch functions retain both algorithms, with typed true/false calls from the existing statically linked physical benchmark. They add no public C ABI export. Tests pin every normalized launch-body token, all physical benchmark cases/poison/status comparisons and timing boundaries, plus real public structure layouts and hidden C++ header signatures. CUDA translation and execution remain **UNRUN**; source preservation and host header compilation are not GPU qualification.
 
 AOT register scheduling uses the existing immutable replacement build path. The compatibility `--replace` spelling is accepted as a no-op, not another selector. Original baseline objects/artifacts remain the independent physical oracle; generated kernel bodies/reports and catalogue identities match the former explicit replacement path. Existing physical before/after benchmark sources are preserved. Runtime rollback now means choosing the original baseline artifact, rather than switching catalogues within an admitted artifact. No artifact is re-pinned and no currently-disabled GPU feature is promoted. The live RV64 count is63; the strict `<60` gate still requires four genuine retirements.
+
+## Follow-up boundary: request-owned recording datasets (not implemented)
+
+There are **63 live RV64 controls**. Four further genuine retirements are still
+needed for `<60`. The record selectors and `M8_JOBS_PLAN_DIR` remain live;
+this design is not a delivered reduction or a new acceptance authority.
+
+The proposed recording namespace is the existing `LEAN_ARTIFACT_DIR` run root,
+with separate execution dataset directories and fixed `pack` / `nodes` roles.
+Each dataset needs a manifest binding its execution identity, input/program
+identity, capture role and completion state. Replay must process each dataset
+independently; colon-separated historical pack roots must never be flattened
+into one ordinal namespace or silently omitted. Their migration needs explicit
+inventory and payload preservation before retiring their input selector.
+
+The concrete lifecycle and propagation work is:
+
+- `pcs_native.Context.beginBlock/endBlock` already own `active_block` and an
+  identity per context. `resident_batch` supplies an identity derived from
+  request bytes, trial and iteration. This can own a recording lease, rather
+  than introducing a process-global or thread-local current dataset.
+- Direct `rv64_hybrid_ethereum_main` and `rv64_outer_recursion_main` do not use
+  that block lifecycle. They need explicit execution-scoped lease ownership;
+  a missing identity must not fall back to one shared process directory.
+- `device_source.Context.buildSource` calls `gn_pack_record.begin` before
+  consumption and `finish` after MAIN. Pass the owned lease explicitly through
+  the native service/context; each `Recording` must retain its dataset directory
+  until its synchronous download/serialization finishes.
+- `pcs_native.prove` calls `outer_seed_record.pcsImage`; it needs the same
+  lease so native/truth PCS images stay with their eventual recursion nodes.
+- `outer_node_checks.Recorder.write` receives `Prestage.Input` and the staged
+  node, whose identity and ordinal describe a local proof, not the execution.
+  Propagate the lease through `outer_source` / `outer_hybrid_owner` shared
+  request state into the node recorder. Do not add diagnostic fields to the
+  serialized proof, C ABI or authenticated `Scope` tuple.
+- Class installation is a distinct lifecycle. `native_recursion_install` and
+  the `M8_GN_INSTALL` path can reset ordinals across classes. They need explicit
+  dataset boundaries/class identity, not an assumption that a process has one
+  execution or one monotonically increasing node ordinal.
+- End/abort must follow worker/callback quiescence. Only a successful complete
+  capture publishes a completion marker; cancellation leaves an explicitly
+  incomplete dataset. Repeated identities must compare existing content or
+  reject conflict, never reuse an ordinal-only file merely because it exists.
+
+Required bounded host tests include two executions both starting at ordinal0,
+concurrent contexts sharing one run root, class-install ordinal resets,
+abort/retry, dataset-conflict refusal and preservation of every independent
+historical pack dataset. Tests must prove no borrowed lease outlives its owner
+and that replay never joins child roots or coverage across datasets. Preserve
+all nine GN physical cases plus the exact offset-zero case and every pack SHA
+comparison. Actual record/replay integration and CUDA execution remain separate
+qualified-host gates; directory tests alone cannot qualify the physical replay.
+
+`PLAN_DIR` has a separate prerequisite. `Worker.destroy` currently joins the
+worker, then calls `writePlanDir`, then frees classes/regions and retained state.
+The writer observes final `shut_down`, unbudgeted-region and pinned-service
+statistics. Publishing before destruction is not an equivalent snapshot.
+A bounded quiesce/final-snapshot ownership split must preserve that exact
+post-join/pre-release point and cleanup ordering, with a package API decision
+if another worker method must become public. Existing explicit diagnostic
+fixtures may then publish to their existing typed OUT without a new selector
+or production I/O. Keep `M8_JOBS_PLAN` independent: it changes actual class
+admission/peak policy and is not a redundant destination.
