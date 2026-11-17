@@ -10,5 +10,8 @@
     "@foundry-rs/anvil": "1.7.1",
     "ethers": "6.15.0",
     "solc": "0.8.30"
+  },
+  "overrides": {
+    "tmp": "0.2.7"
   }
 }
