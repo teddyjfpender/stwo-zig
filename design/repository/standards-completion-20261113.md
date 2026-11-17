@@ -261,3 +261,16 @@ Both original ReleaseFast CSP bodies pass on native Apple M5 Max at q70/P26:
 B2 prove/verify0.820/0.294s; B3 0.937/0.180s, fresh receivers and negatives.
 Compile peaks3.419/3.429GB; runtime637/738MB. Instrumented measurements;
 this qualifies local ARM runtime, not the retained Emerald Rapids failure.
+
+## Focused historical corpus and consumer scheduling
+
+Four of21 original historical cases now pass both Debug and ReleaseFast: the
+three wire-owner cases and the two-instance LS-ladder case. Every original
+assertion remains; opaque codec checks are not accepting proofs. The physical
+wire case takes47.19s/3.13s and LS41.05s/2.70s in Debug/ReleaseFast under the
+unchanged1GiB runtime guard. Seventeen originals remain; collectors add no credit.
+
+The internal SDK exposes76 per-consumer aliases reusing each original test,
+discovery guard and installed artifact. All76 plus five aggregate steps configure
+exactly once; one actual Core consumer passes through its alias under326MB.
+These are internal SDK targets, not public root-dispatch or full-matrix proof.

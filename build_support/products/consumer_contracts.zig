@@ -169,7 +169,18 @@ pub fn add(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builti
             };
             guard.step.dependOn(&run.step);
             step.dependOn(&guard.step);
-            step.dependOn(&context.b.addInstallArtifact(artifact, .{ .dest_sub_path = name }).step);
+            const install = &context.b.addInstallArtifact(artifact, .{ .dest_sub_path = name }).step;
+            step.dependOn(install);
+            // Keep underscores: identifiers contain no hyphens, so tuple boundaries are unique.
+            const alias_name = context.b.allocator.dupe(u8, context.b.fmt("test-cdc-one-{s}-{s}", .{ provider.name, registration.id })) catch @panic("OOM");
+            for (alias_name) |*character| if (character.* == ':') {
+                character.* = '-';
+            };
+            const alias = context.b.step(alias_name, "Run one exact registered consumer contract image");
+            alias.dependOn(&guard.step);
+            alias.dependOn(install);
+            if (alias.dependencies.items.len != 2 or alias.dependencies.items[0] != &guard.step or alias.dependencies.items[1] != install)
+                @panic("consumer alias lost its original discovery guard or installed artifact");
         }
     }
 }
