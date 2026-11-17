@@ -88,7 +88,7 @@ pub const Prover = struct {
     /// template, children from a node-local stand-in of the request slab) and
     /// require its device-encoded bytes == the published host bytes.
     fn gnJob(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, cur: *const @import("jobs/outer_staged.zig").Staged, g: *const Checks.GnCheck, wire: []const u8, image: []const u32, handoff: ?Job.FixedHandoff) !void {
-        const entry = NodeClasses.get(cur.class_key) orelse return error.GnNodeClassNotHarvested;
+        const entry = NodeClasses.get(NodeClasses.bindingKey(cur.class_key, g.prog_key)) orelse return error.GnNodeClassNotHarvested;
         // A leaf's Blake sample prefill tape is a per-node HOST input today
         // (leaf_graph): hand this node's to the template (same class, same
         // length; remaining host work, see the receipt).
@@ -432,11 +432,23 @@ pub const NodeClasses = struct {
             if (old != e) return error.GnNodeInstallOrdinal;
         } else try install_nodes.put(std.heap.c_allocator, ordinal, e);
     }
+    // A universal verifier body can verify different child authorities.
+    // Only the seed program binds those immutable, ordered child contexts.
+    fn bindingKey(body: [32]u8, program: [32]u8) [32]u8 {
+        var h = std.crypto.hash.sha2.Sha256.init(.{});
+        h.update("rv64/outer-node/binding-class/v1\x00");
+        h.update(&body);
+        h.update(&program);
+        return h.finalResult();
+    }
+    fn find(list: []const *Entry, class_key: [32]u8) ?*Entry {
+        for (list) |e| if (std.mem.eql(u8, &e.class_key, &class_key)) return e;
+        return null;
+    }
     pub fn get(class_key: [32]u8) ?*Entry {
         mutex.lock();
         defer mutex.unlock();
-        for (entries.items) |e| if (std.mem.eql(u8, &e.class_key, &class_key)) return e;
-        return null;
+        return find(entries.items, class_key);
     }
     pub fn pack(entry: *Entry) !void {
         if (entry.compressed == null) entry.compressed = try Prestage.packTemplate(std.heap.c_allocator, entry.staged);
@@ -450,7 +462,8 @@ pub const NodeClasses = struct {
     /// Returns true when `staged` became the class template (the caller
     /// must not deinit it).
     fn harvest(shared: *const Schema.Shared, input: Prestage.Input, staged: *@import("jobs/outer_staged.zig").Staged, job: *Job.OuterNodeJob, g: *const Checks.GnCheck) !bool {
-        if (get(staged.class_key)) |known| {
+        const class_key = bindingKey(staged.class_key, g.prog_key);
+        if (get(class_key)) |known| {
             if (installing()) try installNode(input.ordinal, known);
             return false;
         }
@@ -469,9 +482,11 @@ pub const NodeClasses = struct {
         const own_template = installing();
         const template = if (own_template) try Prestage.retainTemplate(a, input, staged) else staged;
         errdefer if (own_template) template.deinit();
+        // Worker admission follows the binding; body graph/statics stay shared.
+        if (own_template) template.class_key = class_key;
         const nk = g.regions.len;
         e.* = .{
-            .class_key = staged.class_key,
+            .class_key = class_key,
             .node = .{ .program = &.{}, .prog_key = @splat(0), .n_children = @intCast(nk), .output_words = @intCast(staged.expected.len), .ctx = e, .make = Runtime.Adapter(Entry).make },
             .shared = shared,
             .runtime_symbols = .{ .kernels = &shared.kernels, .whole = shared.whole(), .encode = shared.encode, .oods = shared.oods },
@@ -524,7 +539,7 @@ pub const NodeClasses = struct {
         defer mutex.unlock();
         try entries.append(a, e);
         if (own_template) try install_nodes.put(a, input.ordinal, e);
-        std.debug.print("GN_NODE_CLASS harvested ordinal={d} class={x} leaf={} children={d} classes={d}\n", .{ input.ordinal, staged.class_key[0..8].*, input.is_leaf, nk, entries.items.len });
+        std.debug.print("GN_NODE_CLASS harvested ordinal={d} class={x} leaf={} children={d} classes={d}\n", .{ input.ordinal, class_key[0..8].*, input.is_leaf, nk, entries.items.len });
         return !own_template;
     }
     fn parseShape(a: std.mem.Allocator, words: []const u32) !Seed.Shape {
@@ -697,3 +712,17 @@ const GnJob = struct {
 // lane's legacy om31 Factory: host plan preparation, tape readiness,
 // admission and the FIXED precommit are the legacy ones; the node proof is
 // the job.
+
+test "installed recursion cache distinguishes bindings of the same verifier body" {
+    const t = std.testing;
+    const body = [_]u8{7} ** 32;
+    var first: NodeClasses.Entry = undefined;
+    var second: NodeClasses.Entry = undefined;
+    first.class_key = NodeClasses.bindingKey(body, @splat(1));
+    second.class_key = NodeClasses.bindingKey(body, @splat(2));
+    const entries = [_]*NodeClasses.Entry{ &first, &second };
+    try t.expect(NodeClasses.find(&entries, second.class_key) == &second);
+    try t.expect(NodeClasses.find(&entries, first.class_key) == &first);
+    try t.expect(NodeClasses.find(&entries, NodeClasses.bindingKey(body, @splat(3))) == null);
+    try t.expectEqual(first.class_key, NodeClasses.bindingKey(body, @splat(1)));
+}

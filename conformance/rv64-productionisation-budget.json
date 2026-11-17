@@ -3339,7 +3339,7 @@
       },
       "after": {
         "code_files": 345,
-        "code_lines": 80777,
+        "code_lines": 80807,
         "generated_code_files": 0,
         "generated_code_lines": 0,
         "script_files": 0,
@@ -3348,7 +3348,7 @@
         "rv64_registry_flags": 22,
         "versioned_files": 350
       },
-      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/387#issuecomment-6954559873"
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/387#issuecomment-6956183957"
     }
   ]
 }
