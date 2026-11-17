@@ -1,0 +1,15 @@
+{
+  "repository": "https://github.com/arkworks-rs/algebra",
+  "commit": "bffa52711f225e888c1a91e1ec9fc59f2d9d5c94",
+  "path": "curves/bls12_381",
+  "crate": "ark-bls12-381 0.6.0",
+  "crate_checksum": "be2ede2c0c96fa37d5d3484e8a59fec566c4a52b8c84bf993eaa6c67d7225a4c",
+  "upstream_files": null,
+  "upstream_files_note": "PR #372 did not record per-file upstream identities; compare against the published crate (crate_checksum) to recover them. third_party/INVENTORY.json pins the vendored bytes.",
+  "changes": "opt-in stwo-canonical-fr-service Fr255 canonical-limb adapter; default FrConfig unchanged (README.stwo.md)",
+  "added_files": [
+    "README.stwo.md",
+    "UPSTREAM.json"
+  ],
+  "source": "PR #372 opstack/kona/vendor/ark-bls12-381 @ 089bc2437"
+}

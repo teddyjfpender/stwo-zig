@@ -1,0 +1,5 @@
+[toolchain]
+# OP Stack guests (Kona, Mantle, ABI probe); see guests/opstack/README.md.
+channel = "nightly-2026-08-08"
+components = ["rust-src"]
+profile = "minimal"

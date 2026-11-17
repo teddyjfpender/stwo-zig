@@ -1,0 +1,73 @@
+{
+  "schema": "stwo.opstack.abi-probe.v1",
+  "description": "Prebuilt OP guest-ABI probe for hosted end-to-end proof tests. No services; output uses the OP 43-byte framing. Not an OP execution.",
+  "elf": "vectors/opstack/abi-probe.elf",
+  "elf_sha256": "ca0886c1e1db16b69b4d3e05f6cdf251e71645d2ed8fb2e828f48e2c7b56d045",
+  "elf_bytes": 3600,
+  "entry": 1024,
+  "symbols": {
+    "input_start": 8388608,
+    "input_end": 25165824,
+    "halt_flag": 25165824,
+    "output_len": 25165828,
+    "output_data": 25165832,
+    "output_end": 29360128,
+    "stack_bottom": 29360128,
+    "stack_top": 46137344,
+    "heap_start": 46137344,
+    "heap_end": 268435456
+  },
+  "source": {
+    "crate": "guests/opstack/abi_probe",
+    "files": {
+      "guests/opstack/abi_probe/Cargo.toml": "6676af0182aeb226a6a9032a39e872debf9b8f1f5888c092634a63348447ec9b",
+      "guests/opstack/abi_probe/Cargo.lock": "24bfb73ca6e7eb0a830ce5b9e3c86739d17b8a669cbff1b3ffc05dda569cad9d",
+      "guests/opstack/abi_probe/build.rs": "b99c1c2976b786ba1cbfbf91430babee3486edbfaf63a1b22323ce402602bab6",
+      "guests/opstack/abi_probe/src/main.rs": "1c638de2f899afcf8f2e914607d65e87eb96c4ad3c568b89120966c67b70a9cd",
+      "guests/opstack/kona/guest/linker.ld": "bcb4638dae6c7dfca73bd817b54ecedc464e4de980085f8aeea9fa868674a54a",
+      "guests/opstack/kona/guest/riscv64i-stwo.json": "2416b0a8b7a9ae4d614d0c5f848e478488fc6f41d49624fa36ca4de0f2f8adfb"
+    },
+    "tree_sha256": "852368a95f642da3917abacc19385d258012293ec4070967322d1233235d7084",
+    "tree_hash": "sha256 of sorted '<sha256>  <path>\\n' lines over files"
+  },
+  "toolchain": {
+    "channel": "nightly-2026-08-08",
+    "rustc": "rustc 1.99.0-nightly (1a98b1e13 2026-08-07)",
+    "components": [
+      "rust-src"
+    ]
+  },
+  "build": [
+    "cargo",
+    "+nightly-2026-08-08",
+    "build",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "guests/opstack/abi_probe/Cargo.toml",
+    "--target",
+    "guests/opstack/kona/guest/riscv64i-stwo.json",
+    "-Z",
+    "json-target-spec",
+    "-Z",
+    "build-std=core",
+    "-Z",
+    "build-std-features=compiler-builtins-mem"
+  ],
+  "reproducible": "[M] two clean builds in separate target directories on aarch64-macos gave identical bytes",
+  "request": {
+    "execution_profile": "ethereum_services_v3",
+    "input_hex": "7374776f2f6f70737461636b2f6162692d70726f62652f7631",
+    "input_sha256": "0e5be1bfe21793140a8d52e543dc9471354aefeb04cb7689493bed6090424354",
+    "expected_output": "6a74776f2f6f70737461636b2f6162692d70726f62652f763100000000000000010a000000000000004f50",
+    "terminal_pc": 1336,
+    "max_steps": 642
+  },
+  "oracle": {
+    "engine": "Unicorn 2.1.4 via tools/opstack/oracle.py (software profile; the probe makes no service call)",
+    "exact_steps": 641,
+    "post_store_pc": 1340,
+    "output": "6a74776f2f6f70737461636b2f6162692d70726f62652f763100000000000000010a000000000000004f50",
+    "label": "[M]"
+  }
+}

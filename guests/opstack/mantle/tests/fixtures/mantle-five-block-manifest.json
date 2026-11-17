@@ -1,0 +1,57 @@
+{
+  "schema": "stwo.mantle.execution-regression-inputs-manifest.v1",
+  "file": "mantle-five-block-inputs.json.zlib",
+  "compressed_bytes": 224368,
+  "compressed_sha256": "b26315fdbc8ed86c7af2434c95caee8638f3a58f61cf240ae88be69139522d62",
+  "uncompressed_bytes": 496660,
+  "uncompressed_sha256": "6fa2e819488e6e282cbc30f1ae06062d82a678d09a6d9066a07418d833fd7eb3",
+  "decompression_byte_limit": 1048576,
+  "block_count": 5,
+  "blocks": [
+    {
+      "block_hash": "0xbac88cdc801196ab975bb07717bd964f87b14b093ac94997f47f768ed7ff1fcc",
+      "block_number": 103132217,
+      "config_sha256": "0xb9583f9b493763c945cc961535b9298070c92d538be1af77523b27053f4a23de",
+      "expected_output": "d58b7aa2f6651cef9a1751f46f89f0cc962c7bb45f16592c9b0b784e8f9201910188130000000000004d45",
+      "input_bytes": 69726,
+      "input_sha256": "06d98810949318166ab350bd6e7bbf44b0a42c1fd8a3e8a65fb93fba6f032d4d"
+    },
+    {
+      "block_hash": "0xb3f81d6402f09942fa17667cd9b13b7275edb69c7c27ac040a339efa5eb446a1",
+      "block_number": 103132921,
+      "config_sha256": "0xb9583f9b493763c945cc961535b9298070c92d538be1af77523b27053f4a23de",
+      "expected_output": "93dea85100322efd5d1be650b88476c30bb19fef324fb8ef7e80ce7289fea10c0188130000000000004d45",
+      "input_bytes": 69840,
+      "input_sha256": "b60a65ea63a958bd06502f6e134631e2794d737e8b2e250fac4b868f11a16bb3"
+    },
+    {
+      "block_hash": "0xcc2dfdba2a7999aa75e572d209db64107bf453dedaa8e99cc102b4edd5876539",
+      "block_number": 103133433,
+      "config_sha256": "0xb9583f9b493763c945cc961535b9298070c92d538be1af77523b27053f4a23de",
+      "expected_output": "acda9b7edfd8ae95e337be108390598f8e0383bc5e47e056c2c9dbe01a2002890188130000000000004d45",
+      "input_bytes": 106772,
+      "input_sha256": "44d274d4ec03d1fe027e26a77f444f7a6dd6e926483f2d7f4cc960fa45b6350d"
+    },
+    {
+      "block_hash": "0xcde66be2f2bf2232fb58d057c0bf751ec060faaf8863b30316f58ee97fc365ec",
+      "block_number": 103133561,
+      "config_sha256": "0xb9583f9b493763c945cc961535b9298070c92d538be1af77523b27053f4a23de",
+      "expected_output": "92e74054d1522a80e5a0c1d15b1dd2d432915b4a4068b3a7fa5e3b64e0ad63890188130000000000004d45",
+      "input_bytes": 69543,
+      "input_sha256": "3d69b861987be580522f4e205c5ee20670ba94e837c44d6e60974158f280f453"
+    },
+    {
+      "block_hash": "0x81454e31170e10cc452e2a7f6fa58faffac92c362e1713beb8d57445651bb9e2",
+      "block_number": 103133753,
+      "config_sha256": "0xb9583f9b493763c945cc961535b9298070c92d538be1af77523b27053f4a23de",
+      "expected_output": "6aee58515e60ea6633ba75b64fdde76e0f57d32db3ca6f82593139493314c3120188130000000000004d45",
+      "input_bytes": 128162,
+      "input_sha256": "400d985d21dbaac1e929a32e11ad0e0c496fd981723e3ee3f9e3fd0905779f02"
+    }
+  ],
+  "secret_pattern_checks": 25,
+  "secret_pattern_matches": 0,
+  "state_witness_complete": false,
+  "native_replay_accepted": false,
+  "proof_verified": false
+}

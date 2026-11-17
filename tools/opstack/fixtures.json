@@ -1,0 +1,38 @@
+{
+  "upstream_commit": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+  "network": "OP Sepolia",
+  "fixtures": {
+    "block-26207960.tar.gz": {
+      "bytes": 161298,
+      "sha256": "3107a952608e57d02cb0ed154df4b1422651e4dfb425a45f2ae5030455b01dac"
+    },
+    "block-26207961.tar.gz": {
+      "bytes": 1034782,
+      "sha256": "c1ddf4765f8d77d02e01c46a30946041144a6e26204a221fcdc39ba10483e3bb"
+    },
+    "block-26207962.tar.gz": {
+      "bytes": 818446,
+      "sha256": "30a5776f91e4bb133e3dd3937a29bfc63801f4e3d706e33edafaff41cfaf5088"
+    },
+    "block-26207963.tar.gz": {
+      "bytes": 314750,
+      "sha256": "d983f265f46d1ad1ee690ac29efd6d485fed5c05324f4c1de56295994f44184d"
+    },
+    "block-26208384.tar.gz": {
+      "bytes": 1498405,
+      "sha256": "d68e2ecebef10dc29a210f4c3fa75096785375be662a847d072f0b5da4aa5de1"
+    },
+    "block-26208858.tar.gz": {
+      "bytes": 683417,
+      "sha256": "5af1316633a3c9f46652ff0f6747fe274ed5760ae8a137da5926f2a56399405e"
+    },
+    "block-26208927.tar.gz": {
+      "bytes": 1964246,
+      "sha256": "ecf8c458328ae3d22baccfaa0ad050e55ce0cf0b9cd71aa277ea1ee419f8016a"
+    },
+    "block-26211680.tar.gz": {
+      "bytes": 888156,
+      "sha256": "6a07b78934ab1faf88b041d79843cb66f17cda3809d58dd11819eb00faed9104"
+    }
+  }
+}

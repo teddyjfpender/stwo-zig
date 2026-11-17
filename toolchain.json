@@ -38,6 +38,8 @@
     "default_oracle": "nightly-2025-07-14",
     "crates": {
       "tools/cairo-witness-compiler/rewriter": "nightly-2026-01-15",
+      "tools/opstack/capture_host/blob_check": "nightly-2026-08-08",
+      "tools/opstack/capture_host/slot_search": "nightly-2026-08-08",
       "tools/starknet-aggregator-rs": "1.95.0",
       "tools/stwo-air-derive-vector-gen": "nightly-2025-07-14",
       "tools/stwo-cairo-air-compiler": "nightly-2026-01-15",

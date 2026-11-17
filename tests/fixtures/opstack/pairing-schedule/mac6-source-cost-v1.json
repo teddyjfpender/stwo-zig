@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "status": "source_and_numeric_only",
+  "production_admitted": false,
+  "security_qualified": false,
+  "security_target": "128-bit under documented assumptions; no physical or protocol claim from this source prototype",
+  "sources": {
+    "miller": "5f99ad975",
+    "pairing": "712787aaf"
+  },
+  "equation": "sum(ci*ai*bi)+acc-out-signedQ*p=0",
+  "actual_numeric_row": {
+    "capacity": 6,
+    "main": 722,
+    "fixed": 22,
+    "byte_queries": 353,
+    "constraints": 819,
+    "carry_bits": 21,
+    "carry_offset": 1048576,
+    "quotient_bytes": 33,
+    "max_abs_valid_carry": 884951,
+    "max_abs_integer_residual": 495174076,
+    "inputs_canonical_via_pending_SSA": 13
+  },
+  "miller": [
+    {
+      "capacity": 4,
+      "normalized_rows": 21022,
+      "padded_rows": 32768,
+      "main_width": 594,
+      "native_cells": 21037056,
+      "padded_local_facts": 17301504,
+      "opening_width": 642,
+      "carry_bits": 21,
+      "quotient_bytes": 33
+    },
+    {
+      "capacity": 6,
+      "normalized_rows": 17495,
+      "padded_rows": 32768,
+      "main_width": 722,
+      "native_cells": 25427968,
+      "padded_local_facts": 17301504,
+      "opening_width": 776,
+      "carry_bits": 21,
+      "quotient_bytes": 33
+    },
+    {
+      "capacity": 8,
+      "normalized_rows": 15671,
+      "padded_rows": 16384,
+      "main_width": 850,
+      "native_cells": 14909440,
+      "padded_local_facts": 8912896,
+      "opening_width": 910,
+      "carry_bits": 22,
+      "quotient_bytes": 33
+    },
+    {
+      "capacity": 12,
+      "normalized_rows": 14599,
+      "padded_rows": 16384,
+      "main_width": 1106,
+      "native_cells": 19300352,
+      "padded_local_facts": 8912896,
+      "opening_width": 1178,
+      "carry_bits": 22,
+      "quotient_bytes": 33
+    }
+  ],
+  "pairing": [
+    {
+      "capacity": 4,
+      "normalized_rows": 44738,
+      "padded_rows": 65536,
+      "main_width": 594,
+      "native_cells": 42516992,
+      "padded_local_facts": 34738432,
+      "opening_width": 874,
+      "carry_bits": 21,
+      "quotient_bytes": 33
+    },
+    {
+      "capacity": 6,
+      "normalized_rows": 36751,
+      "padded_rows": 65536,
+      "main_width": 722,
+      "native_cells": 51298816,
+      "padded_local_facts": 34738432,
+      "opening_width": 1008,
+      "carry_bits": 21,
+      "quotient_bytes": 33
+    },
+    {
+      "capacity": 8,
+      "normalized_rows": 34335,
+      "padded_rows": 65536,
+      "main_width": 850,
+      "native_cells": 60080640,
+      "padded_local_facts": 35787008,
+      "opening_width": 1142,
+      "carry_bits": 22,
+      "quotient_bytes": 33
+    },
+    {
+      "capacity": 12,
+      "normalized_rows": 32543,
+      "padded_rows": 32768,
+      "main_width": 1106,
+      "native_cells": 39043584,
+      "padded_local_facts": 17961216,
+      "opening_width": 1410,
+      "carry_bits": 22,
+      "quotient_bytes": 33
+    }
+  ],
+  "cost_convention": {
+    "native_cells": "sum (FIXED+MAIN+INTER)*independent padded component rows; no blowup multiplier",
+    "miller": "MAC component only, no frontier/hint/table overhead",
+    "pairing": "MAC + qualified hint95 + source frontier + BYTE table",
+    "local_facts": "separate BYTE and SSA instances padded per role; no union optimization",
+    "opening": "sum FIXED+MAIN+INTER column widths, excludes masks/OODS repetitions",
+    "interactions": "two 16-column local-GKR terminal bindings for MAC; hypothetical source geometry only",
+    "assertions": "all1460 immutable zero/one endpoints included in frontier, not discarded"
+  },
+  "tests": {
+    "command": "zig test -O ReleaseSafe --dep stwo_core -Mroot=src/frontends/riscv/rv64_bn254_mac6_test_root.zig -O ReleaseSafe -Mstwo_core=src/core/mod.zig --test-filter MAC6",
+    "passed": 8,
+    "physical_proofs": 0
+  },
+  "remaining": [
+    "choose one capacity after recursive opening/source gate census",
+    "source-owned complete SSA lowering and canonical hint writer authority",
+    "full source digest/ROM and binding/PCS degree gates",
+    "physical coherent forgeries and independently rebuilt fresh receiver",
+    "no VM/profile/whole pairing admission"
+  ]
+}

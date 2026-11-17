@@ -1,0 +1,14 @@
+{
+  "truth-3.bin": {
+    "workerSha256": "0db16b8f52e83870781124c7cc9705249f8112c69e1c66c499d4d04fdb0df7a4",
+    "prePowDigest": "0x37a8858314bce026e594d31a5b9fbf8d1d5d1d51f7675a96d6ab79ee7c88b5db",
+    "nonce": "17560",
+    "domainLog": 10
+  },
+  "truth-4.bin": {
+    "workerSha256": "cc68d161d802fece62233fe6d2cceb174fbd402cf67fe9b9faf989857ccbabee",
+    "prePowDigest": "0x0955ad9217ef952e5161bd27ee3c27bd6492cc1a4ab276dd77e3e1016b3ef016",
+    "nonce": "8590131440",
+    "domainLog": 10
+  }
+}

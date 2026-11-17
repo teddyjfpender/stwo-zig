@@ -1,0 +1,83 @@
+{
+  "blockNumber": 121057303,
+  "anvil": "1.7.1",
+  "evmVersion": "shanghai",
+  "viaIR": true,
+  "optimizerRuns": 100000,
+  "solc": [
+    {
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "compileMs": 4656
+    },
+    {
+      "nodeHashGas": 38001
+    },
+    {
+      "checkpointMockGas": 39768
+    },
+    {
+      "block": 121057303,
+      "worker": "truth-3",
+      "depth": 10,
+      "queries": 102,
+      "witnessHashes": 276,
+      "separateWitnessHashes": 1020,
+      "packedGas": 8194326,
+      "separateGas": 19677339,
+      "singleGas": 213568,
+      "runtimeBytes": 4948
+    },
+    {
+      "block": 121057303,
+      "worker": "truth-4",
+      "depth": 10,
+      "queries": 99,
+      "witnessHashes": 262,
+      "separateWitnessHashes": 990,
+      "packedGas": 7853066,
+      "separateGas": 19099986,
+      "singleGas": 213590,
+      "runtimeBytes": 4948
+    }
+  ],
+  "solar": [
+    {
+      "compiler": "solar 0.3.0+commit.e7a91fc7",
+      "compileMs": 775
+    },
+    {
+      "nodeHashGas": 42766
+    },
+    {
+      "checkpointMockGas": 38949
+    },
+    {
+      "block": 121057303,
+      "worker": "truth-3",
+      "depth": 10,
+      "queries": 102,
+      "witnessHashes": 276,
+      "separateWitnessHashes": 1020,
+      "packedGas": 10292733,
+      "separateGas": 24478503,
+      "singleGas": 261075,
+      "runtimeBytes": 3186
+    },
+    {
+      "block": 121057303,
+      "worker": "truth-4",
+      "depth": 10,
+      "queries": 99,
+      "witnessHashes": 262,
+      "separateWitnessHashes": 990,
+      "packedGas": 9863685,
+      "separateGas": 23760618,
+      "singleGas": 261127,
+      "runtimeBytes": 3186
+    }
+  ],
+  "solcLoopSchedule200Runs": {
+    "truth-3": 9718119,
+    "truth-4": 9313680
+  }
+}
