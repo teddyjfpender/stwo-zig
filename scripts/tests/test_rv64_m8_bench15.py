@@ -1,7 +1,10 @@
 import argparse
+import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import rv64_m8_bench15 as bench
@@ -34,6 +37,70 @@ def service(arm, role, warm_s, cold_s=None, status='ok', **extra):
 
 
 class BasketTests(unittest.TestCase):
+    def test_capacity_cli_selects_one_gpu_native_round_and_explicit_preset(self):
+        argv = ['bench', 'run', '--assets', 'assets.json', '--out', 'run', '--arms', 'gpu-native',
+                '--gpus', '1', '--device-cap-bytes', str(48 << 30), '--preset', 'candidate.json',
+                '--rounds', '1', '--profile', 'warm']
+        with patch.object(sys, 'argv', argv), patch.object(bench, 'Bench') as factory:
+            bench.main()
+            args = factory.call_args.args[0]
+            self.assertEqual((1, 48 << 30, Path('candidate.json')), (args.gpus, args.device_cap_bytes, args.preset))
+            self.assertEqual((['gpu-native'], 1, 'warm'), (args.arms, args.rounds, args.profile))
+            factory.return_value.run.assert_called_once()
+        for value in ('0', '-1'):
+            with self.assertRaises(ValueError):
+                bench.positive_capacity(value)
+
+    def test_selected_gpu_capacity_and_preset_bind_service_and_resume(self):
+        preset = {'security_profile': 'd2_native_b4_q54_p20_fold4', 'common': {}, 'arms': {'baseline': {}},
+                  'operational': {'baseline': {'recursion_max_pending_authorities': 21}},
+                  'measurement': {'quiet_load_max': 8, 'quiet_steal_max': .01,
+                                  'quiet_timeout_s': 300, 'quiet_stable_samples': 5}}
+        manifest = {'source_root': '/source', 'block': 24628607, 'preset': preset,
+                    'assets': {'driver': '/driver', 'library': '/library', 'receiver': '/receiver'},
+                    'gpus': 1, 'device_cap_bytes': 48 << 30}
+        argv, _ = bench.stack.command(manifest, 'baseline', 0, 'stream', False)
+        self.assertEqual('1', argv[argv.index('--gpus') + 1])
+        self.assertEqual(str(48 << 30), argv[argv.index('--device-cap-bytes') + 1])
+        self.assertNotIn('--process-budget-guard', argv)
+        config = {'gpus': 1, 'device_cap_bytes': 48 << 30, 'preset_sha256': 'a' * 64}
+        for key, changed in (('gpus', 2), ('device_cap_bytes', 28 << 30), ('preset_sha256', 'b' * 64)):
+            self.assertNotEqual(bench.resume_identity(config), bench.resume_identity(dict(config, **{key: changed})))
+
+    def test_missing_unused_sparse_is_allowed_but_consumers_and_assets_remain_pinned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            assets = {}
+            for name in ('driver', 'receiver', 'library', 'observer', 'addon', 'outer_fs'):
+                path = base / name
+                path.write_text(name)
+                assets[name] = str(path)
+            pins = {name: bench.stack.sha(path) for name, path in assets.items()}
+            preset = {'common': {'LD_PRELOAD': '{library}:{observer}'}, 'arms': {'baseline': {}}}
+            environment = bench.stack.arm_environment(preset, 'baseline', assets)
+            bench.validate_service_environment(environment, assets, pins)
+            with self.assertRaises(RuntimeError):
+                bench.validate_service_environment({'LD_PRELOAD': assets['library']}, assets, pins)
+            with self.assertRaises(KeyError):
+                bench.stack.arm_environment({'common': {'LD_PRELOAD': '{sparse}'}, 'arms': {'baseline': {}}}, 'baseline', assets)
+            manifest = {'schema': 'rv64-m8-bench-assets/v1', 'assets': assets, 'asset_sha256': pins}
+            path = base / 'assets.json'
+            path.write_text(json.dumps(manifest))
+            bench.load_assets(path)
+            manifest['assets']['sparse'] = str(base / 'missing-sparse')
+            manifest['asset_sha256']['sparse'] = '0' * 64
+            path.write_text(json.dumps(manifest))
+            with self.assertRaises((RuntimeError, FileNotFoundError)):
+                bench.load_assets(path)
+            (base / 'observer').unlink()
+            with self.assertRaises((RuntimeError, FileNotFoundError)):
+                bench.load_assets(path)
+
+    def test_profile_busy_uses_actual_gpu_count(self):
+        for count, expected in ((1, .4), (2, .2), (4, .1)):
+            row = bench.profile_metrics({'kernel_busy_gpu_seconds': 10., 'any_busy_gpu_seconds': 10.}, None, 1, 25., device_count=count)
+            self.assertEqual(expected, row['gpu_busy'])
+
     def test_basket_is_fifteen_blocks_ascending_and_matches_m3_sum(self):
         rows = bench.basket()
         self.assertEqual(len(rows), 15)
