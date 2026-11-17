@@ -1442,10 +1442,10 @@
     },
     {
       "id": "ethereum_recursive_gpu_restart_387",
-      "net_code_budget": 640,
+      "net_code_budget": 800,
       "flags_added_budget": 1,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Delegated issue387 decision6948185162: import271/272 canonical-empty/query-domain physical guards and capture regressions,299 FRI short-round packing parity/rejection, restore existing product GPU CLI owner/module identities and split private execution/timing references, and select actual1/2/4GPU resources/physical guard through one existing-harness CLI option. Zero new runtime environment flags or launchers, unchanged valid proof protocol/goldens and all file limits; exact three measured package code_lines increases have explicit before/after records. GPU timing/promotion and complete corpus acceptance remain separately gated. Revert the bounded implementation and its budget records together on rollback."
+      "positive_growth_justification": "Delegated issue387 decisions6948185162 and6950055846: import271/272 canonical-empty/query-domain physical guards and capture regressions,299 FRI short-round packing parity/rejection, restore product GPU CLI owners, select actual1/2/4GPU resources, and repair outer allocation accounting/custody. The additional allowance is exclusively for a conservative descriptor-derived PCS allocation bound, compact-state capability admission and preservation of borrowed setup during native-to-recursion retirement. Zero new runtime environment flags or launchers, unchanged valid proof protocol/goldens, physical ceilings and file limits. Exact measured package increases require separate records. GPU timing/promotion and complete corpus acceptance remain separately gated. Revert the bounded implementation and its budget records together on rollback."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
@@ -3133,6 +3133,33 @@
         "versioned_files": 430
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/387#issuecomment-6948185162"
+    },
+    {
+      "package": "stwo_riscv_cuda_integration",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 345,
+        "code_lines": 80276,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 350
+      },
+      "after": {
+        "code_files": 345,
+        "code_lines": 80470,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 350
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/387#issuecomment-6950282761"
     }
   ]
 }

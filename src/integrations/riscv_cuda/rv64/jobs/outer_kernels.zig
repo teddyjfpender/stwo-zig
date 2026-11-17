@@ -71,11 +71,8 @@ pub const Kernels = struct {
     mixed_seeded: ?MixedSeeded = null,
     mixed_compact: ?MixedCompact = null,
     layer: ?Layer = null,
-    /// Compact eager state banks (8 + pending words per row instead of 24)
-    /// with STWO_RV64_COMPACT_EAGER_STATE=1 (same value parse as legacy
-    /// pcs_native.allocationOptions: exactly "1" requests it). Like legacy
-    /// (pcs_native.Context.init / trace_commit.zig), a request the image
-    /// cannot honour fails Kernels.load instead of silently using 24-word banks.
+    /// Compact banks require the image's explicit capability and matching
+    /// numerical entry; a claimed but incomplete image fails closed.
     compact_eager: bool = false,
 
     fn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
@@ -118,8 +115,16 @@ pub const Kernels = struct {
     }
 };
 
-fn compactEager(_: *std.DynLib) !bool {
-    return false;
+fn compactEager(base: *std.DynLib) !bool {
+    const Capability = *const fn () callconv(.c) c_int;
+    const capability = base.lookup(Capability, "stwo_rv64_compact_eager_state_capability");
+    return compactEagerBinding(if (capability) |read| read() else null, base.lookup(MixedCompact, "stwo_blake2s_mixed_seeded_eager_compact_on") != null);
+}
+
+fn compactEagerBinding(capability: ?c_int, matching_kernel: bool) !bool {
+    if (capability == null) return false;
+    if (capability.? != 1 or !matching_kernel) return error.MissingCompactEagerPcsCapability;
+    return true;
 }
 
 /// Node phases a measurement attributes the heap peak to (outer_heap.zig).
@@ -270,4 +275,13 @@ test "outer kernel descriptors keep their native ABI" {
     try std.testing.expectEqual(@as(usize, 72), @sizeOf(Abi.GlobalPairs));
     try std.testing.expectEqual(@as(usize, 32), @sizeOf(Abi.MixedSegment));
     try std.testing.expectEqual(@as(u64, 0x4f4d33310000002a), RawChannel.chainBase(42));
+}
+
+test "outer compact eager binding requires claimed capability and matching kernel" {
+    try std.testing.expect(!try compactEagerBinding(null, false));
+    try std.testing.expect(!try compactEagerBinding(null, true));
+    try std.testing.expect(try compactEagerBinding(1, true));
+    try std.testing.expectError(error.MissingCompactEagerPcsCapability, compactEagerBinding(1, false));
+    try std.testing.expectError(error.MissingCompactEagerPcsCapability, compactEagerBinding(0, true));
+    try std.testing.expectError(error.MissingCompactEagerPcsCapability, compactEagerBinding(2, true));
 }

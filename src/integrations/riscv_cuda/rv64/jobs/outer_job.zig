@@ -244,6 +244,7 @@ pub const OuterNodeJob = struct {
         // Framed once, here on the caller's thread (pre-stage side); stage()
         // only binds the real coefficient addresses (native_pcs.bindColumn).
         out.pcs = try Pcs.PcsJob.prepare(out.allocator, whole.pcs, placeholder, try Pcs.placeholderPoint(), whole.wide);
+        try out.pcs.?.requireBorrowedTrees(out.allocator);
         out.pcs_plan = out.pcs.?.plan;
         _ = try out.layout.add(.opaque_words, pcs_index, @intCast(out.pcs.?.outputWords()));
         _ = try out.layout.add(.opaque_words, oods_index, Pcs.oods_field_words);
@@ -336,15 +337,11 @@ pub const OuterNodeJob = struct {
     pub fn classKey(self: *OuterNodeJob) [32]u8 {
         return self.staged.class_key;
     }
-    /// PCS working set beyond the held coefficients, in words: fitted to the
-    /// measured heap peaks of whole nodes (the PCS rebuilds every tree it
-    /// opens, rolling and streamed; its scratch scales with the lifting
-    /// height, not the column count) [M wire-outer-p2, 26235156 leaves at
-    /// lifting 2^24: 4.920e9 heap peak - 2.05e9 held = 2.87e9 = 10.7 x the
-    /// lifting-height tree]. STWO_RV64_M8_OUTER_PCS_RESERVE_TREES overrides
-    /// the multiplier (measurement sweeps).
+    /// Schedule-derived bound for admitted imported beta1 jobs; retain the
+    /// historical eleven-tree reservation for unsupported geometries.
     pub fn pcsReserveWords(self: *const OuterNodeJob, cs: *const Comp.Static) u64 {
-        return self.pcs_reserve_trees * cs.treeWords();
+        const legacy = self.pcs_reserve_trees * cs.treeWords();
+        return if (self.pcs) |*pcs| @min(legacy, pcs.reserve_words orelse legacy) else legacy;
     }
 
     /// Whole nodes own Region.fixed (the FIXED coefficients RC and the PCS
