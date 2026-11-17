@@ -106,6 +106,7 @@ pub const Context = struct {
             self.mixed_seeded != null and self.layer != null and streamBudget() != null;
     }
     pub fn commitOwnedInter(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, leases: *std.ArrayList(Native.Lease)) !D.Tree {
+        if (request.diagnostic) |sink| sink.* = null;
         if (request.tree_index != 2 or request.retire_input != null or !self.reusesInterInputs(request.config.fri_config.log_blowup_factor)) return error.InvalidOwnedInterInputs;
         try InputReuse.validate(a, leases.items, request.columns);
         return self.commitImpl(a, request, false, .{ .leases = leases });
@@ -129,6 +130,7 @@ pub const Context = struct {
         return AdmissionPlan.init(a, input);
     }
     fn commitImpl(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, fixed: bool, owned_inputs: ?OwnedInputs) !D.Tree {
+        if (request.diagnostic) |sink| sink.* = null;
         if ((fixed and request.tree_index != 0) or (!fixed and request.tree_index < 1) or request.tree_index > 2 or request.columns.len == 0 or request.columns.len > 65535) return error.InvalidTraceCommitRequest;
         if (request.expected_main_root) |expected| {
             if (request.tree_index != 1 or std.mem.allEqual(u8, &expected, 0) or (!std.mem.allEqual(u8, &request.scope.main, 0) and !std.mem.eql(u8, &request.scope.main, &expected))) return error.InvalidTraceReplayScope;
@@ -137,12 +139,7 @@ pub const Context = struct {
         if (request.retire_input) |retirement| {
             if (request.tree_index != 2 or beta != 1 or self.n2b_columns == null or !std.meta.eql(retirement.scope, request.scope)) return error.InvalidTraceInputRetirementScope;
         }
-        if (beta < 1 or beta > 4) return error.InvalidTraceCommitRequest;
-        for (request.columns) |column| {
-            try column.validate();
-            if (self.require_device_input and column.device == null) return error.HostWitnessDisallowedInResidentProof;
-            if (column.log_size + beta > 28) return error.InvalidTraceCommitRequest;
-        }
+        try @import("trace_admission.zig").validateColumns(request, self.require_device_input);
         const allocation_plan = if (owned_inputs != null or self.freeze_allocation_plan) try self.allocationPlanImpl(a, request, owned_inputs != null) else null;
         self.mutex.lock();
         defer self.mutex.unlock();
@@ -482,7 +479,7 @@ const Job = struct {
         // ingress. Retire them before the much larger LDE/tree scratch exists.
         if (r.retire_input) |retirement| {
             try self.copyInputs(&ctx, try ctx.borrow(coefficients), coefficients.words.?, order, offsets);
-            try retireJoinedInput(&ctx, retirement, r.scope);
+            try retireJoinedInputDiagnosed(&ctx, retirement, r.scope, r.diagnostic);
         }
         const stream_budget: ?usize = if (separate_coefficients and b.mixed_seeded != null and b.layer != null) streamBudget() else null;
         // Predicted-peak selection: a narrow tree's two state banks can exceed
@@ -620,8 +617,12 @@ fn computeLane(b: *Context, raw: *anyopaque) !*anyopaque {
     return stream orelse error.InvalidLane;
 }
 fn retireJoinedInput(ctx: *SC.Context, retirement: D.TraceInputRetirement, scope: D.Scope) !void {
+    return retireJoinedInputDiagnosed(ctx, retirement, scope, null);
+}
+fn retireJoinedInputDiagnosed(ctx: *SC.Context, retirement: D.TraceInputRetirement, scope: D.Scope, failure: ?*?@import("stwo_prover_api").error_codes.DeviceFailure) !void {
+    if (failure) |sink| sink.* = null;
     try ctx.join();
-    try retirement.invoke(ctx.native_context, ctx.token, scope);
+    try retirement.invokeDiagnosed(ctx.native_context, ctx.token, scope, failure);
 }
 
 test "trace INTER input retirement waits for ingress join and propagates failures" {
@@ -665,4 +666,8 @@ test "trace INTER input retirement waits for ingress join and propagates failure
 
 test "resident trace commitment instantiates the typed mixed-encoding callback" {
     std.testing.refAllDecls(Context);
+}
+
+test {
+    _ = @import("trace_admission.zig");
 }

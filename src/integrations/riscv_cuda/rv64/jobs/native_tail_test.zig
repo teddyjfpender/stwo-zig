@@ -4,7 +4,7 @@
 //! seeded from the device channel; finish decodes the slab with the legacy
 //! decoder. The decoded proof must serialize byte-identically to the host
 //! engine's `proveValues` proof, and the post-PCS channels must agree.
-//! Opt-in like native_commit_test.zig (STWO_RV64_M8_GPU_BASE, STWO_RV64_M8_JOBS_LIBRARY).
+//! Opt-in like native_commit_test.zig (STWO_RV64_GPU_LIBRARY, STWO_RV64_M8_JOBS_LIBRARY).
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -125,6 +125,13 @@ const Done = struct {
 };
 
 test "GPU: native job tail (device commits + device OODS + enqueue-only PCS) equals the host engine proof" {
+    // Always cover no grinding and the production PoW depth. The q8 fixture
+    // remains diagnostic; this is not a whole-protocol production-security claim.
+    try proveTail(0);
+    try proveTail(20);
+}
+
+fn proveTail(pow_bits: u32) !void {
     var gpu = (try @import("native_gpu_support_test.zig").Gpu.openNamed("native_tail_test")) orelse return error.SkipZigTest;
     defer gpu.close();
     const a = std.testing.allocator;
@@ -133,7 +140,6 @@ test "GPU: native job tail (device commits + device OODS + enqueue-only PCS) equ
     const ar = arena_state.allocator();
     const csym = try C.Symbols.load(&gpu.libs.base);
     const nsym = try N.Symbols.load(&gpu.libs.addon);
-    const pow_bits: u32 = if (std.posix.getenv("STWO_RV64_M8_TAIL_POW_BITS")) |v| try std.fmt.parseInt(u32, v, 10) else 0;
     const config = core.pcs.PcsConfig{ .pow_bits = pow_bits, .fri_config = .{ .log_blowup_factor = 1, .log_last_layer_degree_bound = 0, .n_queries = 8, .fold_step = 2 } };
 
     // Host reference transcript and proof.

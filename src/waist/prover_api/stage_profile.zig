@@ -3,6 +3,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const task_profile = @import("task_profile.zig");
+pub const JoinedError = std.mem.Allocator.Error || error{ IncompatibleJoinedRecorder, JoinedRecorderStillActive };
 const work_profile = @import("work_profile.zig");
 pub const process_usage = @import("stage_process_usage.zig");
 
@@ -164,7 +165,7 @@ pub const Recorder = struct {
     /// Both owners must use the same allocator. All admission and reservation
     /// happen before ownership moves; the child remains independently reusable.
     /// Exact-work capture uses the serial coordinator instead of this seam.
-    pub fn adoptJoined(self: *Recorder, child: *Recorder) !void {
+    pub fn adoptJoined(self: *Recorder, child: *Recorder) JoinedError!void {
         if (self == child or !sameAllocator(self.allocator, child.allocator) or
             self.capture_tasks != child.capture_tasks or self.capture_work or child.capture_work)
             return error.IncompatibleJoinedRecorder;
@@ -188,7 +189,7 @@ pub const Recorder = struct {
     /// Parent task reservations and exact-work capture remain untouched; child
     /// task graphs, reservations and exact-work capture cannot cross this seam.
     /// Matching allocators let the parent reclaim the moved nodes directly.
-    pub fn adoptJoinedStages(self: *Recorder, child: *Recorder) !void {
+    pub fn adoptJoinedStages(self: *Recorder, child: *Recorder) JoinedError!void {
         if (self == child or !sameAllocator(self.allocator, child.allocator) or child.capture_work or
             child.task_recorder.graphs.items.len != 0)
             return error.IncompatibleJoinedRecorder;
@@ -206,6 +207,21 @@ pub const Recorder = struct {
         child.roots.clearRetainingCapacity();
     }
 
+    pub fn adoptJoinedDiagnosed(self: *Recorder, child: *Recorder, failure: ?*?@import("stwo_core").error_codes.Entry) JoinedError!void {
+        if (failure) |sink| sink.* = null;
+        self.adoptJoined(child) catch |err| {
+            if (failure) |sink| sink.* = @import("error_codes.zig").fromJoined(err);
+            return err;
+        };
+    }
+    pub fn adoptJoinedStagesDiagnosed(self: *Recorder, child: *Recorder, failure: ?*?@import("stwo_core").error_codes.Entry) JoinedError!void {
+        if (failure) |sink| sink.* = null;
+        self.adoptJoinedStages(child) catch |err| {
+            if (failure) |sink| sink.* = @import("error_codes.zig").fromJoined(err);
+            return err;
+        };
+    }
+
     pub fn snapshot(self: *const Recorder, allocator: std.mem.Allocator) !StageProfile {
         std.debug.assert(self.stack.items.len == 0);
         return .{
@@ -215,41 +231,30 @@ pub const Recorder = struct {
         };
     }
 
-    /// Compatibility reservation for producers without semantic attribution.
-    /// Existing stage timing remains independent from this reservation.
-    pub fn reserveTaskGraph(
-        self: *Recorder,
-        event_count: usize,
-        component_work_count: usize,
-    ) !task_profile.PendingGraph {
-        return self.task_recorder.reserveTaskGraph(event_count, component_work_count);
+    /// Closed API-owned task operation; optional diagnostics are coordinator-only.
+    pub fn reserveTaskGraph(self: *Recorder, event_count: usize, component_work_count: usize) task_profile.ReservationError!task_profile.PendingGraph {
+        return self.reserveTaskGraphDiagnosed(event_count, component_work_count, null);
     }
-
-    /// Reserves exact schema-v2 event, contribution, and aggregate storage
-    /// before launch.
-    pub fn reserveTaskGraphShape(
-        self: *Recorder,
-        shape: task_profile.ReservationShape,
-    ) !task_profile.PendingGraph {
-        return self.task_recorder.reserveTaskGraphShape(shape);
+    pub fn reserveTaskGraphDiagnosed(self: *Recorder, event_count: usize, component_work_count: usize, failure: ?*?@import("stwo_core").error_codes.Entry) task_profile.ReservationError!task_profile.PendingGraph {
+        return taskResult(self.task_recorder.reserveTaskGraph(event_count, component_work_count), failure);
     }
-
-    /// Moves a fully joined task graph into the separate flat recorder without
-    /// allocation or event copying.
-    pub fn publishTaskGraphAfterJoin(
-        self: *Recorder,
-        pending: *task_profile.PendingGraph,
-        header: task_profile.GraphHeader,
-        summary: task_profile.RequestSummary,
-    ) !void {
-        try self.task_recorder.publishTaskGraphAfterJoin(pending, header, summary);
+    pub fn reserveTaskGraphShape(self: *Recorder, shape: task_profile.ReservationShape) task_profile.ReservationError!task_profile.PendingGraph {
+        return self.reserveTaskGraphShapeDiagnosed(shape, null);
     }
-
-    pub fn taskSnapshot(
-        self: *const Recorder,
-        allocator: std.mem.Allocator,
-    ) !task_profile.TaskProfile {
-        return self.task_recorder.snapshot(allocator);
+    pub fn reserveTaskGraphShapeDiagnosed(self: *Recorder, shape: task_profile.ReservationShape, failure: ?*?@import("stwo_core").error_codes.Entry) task_profile.ReservationError!task_profile.PendingGraph {
+        return taskResult(self.task_recorder.reserveTaskGraphShape(shape), failure);
+    }
+    pub fn publishTaskGraphAfterJoin(self: *Recorder, pending: *task_profile.PendingGraph, header: task_profile.GraphHeader, summary: task_profile.RequestSummary) task_profile.PublicationError!void {
+        return self.publishTaskGraphAfterJoinDiagnosed(pending, header, summary, null);
+    }
+    pub fn publishTaskGraphAfterJoinDiagnosed(self: *Recorder, pending: *task_profile.PendingGraph, header: task_profile.GraphHeader, summary: task_profile.RequestSummary, failure: ?*?@import("stwo_core").error_codes.Entry) task_profile.PublicationError!void {
+        return taskResult(self.task_recorder.publishTaskGraphAfterJoin(pending, header, summary), failure);
+    }
+    pub fn taskSnapshot(self: *const Recorder, allocator: std.mem.Allocator) task_profile.SnapshotError!task_profile.TaskProfile {
+        return self.taskSnapshotDiagnosed(allocator, null);
+    }
+    pub fn taskSnapshotDiagnosed(self: *const Recorder, allocator: std.mem.Allocator, failure: ?*?@import("stwo_core").error_codes.Entry) task_profile.SnapshotError!task_profile.TaskProfile {
+        return taskResult(self.task_recorder.snapshot(allocator), failure);
     }
 
     /// Returns the recorder only when flat task capture is enabled. Prover
@@ -271,8 +276,13 @@ pub const Recorder = struct {
     /// Produces an unavailable receipt for the ordinary path and for an opted-
     /// in request before any source boundary has published completed work.
     pub fn workSnapshot(self: *Recorder) work_profile.Error!work_profile.Profile {
+        return self.workSnapshotDiagnosed(null);
+    }
+
+    pub fn workSnapshotDiagnosed(self: *Recorder, failure: ?*?@import("stwo_core").error_codes.Entry) work_profile.Error!work_profile.Profile {
+        if (failure) |sink| sink.* = null;
         if (!self.capture_work) return work_profile.Profile.unavailable();
-        return self.work_recorder.snapshot();
+        return self.work_recorder.snapshotDiagnosed(failure);
     }
 
     fn pushStage(self: *Recorder, id: []const u8, label: []const u8) !*MutableNode {
@@ -750,4 +760,14 @@ fn exerciseProcessStages(a: std.mem.Allocator) !void {
 test "stage process usage: nested and adopted intervals survive snapshot and OOM" {
     try exerciseProcessStages(std.testing.allocator);
     try std.testing.checkAllAllocationFailures(std.testing.allocator, exerciseProcessStages, .{});
+}
+
+// The result comes only from one of the four closed task-recorder operations
+// above. No user callback or arbitrary operation can enter this private seam.
+fn taskResult(result: anytype, failure: ?*?@import("stwo_core").error_codes.Entry) @TypeOf(result) {
+    if (failure) |sink| sink.* = null;
+    return result catch |err| {
+        if (failure) |sink| sink.* = @import("error_codes.zig").fromTaskProfile(err);
+        return err;
+    };
 }

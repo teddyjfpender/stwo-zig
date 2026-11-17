@@ -522,6 +522,8 @@ class ConsumerMetadataGrammarTests(unittest.TestCase):
     def payload(self, schema="stwo-zig-package-contract-v3"):
         import json
         value = json.loads((ROOT / "src/waist/backend/package.contract.json").read_text())
+        value.pop("budget", None)  # Legacy fixture intentionally has no optional ceiling.
+        value.pop("consumers", None)
         value["schema"] = schema
         if schema.endswith("v3"):
             value["consumers"] = [{"id": "package:stwo_cpu_backend",

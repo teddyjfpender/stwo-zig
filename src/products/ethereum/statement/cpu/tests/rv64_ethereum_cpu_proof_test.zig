@@ -1,5 +1,6 @@
 //! One real mixed instruction stream, using each service family over shared RAM.
 const std = @import("std");
+const artifacts = @import("native_artifact_root.zig");
 const frontend = @import("ethereum_frontend_component");
 const rv = frontend.rv64;
 const air = frontend.rv64_air;
@@ -97,7 +98,7 @@ fn run(profile: rv.execution_profile.Profile) !void {
     const compact_encoded = try wire.encodeProofBytesBinary(a, compact_bundle.proof);
     defer a.free(compact_encoded);
     try std.testing.expectEqualSlices(u8, encoded, compact_encoded);
-    const artifact = std.process.getEnvVarOwned(a, if (profile == .ethereum_services_v1) "STWO_RV64_ETH_CPU_V1_ARTIFACT_DIR" else "STWO_RV64_ETH_CPU_V2_ARTIFACT_DIR") catch null;
+    const artifact = try artifacts.directory(a, if (profile == .ethereum_services_v1) .ethereum_cpu_v1 else .ethereum_cpu_v2);
     defer if (artifact) |path| a.free(path);
     if (artifact) |path| {
         try std.fs.cwd().makePath(path);

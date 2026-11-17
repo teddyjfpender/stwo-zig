@@ -26,8 +26,8 @@ const prepared_evaluation = @import("stwo_riscv_air_lang").evaluation.prepared_e
 const prepared_support = @import("provider_order_prepared_support.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
-const INPUT_START: usize = 1;
-const OUTPUT_START: usize = 1 + poseidon2_air.N_TEMPORARIES;
+const INPUT_START: usize = RowEvaluation.INPUT_START;
+const OUTPUT_START: usize = RowEvaluation.OUTPUT_START;
 pub const selected_main_count: usize = poseidon2_air.WIDTH + 1;
 pub const SelectedMainColumns = [selected_main_count]u16;
 
@@ -37,89 +37,17 @@ pub const constraint_count: usize = 4;
 
 /// Field-generic replay of the four ordered-call constraints. Range arguments
 /// are plan constants; all others are verifier-owned proof/transcript data.
-pub fn evaluateGeneric(
-    comptime S: type,
-    main: [poseidon2_air.N_MAIN_COLUMNS]S,
-    current: S,
-    previous: S,
-    is_first: S,
-    is_active: S,
-    row_power: S,
-    accumulator_power: S,
-    first_call: u64,
-    call_count: u32,
-    terminal: S,
-) [constraint_count]S {
-    var selected: [selected_main_count]S = undefined;
-    @memcpy(
-        selected[0..poseidon2_air.WIDTH],
-        main[INPUT_START..][0..poseidon2_air.WIDTH],
-    );
-    selected[poseidon2_air.WIDTH] = main[OUTPUT_START];
-    return evaluateSelectedGeneric(
-        S,
-        selected,
-        current,
-        previous,
-        is_first,
-        is_active,
-        row_power,
-        accumulator_power,
-        first_call,
-        call_count,
-        terminal,
-    );
-}
-
-pub fn evaluateSelectedGeneric(
-    comptime S: type,
-    selected: [selected_main_count]S,
-    current: S,
-    previous: S,
-    is_first: S,
-    is_active: S,
-    row_power: S,
-    accumulator_power: S,
-    first_call: u64,
-    call_count: u32,
-    terminal: S,
-) [constraint_count]S {
-    var value = domainValue(S, 0x524f_5731);
-    for (selected) |felt| value = value.mul(row_power).add(felt);
-    const seed = rangeSeedGeneric(S, first_call, call_count, row_power);
-    const first_expected = seed.mul(accumulator_power).add(value);
-    const continued = previous.mul(accumulator_power).add(value);
-    return .{
-        is_first.mul(current.sub(first_expected)),
-        is_active.sub(is_first).mul(current.sub(continued)),
-        S.one().sub(is_active).mul(current.sub(previous)),
-        is_first.mul(previous.sub(terminal)),
-    };
-}
+const RowEvaluation = @import("provider_order_row_evaluation.zig");
+pub const evaluateGeneric = RowEvaluation.evaluateGeneric;
+pub const evaluateSelectedGeneric = RowEvaluation.evaluateSelectedGeneric;
+pub const rangeSeedGeneric = RowEvaluation.rangeSeedGeneric;
+const callValue = RowEvaluation.callValue;
+const rangeSeed = RowEvaluation.rangeSeed;
+const domainFelt = RowEvaluation.domainFelt;
+pub const evaluateSelectedRowPrepared = RowEvaluation.evaluateSelectedRowPrepared;
+const secureAt = RowEvaluation.secureAt;
 
 /// Canonical shard-range seed: five 15-bit call limbs plus three count limbs.
-pub fn rangeSeedGeneric(
-    comptime S: type,
-    first_call: u64,
-    call_count: u32,
-    power: S,
-) S {
-    var result = domainValue(S, 0x524e_4731);
-    var first = first_call;
-    for (0..5) |_| {
-        result = result.mul(power).add(
-            domainValue(S, @intCast(first & 0x7fff)),
-        );
-        first >>= 15;
-    }
-    var count = call_count;
-    for (0..3) |_| {
-        result = result.mul(power).add(domainValue(S, count & 0x7fff));
-        count >>= 15;
-    }
-    return result;
-}
-
 pub const ChallengesV1 = struct {
     row_power: QM31,
     accumulator_power: QM31,
@@ -775,19 +703,6 @@ const PreparedState = struct {
     }
 };
 
-fn callValue(call: poseidon2_air.Call, power: QM31) QM31 {
-    var result = domainFelt(0x524f_5731);
-    for (call.input) |value|
-        result = result.mul(power).add(QM31.fromBase(M31.fromCanonical(value)));
-    return result.mul(power).add(
-        QM31.fromBase(M31.fromCanonical(call.narrow_output.?)),
-    );
-}
-
-fn rangeSeed(first_call: u64, call_count: u32, power: QM31) QM31 {
-    return rangeSeedGeneric(QM31, first_call, call_count, power);
-}
-
 fn validateCall(call: poseidon2_air.Call) !void {
     if (call.wide or call.io or call.narrow_output == null)
         return error.NonCanonicalNarrowCall;
@@ -795,14 +710,6 @@ fn validateCall(call: poseidon2_air.Call) !void {
         return error.NonCanonicalM31Value;
     if (call.narrow_output.? >= @import("stwo_core").fields.m31.Modulus)
         return error.NonCanonicalM31Value;
-}
-
-fn domainFelt(value: u32) QM31 {
-    return QM31.fromBase(M31.fromCanonical(value));
-}
-
-fn domainValue(comptime S: type, value: u32) S {
-    return S.fromBase(M31.fromCanonical(value));
 }
 
 fn selectedMainPolys(
@@ -902,40 +809,6 @@ pub const RowConstantsV1 = struct {
     terminal: QM31,
 };
 
-/// Exact field-identical restatement of `evaluateSelectedGeneric(QM31, ..)`
-/// for domain rows whose selected main and selector values are base-field
-/// elements: Horner over QM31 is expanded into a power sum so every selected
-/// felt costs one M31-by-QM31 product, and the shard range seed is folded into
-/// a hoisted constant.  No reassociation crosses a non-commutative boundary,
-/// so the outputs are bitwise identical to the generic evaluator.
-pub fn evaluateSelectedRowPrepared(
-    constants: RowConstantsV1,
-    selected: [selected_main_count]M31,
-    current: QM31,
-    previous: QM31,
-    is_first: M31,
-    is_active: M31,
-) [constraint_count]QM31 {
-    var value = constants.value_base;
-    inline for (0..selected_main_count) |index| {
-        value = value.add(
-            constants.powers[selected_main_count - 1 - index].mulM31(selected[index]),
-        );
-    }
-    const first_expected = constants.seed_times_accumulator.add(value);
-    const continued = previous.mul(constants.accumulator_power).add(value);
-    return .{
-        current.sub(first_expected).mulM31(is_first),
-        current.sub(continued).mulM31(is_active.sub(is_first)),
-        current.sub(previous).mulM31(M31.one().sub(is_active)),
-        previous.sub(constants.terminal).mulM31(is_first),
-    };
-}
-
-fn secureAt(columns: []const []const M31, row: usize) QM31 {
-    return QM31.fromM31(columns[0][row], columns[1][row], columns[2][row], columns[3][row]);
-}
-
 comptime {
     if (OUTPUT_START + poseidon2_air.WIDTH != poseidon2_air.WIDE_COLUMN or
         interaction_column_count != 4 or constraint_count != 4)
@@ -944,100 +817,22 @@ comptime {
     }
 }
 
-test "provider order prepared row evaluator is field-identical to the generic evaluator" {
-    var prng = std.Random.DefaultPrng.init(0x0de5_0001);
-    const random = prng.random();
-    const randomM31 = struct {
-        fn call(r: std.Random) M31 {
-            return M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus));
-        }
-    }.call;
-    const randomQM31 = struct {
-        fn call(r: std.Random) QM31 {
-            return QM31.fromM31(
-                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
-                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
-                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
-                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
-            );
-        }
-    }.call;
-    for (0..64) |_| {
-        const challenges = ChallengesV1{
-            .row_power = randomQM31(random),
-            .accumulator_power = randomQM31(random),
-        };
-        const claim = ClaimV1{
-            .format = format_version,
-            .first_call = random.int(u64) >> 2,
-            .call_count = random.int(u32) >> 1,
-            .terminal = randomQM31(random),
-        };
-        const component = ProviderOrderComponent{
-            .log_size = 18,
-            .n_rows = 1,
-            .is_first_col_idx = 0,
-            .is_active_col_idx = 1,
-            .main_col_offset = 0,
-            .main_column_count = 239,
-            .selected_main_columns = legacySelectedMainColumns(),
-            .composition_log_split = 2,
-            .interaction_col_offset = 0,
-            .challenges = challenges,
-            .claim = claim,
-        };
-        const constants = component.rowConstants();
-        for (0..32) |_| {
-            var selected: [selected_main_count]M31 = undefined;
-            var selected_secure: [selected_main_count]QM31 = undefined;
-            for (&selected, &selected_secure) |*felt, *secure| {
-                felt.* = randomM31(random);
-                secure.* = QM31.fromBase(felt.*);
-            }
-            const current = randomQM31(random);
-            const previous = randomQM31(random);
-            const is_first = randomM31(random);
-            const is_active = randomM31(random);
-            const expected = evaluateSelectedGeneric(
-                QM31,
-                selected_secure,
-                current,
-                previous,
-                QM31.fromBase(is_first),
-                QM31.fromBase(is_active),
-                component.challenges.row_power,
-                component.challenges.accumulator_power,
-                claim.first_call,
-                claim.call_count,
-                claim.terminal,
-            );
-            const actual = evaluateSelectedRowPrepared(
-                constants,
-                selected,
-                current,
-                previous,
-                is_first,
-                is_active,
-            );
-            for (expected, actual) |lhs, rhs| try std.testing.expect(lhs.eql(rhs));
-        }
-    }
-}
+test {
+    _ = @import("provider_order_row_evaluation_test.zig").For(.{
+        .ChallengesV1 = ChallengesV1,
+        .ClaimV1 = ClaimV1,
+        .format_version = format_version,
+        .ProviderOrderComponent = ProviderOrderComponent,
+        .legacySelectedMainColumns = legacySelectedMainColumns,
+        .poseidon2_air = poseidon2_air,
 
-test "provider order base-field call value is field-identical to the Horner call value" {
-    var prng = std.Random.DefaultPrng.init(0xca11_0001);
-    const random = prng.random();
-    for (0..256) |_| {
-        const power = QM31.fromM31(
-            M31.fromCanonical(random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
-            M31.fromCanonical(random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
-            M31.fromCanonical(random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
-            M31.fromCanonical(random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
-        );
-        var call = poseidon2_air.Call{ .input = undefined, .narrow_output = 0 };
-        for (&call.input) |*word| word.* = random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus);
-        call.narrow_output = random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus);
-        const powers = CallValuePowersV1.init(power);
-        try std.testing.expect(callValue(call, power).eql(powers.callValue(call)));
-    }
+        .std = std,
+        .M31 = M31,
+        .QM31 = QM31,
+        .selected_main_count = selected_main_count,
+        .evaluateSelectedRowPrepared = evaluateSelectedRowPrepared,
+        .evaluateSelectedGeneric = evaluateSelectedGeneric,
+        .CallValuePowersV1 = CallValuePowersV1,
+        .callValue = callValue,
+    });
 }

@@ -248,12 +248,6 @@ pub const PPCache = struct {
     fn limit() usize {
         return 6 << 30;
     }
-    fn find(key: [32]u8) ?*PP {
-        mutex.lock();
-        defer mutex.unlock();
-        for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) return e.pp;
-        return null;
-    }
     fn contains(key: [32]u8) bool {
         mutex.lock();
         defer mutex.unlock();
@@ -287,9 +281,8 @@ pub const PPCache = struct {
     fn adopt(key: [32]u8, pp: *const PP) void {
         adoptImpl(key, pp) catch |err| std.debug.print("GPU_OUTER_PP_CLASS adopt_error={s}\n", .{@errorName(err)});
     }
-    fn adoptImpl(key: [32]u8, pp: *const PP) !void {
-        if (CachePack.compressClass(Device.class_is_leaf)) return adoptPacked(key, pp);
-        const bytes = bytesOf(pp);
+    fn adoptRaw(key: [32]u8, pp: *const PP) !void {
+        const bytes = @sizeOf(PP) + bytesOf(pp);
         mutex.lock();
         defer mutex.unlock();
         for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) return;
@@ -306,7 +299,7 @@ pub const PPCache = struct {
         try entries.append(gpa, .{ .key = key, .pp = copy, .bytes = bytes });
         held_bytes += bytes;
     }
-    fn adoptPacked(key: [32]u8, pp: *const PP) !void {
+    fn adoptImpl(key: [32]u8, pp: *const PP) !void {
         mutex.lock();
         const exists = for (entries.items) |e| {
             if (std.mem.eql(u8, &e.key, &key)) break true;
@@ -315,28 +308,32 @@ pub const PPCache = struct {
         if (exists) return;
         var timer = try std.time.Timer.start();
         const copy = try gpa.create(PackedPP);
-        errdefer gpa.destroy(copy);
-        copy.meta = pp.*;
+        var owned = true;
         var done: usize = 0;
-        errdefer for (copy.columns[0..done]) |*column| column.deinit(gpa);
+        defer if (owned) {
+            for (copy.columns[0..done]) |*column| column.deinit(gpa);
+            gpa.destroy(copy);
+        };
+        copy.meta = pp.*;
         var bytes: usize = @sizeOf(PackedPP);
         for (&copy.columns, pp.columns) |*out, column| {
             out.* = try CachePack.pack(gpa, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column.values)), 1);
             done += 1;
             bytes += out.heldBytes();
         }
+        // The raw owner and the encoded owner both include their headers.
+        if (bytes >= @sizeOf(PP) + bytesOf(pp)) return adoptRaw(key, pp);
         mutex.lock();
         defer mutex.unlock();
         for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) {
-            copy.destroy();
             return;
         };
         if (held_bytes + bytes > limit()) {
-            copy.destroy();
             std.debug.print("GPU_OUTER_PP_PACK refused=cap class={x} physical_bytes={} held_bytes={}\n", .{ key[0..8], bytes, held_bytes });
             return;
         }
         try entries.append(gpa, .{ .key = key, .encoded = copy, .bytes = bytes });
+        owned = false;
         held_bytes += bytes;
         std.debug.print("GPU_OUTER_PP_PACK adopt class={x} logical_bytes={} physical_bytes={} held_bytes={} classes={} ns={}\n", .{ key[0..8], bytesOf(pp), bytes, held_bytes, entries.items.len, timer.read() });
     }
@@ -365,19 +362,21 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     // Fold v2 producer only: class-keyed immutable PP reuse (device precommit).
     const class: ?[32]u8 = if (ctx.trace_only and encoded == null and factory != null and factory.?.precommit_fixed != null) Device.class_hint else null;
     const pp_mode = PPCache.mode();
-    const cached_pp: ?*PP = if (class != null and pp_mode == .on) PPCache.find(class.?) else null;
-    const pp: *PP = if (cached_pp) |shared| shared else blk: {
+    const cached_pp: ?PPCache.Lease = if (class != null and pp_mode == .on) try PPCache.acquire(a, class.?) else null;
+    const pp_borrowed = if (cached_pp) |shared| shared.borrowed else false;
+    const pp: *PP = if (cached_pp) |shared| shared.pp else blk: {
         const owned = try a.create(PP);
         errdefer a.destroy(owned);
         owned.* = try PP.fromBuilderCircuit(a, &ctx.circuit);
         break :blk owned;
     };
-    errdefer if (cached_pp == null) {
+    errdefer if (!pp_borrowed) {
         pp.deinit(a);
         a.destroy(pp);
     };
-    if (class) |key| if (pp_mode == .check) if (PPCache.find(key)) |shared| {
-        if (!PPCache.equal(shared, pp)) return error.PPClassMismatch;
+    if (class) |key| if (pp_mode == .check) if (try PPCache.acquire(a, key)) |shared| {
+        defer shared.deinit(a);
+        if (!PPCache.equal(shared.pp, pp)) return error.PPClassMismatch;
         std.debug.print("GPU_OUTER_PP_CLASS check_ok class={x}\n", .{key[0..8]});
     };
     if (cached_pp != null) std.debug.print("GPU_OUTER_PP_CLASS hit=true class={x}\n", .{class.?[0..8]});
@@ -420,7 +419,7 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     errdefer capture.deinit(a);
     // Adopt only after a complete, freshly verified proof under this PP.
     if (class) |key| if (cached_pp == null and pp_mode != .off) PPCache.adopt(key, pp);
-    return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .restored = encoded != null, .borrowed_pp = cached_pp != null, .timings = .{ .preprocess_ns = preprocess_ns, .finalize_ns = finalize_ns, .preprocessed_columns_ns = columns_ns, .authority_ns = authority_ns, .prove_ns = if (encoded != null) 0 else source_ns, .verify_ns = timer.lap(), .restore_ns = if (encoded != null) source_ns else 0 } };
+    return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .restored = encoded != null, .borrowed_pp = pp_borrowed, .timings = .{ .preprocess_ns = preprocess_ns, .finalize_ns = finalize_ns, .preprocessed_columns_ns = columns_ns, .authority_ns = authority_ns, .prove_ns = if (encoded != null) 0 else source_ns, .verify_ns = timer.lap(), .restore_ns = if (encoded != null) source_ns else 0 } };
 }
 /// Receiver-only fold v2 path: restore and freshly verify `encoded` under a
 /// class authority the receiver itself built (from an honest trace-only graph

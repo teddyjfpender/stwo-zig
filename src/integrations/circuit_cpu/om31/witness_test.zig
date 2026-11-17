@@ -52,3 +52,35 @@ test "om31 outer witness instantiates full source path and rejects malformed MAI
     var pp: circuit.common.preprocessed.PreprocessedCircuit = undefined;
     try std.testing.expectError(error.InvalidTraceShape, W.writeReleasing(std.testing.allocator, &base, &pp, O.one(), O.basis()));
 }
+
+test "om31 output term matches independent Horner tuple and typed lookup fault closure" {
+    const t = std.testing;
+    const trace = circuit.witness.trace;
+    const relation = circuit.common.component_list.GATE_RELATION_ID;
+    // Bind the independent RV64 job fixture constants to the canonical authority.
+    try t.expectEqual(@as(u32, 378353459), relation);
+    try t.expectEqual(@as(usize, 2), trace.U_VAR_IDX);
+    try t.expect(trace.U_VALUE.eql(Q.fromU32Unchecked(0, 0, 1, 0)));
+    const z = O.fromBase(M.fromCanonical(1009));
+    const alpha = O.fromBase(M.fromCanonical(17));
+    const elements = W.Elements.init(z, alpha);
+    const values = [_]Q{ trace.U_VALUE, Q.fromU32Unchecked(1, 2, 3, 4), Q.fromU32Unchecked(1, 0, 1, 0) };
+    var terms: [values.len]O = undefined;
+    for (values, 0..) |value, i| {
+        const address = trace.U_VAR_IDX + @as(usize, @intFromBool(i == 1));
+        const limbs = value.toM31Array();
+        const tuple = [_]M{ M.fromCanonical(relation), M.fromU64(address), limbs[0], limbs[1], limbs[2], limbs[3] };
+        var denominator = O.zero();
+        var remaining: usize = tuple.len;
+        while (remaining != 0) {
+            remaining -= 1;
+            denominator = denominator.mul(alpha).add(O.fromBase(tuple[remaining]));
+        }
+        const independent = try denominator.sub(z).inv();
+        terms[i] = try W.outputTerm(&elements, address, value);
+        try t.expect(independent.eql(terms[i]));
+    }
+    const claim = terms[0].add(terms[1]).neg();
+    try t.expect(claim.add(terms[1]).add(terms[0]).isZero());
+    try t.expect(!claim.add(terms[1]).add(terms[2]).isZero());
+}

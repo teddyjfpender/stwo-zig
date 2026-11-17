@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import platform
+import signal
 import subprocess
 import sys
 import tempfile
@@ -24,6 +25,18 @@ from scripts.repo.ci_scope_plan import POLICY, PlanError, strict_json, validate_
 
 def digest(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def runtime_identity() -> dict[str, Any]:
+    """Record the host that actually executed the command, not its lane label."""
+    cpu = {}
+    info = Path("/proc/cpuinfo")
+    if info.is_file():
+        for line in info.read_text().splitlines():
+            key, _, value = line.partition(":")
+            if key.strip() in {"model name", "flags", "Features", "Hardware"}:
+                cpu.setdefault(key.strip(), value.strip())
+    return {"python": sys.version, "os_release": platform.release(), "cpu": cpu}
 
 
 def expand(command: list[str], output_dir: Path, commit: str) -> list[str]:
@@ -61,6 +74,75 @@ def local_build_command(command: list[str]) -> list[str]:
         result.append(argument)
         index += 1
     return result
+
+
+def run_measured(argv: list[str], *, on_start=None, on_reap=None, **kwargs: Any) -> tuple[subprocess.CompletedProcess, dict[str, Any]]:
+    """Measure the exact child; on_start borrows pipes and must not poll/reap it.
+
+    on_reap runs only after wait4 has set child.returncode, on success or failure.
+    """
+    if not (sys.platform == "darwin" or sys.platform.startswith("linux")) or not hasattr(os, "wait4"):
+        raise PlanError("command resource measurement requires Linux/macOS os.wait4")
+    with subprocess.Popen(argv, **kwargs) as child:
+        try:
+            if on_start is not None:
+                on_start(child)
+            _, status, usage = os.wait4(child.pid, 0)
+            # Public wait-status conversion preserves negative signal return codes.
+            # Mark the externally reaped child before Popen's context manager waits.
+            child.returncode = os.waitstatus_to_exitcode(status)
+        except BaseException as original:
+            # Reap an already-exited leader before cleanup can obscure its cause.
+            pid, status, usage = os.wait4(child.pid, os.WNOHANG)
+            cleanup = {"requested_signal": int(signal.SIGKILL), "already_exited": pid != 0}
+            if pid:
+                child.returncode = os.waitstatus_to_exitcode(status)
+            if kwargs.get("start_new_session"):
+                try:
+                    os.killpg(child.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                except PermissionError as error:
+                    original.add_note("owned group cleanup: " + repr(error))
+                    if not pid:
+                        try:
+                            os.kill(child.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+            elif not pid:
+                try:
+                    os.kill(child.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            if not pid:
+                _, status, usage = os.wait4(child.pid, 0)
+                child.returncode = os.waitstatus_to_exitcode(status)
+            cleanup["wait_status"] = status
+            if on_reap is not None:
+                try:
+                    on_reap(subprocess.CompletedProcess(argv, child.returncode), command_resources(usage), cleanup)
+                except BaseException as error:
+                    original.add_note("termination observer: " + repr(error))
+            raise
+    completed, resources = subprocess.CompletedProcess(argv, child.returncode), command_resources(usage)
+    if on_reap is not None:
+        on_reap(completed, resources, None)
+    return completed, resources
+
+
+def command_resources(usage):
+    """Kernel measurements from the exact wait4 operation, including failed callbacks."""
+    return {
+        "schema": "stwo-command-resources-v1",
+        "collector": "os.wait4",
+        "rss_scope": "kernel maximum individual process RSS; not concurrent process-tree aggregate",
+        "cpu_scope": "wait4 child and reaped descendant usage; unaccounted detached descendants excluded",
+        "peak_rss_bytes": usage.ru_maxrss * (1 if sys.platform == "darwin" else 1024),
+        "user_cpu_ns": round(usage.ru_utime * 1_000_000_000),
+        "system_cpu_ns": round(usage.ru_stime * 1_000_000_000),
+        "minor_page_faults": usage.ru_minflt,
+        "major_page_faults": usage.ru_majflt,
+    }
 
 
 def run_lane(
@@ -122,6 +204,23 @@ def run_lane(
         })
     records: list[dict[str, Any]] = []
     started_ns = time.monotonic_ns()
+    progress = {
+        "schema": "stwo-focused-ci-timing-v1",
+        "lane": lane,
+        "host": host,
+        "required_host": required_host,
+        "host_machine": platform.machine(),
+        "runtime": runtime_identity(),
+        "cache_mode": cache_mode,
+        "commit": commit,
+        "tree": tree,
+        "status": "INCOMPLETE",
+        "expected_commands": len(spec["commands"]),
+        "commands": records,
+    }
+    # Publish before launching: cancellation cannot leave a previous PASS in
+    # place, nor erase a completed owner's evidence behind the next compiler.
+    write_json(output, progress)
     status = "PASS"
     try:
         for ordinal, raw in enumerate(spec["commands"]):
@@ -142,9 +241,8 @@ def run_lane(
                 "completed_commands": records,
             })
             with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
-                result = subprocess.run(
-                    argv, cwd=root, env=environment, check=False,
-                    stdout=stdout, stderr=stderr,
+                result, resources = run_measured(
+                    argv, cwd=root, env=environment, stdout=stdout, stderr=stderr,
                 )
             duration_ns = time.monotonic_ns() - command_started
             stdout_bytes, stderr_bytes = stdout_path.read_bytes(), stderr_path.read_bytes()
@@ -155,9 +253,21 @@ def run_lane(
                 "argv": argv,
                 "duration_ns": duration_ns,
                 "exit_code": result.returncode,
+                "resources": resources,
                 "stdout_sha256": digest(stdout_bytes),
                 "stderr_sha256": digest(stderr_bytes),
             })
+            write_json(output_dir / f"{lane}-{ordinal}.completed.json", {
+                "schema": "stwo-focused-ci-command-complete-v1",
+                "status": "PASS" if result.returncode == 0 else "FAIL",
+                "commit": commit,
+                "tree": tree,
+                "lane": lane,
+                "cache_mode": cache_mode,
+                "runtime": progress["runtime"],
+                "command": records[-1],
+            })
+            write_json(output, progress)
             if result.returncode != 0:
                 status = "FAIL"
                 break
@@ -176,6 +286,7 @@ def run_lane(
         "host": host,
         "required_host": required_host,
         "host_machine": platform.machine(),
+        "runtime": progress["runtime"],
         "cache_mode": cache_mode,
         "commit": commit,
         "tree": tree,

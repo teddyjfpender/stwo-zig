@@ -1,7 +1,7 @@
 .{
     .fingerprint = 0xb27a0cfc1b49376a,
     .name = .stwo_riscv_cuda_integration,
-    .version = "0.1.0",
+    .version = "0.2.0",
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{

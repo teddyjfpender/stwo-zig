@@ -164,12 +164,10 @@ anything else fails `Hybrid.create` with `InvalidM8OuterEnvironment`. None of th
 | `STWO_RV64_M8_OUTER_GRAPH_THRESHOLD` | 2 | sightings of a (class, placement) key before capture |
 | `STWO_RV64_M8_OUTER_GRAPH_BUDGET_MB` | 256 | executable device budget per worker (LRU eviction) |
 | `STWO_RV64_M8_OUTER_GRAPH_IDLE_REQUESTS` | 4 | requests a key may go unused before it is dropped (0 = never) |
-| `STWO_RV64_M8_OUTER_FAULT_ORDINAL` | unset | test hook: fail node n where a footprint refusal returns (requires `STWO_RV64_M8_FAULT_INJECTION=1`, else service start fails) |
 | `STWO_RV64_M8_OUTER_CLASS_PLAN` | `0` | `1` = per-class plans (outer_class_plan.zig): leaf statics cached by authority identity, initWhole's stream schedules / composition stream / PCS framing built once per class and borrowed by every node |
 | `STWO_RV64_M8_OUTER_CLASS_PLAN_HOST_MB` | 65536 | host-byte budget of cached class statics (a class over it stays per node) |
 | `STWO_RV64_M8_OUTER_DEVICE_CHECKS` | `0` | `1` = device `lookup_sum` check (outer_checks.cu) at the end of every whole node body; finish requires its verdict and the host reference to agree (needs an addon with `stwo_rv64_outer_lookup_sum_check_v1_on`) |
-| `STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL` | unset | negative test: node n's device check gets one corrupted public limb and must reject (request fails closed); requires `STWO_RV64_M8_FAULT_INJECTION=1`, else service start fails |
-| `STWO_RV64_M8_FAULT_INJECTION` | `0` | second key of every fault-injection knob above (a leftover ordinal alone never corrupts production requests) |
+| `STWO_RV64_M8_FAULT_INJECTION` | `0` | second key of the remaining OODS sample/point negative selectors; unarmed OODS requests refuse startup |
 
 Every `STWO_RV64_M8_OUTER_*` knob is read and parsed once per process (outer_env.zig) and frozen; per-node inits read the frozen value.
 
@@ -219,3 +217,50 @@ publishing either entry, and quiescent teardown destroys request bodies before
 releasing class pins. This change adds only parity/trace/receipt wiring to those owners, except
 for extracting Stage-1 timing ownership. Their small net growth keeps those invariants at the existing owner until
 a complete boundary can move with tests. No source ceiling or conformance baseline is increased.
+
+### Test-owned fault qualification
+
+Preflight, lookup-public-value, noncanonical PCS and child MAIN-path corruptions
+are typed test inputs, with no production environment selector. The actual
+host-device-model Driver/Worker tests run independent rational lookup closure,
+canonical CPU `Witness.outputTerm` parity, the real host PCS encoder and seed
+program acceptance. Rejected requests publish no files; healthy retries reuse
+the same workers, and cancellation releases event/job lifetime. These are host
+execution checks, not CUDA or complete encoded-node proof qualification. The
+concrete CircuitCPU prepared-input teardown is unchanged and is not newly
+qualified by the model.
+
+The recorded-node physical harness retains its nine existing cases and adds
+the exact first MAIN-path-word corruption. Recording and replay use the existing `STWO_RV64_LEAN_ARTIFACT_DIR` run root.
+Modern execution attempts own independent `recordings/executions/<identity>`
+datasets with fixed `nodes` and `pack` roles, manifest identities and completion
+inventories. Historical directories remain separate families below
+`recordings/historical/{nodes,pack}/<family>`, including every formerly
+colon-separated pack input. An absent role skips; provided incomplete/corrupt
+captures reject. Actual retained production record replay on CUDA remains unrun. OODS sample and
+point selectors, plus their arming control, remain live until their real
+acceptance authority has an executable negative fixture.
+
+Final diagnostic plans are explicitly owned: `Worker.quiesce` closes admission
+and joins once, preserving metadata for `writePlanDir`. External owners may use
+`destroyWithPlan(OUT)` to write the unchanged v2 rows in `OUT/class-plans` and
+consume the worker. Calling either method from its own worker thread refuses;
+`destroyWithPlan` retains ownership on that refusal and consumes it on later
+output errors. Destruction itself has no environment-selected output. Collect
+measurement sweeps from the explicit `class-plans` subdirectory.
+
+
+Selecting the common artifact root enables all available diagnostic captures:
+extra GPU readback, host serialization, hashing and I/O are instrumented work,
+not clean proving timings. Unset keeps capture off. An explicit request-owned
+lease connects Native, pack and node writers; completion follows callback/worker
+quiescence, never an ordinal-only/global directory. Capture errors record
+incompleteness and preserve the original proof verdict. No per-role capture
+switch or new artifact policy is introduced.
+
+Memory-plan sweep `run` specs must pass exactly one whole `{out}` argv token
+to the existing parity producer. The runner substitutes a fresh
+`<run>/<label>/harness` path, owns only its log parent, and collects
+`harness/class-plans`. Migrate old hardcoded OUT argv and plan-directory env
+setters to that token; obsolete destination setters are explicitly refused.
+The wrapper does not pre-create the producer OUT or change plan/policy schemas.

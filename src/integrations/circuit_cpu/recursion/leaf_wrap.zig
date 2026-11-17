@@ -34,11 +34,13 @@
 //! (rung R10c).
 
 const std = @import("std");
+const transport = @import("../wire_admission.zig");
 const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const cairo = @import("stwo_cairo_frontend");
 const wire = @import("stwo_circuit_recursion_wire");
+const registry_admission = @import("registry_admission.zig");
 const prove = @import("../prove.zig");
 const air = @import("../air.zig");
 const verifier_proof = @import("../verifier_proof.zig");
@@ -276,8 +278,8 @@ fn wrapCairoProofImpl(
     if (pcs.trace_lifting_log_size != pcs.preprocessed_lifting_log_size) return error.UnequalLiftingHeights;
     const trace_log_size = std.math.sub(u32, pcs.trace_lifting_log_size, pcs.fri_config.log_blowup_factor) catch
         return error.LiftingBelowBlowup;
-    const entry = try registry.leafVerifier(trace_log_size);
-    const circuit_config = try registry.config(entry.config);
+    const entry = try registry_admission.query(.leaf, registry, trace_log_size);
+    const circuit_config = try registry_admission.query(.config, registry, entry.config);
     const circuit_fri = circuit_config.fri_config;
     const target = finalize.ComponentSizes.fromLogSizes(circuit_config.component_log_sizes);
 
@@ -417,7 +419,7 @@ fn wrapCairoProofImpl(
                 .root => return error.WrongProofProfile,
             };
             const config_shape = try verifier_proof.proofConfig(topology.preprocessed.columns.len, pcs_config);
-            break :blk try wire.circuit_serialize.serializeProofAlloc(allocator, internal_proof, config_shape);
+            break :blk try transport.encodeBinary(allocator, internal_proof, config_shape);
         }
         var prepared = try verifier_proof.prepare(allocator, &circuit_proof.?);
         defer prepared.deinit();

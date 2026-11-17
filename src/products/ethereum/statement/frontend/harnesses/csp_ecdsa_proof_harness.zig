@@ -24,6 +24,27 @@ pub fn cspProof(comptime Engine: type, backend_name: []const u8) !void {
     defer recorder.deinit();
     const result = csp.proveWithRecorder(Engine, allocator, elf, input, frontend.prover_mod.SECURE_PCS_CONFIG, 16, if (profile_enabled) &recorder else null) catch |err| {
         std.debug.print("CSP guest failure: {s}\n", .{@errorName(err)});
+        if (err == error.ConstraintsNotSatisfied) {
+            var elf_hash: [32]u8 = undefined;
+            var input_hash: [32]u8 = undefined;
+            std.crypto.hash.sha2.Sha256.hash(elf, &elf_hash, .{});
+            std.crypto.hash.sha2.Sha256.hash(input, &input_hash, .{});
+            std.debug.print("CSP failure identity cpu={s} elf={s} input={s}\n", .{
+                @import("builtin").target.cpu.model.name,
+                std.fmt.bytesToHex(elf_hash, .lower),
+                std.fmt.bytesToHex(input_hash, .lower),
+            });
+            // Diagnostic only: preserve the original required proof's failure.
+            // The control changes scheduling, never the statement or security.
+            if (csp.prove(Engine, allocator, elf, input, frontend.prover_mod.SECURE_PCS_CONFIG, 1)) |control| {
+                defer allocator.free(control.encoded);
+                std.debug.print("CSP one-worker control: PASS suite={s} proof_bytes={d}\n", .{
+                    @tagName(control.transcript_receipt.suite), control.proof_bytes,
+                });
+            } else |control_error| {
+                std.debug.print("CSP one-worker control: FAIL {s}\n", .{@errorName(control_error)});
+            }
+        }
         return err;
     };
     defer allocator.free(result.encoded);

@@ -189,6 +189,20 @@ pub fn build(b: *std.Build) void {
         .root = "pcs_quotient_tiles_test_root.zig",
     });
 
+    const gkr_rows_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-gkr-rows",
+        .description = "Qualify bounded pooled GKR row kernels and exact transcript parity",
+        .root = "gkr_parallel_test_root.zig",
+    });
+    const gkr_resource_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-gkr-resources",
+        .description = "Qualify GKR mixed-instance memory bounds and allocation failures",
+        .root = "gkr_resource_test_root.zig",
+    });
+    const gkr_step = b.step("test-gkr", "Run both existing GKR owner qualification roots");
+    gkr_step.dependOn(gkr_rows_step);
+    gkr_step.dependOn(gkr_resource_step);
+
     test_step.dependOn(air_step);
     test_step.dependOn(poly_step);
     test_step.dependOn(pcs_commitments_step);

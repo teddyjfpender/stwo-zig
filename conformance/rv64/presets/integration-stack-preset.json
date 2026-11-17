@@ -11,7 +11,6 @@
     "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
     "STWO_RV64_NATIVE_VERSION": "v1-flat",
     "STWO_RV64_LEAF_SEED_TAPE": "1",
-    "STWO_RV64_PACK_FOLD_CACHE": "1",
     "STWO_RV64_CPU_COMPACT_INGRESS": "1",
     "STWO_RV64_BLAKE_SAMPLE_PREFILL": "1",
     "STWO_RV64_NVTX": "1",
@@ -29,7 +28,6 @@
     },
     "fullstack": {
       "STWO_RV64_DEVICE_ARENA": "auto",
-      "STWO_RV64_M8_JOBS": "1",
       "STWO_RV64_M8_GPU_NATIVE": "1",
       "STWO_RV64_M8_GPU_NATIVE_REUSE": "1",
       "STWO_RV64_M9_CLASS_PACKED_INGRESS": "1"

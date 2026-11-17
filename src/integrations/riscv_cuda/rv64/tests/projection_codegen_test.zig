@@ -119,3 +119,72 @@ test "byte shift address projections agree with independent integer modular refe
     @memcpy(sponge[K.layout.call.shift + 1 ..][0..7], &selectors);
     try std.testing.expectEqual(@as(u32, 1942151883), K.equations.callPacket(M, &sponge, 1)[0].v);
 }
+
+test "LS-D64 descriptor45 seeded OWNER projection agrees across base lifted and symbolic lanes" {
+    const A = @import("stwo_riscv_frontend").rv64_air;
+    const D = A.memory.load_store_dword;
+    const F = A.evaluation.symbolic.SymbolicLane(O);
+    var rng = std.Random.DefaultPrng.init(0x87323);
+    var row: [D.layout.MAIN]M = undefined;
+    var challenges: G.Source.Challenges.For(O) = undefined;
+    var found = false;
+    // Replay precisely the original regression's RNG consumption. Recording
+    // preceding IR programs consumes no RNG and is deliberately unnecessary.
+    for (Fixtures.descriptors(), 0..) |descriptor, index| {
+        const shape = try descriptor.shape();
+        const selected = descriptor.origin == .dword and descriptor.origin.dword == 0;
+        for (0..shape.fixed) |_| _ = rng.random().uintLessThan(u32, core.fields.m31.Modulus);
+        for (0..shape.main) |i| {
+            const value = M.fromCanonical(rng.random().uintLessThan(u32, core.fields.m31.Modulus));
+            if (selected) row[i] = value;
+        }
+        for (0..shape.main + G.Source.Public.count) |_| _ = rng.random().uintLessThan(u32, core.fields.m31.Modulus);
+        for (&challenges.offsets) |*value| value.* = Fixtures.random(rng.random());
+        for (&challenges.coefficients, 0..) |*coefficients, relation| for (coefficients) |*value| {
+            value.* = Fixtures.random(rng.random());
+            if (relation == @intFromEnum(G.Source.Fractions.Relation.range8)) value.* = O.one();
+        };
+        if (selected) {
+            try std.testing.expectEqual(@as(usize, 45), index);
+            found = true;
+            break;
+        }
+    }
+    try std.testing.expect(found);
+    const raw = D.equations.ownerTuple(M, &row);
+    var lifted: [D.layout.MAIN]O = undefined;
+    for (row, &lifted) |value, *out| out.* = O.fromBase(value);
+    const secure = D.equations.ownerTuple(O, &lifted);
+    const modulus: u64 = core.fields.m31.Modulus;
+    const load = (@as(u64, row[0].v) + modulus - row[1].v) % modulus;
+    const opcode = (load * D.layout.LD_OPCODE + @as(u64, row[1].v) * D.layout.SD_OPCODE) % modulus;
+    try std.testing.expectEqual(@as(u32, @intCast(opcode)), raw[0].v);
+    const tick = (@as(u64, row[D.layout.column(12)].v) + @as(u64, row[D.layout.column(13)].v) * 65536) % modulus;
+    try std.testing.expectEqual(@as(u32, @intCast(tick)), raw[18].v);
+    var recording = A.evaluation.symbolic.Recording(O).init(a);
+    defer recording.deinit();
+    recording.begin();
+    defer recording.end();
+    var symbolic: [D.layout.MAIN]F = undefined;
+    for (&symbolic, 0..) |*value, column| value.* = F.input(1, column, 0);
+    const tuple = D.equations.ownerTuple(F, &symbolic);
+    var ids: [19]u32 = undefined;
+    for (tuple, &ids) |value, *id| id.* = value.id;
+    var program = try recording.builder.finish(@splat(0), &ids);
+    defer program.deinit();
+    const inputs = try a.alloc(O, program.inputs.len);
+    defer a.free(inputs);
+    for (program.inputs, inputs) |input, *value| value.* = O.fromBase(row[input.column]);
+    const evaluated = try program.evaluate(a, inputs);
+    defer a.free(evaluated);
+    for (raw, secure, evaluated, 0..) |base, extension, ir, coordinate| {
+        if (!O.fromBase(base).eql(extension) or !ir.eql(extension))
+            std.debug.print("descriptor45 OWNER coordinate={d} row={any}\n", .{ coordinate, row });
+        try std.testing.expect(O.fromBase(base).eql(extension));
+        try std.testing.expect(ir.eql(extension));
+    }
+    const relation: usize = @intFromEnum(G.Source.Fractions.Relation.owner);
+    var expected = challenges.offsets[relation];
+    for (secure, 0..) |value, i| expected = expected.sub(challenges.coefficients[relation][i].mul(value));
+    try std.testing.expect(expected.eql(challenges.denominatorBase(.owner, raw)));
+}

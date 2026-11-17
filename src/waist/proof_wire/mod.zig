@@ -18,6 +18,9 @@ pub const encodeProofHexAlloc = Default.encodeProofHexAlloc;
 pub const decodeProofBytes = Default.decodeProofBytes;
 pub const encodeProofBytesBinary = Default.encodeProofBytesBinary;
 pub const decodeProofBytesBinary = Default.decodeProofBytesBinary;
+pub const decodeProofBytesWithDiagnostic = Default.decodeProofBytesWithDiagnostic;
+pub const decodeProofBytesBinaryWithDiagnostic = Default.decodeProofBytesBinaryWithDiagnostic;
+pub const error_codes = @import("error_codes.zig");
 pub const proofToWire = Default.proofToWire;
 pub const wireToProof = Default.wireToProof;
 pub const wireToProofFor = Default.wireToProofFor;
@@ -52,6 +55,7 @@ test "proof wire binary decoder rejects truncation and wrong versions" {
 }
 
 test {
+    _ = @import("error_codes_test.zig");
     _ = @import("bounded_count_test.zig");
     _ = @import("wide_test.zig");
     _ = @import("hash_family_test.zig");

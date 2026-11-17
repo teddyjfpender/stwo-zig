@@ -1,5 +1,6 @@
 #include "custody.cuh"
 #include "deep.h"
+#include "detail/kernel_variants.h"
 #include "deep_lazy.cuh"
 #include "om31.cuh"
 #include <cstdio>
@@ -396,7 +397,7 @@ __global__ void deep_combine(StwoRv64DeepCombine j) {
 }
 // ---------------------------------------------------------------------------
 // M8 T3 kernels. Same ABI, same status bits, bit-identical outputs; the
-// legacy kernels above stay selectable with STWO_RV64_M8_DEEP_LEGACY=1.
+// Legacy kernels remain available to the statically linked typed parity bench.
 // ---------------------------------------------------------------------------
 // deep_validate with the serial scan order preserved: the first failing check
 // in (group, header, points, term order) wins, exactly as in deep_validate.
@@ -662,11 +663,6 @@ __global__ __launch_bounds__(kDeepCombineThreads, STWO_RV64_DEEP_COMBINE_MIN_BLO
     store(j.output.words, j.output.stride, row, bad ? zero() : result);
   }
 }
-// STWO_RV64_M8_DEEP_LEGACY=1 restores the pre-M8 deep_validate/deep_combine
-// kernels (A/B and parity only); any other value or unset selects the M8 ones.
-inline bool deep_legacy() {
-  return m8_env_is_one("STWO_RV64_M8_DEEP_LEGACY");
-}
 // Persistent grid for deep_combine_classes: the per-CTA class prologue is
 // paid once per resident CTA, not once per 256 rows.
 inline uint32_t deep_combine_grid(uint32_t rows) {
@@ -686,8 +682,8 @@ inline uint32_t deep_combine_grid(uint32_t rows) {
   return resident && resident < needed ? resident : needed;
 }
 } // namespace stwo::cuda::rv64
-extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
-                                         const StwoRv64DeepPrepare *input) {
+int stwo::cuda::rv64::detail::deep_prepare(void *ctx, uint32_t lane,
+                                         const StwoRv64DeepPrepare *input, bool legacy) {
   using namespace stwo::cuda::rv64;
   if (!input || input->reserved || !input->source_count ||
       input->source_count > 65536 || !input->term_count ||
@@ -733,7 +729,6 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
     if (!status) status = int(cudaEventRecord(spans.events[0], c.stream));
     if (status) return status;
   }
-  const bool legacy = deep_legacy();
   // [M] M8 T3 A/B (deep_t3_parity_bench, 5090, 68 groups x 60 terms, 7 reps,
   // median): whole prepare 1.656 ms (serial <<<1,1>>> validate) -> 0.227 ms.
   if (legacy)
@@ -788,8 +783,8 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
   }
   return int(cudaPeekAtLastError());
 }
-extern "C" int stwo_rv64_deep_combine_on(void *ctx, uint32_t lane,
-                                         const StwoRv64DeepCombine *input) {
+int stwo::cuda::rv64::detail::deep_combine(void *ctx, uint32_t lane,
+                                         const StwoRv64DeepCombine *input, bool legacy) {
   using namespace stwo::cuda::rv64;
   if (!input || input->reserved[0] || input->reserved[1] ||
       !input->group_count || input->group_count > 1024 || !input->output_log ||
@@ -811,10 +806,17 @@ extern "C" int stwo_rv64_deep_combine_on(void *ctx, uint32_t lane,
     return c.status;
   deep_combine_validate<<<1, 1, 0, c.stream>>>(
       j, const_cast<uint32_t *>(j.valid) + 1);
-  if (deep_legacy() || j.group_count > kDeepCombineGroups)
+  if (legacy || j.group_count > kDeepCombineGroups)
     deep_combine<<<((1u << j.output_log) + 127) / 128, 128, 0, c.stream>>>(j);
   else
     deep_combine_classes<<<deep_combine_grid(1u << j.output_log),
                            kDeepCombineThreads, 0, c.stream>>>(j);
   return int(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane, const StwoRv64DeepPrepare *input) {
+  return stwo::cuda::rv64::detail::deep_prepare(ctx, lane, input, false);
+}
+extern "C" int stwo_rv64_deep_combine_on(void *ctx, uint32_t lane, const StwoRv64DeepCombine *input) {
+  return stwo::cuda::rv64::detail::deep_combine(ctx, lane, input, false);
 }

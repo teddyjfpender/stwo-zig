@@ -823,39 +823,7 @@ pub fn Operations(comptime H: type) type {
             updateLeafHashersPackedRange(&contexts[0]);
         }
 
-        fn packLeafTileBytes(
-            scratch: []align(@alignOf(M31)) u8,
-            column_chunk: []const ColumnRef,
-            tile_start: usize,
-            tile_size: usize,
-        ) void {
-            const bytes_per_leaf = column_chunk.len * @sizeOf(M31);
-            std.debug.assert(scratch.len == tile_size * bytes_per_leaf);
-
-            if (builtin.cpu.arch.endian() == .little) {
-                const scratch_words = std.mem.bytesAsSlice(M31, scratch);
-                var local_leaf: usize = 0;
-                while (local_leaf < tile_size) : (local_leaf += 1) {
-                    const leaf_words = scratch_words[local_leaf * column_chunk.len ..][0..column_chunk.len];
-                    const leaf_index = tile_start + local_leaf;
-                    for (column_chunk, 0..) |column, column_idx| {
-                        leaf_words[column_idx] = column.values[leaf_index];
-                    }
-                }
-                return;
-            }
-
-            var local_leaf: usize = 0;
-            while (local_leaf < tile_size) : (local_leaf += 1) {
-                const leaf_index = tile_start + local_leaf;
-                const leaf_start = local_leaf * bytes_per_leaf;
-                for (column_chunk, 0..) |column, column_idx| {
-                    const encoded = column.values[leaf_index].toBytesLe();
-                    const byte_start = leaf_start + (column_idx * @sizeOf(M31));
-                    @memcpy(scratch[byte_start .. byte_start + @sizeOf(M31)], encoded[0..]);
-                }
-            }
-        }
+        const packLeafTileBytes = columns_mod.packLeafTileBytes;
     };
 }
 

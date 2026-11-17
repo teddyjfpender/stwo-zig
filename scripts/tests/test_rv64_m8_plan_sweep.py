@@ -1,8 +1,10 @@
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.rv64 import rv64_m8_plan_sweep as sweep
@@ -33,6 +35,37 @@ KB = 'bb' * 32
 class SweepTests(unittest.TestCase):
     def write(self, root, name, doc):
         (root / name).write_text(json.dumps(doc))
+
+    def test_run_spec_owns_only_log_parent_and_collects_actual_harness_output(self):
+        doc = worker_doc([(KA, stat(side(8 * G, G), side(8 * G, G)))])
+        code = ("import json,os,pathlib,sys; p=pathlib.Path(sys.argv[1]); "
+                "assert not p.exists(); assert 'STWO_RV64_M8_JOBS_PLAN_DIR' not in os.environ; "
+                "p.mkdir(); (p/'class-plans').mkdir(); "
+                "(p/'class-plans'/'worker.json').write_text(sys.argv[2]); print('actual harness')")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            argv = [sys.executable, '-c', code, '{out}', json.dumps(doc)]
+            with mock.patch.dict(os.environ, {'STWO_RV64_M8_JOBS_PLAN_DIR': 'obsolete'}):
+                written = sweep.run_spec({'harnesses': [{'label': 'real', 'argv': argv}]}, root)
+            result = json.loads(written[0].read_text())
+            self.assertEqual(KA, result['classes'][0]['class_key'])
+            self.assertEqual(str(root.resolve() / 'real' / 'harness'), result['run']['argv'][3])
+            self.assertNotIn('{out}', result['run']['argv'])
+            self.assertTrue((root / 'real' / 'log.txt').read_text().startswith('actual harness'))
+            self.assertFalse((root / 'real' / 'plans').exists())
+            with self.assertRaisesRegex(RuntimeError, 'exited 7'):
+                sweep.run_spec({'harnesses': [{'label': 'failed', 'argv': [sys.executable, '-c', 'import sys;sys.exit(7)', '{out}']}]}, root)
+            self.assertEqual(7, json.loads((root / 'failed' / 'run.json').read_text())['rc'])
+            self.assertFalse((root / 'failed' / 'sweep.json').exists())
+
+    def test_run_spec_refuses_missing_or_ambiguous_output_and_obsolete_spec_control(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for argv, env in ((['tool'], {}), (['tool', '{out}', '{out}'], {}),
+                              (['tool', '{out}'], {'STWO_RV64_M8_JOBS_PLAN_DIR': 'old'})):
+                with self.subTest(argv=argv, env=env), self.assertRaises(ValueError):
+                    sweep.run_spec({'harnesses': [{'label': 'invalid', 'argv': argv, 'env': env}]}, root)
+                self.assertFalse((root / 'invalid').exists())
 
     def test_collect_folds_workers_and_sides_and_reports_lifo_waste(self):
         with tempfile.TemporaryDirectory() as tmp:

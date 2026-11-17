@@ -84,8 +84,38 @@ pub const EvaluationDiagnostic = struct {
 };
 
 pub const ProveDiagnostic = struct {
+    /// Value-owned evidence from the final OODS equality only. This is neither
+    /// proof authority nor a new transcript input; no borrowed data is retained.
+    pub const OodsMismatch = struct {
+        const core = @import("stwo_core");
+        const Q = core.fields.qm31.QM31;
+        const O = core.fields.om31.OM31;
+        pub const Geometry = struct {
+            max_log_degree_bound: u32,
+            composition_log_size: u32,
+            extraction_log_size: u32,
+            composition_log_split: u32,
+        };
+        // One tag covers every secure value, preventing mixed-field evidence.
+        values: union(enum) {
+            qm31: struct { actual: Q, expected: Q, point: core.circle.CirclePoint(Q), random_coeff: Q },
+            om31: struct { actual: O, expected: O, point: core.circle.CirclePoint(O), random_coeff: O },
+        },
+        geometry: Geometry,
+
+        pub fn initFor(comptime Secure: type, actual: Secure, expected: Secure, point: core.circle.CirclePoint(Secure), random_coeff: Secure, geometry: Geometry) OodsMismatch {
+            const tag = if (Secure == Q) "qm31" else if (Secure == O) "om31" else @compileError("OODS evidence requires the canonical QM31 or OM31 owner");
+            const Values = @FieldType(OodsMismatch, "values");
+            return .{ .values = @unionInit(Values, tag, .{ .actual = actual, .expected = expected, .point = point, .random_coeff = random_coeff }), .geometry = geometry };
+        }
+    };
+    /// Filled only at the owned final mismatch; unrelated same-tag errors have
+    /// no evidence. Legacy and successful calls leave the optional output null.
+    oods_mismatch: ?OodsMismatch = null,
     phase: ProvePhase,
     cause: anyerror,
+    /// Populated only by an authenticated owned origin, never an outer error-name mapping.
+    code: ?@import("stwo_core").error_codes.Entry = null,
     composition_subphase: ?CompositionSubphase = null,
     evaluation: ?EvaluationDiagnostic = null,
 
@@ -286,5 +316,33 @@ fn assertErrorUnionPayload(
     const info = @typeInfo(Actual);
     if (info != .error_union or info.error_union.payload != Expected) {
         @compileError(message);
+    }
+}
+
+test "OODS mismatch capture owns exact QM31 and OM31 values with one field tag" {
+    const core = @import("stwo_core");
+    inline for (.{ core.fields.qm31.QM31, core.fields.om31.OM31 }) |F| {
+        var limbs: [@typeInfo(@TypeOf(F.one().toM31Array())).array.len]core.fields.m31.M31 = undefined;
+        for (&limbs, 0..) |*limb, i| limb.* = core.fields.m31.M31.fromCanonical(@intCast(i + 7));
+        const original = F.fromM31Array(limbs);
+        var actual = original;
+        var point = core.circle.CirclePoint(F){ .x = original, .y = F.one() };
+        const geometry = ProveDiagnostic.OodsMismatch.Geometry{ .max_log_degree_bound = 8, .composition_log_size = 9, .extraction_log_size = 7, .composition_log_split = 2 };
+        const captured = ProveDiagnostic.OodsMismatch.initFor(F, actual, F.zero(), point, F.one(), geometry);
+        actual = F.zero();
+        point.x = F.zero();
+        const value = if (F == core.fields.qm31.QM31) captured.values.qm31 else captured.values.om31;
+        try std.testing.expect(value.actual.eql(original) and value.expected.eql(F.zero()));
+        try std.testing.expect(value.point.x.eql(original) and value.point.y.eql(F.one()));
+        try std.testing.expect(value.random_coeff.eql(F.one()));
+        try std.testing.expectEqual(geometry, captured.geometry);
+        var diagnostic: ?ProveDiagnostic = null;
+        ProveDiagnostic.recordFirst(&diagnostic, .finalize, error.ConstraintsNotSatisfied);
+        try std.testing.expect(diagnostic.?.oods_mismatch == null);
+        diagnostic.?.oods_mismatch = captured;
+        ProveDiagnostic.recordFirst(&diagnostic, .fri, error.ForeignFailure);
+        try std.testing.expectEqual(error.ConstraintsNotSatisfied, diagnostic.?.cause);
+        const retained = if (F == core.fields.qm31.QM31) diagnostic.?.oods_mismatch.?.values.qm31 else diagnostic.?.oods_mismatch.?.values.om31;
+        try std.testing.expect(retained.actual.eql(original));
     }
 }

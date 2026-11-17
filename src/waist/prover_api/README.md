@@ -7,7 +7,7 @@ check without importing the prover implementation.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.1` |
+| Version | `1.0.0-rc.6` |
 | Layer | `api` |
 | Owner | `prover-api` |
 | Public Zig module | `stwo_prover_api` |
@@ -144,3 +144,42 @@ transitive review.
 - [Backend capability contracts](../backend/README.md)
 - [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 - [Package release policy](../../../design/repository/zig-package-release-policy.md)
+
+
+## Consumer-owned provider checks
+
+The generic prover registers pair-aligned column lifting, invalid-ingress refusal, and preservation of the first original failure. The provider contract also registers its Core dependency laws where applicable.
+
+The existing aggregate package graph exposes `zig build test-cdc-stwo-prover-api -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
+
+`error_codes` owns codes `0x3001`–`0x3003` for exact column admission. Diagnosed proving may attach a nullable stable `ProveDiagnostic.code` from the current attempt's typed quotient admission; arbitrary caller/backend errors remain unmapped. The original first error, column layout and proof transcript are unchanged.
+
+
+Task recorder reservation, pending ownership, publication and snapshot have
+exact typed error contracts. Optional diagnosed stage-recorder calls expose
+`error_codes` entries `0x3101`–`0x3118` only for these closed operations;
+column codes remain unchanged. Diagnostic sinks are borrowed per call. The
+engine's opt-in capture holds a sink only through coordinator publication/join
+and deinit, never across worker writes or recorder ownership. Ordinary cleanup
+preserves the primary failure, and foreign clock/task callbacks remain unmapped.
+
+The optional per-call logical-work diagnostics preserve the ordinary record and
+snapshot arithmetic, locks, schemas and digests. CounterOverflow is resource
+exhaustion; invalid counter groups, producer coverage and authenticated profiles
+are input failures. Disabled recorders retain zero state, and no diagnostic
+output is retained across calls. This is library-operation qualification, not
+a complete proof or process-level error report.
+
+
+Joined recorder adoption and pure device header admission have exact typed
+error sets and per-call diagnosed operations (`0x3401`–`0x3403`,
+`0x3501`–`0x3508`). TraceCommitRequest's optional diagnostic pointer is borrowed
+for its synchronous call, excluded from Scope/protocol identity, never retained
+or written by workers. Foreign device/retirement callbacks remain unclassified.
+
+`ProveDiagnostic.oods_mismatch` owns the two final equality values, OODS point,
+random coefficient and composition geometry under one QM31/OM31 tag. Only the
+engine's final equality failure supplies this optional evidence. Success and
+unrelated errors leave it absent. Other field factories remain usable without
+this capture. The payload allocates nothing and is outside proof authority and
+the transcript; retaining it does not make a failed proof valid.

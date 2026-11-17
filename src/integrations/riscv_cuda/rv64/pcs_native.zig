@@ -32,7 +32,10 @@ pub fn allocationOptions() !AllocationCost.Options {
 
     return result;
 }
+pub const Recording = @import("recording_dataset.zig");
 pub const Context = struct {
+    device_ordinal: u32 = 0,
+    recording: Recording.Slot = .{},
     pcs_options: AllocationCost.Options = .{},
     /// Canonical domains never evict in the frozen C owner; a successful PCS
     /// publishes this fact and session destruction is the sole invalidation.
@@ -126,6 +129,11 @@ pub const Context = struct {
             if (self.submit(self.session, PhaseTrim.run, &trim) != 0) return trim.failure orelse error.ResidentPhaseTrimFailed;
             try self.requireNoRequestLeases();
         }
+        self.recording.requireExecution(identity) catch |err| {
+            if (self.recording.held) |held| held.owner.fail(err);
+            self.recording.detach();
+            std.debug.print("RV64_CAPTURE block admission error={s} complete=false\n", .{@errorName(err)});
+        };
         self.active_block = identity;
     }
     const PhaseTrim = struct {
@@ -158,6 +166,7 @@ pub const Context = struct {
         if (self.cache.items.len != 0) return error.ResidentBlockStillActive;
         try self.requireNoRequestLeases();
         self.active_block = null;
+        self.recording.detach();
         if (self.immutable_setup) |cache| std.debug.print("GPU_RESIDENT_SETUP device_bytes={} limit_bytes={} entries={} hits={} uploads={} evictions={} outstanding_aliases={}\n", .{ cache.bytes, cache.limit, cache.entries.items.len, cache.hits, cache.uploads, cache.evictions, cache.borrows.items.len });
     }
     const Audit = struct {
@@ -430,7 +439,7 @@ pub const Context = struct {
         if (create(device, capacity, &session) != 0 or session == null) return error.GpuPcsInitializationFailed;
         const Version = *const fn () callconv(.c) u32;
         const wide = if (library.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
-        return .{ .pcs_options = pcs_options, .byte_cap = capacity, .wide_pcs_framing = wide, .host_geometry = Export.GeometryCache.init(std.heap.page_allocator, hostGeometryBytes()), .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
+        return .{ .device_ordinal = device, .pcs_options = pcs_options, .byte_cap = capacity, .wide_pcs_framing = wide, .host_geometry = Export.GeometryCache.init(std.heap.page_allocator, hostGeometryBytes()), .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
     }
     pub fn deinit(self: *Context) void {
         self.host_geometry.deinit();
@@ -443,6 +452,7 @@ pub const Context = struct {
             std.heap.page_allocator.destroy(cache);
         }
         if (self.destroy(self.session) != 0) @panic("GPU context failed to join before library close");
+        self.recording.detach(); // Native destroy above has joined its callbacks.
         self.library.close();
         self.* = undefined;
     }
@@ -552,7 +562,7 @@ pub const Context = struct {
         _ = self.pcs_domain_logs.fetchOr(@as(u32, 1) << @intCast(request.lifting_log_size), .release);
         if (result.words == null or result.count > (1 << 28)) return error.InvalidGpuPcsProof;
         // gn-node piece-harness recorder (default off; proof-neutral).
-        if (GnRecord.dir() != null) GnRecord.pcsImage(prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
+        GnRecord.pcsImage(&self.recording, prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
         if (GnRecord.liveSelected() catch false) GnRecord.Live.putPcs(prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
         var decoded = try Decode.decodeWords(a, prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
         errdefer decoded.proof.deinit(a);

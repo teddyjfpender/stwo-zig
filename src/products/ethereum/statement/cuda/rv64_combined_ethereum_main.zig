@@ -4,6 +4,7 @@ const std = @import("std");
 const CPU = @import("ethereum_cpu_component");
 const Pool = @import("rv64/resident_pool.zig").Pool;
 const Router = @import("stwo_riscv_cuda_integration").rv64.execution.runtime.resident_router;
+const Capture = @import("rv64/capture_execution.zig");
 const Outer = @import("stwo_riscv_cuda_integration").rv64.outer_source;
 fn env(a: std.mem.Allocator, name: []const u8) !?[]u8 {
     return std.process.getEnvVarOwned(a, name) catch |err| switch (err) {
@@ -27,19 +28,17 @@ pub fn main() !void {
     if (std.process.hasEnvVarConstant("STWO_RV64_GPU_HOST_RETAINED")) return error.CombinedRequiresFullyResidentNative;
     const arguments = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, arguments);
+    var capture = Capture.Session{};
+    defer capture.deinit();
     if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], "combined-batch")) {
         if (arguments.len != 4) return error.ExpectedCombinedBatchManifestAndOutput;
         return @import("rv64/resident_batch.zig").runCombined(a, library, arguments[2], arguments[3]);
     }
     if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], "combined-serve")) {
         if (arguments.len != 4) return error.ExpectedCombinedServeManifestAndSpool;
-        // M8 GPU-native (STWO_RV64_M8_GPU_NATIVE=1, requires JOBS=1): the
-        // jobs/driver_ge.zig service (streamed GE capture -> driver, one host
-        // wait per request). Missing class/factory hooks fail closed; unset
-        // keeps the legacy reference path. JOBS=1 alone no longer selects
-        // anything (the feeder is retired) and fails closed.
+        // Explicit GPU-native selection remains default-off. Installed class,
+        // factory and library checks fail closed on the selected path.
         if (try @import("stwo_riscv_cuda_integration").rv64.execution.jobs.driver.selected(posixEnv)) return @import("rv64/jobs/driver_ge.zig").serve(a, library, arguments[2], arguments[3], @import("rv64/m8_class_build_composition.zig"));
-        if (try @import("stwo_riscv_cuda_integration").rv64.execution.jobs.runtime.selected()) return error.M8JobsRequireGpuNative;
         return @import("rv64/resident_batch.zig").runServe(a, library, arguments[2], arguments[3]);
     }
     const planned_text = (try env(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS")) orelse return error.CombinedRequiresResidentPlan;
@@ -67,9 +66,11 @@ pub fn main() !void {
     }
     var identity: [32]u8 = undefined;
     hash.final(&identity);
+    capture = Capture.Session.argsForExecution(a, arguments, identity);
     const pool = try Pool.createWithBinding(a, library, config, planned, true);
     defer pool.deinit();
     const device = &pool.devices[0];
+    capture.attach(&device.native.recording);
     try device.native.beginBlock(identity, .{ .device_bytes = config.caps[0], .immutable_bytes = 2 << 30, .max_scopes = config.scope_limit });
     var outer = try Outer.Context.init(a, &device.native, &device.trace, &device.composition);
     defer outer.deinit();
@@ -81,6 +82,7 @@ pub fn main() !void {
     const entry_report = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .accepted = true, .gpu_init_ns = gpu_init_ns, .full_entry_ns = full_entry_ns, .native_authority_handoff = "live in process; no reload or reconstruction", .device_byte_cap = config.caps[0], .immutable_device_bytes = @as(u64, 2 << 30), .host_byte_cap = host_bytes, .device_lifecycle_audit = "all request leases released", .scope = "Entry wall includes native GPU pool initialization, native capture/proving/verification/publication and fresh GPU recursion; excludes operating-system process startup." }, .{ .whitespace = .indent_2 });
     defer a.free(entry_report);
     try publishEntryReport(output_path, entry_report);
+    capture.success = true;
     std.log.info("GPU_COMBINED_COMPLETE gpu_init_ns={} full_entry_ns={}", .{ gpu_init_ns, full_entry_ns });
 }
 

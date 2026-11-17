@@ -400,7 +400,13 @@ fn runVerifyImpl(allocator: std.mem.Allocator, cli: Cli, use_std_shims: bool) !v
     const proof_bytes = try examples_artifact.hexToBytesAlloc(allocator, artifact.proof_bytes_hex);
     defer allocator.free(proof_bytes);
 
-    const proof = try proof_wire.decodeProofBytes(allocator, proof_bytes);
+    var decode_failure: ?stwo.core.error_codes.Entry = null;
+    const proof = proof_wire.decodeProofBytesWithDiagnostic(allocator, proof_bytes, &decode_failure) catch |err| {
+        if (decode_failure) |failure| {
+            cli_mod.emitBoundaryDiagnostic("proof_wire_decode_rejection_v1", "stwo_proof_wire", "decodeProofBytes", failure);
+        }
+        return err;
+    };
     if (!examples_artifact.pcsConfigsEqual(config, proof.commitment_scheme_proof.config)) {
         return error.ProofConfigMismatch;
     }
@@ -461,7 +467,11 @@ fn runVerifyImpl(allocator: std.mem.Allocator, cli: Cli, use_std_shims: bool) !v
         if (use_std_shims) {
             try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);
         } else {
-            try xor.verify(allocator, config, statement, proof);
+            var core_failure: ?stwo.core.error_codes.Entry = null;
+            xor.verifyDiagnosed(allocator, config, statement, proof, &core_failure) catch |err| {
+                if (core_failure) |entry| cli_mod.emitBoundaryDiagnostic("core_verify_rejection_v1", "stwo_core", "verify", entry);
+                return err;
+            };
         }
         return;
     }

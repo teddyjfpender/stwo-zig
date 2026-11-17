@@ -1,4 +1,5 @@
 const std = @import("std");
+const artifacts = @import("native_artifact_root.zig");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const B = @import("stwo_cpu_backend").CpuBackend;
@@ -18,10 +19,16 @@ fn columns(storage: []const M, log: u32, output: []engine.pcs.ColumnEvaluation) 
     for (output, 0..) |*column, i| column.* = .{ .log_size = log, .values = storage[i * n ..][0..n] };
 }
 test "division native artifact proves all eight operations and receiver rejects changed prefix" {
-    const artifact_dir = std.process.getEnvVarOwned(a, "STWO_RV64_DIVISION_ARTIFACT_DIR") catch null;
+    const artifact_dir = try artifacts.directory(a, .division);
     defer if (artifact_dir) |path| a.free(path);
     const config = if (artifact_dir != null) rv.protocol.config() else core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 12) };
-    const reference = std.process.hasEnvVarConstant("STWO_RV64_DIVISION_REFERENCE");
+    // Both evaluators protect live proof semantics. Artifact selection controls
+    // security parameters for both runs; only the optimized run publishes files.
+    try proveAndReject(config, false, artifact_dir);
+    try proveAndReject(config, true, null);
+}
+
+fn proveAndReject(config: core.pcs.PcsConfig, reference: bool, artifact_dir: ?[]const u8) !void {
     const requests = tests.fixtures();
     var trace = try D.trace.Trace.init(a, &requests);
     defer trace.deinit();

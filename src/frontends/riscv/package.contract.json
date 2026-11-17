@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_frontend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "layer": "frontend",
   "owner": "riscv-frontend",
   "public_modules": {
@@ -89,5 +89,16 @@
       "--summary",
       "all"
     ]
+  },
+  "budget": {
+    "code_files": 184,
+    "code_lines": 48758,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 39,
+    "dependencies": 12,
+    "rv64_registry_flags": 0,
+    "versioned_files": 195
   }
 }

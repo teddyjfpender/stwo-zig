@@ -24,6 +24,13 @@ pub fn build(b: *std.Build) void {
     module.addImport("stwo_riscv_recursion_air", dep7);
     module.addImport("stwo_riscv_rv32", dep8);
     module.addImport("interop_postcard", dep8.import_table.get("interop_postcard") orelse @panic("native codec injection missing"));
+    const focused_module = b.createModule(.{ .root_source_file = b.path("focused_test_recursion_transcript_v2_0_1.zig"), .target = target, .optimize = optimize });
+    var imports = module.import_table.iterator();
+    while (imports.next()) |entry| focused_module.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const focused_tests = b.addTest(.{ .root_module = focused_module });
+    const focused_run = b.addRunArtifact(focused_tests);
+    focused_run.has_side_effects = true;
+    b.step("test-recording-channel", "Qualify the existing owned source-size decomposition cases").dependOn(&focused_run.step);
     const tests = b.addTest(.{ .root_module = module });
     const run = b.addRunArtifact(tests);
     run.has_side_effects = true;

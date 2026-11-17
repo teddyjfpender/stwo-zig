@@ -4,28 +4,23 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const task_graph = @import("stwo_prover_engine").task_graph;
 const work_pool = @import("stwo_prover_engine").work_pool;
-const component_order = @import("../air/component_order.zig");
 const lookup_counter = @import("stwo_riscv_air_lang").evaluation.lookups.tables.counter;
 const lookup_schema = @import("stwo_riscv_air_lang").evaluation.lookups.tables.schema;
 const memory_boundary = @import("stwo_riscv_memory").air.boundary;
 const merkle_node = @import("stwo_riscv_memory").air.merkle_node;
 const poseidon2_air = @import("stwo_riscv_memory").air.poseidon2_air;
 const program_commitment = @import("../air/program/commitment.zig");
-const guest_statement = @import("../air/guest_precompile/statement.zig");
 const guest_lookup_registration =
     @import("../air/guest_precompile/lookup_registration.zig");
 const statement_mod = @import("../air/statement.zig");
 const infra = @import("../infra_trace.zig");
-const state_chain = @import("stwo_riscv_isa").machine.state_chain;
 const trace_mod = @import("../runner/trace.zig");
-const commitment_witness = @import("commitment_witness.zig");
 const execution = @import("main_trace_plan_execution.zig");
 const arena_mod = @import("main_trace_plan_execution_production_arena.zig");
 const generators = @import("main_trace_plan_execution_production_generators.zig");
 const main_witness_work = @import("main_witness_work.zig");
 const poseidon_witness_work = @import("stwo_riscv_memory").prover.poseidon_witness_work;
 const plan_mod = @import("main_trace_plan.zig");
-const geometry_mod = @import("statement_geometry.zig");
 
 pub fn makeState(comptime Owner: type) type {
     const Inputs = Owner.Inputs;
@@ -770,75 +765,14 @@ pub fn makeState(comptime Owner: type) type {
             if (self.sealed.swap(true, .acq_rel)) return error.DuplicateProductionSeal;
         }
 
-        fn validateMainWitnessWorkShape(
-            self: *const State,
-            completed: main_witness_work.Shard,
-        ) !void {
-            var opcode_rows = [_]u64{0} ** trace_mod.N_FAMILIES;
-            var audit_rows = [_]u64{0} ** trace_mod.N_FAMILIES;
-            var program_rows: u64 = 0;
-            var memory_rows: u64 = 0;
-            var merkle_rows: u64 = 0;
-            var clock_rows: u64 = 0;
-
-            for (self.statement.component_descs[0..self.statement.n_components]) |desc| {
-                const family_index = @intFromEnum(desc.family);
-                opcode_rows[family_index] = std.math.add(
-                    u64,
-                    opcode_rows[family_index],
-                    desc.n_rows,
-                ) catch return error.MainWitnessWorkOverflow;
-                if (self.plan.task_counts.audit_wave != 0) {
-                    if (desc.log_size >= @bitSizeOf(u64))
-                        return error.InvalidMainWitnessWorkShape;
-                    audit_rows[family_index] = std.math.add(
-                        u64,
-                        audit_rows[family_index],
-                        @as(u64, 1) << @intCast(desc.log_size),
-                    ) catch return error.MainWitnessWorkOverflow;
-                }
-            }
-            for (self.statement.infra_descs[0..self.statement.n_infra]) |desc| {
-                switch (desc.kind) {
-                    .program => program_rows = try expectedAdd(program_rows, desc.n_rows),
-                    .memory => memory_rows = try expectedAdd(memory_rows, desc.n_rows),
-                    .merkle => merkle_rows = try expectedAdd(merkle_rows, desc.n_rows),
-                    .clock_update => clock_rows = try expectedAdd(clock_rows, desc.n_rows),
-                    else => {},
-                }
-            }
-            const clock_desc = self.statement.infra_descs[
-                self.inputs.geometry.clock_infra_index
-            ];
-            if (clock_desc.log_size >= @bitSizeOf(u64))
-                return error.InvalidMainWitnessWorkShape;
-            const expected_merges = if (self.plan.opcode_chunk_count == 0)
-                0
-            else
-                self.plan.opcode_chunk_count - 1;
-            const expected_guest_lookup_rows: u64 =
-                if (self.inputs.poseidon2_caller_lookup) |guest_lookup|
-                    guest_lookup.n_rows
-                else
-                    0;
-            if (!std.meta.eql(opcode_rows, completed.opcode_rows) or
-                !std.meta.eql(audit_rows, completed.audit_rows) or
-                completed.program_rows != program_rows or
-                completed.memory_rows != memory_rows or
-                completed.merkle_rows != merkle_rows or
-                completed.clock_rows != clock_rows or
-                completed.program_seed_rows != program_rows or
-                completed.memory_seed_rows != memory_rows or
-                completed.clock_seed_domain_rows !=
-                    (@as(u64, 1) << @intCast(clock_desc.log_size)) or
-                completed.clock_seed_active_rows != clock_rows or
-                completed.guest_caller_trace_rows != 0 or
-                completed.guest_lookup_rows != expected_guest_lookup_rows or
-                completed.counter_set_merges != expected_merges)
-            {
-                return error.InvalidMainWitnessWorkShape;
-            }
-        }
+        const WitnessAdmission = @import("main_trace_witness_admission.zig").For(.{
+            .expectedAdd = expectedAdd,
+            .std = std,
+            .trace_mod = trace_mod,
+            .main_witness_work = main_witness_work,
+            .State = State,
+        });
+        const validateMainWitnessWorkShape = WitnessAdmission.validateMainWitnessWorkShape;
 
         fn columns(
             self: *State,

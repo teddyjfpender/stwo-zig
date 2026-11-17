@@ -27,8 +27,9 @@ mints the live-evidence refinement receipt as a build artifact.
 The workflow runs on schedule, on `workflow_dispatch`, and on pushes to
 `main`. It does not run on pull requests: a cold run rebuilds the Sail
 simulator, Spike, the Lean backend, and the whole proof tree, which is far too
-slow for a per-PR required check. It has **no skip path**: if Sail cannot be
-downloaded, hash-verified, or built, the job is RED, never skipped.
+slow for a per-PR required check. Normal publication has **no skipped proof leg**:
+if Sail cannot be downloaded, hash-verified, or built, the job is RED. Explicit
+candidate regeneration is a separate non-publication mode described in section 8.
 
 ## 2. What each command establishes
 
@@ -97,7 +98,10 @@ Be precise here, because "the Sail toolchain ran in CI" is easy to over-read.
 - `team-b-coverage.json`'s claim boundary ("no entry here is
   publication-level") is unchanged.
 
-## 4. Known first-run state: RED -- and the design flaw behind it
+## 4. Historical first-run state: RED and the identity defect
+
+This records the defect corrected by section 7. The current source-regeneration
+procedure is section 8.
 
 The first hosted run fails at the pilot gate with
 `generated artifact drifted: generated-manifest.json`. The immediate cause:
@@ -214,7 +218,7 @@ that counts is the hosted workflow's.
   bumping the key epoch; a stale one fails identity checks and the job goes
   RED rather than building from unpinned state.
 
-## 7. Specified fix: grade-blind manifest identity
+## 7. Implemented contract: grade-blind manifest identity
 
 This section is the precise change list for the owners of
 `scripts/riscv/riscv_refinement_lib/` (`render.py`, plus one site in
@@ -289,3 +293,68 @@ identity. Receipts continue to refuse carried evidence, unchanged.
    evidence and uploads a live receipt that binds it. The committed grade
    flips to `live-toolchain` naturally the next time content actually changes
    and is regenerated with the live toolchain.
+
+
+## 8. Source-owner extraction: regenerate, then qualify
+
+After a source-bound owner moves, normal verification must reject the old pins.
+Use the existing explicit candidate mode on the final committed and pushed tree:
+
+```sh
+gh workflow run riscv-sail-formal.yml --ref <branch> -f regenerate_bindings=true
+```
+
+This runs on Linux with the pinned compiler and model. It records the immutable
+source commit/tree and the old receipt's rejection, exports exactly 17 family
+AIR files and 46 unsigned opcode files, then provisions live Sail and Lean. It
+runs generation, repeat generation checking and Team B refresh against those
+same directories. It uploads `generated-bindings.patch` even after a failure.
+Candidate mode neither runs publication admission nor mints a release receipt.
+
+For an already provisioned qualified Linux host, the equivalent core sequence
+is below. `CANDIDATE_DIR` must be a new external directory; `SAIL_WORKSPACE`
+and `SAIL_BIN` name the hash-verified pinned workspace and compiler. Keep the
+source checkout fixed throughout. The workflow owns cold toolchain provisioning.
+
+```sh
+mkdir -p "$CANDIDATE_DIR"
+zig build riscv-refinement-ir \
+  -Driscv-refinement-ir-dir="$CANDIDATE_DIR/family-air" \
+  -Driscv-air-program-ir-dir="$CANDIDATE_DIR/opcode-air"
+python3 scripts/riscv/riscv_air_ir_equivalence.py check \
+  --candidate-dir "$CANDIDATE_DIR/family-air" \
+  --receipt formal/riscv-refinement/team-b-air-semantic-equivalence-v1.json
+python3 scripts/riscv/riscv_air_program_layout.py check \
+  --candidate-dir "$CANDIDATE_DIR/opcode-air"
+(cd formal/riscv-refinement && lake build)
+python3 scripts/riscv/riscv_refinement.py generate --no-export-air \
+  --air-ir-dir "$CANDIDATE_DIR/family-air" \
+  --air-program-ir-dir "$CANDIDATE_DIR/opcode-air" \
+  --sail-riscv-dir "$SAIL_WORKSPACE/source/sail-riscv" --sail-bin "$SAIL_BIN"
+python3 scripts/riscv/riscv_refinement.py check-generated --no-export-air \
+  --air-ir-dir "$CANDIDATE_DIR/family-air" \
+  --air-program-ir-dir "$CANDIDATE_DIR/opcode-air" \
+  --sail-riscv-dir "$SAIL_WORKSPACE/source/sail-riscv" --sail-bin "$SAIL_BIN"
+python3 scripts/riscv/riscv_team_b_refresh.py --write \
+  --air-ir-dir "$CANDIDATE_DIR/family-air" \
+  --air-program-ir-dir "$CANDIDATE_DIR/opcode-air" \
+  --sail-riscv-dir "$SAIL_WORKSPACE/source/sail-riscv" --sail-bin "$SAIL_BIN"
+```
+
+No narrow opcode source family is expanded merely because an unrelated cold
+witness or recursion owner moved. The production manifest already binds the
+whole `src/frontends/riscv` source tree, including actual private implementation
+bodies, through `render._source_digests`. Its literal-import closure and real
+private-body mutation/deletion/symlink regressions are in
+`test_riscv_refinement_manifest_identity.py`. No local full-source `@embedFile`
+authority references any of the fifteen owners extracted in this size sweep.
+The 46-opcode layout normalizer must still match the **complete normalized
+unsigned object** to the reviewed digest; matching only graph nodes is insufficient.
+
+Review the generated-only candidate patch and its source commit/tree, commit
+accepted output, then run the same workflow with `regenerate_bindings=false`.
+Only that normal live run can establish publication admission and mint the
+release receipt. Do not copy a main-branch AIR export into candidate inputs,
+hand-update hashes, reuse carried evidence to mint Sail output, or treat a
+candidate artifact as a qualified publication receipt. CPU proof-system
+soundness and whole-frontend correctness remain outside the refinement claim.

@@ -19,7 +19,7 @@ const Q = core.fields.qm31.QM31;
 const recursion = circuit_cpu.recursion;
 const blake2_hash = core.vcs.blake2_hash;
 
-pub const registry_path = "vectors/circuit/official/registries/production.json";
+pub const registry_path = "vectors/recursion/registries/production.json";
 
 const projection_bytes = @embedFile("circuit_air_projection");
 const air_programs_bytes = @embedFile("circuit_air_programs");
@@ -237,7 +237,7 @@ pub fn verifyRoot(gpa: std.mem.Allocator, assets: *Assets, root: Root, expected_
 pub fn verifyPackedStatements(gpa: std.mem.Allocator, json: []const u8, expected_leaves: []const admission.Leaf, expected_fold_hash: [8]u32, expected_digest: [8]u32) !void {
     try admission.validateCount(expected_leaves.len);
     if (json.len > admission.MAX_PACKED_JSON_BYTES) return error.PackedTreeResourceLimit;
-    var packed_tree = try wire.packed_node.parsePackedNode(gpa, json);
+    var packed_tree = try @import("packed_admission.zig").parse(gpa, json);
     defer packed_tree.deinit();
     var leaves: usize = 0;
     var nodes: usize = 0;
@@ -301,4 +301,8 @@ pub fn checkStatementWords(a: std.mem.Allocator, view: A.VerificationView, publi
 test {
     _ = @import("root_admission_test.zig");
     _ = @import("native_fixed_root.zig");
+}
+
+test {
+    _ = @import("packed_admission.zig");
 }

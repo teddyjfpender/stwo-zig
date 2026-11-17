@@ -40,10 +40,26 @@ pub fn liftCommittedTree(
     tree: anytype,
     tree_index: usize,
 ) !void {
+    return liftCommittedTreeDiagnosed(B, H, config, allocator, tree, tree_index, null);
+}
+
+pub fn liftCommittedTreeDiagnosed(
+    comptime B: type,
+    comptime H: type,
+    config: PcsConfigV2,
+    allocator: std.mem.Allocator,
+    tree: anytype,
+    tree_index: usize,
+    failure: ?*?@import("stwo_core").error_codes.RevisionConfigurationFailure,
+) !void {
+    if (failure) |sink| sink.* = null;
     const log_sizes = try allocator.alloc(u32, tree.columns.len);
     defer allocator.free(log_sizes);
     for (tree.columns, log_sizes) |column, *log_size| log_size.* = column.log_size;
-    const height = try config.treeHeight(tree_index, log_sizes);
+    const height = config.treeHeight(tree_index, log_sizes) catch |err| {
+        @import("stwo_core").error_codes.recordRevisionConfig(failure, err);
+        return err;
+    };
     if (height == tree.commitment.maxLogSize()) return;
     // A shared tree is a lease on storage other proofs read; lifting it would
     // change their commitment.
@@ -105,6 +121,14 @@ pub fn maskLogSize(
         return error.InvalidLiftingLogSize;
     if (final_tree_height <= config.fri_config.log_blowup_factor) return error.InvalidLiftingLogSize;
     return final_tree_height - config.fri_config.log_blowup_factor;
+}
+
+pub fn maskLogSizeDiagnosed(config: PcsConfigV2, final_height: u32, preprocessed_height: u32, include_all: bool, failure: ?*?@import("stwo_core").error_codes.RevisionConfigurationFailure) PcsConfigV2.Error!u32 {
+    if (failure) |sink| sink.* = null;
+    return maskLogSize(config, final_height, preprocessed_height, include_all) catch |err| {
+        @import("stwo_core").error_codes.recordRevisionConfig(failure, err);
+        return err;
+    };
 }
 
 test "revision lifting: mask log size follows the final tree" {
@@ -172,4 +196,35 @@ test "revision lifting: a committed tree equals the tree committed at its height
         try std.testing.expectError(error.InvalidTreeHeight, liftCommittedTree(HostBackend, H, short, allocator, &tree, 1));
         try std.testing.expectEqualSlices(u8, &root, &tree.root());
     }
+}
+
+test "admission revision lifting isolates backend identical tags and preserves config failure" {
+    const core = @import("stwo_core");
+    const H = core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;
+    const Column = struct { log_size: u32 };
+    const Commitment = struct {
+        fn maxLogSize(_: @This()) u32 {
+            return 4;
+        }
+    };
+    const Tree = struct { columns: []const Column, commitment: Commitment = .{}, shared_owner: ?*anyopaque = null };
+    const ForeignBackend = struct {
+        pub fn liftMerkle(comptime _: type, _: std.mem.Allocator, _: *Commitment, _: u32) anyerror!void {
+            return error.InvalidTreeHeight;
+        }
+    };
+    var tree = Tree{ .columns = &.{.{ .log_size = 4 }} };
+    const fri = try FriConfigV2.init(0, 0, 1, 3, 1);
+    var detail: ?core.error_codes.RevisionConfigurationFailure = null;
+    const short = PcsConfigV2.fromFriAndLiftingSize(fri, 3);
+    try std.testing.expectError(error.InvalidTreeHeight, liftCommittedTreeDiagnosed(ForeignBackend, H, short, std.testing.allocator, &tree, 1, &detail));
+    try std.testing.expectEqual(@as(u16, 0x1201), detail.?.entry.code);
+    // This configuration passes; its backend fails with the identical tag.
+    const valid = PcsConfigV2.fromFriAndLiftingSize(fri, 5);
+    try std.testing.expectError(error.InvalidTreeHeight, liftCommittedTreeDiagnosed(ForeignBackend, H, valid, std.testing.allocator, &tree, 1, &detail));
+    try std.testing.expect(detail == null);
+    try std.testing.expectError(error.InvalidLiftingLogSize, maskLogSizeDiagnosed(valid, 4, 5, true, &detail));
+    try std.testing.expectEqual(@as(u16, 0x1202), detail.?.entry.code);
+    try std.testing.expectEqual(@as(u32, 4), try maskLogSizeDiagnosed(valid, 5, 5, true, &detail));
+    try std.testing.expect(detail == null);
 }

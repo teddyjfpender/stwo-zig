@@ -11,7 +11,6 @@ const component = @import("fri_merkle_anchor.zig");
 pub const leaf = @import("fri_merkle_leaf_witness.zig");
 const node = @import("fri_merkle_node_witness.zig");
 const merkle_root = @import("merkle_root_witness.zig");
-const query_mapping = @import("query_mapping_witness.zig");
 const schedule = @import("verifier_schedule.zig");
 
 pub const MIN_LOG_SIZE = leaf.MIN_LOG_SIZE;
@@ -764,71 +763,8 @@ pub fn zeroMainRow() MainRow {
     };
 }
 
-const AddressRange = struct {
-    start: usize,
-    end: usize,
-    fn overlaps(self: AddressRange, other: AddressRange) bool {
-        return self.start < other.end and other.start < self.end;
-    }
-};
-
-fn preflightMain(
-    columns: *const [MAIN_COLUMN_COUNT][]M31,
-    preprocessing: *const Preprocessed,
-    witness: OpeningWitness,
-    executor: *const Executor,
-) direct.Error!usize {
-    if (preprocessing.log_size >= @bitSizeOf(usize)) return error.InvalidTraceShape;
-    const size = @as(usize, 1) << @intCast(preprocessing.log_size);
-    var destinations: [MAIN_COLUMN_COUNT]AddressRange = undefined;
-    for (columns, 0..) |column, index| {
-        if (column.len != size) return error.InvalidTraceShape;
-        destinations[index] = try sliceRange(M31, column);
-        for (destinations[0..index]) |previous| if (destinations[index].overlaps(previous))
-            return error.AliasedDestination;
-    }
-    const objects = [_]AddressRange{
-        try objectRange(columns),
-        try objectRange(preprocessing),
-        try objectRange(executor),
-    };
-    const rows = try sliceRange(Row, preprocessing.rows);
-    for (destinations) |destination| {
-        for (objects) |object| if (destination.overlaps(object)) return error.AliasedDestination;
-        if (destination.overlaps(rows)) return error.AliasedInput;
-        switch (witness) {
-            .segment_leaf => |opening| try rejectOpeningAlias(destination, opening),
-            .binary_node => |opening| {
-                try rejectOpeningAlias(destination, opening.left);
-                try rejectOpeningAlias(destination, opening.right);
-            },
-            .empty_leaf => {},
-        }
-    }
-    return size;
-}
-
-fn rejectOpeningAlias(destination: AddressRange, opening: OpeningSet) direct.Error!void {
-    if (destination.overlaps(try sliceRange(M31, opening.raw_queries)))
-        return error.AliasedInput;
-    for (opening.layers) |layer| if (destination.overlaps(try sliceRange(M31, layer.values)))
-        return error.AliasedInput;
-}
-
-fn sliceRange(comptime T: type, values: []const T) direct.Error!AddressRange {
-    const byte_len = std.math.mul(usize, values.len, @sizeOf(T)) catch
-        return error.AddressOverflow;
-    const start = @intFromPtr(values.ptr);
-    return .{ .start = start, .end = std.math.add(usize, start, byte_len) catch
-        return error.AddressOverflow };
-}
-
-fn objectRange(value: anytype) direct.Error!AddressRange {
-    const T = @TypeOf(value.*);
-    const start = @intFromPtr(value);
-    return .{ .start = start, .end = std.math.add(usize, start, @sizeOf(T)) catch
-        return error.AddressOverflow };
-}
+const WriteAdmission = @import("fri_anchor_write_admission.zig");
+const preflightMain = WriteAdmission.preflightMain;
 
 pub fn traceLogSize(row_count: usize) Error!u32 {
     const result: u32 = @max(

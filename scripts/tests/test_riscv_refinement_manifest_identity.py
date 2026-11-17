@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import copy
+import contextlib
+import re
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,6 +16,7 @@ from scripts.riscv import riscv_refinement, riscv_refinement_receipt_identity as
 from scripts.riscv.riscv_refinement_lib import codec, render, sail
 from scripts.riscv.riscv_refinement_lib.model import (
     SCHEMA_VERSION,
+    LEAN_TOOLCHAIN,
     Paths,
     RefinementError,
 )
@@ -43,7 +48,98 @@ def manifest_identity(manifest: dict[str, object]) -> dict[str, object]:
     }
 
 
+@contextlib.contextmanager
+def private_owner_fixture():
+    """Real facade/body bytes, tracked facade and newly extracted untracked body."""
+    checkout = Path(__file__).resolve().parents[2]
+    facade = "src/frontends/riscv/air_lang/framework/framework_interaction.zig"
+    private = "src/frontends/riscv/air_lang/framework/framework_interaction_row.zig"
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        for relative in (facade, private):
+            destination = root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(checkout / relative, destination)
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        subprocess.run(["git", "add", facade], cwd=root, check=True)
+        with mock.patch.object(render, "SOURCE_PATHS", (facade,)), mock.patch.object(
+            render, "SOURCE_TREES", ("src/frontends/riscv",)
+        ):
+            yield Paths(root), facade, private
+
+
+def source_manifest(sources):
+    manifest = {
+        "artifacts": {},
+        "claim_boundary": dict(render.MANIFEST_CLAIM_BOUNDARY),
+        "generators": {},
+        "kind": "stwo-riscv-refinement-generated-manifest",
+        "lean_toolchain": LEAN_TOOLCHAIN,
+        "opcodes": [],
+        "production_sources": sources,
+        "proof_sources": {},
+        "sail": {"evidence_source": sail.CARRIED_EVIDENCE},
+        "schema_version": SCHEMA_VERSION,
+        "tier": "level-1-normalized-pilot",
+    }
+    manifest["canonical_digest"] = render.manifest_content_digest(manifest)
+    return manifest
+
+
 class RefinementManifestIdentityTest(unittest.TestCase):
+    def test_production_closure_binds_every_internal_frontend_owner_import(self):
+        checkout = Path(__file__).resolve().parents[2]
+        frontend = checkout / "src/frontends/riscv"
+        digests = render._source_digests(Paths(checkout))
+        edges = 0
+        for source in frontend.rglob("*.zig"):
+            if any(part.startswith(".") for part in source.relative_to(frontend).parts):
+                continue
+            # The literal import's authority is the resolved implementation, not
+            # merely the facade text. Newly extracted owners need no copied pin list.
+            for name in re.findall(r'@import\("([^"\n]+\.zig)"\)', source.read_text()):
+                imported = (source.parent / name).resolve()
+                if not imported.is_relative_to(frontend):
+                    continue
+                relative = imported.relative_to(checkout).as_posix()
+                self.assertIn(relative, digests, (source, relative))
+                self.assertEqual(codec.sha256_file(imported), digests[relative])
+                edges += 1
+        self.assertGreater(edges, 100)
+
+    def test_private_owner_mutation_and_deletion_reject_the_old_manifest(self):
+        with private_owner_fixture() as (paths, facade, private):
+            original = render._source_digests(paths)
+            self.assertEqual(set(original), {facade, private})
+            manifest = source_manifest(original)
+            from scripts.riscv.riscv_refinement_lib.render_validation import validate_manifest
+
+            def validate():
+                validate_manifest(paths, manifest,
+                                  production_sources=render._source_digests(paths),
+                                  generators={}, proof_sources={},
+                                  manifest_artifacts=frozenset())
+
+            validate()
+            body = paths.root / private
+            body.write_bytes(body.read_bytes() + b"\n// changed private authority bytes\n")
+            mutated = render._source_digests(paths)
+            self.assertEqual(original[facade], mutated[facade])
+            self.assertNotEqual(original[private], mutated[private])
+            with self.assertRaisesRegex(RefinementError, "production-source closure"):
+                validate()
+            body.unlink()
+            with self.assertRaisesRegex(RefinementError, "production-source closure"):
+                validate()
+
+    def test_private_owner_symlink_is_not_a_source_authority(self):
+        with private_owner_fixture() as (paths, facade, private):
+            owner = paths.root / private
+            owner.unlink()
+            owner.symlink_to(paths.root / facade)
+            with self.assertRaisesRegex(RefinementError, "invalid production source"):
+                render._source_digests(paths)
+
     def test_digest_ignores_only_the_evidence_grade(self) -> None:
         live = manifest_fixture(sail.LIVE_EVIDENCE)
         carried = copy.deepcopy(live)

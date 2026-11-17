@@ -28,6 +28,7 @@ pub const assembly = @import("assembly.zig");
 pub const sumcheck = @import("sumcheck.zig");
 pub const production_ready = false;
 test {
+    _ = @import("recording_dataset.zig");
     _ = truth_source;
     _ = core_witness;
     _ = device_source;

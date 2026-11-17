@@ -252,6 +252,8 @@ class DeviceMonitor:
 
 
 def worker_environment(worker, environment):
+    # Retired acknowledgement is scrubbed; real binding follows trace selection.
+    environment.pop("STWO_RV64_GPU_DEVICE_BINDING", None)
     visible = str(worker["device"])
     devices = visible.split(",")
     if any(not value.isdecimal() for value in devices) or len({int(value) for value in devices}) != len(devices):
@@ -261,7 +263,7 @@ def worker_environment(worker, environment):
         if len(devices) != 1 or type(worker.get("capacity_bytes")) is not int or worker["capacity_bytes"] <= 0:
             raise ValueError("host-retained hybrid requires one explicitly capped GPU")
         for key in ("STWO_RV64_GPU_DEVICES", "STWO_RV64_GPU_DEVICE_CAPS", "STWO_RV64_GPU_PLANNED_CPU_WORKERS",
-                    "STWO_RV64_GPU_DEVICE_TRACE", "STWO_RV64_GPU_DEVICE_BINDING"):
+                    "STWO_RV64_GPU_DEVICE_TRACE"):
             environment.pop(key, None)
         environment.update({"CUDA_VISIBLE_DEVICES": visible,
                             "STWO_RV64_GPU_HOST_RETAINED": "1",
@@ -283,7 +285,7 @@ def worker_environment(worker, environment):
                         "STWO_RV64_GPU_PLANNED_CPU_WORKERS": str(worker["planned_cpu_workers"]),
                         "STWO_RV64_GPU_RETAINED_SCOPES": str(worker["retained_scopes"]),
                         "STWO_RV64_GPU_DEVICE_CAPS": ",".join(map(str, caps)),
-                        "STWO_RV64_GPU_DEVICE_TRACE": "1", "STWO_RV64_GPU_DEVICE_BINDING": "1"})
+                        "STWO_RV64_GPU_DEVICE_TRACE": "1"})
     return environment
 
 

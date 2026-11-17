@@ -1,5 +1,5 @@
 //! native_commit on a REAL GPU worker versus the host engine commitment.
-//! Opt-in (skipped otherwise): STWO_RV64_M8_GPU_BASE=<libstwo-rv64-native.so>
+//! Opt-in (skipped otherwise): STWO_RV64_GPU_LIBRARY=<libstwo-rv64-native.so>
 //! and STWO_RV64_M8_JOBS_LIBRARY=<libstwo-rv64-jobs.so>; run under the pod's
 //! GPU lock. Checks the device root, the device channel after mixing it, and
 //! the compact coefficient image, word for word.

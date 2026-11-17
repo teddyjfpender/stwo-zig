@@ -61,7 +61,7 @@ const FakeJob = struct {
     pub fn footprint(self: *FakeJob) api.Footprint {
         // A footprint the arena can never hold: the worker refuses at stage.
         if (self.kind == .stage1 and self.world.refuse_stage1 != null and self.world.refuse_stage1.? == self.ordinal) return .{ .device_words = 1 << 30 };
-        return .{ .device_words = 256 };
+        return .{ .device_words = if (self.kind == .node and self.world.node_oracle != null) 1024 else 256 };
     }
     pub fn stage(_: *FakeJob, _: *api.Stager) !void {}
     pub fn enqueue(self: *FakeJob, e: *api.Enqueue) !void {
@@ -177,7 +177,9 @@ const FakeJob = struct {
                 }
                 var digest: [32]u8 = undefined;
                 h.final(&digest);
-                for ([_]G.Check{ .channel_order, .seed_tape, .child_binding, .lookup_sum, .node_oods_constraint, .node_pcs_status }) |c| try self.verdict(id, c, G.Verdict.accepted);
+                const rejected = if (w.node_oracle) |oracle| try oracle.run(oracle.ctx, e, id) else null;
+                for ([_]G.Check{ .channel_order, .seed_tape, .child_binding, .lookup_sum, .node_oods_constraint, .node_pcs_status }) |c|
+                    try self.verdict(id, c, if (rejected != null and rejected.?.check == c) rejected.?.verdict else G.Verdict.accepted);
                 try self.encodeBytes(id, &digest);
             },
         }
@@ -226,8 +228,16 @@ fn findProof(ctx: *const G.RequestContext, id: G.ProofId) ?usize {
     return null;
 }
 
+pub const NodeRejection = struct { check: G.Check, verdict: u32 };
+pub const NodeOracle = struct {
+    ctx: *anyopaque,
+    run: *const fn (*anyopaque, *api.Enqueue, G.ProofId) anyerror!?NodeRejection,
+};
+
 pub const World = struct {
     a: std.mem.Allocator,
+    node_oracle: ?NodeOracle = null,
+    refuse_node_ordinal: ?u32 = null,
     /// Per request generation (two requests may be in flight).
     stage1_done: [gens]std.atomic.Value(u32) = @splat(.init(0)),
     partial_done: [gens][2]std.atomic.Value(bool) = @splat(.{ .init(false), .init(false) }),
@@ -394,7 +404,9 @@ pub const World = struct {
         return of(raw).make(.truth, ctx, t, d, .{ .kind = .truth, .ordinal = t }, &.{});
     }
     fn rNode(raw: *anyopaque, ctx: *const G.RequestContext, id: G.ProofId, children: []const G.ProofId, d: u32) anyerror!api.Job {
-        return of(raw).make(.node, ctx, id.ordinal, d, id, children);
+        const self = of(raw);
+        if (self.refuse_node_ordinal == id.ordinal) return error.M8OuterInjectedFault;
+        return self.make(.node, ctx, id.ordinal, d, id, children);
     }
 };
 

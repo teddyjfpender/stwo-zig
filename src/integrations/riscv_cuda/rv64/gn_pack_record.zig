@@ -1,12 +1,11 @@
-//! gn-pack recorder on the LEGACY resident source (env-gated, default off):
-//! STWO_RV64_M8_GN_PACK_RECORD=<dir> makes device_source.zig, per native
+//! gn-pack recorder on the legacy resident source (optional common root):
+//! A request-owned Dataset makes device_source.zig, per native
 //! segment of the first request a process sees,
 //!   1. run the v2 serializer (native_pack_capture.pack) on the SAME source
 //!      request the legacy builds from (read-only, before the legacy consumes
 //!      it) into in-memory 4 MiB chunks -> <dir>/seg-<n>.gnp (+ rom-<key>.bin);
 //!   2. after the legacy device MAIN is complete, download every MAIN column
-//!      and write its SHA-256 -> <dir>/seg-<n>.main.sha (and, with
-//!      STWO_RV64_M8_GN_PACK_RECORD_MAIN=1, the raw words -> seg-<n>.main).
+//!      and write its SHA-256 -> <dir>/seg-<n>.main.sha.
 //! The piece-only GPU harness (jobs/native_pack_gpu_test.zig) replays seg-<n>.gnp
 //! through the Stage-1 witness program and compares MAIN column by column.
 //! Recording never changes the legacy result (it reads inputs and outputs).
@@ -28,10 +27,6 @@ var roms_state: ?P.Roms = null;
 /// Reused chunk buffers (pre-faulted, like the pinned ring): pack timings
 /// then exclude first-touch page faults after the first segment.
 var pool: std.ArrayListUnmanaged([]u32) = .empty;
-
-pub fn directory() ?[]const u8 {
-    return std.posix.getenv("STWO_RV64_M8_GN_PACK_RECORD");
-}
 
 const Mem = struct {
     a: std.mem.Allocator,
@@ -65,16 +60,27 @@ pub const Recording = struct {
     dir: std.fs.Dir,
     ordinal: usize,
     logs: []u32,
+    capture: @import("recording_dataset.zig").Borrow,
 };
 
 /// Before the legacy source build (the request is still unconsumed).
-/// Null: recording off, or this segment was already recorded.
-pub fn begin(a: std.mem.Allocator, req: PC.Stage.Request) ?*Recording {
-    const path = directory() orelse return null;
-    return beginIn(a, path, req) catch |err| {
+/// Null: capture is disabled or this diagnostic recording failed.
+pub fn begin(a: std.mem.Allocator, req: PC.Stage.Request, slot: *const @import("recording_dataset.zig").Slot) ?*Recording {
+    var lease = slot.borrowDiagnostic() orelse return null;
+    const path = lease.owner.rolePath(a, .pack) catch |err| {
+        lease.owner.fail(err);
+        lease.release() catch unreachable;
+        return null;
+    };
+    defer a.free(path);
+    const recording = beginIn(a, path, req) catch |err| {
+        lease.owner.fail(err);
+        lease.release() catch unreachable;
         std.debug.print("GN_PACK_RECORD ordinal={} error={s}\n", .{ req.ordinal, @errorName(err) });
         return null;
     };
+    if (recording) |r| r.capture = lease else lease.release() catch unreachable;
+    return recording;
 }
 
 fn beginIn(a: std.mem.Allocator, path: []const u8, req: PC.Stage.Request) !?*Recording {
@@ -86,9 +92,8 @@ fn beginIn(a: std.mem.Allocator, path: []const u8, req: PC.Stage.Request) !?*Rec
     var name_buf: [64]u8 = undefined;
     const name = try std.fmt.bufPrint(&name_buf, "seg-{}.gnp", .{req.ordinal});
     if (dir.access(name, .{})) |_| {
-        dir.close();
-        return null;
-    } else |_| {}
+        return error.RecordingOrdinalConflict;
+    } else |err| if (err != error.FileNotFound) return err;
     if (roms_state == null) roms_state = P.Roms.init(std.heap.page_allocator);
     var mem = Mem{ .a = a };
     defer mem.deinit();
@@ -129,14 +134,25 @@ fn beginIn(a: std.mem.Allocator, path: []const u8, req: PC.Stage.Request) !?*Rec
     }
     std.debug.print("GN_PACK_RECORD ordinal={} chunks={} chunk_bytes={} data_bytes={} launches={} buffers={} arena_bytes={} cpu_records={} pack_ns={} compact_ns={} rom_ns={} cpu_ns={} core_ns={} services_ns={} ext_ns={} columns={}\n", .{ req.ordinal, stats.chunks, stats.chunk_words * 4, stats.data_words * 4, stats.launches, stats.buffers, stats.arena_words * 4, stats.cpu_records, stats.pack_ns, stats.compact_ns, stats.rom_ns, stats.cpu_ns, stats.core_ns, stats.services_ns, stats.ext_ns, logs.len });
     const r = try a.create(Recording);
-    r.* = .{ .a = a, .dir = dir, .ordinal = req.ordinal, .logs = logs };
+    r.* = .{ .a = a, .dir = dir, .ordinal = req.ordinal, .logs = logs, .capture = undefined };
     return r;
 }
 
 /// The legacy service context (pcs_native.zig Context: session, submit, library).
 /// `columns`: the completed device MAIN (D.TraceColumn, evaluations).
 pub fn finish(r: *Recording, service: anytype, columns: anytype) void {
-    finishIn(r, service, columns) catch |err| std.debug.print("GN_PACK_RECORD ordinal={} main_error={s}\n", .{ r.ordinal, @errorName(err) });
+    finishIn(r, service, columns) catch |err| {
+        r.capture.owner.fail(err);
+        std.debug.print("GN_PACK_RECORD ordinal={} main_error={s}\n", .{ r.ordinal, @errorName(err) });
+    };
+    release(r);
+}
+pub fn abort(r: *Recording) void {
+    r.capture.owner.fail(error.RecordingSourceAborted);
+    release(r);
+}
+fn release(r: *Recording) void {
+    r.capture.release() catch unreachable;
     r.a.free(r.logs);
     r.dir.close();
     r.a.destroy(r);
@@ -184,10 +200,5 @@ fn finishIn(r: *Recording, service: anytype, columns: anytype) !void {
         try file.writeAll(&d);
         at += n;
     }
-    if (std.posix.getenv("STWO_RV64_M8_GN_PACK_RECORD_MAIN")) |v| if (std.mem.eql(u8, v, "1")) {
-        var mf = try r.dir.createFile(try std.fmt.bufPrint(&name_buf, "seg-{}.main", .{r.ordinal}), .{});
-        defer mf.close();
-        try mf.writeAll(std.mem.sliceAsBytes(host));
-    };
     std.debug.print("GN_PACK_RECORD ordinal={} main_columns={} main_bytes={}\n", .{ r.ordinal, r.logs.len, total * 4 });
 }

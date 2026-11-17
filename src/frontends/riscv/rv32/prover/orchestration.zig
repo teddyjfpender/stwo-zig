@@ -123,6 +123,8 @@ pub const StatementAdmissionV2 = struct {
 /// and commitment openings, so nested executors cannot invent independent
 /// worker budgets.
 pub const ExecutionOptions = struct {
+    /// Borrowed for this joined attempt; absent by default and never mixed into the transcript.
+    diagnostic: ?*?prover_api.ProveDiagnostic = null,
     cpu: ?prover_api.CpuCompositionExecutionRequest = null,
     /// Optional product policy over the exact derived statement. Rejection
     /// occurs before Fiat-Shamir state or trace commitments are mutated.
@@ -375,6 +377,7 @@ fn runRiscVWithEngineAndPublicDataUsingChannelWithControls(
     execution: ExecutionOptions,
     phase_meter: ?*proof_phase_meter.Meter,
 ) !RunOutputForEngine(Engine, mode) {
+    if (execution.diagnostic) |sink| sink.* = null;
     comptime @import("stwo_prover_api").assertProverEngine(Engine);
     const workspace = try ProofWorkspace.create(allocator);
     defer workspace.destroy(allocator);
@@ -418,6 +421,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannelAndTranscriptExtension(
     execution: ExecutionOptions,
     transcript_extension: anytype,
 ) !RunOutputForEngine(Engine, .prove) {
+    if (execution.diagnostic) |sink| sink.* = null;
     comptime @import("stwo_prover_api").assertProverEngine(Engine);
     const workspace = try ProofWorkspace.create(allocator);
     defer workspace.destroy(allocator);

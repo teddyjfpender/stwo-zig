@@ -87,6 +87,15 @@
 /.github/CODEOWNERS @teddyjfpender
 /ENGINEERING_STANDARDS.md @teddyjfpender
 /conformance/rv64-productionisation-budget.json @teddyjfpender
+/build_support/products/libraries.zig @teddyjfpender
+/build_support/products/consumer_laws.zig @teddyjfpender
+/src/products/stwo/root.zig @teddyjfpender
+/build_support/products/contract_tests/stwo/stwo_backend_contracts_test.zig @teddyjfpender
+/build_support/products/contract_tests/stwo/stwo_circuit_recursion_wire_test.zig @teddyjfpender
+/build_support/products/contract_tests/stwo/stwo_core_test.zig @teddyjfpender
+/build_support/products/contract_tests/stwo/stwo_proof_wire_test.zig @teddyjfpender
+/build_support/products/contract_tests/stwo/stwo_prover_api_test.zig @teddyjfpender
+
 
 # owner-role: riscv-cpu-integration
 /src/integrations/riscv_cpu/build.zig.zon @teddyjfpender

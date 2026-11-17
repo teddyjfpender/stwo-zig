@@ -3,9 +3,11 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.rv64 import rv64_gate as gate
+from scripts.rv64 import rv64_validation as validation
 from scripts.rv64 import rv64_m5_negative_corpus as corpus
 from scripts.rv64 import rv64_m4_resident as resident
 from types import SimpleNamespace
@@ -73,35 +75,46 @@ class GateTests(unittest.TestCase):
             with self.assertRaises(RuntimeError): gate.frozen_parity(root, golden)
 
     def test_extra_environment_accepts_only_unique_stwo_keys(self):
-        self.assertEqual(gate.extra_environment(['STWO_RV64_M8_JOBS=1', 'STWO_X=a=b']),
-                         {'STWO_RV64_M8_JOBS': '1', 'STWO_X': 'a=b'})
+        self.assertEqual(gate.extra_environment(['STWO_RV64_M8_GPU_NATIVE=1', 'STWO_X=a=b']),
+                         {'STWO_RV64_M8_GPU_NATIVE': '1', 'STWO_X': 'a=b'})
         self.assertEqual(gate.extra_environment([]), {})
-        for bad in (['PATH=/tmp'], ['STWO_RV64_M8_JOBS'], ['stwo_x=1'], ['STWO_A=1', 'STWO_A=2'], ['STWO_A-B=1']):
+        for bad in (['PATH=/tmp'], ['STWO_RV64_M8_GPU_NATIVE'], ['stwo_x=1'], ['STWO_A=1', 'STWO_A=2'], ['STWO_A-B=1']):
             with self.assertRaises(ValueError): gate.extra_environment(bad)
 
     def test_jobs_environment_only_on_job_paths_and_pinned(self):
         with tempfile.TemporaryDirectory() as tmp:
-            lib = Path(tmp) / 'libjobs.so'
-            lib.write_bytes(b'addon')
-            runtime = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib), 'STWO_RV64_M8_JOBS_PINNED_BYTES': '1'},
-                       'jobs_env_sha256': {'STWO_RV64_M8_JOBS_LIBRARY': gate.stack.sha(lib)}}
+            libraries = {}
+            for name in validation.NATIVE_LIBRARIES:
+                path = Path(tmp) / name
+                path.write_bytes(name.encode())
+                libraries[name] = str(path)
+            runtime = {'jobs_env': {**libraries, 'STWO_RV64_M8_JOBS_PINNED_BYTES': '1'},
+                       'jobs_env_sha256': {k: gate.stack.sha(v) for k, v in libraries.items()}}
+            primary = 'STWO_RV64_M8_GPU_NATIVE'
             self.assertEqual(gate.jobs_environment(runtime, {}), {})
-            self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '0'}), {})
-            self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1'}), runtime['jobs_env'])
-            # An explicit --env wins over the shipped value.
-            got = gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2'})
-            self.assertEqual(got, {'STWO_RV64_M8_JOBS_LIBRARY': str(lib)})
-            self.assertEqual(gate.jobs_environment({}, {'STWO_RV64_M8_JOBS': '1'}), {})
+            self.assertEqual(gate.jobs_environment(runtime, {primary: '0'}), {})
+            self.assertEqual(gate.jobs_environment(runtime, {primary: '1'}), runtime['jobs_env'])
+            # The obsolete acknowledgement cannot select native jobs or inject assets.
+            self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1'}), {})
+            got = gate.jobs_environment(runtime, {primary: '1', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2'})
+            self.assertEqual(got, libraries)
+            with self.assertRaisesRegex(RuntimeError, 'requires pinned'):
+                gate.jobs_environment({}, {primary: '1'})
+            for missing in libraries:
+                incomplete = {'jobs_env': {k: v for k, v in libraries.items() if k != missing},
+                              'jobs_env_sha256': runtime['jobs_env_sha256']}
+                with self.subTest(missing=missing), self.assertRaisesRegex(RuntimeError, 'requires pinned'):
+                    gate.jobs_environment(incomplete, {primary: '1'})
             other = Path(tmp) / 'unrecorded.so'
             other.write_bytes(b'unrecorded')
             for selected in ('0', '1'):
                 with self.assertRaisesRegex(RuntimeError, 'not a pinned asset'):
-                    gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': selected,
+                    gate.jobs_environment(runtime, {primary: selected,
                                                     'STWO_RV64_M8_JOBS_LIBRARY': str(other)})
-            lib.write_bytes(b'changed')
-            with self.assertRaises(RuntimeError): gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1'})
-            unpinned = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib)}}
-            with self.assertRaises(RuntimeError): gate.jobs_environment(unpinned, {'STWO_RV64_M8_JOBS': '1'})
+            Path(libraries['STWO_RV64_M8_JOBS_LIBRARY']).write_bytes(b'changed')
+            with self.assertRaises(RuntimeError): gate.jobs_environment(runtime, {primary: '1'})
+            unpinned = {'jobs_env': libraries}
+            with self.assertRaises(RuntimeError): gate.jobs_environment(unpinned, {primary: '1'})
 
     def test_gate_corpus_cases_have_executable_mutations(self):
         known = {c['id'] for c in corpus.CASES if 'mutate' in c}
@@ -151,14 +164,16 @@ class GateTests(unittest.TestCase):
     def test_daemon_owner_rule_needs_explicit_block_opt_in(self):
         def args(blocks, repeat=2, allow=(), probe=False):
             return SimpleNamespace(blocks=list(blocks), repeat=repeat, allow_block=list(allow), allow_scale_probe=probe)
-        resident.require_measurement_blocks(args([24628607]), {})
-        with self.assertRaises(SystemExit): resident.require_measurement_blocks(args([26235159]), {})
-        resident.require_measurement_blocks(args([26235159], allow=[26235159]), {})
-        resident.require_measurement_blocks(args([26235159]), {resident.ALLOW_BLOCKS_ENV: '26235159,24697070'})
+        resident.require_measurement_blocks(args([24628607]))
+        with self.assertRaises(SystemExit): resident.require_measurement_blocks(args([26235159]))
+        resident.require_measurement_blocks(args([26235159], allow=[26235159]))
+        with patch.dict(resident.os.environ, {"STWO_RV64_HARNESS_ALLOW_BLOCKS": "26235159,24697070"}):
+            with self.assertRaises(SystemExit):
+                resident.require_measurement_blocks(args([26235159]))
         for bad in (args([26235159], repeat=3, allow=[26235159]), args([26235159, 24628611], allow=[26235159, 24628611]),
                     args([26235159], allow=[24697070]), args([26235159, 24628607], allow=[26235159])):
-            with self.assertRaises(SystemExit): resident.require_measurement_blocks(bad, {})
-        resident.require_measurement_blocks(args([24697070], repeat=1, probe=True), {})
+            with self.assertRaises(SystemExit): resident.require_measurement_blocks(bad)
+        resident.require_measurement_blocks(args([24697070], repeat=1, probe=True))
 
 if __name__ == '__main__':
     unittest.main()

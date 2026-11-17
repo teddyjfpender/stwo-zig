@@ -3,6 +3,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const geometry = @import("quotient_column_geometry.zig");
+const column_codes = @import("stwo_prover_api").error_codes;
 const work_profile = @import("stwo_prover_api").work_profile;
 const M = core.fields.m31.M31;
 const RowWork = @import("../lookups/row_work.zig");
@@ -91,19 +92,22 @@ pub fn ForField(comptime S: type) type {
                 return initForBackendWithWorkRecorderAndByteLimit(B, a, columns, points, values, alpha, log, recorder, null);
             }
             pub fn initForBackendWithWorkRecorderAndByteLimit(comptime B: type, a: std.mem.Allocator, columns: TreeVec([]const ColumnEvaluation), points: TreeVec([][]Point), values: TreeVec([][]S), alpha: S, log: u32, recorder: ?*work_profile.Recorder(true), byte_limit: ?usize) !@This() {
+                return initForBackendWithWorkRecorderAndByteLimitDiagnosed(B, a, columns, points, values, alpha, log, recorder, byte_limit, null);
+            }
+            pub fn initForBackendWithWorkRecorderAndByteLimitDiagnosed(comptime B: type, a: std.mem.Allocator, columns: TreeVec([]const ColumnEvaluation), points: TreeVec([][]Point), values: TreeVec([][]S), alpha: S, log: u32, recorder: ?*work_profile.Recorder(true), byte_limit: ?usize, diagnostic: ?*?column_codes.ColumnFailure) !@This() {
                 if (recorder != null) return error.UnsupportedWideQuotientWorkProfile;
-                if (log == 0 or log >= core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidColumnLogSize;
+                if (log == 0 or log >= core.circle.M31_CIRCLE_LOG_ORDER) return column_codes.recordColumnFailure(diagnostic, error.InvalidColumnLogSize);
                 if (comptime B != void and @hasDecl(B, "rawQuotientInputs")) if (B.rawQuotientInputs) return error.UnsupportedWideRawQuotientBackend;
-                if (columns.items.len != points.items.len or columns.items.len != values.items.len) return error.ShapeMismatch;
+                if (columns.items.len != points.items.len or columns.items.len != values.items.len) return column_codes.recordColumnFailure(diagnostic, error.ShapeMismatch);
                 for (columns.items, points.items, values.items) |cols, pts, vals| {
-                    if (cols.len != pts.len or cols.len != vals.len) return error.ShapeMismatch;
+                    if (cols.len != pts.len or cols.len != vals.len) return column_codes.recordColumnFailure(diagnostic, error.ShapeMismatch);
                     for (cols, pts, vals) |column, ps, vs| {
-                        if (ps.len != vs.len) return error.ShapeMismatch;
-                        try column.validateRetained();
-                        if (ps.len != 0 and (column.log_size == 0 or column.log_size > log)) return error.InvalidColumnLogSize;
+                        if (ps.len != vs.len) return column_codes.recordColumnFailure(diagnostic, error.ShapeMismatch);
+                        column.validateRetained() catch |err| return column_codes.recordColumnFailure(diagnostic, err);
+                        if (ps.len != 0 and (column.log_size == 0 or column.log_size > log)) return column_codes.recordColumnFailure(diagnostic, error.InvalidColumnLogSize);
                     }
                 }
-                const size = try geometry.checkedPow2(log);
+                const size = geometry.checkedPow2(log) catch |err| return column_codes.recordColumnFailure(diagnostic, err);
                 var logs = try geometry.buildColumnLogSizes(a, columns);
                 defer logs.deinitDeep(a);
                 const flat = try geometry.flattenColumnsBorrowed(a, columns);

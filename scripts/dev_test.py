@@ -24,7 +24,24 @@ from scripts.repo import ci_package_graph, ci_scope_plan, ci_scope_push, ci_scop
 from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
+# Exact std-only owners: neither native execution nor worker/CLI ownership belongs here.
+STD_ONLY_OWNERS = {
+    ("stwo_riscv_cuda_integration", "test-recording-datasets"): (
+        "rv64/recording_dataset.zig", ("rv64/recording_dataset.zig", "rv64/recording_dataset_test.zig", "rv64/recorded_replay.zig")),
+    ("stwo_ethereum_statement", "test-capture-inputs"): (
+        "cuda/rv64/capture_inputs.zig", ("cuda/rv64/capture_inputs.zig", "cuda/rv64/capture_inputs_test.zig")),
+}
+
 FOCUSED_RULES = (
+    *((package, ("src/integrations/riscv_cuda/" if package == "stwo_riscv_cuda_integration" else "src/products/ethereum/statement/") + path, step)
+      for (package, step), (_, paths) in STD_ONLY_OWNERS.items() for path in paths),
+    ("stwo_riscv_cuda_integration", "src/integrations/riscv_cuda/rv64_source_owner_test_root.zig", "test-native-source-owner-dword"),
+    ("stwo_prover_engine", "src/engine/prover/gkr_parallel_test_root.zig", "test-gkr-rows"),
+    ("stwo_prover_engine", "src/engine/prover/gkr_resource_test_root.zig", "test-gkr-resources"),
+    *(("stwo_prover_engine", "src/engine/prover/lookups/" + name, "test-gkr") for name in (
+        "gkr_circuit_field.zig", "gkr_prover_fast.zig", "gkr_base_fraction.zig",
+        "gkr_fast_lanes.zig", "gkr_source_reductions.zig",
+    )),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/focused_test_ethereum_runner_0.zig", "test-ethereum-runner"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/runner/guest_precompile/tests/ethereum_runner_test.zig", "test-ethereum-runner"),
     ("stwo_ethereum_statement", "src/products/ethereum/statement/frontend/ethereum_minimal_trace_test_root.zig", "test-ethereum-minimal-trace"),
@@ -316,6 +333,13 @@ def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
     for owner, prefix, step in FOCUSED_RULES:
         if owner == package and owns(path, prefix):
             return step
+    if package == "stwo_ethereum_statement":
+        prefix = "src/products/ethereum/statement/"
+        for component, owner in (("frontend", "frontend"), ("cpu", "cpu"), ("cuda", "cuda-host")):
+            if path == prefix + component + ".zig" or path.startswith(prefix + component + "/"):
+                return "test-owner-" + owner
+        if path == prefix + "mod.zig" or path.startswith(prefix + "tests/"):
+            return "test-owner-primary"
     return frontend_root_step(root, path) if package == "stwo_riscv_frontend" else None
 
 
@@ -479,6 +503,14 @@ def commands_for_paths(
             commands.append(broad_command(root, package, optimize or "ReleaseSafe"))
             continue
         selected_steps = sorted(value for value in steps if value is not None)
+        std_roots = [STD_ONLY_OWNERS.get((package_name, step)) for step in selected_steps]
+        if std_roots and all(owner is not None for owner in std_roots):
+            for filename, _ in std_roots:
+                command = ["zig", "test", "-O" + (optimize or "Debug")]
+                if check_only:
+                    command.append("-fno-emit-bin")
+                commands.append(command + [package.directory + "/" + filename])
+            continue
         if check_only and (package_name == "stwo_ethereum_statement" or (package_name == "stwo_riscv_frontend" and selected_steps == ["test-build-components"])):
             if deferred is None:
                 raise DevTestError("Ethereum consumer contracts require focused contract execution")
@@ -538,9 +570,25 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="continuously type-check one focused package using Zig incremental compilation",
     )
+    parser.add_argument("--case-binary", type=Path, help="Run every case of a retained canonical Zig test binary")
+    parser.add_argument("--case-sha256", help="Caller-admitted retained executable SHA256")
+    parser.add_argument("--case-seed", type=lambda value: int(value, 0), help="Original u32 test seed")
+    parser.add_argument("--case-output", type=Path, help="Durable exact-case evidence directory")
+    parser.add_argument("--case-max-count", type=int, help="Clean partition width; default1, never skips remaining cases")
+    parser.add_argument("--case-cpu-seconds", type=int, help="Explicit per-process CPU allowance1..1920; default110, wall/RSS unchanged")
+    parser.add_argument("--case-resume-digest", help="Caller-admitted SHA256 of the completed-prefix receipt")
     args = parser.parse_args(argv)
     try:
         root = args.root.resolve(strict=True)
+        case_values = (args.case_binary, args.case_sha256, args.case_seed, args.case_output)
+        if any(value is not None for value in (*case_values, args.case_resume_digest, args.case_max_count, args.case_cpu_seconds)):
+            if any(value is None for value in case_values) or args.paths or args.check or args.watch or args.optimize or args.dry_run:
+                raise DevTestError("exact-case mode requires binary/SHA/seed/output and excludes normal planning options")
+            from scripts.repo.zig_case_execution import execute
+            cpu = {} if args.case_cpu_seconds is None else {"cpu_seconds": args.case_cpu_seconds}
+            receipt = execute(*case_values, root, args.case_resume_digest, 1 if args.case_max_count is None else args.case_max_count, **cpu)
+            print(f"dev test cases: {receipt['status']} passed={receipt['passed']} skipped={receipt['skipped']} failed={receipt['failed']}")
+            return 0 if receipt["status"] == "PASS" else 3 if receipt["status"] == "INCOMPLETE" else 1
         paths = args.paths or worktree_paths(root)
         if not paths:
             print("dev test: no worktree changes")

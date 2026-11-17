@@ -34,6 +34,8 @@ pub const ExecutionOptions = struct {
     /// One strict proof-scoped budget shared by every pool-aware producer and
     /// by quotient/FRI/opening work inside `Engine.prove`.
     cpu: prover_api.CpuCompositionExecutionRequest,
+    /// Optional per-call failure evidence; ordinary engines leave it unavailable.
+    diagnostic: ?*?prover_api.ProveDiagnostic = null,
 };
 
 pub const sequential_execution = ExecutionOptions{ .cpu = .{
@@ -156,6 +158,7 @@ pub fn proveWithEngineUsingChannelAndExecution(
     channel: *Engine.Channel,
     execution: ExecutionOptions,
 ) !ethereum_types.ProveOutputForEngine(Engine) {
+    if (execution.diagnostic) |diagnostic| diagnostic.* = null;
     comptime prover_api.assertProverEngine(Engine);
     if (execution.cpu.contention_policy != .strict)
         return error.NonStrictExecutionPolicy;
@@ -357,16 +360,17 @@ pub fn proveWithEngineUsingChannelAndExecution(
             "Ethereum composition, FRI, and openings",
         );
         defer stage.end();
-        extended_proof = try Engine.prove(
-            allocator,
-            assembly.active(),
-            channel,
-            scheme,
-            .{
-                .recorder = recorder,
-                .cpu_composition_execution = execution.cpu,
-            },
-        );
+        const options: prover_api.ProveOptions = .{
+            .recorder = recorder,
+            .cpu_composition_execution = execution.cpu,
+        };
+        extended_proof = diagnosed: {
+            if (comptime @hasDecl(Engine, "proveDiagnosed")) {
+                if (execution.diagnostic) |diagnostic|
+                    break :diagnosed try Engine.proveDiagnosed(allocator, assembly.active(), channel, scheme, options, diagnostic);
+            }
+            break :diagnosed try Engine.prove(allocator, assembly.active(), channel, scheme, options);
+        };
     }
     const proof = extended_proof.proof;
     extended_proof.aux.deinit(allocator);

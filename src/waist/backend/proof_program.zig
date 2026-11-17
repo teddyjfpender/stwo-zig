@@ -299,9 +299,27 @@ pub const ProofProgram = struct {
     }
 
     pub fn validate(self: ProofProgram) Error!void {
+        return self.validateDiagnosed(null);
+    }
+
+    /// Optional exact-origin metadata; the released primary error is unchanged.
+    pub fn validateDiagnosed(self: ProofProgram, failure: ?*?@import("stwo_core").error_codes.Entry) Error!void {
+        if (failure) |sink| sink.* = null;
+        self.validateOwned(failure) catch |err| {
+            if (failure) |sink| if (sink.* == null) {
+                sink.* = @import("error_codes.zig").fromProofProgram(err);
+            };
+            return err;
+        };
+    }
+
+    fn validateOwned(self: ProofProgram, failure: ?*?@import("stwo_core").error_codes.Entry) Error!void {
         try validateIdentity(self.identity);
         if (self.native_air_contract) |contract| {
-            contract.validate() catch return error.InvalidNativeAir;
+            contract.validate() catch |err| {
+                if (failure) |sink| sink.* = @import("error_codes.zig").fromNativeAir(err);
+                return error.InvalidNativeAir;
+            };
             try validateNativeAir(self, contract);
         }
         if (self.trace_columns.len == 0) return error.EmptyTrace;

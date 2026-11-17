@@ -71,6 +71,14 @@ pub fn outputDigest(allocator: std.mem.Allocator, preimage: []const []const u8) 
     return blake2_hash.digestToU32s(blake2_hash.Blake2sHasher.hashU32s(words.items));
 }
 
+pub fn outputDigestDiagnosed(allocator: std.mem.Allocator, preimage: []const []const u8, failure: ?*?@import("stwo_core").error_codes.Entry) Error![8]u32 {
+    if (failure) |sink| sink.* = null;
+    return outputDigest(allocator, preimage) catch |err| {
+        if (failure) |sink| sink.* = @import("error_codes.zig").fromDecimal(err);
+        return err;
+    };
+}
+
 test "blake2 felt252: decimal parsing follows Felt::from_dec_str" {
     try std.testing.expectEqual(@as(u256, 0), try parseDecimalFelt("0"));
     try std.testing.expectEqual(@as(u256, 0), try parseDecimalFelt("-0"));

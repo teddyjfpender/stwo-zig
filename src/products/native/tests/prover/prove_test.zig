@@ -65,6 +65,7 @@ test "prover prove: early component and sampled-point errors consume schemes" {
     ));
     try std.testing.expect(failed == null);
     try std.testing.expectEqual(error.MissingPreprocessedTree, diagnostic.?.cause);
+    try std.testing.expect(diagnostic.?.oods_mismatch == null);
 
     var sampled_scheme = try Scheme.init(alloc, pcs_core.PcsConfig.default());
     _ = try sampled_scheme.twiddle_source.get(alloc, 6);
@@ -105,6 +106,7 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
         max_log_degree_bound: u32,
         value: QM31,
         mismatch_at_point: bool = false,
+        fail_domain: bool = false,
 
         fn asProverComponent(self: *const @This()) component_prover.ComponentProver {
             return .{
@@ -190,6 +192,7 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
             evaluation_accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
         ) !void {
             const self = cast(ctx);
+            if (self.fail_domain) return error.ConstraintsNotSatisfied;
             const domain_size = @as(usize, 1) << @intCast(self.max_log_degree_bound);
             const values = try std.testing.allocator.alloc(QM31, domain_size);
             defer std.testing.allocator.free(values);
@@ -340,6 +343,9 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
     var components_view = try prover_components.componentsView(alloc);
     defer components_view.deinit(alloc);
 
+    // Core verification consumes the proof; retain the root value, never its slice.
+    const roots = ext_proof.proof.commitment_scheme_proof.commitments.items;
+    const expected_composition_root = roots[roots.len - 1];
     try core_verifier.verify(
         Hasher,
         MerkleChannel,
@@ -354,8 +360,8 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
     // mismatch changes only the component's point evaluation, leaving a real
     // proof artifact available for diagnostic serialization after rejection.
     const Engine = @import("stwo_prover_engine").engine.ProverEngine(CpuBackend, Hasher, MerkleChannel, Channel);
-    const Mode = enum { success, retained_mismatch, ordinary_mismatch };
-    for ([_]Mode{ .success, .retained_mismatch, .ordinary_mismatch }) |mode| {
+    const Mode = enum { success, retained_mismatch, ordinary_mismatch, domain_failure };
+    for ([_]Mode{ .success, .retained_mismatch, .ordinary_mismatch, .domain_failure }) |mode| {
         var diagnostic_scheme = try Scheme.init(alloc, config);
         var owns_scheme = true;
         defer if (owns_scheme) diagnostic_scheme.deinit(alloc);
@@ -367,8 +373,13 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
         try diagnostic_scheme.commit(alloc, &.{
             .{ .log_size = 3, .values = &main_col },
         }, &diagnostic_channel);
+        var expected_channel = diagnostic_channel;
+        const expected_random_coeff = expected_channel.drawSecureFelt();
+        MerkleChannel.mixRoot(&expected_channel, expected_composition_root);
+        const expected_point = circle.randomSecureFieldPoint(&expected_channel);
         var diagnostic_component = mock_component;
-        diagnostic_component.mismatch_at_point = mode != .success;
+        diagnostic_component.mismatch_at_point = mode == .retained_mismatch or mode == .ordinary_mismatch;
+        diagnostic_component.fail_domain = mode == .domain_failure;
         const diagnostic_components = [_]component_prover.ComponentProver{diagnostic_component.asProverComponent()};
         var diagnostic: ?@import("stwo_prover_api").ProveDiagnostic = null;
         var failed: ?Engine.ExtendedProof = null;
@@ -383,7 +394,7 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
                 .{},
                 &diagnostic,
             ));
-        } else if (mode == .retained_mismatch) {
+        } else if (mode == .retained_mismatch or mode == .domain_failure) {
             try std.testing.expectError(error.ConstraintsNotSatisfied, Engine.proveDiagnosedRetainingFailure(
                 alloc,
                 &diagnostic_components,
@@ -393,6 +404,12 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
                 &diagnostic,
                 &failed,
             ));
+            if (mode == .domain_failure) {
+                try std.testing.expect(failed == null);
+                try std.testing.expect(diagnostic.?.oods_mismatch == null);
+                try std.testing.expectEqual(@import("stwo_prover_api").ProvePhase.composition, diagnostic.?.phase);
+                continue;
+            }
             try std.testing.expect(failed != null);
             const failed_bytes = try proof_wire.encodeProofBytes(alloc, failed.?.proof);
             defer alloc.free(failed_bytes);
@@ -414,6 +431,52 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
         if (mode != .success) {
             try std.testing.expectEqual(@import("stwo_prover_api").ProvePhase.finalize, diagnostic.?.phase);
             try std.testing.expectEqual(error.ConstraintsNotSatisfied, diagnostic.?.cause);
+            const mismatch = diagnostic.?.oods_mismatch orelse return error.MissingOodsMismatch;
+            try std.testing.expectEqual(@as(u32, 3), mismatch.geometry.max_log_degree_bound);
+            try std.testing.expectEqual(@as(u32, 4), mismatch.geometry.composition_log_size);
+            try std.testing.expectEqual(@as(u32, 4), mismatch.geometry.extraction_log_size);
+            try std.testing.expectEqual(@as(u32, 1), mismatch.geometry.composition_log_split);
+            switch (mismatch.values) {
+                .qm31 => |v| {
+                    try std.testing.expect(v.actual.eql(target_composition_eval));
+                    try std.testing.expect(v.expected.eql(target_composition_eval.add(QM31.one())));
+                    try std.testing.expect(!v.actual.eql(v.expected));
+                    try std.testing.expect(v.random_coeff.eql(expected_random_coeff));
+                    try std.testing.expect(v.point.x.eql(expected_point.x) and v.point.y.eql(expected_point.y));
+                },
+                else => return error.ExpectedQm31Mismatch,
+            }
+        }
+        if (mode == .retained_mismatch) {
+            // Reuse the actual failed transaction's evidence. Admission must
+            // clear it before refusing a differently typed device stage.
+            const WrongFieldStage = struct {
+                fn evaluate(raw: *anyopaque, _: std.mem.Allocator, _: @import("stwo_core").fields.om31.OM31, _: u32, _: usize, _: *const anyopaque, _: *anyopaque) anyerror!bool {
+                    @as(*bool, @ptrCast(@alignCast(raw))).* = true;
+                    return false;
+                }
+            };
+            var called = false;
+            var next_scheme = try Scheme.init(alloc, config);
+            var owns_next = true;
+            defer if (owns_next) next_scheme.deinit(alloc);
+            _ = try next_scheme.twiddle_source.get(alloc, 6);
+            var next_channel = Channel{};
+            var next_failed: ?Engine.ExtendedProof = null;
+            defer if (next_failed) |*retained| retained.deinit(alloc);
+            owns_next = false;
+            try std.testing.expectError(error.DeviceCompositionFieldMismatch, Engine.proveDiagnosedRetainingFailure(
+                alloc,
+                &.{},
+                &next_channel,
+                next_scheme,
+                .{ .om31_composition_stage = .{ .context = &called, .evaluate = WrongFieldStage.evaluate } },
+                &diagnostic,
+                &next_failed,
+            ));
+            try std.testing.expect(!called);
+            try std.testing.expect(next_failed == null);
+            try std.testing.expect(diagnostic == null);
         }
     }
 }

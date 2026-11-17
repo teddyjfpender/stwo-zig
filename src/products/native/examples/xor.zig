@@ -364,6 +364,18 @@ pub fn verify(
     statement: Statement,
     proof_in: Proof,
 ) anyerror!void {
+    return verifyDiagnosed(allocator, pcs_config, statement, proof_in, null);
+}
+
+/// Owned Core verification diagnostics; statement/shape and other origins remain unmapped.
+pub fn verifyDiagnosed(
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    statement: Statement,
+    proof_in: Proof,
+    diagnostic: ?*?@import("stwo_core").error_codes.Entry,
+) anyerror!void {
+    if (diagnostic) |sink| sink.* = null;
     trace_input.validate(statement) catch |err| {
         var invalid = proof_in;
         invalid.deinit(allocator);
@@ -430,6 +442,7 @@ pub fn verify(
     };
 
     proof_moved = true;
+    if (diagnostic) |sink| return core_verifier.verifyDiagnosed(Hasher, MerkleChannel, allocator, verifier_components[0..], &channel, &commitment_scheme, proof, sink);
     try core_verifier.verify(
         Hasher,
         MerkleChannel,
@@ -570,12 +583,25 @@ test "examples xor: prove/verify wrapper roundtrip" {
         .offset = 3,
     };
 
-    const output = try prove(std.testing.allocator, config, statement);
+    var output = try prove(std.testing.allocator, config, statement);
+    var original_owned = true;
+    defer if (original_owned) output.proof.deinit(std.testing.allocator);
     try std.testing.expectEqual(
         PROOF_COMMITMENTS,
         output.proof.commitment_scheme_proof.commitments.items.len,
     );
+    const codec = @import("stwo_proof_wire").ForHasher(QM31, Hasher);
+    const encoded = try codec.encodeProofBytes(std.testing.allocator, output.proof);
+    defer std.testing.allocator.free(encoded);
+    var clone = try codec.decodeProofBytes(std.testing.allocator, encoded);
+    var clone_owned = true;
+    defer if (clone_owned) clone.deinit(std.testing.allocator);
+    original_owned = false;
     try verify(std.testing.allocator, config, output.statement, output.proof);
+    var diagnostic: ?@import("stwo_core").error_codes.Entry = @import("stwo_core").error_codes.fromFriConfig(error.InvalidBlowupFactor);
+    clone_owned = false;
+    try verifyDiagnosed(std.testing.allocator, config, output.statement, clone, &diagnostic);
+    try std.testing.expect(diagnostic == null);
 }
 
 test "examples xor: prove_ex wrapper roundtrip" {
@@ -637,10 +663,12 @@ test "examples xor: verify wrapper rejects statement mismatch" {
     var bad_statement = output.statement;
     bad_statement.offset += 1;
 
+    var diagnostic: ?@import("stwo_core").error_codes.Entry = @import("stwo_core").error_codes.fromFriConfig(error.InvalidBlowupFactor);
     try std.testing.expectError(
         error.InvalidPreprocessedCommitment,
-        verify(std.testing.allocator, config, bad_statement, output.proof),
+        verifyDiagnosed(std.testing.allocator, config, bad_statement, output.proof, &diagnostic),
     );
+    try std.testing.expect(diagnostic == null);
 }
 
 test "examples xor: verifier rejects a mutated lookup claimed sum" {
@@ -660,4 +688,62 @@ test "examples xor: verifier rejects a mutated lookup claimed sum" {
         error.InvalidClaimedSum,
         verify(allocator, config, bad_statement, output.proof),
     );
+}
+
+test "examples xor: physical FRI mutation is rejected with owned Core origin" {
+    const allocator = std.testing.allocator;
+    const config = pcs_core.PcsConfig{ .pow_bits = 0, .fri_config = try @import("stwo_core").fri.FriConfig.init(0, 1, 3) };
+    var output = try prove(allocator, config, .{ .log_size = 5, .log_step = 2, .offset = 3 });
+    var proof_owned = true;
+    defer if (proof_owned) output.proof.deinit(allocator);
+    const coefficients = output.proof.commitment_scheme_proof.fri_proof.last_layer_poly.coeffs;
+    try std.testing.expect(coefficients.len != 0);
+    coefficients[0] = coefficients[0].add(QM31.one());
+    var diagnostic: ?@import("stwo_core").error_codes.Entry = null;
+    proof_owned = false;
+    if (verifyDiagnosed(allocator, config, output.statement, output.proof, &diagnostic)) {
+        return error.MutatedFriProofAccepted;
+    } else |err| {
+        const entry = diagnostic orelse return error.MissingOwnedCoreDiagnostic;
+        try std.testing.expectEqualStrings(@errorName(err), entry.tag);
+        try std.testing.expectEqual(@import("stwo_core").error_codes.Class.verification_failed, entry.class);
+        // Only the FRI/Merkle section of the typed PCS table may explain this mutation.
+        try std.testing.expect(entry.code >= 0x110f and entry.code <= 0x111a);
+    }
+}
+
+test "examples xor: diagnosed receiver preserves foreign origin and maps owned Core rejection" {
+    const allocator = std.testing.allocator;
+    const config = pcs_core.PcsConfig{ .pow_bits = 0, .fri_config = try @import("stwo_core").fri.FriConfig.init(0, 1, 3) };
+    const statement = Statement{ .log_size = 5, .log_step = 2, .offset = 3 };
+    const fixed = try trace_input.generatePreprocessed(allocator, statement);
+    defer preprocessed_commitment.freeColumns(allocator, fixed);
+    const root = try preprocessed_commitment.root(allocator, config, fixed);
+    inline for (.{ false, true }) |owned_core_failure| {
+        const commitments = try allocator.alloc(Hasher.Hash, PROOF_COMMITMENTS);
+        var commitments_owned = true;
+        errdefer if (commitments_owned) allocator.free(commitments);
+        @memset(commitments, [_]u8{0} ** 32);
+        if (owned_core_failure) commitments[0] = root;
+        const core = @import("stwo_core");
+        const last_layer = try allocator.alloc(QM31, 1);
+        var last_layer_owned = true;
+        errdefer if (last_layer_owned) allocator.free(last_layer);
+        last_layer[0] = QM31.zero();
+        const proof = Proof{ .commitment_scheme_proof = .{
+            .config = config,
+            .commitments = pcs_core.TreeVec(Hasher.Hash).initOwned(commitments),
+            .sampled_values = pcs_core.TreeVec([][]QM31).initOwned(try allocator.alloc([][]QM31, 0)),
+            .decommitments = pcs_core.TreeVec(core.vcs_lifted.verifier.MerkleDecommitmentLifted(Hasher)).initOwned(try allocator.alloc(core.vcs_lifted.verifier.MerkleDecommitmentLifted(Hasher), 0)),
+            .queried_values = pcs_core.TreeVec([][]M31).initOwned(try allocator.alloc([][]M31, 0)),
+            .proof_of_work = 0,
+            .fri_proof = .{ .first_layer = .{ .fri_witness = try allocator.alloc(QM31, 0), .decommitment = .{ .hash_witness = try allocator.alloc(Hasher.Hash, 0) }, .commitment = [_]u8{0} ** 32 }, .inner_layers = try allocator.alloc(core.fri.FriLayerProof(Hasher), 0), .last_layer_poly = core.poly.line.LinePoly.initOwned(last_layer) },
+        } };
+        commitments_owned = false;
+        last_layer_owned = false;
+        var diagnostic: ?core.error_codes.Entry = core.error_codes.fromFriConfig(error.InvalidBlowupFactor);
+        const result = verifyDiagnosed(allocator, config, statement, proof, &diagnostic);
+        try std.testing.expectError(if (owned_core_failure) error.InvalidStructure else error.InvalidPreprocessedCommitment, result);
+        if (owned_core_failure) try std.testing.expectEqual(@as(u16, 0x1101), diagnostic.?.code) else try std.testing.expect(diagnostic == null);
+    }
 }

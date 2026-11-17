@@ -21,6 +21,17 @@ def tracked(pattern: str) -> list[Path]:
 
 
 class ToolchainPinTests(unittest.TestCase):
+    def test_supported_cpu_distributions_have_immutable_versions_and_hashes(self) -> None:
+        self.assertRegex(PINS["python"]["version"], r"^\d+\.\d+\.\d+$")
+        version = PINS["zig"]["version"]
+        hosts = set(PINS["profiles"]["cpu"]["hosts"])
+        self.assertEqual(hosts, set(PINS["zig"]["distributions"]))
+        for host, dist in PINS["zig"]["distributions"].items():
+            self.assertEqual(f"https://ziglang.org/download/{version}/zig-{host}-{version}.tar.xz", dist["url"])
+            self.assertRegex(dist["sha256"], r"^[0-9a-f]{64}$")
+        for channel in PINS["rust"]["crates"].values():
+            self.assertRegex(channel, r"^(nightly-\d{4}-\d{2}-\d{2}|\d+\.\d+\.\d+)$")
+
     def assert_installer_pins(self, text: str, action: str, key: str, want: str, name: str) -> None:
         action = re.escape(action)
         installs = re.findall(rf"(?m)^\s*(?:-\s+)?uses:\s+{action}@[^\n]+", text)

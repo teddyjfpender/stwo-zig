@@ -595,7 +595,7 @@ pub fn Ops(comptime Owner: type) type {
             }
 
             scheme_owned = false;
-            var proof = try proof_finalize.proveWithOptions(
+            var proof = try proof_finalize.proveWithOptionsDiagnosed(
                 Engine,
                 allocator,
                 .{
@@ -609,6 +609,7 @@ pub fn Ops(comptime Owner: type) type {
                 interaction_claim,
                 statement.nOpcodeMainColumns() + statement.nInfraColumns(),
                 statement.nInteractionColumns(),
+                execution.diagnostic,
             );
             errdefer proof.deinit(allocator);
             if (phase_meter) |meter| try meter.requireComplete();

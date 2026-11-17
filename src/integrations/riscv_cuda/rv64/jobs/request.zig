@@ -1,4 +1,4 @@
-//! Request path of the job runtime (`combined-serve` with STWO_RV64_M8_JOBS=1).
+//! Request path of the job runtime (`combined-serve` with STWO_RV64_M8_GPU_NATIVE=1).
 //!
 //! A `Provider` turns one block request into a scheduler graph: it owns
 //! capture and the job factories (native stage-1/2 and truth from stream

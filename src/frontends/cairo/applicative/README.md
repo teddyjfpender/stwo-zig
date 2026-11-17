@@ -103,7 +103,7 @@ Rust-profile lane for arbitrary adapted Cairo programs with `prove-cairo`:
 
 ```sh
 zig-out/bin/stwo-circuit-recursion-cpu prove-cairo \
-  --registry vectors/circuit/official/registries/production.json \
+  --registry vectors/recursion/registries/production.json \
   --prover-input applicative.cpi --output applicative.proof.json --assets .
 ```
 

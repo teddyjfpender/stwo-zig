@@ -10,7 +10,7 @@
 //!             slot rejects global_seal.
 //! CUDA-event GPU time of the encoder on segment-scale shapes [M] is printed
 //! as GPU_M8_NATIVE_ENCODE_TIMING lines.
-//! Opt-in (skipped otherwise): STWO_RV64_M8_GPU_BASE, STWO_RV64_M8_JOBS_LIBRARY.
+//! Opt-in (skipped otherwise): STWO_RV64_GPU_LIBRARY, STWO_RV64_M8_JOBS_LIBRARY.
 const std = @import("std");
 const core = @import("stwo_core");
 const api = @import("api.zig");

@@ -234,6 +234,16 @@ test "Cairo recovery: recorded witness column refills its arena binding" {
     };
     try registry.execute(1, binding, std.mem.sliceAsBytes(&destination));
     try std.testing.expectEqualSlices(u32, &.{ 10, 15, 35, 55 }, &destination);
+    var failure: ?@import("stwo_core").error_codes.Entry = @import("stwo_backend_contracts").error_codes.fromRecovery(error.MissingRecipe);
+    @memset(&destination, 0);
+    try registry.executeDiagnosed(1, binding, std.mem.sliceAsBytes(&destination), &failure);
+    try std.testing.expectEqualSlices(u32, &.{ 10, 15, 35, 55 }, &destination);
+    try std.testing.expect(failure == null);
+    var unaligned = binding;
+    unaligned.size_bytes = 3;
+    var three: [3]u8 = @splat(0);
+    try std.testing.expectError(error.BindingSizeMismatch, registry.executeDiagnosed(1, unaligned, &three, &failure));
+    try std.testing.expect(failure == null); // Actual Cairo callback, not registry admission.
 }
 
 test "Cairo recovery: grouped recipe executes once for every component column" {

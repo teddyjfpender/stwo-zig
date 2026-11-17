@@ -1,4 +1,5 @@
 const std = @import("std");
+const artifacts = @import("native_artifact_root.zig");
 const frontend = @import("stwo_riscv_frontend");
 const rv = frontend.rv64;
 const air = frontend.rv64_air;
@@ -144,7 +145,7 @@ fn run(state_policy: air.state_policy.Policy, arithmetic_policy: air.arithmetic.
     defer a.free(compact_encoded);
     try std.testing.expectEqualSlices(u8, encoded, compact_encoded);
 
-    const artifact = std.process.getEnvVarOwned(a, if (arithmetic_policy == .division_multiplication_services_v3) "STWO_RV64_MUL_CPU_ARTIFACT_DIR" else if (state_policy == .inverse_v1) "STWO_RV64_KECCAK_CPU_ARTIFACT_DIR" else "STWO_RV64_KECCAK_CPU_CYCLIC_ARTIFACT_DIR") catch null;
+    const artifact = try artifacts.directory(a, if (arithmetic_policy == .division_multiplication_services_v3) .mul_cpu else if (state_policy == .inverse_v1) .keccak_cpu else .keccak_cpu_cyclic);
     defer if (artifact) |path| a.free(path);
     if (artifact) |path| {
         try std.fs.cwd().makePath(path);

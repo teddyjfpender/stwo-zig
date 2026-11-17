@@ -18,6 +18,7 @@
 //! to the same structure `verifier_proof.prepare` builds for an internal node.
 
 const std = @import("std");
+const transport = @import("../wire_admission.zig");
 const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
@@ -115,13 +116,13 @@ pub const LayerEntry = struct {
     /// recomputed from the hashed-output preimage.
     pub fn fromLeaf(gpa: std.mem.Allocator, fold: *const Fold, leaf: wire.leaf_proof_json.LeafInput) !LayerEntry {
         const config = fold.canonical.proofConfig();
-        var decoded = try wire.circuit_serialize.deserializeProof(gpa, leaf.proof.proof, config);
+        var decoded = try transport.decodeBinary(gpa, leaf.proof.proof, config);
         errdefer decoded.deinit();
         // Upstream (`deserialize_proof_with_config` on a slice) ignores
         // bytes after the proof; so does this port.
         if (decoded.consumed != leaf.proof.proof.len)
             log.warn("leaf proof: {d} bytes after the proof ignored", .{leaf.proof.proof.len - decoded.consumed});
-        const output_digest = try leaf.outputDigest(gpa);
+        const output_digest = try transport.leafDigest(gpa, leaf);
         return .{
             .arena = decoded.arena,
             .proof = .{ .circuit = decoded.proof },
@@ -141,7 +142,7 @@ pub const LayerEntry = struct {
             node.packed_output != .composite or
             !std.mem.eql(u32, &node.packed_output.composite.circuit_hash, &expected_hash))
             return error.CheckpointIdentityMismatch;
-        var decoded = try wire.circuit_serialize.deserializeProof(gpa, node.proof, fold.canonical.proofConfig());
+        var decoded = try transport.decodeBinary(gpa, node.proof, fold.canonical.proofConfig());
         errdefer decoded.deinit();
         if (decoded.consumed != node.proof.len) return error.TrailingCheckpointProofBytes;
         return .{

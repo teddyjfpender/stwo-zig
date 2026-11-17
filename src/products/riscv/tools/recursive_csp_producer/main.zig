@@ -22,6 +22,7 @@ const Options = struct {
 };
 
 const FailureContext = struct {
+    diagnostic: ?@import("stwo_prover_api").ProveDiagnostic = null,
     stage: []const u8 = "request_validation",
     request_sha256: ?[32]u8 = null,
     plan_digest: ?[32]u8 = null,
@@ -40,6 +41,7 @@ pub fn main() !void {
 
     var failure_context: FailureContext = .{};
     run(allocator, options, &failure_context) catch |err| {
+        report.emitOriginDiagnostic(std.fs.File.stderr(), failure_context.diagnostic, failure_context.request_sha256, err);
         report.failure(
             allocator,
             options.request_path,
@@ -70,7 +72,7 @@ fn run(
     failure.workload_id = try parseDigest(parsed.parsed.value.workload_id);
 
     var pipeline_stage: pipeline.Stage = .request_validation;
-    var produced = pipeline.produce(
+    var produced = pipeline.produceDiagnosed(
         allocator,
         parsed.parsed.value,
         parsed.raw,
@@ -79,6 +81,7 @@ fn run(
             .dirty = build_identity.implementation_dirty,
         },
         &pipeline_stage,
+        &failure.diagnostic,
     ) catch |err| {
         failure.stage = @tagName(pipeline_stage);
         return err;

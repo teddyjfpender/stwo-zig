@@ -86,6 +86,7 @@ pub const LazyQuotientProvider = struct {
     pub const initWithMode = InitOps.initWithMode;
     pub const initForBackend = InitOps.initForBackend;
     pub const initForBackendWithWorkRecorder = InitOps.initForBackendWithWorkRecorder;
+    pub const initForBackendWithWorkRecorderDiagnosed = InitOps.initForBackendWithWorkRecorderDiagnosed;
     pub const initForBackendWithMode = InitOps.initForBackendWithMode;
 
     /// Borrows the proof-session residency set for the lifetime of this

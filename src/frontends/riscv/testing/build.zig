@@ -27,6 +27,12 @@ pub fn build(b: *std.Build) void {
     module.addImport("stwo_riscv_recursion_air", dep8);
     module.addImport("stwo_riscv_rv32", dep9);
     module.addImport("stwo_riscv_rv64", dep10);
+    const focused = b.createModule(.{ .root_source_file = b.path("focused_test_row_windows_edit_0.zig"), .target = target, .optimize = optimize });
+    var imports = module.import_table.iterator();
+    while (imports.next()) |entry| focused.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const focused_run = b.addRunArtifact(b.addTest(.{ .root_module = focused, .filters = &.{"row-window v1: semantic component binding"} }));
+    focused_run.has_side_effects = true;
+    b.step("test-row-mask-bindings", "Qualify existing row-window authority and hostile mask binding cases").dependOn(&focused_run.step);
     const tests = b.addTest(.{ .root_module = module });
     const run = b.addRunArtifact(tests);
     run.has_side_effects = true;

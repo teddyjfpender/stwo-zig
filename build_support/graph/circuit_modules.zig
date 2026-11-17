@@ -87,10 +87,19 @@ fn createCompositionModule(
         .linkage = .static,
         .root_module = b.createModule(.{ .target = target, .optimize = optimize, .pic = true, .link_libc = true }),
     });
-    for (0..11) |index| kernels.root_module.addCSourceFile(.{
-        .file = directory.path(b, b.fmt("circuit_cpu_air_{d}.c", .{index})),
-        .flags = &.{ "-std=c11", "-O3", "-fstrict-aliasing", "-fno-vectorize", "-fno-slp-vectorize", "-gline-tables-only" },
-    });
+    // One translation unit per object lets the existing outer build job limit
+    // bound C compiler fan-out; the archive still contains every exact kernel.
+    for (0..11) |index| {
+        const object = b.addObject(.{
+            .name = b.fmt("circuit-composition-cpu-kernel-{d}", .{index}),
+            .root_module = b.createModule(.{ .target = target, .optimize = optimize, .pic = true, .link_libc = true }),
+        });
+        object.root_module.addCSourceFile(.{
+            .file = directory.path(b, b.fmt("circuit_cpu_air_{d}.c", .{index})),
+            .flags = &.{ "-std=c11", "-O3", "-fstrict-aliasing", "-fno-vectorize", "-fno-slp-vectorize", "-gline-tables-only" },
+        });
+        kernels.root_module.addObject(object);
+    }
     module.linkLibrary(kernels);
     return module;
 }

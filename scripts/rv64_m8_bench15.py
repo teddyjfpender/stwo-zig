@@ -101,7 +101,7 @@ ARMS = {
     'default': {},
     # Full GPU-native path, matching gn-bind's current correctness gates.
     # Keep it explicit: none of these flags promotes the product default.
-    'gpu-native': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_GPU_NATIVE': '1',
+    'gpu-native': {'STWO_RV64_M8_GPU_NATIVE': '1',
                    'STWO_RV64_M8_GPU_NATIVE_REUSE': '1', 'STWO_RV64_M9_CLASS_PACKED_INGRESS': '1',
                    'STWO_RV64_M8_JOBS_LIBRARY': '{addon}', 'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}',
                    'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'},

@@ -1,4 +1,4 @@
-"""Declared RV64 environment switches and their generated source references.
+"""Declared STWO environment switches and their generated source references.
 
 Reference regeneration never declares a flag or changes its reviewed metadata.
 The live-count target is a promotion gate, not a grandfathered source baseline.
@@ -16,10 +16,11 @@ from . import comments
 from .common import EXCLUDED_DIRECTORY_NAMES
 
 REGISTRY = Path("conformance/rv64-flags.json")
-TOKEN = re.compile(r"\bSTWO_RV64_[A-Z0-9_]*[A-Z0-9]\b")
+TOKEN = re.compile(r"\bSTWO_[A-Z0-9_]*[A-Z0-9]\b")
 DEVICE_BUDGET_PREFIX = "STWO_RV64_" + "BUDGET_GUARD_BYTES_"
 DEVICE_BUDGET_FAMILY = DEVICE_BUDGET_PREFIX + "{device}"
 SUFFIXES = {".zig", ".py", ".sh", ".cu", ".cuh", ".c", ".cpp", ".h", ".hpp", ".rs", ".metal"}
+SOURCE_SUFFIXES = SUFFIXES | {".m", ".mm", ".cc"}
 LIVE = {"runtime", "qualification", "frozen", "retire-after-native-default"}
 STATUSES = LIVE | {"constant", "reference-only"}
 
@@ -31,7 +32,7 @@ def references(repo: Path) -> dict[str, list[str]]:
         for base, dirs, files in os.walk(repo / directory):
             dirs[:] = sorted(set(dirs) - EXCLUDED_DIRECTORY_NAMES)
             paths.extend(Path(base) / name for name in sorted(files)
-                         if Path(name).suffix in SUFFIXES | {".yml", ".yaml"})
+                         if Path(name).suffix in SOURCE_SUFFIXES | {".yml", ".yaml"})
     paths.extend(repo / "conformance/rv64/presets" / name for name in
                  ("default-runtime.json", "integration-stack-preset.json"))
     for path in paths:
@@ -40,7 +41,7 @@ def references(repo: Path) -> dict[str, list[str]]:
         text = path.read_text(encoding="utf-8")
         if path.suffix == ".zig":
             text = comments.strip_zig(text)
-        elif path.suffix in {".cu", ".cuh", ".c", ".cpp", ".h", ".hpp", ".rs", ".metal"}:
+        elif path.suffix in {".cu", ".cuh", ".c", ".cpp", ".h", ".hpp", ".rs", ".metal", ".m", ".mm", ".cc"}:
             text = comments.strip_c(text)
         names = set(TOKEN.findall(text))
         names = {DEVICE_BUDGET_FAMILY if n.startswith(DEVICE_BUDGET_PREFIX) and n[len(DEVICE_BUDGET_PREFIX):].isdigit() else n for n in names}
@@ -61,7 +62,7 @@ def load(repo: Path) -> dict:
         return result
     payload = json.loads((repo / REGISTRY).read_text(), object_pairs_hook=unique)
     if payload.get("schema") != "rv64-flag-registry/v1" or not isinstance(payload.get("flags"), dict):
-        raise ValueError("invalid RV64 flag registry schema")
+        raise ValueError("invalid STWO flag registry schema")
     return payload
 
 
@@ -72,13 +73,13 @@ def check(repo: Path, *, refresh: bool = False, strict: bool = False) -> list[st
     try:
         payload = load(repo)
     except (OSError, ValueError, AttributeError) as error:
-        return [f"RV64 flag registry: {error}"]
+        return [f"STWO flag registry: {error}"]
     declared = payload["flags"]
-    errors = [f"undeclared RV64 flag: {name}" for name in actual.keys() - declared.keys()]
-    errors += [f"stale RV64 flag declaration: {name}" for name in declared.keys() - actual.keys()]
+    errors = [f"undeclared STWO flag: {name}" for name in actual.keys() - declared.keys()]
+    errors += [f"stale STWO flag declaration: {name}" for name in declared.keys() - actual.keys()]
     for name, entry in declared.items():
         if (not TOKEN.fullmatch(name) and name != DEVICE_BUDGET_FAMILY) or not isinstance(entry, dict):
-            errors.append(f"invalid RV64 flag declaration: {name}")
+            errors.append(f"invalid STWO flag declaration: {name}")
             continue
         owner = entry.get("owner")
         if not isinstance(owner, str) or owner not in actual.get(name, []):
@@ -93,10 +94,28 @@ def check(repo: Path, *, refresh: bool = False, strict: bool = False) -> list[st
         if not isinstance(status, str) or status not in STATUSES or not isinstance(entry.get("default"), str) or not entry["default"].strip() or entry["default"] == "REVIEW_REQUIRED":
             errors.append(f"{name}: requires status and explicit unset default")
         if status in ("constant", "reference-only"):
-            reader = re.compile(r"(?:getenv|getEnvVarOwned|hasEnvVarConstant)\([^\n;]*[\"']" + re.escape(name) + r"[\"']")
-            if any(reader.search((repo / path).read_text()) for path in actual.get(name, [])):
+            reader = re.compile(r"(?:getenv|getEnvVarOwned|hasEnvVarConstant|std::env::var(?:_os)?)\([^\n;]*[\"']" + re.escape(name) + r"[\"']")
+            objc_reader = re.compile(r"NSProcessInfo\.processInfo\.environment\s*\[\s*@?[\"']" + re.escape(name) + r"[\"']")
+            if any(reader.search((repo / path).read_text()) or objc_reader.search((repo / path).read_text()) for path in actual.get(name, [])):
                 errors.append(f"{name}: an environment reader cannot be excluded from the live count")
         evidence = entry.get("default_evidence", {})
+        reader_pins = evidence.get("readers", []) if isinstance(evidence, dict) else []
+        if not isinstance(reader_pins, list) or len(reader_pins) > 16:
+            errors.append(f"{name}: invalid typed reader evidence")
+            reader_pins = []
+        if reader_pins and status not in LIVE:
+            errors.append(f"{name}: typed environment reader cannot be excluded from the live count")
+        for pin in reader_pins:
+            if (not isinstance(pin, dict) or set(pin) != {"path", "text"}
+                    or not isinstance(pin.get("path"), str) or not isinstance(pin.get("text"), str)
+                    or not pin["text"].strip()):
+                errors.append(f"{name}: invalid typed reader pin")
+                continue
+            path = Path(pin["path"])
+            source = repo / path
+            if (path.is_absolute() or ".." in path.parts or source.is_symlink()
+                    or not source.is_file() or pin["text"] not in source.read_text()):
+                errors.append(f"{name}: typed reader source expression changed")
         if isinstance(status, str) and status in LIVE:
             try:
                 expiry = datetime.date.fromisoformat(entry.get("expires", ""))
@@ -117,7 +136,7 @@ def check(repo: Path, *, refresh: bool = False, strict: bool = False) -> list[st
         elif entry.get("references") != actual.get(name, []):
             errors.append(f"{name}: stale generated references; use --update-rv64-flag-references")
     if strict:
-        live = [name for name, e in declared.items() if isinstance(e, dict) and isinstance(e.get("status"), str) and e["status"] in LIVE]
+        live = [name for name, e in declared.items() if name.startswith("STWO_RV64_") and isinstance(e, dict) and isinstance(e.get("status"), str) and e["status"] in LIVE]
         if len(live) >= 60:
             errors.append(f"RV64 live flag target not met: {len(live)} (required <60)")
         pending = [name for name in live if re.match(r"STWO_RV64_" + r"M[78]_", name)]

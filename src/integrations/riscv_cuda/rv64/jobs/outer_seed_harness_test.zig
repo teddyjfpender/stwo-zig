@@ -1,9 +1,10 @@
 //! gn-node piece-only harness on REAL recorded data (test-only file; opt-in).
 //!
-//!   STWO_RV64_M8_GN_NODE_RECORDS=<dir>   node-*.gnr + pcs-*.gnp from
-//!                                        outer_seed_record.zig (legacy path)
-//!   STWO_RV64_M8_GN_NODE_TREE=<tree.json> the run's recursion-om31/tree.json
-//!   STWO_RV64_M8_GPU_BASE / STWO_RV64_M8_JOBS_LIBRARY  (device arm)
+//!   STWO_RV64_LEAN_ARTIFACT_DIR=<root>
+//!   root/recordings/executions/<capture>/nodes or historical/nodes/<family>.
+//!   Each independent dataset holds node-*.gnr + pcs-*.gnp.
+//! Child order is derived from recorded PCS root pairs in the parent seed tape.
+//!   STWO_RV64_GPU_LIBRARY / STWO_RV64_M8_JOBS_LIBRARY  (device arm)
 //!
 //! For every recorded fold/root node: build the class seed program from its
 //! children's recorded classes, run the host mirror and (device arm) the
@@ -15,8 +16,12 @@
 //! check and require the named verdict. Prints one GN_NODE_HARNESS line per
 //! node ([M] GPU time by CUDA events, host enqueue time) and a summary.
 const std = @import("std");
+const Dataset = @import("../recording_dataset.zig");
+const Replay = @import("../recorded_replay.zig");
 const S = @import("outer_seed_device.zig");
 const O = @import("ops.zig");
+const GpuPolicy = @import("native_gpu_support_test.zig");
+const Association = @import("recorded_children_test.zig");
 
 const Loaded = struct {
     a: std.mem.Allocator,
@@ -46,7 +51,7 @@ fn readWords(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8) ![]u32 {
     return w;
 }
 
-fn load(a: std.mem.Allocator, path: []const u8, tree_path: ?[]const u8) !Loaded {
+fn load(a: std.mem.Allocator, path: []const u8) !Loaded {
     var out = Loaded{ .a = a };
     errdefer out.deinit();
     var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
@@ -58,20 +63,41 @@ fn load(a: std.mem.Allocator, path: []const u8, tree_path: ?[]const u8) !Loaded 
             const w = try readWords(a, dir, e.name);
             try out.node_words.append(a, w);
             const r = try S.Record.parse(a, w);
-            try out.nodes.put(a, r.ordinal, r);
+            if (out.nodes.contains(r.ordinal)) {
+                var duplicate = r;
+                duplicate.deinit(a);
+                return error.DuplicateRecordedOrdinal;
+            }
+            out.nodes.put(a, r.ordinal, r) catch |err| {
+                var rejected = r;
+                rejected.deinit(a);
+                return err;
+            };
         } else if (std.mem.endsWith(u8, e.name, ".gnp")) {
             const w = try readWords(a, dir, e.name);
             try out.node_words.append(a, w);
             try out.pcs.append(a, try S.PcsRecord.parse(a, w));
         }
     }
-    if (tree_path) |tp| {
-        const bytes = try std.fs.cwd().readFileAlloc(a, tp, 64 << 20);
-        defer a.free(bytes);
-        const Tree = struct { nodes: []const struct { children: []const u32 } };
-        const parsed = try std.json.parseFromSlice(Tree, a, bytes, .{ .ignore_unknown_fields = true });
-        defer parsed.deinit();
-        for (parsed.value.nodes, 0..) |n, i| if (n.children.len != 0) try out.children.put(a, @intCast(i), try a.dupe(u32, n.children));
+    const nodes = try a.alloc(Association.Node, out.nodes.count());
+    defer a.free(nodes);
+    var records = out.nodes.iterator();
+    var i: usize = 0;
+    while (records.next()) |entry| : (i += 1) {
+        const r = entry.value_ptr;
+        const roots_at = @import("../outer_seed_record.zig").Live.main_root_at - 8;
+        if (r.image.len < roots_at + 16) return error.GnNodeImageTooShort;
+        nodes[i] = .{ .ordinal = r.ordinal, .roots = r.image[roots_at..][0..16].* };
+    }
+    records = out.nodes.iterator();
+    while (records.next()) |entry| {
+        const r = entry.value_ptr;
+        if (r.is_leaf) continue;
+        const children = try Association.fromSeeds(a, r.seeds, nodes, r.ordinal, S.max_children);
+        out.children.put(a, r.ordinal, children) catch |err| {
+            a.free(children);
+            return err;
+        };
     }
     return out;
 }
@@ -97,9 +123,10 @@ const Gpu = struct {
     ctx: *anyopaque,
     stream: *anyopaque,
     fn open() !?Gpu {
-        const base = std.posix.getenv("STWO_RV64_M8_GPU_BASE") orelse return null;
-        const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return null;
-        var libs = try O.Libraries.open(base, addon);
+        const base = std.posix.getenv("STWO_RV64_GPU_LIBRARY");
+        const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY");
+        if (!try GpuPolicy.librariesAvailable(base, addon, GpuPolicy.required())) return null;
+        var libs = try O.Libraries.open(base.?, addon.?);
         errdefer libs.close();
         var ctx: ?*anyopaque = null;
         try O.check(libs.ops.wait.context_create(&.{ .device_ordinal = 0 }, &ctx));
@@ -222,9 +249,16 @@ fn firstDiff(x: []const u32, y: []const u32) ?usize {
 }
 
 test "gn-node harness: device seed fill, statement and checkpoint on recorded real nodes" {
-    const path = std.posix.getenv("STWO_RV64_M8_GN_NODE_RECORDS") orelse return error.SkipZigTest;
     const a = std.heap.c_allocator;
-    var l = try load(a, path, std.posix.getenv("STWO_RV64_M8_GN_NODE_TREE"));
+    const root = (try Dataset.rootFromEnv(a)) orelse return error.SkipZigTest;
+    defer a.free(root);
+    var datasets = try Replay.paths(a, root, .nodes);
+    defer datasets.deinit();
+    for (datasets.items) |path| try replayNode(a, path);
+}
+
+fn replayNode(a: std.mem.Allocator, path: []const u8) !void {
+    var l = try load(a, path);
     defer l.deinit();
     var gpu_opt = try Gpu.open();
     defer if (gpu_opt) |*g| g.close();
@@ -421,6 +455,7 @@ fn negatives(a: std.mem.Allocator, gpu_opt: *?Gpu, prog: S.Program, regions: []c
     const t0 = L.trees[1];
     const cases = [_]Case{
         .{ .name = "path_sibling", .at = wire_words + t0.paths + 3, .value = null, .xor = 1, .seed = &.{ .cap_root, .cap_mismatch }, .bind = null },
+        .{ .name = "path_first_word", .at = wire_words + t0.paths, .value = null, .xor = 1, .seed = &.{ .cap_root, .cap_mismatch }, .bind = null },
         .{ .name = "queried_value", .at = wire_words + t0.values + 5, .value = 0x7fff_ffff, .xor = 0, .seed = &.{.noncanonical}, .bind = null },
         .{ .name = "query_range", .at = wire_words + L.queries, .value = 0xffff_fff0, .xor = 0, .seed = &.{.query_range}, .bind = null },
         .{ .name = "image_header", .at = wire_words, .value = 0, .xor = 0, .seed = &.{.image_header}, .bind = null },

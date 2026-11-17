@@ -71,7 +71,7 @@ class Rv64FlagsTests(unittest.TestCase):
                 self.save()
                 self.assertTrue(F.check(self.repo))
         self.source.write_text("")
-        self.assertTrue(any("stale RV64" in e for e in F.check(self.repo)))
+        self.assertTrue(any("stale STWO" in e for e in F.check(self.repo)))
 
     def test_live_expiry_is_required_and_refresh_cannot_renew_it(self):
         path = self.repo / F.REGISTRY
@@ -101,7 +101,7 @@ class Rv64FlagsTests(unittest.TestCase):
             self.assertTrue(any("live count" in e for e in F.check(self.repo)))
 
     def test_native_cuda_shell_and_active_presets_are_scanned_caches_are_not(self):
-        for relative in ("src/native/a.cu", "scripts/run.sh", ".github/workflows/gpu.yml",
+        for relative in ("src/native/a.cu", "src/native/a.m", "src/native/a.mm", "src/native/a.cc", "scripts/run.sh", ".github/workflows/gpu.yml",
                          "conformance/rv64/presets/integration-stack-preset.json"):
             path = self.repo / relative
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,3 +133,70 @@ class Rv64FlagsTests(unittest.TestCase):
         self.source.write_text(" ".join(self.payload["flags"]))
         self.save()
         self.assertTrue(any("required <60" in e for e in F.check(self.repo, strict=True)))
+
+    def test_other_family_unknown_reader_cannot_be_generated(self):
+        name = "STWO_CAIRO_" + "NEW"
+        self.source.write_text(f'const v = std.posix.getenv("{name}") orelse "0";')
+        before = (self.repo / F.REGISTRY).read_bytes()
+        self.assertTrue(any("undeclared" in e for e in F.check(self.repo, refresh=True)))
+        self.assertEqual(before, (self.repo / F.REGISTRY).read_bytes())
+
+    def test_other_family_uses_same_owner_default_expiry_and_status_rules(self):
+        self.name = "STWO_CAIRO_" + "DECLARED"
+        self.expression = f'const x = std.posix.getenv("{self.name}") orelse "0";'
+        self.source.write_text(self.expression)
+        entry = next(iter(self.payload["flags"].values()))
+        entry["default_evidence"]["text"] = self.expression
+        self.payload["flags"] = {self.name: entry}
+        self.save()
+        self.assertEqual([], F.check(self.repo))
+        for change in ({"status": "reference-only"}, {"expires": "2000-01-01"},
+                       {"default_evidence": {"path": "src/owner.zig", "text": "changed"}}):
+            with self.subTest(change=change):
+                original = copy.deepcopy(entry)
+                entry.update(change)
+                self.save()
+                self.assertTrue(F.check(self.repo))
+                entry.clear()
+                entry.update(original)
+
+    def test_other_family_live_names_do_not_spend_rv64_promotion_budget(self):
+        entry = copy.deepcopy(next(iter(self.payload["flags"].values())))
+        self.payload["flags"] = {"STWO_CAIRO_" + f"LIVE_{i}": copy.deepcopy(entry) for i in range(60)}
+        self.source.write_text(" ".join(self.payload["flags"]))
+        for name, item in self.payload["flags"].items():
+            item["default_evidence"]["text"] = name
+        self.save()
+        self.assertFalse(any("required <60" in e for e in F.check(self.repo, strict=True)))
+
+    def test_indirect_reader_default_is_pinned_at_its_actual_consumer(self):
+        self.name = "STWO_CAIRO_" + "INDIRECT"
+        self.expression = f'pub const ENV = "{self.name}";'
+        self.source.write_text(self.expression)
+        reader = self.repo / "src/consumer.zig"
+        expression = 'const x = std.posix.getenv(owner.ENV) orelse "0";'
+        reader.write_text(expression)
+        entry = next(iter(self.payload["flags"].values()))
+        entry["default_evidence"] = {"path": "src/owner.zig", "text": self.expression,
+            "readers": [{"path": "src/consumer.zig", "text": expression}]}
+        self.payload["flags"] = {self.name: entry}
+        self.save()
+        self.assertEqual([], F.check(self.repo))
+        reader.write_text(expression.replace('"0"', '"1"'))
+        self.assertTrue(any("typed reader source expression changed" in e for e in F.check(self.repo)))
+        reader.write_text(expression)
+        entry["status"] = "reference-only"
+        self.save()
+        self.assertTrue(any("live count" in e for e in F.check(self.repo)))
+
+    def test_rust_and_objective_c_readers_cannot_be_registered_as_constants(self):
+        for expression in ('std::env::var("{name}");',
+                           'NSProcessInfo.processInfo.environment[@"{name}"];'):
+            with self.subTest(expression=expression):
+                self.name = "STWO_METAL_" + "DECLARED"
+                self.source.write_text(expression.format(name=self.name))
+                entry = next(iter(self.payload["flags"].values()))
+                entry["status"] = "constant"
+                self.payload["flags"] = {self.name: entry}
+                self.save()
+                self.assertTrue(any("live count" in e for e in F.check(self.repo)))

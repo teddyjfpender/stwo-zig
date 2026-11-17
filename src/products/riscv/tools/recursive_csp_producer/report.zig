@@ -241,3 +241,51 @@ fn hexWords(value: [8]u32) [64]u8 {
         std.mem.writeInt(u32, bytes[index * 4 ..][0..4], word, .little);
     return hexDigest(bytes);
 }
+
+/// Optional sidechannel only; the canonical v3 success/failure reports are unchanged.
+pub fn emitOriginDiagnostic(writer: anytype, diagnostic: ?stwo.prover_api.ProveDiagnostic, request_sha256: ?[32]u8, original: anyerror) void {
+    const retained = diagnostic orelse return;
+    const entry = retained.code orelse return;
+    const expected = stwo.prover_api.error_codes.lookup(entry.code) orelse return;
+    const request = request_sha256 orelse return;
+    if (retained.cause != original or retained.phase != .fri or
+        !std.mem.eql(u8, entry.tag, expected.tag) or entry.class != expected.class or
+        !std.mem.eql(u8, entry.since, expected.since) or !std.mem.eql(u8, entry.tag, @errorName(original))) return;
+    var buffer: [512]u8 = undefined;
+    const request_hex = hexDigest(request);
+    const line = std.fmt.bufPrint(&buffer, "{{\"schema\":\"stwo.riscv.csp-origin-rejection.v1\",\"request_sha256\":\"{s}\",\"provider\":\"stwo_prover_api\",\"origin\":\"quotient_column\",\"phase\":\"fri\",\"error_name\":\"{s}\",\"code\":{d},\"class\":\"{s}\",\"since\":\"{s}\"}}\n", .{ request_hex, entry.tag, entry.code, @tagName(entry.class), entry.since }) catch return;
+    writer.writeAll(line) catch {};
+}
+
+test "CSP origin sidechannel is bounded typed first-cause metadata and optional" {
+    const api = stwo.prover_api;
+    const digest = [_]u8{0x12} ** 32;
+    var diagnostic = api.ProveDiagnostic{ .phase = .fri, .cause = error.InvalidColumnLength, .code = api.error_codes.fromColumn(error.InvalidColumnLength) };
+    var buffer: [512]u8 = undefined;
+    var writer = std.Io.Writer.fixed(&buffer);
+    emitOriginDiagnostic(&writer, diagnostic, digest, error.InvalidColumnLength);
+    try std.testing.expectEqualStrings("{\"schema\":\"stwo.riscv.csp-origin-rejection.v1\",\"request_sha256\":\"" ++ "1212121212121212121212121212121212121212121212121212121212121212" ++ "\",\"provider\":\"stwo_prover_api\",\"origin\":\"quotient_column\",\"phase\":\"fri\",\"error_name\":\"InvalidColumnLength\",\"code\":12291,\"class\":\"invalid_input\",\"since\":\"1.0.0-rc.2\"}\n", writer.buffered());
+    writer = std.Io.Writer.fixed(&buffer);
+    emitOriginDiagnostic(&writer, null, digest, error.ShapeMismatch);
+    emitOriginDiagnostic(&writer, diagnostic, null, error.InvalidColumnLength);
+    emitOriginDiagnostic(&writer, diagnostic, digest, error.ShapeMismatch);
+    diagnostic.code.?.code = 0x4001;
+    emitOriginDiagnostic(&writer, diagnostic, digest, error.InvalidColumnLength);
+    diagnostic.code = api.error_codes.fromColumn(error.InvalidColumnLength);
+    diagnostic.code.?.class = .resource_exhausted;
+    emitOriginDiagnostic(&writer, diagnostic, digest, error.InvalidColumnLength);
+    diagnostic.code = null;
+    emitOriginDiagnostic(&writer, diagnostic, digest, error.InvalidColumnLength);
+    try std.testing.expectEqual(@as(usize, 0), writer.buffered().len);
+    const Failing = struct {
+        calls: usize = 0,
+        pub fn writeAll(self: *@This(), _: []const u8) error{Unavailable}!void {
+            self.calls += 1;
+            return error.Unavailable;
+        }
+    };
+    diagnostic.code = api.error_codes.fromColumn(error.InvalidColumnLength);
+    var optional_writer = Failing{};
+    emitOriginDiagnostic(&optional_writer, diagnostic, digest, error.InvalidColumnLength);
+    try std.testing.expectEqual(@as(usize, 1), optional_writer.calls);
+}

@@ -11,7 +11,7 @@ bytes the Rust would write for it.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0-rc.1` |
+| Version | `1.0.0-rc.5` |
 | Layer | `interchange` |
 | Owner | `circuit-recursion` |
 | Public Zig module | `stwo_circuit_recursion_wire` |
@@ -170,7 +170,64 @@ from the repository root and round-trips the upstream goldens copied into
 ## Decoder diagnostic metadata
 
 `error_codes` exposes the RFC #360 metadata owned by this boundary. The
-unpublished `1.0.0-rc.1` surface includes the approved pre-RC addition;
+unpublished `1.0.0-rc.5` surface includes the approved typed postcard addition;
 meaning, origin, null/unknown refusal and existing rejection semantics remain
 those specified by the provider tests. Full five-provider D2 coverage remains
-open in the RFC coverage ledger.
+open in the RFC coverage ledger. `fromPostcard` accepts exactly the ten-tag
+preflight error contract; the real artifact receiver checks type equality with
+the independently owned parser before projecting codes `0x5101`–`0x510a`.
+Resource-limit failure is resource exhaustion, and the other nine are invalid
+input. The receiver emits best-effort `recursion_postcard_rejection_v1` stderr
+without changing the original failure or successful proof bytes.
+`fromJsonRead` and `fromRegistryDefinition` bind exact owned input error sets to
+`0x5201`–`0x5205`; the CPU recursion product emits
+`recursion_input_rejection_v1` only at its eight selected parser operations (including fold checkpoint).
+Diagnostic output failure preserves the primary parser error, and the legacy
+circuit-only writer refuses these unrelated code bands.
+
+
+## Consumer-owned provider checks
+
+The RV64 CPU integration registers circuit-proof roundtrips, truncation/noncanonical refusal, and every allocation-failure cleanup. The provider contract also registers its Core dependency laws where applicable.
+
+The existing aggregate package graph exposes `zig build test-cdc-stwo-circuit-recursion-wire -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
+
+
+The rc.4 ledger adds typed registry query codes `0x5301`–`0x5304`, packed-tree
+depth code `0x5401`, binary config code `0x5501` and owned binary-decoder
+allocation code `0x5503`. `0x5502` is assigned in rc.5 to the binary encoder's owned shape refusal. The circuit receiver
+retains its `InvalidProofShape`/allocation causes; root/registry admission
+writes optional origin-specific diagnostics and preserves ownership. The
+public maximum-leaf query is qualified as a query contract, not described as
+a live CLI path. Generic felt/postcard reader/writer callbacks remain separate
+from this concrete-input ledger.
+
+
+The rc.5 framing ledger adds additive synchronous diagnosed codecs, with
+optional borrowed outputs cleared on every call. Codes `0x5601`–`0x5606`
+cover the concrete felt-array decoder, including trailing felts and allocation;
+`0x5701`–`0x5704` cover the concrete felt-JSON parser. These read codecs are
+public-library qualifications, not a claim of a live felt-decoding CLI.
+`0x5801`/`0x5802` identify decimal-preimage invalid input/allocation at actual
+leaf digest admission. Binary encoder shape/allocation use `0x5502`/`0x5901`;
+config remains `0x5501`, and binary decoder allocation remains `0x5503`.
+The concrete root JSON writer uses `0x5902` only for its owned line-poly shape
+check. Its actual writer exposes only `WriteFailed`, which stays unmapped.
+Generic user-supplied felt sinks never enter this projection, including a sink
+that returns the identical `InvalidLinePoly` tag.
+
+Circuit CPU leaf/checkpoint decode, leaf/verifier/checkpoint encode, decimal
+leaf digest and root write now use these concrete operations. Best-effort
+`recursion_transport_rejection_v1` stderr keeps the original error and proof
+bytes. Failed diagnostic writes never replace a primary failure; writer errors
+and integration-only policies retain their original contracts. In particular,
+leaf binary trailing bytes are still ignored and checkpoint trailing bytes are
+still rejected natively; no generic trailing-data rule is imposed on both.
+Invalid-input codes do not authorize automatic replay/reprove, and allocation
+retry requires the caller's own resource policy and a fresh successful call.
+
+Local Debug/ReleaseFast qualification executes 32 provider cases, 3 actual
+private Circuit CPU consumer cases and 6 existing upstream golden-vector
+cases per mode. Every allocation-failure cleanup, canonical positive bytes,
+partial-output parity and foreign sink rejection are covered by those cases.
+This is not a complete proof run, device qualification or full CLI execution.

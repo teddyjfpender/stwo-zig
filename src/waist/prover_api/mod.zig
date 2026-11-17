@@ -6,6 +6,7 @@
 
 const std = @import("std");
 
+pub const error_codes = @import("error_codes.zig");
 pub const column = @import("column.zig");
 pub const device_composition = @import("device_composition.zig");
 pub const device_pcs = @import("device_pcs.zig");

@@ -7,7 +7,7 @@ transaction contract in `stwo_prover_api`.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.5.0` |
 | Layer | `engine` |
 | Owner | `prover-engine` |
 | Public Zig module | `stwo_prover_engine` |
@@ -152,3 +152,21 @@ session reuse, and verifier round-trips.
 - [Protocol core](../../waist/core/README.md)
 - [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 - [Universal AIR to Sail refinement plan](../../../design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)
+
+Version0.3 reexports the API rc.4 optional task and work diagnostics. Ordinary
+execution and profile serialization retain their previous behavior. These
+operations do not classify arbitrary task, clock or producer callback errors.
+
+The optional per-call logical-work diagnostics preserve the ordinary record and
+snapshot arithmetic, locks, schemas and digests. CounterOverflow is resource
+exhaustion; invalid counter groups, producer coverage and authenticated profiles
+are input failures. Disabled recorders retain zero state, and no diagnostic
+output is retained across calls. This is library-operation qualification, not
+a complete proof or process-level error report.
+
+
+Optional replay/revision diagnostics and the resident composition receiver
+forward only exact typed admission failures. Per-proof coordinator-owned slots
+are cleared at entry, and a code is forwarded only when its captured cause
+matches the primary failure. Device/backend callbacks remain separate origins;
+this metadata does not change proof, transcript or commitment identities.

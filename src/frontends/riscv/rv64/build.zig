@@ -17,6 +17,12 @@ pub fn build(b: *std.Build) void {
     module.addImport("stwo_riscv_memory", dep3);
     module.addImport("stwo_riscv_precompiles", dep4);
     module.addImport("stwo_riscv_rv32", dep5);
+    const dword_owner = b.createModule(.{ .root_source_file = b.path("dword_owner_test_root.zig"), .target = target, .optimize = optimize });
+    dword_owner.addImport("stwo_core", dep0);
+    const dword_tests = b.addTest(.{ .root_module = dword_owner });
+    const dword_run = b.addRunArtifact(dword_tests);
+    dword_run.has_side_effects = true;
+    b.step("test-dword-owner-projection", "Check high-residue LS-D64 OWNER coordinates against independent integer residues").dependOn(&dword_run.step);
     const tests = b.addTest(.{ .root_module = module });
     const run = b.addRunArtifact(tests);
     run.has_side_effects = true;

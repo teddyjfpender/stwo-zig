@@ -121,14 +121,11 @@ pub const Context = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         const trace: *const Native.Trace = @ptrCast(@alignCast(opaque_trace));
-        try std.fs.cwd().makePath(self.directory);
-        const input_path = try std.fmt.allocPrint(a, "{s}/composition-{}.in", .{ self.directory, self.serial });
-        defer a.free(input_path);
-        const output_path = try std.fmt.allocPrint(a, "{s}/composition-{}.out", .{ self.directory, self.serial });
-        defer a.free(output_path);
+        var scratch = try @import("subprocess_scratch.zig").Request.init(a, self.directory, .composition, self.serial);
+        defer scratch.deinit(!self.keep_jobs);
+        const input_path = scratch.input;
+        const output_path = scratch.output;
         self.serial += 1;
-        defer if (!self.keep_jobs) std.fs.cwd().deleteFile(input_path) catch {};
-        defer if (!self.keep_jobs) std.fs.cwd().deleteFile(output_path) catch {};
         var acc = try Acc.init(a, alpha, log, total);
         defer acc.deinit();
         var gpu_count: u32 = 0;

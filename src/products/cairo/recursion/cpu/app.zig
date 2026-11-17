@@ -32,6 +32,7 @@ pub const wire = @import("stwo_circuit_recursion_wire");
 const prover = @import("stwo_prover_engine");
 const cli = @import("cli.zig");
 const cairo_report = @import("cairo_report.zig");
+const input_admission = @import("verify_output.zig");
 
 const recursion = circuit_cpu.recursion;
 const leaf_wrap = recursion.leaf_wrap;
@@ -107,7 +108,7 @@ fn foldStageCommandWith(
     defer arena_state.deinit();
     const a = arena_state.allocator();
     const inputs = try loadStageInputs(a, manifest_path);
-    const registry = try wire.registry.parseRegistry(a, try readFile(a, registry_path));
+    const registry = try input_admission.parseInput(.registry, a, try readFile(a, registry_path));
     var files = try foldStageWithSource(gpa, registry.registry, inputs, provers, null, terminal_root);
     defer files.deinit();
     if (terminal_root) {
@@ -128,7 +129,7 @@ fn foldStageCampaignCommandWith(
     var arena_state = std.heap.ArenaAllocator.init(gpa);
     defer arena_state.deinit();
     const a = arena_state.allocator();
-    const registry = try wire.registry.parseRegistry(a, try readFile(a, registry_path));
+    const registry = try input_admission.parseInput(.registry, a, try readFile(a, registry_path));
     try stage_campaign.run(gpa, registry.registry, provers, null, jobs_path);
 }
 
@@ -186,7 +187,7 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
 
     const registry_text = try readFile(allocator, request.registry_path);
     defer allocator.free(registry_text);
-    var registry = try wire.registry.parseRegistry(allocator, registry_text);
+    var registry = try input_admission.parseInput(.registry, allocator, registry_text);
     defer registry.deinit();
 
     const program_json = try readFile(allocator, request.program_path);
@@ -271,7 +272,7 @@ fn proveCairoCommandWith(comptime CairoLeaf: type, allocator: std.mem.Allocator,
     const started = try std.time.Instant.now();
     const registry_text = try readFile(allocator, command.registry);
     defer allocator.free(registry_text);
-    var registry = try wire.registry.parseRegistry(allocator, registry_text);
+    var registry = try input_admission.parseInput(.registry, allocator, registry_text);
     defer registry.deinit();
     var input = try cairo.adapter.input.readFile(allocator, command.prover_input);
     defer input.deinit(allocator);
@@ -344,7 +345,7 @@ pub const VerifiedLeafSession = struct {
     pub fn init(allocator: std.mem.Allocator, request: LeafWrapRequest) !VerifiedLeafSession {
         const registry_text = try readFile(allocator, request.registry_path);
         defer allocator.free(registry_text);
-        var registry = try wire.registry.parseRegistry(allocator, registry_text);
+        var registry = try input_admission.parseInput(.registry, allocator, registry_text);
         errdefer registry.deinit();
         const program_json = try readFile(allocator, request.program_path);
         defer allocator.free(program_json);
@@ -725,12 +726,12 @@ fn foldTreeCommandWith(provers: *const circuit_cpu.prove.Provers, gpa: std.mem.A
     const arena = arena_state.allocator();
 
     // `load_leaves`: the manifest, then every leaf file in order.
-    const manifest = try wire.leaf_proof_json.parseLeavesManifest(arena, try readFile(arena, command.program_input));
+    const manifest = try input_admission.parseInput(.manifest, arena, try readFile(arena, command.program_input));
     const leaves = try arena.alloc(wire.leaf_proof_json.LeafInput, manifest.value.len);
     for (leaves, manifest.value) |*leaf, path| {
-        leaf.* = (try wire.leaf_proof_json.parseLeafInput(arena, try readFile(arena, path))).value;
+        leaf.* = (try input_admission.parseInput(.leaf, arena, try readFile(arena, path))).value;
     }
-    const registry = try wire.registry.parseRegistry(arena, try readFile(arena, command.circuit_registry_json));
+    const registry = try input_admission.parseInput(.registry, arena, try readFile(arena, command.circuit_registry_json));
 
     var recorder = prover.stage_profile.Recorder.init(gpa, provers.backend_name, "circuit-fold-tree");
     defer recorder.deinit();
@@ -761,14 +762,20 @@ fn verifyCommand(gpa: std.mem.Allocator, command: cli.Verify) !bool {
     var arena_state = std.heap.ArenaAllocator.init(gpa);
     defer arena_state.deinit();
     const arena = arena_state.allocator();
-    const request = try wire.verify_request.parseVerifyRequest(arena, try readFile(arena, command.request));
+    const request = try input_admission.parseInput(.request, arena, try readFile(arena, command.request));
     const proof = try readFile(arena, command.proof);
 
     var air = try Air.init(gpa);
     defer air.deinit();
     var circuit_table = try air.circuitTable(gpa);
     defer circuit_table.deinit();
-    const verdict = try circuit_cpu.verify.verifyProofBytes(gpa, &circuit_table, &request.request, proof);
+    var decode_failure: ?@import("stwo_core").error_codes.Entry = null;
+    const verdict = circuit_cpu.verify.verifyProofBytesDiagnosed(gpa, &circuit_table, &request.request, proof, &decode_failure) catch |err| {
+        var diagnostic_buffer: [256]u8 = undefined;
+        var diagnostic = std.fs.File.stderr().writer(&diagnostic_buffer);
+        if (decode_failure) |entry| input_admission.write(&diagnostic.interface, entry);
+        return err;
+    };
 
     var buffer: [256]u8 = undefined;
     var stdout = std.fs.File.stdout().writer(&buffer);
@@ -793,11 +800,11 @@ fn circuitParams(gpa: std.mem.Allocator, command: cli.CircuitParams) !void {
     defer arena_state.deinit();
     const arena = arena_state.allocator();
 
-    const definition = (try wire.registry_definition.parseRegistryDefinition(arena, try readFile(arena, command.definition))).definition;
+    const definition = (try input_admission.parseInput(.definition, arena, try readFile(arena, command.definition))).definition;
     const inputs: recursion.circuit_params.Inputs = .{
         .definition = definition,
-        .cairo_params = try wire.registry.parseProverParameters(arena, try readFile(arena, definition.cairo_prover_params_json)),
-        .circuit_fri_config = try wire.registry.parseFriConfig(arena, try readFile(arena, definition.circuit_fri_config_json)),
+        .cairo_params = try input_admission.parseInput(.parameters, arena, try readFile(arena, definition.cairo_prover_params_json)),
+        .circuit_fri_config = try input_admission.parseInput(.fri, arena, try readFile(arena, definition.circuit_fri_config_json)),
         .program = try cairo.statement.circuit_leaf.programFeltsFromCompiledJson(arena, try readFile(arena, definition.program)),
     };
 

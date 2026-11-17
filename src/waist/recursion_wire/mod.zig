@@ -42,8 +42,17 @@ test "api signature: circuit recursion wire formats expose their codecs" {
     const Allocator = std.mem.Allocator;
     const Writer = *std.Io.Writer;
     const Config = circuit_serialize.ProofConfig;
+    const Diagnostic = ?*?@import("stwo_core").error_codes.Entry;
     try expectParams(circuit_serialize.deserializeProof, &.{ Allocator, []const u8, Config });
     try expectParams(circuit_serialize.serializeProof, &.{ Writer, *const circuit_serialize.Proof, Config });
+    try expectParams(circuit_serialize.deserializeProofDiagnosed, &.{ Allocator, []const u8, Config, Diagnostic });
+    try expectParams(circuit_serialize.serializeProofDiagnosed, &.{ Writer, *const circuit_serialize.Proof, Config, Diagnostic });
+    try expectParams(circuit_serialize.serializeProofAllocDiagnosed, &.{ Allocator, *const circuit_serialize.Proof, Config, Diagnostic });
+    try expectParams(circuit_felt_stream.decodeDiagnosed, &.{ Allocator, []const u64, Diagnostic });
+    try expectParams(circuit_felt_stream.decodeJsonDiagnosed, &.{ Allocator, []const u8, Diagnostic });
+    try expectParams(circuit_felt_stream.writeJsonDiagnosed, &.{ Writer, *const circuit_felt_stream.CairoCircuitProof, Diagnostic });
+    try expectParams(blake2_felt252.outputDigestDiagnosed, &.{ Allocator, []const []const u8, Diagnostic });
+    try expectParams(leaf_proof_json.LeafInput.outputDigestDiagnosed, &.{ leaf_proof_json.LeafInput, Allocator, Diagnostic });
     try expectParams(cairo_serialize.parseFeltJson, &.{ Allocator, []const u8 });
     try expectParams(circuit_felt_stream.decode, &.{ Allocator, []const u64 });
     try expectParams(circuit_felt_stream.writeJson, &.{ Writer, *const circuit_felt_stream.CairoCircuitProof });
@@ -59,5 +68,6 @@ test "api signature: circuit recursion wire formats expose their codecs" {
 }
 
 test {
+    _ = @import("framing_diagnostic_test.zig");
     std.testing.refAllDecls(@This());
 }

@@ -1,6 +1,6 @@
 //! M8 GPU-native request contract (design/riscv/rv64-m8-gpu-native.md).
 //!
-//! Under STWO_RV64_M8_JOBS=1 the end-state request is: capture streams trace
+//! Under STWO_RV64_M8_GPU_NATIVE=1 the end-state request is: capture streams trace
 //! chunks (the only CPU compute on the request path, overlapping proving) ->
 //! everything else is enqueued device work on the two GPUs -> ONE host wait
 //! per request -> one readback of the finished request slab per GPU -> the

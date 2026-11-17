@@ -64,7 +64,7 @@ Differences from `leaf-prover`, none of which changes the output bytes:
 
 ```sh
 zig-out/bin/stwo-circuit-recursion-cpu prove-cairo \
-  --registry vectors/circuit/official/registries/production.json \
+  --registry vectors/recursion/registries/production.json \
   --prover-input applicative.cpi --output applicative.proof.json --assets .
 ```
 
@@ -172,7 +172,7 @@ upstream's human-readable sizes report (`--registry` is required). Without
 
 Registry generation is setup for a fixed configuration, not work repeated for
 each proof. The production registry for upstream `proving@5a7c5ed` is committed
-at `vectors/circuit/official/registries/production.json`; pass this file to
+at `vectors/recursion/registries/production.json`; pass this file to
 `leaf-wrap` or `fold-tree` directly. On an M5 Max, generating that registry
 from the upstream production definition took 50.18 s and 43.4 GB peak RSS in
 Zig (Rust: 54.22 s and 49.4 GB). The two 4,028-byte outputs matched byte for

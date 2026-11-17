@@ -32,6 +32,7 @@ pub fn SecureColumnByCoordsFor(comptime Secure: type) type {
             InconsistentColumnLength,
         };
 
+        /// Takes caller buffers only on success; refusal leaves every buffer owned by the caller.
         pub fn initOwned(columns: [@typeInfo(@TypeOf(Secure.zero().toM31Array())).array.len]ColumnSlice) Error!Self {
             const column_len = columns[0].len;
             for (columns[1..]) |column| {
@@ -59,6 +60,7 @@ pub fn SecureColumnByCoordsFor(comptime Secure: type) type {
             self.* = undefined;
         }
 
+        /// Adopts the resident lease only on success; refusal never destroys it.
         pub fn initResident(
             columns: [DEGREE]ColumnSlice,
             storage: ResidentStorage,

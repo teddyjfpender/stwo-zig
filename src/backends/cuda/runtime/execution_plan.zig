@@ -91,7 +91,18 @@ pub const CudaPlan = struct {
         program: proof_ir.ProofProgram,
         options: CompileOptions,
     ) (std.mem.Allocator.Error || proof_ir.Error || runtime_error.Error || Error)!CudaPlan {
-        try program.validate();
+        return compileDiagnosed(allocator, program, options, null);
+    }
+
+    /// Only pure backend-owned program admission supplies a diagnostic. Device,
+    /// compile-target, planner and allocation errors remain outside that origin.
+    pub fn compileDiagnosed(
+        allocator: std.mem.Allocator,
+        program: proof_ir.ProofProgram,
+        options: CompileOptions,
+        failure: ?*?@import("stwo_core").error_codes.Entry,
+    ) (std.mem.Allocator.Error || proof_ir.Error || runtime_error.Error || Error)!CudaPlan {
+        try program.validateDiagnosed(failure);
         try options.validate();
 
         var requirements: std.ArrayList(arena.Requirement) = .empty;
@@ -527,3 +538,141 @@ pub const testing = struct {
         };
     }
 };
+
+test "CUDA host program admission retains legacy plans and foreign allocation failures unmapped" {
+    const a = std.testing.allocator;
+    const codes = @import("stwo_backend_contracts").error_codes;
+    var program = try testing.program(a, .native);
+    defer program.deinit(a);
+    const options = testing.target(.nvidia_cuda);
+    var legacy = try CudaPlan.compile(a, program, options);
+    defer legacy.deinit(a);
+    var failure: ?@import("stwo_core").error_codes.Entry = codes.fromProofProgram(error.EmptyTrace);
+    var diagnosed = try CudaPlan.compileDiagnosed(a, program, options, &failure);
+    defer diagnosed.deinit(a);
+    try std.testing.expect(failure == null);
+    try std.testing.expectEqualSlices(u8, &legacy.cache_key, &diagnosed.cache_key);
+    try std.testing.expectEqualDeep(legacy.schedule, diagnosed.schedule);
+    try std.testing.expectEqualDeep(legacy.prediction, diagnosed.prediction);
+    try std.testing.expectEqual(legacy.arena_plan.total_words, diagnosed.arena_plan.total_words);
+    var target = options;
+    target.sm = 0;
+    failure = codes.fromProofProgram(error.EmptyTrace);
+    try std.testing.expectError(error.InvalidCompileTarget, CudaPlan.compileDiagnosed(a, program, target, &failure));
+    try std.testing.expect(failure == null);
+    const Runner = struct {
+        fn run(allocator: std.mem.Allocator, admitted: proof_ir.ProofProgram, selected: CompileOptions) !void {
+            var detail: ?@import("stwo_core").error_codes.Entry = null;
+            var result = CudaPlan.compileDiagnosed(allocator, admitted, selected, &detail) catch |err| {
+                try std.testing.expect(detail == null);
+                return err;
+            };
+            defer result.deinit(allocator);
+            try std.testing.expect(detail == null);
+        }
+    };
+    try std.testing.checkAllAllocationFailures(a, Runner.run, .{ program, options });
+}
+
+test "CUDA host compiler rejects physical malformed program origins with stable codes" {
+    const a = std.testing.allocator;
+    var program = try testing.program(a, .native);
+    defer program.deinit(a);
+    const options = testing.target(.nvidia_cuda);
+    const errors = [_]proof_ir.Error{ error.DuplicateBuffer, error.DuplicateColumn, error.EmptyCommitmentSet, error.EmptyConstraintSet, error.EmptyExecutionGraph, error.EmptyIdentity, error.EmptyTrace, error.InvalidBuffer, error.InvalidCommitment, error.InvalidConstraint, error.InvalidDependency, error.InvalidFriSchedule, error.InvalidNode, error.InvalidNativeAir, error.InvalidQuotientSchedule, error.InvalidTranscript };
+    for (errors, 0..) |expected, index| {
+        var bad = program;
+        var buffers = [_]proof_ir.Buffer{program.buffers[0]} ** 2;
+        var columns = [_]proof_ir.TraceColumn{program.trace_columns[0]} ** 2;
+        var commitments = [_]proof_ir.CommitmentTree{program.commitments[0]};
+        var constraints = [_]proof_ir.ConstraintProgram{program.constraints[0]};
+        var nodes = [_]proof_ir.Node{ program.nodes[0], program.nodes[1] };
+        var layers = [_]proof_ir.FriLayer{program.fri_layers[0]};
+        var transcript = [_]proof_ir.TranscriptBarrier{program.transcript[0]};
+        switch (expected) {
+            error.DuplicateBuffer => bad.buffers = &buffers,
+            error.DuplicateColumn => {
+                columns[1].id = 1;
+                bad.trace_columns = &columns;
+            },
+            error.EmptyCommitmentSet => bad.commitments = &.{},
+            error.EmptyConstraintSet => bad.constraints = &.{},
+            error.EmptyExecutionGraph => bad.nodes = &.{},
+            error.EmptyIdentity => bad.identity.air = @splat(0),
+            error.EmptyTrace => bad.trace_columns = &.{},
+            error.InvalidBuffer => {
+                buffers[0].words = 0;
+                bad.buffers = buffers[0..1];
+            },
+            error.InvalidCommitment => {
+                commitments[0].evaluation_log_rows = 0;
+                bad.commitments = &commitments;
+            },
+            error.InvalidConstraint => {
+                constraints[0].constraint_count = 0;
+                bad.constraints = &constraints;
+            },
+            error.InvalidDependency => {
+                nodes[1].dependencies.count = 2;
+                bad.nodes = &nodes;
+            },
+            error.InvalidFriSchedule => {
+                layers[0].fold_step = 0;
+                bad.fri_layers = &layers;
+            },
+            error.InvalidNode => {
+                nodes[0].id = 99;
+                bad.nodes = &nodes;
+            },
+            error.InvalidNativeAir => bad.native_air_contract = nativeFixture(),
+            error.InvalidQuotientSchedule => bad.quotient.term_count = 0,
+            error.InvalidTranscript => {
+                transcript[0].value_count = 0;
+                bad.transcript = &transcript;
+            },
+        }
+        var failure: ?@import("stwo_core").error_codes.Entry = null;
+        try std.testing.expectError(expected, CudaPlan.compile(a, bad, options));
+        try std.testing.expectError(expected, CudaPlan.compileDiagnosed(a, bad, options, &failure));
+        try std.testing.expectEqual(@as(u16, @intCast(0x2201 + index)), failure.?.code);
+    }
+}
+
+fn nativeFixture() proof_ir.NativeAirContract {
+    return .{
+        .geometry = .{ .component = 7, .log_rows = 8, .preprocessed_columns = 0, .main_columns = 2, .interaction_columns = 1 },
+        .ingress = .{ .recipe_identity = @splat(1), .layout_abi_identity = @splat(2), .element_count = 768 },
+        .statement = .{ .transcript_recipe_identity = @splat(3), .public_input_abi_identity = @splat(4), .public_input_words = 1 },
+        .sampling = .{ .recipe_identity = @splat(5), .mask_layout_identity = @splat(6), .mask_point_count = 1 },
+        .constraint_parameters = .{ .identity = @splat(7), .statement_words = 1, .challenge_words = 1, .parameter_words = 1 },
+    };
+}
+
+test "CUDA host admission preserves all six native AIR sub-contract origins" {
+    const a = std.testing.allocator;
+    var program = try testing.program(a, .native);
+    defer program.deinit(a);
+    const NativeError = @typeInfo(@typeInfo(@TypeOf(proof_ir.NativeAirContract.validate)).@"fn".return_type.?).error_union.error_set;
+    const errors = [_]NativeError{ error.EmptyIdentity, error.GeometryOverflow, error.InvalidGeometry, error.InvalidIngress, error.InvalidSampling, error.UnsupportedVersion };
+    for (errors, 0..) |expected, index| {
+        var contract = nativeFixture();
+        switch (expected) {
+            error.EmptyIdentity => contract.ingress.recipe_identity = @splat(0),
+            error.GeometryOverflow => {
+                contract.geometry.log_rows = 62;
+                contract.geometry.main_columns = 8;
+            },
+            error.InvalidGeometry => contract.geometry.log_rows = 0,
+            error.InvalidIngress => contract.ingress.element_count = 0,
+            error.InvalidSampling => contract.sampling.mask_point_count = 0,
+            error.UnsupportedVersion => contract.version = 0,
+        }
+        try std.testing.expectError(expected, contract.validate());
+        var bad = program;
+        bad.native_air_contract = contract;
+        var failure: ?@import("stwo_core").error_codes.Entry = null;
+        try std.testing.expectError(error.InvalidNativeAir, CudaPlan.compileDiagnosed(a, bad, testing.target(.nvidia_cuda), &failure));
+        try std.testing.expectEqual(@as(u16, @intCast(0x2301 + index)), failure.?.code);
+        try std.testing.expectEqualStrings(@errorName(expected), failure.?.tag);
+    }
+}

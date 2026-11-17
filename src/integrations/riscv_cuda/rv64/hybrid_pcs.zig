@@ -21,11 +21,11 @@ pub const Context = struct {
         defer self.mutex.unlock();
         const ordinal = self.serial;
         self.serial += 1;
-        const input = try std.fmt.allocPrint(a, "{s}/pcs-{}.input", .{ self.directory, ordinal });
-        defer a.free(input);
-        const output = try std.fmt.allocPrint(a, "{s}/pcs-{}.output", .{ self.directory, ordinal });
-        defer a.free(output);
         var total = try std.time.Timer.start();
+        var scratch = try @import("subprocess_scratch.zig").Request.init(a, self.directory, .pcs, ordinal);
+        defer scratch.deinit(true);
+        const input = scratch.input;
+        const output = scratch.output;
         var metadata = try Export.exportRequest(a, request, channel.*, input);
         defer metadata.deinit(a);
         const export_ns = total.read();

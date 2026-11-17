@@ -317,6 +317,8 @@ fn resolveSeed(rec: *const Record, class: *const K.Class) !?struct { seed: [9]u3
 }
 
 pub fn main() !void {
+    var capture = @import("rv64/capture_execution.zig").Session{};
+    defer capture.deinit();
     const a = std.heap.page_allocator;
     const argv = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, argv);
@@ -339,7 +341,10 @@ pub fn main() !void {
     const device = std.fmt.parseUnsigned(u32, env("STWO_RV64_M8_PARITY_DEVICE") orelse "1", 10) catch return error.InvalidParityEnvironment;
     const arena_bytes = try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 24 << 30);
     const worker = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignBackward(usize, arena_bytes / 4, W.Arena.granule), .pinned_slot_words = try envBytes("STWO_RV64_M8_JOBS_PINNED_BYTES", 1 << 30) / 4 });
-    defer worker.destroy();
+    defer {
+        worker.destroyWithPlan(out_dir) catch |err|
+            std.log.err("M8 worker class plan output failed: {s}", .{@errorName(err)});
+    }
     std.debug.print("GPU_M8_TRUTH_PARITY phase=worker_ready device={}\n", .{device});
     const sym = try TJ.Symbols.load(&libs.base, &libs.addon);
     const events = try Events.Api.load(&libs.base);
@@ -375,6 +380,8 @@ pub fn main() !void {
     for (parts, &args) |part, *arg| arg.* = try a.dupeZ(u8, part);
     var identity: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash("rv64-m8-truth-parity", &identity, .{});
+    capture = @import("rv64/capture_execution.zig").Session.config(a, request, identity, .execution);
+    for (pool.devices) |*record_device| capture.attach(&record_device.native.recording);
     for (pool.devices, config.caps) |*d, cap| try d.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
     var timer = try std.time.Timer.start();
     std.debug.print("GPU_M8_TRUTH_PARITY phase=legacy_start\n", .{});
@@ -423,6 +430,7 @@ pub fn main() !void {
     }
     if (!all) return error.TruthParityMismatch;
     if (negatives and !negatives_all) return error.TruthNegativeNotFired;
+    capture.success = true;
 }
 
 fn classFor(a: std.mem.Allocator, rec: *const Record, sym: *const TJ.Symbols, wide: bool, base: *std.DynLib, classes: *std.ArrayListUnmanaged(*K.Class), build_ns: *u64) !*K.Class {

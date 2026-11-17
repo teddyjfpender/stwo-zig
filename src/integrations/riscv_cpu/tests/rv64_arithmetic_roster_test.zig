@@ -1,5 +1,6 @@
 //! Explicit count-zero provider omission, retaining both authenticated CPU buses.
 const std = @import("std");
+const artifacts = @import("native_artifact_root.zig");
 const frontend = @import("stwo_riscv_frontend");
 const rv = frontend.rv64;
 const air = frontend.rv64_air;
@@ -78,7 +79,7 @@ test "count-zero DIV MUL rosters omit provider openings while keeping CPU reques
     invalid = omitted;
     invalid.multiplication_log = 6;
     try std.testing.expectError(error.InvalidRv64ArithmeticRoster, invalid.validate());
-    const artifact = std.process.getEnvVarOwned(a, "STWO_RV64_ARITH_NONE_ARTIFACT_DIR") catch null;
+    const artifact = try artifacts.directory(a, .arith_none);
     defer if (artifact) |path| a.free(path);
     if (artifact) |path| {
         try std.fs.cwd().makePath(path);

@@ -1,7 +1,7 @@
 //! Per-class memory policy for the job runtime (spec §3.7; frontier-delta §4 item 3).
 //!
 //! The policy is GENERATED from a measured sweep (scripts/rv64/rv64_m8_plan_sweep.py:
-//! every job class through a real DeviceWorker with STWO_RV64_M8_JOBS_PLAN_DIR)
+//! every job class through a real DeviceWorker; explicit parity tools write OUT/class-plans)
 //! and committed under vectors/reports/rv64-m8-20261106/memory-plan/. A worker
 //! loads it at start (STWO_RV64_M8_JOBS_PLAN=<policy.json>); unset keeps today's
 //! behavior exactly (declared footprints, env arena, unbounded persistent regions).
@@ -28,7 +28,7 @@ const W = @import("worker.zig");
 pub const schema = "rv64-m8-jobs-memory-policy/v1";
 /// Policy file consumed at worker start.
 pub const env_policy = "STWO_RV64_M8_JOBS_PLAN";
-/// Measurement: every Worker.destroy writes its class plans into this directory.
+/// Historical selector spelling retained for source compatibility; no environment reader.
 pub const env_plan_dir = "STWO_RV64_M8_JOBS_PLAN_DIR";
 /// Worker channel state (Channel.state_words = 32) occupies one granule.
 pub const state_granule: usize = W.Arena.granule;

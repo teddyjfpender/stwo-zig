@@ -251,7 +251,6 @@ def run_case(case, ctx, mode):
     argv = {"profile": ctx["profile"]}
     env = N.environment()
     (work / "gpu-disabled").mkdir()
-    env["STWO_RV64_GPU_WORKDIR"] = str(work / "gpu-disabled")
     table = work / "vk-table.json"
     shutil.copyfile(ctx["table"], table)
     if mode == "rv" and case.get("special") == "donor_table":

@@ -356,9 +356,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     parser.add_argument("--update-baseline", action="store_true")
     flag_mode = parser.add_mutually_exclusive_group()
-    flag_mode.add_argument("--check-rv64-flags", action="store_true", help="check flag declarations without the layout scan")
+    flag_mode.add_argument("--check-rv64-flags", action="store_true", help="check all STWO configuration declarations without the layout scan")
     flag_mode.add_argument("--update-rv64-flag-references", action="store_true", help="regenerate references for reviewed declarations; never declare flags")
-    parser.add_argument("--strict-rv64-flags", action="store_true", help="also require fewer than 60 live flags and no M7/M8 switches")
+    parser.add_argument("--strict-rv64-flags", action="store_true", help="also require fewer than 60 live RV64 flags and no M7/M8 switches")
     parser.add_argument(
         report.SHOW_ALL_FLAG,
         dest="show_headroom",
@@ -392,7 +392,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {error}", file=sys.stderr)
         return 1
     if args.check_rv64_flags or args.update_rv64_flag_references:
-        print("RV64 flag declarations and generated references: PASS")
+        print("STWO configuration declarations and generated references: PASS (RV64 live limit is checked in strict mode)")
         return 0
     baseline_path = args.baseline if args.baseline.is_absolute() else repo / args.baseline
     measured = measure(repo)

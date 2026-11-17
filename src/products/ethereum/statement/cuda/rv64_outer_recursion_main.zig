@@ -3,24 +3,35 @@
 const std = @import("std");
 const ProductCPU = @import("ethereum_cpu_component");
 const CPU = @import("stwo_riscv_cpu_integration");
+const Capture = @import("rv64/capture_execution.zig");
 const Native = @import("stwo_riscv_cuda_integration").rv64.execution.pcs.pcs_native;
 const Trace = @import("stwo_riscv_cuda_integration").rv64.trace_commit;
 const Composition = @import("stwo_riscv_cuda_integration").rv64.resident_composition;
 const Source = @import("stwo_riscv_cuda_integration").rv64.outer_source;
+const Router = @import("stwo_riscv_cuda_integration").rv64.execution.runtime.resident_router;
+
+fn selectedDevice(a: std.mem.Allocator, devices: ?[]const u8) !u32 {
+    var config = try Router.Config.parse(a, devices orelse "0", null);
+    defer config.deinit(a);
+    if (config.ids.len != 1) return error.MultiGpuOuterRecursionNotImplemented;
+    return config.ids[0];
+}
+
 pub fn main() !void {
     const a = std.heap.page_allocator;
-    if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES")) return error.MultiGpuOuterRecursionNotImplemented;
+    var capture = Capture.Session.process(a);
+    defer capture.deinit();
     const library = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_LIBRARY") catch |err| switch (err) {
         error.EnvironmentVariableNotFound => return error.GpuOuterRequiresNativeLibrary,
         else => return err,
     };
     defer a.free(library);
-    const device_text = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_DEVICE") catch |err| switch (err) {
+    const device_text = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_DEVICES") catch |err| switch (err) {
         error.EnvironmentVariableNotFound => null,
         else => return err,
     };
     defer if (device_text) |text| a.free(text);
-    const device: u32 = if (device_text) |text| std.fmt.parseUnsigned(u32, text, 10) catch return error.InvalidGpuDevice else 0;
+    const device = try selectedDevice(a, device_text);
     const cap_text = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_BYTE_CAP") catch |err| switch (err) {
         error.EnvironmentVariableNotFound => null,
         else => return err,
@@ -30,6 +41,7 @@ pub fn main() !void {
     if (cap == 0) return error.InvalidGpuByteCap;
     var native = try Native.Context.init(library, device, cap);
     defer native.deinit();
+    capture.attach(&native.recording);
     var trace = try Trace.Context.init(&native);
     defer trace.deinit();
     var composition = try Composition.Context.initNumerical(a, &native);
@@ -39,4 +51,14 @@ pub fn main() !void {
     const factory = try source.factoryForTraceOnly();
     std.log.info("CUDA outer requested: device={d} byte_cap={d}; GPU assignments from original circuit graph; host graph/setup; no CPU proving fallback", .{ device, cap });
     try ProductCPU.rv64_ethereum_gkr_main.mainWithRecursionFactory(factory);
+    capture.success = true;
+}
+
+test "outer recursion selects exactly one canonical resident device" {
+    const a = std.testing.allocator;
+    try std.testing.expectEqual(@as(u32, 0), try selectedDevice(a, null));
+    try std.testing.expectEqual(@as(u32, 7), try selectedDevice(a, "7"));
+    try std.testing.expectError(error.MultiGpuOuterRecursionNotImplemented, selectedDevice(a, "0,1"));
+    try std.testing.expectError(error.DuplicateResidentDevice, selectedDevice(a, "2,2"));
+    try std.testing.expectError(error.InvalidResidentDeviceList, selectedDevice(a, "not-a-device"));
 }

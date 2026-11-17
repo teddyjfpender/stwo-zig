@@ -7,7 +7,7 @@ that satisfies the stable prover transaction contract.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `1.0.0` |
+| Version | `1.1.0` |
 | Layer | `frontend` |
 | Owner | `riscv-frontend` |
 | Public Zig module | `stwo_riscv_frontend` |
@@ -252,3 +252,5 @@ now belong to `src/products/ethereum/statement/build.zig`; their product
 assertions remain in product default discovery. The BUILD-only
 `retainedTypedTestModule` constructor keeps the private native source layout
 below this boundary and reuses the caller’s exact dependency module pointers.
+
+The existing v1 `ExecutionOptions` accepts a default-null borrowed diagnostic output. Recursive CSP attempts can select the existing diagnosed engine transaction without changing proof bytes; the sink is cleared before early admission/allocation and remains owned until joined proving returns. Default callers keep the predecessor path.

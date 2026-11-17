@@ -64,10 +64,19 @@ pub fn createModule(
         .root_module = b.createModule(.{ .target = target, .optimize = optimize, .pic = true, .link_libc = true }),
     });
     // The Cairo lane's kernel flags (`cairo_composition_cpu_aot.zig`).
-    for (0..program_count) |index| kernels.root_module.addCSourceFile(.{
-        .file = directory.path(b, b.fmt("{s}_{d}.c", .{ kernel_prefix, index })),
-        .flags = &.{ "-std=c11", "-O3", "-fstrict-aliasing", "-fno-vectorize", "-fno-slp-vectorize", "-gline-tables-only" },
-    });
+    // One translation unit per object lets the existing outer build job limit
+    // bound C compiler fan-out; the archive still contains every exact kernel.
+    for (0..program_count) |index| {
+        const object = b.addObject(.{
+            .name = b.fmt("circuit-composition-cpu-kernel-{d}", .{index}),
+            .root_module = b.createModule(.{ .target = target, .optimize = optimize, .pic = true, .link_libc = true }),
+        });
+        object.root_module.addCSourceFile(.{
+            .file = directory.path(b, b.fmt("{s}_{d}.c", .{ kernel_prefix, index })),
+            .flags = &.{ "-std=c11", "-O3", "-fstrict-aliasing", "-fno-vectorize", "-fno-slp-vectorize", "-gline-tables-only" },
+        });
+        kernels.root_module.addObject(object);
+    }
     module.linkLibrary(kernels);
     return module;
 }

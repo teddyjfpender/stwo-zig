@@ -65,7 +65,6 @@ pub const Owner = struct {
         try env.put("STWO_RV64_M8_GN_INSTALL", "1");
         // The legacy native PCS path publishes its readback images to the
         // install recorder; GN_INSTALL also selects the outer node jobs.
-        try env.put("STWO_RV64_M8_JOBS", "0");
         try env.put("STWO_RV64_M8_GN_NODE", "check");
         try env.put("STWO_RV64_M8_OUTER_DEVICE_CHECKS", "1");
         try env.put("STWO_RV64_M8_OUTER_DEVICE_ENCODE", "check");
@@ -108,7 +107,7 @@ pub const Owner = struct {
             defer a.free(output);
             Outer.NodeClasses.beginInstall();
             var timer = try std.time.Timer.start();
-            try @import("resident_batch.zig").runCombined(a, library, path, output);
+            try @import("resident_batch.zig").runCombinedForInstall(a, library, path, output);
             const nodes = try Outer.NodeClasses.installedNodes(a);
             errdefer a.free(nodes);
             if (nodes.len == 0) return error.GpuNativeNoRecursionClasses;

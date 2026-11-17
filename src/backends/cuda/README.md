@@ -7,7 +7,7 @@ exists.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `backend` |
 | Owner | `cuda-backend` |
 | Public Zig module | `stwo_cuda_backend` |
@@ -285,3 +285,10 @@ proofs, and independent verification.
 - [CUDA production qualification](../../../design/decisions/cuda-production-qualification-v1.md)
 - [CUDA source authority](UPSTREAM.md)
 - [Repository product status](../../../README.md#product-support)
+
+
+The CPU-only execution-plan compiler's optional `CudaPlan.compileDiagnosed`
+forwards exact backend program admission metadata. Target, planner and allocator
+errors after that admission remain unmapped. Legacy compilation, plan/cache
+identities and device behavior are unchanged; host planning tests establish no
+GPU execution or timing qualification.

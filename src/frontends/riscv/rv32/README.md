@@ -2,7 +2,7 @@
 
 | Fact | Value |
 | --- | --- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `frontend` |
 | Owner | `riscv-frontend` |
 | Focused CI host | Linux |
@@ -72,3 +72,5 @@ The Public API list above follows the package contract. These names expose
 canonical domain owners; `testing`, when present, is an unstable qualification
 interface. Production admission and product orchestration remain above the
 native children.
+
+The existing v1 `ExecutionOptions` accepts a default-null borrowed diagnostic output. Recursive CSP attempts can select the existing diagnosed engine transaction without changing proof bytes; the sink is cleared before early admission/allocation and remains owned until joined proving returns. Default callers keep the predecessor path.

@@ -235,6 +235,10 @@ pub fn Recorder(comptime enabled: bool) type {
     if (!enabled) return struct {
         pub inline fn record(_: *@This(), _: Delta) Error!void {}
 
+        pub inline fn recordDiagnosed(_: *@This(), _: Delta, failure: ?*?@import("stwo_core").error_codes.Entry) Error!void {
+            if (failure) |sink| sink.* = null;
+        }
+
         pub inline fn recordCompletedDelta(_: *@This(), _: Delta) Error!void {}
 
         pub inline fn markIncomplete(_: *@This()) void {}
@@ -255,6 +259,11 @@ pub fn Recorder(comptime enabled: bool) type {
         pub inline fn snapshot(_: *const @This()) Error!Profile {
             return Profile.unavailable();
         }
+
+        pub inline fn snapshotDiagnosed(_: *const @This(), failure: ?*?@import("stwo_core").error_codes.Entry) Error!Profile {
+            if (failure) |sink| sink.* = null;
+            return Profile.unavailable();
+        }
     };
 
     return struct {
@@ -273,6 +282,23 @@ pub fn Recorder(comptime enabled: bool) type {
         incomplete: bool = false,
         field_coverage_finalized: bool = false,
         producer_coverage_finalized: bool = false,
+
+        /// A coordinator-owned per-call output; no borrowed sink is retained.
+        pub fn recordDiagnosed(self: *Self, delta: Delta, failure: ?*?@import("stwo_core").error_codes.Entry) Error!void {
+            if (failure) |sink| sink.* = null;
+            self.record(delta) catch |err| {
+                if (failure) |sink| sink.* = @import("error_codes.zig").fromWorkProfile(err);
+                return err;
+            };
+        }
+
+        pub fn snapshotDiagnosed(self: *Self, failure: ?*?@import("stwo_core").error_codes.Entry) Error!Profile {
+            if (failure) |sink| sink.* = null;
+            return self.snapshot() catch |err| {
+                if (failure) |sink| sink.* = @import("error_codes.zig").fromWorkProfile(err);
+                return err;
+            };
+        }
 
         /// Validation and all checked sums happen before publication. An
         /// invalid/overflowing delta leaves the recorder byte-for-byte intact.

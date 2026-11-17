@@ -609,3 +609,192 @@ test "task profile clock failures have deterministic precedence" {
         );
     }
 }
+
+test "task lifecycle diagnostic executes actual capture ownership success abort and foreign clock refusal" {
+    const a = std.testing.allocator;
+    var graph = try task_graph.ComponentTaskGraph.init(a, 0);
+    defer graph.deinit();
+    var recorder = prover_api.stage_profile.Recorder.init(a, "Debug", "typed-capture");
+    defer recorder.deinit();
+    var failure: ?@import("stwo_core").error_codes.Entry = null;
+    var occupied = try recorder.reserveTaskGraph(0, 0);
+    try std.testing.expectError(error.TaskGraphReservationActive, task_graph_profile.Capture.initDiagnosed(a, &recorder, &graph, null, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3102), failure.?.code);
+    try occupied.abortDiagnosed(&failure);
+    try std.testing.expect(failure == null);
+    var capture = try task_graph_profile.Capture.initDiagnosed(a, &recorder, &graph, null, &failure);
+    defer capture.deinit();
+    try std.testing.expect(failure == null);
+    try std.testing.expectError(error.TaskProfilePlannedTaskCountMismatch, capture.publish("bad", .{ .planned_tasks = 1 }));
+    try std.testing.expectEqual(@as(u16, 0x3109), failure.?.code);
+    try capture.publish("good", .{});
+    try std.testing.expect(failure == null);
+    var snapshot = try recorder.taskSnapshotDiagnosed(a, &failure);
+    defer snapshot.deinit(a);
+    try std.testing.expectEqual(@as(usize, 1), snapshot.graphs.len);
+    const Foreign = struct {
+        fn now(_: *anyopaque) anyerror!u64 {
+            return error.TaskGraphReservationActive;
+        }
+    };
+    failure = prover_api.error_codes.fromTaskProfile(error.TaskGraphReservationActive);
+    var context: u8 = 0;
+    try std.testing.expectError(error.TaskProfileClockUnavailable, task_graph_profile.Capture.initDiagnosed(a, &recorder, &graph, .{ .context = &context, .now_fn = Foreign.now }, &failure));
+    try std.testing.expect(failure == null);
+    // The failing clock ran after reservation. Capture's error cleanup returned
+    // the owned storage, so another actual capture remains admissible.
+    var next = try task_graph_profile.Capture.initDiagnosed(a, &recorder, &graph, null, &failure);
+    defer next.deinit();
+    try next.pending.abortDiagnosed(&failure);
+    try std.testing.expect(failure == null);
+}
+
+test "task lifecycle diagnostic retains pending identity and every capture allocation cleanup" {
+    const a = std.testing.allocator;
+    var recorder = prover_api.stage_profile.Recorder.init(a, "Debug", "pending");
+    defer recorder.deinit();
+    var other = prover_api.stage_profile.Recorder.init(a, "Debug", "other");
+    defer other.deinit();
+    var failure: ?@import("stwo_core").error_codes.Entry = null;
+    var pending = try recorder.reserveTaskGraphShapeDiagnosed(.{ .event_count = 0, .contribution_count = 0, .component_work_count = 0 }, &failure);
+    defer pending.deinit();
+    try std.testing.expectError(error.TaskGraphReservationWrongRecorder, other.publishTaskGraphAfterJoinDiagnosed(&pending, .{ .graph_id = "foreign" }, .{}, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3106), failure.?.code);
+    var stale = pending;
+    try pending.abortDiagnosed(&failure);
+    try std.testing.expectError(error.TaskGraphReservationStale, stale.abortDiagnosed(&failure));
+    try std.testing.expectEqual(@as(u16, 0x3104), failure.?.code);
+    const Runner = struct {
+        fn run(allocator: std.mem.Allocator) !void {
+            var graph = try task_graph.ComponentTaskGraph.init(allocator, 0);
+            defer graph.deinit();
+            var owner = prover_api.stage_profile.Recorder.init(allocator, "Debug", "oom");
+            defer owner.deinit();
+            var detail: ?@import("stwo_core").error_codes.Entry = null;
+            var captured = task_graph_profile.Capture.initDiagnosed(allocator, &owner, &graph, null, &detail) catch |err| {
+                if (detail) |entry| try std.testing.expectEqual(@as(u16, 0x3118), entry.code);
+                return err;
+            };
+            defer captured.deinit();
+            try captured.publish("joined", .{});
+            var snapshot = try owner.taskSnapshotDiagnosed(allocator, &detail);
+            defer snapshot.deinit(allocator);
+            try std.testing.expect(detail == null);
+        }
+    };
+    try std.testing.checkAllAllocationFailures(a, Runner.run, .{});
+}
+
+test "task lifecycle diagnostic executes all contribution validation origins" {
+    const wire = prover_api.task_profile;
+    const a = std.testing.allocator;
+    var owner = prover_api.stage_profile.Recorder.init(a, "Debug", "contributions");
+    defer owner.deinit();
+    const errors = [_]wire.PublicationError{ error.TaskProfileComponentKindDrift, error.TaskProfileComponentWorkCountMismatch, error.TaskProfileComponentWorkOverflow, error.TaskProfileContributionCompletionExceedsPlan, error.TaskProfileContributionCompletionStateMismatch, error.TaskProfileContributionRangeCoverageMismatch, error.TaskProfileContributionRangeNotContiguous, error.TaskProfileContributionRangeOutOfBounds, error.TaskProfileContributionRoleDrift, error.TaskProfileDuplicateComponentContribution, error.TaskProfileExclusiveContributionNotExclusive };
+    for (errors) |expected| {
+        var failure: ?@import("stwo_core").error_codes.Entry = null;
+        var pending = try owner.reserveTaskGraphShapeDiagnosed(.{ .event_count = 2, .contribution_count = 2, .component_work_count = if (expected == error.TaskProfileComponentWorkCountMismatch) 2 else 1 }, &failure);
+        defer pending.deinit();
+        pending.events[0].contribution_range = .{ .start = 0, .len = 1 };
+        pending.events[1].contribution_range = .{ .start = 1, .len = 1 };
+        @memset(pending.contributions, .{ .component_registry_index = 4, .component_kind = "opcode", .role = .semantic_constraints });
+        switch (expected) {
+            error.TaskProfileComponentKindDrift => pending.contributions[1].component_kind = "foreign",
+            error.TaskProfileComponentWorkCountMismatch => {},
+            error.TaskProfileComponentWorkOverflow => {
+                pending.contributions[0].work_estimate = std.math.maxInt(u64);
+                pending.contributions[1].work_estimate = 1;
+            },
+            error.TaskProfileContributionCompletionExceedsPlan => {
+                pending.events[1].started = true;
+                pending.events[1].terminal_status = .completed;
+                pending.contributions[1].completed_rows = 1;
+            },
+            error.TaskProfileContributionCompletionStateMismatch => pending.contributions[1].completed_rows = null,
+            error.TaskProfileContributionRangeCoverageMismatch => pending.events[1].contribution_range.len = 0,
+            error.TaskProfileContributionRangeNotContiguous => pending.events[0].contribution_range.start = 1,
+            error.TaskProfileContributionRangeOutOfBounds => pending.events[0].contribution_range.len = 3,
+            error.TaskProfileContributionRoleDrift => pending.contributions[1].role = .lookup_constraints,
+            error.TaskProfileDuplicateComponentContribution, error.TaskProfileExclusiveContributionNotExclusive => {
+                pending.events[0].contribution_range.len = 2;
+                pending.events[1].contribution_range = .{ .start = 2, .len = 0 };
+                if (expected == error.TaskProfileExclusiveContributionNotExclusive) pending.contributions[0].role = .exclusive;
+            },
+            else => unreachable,
+        }
+        try std.testing.expectError(expected, owner.publishTaskGraphAfterJoinDiagnosed(&pending, .{ .graph_id = "bad" }, .{ .planned_tasks = 2 }, &failure));
+        try std.testing.expectEqual(prover_api.error_codes.fromTaskProfile(expected).code, failure.?.code);
+        try pending.abortDiagnosed(&failure);
+        try std.testing.expect(failure == null);
+    }
+}
+
+test "task lifecycle diagnostic records resource storage and joined summary refusal without stale state" {
+    const a = std.testing.allocator;
+    var owner = prover_api.stage_profile.Recorder.init(a, "Debug", "resources");
+    defer owner.deinit();
+    var failure: ?@import("stwo_core").error_codes.Entry = null;
+    try std.testing.expectError(error.TaskProfileContributionCountOverflow, owner.reserveTaskGraphShapeDiagnosed(.{ .event_count = 0, .contribution_count = @as(usize, std.math.maxInt(u32)) + 1, .component_work_count = 0 }, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3108), failure.?.code);
+    try std.testing.expectError(error.TaskProfileComponentWorkCountImpossible, owner.reserveTaskGraphShapeDiagnosed(.{ .event_count = 0, .contribution_count = 0, .component_work_count = 1 }, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3107), failure.?.code);
+    owner.task_recorder.next_generation = std.math.maxInt(u64);
+    try std.testing.expectError(error.TaskGraphReservationGenerationExhausted, owner.reserveTaskGraphShapeDiagnosed(.{ .event_count = 0, .contribution_count = 0, .component_work_count = 0 }, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3103), failure.?.code);
+    owner.task_recorder.next_generation = 0;
+    var pending = try owner.reserveTaskGraph(0, 0);
+    defer pending.deinit();
+    var mutated = pending;
+    mutated.compatibility_one_contribution_per_event = !pending.compatibility_one_contribution_per_event;
+    try std.testing.expectError(error.TaskGraphReservationStorageMismatch, owner.publishTaskGraphAfterJoinDiagnosed(&mutated, .{ .graph_id = "bad-storage" }, .{}, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3105), failure.?.code);
+    try std.testing.expectError(error.TaskGraphReservationActive, owner.taskSnapshotDiagnosed(a, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3102), failure.?.code);
+    try std.testing.expectError(error.TaskProfileUnexpectedStealCount, owner.publishTaskGraphAfterJoinDiagnosed(&pending, .{ .graph_id = "stolen" }, .{ .steal_count = 1 }, &failure));
+    try std.testing.expectEqual(@as(u16, 0x310b), failure.?.code);
+    try pending.abortDiagnosed(&failure);
+    try std.testing.expect(failure == null);
+}
+
+test "work accounting diagnostics retain actual stage state and all four owned failures" {
+    const work = prover_api.work_profile;
+    const codes = prover_api.error_codes;
+    var stage = prover_api.stage_profile.Recorder.initWithOptions(std.testing.allocator, "Debug", "work-diagnostic", .{ .capture_work = true });
+    defer stage.deinit();
+    const active = stage.workCaptureRecorder().?;
+    const good = work.Delta{ .producer = .column_preparation_fft, .source_mask = work.SourceMask.one(.fft_butterflies), .counters = .{ .fft_butterflies = std.math.maxInt(u64) } };
+    var failure: ?@import("stwo_core").error_codes.Entry = codes.fromWorkProfile(error.InvalidWorkProfile);
+    try active.recordDiagnosed(good, &failure);
+    try std.testing.expect(failure == null);
+    const before = try stage.workSnapshot();
+    try std.testing.expectEqualDeep(before, try stage.workSnapshotDiagnosed(&failure));
+    var next = good;
+    next.counters.fft_butterflies = 1;
+    try std.testing.expectError(error.CounterOverflow, active.recordDiagnosed(next, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3201), failure.?.code);
+    try std.testing.expectEqualDeep(before, try stage.workSnapshot());
+    next.source_mask = work.SourceMask.one(.fri_folds);
+    try std.testing.expectError(error.InvalidCounterGroup, active.recordDiagnosed(next, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3202), failure.?.code);
+    next = good;
+    next.site = .main_witness_field;
+    try std.testing.expectError(error.InvalidProducerCoverage, active.recordDiagnosed(next, &failure));
+    try std.testing.expectEqual(@as(u16, 0x3203), failure.?.code);
+    try std.testing.expectEqualDeep(before, try stage.workSnapshot());
+    active.record_count += 1;
+    try std.testing.expectError(error.InvalidWorkProfile, stage.workSnapshotDiagnosed(&failure));
+    try std.testing.expectEqual(@as(u16, 0x3204), failure.?.code);
+    active.record_count -= 1;
+    try std.testing.expectEqualDeep(before, try stage.workSnapshotDiagnosed(&failure));
+    try std.testing.expect(failure == null);
+    var disabled: work.Recorder(false) = .{};
+    try std.testing.expectEqual(@as(usize, 0), @sizeOf(@TypeOf(disabled)));
+    failure = codes.fromWorkProfile(error.CounterOverflow);
+    try disabled.recordDiagnosed(next, &failure);
+    try std.testing.expect(failure == null);
+    try std.testing.expectEqualDeep(work.Profile.unavailable(), try disabled.snapshotDiagnosed(&failure));
+    stage.capture_work = false;
+    failure = codes.fromWorkProfile(error.InvalidWorkProfile);
+    try std.testing.expectEqualDeep(work.Profile.unavailable(), try stage.workSnapshotDiagnosed(&failure));
+    try std.testing.expect(failure == null);
+}

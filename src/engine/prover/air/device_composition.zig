@@ -147,3 +147,40 @@ test "resident composition validates physical device geometry without host coeff
     columns[1].device = null;
     try std.testing.expectError(error.ResidentCompositionHostColumn, api.validateResidentTree(tree, 8, 1));
 }
+
+/// The callback is outside the owned API validator catch. Its identical error
+/// tags therefore remain foreign, even after an earlier owned rejection.
+pub fn evaluateResidentDiagnosed(stage: api.ResidentOm31Stage, allocator: std.mem.Allocator, alpha: @import("stwo_core").fields.om31.OM31, log: u32, split: u32, count: usize, trace: *const anyopaque, failure: ?*?@import("stwo_prover_api").error_codes.DeviceFailure) !@import("stwo_prover_api").device_pcs.Tree {
+    if (failure) |sink| sink.* = null;
+    const tree = try stage.evaluate_and_commit(stage.context, allocator, alpha, log, split, count, trace);
+    try api.validateResidentTreeDiagnosed(tree, log, split, failure);
+    return tree;
+}
+
+test "admission resident callback identical error stays foreign after prior owned failure" {
+    const D = @import("stwo_prover_api").device_pcs;
+    const O = @import("stwo_core").fields.om31.OM31;
+    const Context = struct {
+        mode: u8 = 0,
+        columns: [16]D.Column,
+        fn evaluate(raw: *anyopaque, _: std.mem.Allocator, _: O, _: u32, _: u32, _: usize, _: *const anyopaque) anyerror!D.Tree {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            if (self.mode == 1) return error.InvalidResidentCompositionTree;
+            return .{ .root = @splat(7), .columns = if (self.mode == 0) &.{} else &self.columns };
+        }
+    };
+    var context = Context{ .columns = @splat(.{ .log_size = 7, .device = .{ .words = @ptrFromInt(4096), .count = 128, .context_token = 7, .generation = 1 } }) };
+    const stage = api.ResidentOm31Stage{ .context = &context, .evaluate_and_commit = Context.evaluate };
+    var detail: ?@import("stwo_prover_api").error_codes.DeviceFailure = null;
+    try std.testing.expectError(error.InvalidResidentCompositionTree, evaluateResidentDiagnosed(stage, std.testing.allocator, O.one(), 8, 1, 1, &context, &detail));
+    try std.testing.expectEqual(@as(u16, 0x3507), detail.?.entry.code);
+    context.mode = 1;
+    try std.testing.expectError(error.InvalidResidentCompositionTree, evaluateResidentDiagnosed(stage, std.testing.allocator, O.one(), 8, 1, 1, &context, &detail));
+    try std.testing.expect(detail == null);
+    context.mode = 2;
+    _ = try evaluateResidentDiagnosed(stage, std.testing.allocator, O.one(), 8, 1, 1, &context, &detail);
+    try std.testing.expect(detail == null);
+    context.columns[0].device = null;
+    try std.testing.expectError(error.ResidentCompositionHostColumn, evaluateResidentDiagnosed(stage, std.testing.allocator, O.one(), 8, 1, 1, &context, &detail));
+    try std.testing.expectEqual(@as(u16, 0x3508), detail.?.entry.code);
+}

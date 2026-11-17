@@ -166,6 +166,21 @@ pub fn build(b: *std.Build) void {
         circle_lde_output_parity_step.dependOn(&unsupported.step);
         return;
     }
+    const quotient_lifetime = b.addExecutable(.{
+        .name = "quotient-preparation-ownership-test",
+        .root_module = b.createModule(.{ .target = target, .optimize = optimize }),
+    });
+    quotient_lifetime.addCSourceFile(.{
+        .file = b.path("runtime/quotient_preparation_ownership_test.m"),
+        .flags = runtime_source.flags(b, b.pathFromRoot("runtime/quotient_preparation_ownership_test.m")),
+    });
+    quotient_lifetime.linkLibC();
+    quotient_lifetime.linkFramework("Foundation");
+    quotient_lifetime.linkSystemLibrary("objc");
+    const quotient_lifetime_step = b.step("test-quotient-preparation-ownership", "Test prepared quotient ARC custody on success, partial failure and caller abort without a GPU");
+    quotient_lifetime_step.dependOn(if (check_only) &quotient_lifetime.step else &b.addRunArtifact(quotient_lifetime).step);
+    test_step.dependOn(quotient_lifetime_step);
+
     const leaf_stream_root = b.createModule(.{
         .root_source_file = b.path("leaf_stream_test_root.zig"),
         .target = target,

@@ -218,6 +218,8 @@ pub fn createCudaBackend(
         .optimize = optimize,
     });
     backend.addImport("stwo_backend_contracts", protocol.backend_contracts);
+    backend.addImport("stwo_core", protocol.core);
+    backend.addImport("stwo_prover_engine", protocol.prover);
     return backend;
 }
 

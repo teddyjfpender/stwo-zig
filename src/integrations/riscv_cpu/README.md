@@ -2,7 +2,7 @@
 
 | Fact | Value |
 | --- | --- |
-| Version | `1.1.0` |
+| Version | `1.2.0` |
 | Layer | `integration` |
 | Owner | `riscv-cpu-integration` |
 | Focused CI host | Linux |

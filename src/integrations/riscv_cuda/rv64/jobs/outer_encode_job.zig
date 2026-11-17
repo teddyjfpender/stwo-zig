@@ -105,7 +105,7 @@ pub const EncodedNode = struct {
     launches: u32 = 0,
     /// CUDA events around the encoder launch only (GPU time; never a sync).
     timing: ?K.Timing = null,
-    /// Negative test (outer_encode.faultOrdinal): the PCS image's terminal
+    /// Typed test-only fault: the PCS image's terminal
     /// value word is set to 0xffffffff on the device before the encoder runs;
     /// node_pcs_status must refuse it (detail noncanonical).
     fault: bool = false,
@@ -293,8 +293,7 @@ pub const EncodedNode = struct {
         };
         if (self.fault) {
             const im = E.Image.of(self.desc);
-            if (im.terminal >= pcs.words) return error.OuterEncodeFaultOutOfRange;
-            if (self.inner.kernels.memset(e.ctx(), @ptrCast(pcs.ptr + im.terminal), 0xff, 4) != 0) return error.OuterEncodeEnqueueFailed;
+            try @import("outer_fault_write.zig").pcs(e.ctx(), self.inner.kernels.memset, pcs, im.terminal);
         }
         if (self.timing) |t| t.mark(t.ctx, false, e.stream());
         const rc = self.symbols.encode(e.ctx(), K.lane, &io);

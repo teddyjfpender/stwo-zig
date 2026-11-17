@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_cuda_integration",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "layer": "integration",
   "owner": "riscv-cuda-integration",
   "public_modules": {
@@ -36,7 +36,22 @@
       "mod.zig::RISC-V binds formal evidence to NVIDIA and CuMetal plan identities"
     ],
     "invariant_tests": [
-      "mod.zig::RISC-V structural admission rejects missing formal evidence"
+      "mod.zig::RISC-V structural admission rejects missing formal evidence",
+      "rv64/jobs/plan_test.zig::worker final plans: output failure still destroys every joined resource",
+      "rv64/jobs/plan_test.zig::worker final plans: own worker cannot join itself or close healthy submissions",
+      "rv64/jobs/plan_test.zig::worker final plans: postjoin output allocation failure consumes metadata exactly once",
+      "rv64/jobs/plan_test.zig::worker final plans: quiesce drains and retains exact postshutdown snapshot until destroy",
+      "rv64/recorded_replay.zig::recorded replay admission: absent role skips while provided data remains mandatory",
+      "rv64/recording_dataset_test.zig::recording dataset: active borrows refuse finalization and cannot outlive their owner",
+      "rv64/recording_dataset_test.zig::recording dataset: device binding refuses duplicate contexts rather than borrowing a foreign request",
+      "rv64/recording_dataset_test.zig::recording dataset: every independent historical family is retained and sorted",
+      "rv64/recording_dataset_test.zig::recording dataset: failure remains incomplete and a fresh attempt can retry",
+      "rv64/recording_dataset_test.zig::recording dataset: identity and payload conflicts refuse rather than reuse stale ordinals",
+      "rv64/recording_dataset_test.zig::recording dataset: modern replay rejects corruption and undeclared extra payloads",
+      "rv64/recording_dataset_test.zig::recording dataset: ordinal zero belongs to distinct executions and installation purposes",
+      "rv64/recording_dataset_test.zig::recording dataset: simultaneous contexts serialize identical publication and drain before completion",
+      "rv64/recording_dataset_test.zig::recording dataset: unrelated roots and auxiliary-only roles remain absent but incomplete families reject",
+      "rv64/trace_admission.zig::trace admission actual headers isolate metadata custody and integration policy refusal"
     ]
   },
   "ci": {
@@ -51,5 +66,16 @@
       "-Doptimize=ReleaseFast",
       "-j2"
     ]
+  },
+  "budget": {
+    "code_files": 345,
+    "code_lines": 80276,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 8,
+    "dependencies": 9,
+    "rv64_registry_flags": 22,
+    "versioned_files": 350
   }
 }

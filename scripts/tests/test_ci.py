@@ -164,7 +164,11 @@ class CiTests(unittest.TestCase):
             output = Path(raw) / "receipt.json"
             result = subprocess.run([sys.executable, "-c", launcher, str(output), json.dumps(policy)], cwd=ROOT, capture_output=True, timeout=10)
             self.assertEqual(-signal.SIGTERM, result.returncode, result.stderr)
-            self.assertFalse(output.exists())
+            incomplete = json.loads(output.read_text())
+            self.assertEqual("INCOMPLETE", incomplete["status"])
+            self.assertEqual([], incomplete["commands"])
+            self.assertEqual(1, incomplete["expected_commands"])
+            self.assertFalse((output.parent / "focused-0.completed.json").exists())
             self.assertEqual(b"compiler-progress\n", (output.parent / "focused-0.stdout").read_bytes())
             self.assertEqual(b"before-cancel\n", (output.parent / "focused-0.stderr").read_bytes())
             started = json.loads((output.parent / "focused-0.started.json").read_text())
@@ -438,7 +442,7 @@ class CiTests(unittest.TestCase):
     def test_complete_frontend_modes_have_bounded_host_allowances(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         focused_linux = workflow.split("  focused-linux:", 1)[1].split("  focused-macos:", 1)[0]
-        self.assertIn("timeout-minutes: ${{ (matrix.lane == 'riscv_frontend' || matrix.lane == 'riscv_frontend_releasefast' || matrix.lane == 'riscv_retained_contracts_releasefast' || matrix.lane == 'riscv_profile_partition') && 90 || 30 }}", focused_linux)
+        self.assertIn("timeout-minutes: ${{ (matrix.lane == 'ethereum_statement' || matrix.lane == 'ethereum_statement_releasefast') && 150 || (matrix.lane == 'riscv_frontend' || matrix.lane == 'riscv_frontend_releasefast' || matrix.lane == 'riscv_retained_contracts_releasefast' || matrix.lane == 'riscv_profile_partition') && 90 || 30 }}", focused_linux)
 
     def test_focused_cairo_cpu_primes_its_offline_cargo_build(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -669,7 +673,8 @@ class CiTests(unittest.TestCase):
         self.assertIn("xcrun --sdk macosx --find metal", metal_job)
         self.assertIn("xcrun --sdk macosx --find metallib", metal_job)
         self.assertIn("name: Setup Python", metal_job)
-        self.assertIn('python-version: "3.13"', metal_job)
+        python = json.loads((ROOT / "toolchain.json").read_text())["python"]["version"]
+        self.assertIn(f'python-version: "{python}"', metal_job)
         self.assertIn(
             "zig build metal-eval-prepare -Doptimize=ReleaseFast", metal_job
         )
