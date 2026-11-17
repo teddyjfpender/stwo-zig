@@ -23,9 +23,11 @@ pub fn Pipeline(comptime H: type) type {
         pub const terminal = @import("block/terminal.zig");
         pub const resources = @import("block/gkr_resources.zig");
         /// Native CPU production and fresh reception command line (no
-        /// recursion): `describe-candidate`, `plan-candidate`,
-        /// `produce-candidate`, `verify-candidate`, `verify-prefix-candidate`.
+        /// recursion): `describe-candidate`, `plan`, `produce-candidate`,
+        /// `verify-candidate`, `verify-prefix-candidate`.
         pub const main = @import("block/gkr_main.zig").main;
+        /// The same command line over an explicit argv (`argv[0]` first).
+        pub const runArgv = @import("block/gkr_main.zig").runArgv;
     };
 }
 

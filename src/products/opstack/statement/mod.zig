@@ -25,4 +25,5 @@ test {
     _ = @import("tests/guest_abi_test.zig");
     _ = @import("tests/statement_test.zig");
     _ = @import("tests/hooks_contract_test.zig");
+    _ = @import("cpu/cli.zig");
 }

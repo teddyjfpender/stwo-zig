@@ -54,8 +54,9 @@ const Op = pipeline.Pipeline(@import("rv64_pipeline_hooks"));
 
 - `Pipeline` returns the pipeline bound to one hooks module: `request`, `image`,
   `plan`, `keys`, `receiver`, `terminal`, `resources` and the native CLI `main`
-  (`describe-candidate`, `plan-candidate`, `produce-candidate`,
-  `verify-candidate`, `verify-prefix-candidate`).
+  (`describe-candidate`, `plan`, `produce-candidate`, `verify-candidate`,
+  `verify-prefix-candidate`), plus `runArgv` for a product that translates its
+  own command surface onto that argv.
 - `ProductHooks` documents the contract: required declarations, guest ABI
   fields and the `violation` checker.
 - `ServiceFamily` is the RFC-3 extension shape. Products declare none in S1.

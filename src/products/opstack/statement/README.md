@@ -63,10 +63,13 @@ zig build test-e2e-probe --build-file src/products/opstack/statement/build.zig -
 zig build opstack-native --build-file src/products/opstack/statement/build.zig -Doptimize=ReleaseFast
 ```
 
-`opstack-native` installs `stwo-opstack-native`. The OP harnesses under
-`tools/opstack` call its `plan-candidate`, `produce-candidate` and
-`verify-candidate` subcommands; the receiver runs in a separate process with no
-setup directory. Fixture paths reach `test-e2e-probe` through the
+`opstack-native` installs `stwo-opstack-native`. `cpu/cli.zig` maps its
+command surface onto the pipeline: `prove` → `produce-candidate`, `verify` →
+`verify-candidate`, `plan-candidate` → `plan`; flags may follow the positional
+arguments. `batch-candidate`, `verify-batch-candidate`, `execute`, a
+non-default `--gkr-storage` and a non-committed `--receiver-setup` exit with a
+named error until the S2 RFCs land. The receiver runs in a separate process
+with no setup directory. Fixture paths reach `test-e2e-probe` through the
 `opstack_fixture_paths` build options module, never through the environment.
 
 ## Contract and invariants

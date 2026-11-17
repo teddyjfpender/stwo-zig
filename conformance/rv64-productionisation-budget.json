@@ -1442,17 +1442,17 @@
     },
     {
       "id": "opstack_s1_rv64_pipeline",
-      "net_code_budget": 9700,
+      "net_code_budget": 9750,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "RFC-1 neutral RV64 block pipeline package for a second RV64 product line (OP Stack): the native subset of the Ethereum word16 block pipeline copied with product names removed, plus the hooks contract and reference hooks. Exception E-1: the duplication expires at the Ethereum migration (or 2027-03-31), which removes the private copy. Reads no environment (setup acceleration is CLI-selected); no flags, scripts or launchers."
     },
     {
       "id": "opstack_s1_statement",
-      "net_code_budget": 500,
+      "net_code_budget": 600,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "OP Stack product statement package: guest ABI (4..32 MiB window), 43-byte statement codec, pipeline hooks, stwo-opstack-native CLI root and tests; owner opstack-statement; no flags, scripts or dependencies beyond the neutral pipeline."
+      "positive_growth_justification": "OP Stack product statement package: guest ABI (4..32 MiB window), 43-byte statement codec, pipeline hooks, stwo-opstack-native CLI root with its subcommand translation onto the pipeline argv, and tests; owner opstack-statement; no flags, scripts or dependencies beyond the neutral pipeline."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",

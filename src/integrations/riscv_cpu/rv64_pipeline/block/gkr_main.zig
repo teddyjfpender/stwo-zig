@@ -62,6 +62,16 @@ pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
     defer base.free(args);
     return runArguments(&recycler, args, stages, null, false, {});
 }
+/// Same CLI over an explicit argv (`argv[0]` first), for products that keep
+/// their own command surface and translate it onto this one.
+pub fn runArgv(all_args: []const [:0]u8) !void {
+    var recycler = Recycler.init(std.heap.smp_allocator, ReceiverBudget.RECYCLER_CACHE_BYTES);
+    defer recycler.deinit();
+    const base = recycler.allocator();
+    const args = try @import("gkr_resources.zig").parseSetupArguments(base, all_args);
+    defer base.free(args);
+    return runArguments(&recycler, args, .{}, null, false, {});
+}
 /// Separate linked product: the resident native executable does not pull the
 /// circuit stack into every GPU build merely to expose an unavailable mode.
 pub fn mainWithRecursion() !void {
