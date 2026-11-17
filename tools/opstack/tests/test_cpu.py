@@ -99,9 +99,25 @@ class CPUReceiptTests(unittest.TestCase):
                 argv = ['cpu.py','--request',str(root/'request.json'),'--execution',str(root/'execution.json'),
                         '--runner',str(root/'elf'),'--artifacts',str(root/'out')]
                 # Stop at the first native call; never return/accept a mock proof.
-                with patch.object(sys,'argv',argv), patch.object(cpu,'measured',side_effect=RuntimeError('native boundary')) as native:
+                # Hosted CI exports STWO_* variables to every lane; the cold
+                # benchmark guard must see the clean environment it requires.
+                clean = {k: v for k, v in os.environ.items() if not k.startswith('STWO_')}
+                with patch.dict(os.environ, clean, clear=True), patch.object(sys,'argv',argv), patch.object(cpu,'measured',side_effect=RuntimeError('native boundary')) as native:
                     with self.assertRaises(RuntimeError if bad is None else ValueError):cpu.main()
                 self.assertEqual(native.call_count, 1 if bad is None else 0)
+        # The guard itself still refuses an ambient STWO_* variable.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory);(root/'elf').write_bytes(b'elf');(root/'input').write_bytes(raw)
+            request = {'elf':str(root/'elf'), 'input':str(root/'input'),
+                       'elf_sha256':cpu.sha(root/'elf'), 'input_sha256':cpu.sha(root/'input'),
+                       'expected_output':public.hex(), 'terminal_pc':4, 'execution_profile':'ethereum_services_v3'}
+            execution = {'status':'completed','verified_output':True,'output':public.hex(),'pc':4,'instructions':32}
+            (root/'request.json').write_text(json.dumps(request));(root/'execution.json').write_text(json.dumps(execution))
+            argv = ['cpu.py','--request',str(root/'request.json'),'--execution',str(root/'execution.json'),
+                    '--runner',str(root/'elf'),'--artifacts',str(root/'out')]
+            with patch.dict(os.environ, {'STWO_' + 'AMBIENT_PROBE': '1'}), patch.object(sys,'argv',argv), patch.object(cpu,'measured') as native:
+                with self.assertRaisesRegex(ValueError, 'unset STWO_'):cpu.main()
+            self.assertEqual(native.call_count, 0)
 
     def test_geometry_is_preserved_and_only_explicitly_overridden(self):
         self.assertEqual(cpu.batch_steps({"batch_steps": 1048575}), 1048575)
