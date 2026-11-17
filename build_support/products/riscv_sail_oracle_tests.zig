@@ -11,9 +11,10 @@
 //! A check that never runs is indistinguishable from a check that passed,
 //! which is the exact failure mode `sail_oracle.zig` exists to refuse.
 //!
-//! The fix is a test artifact rooted at `src/frontends/riscv/
-//! sail_oracle_test_root.zig`, a two-line file whose `test` block names
-//! `runner/sail_oracle.zig`, which makes those tests root-module tests and
+//! The fix is a test artifact for the focused suite `src/frontends/riscv/
+//! tests/focused/sail_oracle.zig` (rooted at the package's
+//! `focused_test_root.zig`, which selects it), a two-line file whose `test`
+//! block names the oracle, which makes those tests root-module tests and
 //! collects them unconditionally. Rooting at `sail_oracle.zig` itself does
 //! not compile: it would make `runner/` the module path and every `../isa`,
 //! `../air`, `../host` import in the runner subtree an "import of file
@@ -56,12 +57,13 @@
 const std = @import("std");
 const graph = @import("../graph/modules.zig");
 const test_filter = @import("riscv_test_filter.zig");
+const focused_suite = @import("riscv_focused_suite.zig");
 
 pub const STEP_NAME = "test-riscv-sail-oracle";
 pub const DESCRIPTION =
     "Run the sail_oracle self-check and forged-trace rejection against the pinned Sail oracle";
 
-const ROOT_SOURCE_FILE = "src/frontends/riscv/focused_product_sail_oracle_test_root.zig";
+const ROOT_SOURCE_FILE = "src/frontends/riscv/tests/focused/sail_oracle.zig";
 
 /// Declares `test-riscv-sail-oracle` and returns the step to depend on, so a
 /// caller can also fold it into a broader product test step.
@@ -72,14 +74,16 @@ pub fn add(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 ) *std.Build.Step {
+    const suite = focused_suite.select(b, ROOT_SOURCE_FILE).?;
     const root = graph.create(b, .{
         // The owner derives this through riscv_shared_shell.roleProduct, so
         // every RISC-V CPU test artifact shares one identity construction.
         .product = test_product,
-        .root_source_file = ROOT_SOURCE_FILE,
+        .root_source_file = suite.root,
         .target = target,
         .optimize = optimize,
     });
+    focused_suite.bind(b, root, suite);
     protocol.addImports(root);
     const tests = b.addTest(.{
         .root_module = root,

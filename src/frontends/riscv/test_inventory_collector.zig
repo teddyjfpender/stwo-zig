@@ -2,6 +2,9 @@ const std = @import("std");
 
 // An import-only focused collector adds no assertion to the default suite when
 // each subject is already collected there directly. Parse conservatively.
+// Collectors live in `<package>/tests/focused/`; the inventory is the
+// package's `tests/root.zig`, so a subject `../../air/x.zig` must appear there
+// as `../air/x.zig` and a sibling suite `x.zig` as `focused/x.zig`.
 pub fn coveredCollector(allocator: std.mem.Allocator, source: []const u8, inventory: []const u8) !bool {
     const text = try allocator.dupeZ(u8, source);
     defer allocator.free(text);
@@ -19,9 +22,17 @@ pub fn coveredCollector(allocator: std.mem.Allocator, source: []const u8, invent
         const path = tokens.next();
         if (path.tag != .string_literal) return false;
         const literal = text[path.loc.start + 1 .. path.loc.end - 1];
-        if (!std.mem.endsWith(u8, literal, ".zig") or std.mem.indexOf(u8, literal, "..") != null or std.mem.indexOfScalar(u8, literal, '\\') != null or std.fs.path.isAbsolute(literal)) return false;
+        const parent = "../../";
+        const in_package = std.mem.startsWith(u8, literal, parent);
+        const subject = if (in_package) literal[parent.len..] else literal;
+        if (!std.mem.endsWith(u8, subject, ".zig") or std.mem.indexOf(u8, subject, "..") != null or std.mem.indexOfScalar(u8, subject, '\\') != null or std.fs.path.isAbsolute(subject)) return false;
         var buffer: [512]u8 = undefined;
-        const statement = std.fmt.bufPrint(&buffer, "_ = @import(\"{s}{s}\");", .{ if (std.mem.startsWith(u8, literal, "tests/")) "" else "../", if (std.mem.startsWith(u8, literal, "tests/")) literal[6..] else literal }) catch return false;
+        const statement = (if (!in_package)
+            std.fmt.bufPrint(&buffer, "_ = @import(\"focused/{s}\");", .{subject})
+        else if (std.mem.startsWith(u8, subject, "tests/"))
+            std.fmt.bufPrint(&buffer, "_ = @import(\"{s}\");", .{subject["tests/".len..]})
+        else
+            std.fmt.bufPrint(&buffer, "_ = @import(\"../{s}\");", .{subject})) catch return false;
         var lines = std.mem.tokenizeAny(u8, inventory, "\r\n");
         var covered = false;
         while (lines.next()) |line| covered = covered or std.mem.eql(u8, std.mem.trim(u8, line, " \t"), statement);
@@ -32,11 +43,15 @@ pub fn coveredCollector(allocator: std.mem.Allocator, source: []const u8, invent
 
 test "test inventory: redundant collectors cannot hide assertions or absent subjects" {
     const allocator = std.testing.allocator;
-    const source = "test { _ = @import(\"air/example.zig\"); }";
+    const source = "test { _ = @import(\"../../air/example.zig\"); }";
     const inventory = "    _ = @import(\"../air/example.zig\");";
     try std.testing.expect(try coveredCollector(allocator, source, inventory));
     try std.testing.expect(!try coveredCollector(allocator, source, "// " ++ inventory));
     try std.testing.expect(!try coveredCollector(allocator, source, ""));
-    try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"air/example.zig\"); unreachable; }", inventory));
+    try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"../../air/example.zig\"); unreachable; }", inventory));
     try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"../outside.zig\"); }", inventory));
+    try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"../../../outside.zig\"); }", inventory));
+    try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"air/example.zig\"); }", inventory));
+    try std.testing.expect(try coveredCollector(allocator, "test { _ = @import(\"sibling.zig\"); }", "_ = @import(\"focused/sibling.zig\");"));
+    try std.testing.expect(try coveredCollector(allocator, "test { _ = @import(\"../../tests/shared.zig\"); }", "_ = @import(\"shared.zig\");"));
 }

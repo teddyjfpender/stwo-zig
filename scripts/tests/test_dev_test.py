@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
-from scripts.tests.focused_ci_fixtures import git_repository
+from scripts.tests.ci_scope_fixtures import git_repository
 
 from scripts import dev_test
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,7 +55,7 @@ class DevTestPlanTests(unittest.TestCase):
     def test_extracted_ethereum_contracts_keep_executed_focused_owners(self):
         prefix = "src/products/ethereum/statement/"
         for source, step in (("frontend/recursion/vm_composition_preparation.zig", "test-composition-custody"),
-                             ("frontend/focused_test_ethereum_runner_0.zig", "test-ethereum-runner"),
+                             ("frontend/tests/focused/ethereum_runner.zig", "test-ethereum-runner"),
                              ("frontend/runner/guest_precompile/tests/ethereum_runner_test.zig", "test-ethereum-runner"),
                              ("frontend/ethereum_minimal_trace_test_root.zig", "test-ethereum-minimal-trace"),
                              ("frontend/runner/minimal_trace/ethereum_test.zig", "test-ethereum-minimal-trace"),
@@ -169,7 +169,7 @@ class DevTestPlanTests(unittest.TestCase):
             ), mock.patch("scripts.dev_test.subprocess.run", return_value=mock.Mock(returncode=0)) as run, mock.patch(
                 "sys.stdout", new=io.StringIO(),
             ):
-                self.assertEqual(0, dev_test.main(["src/frontends/riscv/isa/focused_test_isa_0.zig"]))
+                self.assertEqual(0, dev_test.main(["src/frontends/riscv/isa/tests/focused/isa.zig"]))
             argv = run.call_args.args[0]
             self.assertEqual(borrowed, argv[:2] == ["zig", "build"])
             if not borrowed:
@@ -177,17 +177,17 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_catalog_roots_select_bounded_commands_without_tool_probes(self):
         for filename, step in (
-            ("recursion/focused_test_recursion_transcript_v2_0_1.zig", "test-recursion-transcript-v2"),
-            ("testing/focused_main_trace_plan_execution_test_root.zig", "test-main-trace-plan-execution"),
-            ("testing/focused_air_static_profile_registry_test_root.zig", "test-air-static-profile-registry"),
-            ("rv32/focused_test_air_semantics_0.zig", "test-air-semantics"),
-            ("rv32/focused_test_air_semantics_0.zig", "test-air-semantics"),
-            ("rv32/focused_test_air_semantics_0.zig", "test-air-semantics"),
-            ("rv32/focused_test_air_semantics_0.zig", "test-air-semantics"),
-            ("precompiles/focused_test_guest_precompile_0.zig", "test-guest-precompile"),
-            ("precompiles/focused_test_guest_precompile_0.zig", "test-guest-precompile"),
-            ("precompiles/focused_test_guest_precompile_0.zig", "test-guest-precompile"),
-            ("precompiles/focused_test_guest_precompile_0.zig", "test-guest-precompile"),
+            ("recursion/tests/focused/recursion_transcript_v2_1.zig", "test-recursion-transcript-v2"),
+            ("testing/tests/focused/main_trace_plan_execution.zig", "test-main-trace-plan-execution"),
+            ("testing/tests/focused/air_static_profile_registry.zig", "test-air-static-profile-registry"),
+            ("rv32/tests/focused/air_semantics_0.zig", "test-air-semantics"),
+            ("rv32/tests/focused/air_semantics_0.zig", "test-air-semantics"),
+            ("rv32/tests/focused/air_semantics_0.zig", "test-air-semantics"),
+            ("rv32/tests/focused/air_semantics_0.zig", "test-air-semantics"),
+            ("precompiles/tests/focused/guest_precompile_0.zig", "test-guest-precompile"),
+            ("precompiles/tests/focused/guest_precompile_0.zig", "test-guest-precompile"),
+            ("precompiles/tests/focused/guest_precompile_0.zig", "test-guest-precompile"),
+            ("precompiles/tests/focused/guest_precompile_0.zig", "test-guest-precompile"),
         ):
             for check_only in (False, True):
                 with self.subTest(filename=filename, check_only=check_only), mock.patch(
@@ -222,7 +222,7 @@ class DevTestPlanTests(unittest.TestCase):
             for source in ("zero", "default", "workload", "shared", "qualified.zig/child"):
                 self.assertIsNone(dev_test.frontend_root_step(root, f"src/frontends/riscv/{source}.zig"))
         self.assertEqual("test-runner", dev_test.focus_step(
-            "stwo_riscv_frontend", "src/frontends/riscv/rv32/focused_benchmark_minimal_trace_parallel_replay_0.zig", ROOT,
+            "stwo_riscv_frontend", "src/frontends/riscv/rv32/tests/focused/minimal_trace_parallel_replay_benchmark.zig", ROOT,
         ))
 
     def test_child_focused_route_requires_declared_consumer_dependency(self):
@@ -417,20 +417,20 @@ class DevTestPlanTests(unittest.TestCase):
     def test_optimized_ci_reproduction_covers_focused_and_broad_routes(self) -> None:
         for path, step in (
             ("src/frontends/riscv/rv32/air/extract/runtime_program.zig", "test-runtime-selector"),
-            ("src/frontends/riscv/rv32/focused_test_runtime_selector_0.zig", "test-runtime-selector"),
-            ("src/frontends/riscv/recursion/focused_test_retained_fri_frontier_0.zig", "test-retained-fri-frontier"),
+            ("src/frontends/riscv/rv32/tests/focused/runtime_selector.zig", "test-runtime-selector"),
+            ("src/frontends/riscv/recursion/tests/focused/retained_fri_frontier.zig", "test-retained-fri-frontier"),
             ("src/integrations/riscv_cpu/blake3_proof_tests/blake3_memory_path_proof_test.zig", "test-blake3-proof-contracts"),
             ("src/integrations/riscv_cpu/blake3_proof_contract_test_root.zig", "test-blake3-proof-contracts"),
             ("src/integrations/riscv_cpu/blake3_memory_path_proof_test_root.zig", "test-blake3-proof-contracts"),
             ("src/integrations/riscv_cpu/word16_image_program_contract_test_root.zig", "test-word16-image-program-contracts"),
             ("src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
-            ("src/frontends/riscv/focused_test_retained_typed_components_upper.zig", "test-native-typed-components"),
+            ("src/frontends/riscv/tests/focused/retained_typed_components_upper.zig", "test-native-typed-components"),
             ("src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
             ("src/products/ethereum/statement/frontend/recursion/tests/ethereum_vm_composition_program_test.zig", "test-ethereum-composition-program"),
-            ("src/frontends/riscv/focused_test_retained_transcript_contracts_0.zig", "test-retained-transcript-contracts"),
+            ("src/frontends/riscv/tests/focused/retained_transcript_contracts.zig", "test-retained-transcript-contracts"),
             ("src/waist/core/air_components_test_root.zig", "test-air-components"),
             ("src/waist/core/tests/borrowed_proof_capture_root.zig", "test-proof-capture"),
-            ("src/frontends/riscv/focused_retained_authority_contract_test_root.zig", "test-retained-authority-contracts"),
+            ("src/frontends/riscv/tests/focused/retained_authority_contract.zig", "test-retained-authority-contracts"),
             ("src/integrations/riscv_cpu/division_contract_test_root.zig", "test-division-contracts"),
             ("src/integrations/riscv_cpu/services_truth_contract_test_root.zig", "test-services-truth-contracts"),
             ("src/frontends/riscv/air_lang/framework/control_row.zig", "test-recursion-framework-interaction"),

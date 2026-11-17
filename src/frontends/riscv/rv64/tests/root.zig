@@ -96,11 +96,11 @@ test {
     _ = @import("../candidate_isa_test.zig");
     _ = @import("../services/bulk_packets.zig");
     _ = @import("../services/sponge_packets.zig");
-    _ = @import("../focused_product_rv64_air_test_root.zig");
-    _ = @import("../focused_product_rv64_arith256_truth_test_root.zig");
-    _ = @import("../focused_product_rv64_word16_alu_test_root.zig");
-    _ = @import("../focused_product_rv64_word16_bulk_memory_test_root.zig");
-    _ = @import("../focused_product_rv64_word16_shift_word_test_root.zig");
+    _ = @import("focused/air.zig");
+    _ = @import("focused/arith256_truth.zig");
+    _ = @import("focused/word16_alu.zig");
+    _ = @import("focused/word16_bulk_memory.zig");
+    _ = @import("focused/word16_shift_word.zig");
     _ = @import("../isa_audit.zig");
     _ = @import("../ram_word_set.zig");
     _ = @import("access_census_test.zig");

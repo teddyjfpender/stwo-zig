@@ -24,7 +24,12 @@ pub fn build(b: *std.Build) void {
     module.addImport("stwo_riscv_recursion_air", dep7);
     module.addImport("stwo_riscv_rv32", dep8);
     module.addImport("interop_postcard", dep8.import_table.get("interop_postcard") orelse @panic("native codec injection missing"));
-    const focused_module = b.createModule(.{ .root_source_file = b.path("focused_test_recursion_transcript_v2_0_1.zig"), .target = target, .optimize = optimize });
+    // Focused suites root at the package's focused_test_root.zig, which
+    // analyses only the suite named by the `focused_suite` option.
+    const focused_module = b.createModule(.{ .root_source_file = b.path("focused_test_root.zig"), .target = target, .optimize = optimize });
+    const focused_module_suite = b.addOptions();
+    focused_module_suite.addOption([]const u8, "name", "recursion_transcript_v2_1");
+    focused_module.addOptions("focused_suite", focused_module_suite);
     var imports = module.import_table.iterator();
     while (imports.next()) |entry| focused_module.addImport(entry.key_ptr.*, entry.value_ptr.*);
     const focused_tests = b.addTest(.{ .root_module = focused_module });

@@ -7,6 +7,6 @@ test "LOAD_STORE private fixed-authority declarations compile" {
 }
 
 comptime {
-    _ = @import("cases/air/lang/tests/typed_load_store_authority_test.zig");
+    _ = @import("../../cases/air/lang/tests/typed_load_store_authority_test.zig");
     _ = @import("stwo_riscv_rv32");
 }

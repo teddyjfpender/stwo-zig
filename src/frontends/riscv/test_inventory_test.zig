@@ -35,8 +35,8 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
     .{ .path = "testing/cases/air/lang/tests/typed_mulh_witness_performance_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
     .{ .path = "testing/cases/air/lang/tests/typed_shifts_reg_witness_performance_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
     .{ .path = "compat/benchmarks/typed_legacy_benchmark_registration_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
-    .{ .path = "focused_legacy_benchmarks_test_root.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
-    .{ .path = "testing/focused_test_typed_witness_benchmarks_0.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
+    .{ .path = "tests/focused/legacy_benchmarks.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
+    .{ .path = "testing/tests/focused/typed_witness_benchmarks.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
     .{ .path = "testing/cases/air/lang/tests/typed_branch_eq_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
     .{ .path = "testing/cases/air/lang/tests/typed_branch_lt_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
     .{ .path = "testing/cases/air/lang/tests/typed_div_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
@@ -50,11 +50,11 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
         .why = "backend-neutral semantic root, also consumed by scripts/recursive_poseidon_degree3_proof.py",
     },
     .{
-        .path = "testing/focused_poseidon_merkle_test_root.zig",
+        .path = "testing/tests/focused/poseidon_merkle.zig",
         .why = "focused complete Poseidon Merkle scalar/SIMD parity root, run by test-poseidon-merkle",
     },
     .{
-        .path = "memory/focused_test_poseidon_merkle_0_1.zig",
+        .path = "memory/tests/focused/poseidon_merkle_1.zig",
         .why = "focused complete Poseidon Merkle scalar/SIMD parity root, run by test-poseidon-merkle",
     },
     .{
@@ -88,15 +88,15 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
         .why = "explicit focused evidence root; its tests are collected through the canonical root",
     },
     .{
-        .path = "testing/focused_test_recursion_vm_composition_0.zig",
+        .path = "testing/tests/focused/recursion_vm_composition.zig",
         .why = "compile-isolated row-18 VM composition edit root",
     },
     .{
-        .path = "recursion/focused_test_recursion_vm_composition_0.zig",
+        .path = "recursion/tests/focused/recursion_vm_composition.zig",
         .why = "compile-isolated row-18 VM composition edit root",
     },
     .{
-        .path = "rv32/focused_test_semantic_component_0.zig",
+        .path = "rv32/tests/focused/semantic_component.zig",
         .why = "explicit semantic-component prepared-domain edit root",
     },
     .{
@@ -104,11 +104,11 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
         .why = "temporary focused R-012 circuit evidence root",
     },
     .{
-        .path = "rv32/focused_test_recursion_composition_recorder_0.zig",
+        .path = "rv32/tests/focused/recursion_composition_recorder.zig",
         .why = "temporary focused R-012 composition evidence root",
     },
     .{
-        .path = "testing/focused_test_recursion_composition_recorder_0.zig",
+        .path = "testing/tests/focused/recursion_composition_recorder.zig",
         .why = "temporary focused R-012 composition evidence root",
     },
     .{
@@ -120,7 +120,7 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
         .why = "temporary focused row-2 development root",
     },
     .{
-        .path = "recursion/focused_test_recursion_pair_node_0.zig",
+        .path = "recursion/tests/focused/recursion_pair_node.zig",
         .why = "focused pair-node evidence root; its tests are collected through the canonical root",
     },
     .{
@@ -132,15 +132,15 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
         .why = "focused private-cutover evidence root",
     },
     .{
-        .path = "testing/focused_load_store_private_test_root.zig",
+        .path = "testing/tests/focused/load_store_private.zig",
         .why = "focused private-cutover evidence root",
     },
     .{
-        .path = "testing/focused_test_load_store_private_0_1.zig",
+        .path = "testing/tests/focused/load_store_private_1.zig",
         .why = "focused private-cutover evidence root",
     },
     .{
-        .path = "rv32/focused_test_load_store_private_0_2.zig",
+        .path = "rv32/tests/focused/load_store_private_2.zig",
         .why = "focused private-cutover evidence root",
     },
     .{
@@ -160,39 +160,39 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
         .why = "focused private-cutover evidence root",
     },
     .{
-        .path = "testing/focused_test_hash_component_prepared_0.zig",
+        .path = "testing/tests/focused/hash_component_prepared.zig",
         .why = "focused prepared hash-component evidence root",
     },
     .{
-        .path = "rv32/focused_test_lookup_source_ingest_0.zig",
+        .path = "rv32/tests/focused/lookup_source_ingest.zig",
         .why = "focused lookup source-ingest evidence root",
     },
     .{
-        .path = "testing/focused_test_lookup_source_ingest_0.zig",
+        .path = "testing/tests/focused/lookup_source_ingest.zig",
         .why = "focused lookup source-ingest evidence root",
     },
     .{
-        .path = "rv32/focused_test_lookup_table_framework_export_0.zig",
+        .path = "rv32/tests/focused/lookup_table_framework_export.zig",
         .why = "focused lookup-table interaction evidence root",
     },
     .{
-        .path = "focused_test_lookup_table_framework_export_0.zig",
+        .path = "tests/focused/lookup_table_framework_export.zig",
         .why = "focused lookup-table interaction evidence root",
     },
     .{
-        .path = "rv32/focused_test_lookup_table_interaction_0.zig",
+        .path = "rv32/tests/focused/lookup_table_interaction.zig",
         .why = "focused lookup-table interaction evidence root",
     },
     .{
-        .path = "focused_test_lookup_table_interaction_0.zig",
+        .path = "tests/focused/lookup_table_interaction.zig",
         .why = "focused lookup-table interaction evidence root",
     },
     .{
-        .path = "rv32/focused_test_opcode_interaction_0.zig",
+        .path = "rv32/tests/focused/opcode_interaction.zig",
         .why = "focused opcode-interaction evidence root",
     },
     .{
-        .path = "testing/focused_test_opcode_interaction_0.zig",
+        .path = "testing/tests/focused/opcode_interaction.zig",
         .why = "focused opcode-interaction evidence root",
     },
 };
@@ -288,8 +288,8 @@ test "test inventory: every test-bearing file in this package is named" {
             named += 1;
             continue;
         }
-        if (inventory.prefix.len != 0 and std.mem.startsWith(u8, relative, "focused") and
-            std.fs.path.dirname(relative) == null and try @import("test_inventory_collector.zig").coveredCollector(allocator, source, inventory.source)) continue;
+        if (inventory.prefix.len != 0 and std.mem.startsWith(u8, relative, "tests/focused/") and
+            std.mem.eql(u8, std.fs.path.dirname(relative).?, "tests/focused") and try @import("test_inventory_collector.zig").coveredCollector(allocator, source, inventory.source)) continue;
         missing += 1;
         std.debug.print(
             "test_inventory.zig does not name {s}, so its tests are compiled by nothing\n",

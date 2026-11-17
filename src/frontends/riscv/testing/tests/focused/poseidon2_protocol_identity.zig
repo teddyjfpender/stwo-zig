@@ -1,10 +1,10 @@
 //! Focused canonical compact-Poseidon identity qualification.
 // Keep the import reachable when selecting one named test with --test-filter.
 test {
-    _ = @import("cases/air/lang/tests/typed_poseidon2_compact_test.zig");
+    _ = @import("../../cases/air/lang/tests/typed_poseidon2_compact_test.zig");
     _ = @import("stwo_riscv_memory");
     _ = @import("stwo_riscv_air_lang");
-    _ = @import("cases/air/lang/tests/typed_poseidon2_identity_test.zig");
+    _ = @import("../../cases/air/lang/tests/typed_poseidon2_identity_test.zig");
     _ = @import("stwo_riscv_memory");
 }
 

@@ -9,10 +9,11 @@
 //! contribute no tests at all, so the oracle self-check and the forged-trace
 //! rejection ran in no build step until 2026-07-29.
 //!
-//! This file exists so a test artifact can root here. It cannot root at
-//! `runner/sail_oracle.zig` directly: that would make `runner/` the module
-//! path and every `../isa`, `../air`, `../host` import in the runner subtree
-//! an "import of file outside module path". It deliberately does not root at
+//! This suite exists so a test artifact can select it through the package's
+//! `focused_test_root.zig`. It cannot root at `runner/sail_oracle.zig`
+//! directly: that would make `runner/` the module path and every `../isa`,
+//! `../air`, `../host` import in the runner subtree an "import of file
+//! outside module path". It deliberately does not root at
 //! `mod.zig` either — that is the package's own test root and additionally
 //! pulls the opcode-coverage, AIR-extract and semantic-eval suites, which is
 //! a scope decision this file does not make. No pinned test filter is
@@ -25,5 +26,5 @@
 //! `zig build test` cover it too.
 
 test {
-    _ = @import("compat/qualification/sail_oracle.zig");
+    _ = @import("../../compat/qualification/sail_oracle.zig");
 }

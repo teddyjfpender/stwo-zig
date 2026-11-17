@@ -15,7 +15,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from scripts.repo import ci_scope_plan, ci_scope_push, ci_scope_run, zig_serial_build
-from scripts.tests.focused_ci_fixtures import catalog_fixture, product
+from scripts.tests.ci_scope_fixtures import catalog_fixture, product
 
 
 ROOT = Path(__file__).resolve().parents[2]

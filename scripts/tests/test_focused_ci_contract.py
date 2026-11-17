@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from scripts.repo import ci_scope_plan, ci_scope_push, ci_scope_run, zig_serial_build
-from scripts.tests.focused_ci_fixtures import catalog_fixture, product
+from scripts.tests.ci_scope_fixtures import catalog_fixture, product
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -215,7 +215,7 @@ class PlannerContractTests(unittest.TestCase):
                 self.assertEqual(parent in rule["lanes"], companion in rule["lanes"])
             for lanes in self.policy["product_scope_lanes"].values():
                 self.assertEqual(parent in lanes, companion in lanes)
-            selected = self.lanes_for("src/frontends/riscv/focused_test_retained_typed_components_upper.zig")
+            selected = self.lanes_for("src/frontends/riscv/tests/focused/retained_typed_components_upper.zig")
             self.assertTrue({parent, companion}.issubset(selected))
             self.assertIn(companion, ci_scope_plan.MANUAL_CPU_LANES)
 
@@ -238,7 +238,7 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual([["zig", "build", "test-releasefast-acceptance", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2", "--verbose", "--summary", "all"]], self.policy["lanes"][lane]["commands"][:1])
         self.assertEqual([["zig", "build", "test-recursion-transcript-v2", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=" + mode, "-j2", "--summary", "all"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"][lane]["commands"][1:])
         self.assertIn(lane, ci_scope_plan.MANUAL_CPU_LANES)
-        selected = self.lanes_for("src/frontends/riscv/testing/focused_test_releasefast_acceptance_0.zig")
+        selected = self.lanes_for("src/frontends/riscv/testing/tests/focused/releasefast_acceptance.zig")
         self.assertTrue({lane, "riscv_frontend_releasefast"}.issubset(selected))
 
     def test_package_workspace_has_a_dedicated_failing_pr_gate(self):
@@ -663,10 +663,10 @@ class PlannerContractTests(unittest.TestCase):
             ci_scope_plan.validate_policy(policy)
 
 
-from scripts.tests.focused_ci_runner_contracts import runner_policy
+from scripts.tests.ci_runner_contract_cases import runner_policy
 
 
-from scripts.tests.focused_ci_runner_contracts import RunnerReceiptTests, CommandResourceReceiptTests
+from scripts.tests.ci_runner_contract_cases import RunnerReceiptTests, CommandResourceReceiptTests
 RunnerReceiptTests.__module__ = __name__
 CommandResourceReceiptTests.__module__ = __name__
 

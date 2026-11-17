@@ -2459,7 +2459,7 @@
     {
       "prefixes": [
         "src/frontends/riscv/testing/cases/air/lang/tests/runtime_profile_test.zig",
-        "src/frontends/riscv/testing/focused_air_runtime_profile_test_root.zig"
+        "src/frontends/riscv/testing/tests/focused/air_runtime_profile.zig"
       ],
       "lanes": [
         "riscv_runtime_profile"
@@ -2469,8 +2469,8 @@
       "prefixes": [
         "src/frontends/riscv/compat/tests/testing/cases/recursion/tests/segment_leaf_local_projection_test.zig",
         "src/products/ethereum/statement/frontend/recursion/tests/ethereum_vm_composition_program_test.zig",
-        "src/frontends/riscv/focused_test_retained_transcript_contracts_0.zig",
-        "src/frontends/riscv/focused_test_retained_typed_components_upper.zig"
+        "src/frontends/riscv/tests/focused/retained_transcript_contracts.zig",
+        "src/frontends/riscv/tests/focused/retained_typed_components_upper.zig"
       ],
       "lanes": [
         "riscv_retained_contracts",

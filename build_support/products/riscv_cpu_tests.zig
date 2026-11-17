@@ -192,13 +192,15 @@ pub fn addFocusedTestRoot(
     const b = context.b;
     const test_product = moduleProduct(context, .@"test");
     const entry = @import("riscv_delegation_entry.zig").select(root_source_file, .test_root);
+    const suite = @import("riscv_focused_suite.zig").select(b, root_source_file);
     const root = graph.create(b, .{
         .product = test_product,
-        .root_source_file = if (entry) |value| value.root else root_source_file,
+        .root_source_file = if (entry) |value| value.root else if (suite) |value| value.root else root_source_file,
         .target = context.target,
         .optimize = context.optimize,
     });
     if (entry) |value| @import("riscv_delegation_entry.zig").bind(b, root, value);
+    if (suite) |value| @import("riscv_focused_suite.zig").bind(b, root, value);
     context.protocol.addImports(root);
     _ = graph.addProofWireImport(
         b,

@@ -1,8 +1,8 @@
 //! Focused retained live regression owner.
 test {
-    _ = @import("compat/tests/testing/cases/air/lang/tests/function_activation_logup_test.zig");
+    _ = @import("../../compat/tests/testing/cases/air/lang/tests/function_activation_logup_test.zig");
     _ = @import("stwo_riscv_testing");
-    _ = @import("compat/tests/testing/cases/recursion/air/tests/blake3_draw_witness_test.zig");
+    _ = @import("../../compat/tests/testing/cases/recursion/air/tests/blake3_draw_witness_test.zig");
     _ = @import("stwo_riscv_testing");
     _ = @import("stwo_riscv_recursion");
 }

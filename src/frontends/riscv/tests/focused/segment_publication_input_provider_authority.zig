@@ -2,6 +2,6 @@ const std = @import("std");
 
 test "SegmentV2 publication-input provider focused inventory compiles" {
     std.testing.refAllDeclsRecursive(
-        @import("compat/tests/testing/cases/recursion/tests/segment_publication_input_provider_authority_test.zig"),
+        @import("../../compat/tests/testing/cases/recursion/tests/segment_publication_input_provider_authority_test.zig"),
     );
 }

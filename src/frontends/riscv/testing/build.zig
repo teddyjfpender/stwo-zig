@@ -27,7 +27,12 @@ pub fn build(b: *std.Build) void {
     module.addImport("stwo_riscv_recursion_air", dep8);
     module.addImport("stwo_riscv_rv32", dep9);
     module.addImport("stwo_riscv_rv64", dep10);
-    const focused = b.createModule(.{ .root_source_file = b.path("focused_test_row_windows_edit_0.zig"), .target = target, .optimize = optimize });
+    // Focused suites root at the package's focused_test_root.zig, which
+    // analyses only the suite named by the `focused_suite` option.
+    const focused = b.createModule(.{ .root_source_file = b.path("focused_test_root.zig"), .target = target, .optimize = optimize });
+    const focused_suite = b.addOptions();
+    focused_suite.addOption([]const u8, "name", "row_windows_edit");
+    focused.addOptions("focused_suite", focused_suite);
     var imports = module.import_table.iterator();
     while (imports.next()) |entry| focused.addImport(entry.key_ptr.*, entry.value_ptr.*);
     const focused_run = b.addRunArtifact(b.addTest(.{ .root_module = focused, .filters = &.{"row-window v1: semantic component binding"} }));

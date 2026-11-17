@@ -120,6 +120,18 @@ nowhere and reports nothing. `test_inventory_test.zig` fails when a test-bearing
 file is missing from the list, and `test_floor` in `build.zig` fails when the
 binary's test count drops.
 
+**Focused suites.** The bounded CI steps in
+[`build_focused_tests.zig`](build_focused_tests.zig) (`test-runner`,
+`test-air-semantics`, ...) each compile one or more suites named
+`<package>/tests/focused/<topic>.zig`; a numeric suffix (`air_semantics_0`
+to `_3`) marks a suite the build shards across separate binaries. Zig confines
+a module's imports to its root file's directory, so a suite is never its own
+root: every package has one `focused_test_root.zig` that analyses only the
+suite named by the build's `focused_suite` option. To add a suite, create the
+file under `tests/focused/`, add a `pub const` line for it to that package's
+`focused_test_root.zig`, and name it from the catalog (or from
+`build_support/products/` for product steps).
+
 Build and run the released CPU product:
 
 ```sh

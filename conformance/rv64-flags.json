@@ -1557,7 +1557,7 @@
       "references": [
         "build_support/graph/delegation.zig",
         "scripts/repo/ci_scope_run.py",
-        "scripts/tests/focused_ci_runner_contracts.py",
+        "scripts/tests/ci_runner_contract_cases.py",
         "scripts/tests/test_delegated_identity_cache.py"
       ],
       "default_evidence": {

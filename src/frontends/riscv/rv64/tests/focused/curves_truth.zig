@@ -1,3 +1,3 @@
 test {
-    _ = @import("air/delegations/curves/mod.zig");
+    _ = @import("../../air/delegations/curves/mod.zig");
 }
