@@ -23,6 +23,14 @@ LIMITS = {"sampled_child_tree_rss_bytes": RSS_CAP, "cpu_seconds": CPU_SECONDS,
           "wall_seconds": WALL_SECONDS, "sampling_seconds": 0.1}
 
 
+def admit_cpu_seconds(value):
+    """Explicit per-process CPU (including threads); never an aggregate-tree claim."""
+    require(type(value) is int and 1 <= value <= 1920, "CPU seconds must be an integer1..1920")
+    hard = resource.getrlimit(resource.RLIMIT_CPU)[1]
+    require(hard == resource.RLIM_INFINITY or value <= hard, "CPU seconds exceed inherited hard RLIMIT_CPU")
+    return value
+
+
 def require(condition, message):
     if not condition:
         raise PlanError("test cases: " + message)
@@ -97,9 +105,10 @@ def validate_protocol(path, metadata, index):
 
 class Session:
     """One guarded original process; transcript exchange borrows its live pipes."""
-    def __init__(self, binary, seed, output, index, metadata):
+    def __init__(self, binary, seed, output, index, metadata, *, cpu_seconds=CPU_SECONDS):
         self.argv = [str(binary), f"--seed={seed:#x}", "--listen=-"]
         self.base, self.index, self.metadata = output, index, metadata
+        self.cpu_seconds = cpu_seconds
         self.stop, self.peak, self.reason = threading.Event(), 0, None
         self.thread = None
         self.termination = None
@@ -169,8 +178,9 @@ class Session:
                             "resources": resources, "cleanup": cleanup}
 
     def run(self, cwd):
+        admit_cpu_seconds(self.cpu_seconds)  # Recheck direct callers before files or spawn.
         def limits():
-            resource.setrlimit(resource.RLIMIT_CPU, (CPU_SECONDS, CPU_SECONDS))
+            resource.setrlimit(resource.RLIMIT_CPU, (self.cpu_seconds, self.cpu_seconds))
         with self.base.with_suffix(".stderr").open("wb") as stderr:
             try:
                 completed, usage = run_measured(self.argv, cwd=cwd, stdin=subprocess.PIPE,
@@ -205,7 +215,8 @@ def interrupted(session, error, started):
         error.add_note("interrupted receipt: " + repr(receipt_error))
 
 
-def execute(binary, expected_sha, seed, output, cwd, resume_digest=None, max_cases=1):
+def execute(binary, expected_sha, seed, output, cwd, resume_digest=None, max_cases=1, *, cpu_seconds=CPU_SECONDS):
+    admit_cpu_seconds(cpu_seconds)
     require(0 <= seed <= 0xffffffff, "seed must fit u32")
     require(1 <= max_cases <= 65536, "partition count must be positive and bounded")
     require(strict_json(cwd / "toolchain.json")["zig"]["version"] == VERSION, "unsupported pinned Zig")
@@ -216,17 +227,17 @@ def execute(binary, expected_sha, seed, output, cwd, resume_digest=None, max_cas
     with (output / ".lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         try:
-            return execute_locked(binary, expected_sha, seed, output, cwd, resume_digest, max_cases)
+            return execute_locked(binary, expected_sha, seed, output, cwd, resume_digest, max_cases, cpu_seconds)
         except PlanError:
             raise
         except (KeyError, TypeError, ValueError, struct.error) as error:
             raise PlanError("test cases: malformed receipt/protocol") from error
 
 
-def execute_locked(binary, expected_sha, seed, output, cwd, resume_digest, max_cases):
+def execute_locked(binary, expected_sha, seed, output, cwd, resume_digest, max_cases, cpu_seconds):
     receipt = output / "receipt.json"
     identity = {"binary": str(binary), "binary_sha256": expected_sha, "zig": VERSION,
-                "seed": seed, "cwd": str(cwd), "limits": LIMITS,
+                "seed": seed, "cwd": str(cwd), "limits": {**LIMITS, "cpu_seconds": cpu_seconds},
                 "environment_sha256": hashlib.sha256(json.dumps(sorted(os.environ.items())).encode()).hexdigest()}
     if receipt.exists():
         require(resume_digest is not None and sha(receipt) == resume_digest, "resume requires admitted receipt digest")
@@ -236,7 +247,7 @@ def execute_locked(binary, expected_sha, seed, output, cwd, resume_digest, max_c
         require(resume_digest is None and set(p.name for p in output.iterdir()) == {".lock"}, "nonempty output")
         aggregate = {"schema": "zig-exact-cases-v1", "identity": identity, "status": "INCOMPLETE", "results": []}
         write_json(receipt, aggregate)
-    probe = Session(binary, seed, output / f"query-{time.time_ns()}", None, None)
+    probe = Session(binary, seed, output / f"query-{time.time_ns()}", None, None, cpu_seconds=cpu_seconds)
     started = time.monotonic_ns()
     try:
         probe.run(cwd)
@@ -270,7 +281,7 @@ def execute_locked(binary, expected_sha, seed, output, cwd, resume_digest, max_c
         require(sha(binary) == expected_sha, "executable changed")
         base = output / f"{index:06d}"
         write_json(base.with_suffix(".started.json"), {"identity": identity, "index": index, "name": names[index]})
-        session = Session(binary, seed, base, index, metadata)
+        session = Session(binary, seed, base, index, metadata, cpu_seconds=cpu_seconds)
         started = time.monotonic_ns()
         try:
             usage = session.run(cwd)

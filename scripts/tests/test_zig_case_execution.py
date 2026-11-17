@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import os
+import resource
 import signal
 from pathlib import Path
 import struct
@@ -30,6 +31,9 @@ while True:
  header=sys.stdin.buffer.read(8)
  if not header:break
  tag,n=struct.unpack('<II',header);body=sys.stdin.buffer.read(n)
+ if cfg.get('record_limits') and tag in (4,5):
+  import resource
+  with Path(CONFIG+'.limits').open('a') as f:f.write(json.dumps([tag,list(resource.getrlimit(resource.RLIMIT_CPU))])+'\n')
  if tag==0:break
  if tag==4:
   if cfg.get('query_crash'):os._exit(7)
@@ -136,6 +140,65 @@ class ExactCaseTests(unittest.TestCase):
         self.assertIsNone(record["evidence"][".stderr"])
         self.assertIn("evidence unavailable", record["evidence_errors"][".stderr"])
         self.assertEqual(7, record["termination"]["returncode"])
+
+    def test_cpu_allowance_applies_to_kernel_query_case_and_resume_identity(self):
+        for cpu in (110, 3):
+            with self.subTest(cpu=cpu):
+                self.out = self.folder / str(cpu)
+                self.config.write_text('{"record_limits":true}')
+                limits_path = Path(str(self.config) + ".limits")
+                limits_path.unlink(missing_ok=True)
+                result = cases.execute(self.binary, cases.sha(self.binary), 17, self.out, ROOT, cpu_seconds=cpu)
+                self.assertEqual({**cases.LIMITS, "cpu_seconds": cpu}, result["identity"]["limits"])
+                self.assertEqual(110, cases.LIMITS["cpu_seconds"])
+                self.assertIsNot(cases.LIMITS, result["identity"]["limits"])
+                observed = [json.loads(line) for line in limits_path.read_text().splitlines()]
+                self.assertEqual([[4, [cpu, cpu]], [4, [cpu, cpu]], [5, [cpu, cpu]]], observed)
+                anchor = cases.sha(self.out / "receipt.json")
+                with mock.patch.object(cases.subprocess, "Popen", side_effect=AssertionError("must not spawn metadata")):
+                    with self.assertRaisesRegex(PlanError, "identity changed"):
+                        cases.execute(self.binary, cases.sha(self.binary), 17, self.out, ROOT,
+                                      anchor, cpu_seconds=3 if cpu == 110 else 110)
+                self.assertEqual(anchor, cases.sha(self.out / "receipt.json"))
+                result = cases.execute(self.binary, cases.sha(self.binary), 17, self.out, ROOT, anchor, cpu_seconds=cpu)
+                self.assertEqual("PASS", result["status"])
+
+    def test_cpu_admission_bounds_and_inherited_hard_refuse_before_output(self):
+        for cpu in (0, 1921, True, 1.5, "3"):
+            with self.subTest(cpu=cpu), mock.patch.object(cases.subprocess, "Popen", side_effect=AssertionError("must not spawn")):
+                with self.assertRaises(PlanError):
+                    cases.execute(self.binary, cases.sha(self.binary), 17, self.out, ROOT, cpu_seconds=cpu)
+                self.assertFalse(self.out.exists())
+        with mock.patch.object(resource, "getrlimit", return_value=(2, 2)):
+            with self.assertRaisesRegex(PlanError, "inherited hard"):
+                cases.execute(self.binary, cases.sha(self.binary), 17, self.out, ROOT, cpu_seconds=3)
+            session = cases.Session(self.binary, 17, self.folder / "direct", None, None, cpu_seconds=3)
+            with self.assertRaisesRegex(PlanError, "inherited hard"):
+                session.run(ROOT)
+        self.assertFalse(self.out.exists())
+        self.assertFalse((self.folder / "direct.stderr").exists())
+        with mock.patch.object(resource, "getrlimit", return_value=(resource.RLIM_INFINITY, resource.RLIM_INFINITY)):
+            self.assertEqual(1, cases.admit_cpu_seconds(1))
+            self.assertEqual(1920, cases.admit_cpu_seconds(1920))
+            result = cases.execute(self.binary, cases.sha(self.binary), 17, self.out, ROOT, cpu_seconds=3)
+        self.assertEqual(3, result["identity"]["limits"]["cpu_seconds"])
+
+    def test_explicit_cpu_cli_is_exact_case_only_and_cannot_retry_interrupted_case(self):
+        self.assertEqual(2, dev_test.main(["--case-cpu-seconds", "3"]))
+        argv = ["--case-binary", str(self.binary), "--case-sha256", cases.sha(self.binary),
+                "--case-seed", "17", "--case-output", str(self.out), "--case-cpu-seconds", "3"]
+        self.assertEqual(2, dev_test.main([*argv, "--optimize", "ReleaseFast"]))
+        self.assertEqual(3, dev_test.main(argv))
+        self.assertEqual(0, dev_test.main([*argv, "--case-resume-digest", cases.sha(self.out / "receipt.json")]))
+        self.out = self.folder / "interrupted-cpu"
+        Path(str(self.config) + ".runs").unlink()
+        self.config.write_text('{"crash":0}')
+        with self.assertRaisesRegex(PlanError, "expected one result"):
+            cases.execute(self.binary, cases.sha(self.binary), 17, self.out, ROOT, cpu_seconds=3)
+        with self.assertRaisesRegex(PlanError, "cannot automatically retry"):
+            cases.execute(self.binary, cases.sha(self.binary), 17, self.out, ROOT,
+                          cases.sha(self.out / "receipt.json"), cpu_seconds=3)
+        self.assertEqual("0\n", Path(str(self.config) + ".runs").read_text())
 
     def test_discovery_failure_retains_native_evidence_before_case_admission(self):
         for key, code in (("query_crash", 7), ("query_signal", -signal.SIGTERM)):

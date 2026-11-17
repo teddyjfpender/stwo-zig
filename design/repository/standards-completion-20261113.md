@@ -20,7 +20,7 @@ them into passes. No remote host or CI run is an implementation prerequisite.
 | Complexity budgets (#370) | 37 measured package contracts, blocking nine-counter ceilings and five explicitly identified hot-function branch-token proxies. Failed budget reports now preserve refusal and measurement errors. | Every increase must have its exact reviewed transaction. Branch-token proxies and selected allocation tests are not blanket runtime, cyclomatic or throughput qualification. |
 | Configuration reduction (#332) | Live RV64 controls reduced from 100 to 59, meeting the below-60 target. Recording now has execution/attempt ownership; final plans use the existing typed fixture output. All 561 other-family names remain registered. | GPU promotion and physical record/replay remain separate unqualified gates. Retained capacity/security controls remain effective; no selector was hidden in JSON or directory-presence policy. |
 | Formal/projection (#328/#358; formal work out of active scope) | Actual local export of all 46 opcode programs passes complete normalized-object comparison. Actual Dword owner projection has independent integer-oracle Debug/ReleaseFast tests. | Seventeen-family exporter exceeded the 1 GiB cap even with the exact direct compiler graph. Actual Sail/Lean bridge/source receipts and descriptor-45 native projection qualification remain open. No generated pin was hand-rebound. |
-| Reproducibility/evidence (#347/#362/#386) | Exact Python/Rust patches, official Zig/Sail archive hashes, installed-tool admission, fixed-seed properties and strict vector owner/path/hash inventory. All required Core+Wire cases now pass both modes:71fields,22FRI,193revision,21wire (transitive overlap). Debug revision uses exhaustive partitions of its unchanged canonical binary; its single-process target remains CPU-limit incomplete. All 568 previous vector hashes preserved; six unlisted files explicitly admitted. | Remaining supported-host execution and two remaining circuit-oracle provenance refusals after byte-identical artifact-owner transfer. Installed version admission does not certify dynamic-library closure or proof correctness. |
+| Reproducibility/evidence (#347/#362/#386) | Exact Python/Rust patches, official Zig/Sail archive hashes, installed-tool admission, fixed-seed properties and strict vector owner/path/hash inventory. Current canonical Core+Wire cases pass both modes:71fields,22FRI,194revision,24wire (transitive overlap). Debug revision uses exhaustive partitions of its unchanged canonical binary; its single-process target remains CPU-limit incomplete. All 568 previous vector hashes preserved; six unlisted files explicitly admitted. | Remaining supported-host execution and two remaining circuit-oracle provenance refusals after byte-identical artifact-owner transfer. Installed version admission does not certify dynamic-library closure or proof correctness. |
 
 ## Evidence interpretation
 
@@ -321,3 +321,18 @@ Debug compilation used4GiB; Blake2s runtime kept maintained1GiB/110CPU/120wall.
 Its original110CPU SIGXCPU interruption stays INCOMPLETE, never relabeled or resumed.
 The4,700 common recorded Zig source identities match; ARM success is not an x86 fix.
 No production code, flags, fixtures, security profile or test body changed.
+
+## Explicit case CPU admission and current properties
+
+[The case runner](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6936534747) accepts
+`--case-cpu-seconds`1..1920; default110,1GiB RSS and120wall stay unchanged.
+The selected per-process limit respects inherited hard limits and binds both
+query/case execution and receipt identity. Changed-budget resume refuses before
+spawning; interrupted epochs cannot retry automatically. No proof control changes.
+All35 focused tests pass locally in5.190s/56.8MB, including real kernel limits.
+Source+86/-10=+76; docs measured below; one toolingCLI, no production/env controls.
+
+[Current property qualification](https://github.com/teddyjfpender/stwo-zig/issues/347#issuecomment-6936580435)
+passes canonical Fields71/FRI22/Revision194/Wire24 in each mode (overlap exists).
+All five original properties pass; Debug revision uses194 exact fresh processes.
+The historical cumulative CPU-limit stop remains incomplete; no Linux/CI claim.
