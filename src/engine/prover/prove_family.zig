@@ -505,7 +505,7 @@ pub fn ForField(comptime Secure: type) type {
                     defer trace.polys.deinitDeep(allocator);
                     var total_constraints: usize = 0;
                     for (components) |component| total_constraints = try std.math.add(usize, total_constraints, component.nConstraints());
-                    const tree = try @import("air/device_composition.zig").evaluateResidentDiagnosed(resident, allocator, random_coeff, composition_log_size, composition_log_split, total_constraints, &trace, scheme.device_admission_failure);
+                    const tree = try @import("air/device_composition.zig").evaluateResidentDiagnosed(resident.*, allocator, random_coeff, composition_log_size, composition_log_split, total_constraints, &trace, scheme.device_admission_failure);
                     scheme.device_om31_composition_tree = tree;
                     MC.mixRoot(channel, tree.root);
                     break :composition_execution;

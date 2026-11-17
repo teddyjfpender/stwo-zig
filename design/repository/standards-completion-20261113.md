@@ -336,3 +336,12 @@ Source+86/-10=+76; docs measured below; one toolingCLI, no production/env contro
 passes canonical Fields71/FRI22/Revision194/Wire24 in each mode (overlap exists).
 All five original properties pass; Debug revision uses194 exact fresh processes.
 The historical cumulative CPU-limit stop remains incomplete; no Linux/CI claim.
+
+## Resident OM31 caller regression
+
+The real CircuitCPU→ProverAPI consumer exposed a pointer/value compile mismatch
+in both modes. The caller now dereferences the borrowed stage descriptor to
+match the existing value-taking helper; context lifetime and ownership stay intact.
+The same original two complete consumer cases pass Debug and ReleaseFast.
+Source+1/-1=0lines (+2characters); documentation+9; no new tests, controls,
+scripts, dependencies, versions or proof/schema changes. Old RED evidence remains.
