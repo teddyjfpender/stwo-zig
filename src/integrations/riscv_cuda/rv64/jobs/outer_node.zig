@@ -23,6 +23,7 @@
 //! Allocation order follows the worker's LIFO arena: long-lived buffers
 //! first, then a stack of transients each freed in reverse order.
 const std = @import("std");
+const AssignmentGraphs = @import("../assignment_graph_cache.zig");
 const Abi = @import("../abi.zig");
 const Prefix = @import("../prefix_plan.zig");
 const Plan = @import("outer_plan.zig");
@@ -123,6 +124,7 @@ pub const Mode = enum {
 };
 
 pub const Node = struct {
+    assignment_graphs: ?*AssignmentGraphs.Cache = null,
     staged: *const St.Staged,
     bases: St.Bases,
     /// Device outer slab section (Plan.Section.words).
@@ -231,7 +233,32 @@ pub const Node = struct {
             job.indices = self.at(img.indices);
             job.index_count = @intCast(asg.indices.len);
         }
-        if (asg.runs.len != 0) {
+        const graph_eligible = asg.runs.len != 0 and asg.needs_device_ends and for (asg.runs) |run| {
+            if (run.kind == .narrow) break false;
+        } else true;
+        var graph_used = false;
+        if (self.assignment_graphs != null and graph_eligible) {
+            const cache = self.assignment_graphs.?;
+            const a = cache.allocator orelse return error.MissingAssignmentGraphAllocator;
+            const sequence = try a.alloc(AssignmentGraphs.Step, asg.runs.len);
+            defer a.free(sequence);
+            for (sequence, asg.runs) |*step, run| step.* = .{ .first = run.first_task, .count = run.task_count, .first_level = run.first_level, .levels = run.level_count, .kind = if (run.kind == .chain) 1 else 0 };
+            job.first = 0;
+            job.count = job.record_count;
+            const replay: ?bool = cache.runDevice(k.assignment_graph_api orelse return error.MissingAssignmentGraphRuntime, device.ctx, K.lane, staged.statics.identity, sequence, &job, self.at(img.chain_ends), asg.ends.len) catch |err| switch (err) {
+                error.AssignmentGraphChargeUnknown, error.GraphBudgetExceeded => blk: {
+                    std.debug.print("GPU_ASSIGNMENT_GRAPH_DIRECT reason={s}\n", .{@errorName(err)});
+                    break :blk null;
+                },
+                else => return err,
+            };
+            graph_used = replay != null;
+            if (graph_used) {
+                device.counters.api += 1;
+                device.counters.graph_launches += 1;
+            }
+        }
+        if (!graph_used and asg.runs.len != 0) {
             for (asg.runs) |run| {
                 job.first = run.first_task;
                 job.count = run.task_count;
@@ -241,7 +268,7 @@ pub const Node = struct {
                     .ordinary => (asg.wide orelse asg.level)(device.ctx, K.lane, &job),
                 });
             }
-        } else {
+        } else if (!graph_used) {
             var begin: usize = 0;
             for (asg.level_ends) |end| {
                 if (end != begin) {

@@ -550,6 +550,7 @@ struct Node { cudaGraphNode_t handle{}; StwoAssignmentGraphStep step{}; };
 struct Graph {
   void* context{}; uint64_t identity{}; uint32_t lane{}, values{}, records{}, indices{}, ends{};
   int flow{};  // circuit_fill::flow_mode() at creation; fixed for the graph's life
+  uint64_t charged_bytes{UINT64_MAX};
   cudaGraph_t graph{}; cudaGraphExec_t exec{}; std::vector<Node> nodes;
   ~Graph() {
     if (exec) (void)cudaGraphExecDestroy(exec);
@@ -619,6 +620,8 @@ extern "C" int stwo_assignment_graph_create_v1(void* ctx, uint32_t lane,
     g->values = j->value_count; g->records = j->record_count; g->indices = j->index_count; g->ends = end_count;
     g->flow = circuit_fill::flow_mode();
     if (g->flow < 0) return int(cudaErrorInvalidValue);
+    size_t before = 0, after = 0, total = 0;
+    if (const auto rc = cudaMemGetInfo(&before, &total)) return int(rc);
     if (const auto rc = cudaGraphCreate(&g->graph, 0)) return int(rc);
     g->nodes.resize(count);
     cudaGraphNode_t previous = nullptr;
@@ -628,6 +631,8 @@ extern "C" int stwo_assignment_graph_create_v1(void* ctx, uint32_t lane,
       previous = g->nodes[i].handle;
     }
     if (const auto rc = cudaGraphInstantiate(&g->exec, g->graph, nullptr, nullptr, 0)) return int(rc);
+    if (const auto rc = cudaMemGetInfo(&after, &total)) return int(rc);
+    g->charged_bytes = before > after ? uint64_t(before - after) : 0;
     *result = g.release();
     return 0;
   } catch (const std::bad_alloc&) { return int(cudaErrorMemoryAllocation); }
@@ -657,5 +662,16 @@ extern "C" int stwo_assignment_graph_destroy_v1(void* ctx, void* handle) {
   if (const int rc = stwo_exec_context_identity(ctx, &identity)) return rc;
   if (g->context != ctx || g->identity != identity) return int(cudaErrorInvalidResourceHandle);
   delete g;
+  return 0;
+}
+
+extern "C" int stwo_assignment_graph_charged_bytes_v1(void* ctx, void* handle, uint64_t* out) {
+  if (!handle || !out) return int(cudaErrorInvalidValue);
+  *out = UINT64_MAX;
+  const auto& g = *static_cast<stwo::cuda::assignment_graph::Graph*>(handle);
+  uint64_t identity = 0;
+  if (const int rc = stwo_exec_context_identity(ctx, &identity)) return rc;
+  if (g.context != ctx || g.identity != identity) return int(cudaErrorInvalidResourceHandle);
+  *out = g.charged_bytes;
   return 0;
 }

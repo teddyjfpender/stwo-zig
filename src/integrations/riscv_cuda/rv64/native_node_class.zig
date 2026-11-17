@@ -29,7 +29,10 @@ pub fn Adapter(comptime Entry: type) type {
             }
             m.job.require_warm = e.resources_warmed;
             m.job.defer_decode = true;
-            if (target.device < e.graphs.len) m.job.graphs = e.graphs[target.device];
+            if (target.device < e.graphs.len) {
+                m.job.graphs = e.graphs[target.device];
+                m.job.assignment_graphs = e.assignment_graphs[target.device];
+            }
             m.enc = try Enc.EncodedNode.initTarget(a, &m.job, sym.encode orelse return error.GnNodeEncoderUnloaded, e.desc, .{ .region = target.region, .pcs_status = target.pcs_status, .encode_status = target.encode_status, .layout_status_oods = target.oods_status });
             if (sym.oods) |s| try m.enc.withOods(s, e.oods_program);
             m.enc.image_tail = true;

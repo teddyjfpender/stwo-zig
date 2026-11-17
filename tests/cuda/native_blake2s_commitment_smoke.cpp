@@ -7,6 +7,7 @@
 #define stwo_blake2s_contiguous_leaf_on stwo_blake2s_contiguous_leaf_plain_on
 #define stwo_blake2s_contiguous_tail_on stwo_blake2s_contiguous_tail_plain_on
 #define stwo_blake2s_layer_on stwo_blake2s_layer_plain_on
+#define stwo_blake2s_merkle_layers_on stwo_blake2s_merkle_layers_plain_on
 #define stwo_blake2s_interior4_on stwo_blake2s_interior4_plain_on
 #define stwo_blake2s_fri_leaf_on stwo_blake2s_fri_leaf_plain_on
 #endif
@@ -94,6 +95,9 @@ extern "C" int stwo_blake2s_mixed_seeded_on(
     std::uint32_t absorbed, std::uint32_t seed_size, const void *seed,
     void *prefix, Hash *result, void *stream);
 
+extern "C" int stwo_blake2s_merkle_layers_on(Hash *, uint32_t, uint64_t, void *);
+extern "C" void stwo_blake2s_m8_merkle_fused_override(int);
+
 namespace {
 
 bool check(int status, const char *operation) {
@@ -162,6 +166,8 @@ bool expect_hash(
     std::fprintf(stderr, " expected words\n");
     return false;
 }
+
+#include "../../src/backends/cuda/testing/native_merkle_layers_test.h"
 
 bool test_pinned_zig_oracles() {
     const auto expect_domain_state = [](
@@ -824,7 +830,7 @@ int main() {
         return 1;
     }
     if (!test_pinned_zig_oracles() || !test_progressive(arena) || !test_mixed(arena) ||
-        !test_merkle_and_fri(arena) ||
+        !test_merkle_and_fri(arena) || !test_merkle_layer_schedules(arena) ||
         !arena.close()) {
         return 1;
     }

@@ -112,6 +112,7 @@ pub const OuterNodeJob = struct {
     tail: ?N.Tail = null,
     /// Per-worker graph cache (the integration layer keeps one per device).
     graphs: ?*Graphs.Cache = null,
+    assignment_graphs: ?*@import("../assignment_graph_cache.zig").Cache = null,
     /// Steps of the device channel snapshotted into the slab (parity only).
     snapshots: bool = false,
     layout: Slab.ProofLayout = .{},
@@ -668,7 +669,7 @@ pub const OuterNodeJob = struct {
             for (&self.report.phase_high_words, heap.phase_high) |*o, v| o.* = v;
         }
         var tail_state = TailState{ .job = self, .e = e, .heap = &heap };
-        var node = N.Node{ .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null, .fixed = self.fixed_commit, .streams = if (self.streams) |*st| st else null };
+        var node = N.Node{ .assignment_graphs = self.assignment_graphs, .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null, .fixed = self.fixed_commit, .streams = if (self.streams) |*st| st else null };
         if (self.whole != null) node.tail = .{ .context = &tail_state, .enqueue = TailState.enqueue };
         var body = Body{ .job = self, .e = e, .device = &device, .node = &node, .saved = e.channel.* };
         if (self.snapshots) {

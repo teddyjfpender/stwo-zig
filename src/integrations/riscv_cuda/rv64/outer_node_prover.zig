@@ -25,6 +25,8 @@ pub const Prover = struct {
     shared: *const Schema.Shared,
     worker: *Worker.Worker,
     graphs: Graphs.Cache,
+    graph_budget: Graphs.Budget = .{},
+    assignment_graphs: @import("assignment_graph_cache.zig").Cache,
     /// Fold class regions in worker-persistent memory (outside the arena).
     /// The hybrid window clears it (see OuterNodeJob.persistent_classes).
     persistent_classes: bool = true,
@@ -65,10 +67,35 @@ pub const Prover = struct {
     }
 
     pub fn init(a: std.mem.Allocator, shared: *const Schema.Shared, worker: *Worker.Worker, policy: Graphs.Policy) Prover {
-        return .{ .shared = shared, .worker = worker, .graphs = Graphs.Cache.init(a, shared.graph_api, policy) };
+        return .{ .shared = shared, .worker = worker, .graphs = Graphs.Cache.init(a, shared.graph_api, policy), .assignment_graphs = .{ .allocator = a } };
     }
     pub fn deinit(self: *Prover) void {
         self.graphs.deinit();
+    }
+    /// Bind borrowed caches by logical worker index, never physical ordinal.
+    pub fn bindInstalled(self: *Prover, entry: *NodeClasses.Entry, device: usize) !void {
+        if (device >= entry.graphs.len) return error.InvalidGraphWorker;
+        if (entry.graphs[device]) |cache| if (cache != &self.graphs) return error.GraphWorkerMismatch;
+        if (entry.assignment_graphs[device]) |cache| if (cache != &self.assignment_graphs) return error.GraphWorkerMismatch;
+        if (self.graphs.budget == null) {
+            try self.graph_budget.reserve(self.graphs.used_bytes);
+            self.graphs.budget = &self.graph_budget;
+            self.assignment_graphs.budget = &self.graph_budget;
+        }
+        entry.graphs[device] = &self.graphs;
+        entry.assignment_graphs[device] = &self.assignment_graphs;
+    }
+    /// Caller has drained requests; destroy executables while context is live.
+    pub fn deinitOnWorker(self: *Prover) !void {
+        const Cleanup = struct {
+            fn run(raw: *anyopaque, worker: *Worker.Worker) anyerror!void {
+                const owner: *Prover = @ptrCast(@alignCast(raw));
+                owner.assignment_graphs.deinitDevice(worker.context);
+                owner.deinit();
+                std.debug.print("GPU_GRAPH_BUDGET device={d} limit_bytes={d} retained_peak_bytes={d} candidate_peak_bytes={d} remaining_bytes={d}\n", .{ worker.device_ordinal, owner.graph_budget.limit, owner.graph_budget.peak, owner.graph_budget.candidate_peak, owner.graph_budget.used });
+            }
+        };
+        try self.worker.call(.{ .ctx = self, .run = Cleanup.run });
     }
 
     const Done = struct {
@@ -130,7 +157,7 @@ pub const Prover = struct {
         // class's captured body (STWO_RV64_M8_OUTER_GRAPH_THRESHOLD=1: from
         // the second node of the class on this GPU).
         const dev = self.worker.device_ordinal;
-        if (dev < entry.graphs.len and entry.graphs[dev] == null) entry.graphs[dev] = &self.graphs;
+        if (dev < entry.graphs.len) try self.bindInstalled(entry, dev);
         var w = try GnJob.init(a, entry, g, region_words[0..nk], self.shared, image, dev);
         // The FIXED coefficients the node just used (the lane's precommit
         // handoff region): in the hybrid window a second class-persistent
@@ -336,6 +363,7 @@ pub const NodeClasses = struct {
         /// GPU; set by the binder). With it every node of the class replays
         /// the class's captured body graph (rebinding only node buffers).
         graphs: [OuterDevice.max_graph_devices]?*Graphs.Cache = @splat(null),
+        assignment_graphs: [OuterDevice.max_graph_devices]?*@import("assignment_graph_cache.zig").Cache = @splat(null),
         /// The seed program for children regions of `region_words` words
         /// each (1 + the child class's encoded capacity), image at the end.
         /// Same encoder + seed wrappers as the actual request adapter.
@@ -725,4 +753,48 @@ test "installed recursion cache distinguishes bindings of the same verifier body
     try t.expect(NodeClasses.find(&entries, first.class_key) == &first);
     try t.expect(NodeClasses.find(&entries, NodeClasses.bindingKey(body, @splat(3))) == null);
     try t.expectEqual(first.class_key, NodeClasses.bindingKey(body, @splat(1)));
+}
+
+test "installed graph owners share within one worker and destroy before their live contexts" {
+    const F = @import("jobs/fake.zig");
+    const State = struct {
+        var expected_thread: std.Thread.Id = 0;
+        var destroyed: usize = 0;
+        var wrong_thread: bool = false;
+        fn destroy(_: *anyopaque) callconv(.c) void {
+            wrong_thread = wrong_thread or std.Thread.getCurrentId() != expected_thread;
+            destroyed += 1;
+        }
+    };
+    F.reset();
+    State.destroyed = 0;
+    State.wrong_thread = false;
+    const a = std.testing.allocator;
+    const w0 = try Worker.Worker.create(a, &F.ops, .{ .device = 3, .arena_words = 4096, .pinned_slot_words = 64, .plan_from_env = false });
+    defer w0.destroy();
+    const w1 = try Worker.Worker.create(a, &F.ops, .{ .device = 7, .arena_words = 4096, .pinned_slot_words = 64, .plan_from_env = false });
+    defer w1.destroy();
+    var shared: Schema.Shared = undefined;
+    shared.graph_api.destroy_exec = State.destroy;
+    var p0 = Prover.init(a, &shared, w0, .{});
+    var p1 = Prover.init(a, &shared, w1, .{});
+    var e0: NodeClasses.Entry = undefined;
+    var e1: NodeClasses.Entry = undefined;
+    e0.graphs = @splat(null);
+    e1.graphs = @splat(null);
+    e0.assignment_graphs = @splat(null);
+    e1.assignment_graphs = @splat(null);
+    try p0.bindInstalled(&e0, 0);
+    try p0.bindInstalled(&e1, 0);
+    try p1.bindInstalled(&e0, 1);
+    try std.testing.expectError(error.GraphWorkerMismatch, p1.bindInstalled(&e0, 0));
+    try std.testing.expectError(error.InvalidGraphWorker, p0.bindInstalled(&e1, e1.graphs.len));
+    try std.testing.expect(e0.graphs[0] == e1.graphs[0] and e0.graphs[0] != e0.graphs[1]);
+    try std.testing.expect(e0.assignment_graphs[0] == e1.assignment_graphs[0] and e0.assignment_graphs[0] != e0.assignment_graphs[1]);
+    try p0.graphs.entries.put(a, .{ .class = @splat(1), .placement = 0 }, .{ .exec = @ptrFromInt(64), .bytes = 0, .kernel_nodes = 0, .total_nodes = 0, .last_use = 0, .request = 0 });
+    State.expected_thread = w0.thread_id;
+    try p0.deinitOnWorker();
+    try p1.deinitOnWorker();
+    try std.testing.expectEqual(@as(usize, 1), State.destroyed);
+    try std.testing.expect(!State.wrong_thread);
 }

@@ -17,6 +17,29 @@
 //! re-runnable (outer_job.zig resets its node-local allocations).
 const std = @import("std");
 
+/// One worker's measured retained metadata, shared by both graph caches.
+pub const Budget = struct {
+    limit: u64 = 256 << 20,
+    used: u64 = 0,
+    peak: u64 = 0,
+    candidate_peak: u64 = 0,
+    pub fn fits(self: *const Budget, bytes: u64) bool {
+        return bytes <= self.limit and self.used <= self.limit - bytes;
+    }
+    pub fn reserve(self: *Budget, bytes: u64) error{GraphBudgetExceeded}!void {
+        if (!self.fits(bytes)) return error.GraphBudgetExceeded;
+        self.used += bytes;
+        self.peak = @max(self.peak, self.used);
+    }
+    pub fn release(self: *Budget, bytes: u64) void {
+        std.debug.assert(bytes <= self.used);
+        self.used -= bytes;
+    }
+    pub fn observeCandidate(self: *Budget, bytes: u64) void {
+        self.candidate_peak = @max(self.candidate_peak, self.used +| bytes);
+    }
+};
+
 pub const Api = struct {
     begin: *const fn (*anyopaque) callconv(.c) c_int,
     end: *const fn (*anyopaque, *?*anyopaque) callconv(.c) c_int,
@@ -87,6 +110,7 @@ pub const Cache = struct {
     /// Key -> request it was banned in (aged out like the entries).
     blacklist: std.AutoHashMapUnmanaged(Key, u64) = .empty,
     used_bytes: u64 = 0,
+    budget: ?*Budget = null,
     disabled: bool = false,
     /// Launch clock (LRU order) and the request generation the worker thread
     /// last saw; `noteRequest` (any thread) advances `request_signal`.
@@ -101,11 +125,18 @@ pub const Cache = struct {
     }
     pub fn deinit(self: *Cache) void {
         var it = self.entries.valueIterator();
-        while (it.next()) |entry| self.api.destroy_exec(entry.exec);
+        while (it.next()) |entry| {
+            self.api.destroy_exec(entry.exec);
+            self.releaseCharge(entry.bytes);
+        }
         self.entries.deinit(self.allocator);
         self.sightings.deinit(self.allocator);
         self.blacklist.deinit(self.allocator);
         self.* = undefined;
+    }
+    fn releaseCharge(self: *Cache, bytes: u64) void {
+        self.used_bytes -= bytes;
+        if (self.budget) |budget| budget.release(bytes);
     }
     /// A new request begins (any thread; the worker thread ages on its next run).
     pub fn noteRequest(self: *Cache) void {
@@ -134,7 +165,7 @@ pub const Cache = struct {
         for (keys.items) |key| {
             const old = self.entries.fetchRemove(key).?;
             self.api.destroy_exec(old.value.exec);
-            self.used_bytes -= old.value.bytes;
+            self.releaseCharge(old.value.bytes);
             self.aged += 1;
         }
         keys.clearRetainingCapacity();
@@ -154,7 +185,7 @@ pub const Cache = struct {
         std.log.warn("OUTER_GRAPH blacklist class={x} placement={d} reason={s}", .{ key.class[0..8], key.placement, why });
         if (self.entries.fetchRemove(key)) |old| {
             self.api.destroy_exec(old.value.exec);
-            self.used_bytes -= old.value.bytes;
+            self.releaseCharge(old.value.bytes);
         }
         self.blacklist.put(self.allocator, key, self.request) catch {};
     }
@@ -170,7 +201,7 @@ pub const Cache = struct {
     }
     /// Evict least recently launched executables until `bytes` more fit.
     fn makeRoom(self: *Cache, bytes: u64) void {
-        while (self.used_bytes + bytes > self.policy.budget_bytes) {
+        while (self.used_bytes + bytes > self.policy.budget_bytes or (if (self.budget) |budget| !budget.fits(bytes) else false)) {
             var victim: ?Key = null;
             var oldest: u64 = std.math.maxInt(u64);
             var it = self.entries.iterator();
@@ -181,7 +212,7 @@ pub const Cache = struct {
             const v = victim orelse return;
             const old = self.entries.fetchRemove(v).?;
             self.api.destroy_exec(old.value.exec);
-            self.used_bytes -= old.value.bytes;
+            self.releaseCharge(old.value.bytes);
             self.evictions += 1;
         }
     }
@@ -219,8 +250,7 @@ pub const Cache = struct {
             if (self.api.update(entry.exec, graph.?, &updated) == 0 and updated == 1) {
                 if (self.api.launch(entry.exec, stream) != 0) {
                     self.ban(key, "launch");
-                    body.reset();
-                    return .{ .outcome = .fallback, .launches = recorded +| 1 +| try body.enqueue(), .recording_launches = recorded };
+                    return error.OuterGraphLaunchFailed;
                 }
                 entry.last_use = self.tick;
                 entry.request = self.request;
@@ -228,17 +258,19 @@ pub const Cache = struct {
             }
             // Topology changed: drop the old executable and instantiate anew.
             self.api.destroy_exec(entry.exec);
-            self.used_bytes -= entry.bytes;
+            self.releaseCharge(entry.bytes);
             _ = self.entries.remove(key);
             outcome = .reinstantiated;
         }
         var exec: ?*anyopaque = null;
         var charged: u64 = 0;
+        try self.entries.ensureUnusedCapacity(self.allocator, 1);
         if (self.api.instantiate(graph.?, &exec, &charged) != 0 or exec == null) {
             self.ban(key, "instantiate");
             body.reset();
             return .{ .outcome = .fallback, .launches = recorded +| try body.enqueue(), .recording_launches = recorded };
         }
+        if (self.budget) |budget| budget.observeCandidate(charged);
         if (charged == std.math.maxInt(u64) or charged > self.policy.budget_bytes) {
             // Unknown cost, or one executable larger than the whole budget:
             // never kept, this key runs direct (until its ban ages out).
@@ -248,13 +280,19 @@ pub const Cache = struct {
             return .{ .outcome = .fallback, .launches = recorded +| try body.enqueue(), .recording_launches = recorded };
         }
         self.makeRoom(charged);
+        if (self.budget) |budget| budget.reserve(charged) catch {
+            self.api.destroy_exec(exec.?);
+            self.ban(key, "shared-budget");
+            body.reset();
+            return .{ .outcome = .fallback, .launches = recorded +| try body.enqueue(), .recording_launches = recorded };
+        };
         if (self.api.launch(exec.?, stream) != 0) {
+            if (self.budget) |budget| budget.release(charged);
             self.api.destroy_exec(exec.?);
             self.ban(key, "first-launch");
-            body.reset();
-            return .{ .outcome = .fallback, .launches = recorded +| 1 +| try body.enqueue(), .recording_launches = recorded };
+            return error.OuterGraphLaunchFailed;
         }
-        try self.entries.put(self.allocator, key, .{ .exec = exec.?, .bytes = charged, .kernel_nodes = kernels, .total_nodes = total, .last_use = self.tick, .request = self.request });
+        self.entries.putAssumeCapacity(key, .{ .exec = exec.?, .bytes = charged, .kernel_nodes = kernels, .total_nodes = total, .last_use = self.tick, .request = self.request });
         self.used_bytes += charged;
         return .{ .outcome = outcome, .kernel_nodes = kernels, .total_nodes = total, .launches = recorded +| 1, .recording_launches = recorded };
     }
@@ -269,6 +307,7 @@ const FakeCuda = struct {
     var graphs_live: i32 = 0;
     var execs_live: i32 = 0;
     var fail_end = false;
+    var fail_launch = false;
     var refuse_update = false;
     var charge: u64 = 1 << 20;
     var token: u8 = 0;
@@ -298,7 +337,7 @@ const FakeCuda = struct {
     }
     fn launch(_: *anyopaque, _: *anyopaque) callconv(.c) c_int {
         executed += 1;
-        return 0;
+        return if (fail_launch) 1 else 0;
     }
     fn nodes(_: *anyopaque, k: *u64, t: *u64) callconv(.c) c_int {
         k.* = 150;
@@ -392,6 +431,44 @@ test "graph cache: over budget evicts the least recently launched executable; ne
     try testing.expectEqual(@as(i32, 3), FakeCuda.execs_live);
 }
 
+test "graph cache: shared metadata budget evicts only owned executables and releases every charge" {
+    FakeCuda.execs_live = 0;
+    FakeCuda.graphs_live = 0;
+    FakeCuda.charge = 1 << 20;
+    var budget = Budget{ .limit = 2 << 20 };
+    try budget.reserve(1 << 20); // The assignment cache owns this charge.
+    {
+        var cache = Cache.init(testing.allocator, FakeCuda.api, .{ .threshold = 1, .budget_bytes = 2 << 20 });
+        cache.budget = &budget;
+        defer cache.deinit();
+        var body = Body{};
+        var stream: u8 = 0;
+        for (0..2) |i| _ = try cache.run(.{ .class = @splat(@intCast(i)), .placement = 0 }, &stream, &body);
+        try testing.expectEqual(@as(usize, 1), cache.entries.count());
+        try testing.expectEqual(@as(u64, 1), cache.evictions);
+        try testing.expectEqual(@as(u64, 2 << 20), budget.used);
+        try testing.expectEqual(@as(u64, 2 << 20), budget.peak);
+        try testing.expectEqual(@as(u64, 3 << 20), budget.candidate_peak);
+        try testing.expectError(error.GraphBudgetExceeded, budget.reserve(1));
+    }
+    try testing.expectEqual(@as(i32, 0), FakeCuda.execs_live);
+    try testing.expectEqual(@as(u64, 1 << 20), budget.used);
+    try budget.reserve(1 << 20);
+    {
+        var cache = Cache.init(testing.allocator, FakeCuda.api, .{ .threshold = 1 });
+        cache.budget = &budget;
+        defer cache.deinit();
+        var body = Body{};
+        var stream: u8 = 0;
+        try testing.expectEqual(Outcome.fallback, (try cache.run(.{ .class = @splat(9), .placement = 0 }, &stream, &body)).outcome);
+        try testing.expectEqual(@as(usize, 0), cache.entries.count());
+        try testing.expectEqual(@as(i32, 0), FakeCuda.execs_live);
+    }
+    budget.release(1 << 20);
+    budget.release(1 << 20);
+    try testing.expectEqual(@as(u64, 0), budget.used);
+}
+
 test "graph cache: executables, sightings and bans idle for more than idle_requests requests age out" {
     FakeCuda.execs_live = 0;
     FakeCuda.graphs_live = 0;
@@ -421,4 +498,27 @@ test "graph cache: executables, sightings and bans idle for more than idle_reque
     try testing.expectEqual(@as(i32, 1), FakeCuda.execs_live);
     // An aged-out ban captures again.
     try testing.expectEqual(Outcome.captured, (try cache.run(banned, &stream, &body)).outcome);
+}
+
+test "graph cache: failed launch never replays a possibly mutated body" {
+    FakeCuda.charge = 1 << 20;
+    defer FakeCuda.fail_launch = false;
+    for ([_]bool{ false, true }) |rebound| {
+        var budget = Budget{};
+        var cache = Cache.init(testing.allocator, FakeCuda.api, .{ .threshold = 1 });
+        cache.budget = &budget;
+        defer cache.deinit();
+        var body = Body{};
+        var stream: u8 = 0;
+        const key = Key{ .class = @splat(23), .placement = 0 };
+        FakeCuda.fail_launch = false;
+        if (rebound) _ = try cache.run(key, &stream, &body);
+        const before = FakeCuda.executed;
+        FakeCuda.fail_launch = true;
+        try testing.expectError(error.OuterGraphLaunchFailed, cache.run(key, &stream, &body));
+        try testing.expectEqual(before + 1, FakeCuda.executed);
+        try testing.expectEqual(@as(u32, 0), body.resets);
+        try testing.expectEqual(@as(usize, 0), cache.entries.count());
+        try testing.expectEqual(@as(u64, 0), budget.used);
+    }
 }

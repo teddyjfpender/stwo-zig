@@ -1446,6 +1446,13 @@
       "flags_added_budget": 5,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Delegated issue387 decisions6948185162 and6950055846: import271/272 canonical-empty/query-domain physical guards and capture regressions,299 FRI short-round packing parity/rejection, restore product GPU CLI owners, select actual1/2/4GPU resources, and repair outer allocation accounting/custody. The additional allowance is exclusively for a conservative descriptor-derived PCS allocation bound, compact-state capability admission and preservation of borrowed setup during native-to-recursion retirement. Zero new runtime environment flags or launchers, unchanged valid proof protocol/goldens, physical ceilings and file limits. Exact measured package increases require separate records. GPU timing/promotion and complete corpus acceptance remain separately gated. Revert the bounded implementation and its budget records together on rollback. User-selected RTX6000 capacity experiment6951689133/6951833095 admits explicit device capacities through the existing planner; default28GiB and28e9 physical guard are unchanged, and one existing-harness capacity CLI option is added. Bounded slab-owner amendment6952157513/6952453620 replaces fixed output reservation with the shared RequestLayout over immutable admitted class rosters, preserving request rejection and allocation ownership. User-requested fifteen-block RTX capacity cohort6953629164 extends existing bench/stack/metrics owners with explicit GPU count, capacity and candidate preset, immutable resume identity, mandatory pinned observer and actual-device profiling denominators. Default promotion and 5090 fit remain gated."
+    },
+    {
+      "id": "ethereum_gpu_launch_reduction_389",
+      "net_code_budget": 450,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Delegated owner decision389#6960612913 with6959832334/6959997296/6960174394: one per-worker graph owner, typed live-context teardown, shared measured retained ledger256MiB plus explicit candidate256MiB reservation within unchanged physical capacity, active assignment replay and existing GKR fusion, canonical Merkle mode with real layer/fused dispatch. New private cache and physical-test header have actual provider ownership. Exact package growth and two additive provider version facts are recorded separately; no new flags, scripts, dependencies, root exports or proof/security changes. Host/fake evidence and measured CUDA-internal/concurrent-allocation limitations do not establish hardware timing or a strict transient allocation bound. Rollback implementation, versions and exact ceilings together; default promotion remains gated."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
@@ -3349,6 +3356,87 @@
         "versioned_files": 350
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/387#issuecomment-6956183957"
+    },
+    {
+      "package": "stwo_cuda_backend",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 404,
+        "code_lines": 94644,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 3,
+        "rv64_registry_flags": 6,
+        "versioned_files": 424
+      },
+      "after": {
+        "code_files": 405,
+        "code_lines": 94652,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 3,
+        "rv64_registry_flags": 6,
+        "versioned_files": 425
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/389#issuecomment-6960612913"
+    },
+    {
+      "package": "stwo_riscv_cuda_integration",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 345,
+        "code_lines": 80276,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 350
+      },
+      "after": {
+        "code_files": 346,
+        "code_lines": 81176,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 351
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/389#issuecomment-6960612913"
+    },
+    {
+      "package": "stwo_ethereum_statement",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 427,
+        "code_lines": 76238,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 6,
+        "dependencies": 20,
+        "rv64_registry_flags": 21,
+        "versioned_files": 430
+      },
+      "after": {
+        "code_files": 427,
+        "code_lines": 76284,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 6,
+        "dependencies": 20,
+        "rv64_registry_flags": 21,
+        "versioned_files": 430
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/389#issuecomment-6960612913"
     }
   ]
 }

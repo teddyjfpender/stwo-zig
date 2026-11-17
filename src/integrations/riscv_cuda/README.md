@@ -8,7 +8,7 @@ evidence into one content-addressed receipt.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.2.0` |
+| Version | `0.3.0` |
 | Layer | `integration` |
 | Owner | `riscv-cuda-integration` |
 | Public Zig module | `stwo_riscv_cuda_integration` |
@@ -82,7 +82,7 @@ The focused tests are host-independent and do not require CUDA, Metal, or
 CuMetal libraries:
 
 ```sh
-zig build test --build-file src/integrations/riscv_cuda/build.zig -Doptimize=ReleaseFast -j2
+zig build test test-rv64-jobs-node --build-file src/integrations/riscv_cuda/build.zig -Doptimize=ReleaseFast -j2
 ```
 
 There is intentionally no runnable `stwo-riscv-cuda` product yet. The product

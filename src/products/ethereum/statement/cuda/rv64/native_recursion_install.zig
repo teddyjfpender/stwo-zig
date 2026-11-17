@@ -55,6 +55,7 @@ pub const Owner = struct {
     blocks: std.AutoHashMapUnmanaged(u64, Block) = .empty,
     classes: std.AutoHashMapUnmanaged(G.ClassKey, *Outer.NodeClasses.Entry) = .empty,
     twiddle_owner: std.AutoHashMapUnmanaged(G.ClassKey, G.ClassKey) = .empty,
+    execution: [G.max_devices]?Outer.Prover = @splat(null),
     const Block = struct { nodes: []*Outer.NodeClasses.Entry, stage_one: []u8, leaves: []Leaf = &.{}, coefficient_counts: [][]u32 = &.{}, leaf_keys: []G.ClassKey = &.{}, native_count: u32 = 0 };
 
     pub fn init(a: std.mem.Allocator, libs: *O.Libraries, library: []const u8, manifest_path: []const u8, spool: []const u8) !*Owner {
@@ -119,6 +120,7 @@ pub const Owner = struct {
                     entry.shared = &self.shared;
                     entry.runtime_symbols = .{ .kernels = &self.shared.kernels, .whole = self.shared.whole(), .encode = self.shared.encode, .oods = self.shared.oods, .compressed = self.shared.compressed };
                     entry.graphs = @splat(null);
+                    entry.assignment_graphs = @splat(null);
                     if (std.posix.getenv("STWO_RV64_M9_CLASS_PACKED_INGRESS")) |flag| if (std.mem.eql(u8, flag, "1")) {
                         const before = entry.staged.image.words[@intFromEnum(St.Region.twiddles)];
                         try entry.staged.shareTwiddleTower();
@@ -155,6 +157,15 @@ pub const Owner = struct {
         return self;
     }
     fn deinitContents(self: *Owner) void {
+        var classes = self.classes.valueIterator();
+        while (classes.next()) |entry| {
+            entry.*.graphs = @splat(null);
+            entry.*.assignment_graphs = @splat(null);
+        }
+        for (&self.execution) |*slot| if (slot.*) |*prover| {
+            prover.deinitOnWorker() catch |err| std.log.err("recursion graph teardown: {s}", .{@errorName(err)});
+            slot.* = null;
+        };
         var it = self.blocks.valueIterator();
         while (it.next()) |b| {
             self.a.free(b.nodes);
@@ -274,11 +285,18 @@ pub const Owner = struct {
     /// become persistent on each worker. Only the immutable FIXED commitment
     /// executes; no warm proof assignment or output is used as a request input.
     pub fn warm(self: *Owner, workers: []const *W.Worker) !void {
+        if (workers.len > self.execution.len) return error.InvalidGraphWorker;
+        for (workers, 0..) |worker, i| {
+            if (self.execution[i]) |*prover| {
+                if (prover.worker != worker) return error.GraphWorkerMismatch;
+            } else self.execution[i] = Outer.Prover.init(self.a, &self.shared, worker, .{});
+        }
         var it = self.classes.valueIterator();
         while (it.next()) |item| {
             const entry = item.*;
             if (entry.program.len == 0) return error.GpuNativeRecursionInstallTopology;
             for (workers, 0..) |worker, device| {
+                try self.execution[device].?.bindInstalled(entry, device);
                 var warm_job = try Warm.init(self, entry, @intCast(device));
                 defer warm_job.deinit();
                 var done = struct {

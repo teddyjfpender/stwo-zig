@@ -3,6 +3,7 @@
 //! Every symbol here is an existing `*_on` kernel or exec-context async op;
 //! none synchronizes, allocates, downloads or touches a lease.
 const std = @import("std");
+const AssignmentGraphs = @import("../assignment_graph_cache.zig");
 const Abi = @import("../abi.zig");
 const Base = @import("stwo_cuda_backend").abi.stages.circuit_base;
 const Transform = @import("stwo_cuda_backend").abi.stages.transform;
@@ -41,6 +42,7 @@ pub const Powers = *const fn (*anyopaque, u32, [*]const u32, u64, u32, [*]u32, [
 pub const MixedSeeded = *const fn (u32, u32, [*]const Abi.MixedSegment, u32, u32, ?*const anyopaque, ?*anyopaque, ?*anyopaque, *anyopaque) callconv(.c) c_int;
 pub const MixedCompact = *const fn (u32, u32, [*]const Abi.MixedSegment, u32, u32, ?*const anyopaque, u64, ?*anyopaque, u64, ?*anyopaque, u64, *anyopaque) callconv(.c) c_int;
 pub const Layer = *const fn (*const anyopaque, u32, *anyopaque, *anyopaque) callconv(.c) c_int;
+pub const Layers = *const fn (*anyopaque, u32, u64, *anyopaque) callconv(.c) c_int;
 
 /// The exec stream is lane 0 of the worker's exec context. Every outer
 /// operation is ordered on it: one stream, no cross-lane joins.
@@ -74,9 +76,11 @@ pub const Kernels = struct {
     mixed_seeded: ?MixedSeeded = null,
     mixed_compact: ?MixedCompact = null,
     layer: ?Layer = null,
+    layers: ?Layers = null,
     /// Compact banks require the image's explicit capability and matching
     /// numerical entry; a claimed but incomplete image fails closed.
     compact_eager: bool = false,
+    assignment_graph_api: ?AssignmentGraphs.Api = null,
 
     fn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
         return lib.lookup(T, name) orelse {
@@ -91,6 +95,7 @@ pub const Kernels = struct {
             .memset = try sym(Memset, base, "stwo_exec_context_memset_async"),
             .h2d = try sym(Copy, base, "stwo_exec_context_memcpy_h2d_async"),
             .d2d = try sym(Copy, base, "stwo_exec_context_memcpy_d2d_async"),
+            .assignment_graph_api = try AssignmentGraphs.Api.load(base),
             .seed = try sym(Launch, base, "stwo_circuit_assignment_seed_on"),
             .level = try sym(Launch, base, "stwo_circuit_assignment_level_on"),
             .wide = base.lookup(Launch, "stwo_circuit_assignment_wide_level_on"),
@@ -114,6 +119,7 @@ pub const Kernels = struct {
             .mixed_seeded = base.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_eager_on") orelse base.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_on"),
             .mixed_compact = base.lookup(MixedCompact, "stwo_blake2s_mixed_seeded_eager_compact_on"),
             .layer = base.lookup(Layer, "stwo_blake2s_layer_on"),
+            .layers = base.lookup(Layers, "stwo_blake2s_merkle_layers_on"),
             .compact_eager = try compactEager(base),
         };
     }
