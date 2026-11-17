@@ -13,12 +13,12 @@
 This package is the product-neutral RV64 block pipeline: capture one guest
 execution, plan its CPU and service proofs, prove them natively on the CPU and
 receive the bundle with a fresh receiver that derives its own source keys and
-FIXED roots. A second RV64 product line (OP Stack) needs this pipeline, and a
-product may not import another product, so the native subset of the first
-RV64 product's private word16 block pipeline is copied here with every product
+FIXED roots. A second RV64 product line needs this pipeline, and a product
+may not import another product, so the native subset of the first RV64
+product's private word16 block pipeline is copied here with every product
 name removed. That product keeps its private copy until a separate,
-owner-approved migration proves byte identity (RFC-1, exception E-1 in
-`design/opstack/integration.md`).
+owner-approved migration proves byte identity (RFC-1, exception E-1, issue
+#390).
 
 Products plug in through a comptime hooks contract. The hooks decide which
 guest, input and output a proof binds. They never choose transcript order, AIR
