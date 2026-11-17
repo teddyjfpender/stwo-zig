@@ -23,8 +23,8 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # The workspace validator's edge count. A change here means a real dependency
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
-EXPECTED_PACKAGES = 37
-EXPECTED_EDGES = 190
+EXPECTED_PACKAGES = 39
+EXPECTED_EDGES = 200
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
@@ -173,7 +173,7 @@ class RepositoryGraphTest(unittest.TestCase):
 
     def test_every_package_has_its_lane_and_frontend_has_releasefast_companion(self) -> None:
         bound = sorted(self.bindings.values())
-        self.assertEqual(bound, sorted([*self.packages, "stwo_ethereum_statement", "stwo_riscv_frontend", "stwo_riscv_frontend", "stwo_riscv_frontend", "stwo_riscv_rv64"]))
+        self.assertEqual(bound, sorted([*self.packages, "stwo_ethereum_statement", "stwo_opstack_statement", "stwo_riscv_frontend", "stwo_riscv_frontend", "stwo_riscv_frontend", "stwo_riscv_rv64"]))
 
     def test_core_change_selects_every_dependent_package_lane(self) -> None:
         lanes, _ = graph.selection(["src/waist/core/fields/m31.zig"], self.packages, self.bindings)
@@ -188,6 +188,7 @@ class RepositoryGraphTest(unittest.TestCase):
         self.assertEqual(lanes, frozenset({
             "artifact_store", "metal_session", "cairo_metal_integration", "ethereum_statement", "ethereum_statement_releasefast",
             "riscv_cpu_integration", "riscv_cuda_integration", "riscv_metal_integration", "circuit_metal_integration",
+            "riscv_rv64_pipeline", "opstack_statement", "opstack_statement_releasefast",
         }))
         self.assertEqual(unowned, frozenset())
 
@@ -210,6 +211,9 @@ class RepositoryGraphTest(unittest.TestCase):
                     "riscv_metal_integration",
                     "circuit_cpu_integration",
                     "circuit_metal_integration",
+                    "riscv_rv64_pipeline",
+                    "opstack_statement",
+                    "opstack_statement_releasefast",
                 }
             ),
         )
@@ -230,6 +234,9 @@ class RepositoryGraphTest(unittest.TestCase):
                 "riscv_cpu_integration",
                 "riscv_cuda_integration",
                 "riscv_metal_integration",
+                "riscv_rv64_pipeline",
+                "opstack_statement",
+                "opstack_statement_releasefast",
             }),
         )
 
