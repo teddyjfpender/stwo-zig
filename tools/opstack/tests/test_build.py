@@ -6,7 +6,7 @@ import subprocess
 import sys
 import unittest
 
-from opstack.build import bulk_environment, execution_requirements, LEAN_VARIANTS
+from opstack.build import BULK_ENV_PREFIX, bulk_environment, execution_requirements, LEAN_VARIANTS
 
 
 class BuildEnvironment(unittest.TestCase):
@@ -25,16 +25,16 @@ class BuildEnvironment(unittest.TestCase):
         env, thresholds = bulk_environment(
             {
                 "PATH": "test",
-                "STWO_ADMITTED_COPY_MIN": "0",
-                "STWO_ADMITTED_EXTRA": "bad",
+                BULK_ENV_PREFIX + "COPY_MIN": "0",
+                BULK_ENV_PREFIX + "EXTRA": "bad",
             }
         )
         self.assertEqual(
             thresholds, {"COPY": "16", "UCOPY": "16", "SET": "16", "CMP": "8"}
         )
         self.assertEqual(env["PATH"], "test")
-        self.assertNotIn("STWO_ADMITTED_EXTRA", env)
-        self.assertEqual(env["STWO_ADMITTED_COPY_MIN"], "16")
+        self.assertNotIn(BULK_ENV_PREFIX + "EXTRA", env)
+        self.assertEqual(env[BULK_ENV_PREFIX + "COPY_MIN"], "16")
         for value in ["8", "1048576", "off"]:
             _, thresholds = bulk_environment({}, value)
             self.assertEqual(set(thresholds.values()), {value})
