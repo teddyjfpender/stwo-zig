@@ -1,0 +1,22 @@
+{
+  "repository": "https://github.com/ethereum-optimism/optimism",
+  "commit": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+  "path": "rust/kona/crates/protocol/protocol",
+  "crate": "kona-protocol 0.4.5",
+  "upstream_files": null,
+  "upstream_files_note": "PR #372 did not record per-file upstream identities; the original manifest is retained as Cargo.toml.upstream. third_party/INVENTORY.json pins the vendored bytes.",
+  "changes": "standalone manifest; opt-in stwo-lazy-brotli-alloc and native-only stwo-brotli-census features (STWO-PATCHES.md); defaults unchanged",
+  "added_files": [
+    "Cargo.toml.upstream",
+    "STWO-PATCHES.md",
+    "src/brotli_alloc.rs",
+    "src/brotli_census.rs",
+    "UPSTREAM.json"
+  ],
+  "modified_files": [
+    "Cargo.toml",
+    "src/lib.rs",
+    "src/brotli.rs"
+  ],
+  "source": "PR #372 opstack/kona/vendor/kona-protocol @ 089bc2437"
+}
