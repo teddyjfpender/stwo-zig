@@ -40,7 +40,8 @@ pub const B2n = *const fn ([*]const u32, usize, [*]u32, usize, u32, u32, [*]cons
 pub const N2bColumns = *const fn ([*]const u32, usize, [*]const u32, [*]u32, usize, u32, u32, [*]const u32, u32, u32, *anyopaque, *u32) callconv(.c) c_int;
 pub const Tree = *const fn (*anyopaque, u32, [*]const MixedSegment, u32, u32, [*]u32, u64) callconv(.c) c_int;
 pub const PrefixWorkspace = *const fn ([*]const MixedSegment, u32, *u64) callconv(.c) c_int;
-pub const CopyD2d = *const fn (*anyopaque, *anyopaque, *const anyopaque, usize) callconv(.c) c_int;
+const Copies = @import("column_copy_runs.zig");
+pub const CopyD2d = Copies.Copy;
 /// Descriptor-addressed LDE (rv64/trace_commit.zig `n2b`, the beta >= 2 path).
 pub const N2bAddressed = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
 pub const Symbols = struct {
@@ -50,6 +51,7 @@ pub const Symbols = struct {
     tree: Tree,
     prefix_workspace: ?PrefixWorkspace,
     copy_d2d: CopyD2d,
+    validate_allocation: ?Copies.Validate = null,
     pub fn load(base: *std.DynLib) !Symbols {
         return .{
             .b2n = base.lookup(B2n, "stwo_ntt_b2n_columns_compact_on") orelse return error.MissingTraceCommitSymbol,
@@ -57,6 +59,7 @@ pub const Symbols = struct {
             .tree = base.lookup(Tree, "stwo_rv64_trace_tree_on") orelse return error.MissingTraceCommitSymbol,
             .prefix_workspace = base.lookup(PrefixWorkspace, "stwo_rv64_trace_prefix_workspace_words"),
             .copy_d2d = base.lookup(CopyD2d, "stwo_exec_context_memcpy_d2d_async") orelse return error.MissingTraceCommitSymbol,
+            .validate_allocation = base.lookup(Copies.Validate, "stwo_exec_context_validate_allocation"),
             .n2b_addressed = base.lookup(N2bAddressed, "stwo_lde_n2b_addressed_on"),
         };
     }
@@ -284,11 +287,13 @@ pub const CommitPlan = struct {
     }
     fn ingressAndInterpolate(self: *const CommitPlan, sym: Symbols, ctx: *anyopaque, stream: *anyopaque, inputs: []const Input, coefficients: api.DeviceBuffer) !void {
         const tw = self.twiddles orelse return error.TraceCommitNotStaged;
+        var copies = Copies.Runs{ .ctx = ctx, .copy = sym.copy_d2d, .validate = sym.validate_allocation };
         for (self.order) |original| {
             const count = @as(usize, 1) << @intCast(self.shapes[original].log_size);
             const source: [*]const u32 = if (inputs[original].device) |d| d else (self.host_staged orelse return error.TraceCommitNotStaged).ptr + self.host_offsets[original];
-            try check(sym.copy_d2d(ctx, coefficients.ptr + self.offsets[original], source, count * 4));
+            try copies.push(coefficients.ptr + self.offsets[original], source, count);
         }
+        try copies.finish();
         var launches: u32 = 0;
         const inv = tw.ptr + self.tw.twiddles.len;
         var first: usize = 0;
@@ -338,11 +343,13 @@ pub const CommitPlan = struct {
         const tw = self.twiddles orelse return error.TraceCommitNotStaged;
         const logs = self.logs_device orelse return error.TraceCommitNotStaged;
         // Ingress in sorted order (the legacy copyInputs order).
+        var copies = Copies.Runs{ .ctx = ctx, .copy = sym.copy_d2d, .validate = sym.validate_allocation };
         for (self.order) |original| {
             const count = @as(usize, 1) << @intCast(self.shapes[original].log_size);
             const source: [*]const u32 = if (inputs[original].device) |d| d else (self.host_staged orelse return error.TraceCommitNotStaged).ptr + self.host_offsets[original];
-            try check(sym.copy_d2d(ctx, coefficients.ptr + self.offsets[original], source, count * 4));
+            try copies.push(coefficients.ptr + self.offsets[original], source, count);
         }
+        try copies.finish();
         var launches: u32 = 0;
         const fwd = tw.ptr;
         const inv = tw.ptr + self.tw.twiddles.len;

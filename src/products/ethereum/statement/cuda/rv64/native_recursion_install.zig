@@ -289,7 +289,11 @@ pub const Owner = struct {
         for (workers, 0..) |worker, i| {
             if (self.execution[i]) |*prover| {
                 if (prover.worker != worker) return error.GraphWorkerMismatch;
-            } else self.execution[i] = Outer.Prover.init(self.a, &self.shared, worker, .{});
+            } else {
+                // Whole-body capture has no qualified fresh-block benefit;
+                // assignment-only replay retains the same worker owner.
+                self.execution[i] = Outer.Prover.init(self.a, &self.shared, worker, .{ .enabled = false });
+            }
         }
         var it = self.classes.valueIterator();
         while (it.next()) |item| {

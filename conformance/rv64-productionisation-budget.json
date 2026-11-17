@@ -1449,10 +1449,10 @@
     },
     {
       "id": "ethereum_gpu_launch_reduction_389",
-      "net_code_budget": 550,
+      "net_code_budget": 750,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Delegated owner decision389#6960612913 with6959832334/6959997296/6960174394: one per-worker graph owner, typed live-context teardown, shared measured retained ledger256MiB plus explicit candidate256MiB reservation within unchanged physical capacity, active assignment replay and existing GKR fusion, canonical Merkle mode with real layer/fused dispatch. New private cache and physical-test header have actual provider ownership. Exact package growth and two additive provider version facts are recorded separately; no new flags, scripts, dependencies, root exports or proof/security changes. Host/fake evidence and measured CUDA-internal/concurrent-allocation limitations do not establish hardware timing or a strict transient allocation bound. Rollback implementation, versions and exact ceilings together; default promotion remains gated. Capture-composition decision6961541054 retains strict warm-path failure rejection and adds a native enclosing-capture/fresh-input regression; no ABI or selector expansion."
+      "positive_growth_justification": "Delegated owner decision389#6960612913 with6959832334/6959997296/6960174394: one per-worker graph owner, typed live-context teardown, shared measured retained ledger256MiB plus explicit candidate256MiB reservation within unchanged physical capacity, active assignment replay and existing GKR fusion, canonical Merkle mode with real layer/fused dispatch. New private cache and physical-test header have actual provider ownership. Exact package growth and two additive provider version facts are recorded separately; no new flags, scripts, dependencies, root exports or proof/security changes. Host/fake evidence and measured CUDA-internal/concurrent-allocation limitations do not establish hardware timing or a strict transient allocation bound. Rollback implementation, versions and exact ceilings together; default promotion remains gated. Capture-composition decision6961541054 retains strict warm-path failure rejection and adds a native enclosing-capture/fresh-input regression; no ABI or selector expansion. Measured copy-run decision6962338721 uses existing live-context allocation authentication for exactly adjacent nonoverlapping unions, preserving compatibility and terminal failure; shared private ingress replaces repeated per-column submissions, with physical byte-oracle and negative tests."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
@@ -3399,17 +3399,17 @@
         "versioned_files": 350
       },
       "after": {
-        "code_files": 346,
-        "code_lines": 81186,
+        "code_files": 347,
+        "code_lines": 81372,
         "generated_code_files": 0,
         "generated_code_lines": 0,
         "script_files": 0,
         "api_entries": 8,
         "dependencies": 9,
         "rv64_registry_flags": 22,
-        "versioned_files": 351
+        "versioned_files": 352
       },
-      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/389#issuecomment-6960612913"
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/389#issuecomment-6962338721"
     },
     {
       "package": "stwo_ethereum_statement",
@@ -3427,7 +3427,7 @@
       },
       "after": {
         "code_files": 427,
-        "code_lines": 76284,
+        "code_lines": 76288,
         "generated_code_files": 0,
         "generated_code_lines": 0,
         "script_files": 0,
