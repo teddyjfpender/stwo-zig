@@ -9,7 +9,7 @@ pub const GpuTimer = struct {
     pub fn timing(self: *GpuTimer) K.Timing {
         return .{ .ctx = self, .mark = mark, .resolve = resolve };
     }
-    fn mark(raw: *anyopaque, end: bool, stream: *anyopaque) void {
+    pub fn mark(raw: *anyopaque, end: bool, stream: *anyopaque) void {
         const self: *GpuTimer = @ptrCast(@alignCast(raw));
         const slot = &self.events[@intFromBool(end)];
         if (slot.* == null and self.api.create(slot, 0) != 0) slot.* = null;
@@ -18,7 +18,7 @@ pub const GpuTimer = struct {
             slot.* = null;
         };
     }
-    fn resolve(raw: *anyopaque) void {
+    pub fn resolve(raw: *anyopaque) void {
         const self: *GpuTimer = @ptrCast(@alignCast(raw));
         const begin = self.events[0] orelse return;
         const end = self.events[1] orelse return;

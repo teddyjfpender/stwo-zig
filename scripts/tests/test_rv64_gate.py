@@ -14,6 +14,88 @@ from types import SimpleNamespace
 
 
 class GateTests(unittest.TestCase):
+    def test_resident_gpu_count_binds_schedule_caps_and_guard(self):
+        for count, lane_workers in ((1, [2, 2, 2, 2]), (2, [2, 2, 2, 2]),
+                                    (4, [2, 2, 2, 2]), (1, [0, 2])):
+            with self.subTest(gpus=count, lane_workers=lane_workers), tempfile.TemporaryDirectory() as tmp:
+                base = Path(tmp)
+                requests = base / 'inputs/requests'
+                requests.mkdir(parents=True)
+                (requests / '24628607.json').write_text('{"expected_output":"bound"}')
+                resources = {'schedule': dict(resident.P.DEFAULT_NATIVE_SCHEDULE, lane_workers=lane_workers)}
+                template = {'profile': 'test', 'device_cap_bytes': 24000000000,
+                            'jobs': [{'block': 24628607, 'segments': 7, 'resources': resources}]}
+                args = SimpleNamespace(gpus=count, repeat=1, env=[], no_default_env=True)
+                assets = {name: base / name for name in ('driver', 'library', 'receiver')}
+                with patch.object(resident, 'M3', base), \
+                        patch.object(resident.P, 'plan_template', return_value=template):
+                    plan = resident.plan_for([24628607], args, base, assets, Path.cwd())
+                job = plan['jobs'][0]
+                self.assertEqual(list(range(count)), job['devices'])
+                self.assertEqual(count, job['device_count'])
+                schedule = job['resources']['schedule']
+                self.assertEqual(8, sum(schedule['lane_workers']))
+                self.assertEqual(1 if count == 1 else 4, schedule['lanes'])
+                self.assertEqual(0 if count == 1 else count, schedule.get('device_affinity', 0))
+                if count == 2:
+                    self.assertEqual(resident.P.DEFAULT_NATIVE_SCHEDULE, schedule)
+                worker = resident.service_worker(plan)
+                environment = resident.B.worker_environment(worker, {})
+                self.assertEqual(','.join(map(str, range(count))), environment['CUDA_VISIBLE_DEVICES'])
+                self.assertEqual([24000000000] * count, worker['device_caps_bytes'])
+                self.assertEqual('7', environment['STWO_RV64_GPU_PLANNED_CPU_WORKERS'])
+                self.assertEqual(list(range(count)), resident.PhysicalBudgetGuard.selected_devices(environment))
+
+    def test_resident_gpu_cli_defaults_and_refusals(self):
+        for command in ('serve', 'daemon'):
+            for values, count in (([], 2), (['--gpus', '1'], 1), (['--gpus', '4'], 4)):
+                with patch.object(sys, 'argv', ['resident', command, '24628607', '--tag', 'unit', *values]), \
+                        patch.object(resident, command) as dispatch:
+                    resident.main()
+                    self.assertEqual(count, dispatch.call_args.args[0].gpus)
+        for invalid in ('3', '0', '-1'):
+            with patch.object(sys, 'argv', ['resident', 'daemon', '24628607', '--tag', 'unit', '--gpus', invalid]), \
+                    self.assertRaises(SystemExit):
+                resident.main()
+        self.assertEqual([0, 1], resident.PhysicalBudgetGuard.selected_devices({}))
+        for invalid in ('', '0,0', '1', '0,1,2', '0,x'):
+            with self.assertRaises(ValueError):
+                resident.PhysicalBudgetGuard.selected_devices({'STWO_RV64_GPU_DEVICES': invalid})
+
+    def test_physical_guard_passes_selected_devices_and_rejects_other_ready_set(self):
+        # This executable tests the host protocol only; it never allocates CUDA memory.
+        for count, wrong in ((1, False), (2, False), (4, False), (1, True)):
+            with self.subTest(gpus=count, wrong=wrong), tempfile.TemporaryDirectory() as tmp:
+                base = Path(tmp)
+                binary = base / 'guard-protocol'
+                binary.write_text(f'#!{sys.executable}\n' +
+                    'import json,sys\n'
+                    'devices=list(map(int,sys.argv[sys.argv.index("--devices")+1].split(",")))\n' +
+                    ('devices=[0,1]\n' if wrong else '') +
+                    'print(json.dumps({"schema":"rv64-physical-budget-guard/v1","ready":True,'
+                    '"requested_limit_bytes":28000000000,"fixture_only":True,"argv":sys.argv[1:],'
+                    '"devices":[{"device":d,"total_bytes":32000000000,"held_physical_bytes":4000000000,'
+                    '"prover_physical_ceiling_bytes":28000000000} for d in devices]}),flush=True)\n'
+                    'sys.stdin.readline()\n')
+                binary.chmod(0o755)
+                environment = resident.B.worker_environment(
+                    {'device': ','.join(map(str, range(count))), 'device_caps_bytes': [24000000000] * count,
+                     'planned_cpu_workers': 7, 'retained_scopes': 64}, {})
+                if wrong:
+                    with self.assertRaisesRegex(RuntimeError, 'invalid physical budget guard ready'):
+                        resident.PhysicalBudgetGuard(binary, base, environment)
+                    continue
+                guard = resident.PhysicalBudgetGuard(binary, base, environment)
+                try:
+                    ready = guard.record['ready']
+                    self.assertTrue(ready['fixture_only'])
+                    self.assertEqual(['--limit-bytes', '28000000000', '--devices',
+                                      ','.join(map(str, range(count)))], ready['argv'])
+                    guard.check()
+                finally:
+                    guard.close()
+                self.assertEqual('RELEASED', guard.record['status'])
+
     def test_equal_output_basenames_keep_independent_service_receipts(self):
         with tempfile.TemporaryDirectory() as tmp:
             first = Path(tmp) / 'batch-1' / 'default'

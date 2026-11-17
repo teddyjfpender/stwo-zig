@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """RV64 M4 stream `resident`: resident prover service + persisted ArtifactStore harness.
 
-Runs ON the pod. One producer process (the resident service: `combined-batch`) holds both
+Runs ON the pod. One producer process (the resident service: `combined-batch`) holds the selected
 CUDA contexts, the program image/authority session and the SetupCache for its whole life
 and serves an ordered list of requests (blocks x repeat).  Immutable setup comes from a
 persisted, content-addressed ArtifactStore under /workspace/m3/store/<branch>/<key>/.
 
   python3 rv64_m4_resident.py store-key [--stream S]            # print the store key + components
   python3 rv64_m4_resident.py serve BLOCK [BLOCK ...] --repeat N --tag T [--loading eager|lazy]
-          [--store fresh|reuse|none] [--nsys] [--receive all|first|none] [--env K=V]
+          [--gpus 1|2|4] [--store fresh|reuse|none] [--nsys] [--receive all|first|none] [--env K=V]
   python3 rv64_m4_resident.py receive --run DIR                 # fresh receivers, store DELETED
   python3 rv64_m4_resident.py catalogue-gate [--catalogues DIR] # AOT catalogue == regeneration
 
@@ -60,6 +60,9 @@ MARK = re.compile(r"GPU_RESIDENT_BLOCK block=(\d+) trial=(\d+) iteration=(\d+) r
 
 def plan_for(blocks, args, run, paths, root):
     template = P.plan_template()
+    gpus = getattr(args, "gpus", 2)
+    if type(gpus) is not int or gpus not in (1, 2, 4):
+        raise ValueError("resident services require 1, 2 or 4 GPUs")
     if getattr(args, "security_profile", None) is not None:
         template = dict(template, profile=args.security_profile)
     if getattr(args, "recursion_max_pending_authorities", None) is not None:
@@ -71,8 +74,18 @@ def plan_for(blocks, args, run, paths, root):
         request["output_directory"] = str(run / f"capture-{block}")
         request_path = run / f"request-{block}.json"
         B.atomic_json(request_path, request)
-        job = dict(job, devices=[0, 1], device_count=2, request=str(request_path), request_sha256=P.sha(request_path),
+        job = dict(job, devices=list(range(gpus)), device_count=gpus, request=str(request_path), request_sha256=P.sha(request_path),
                    target=str(run / "case"))
+        if gpus != 2:
+            job["resources"] = R.device_resources(job["resources"], gpus)
+            schedule = job["resources"]["schedule"]
+            if gpus == 1:
+                lane_workers = schedule.get("lane_workers", [])
+                workers = sum((lane_workers[i] if i < len(lane_workers) else 0) or schedule["workers_per_lane"] for i in range(schedule["lanes"]))
+                schedule.update(lanes=1, workers_per_lane=workers, lane_workers=[workers])
+                schedule.pop("device_affinity", None)
+            else:
+                schedule["device_affinity"] = gpus
         if getattr(args, "coalesce_truth_families", False):
             job["resources"] = dict(job["resources"], coalesce_truth_families=True)
         jobs.append(job)
@@ -148,8 +161,7 @@ def serve(args):
     target.mkdir()
     manifest = service_manifest(plan)
     B.atomic_json(target / "manifest.json", manifest)
-    worker = {"device": "0,1", "device_caps_bytes": [plan["device_cap_bytes"]] * 2,
-              "planned_cpu_workers": plan["jobs"][0]["segments"], "retained_scopes": 64}
+    worker = service_worker(plan)
     environment = {k: v for k, v in os.environ.items() if not k.startswith(("STWO_RV64_", "STWO_ZIG_RV64_SETUP_CACHE"))}
     environment.update(plan["resident_environment"])
     environment = B.worker_environment(worker, environment)
@@ -176,7 +188,7 @@ def serve(args):
     load_before = os.getloadavg()
     lock = P.acquire_gpu_lock()
     try:
-        monitor = B.DeviceMonitor("0,1")
+        monitor = B.DeviceMonitor(worker["device"])
         monitor.thread.start()
         try:
             launch_environment = dict(environment)
@@ -369,8 +381,8 @@ def daemon(args):
     B.atomic_json(run / "manifest.json", manifest)
     environment = {k: v for k, v in os.environ.items() if not k.startswith(("STWO_RV64_", "STWO_ZIG_RV64_SETUP_CACHE"))}
     environment.update(plan["resident_environment"])
-    environment = B.worker_environment({"device": "0,1", "device_caps_bytes": [plan["device_cap_bytes"]] * 2,
-                                        "planned_cpu_workers": plan["jobs"][0]["segments"], "retained_scopes": 64}, environment)
+    worker = service_worker(plan)
+    environment = B.worker_environment(worker, environment)
     for k in ("STWO_RV64_GPU_HOST_RETAINED"):
         if k not in plan["resident_environment"]:
             environment.pop(k, None)
@@ -404,7 +416,7 @@ def daemon(args):
             guard = PhysicalBudgetGuard(args.process_budget_guard, run, environment)
             plan["physical_budget_guard"] = guard.record
             B.atomic_json(run / "plan.json", plan)
-        monitor = B.DeviceMonitor("0,1")
+        monitor = B.DeviceMonitor(worker["device"])
         monitor.thread.start()
         started = time.monotonic_ns()
         with (run / "producer.stdout").open("wb") as out, (run / "producer.stderr").open("wb") as err:
@@ -726,6 +738,7 @@ def main():
     k.add_argument("--catalogues", default=str(M3 / "catalogues-v3"))
     s = sub.add_parser("serve")
     s.add_argument("blocks", type=int, nargs="+")
+    s.add_argument("--gpus", type=int, choices=(1, 2, 4), default=2)
     s.add_argument("--repeat", type=int, default=2)
     s.add_argument("--allow-scale-probe", action="store_true", help="permit one 24697070 request only, with --repeat 1")
     s.add_argument("--bench-basket-block", action="store_true", help="rv64_m8_bench15.py only: one M3-basket block per service, --repeat <= 2")
@@ -805,7 +818,7 @@ def main():
 
 
 from scripts.rv64.rv64_resident_resources import make_helpers as _rv64_resident_resources_helpers
-(tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary,) = _rv64_resident_resources_helpers(
+(tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary, service_worker,) = _rv64_resident_resources_helpers(
     B,
     BASELINE_RUNS,
     FIELD_HASH,
@@ -826,7 +839,7 @@ from scripts.rv64.rv64_resident_resources import make_helpers as _rv64_resident_
     threading,
     time,
 )
-for _owned_helper in (tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary,):
+for _owned_helper in (tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary, service_worker,):
     _owned_helper.__module__ = __name__
     _owned_helper.__qualname__ = _owned_helper.__name__
 

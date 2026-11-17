@@ -3,7 +3,7 @@
 //! M5 rootverify: `derive-vk-tables` and root-only `verify-root-candidate`
 //! dispatch first; every other mode is the unchanged legacy receiver.
 pub fn main() !void {
-    const cpu = @import("stwo_riscv_cpu_integration");
+    const cpu = @import("ethereum_cpu_component");
     {
         const std = @import("std");
         const args = try std.process.argsAlloc(std.heap.page_allocator);

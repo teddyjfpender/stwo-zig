@@ -4185,7 +4185,9 @@
       "date": "2026-11-08",
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
+        "scripts/rv64/rv64_resident_resources.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
+        "scripts/tests/test_rv64_gate.py",
         "scripts/tests/test_rv64_resident_basket.py",
         "src/integrations/riscv_cuda/rv64/cpu_replay.zig",
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
@@ -4324,6 +4326,7 @@
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
+        "scripts/tests/test_rv64_gate.py",
         "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
         "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],

@@ -46,6 +46,23 @@ pub fn build(b: *std.Build) void {
     b.modules.put("legacy_riscv_frontend", frontend_component) catch @panic("OOM");
     b.modules.put("legacy_riscv_cpu_integration", cpu_component) catch @panic("OOM");
     addMetalCsp(b, target, optimize, frontend_component);
+    // Product CLI roots borrow the same selected component imports as the API.
+    inline for (.{
+        .{ .name = "rv64-word16-ethereum-gpu-combined", .source = "cuda/rv64_combined_ethereum_main.zig", .build = "build-rv64-ethereum-gpu-combined", .check = "check-rv64-ethereum-gpu-combined" },
+        .{ .name = "rv64-word16-ethereum-recursion-receiver", .source = "cuda/rv64_recursion_receiver_main.zig", .build = "build-rv64-ethereum-recursion-receiver", .check = "check-rv64-ethereum-recursion-receiver" },
+    }) |spec| {
+        const root = b.createModule(.{ .root_source_file = b.path(spec.source), .target = target, .optimize = optimize });
+        for (cuda_component.import_table.keys(), cuda_component.import_table.values()) |name, dependency| root.addImport(name, dependency);
+        if (root.import_table.get("ethereum_frontend_component") != frontend_component or
+            root.import_table.get("ethereum_cpu_component") != cpu_component or
+            root.import_table.get("stwo_riscv_cuda_integration") != neutral_cuda or
+            root.import_table.get("stwo_riscv_cpu_integration") != neutral_cpu)
+            @panic("Ethereum GPU CLI lost its selected component identity");
+        const executable = b.addExecutable(.{ .name = spec.name, .root_module = root });
+        executable.linkLibC();
+        b.step(spec.build, "Build the existing Ethereum GPU producer or CPU-only recursive receiver").dependOn(&b.addInstallArtifact(executable, .{}).step);
+        b.step(spec.check, "Check the existing Ethereum CLI without installing it").dependOn(&executable.step);
+    }
     const owner = b.step("test", "Run Ethereum product contracts and owned component suites");
     var runs: [4]*std.Build.Step.Run = undefined;
     for ([_]*std.Build.Module{ product, frontend_component, cpu_component, cuda_component }, [_][]const u8{ "test-owner-primary", "test-owner-frontend", "test-owner-cpu", "test-owner-cuda-host" }, &runs) |component, name, *run| {
