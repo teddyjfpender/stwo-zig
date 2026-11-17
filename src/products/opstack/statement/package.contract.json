@@ -1,0 +1,66 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_opstack_statement",
+  "version": "0.1.0",
+  "layer": "product",
+  "owner": "opstack-statement",
+  "public_modules": {
+    "stwo_opstack_statement": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_riscv_cpu_integration": "../../../integrations/riscv_cpu",
+    "stwo_riscv_frontend": "../../../frontends/riscv",
+    "stwo_riscv_rv64": "../../../frontends/riscv/rv64",
+    "stwo_riscv_rv64_pipeline": "../../../integrations/riscv_cpu/rv64_pipeline"
+  },
+  "injected_modules": [
+    "opstack_cpu_component",
+    "opstack_fixture_paths",
+    "opstack_frontend_component",
+    "rv64_pipeline_hooks"
+  ],
+  "api_surface": [
+    "cpu",
+    "frontend",
+    "hooks",
+    "statement"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: OP Stack product exposes its four owning domains"
+    ],
+    "invariant_tests": [
+      "mod.zig::api invariant: the pipeline instance is bound to the OP hooks",
+      "tests/guest_abi_test.zig::guest abi: windows 4..32 MiB admitted, 64 MiB rejected",
+      "tests/hooks_contract_test.zig::hooks contract: a non-admitted profile fails request admission before any file read",
+      "tests/statement_test.zig::statement: binding rejects any single flipped byte"
+    ]
+  },
+  "ci": {
+    "lane": "opstack_statement",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/products/opstack/statement/build.zig",
+      "-Doptimize=Debug",
+      "-j2",
+      "--verbose",
+      "--summary",
+      "all"
+    ]
+  },
+  "budget": {
+    "code_files": 12,
+    "code_lines": 456,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 4,
+    "dependencies": 4,
+    "rv64_registry_flags": 0,
+    "versioned_files": 15
+  }
+}

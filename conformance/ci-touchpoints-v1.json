@@ -1635,6 +1635,70 @@
           "all"
         ]
       ]
+    },
+    "opstack_statement": {
+      "host": "linux",
+      "description": "OP Stack product guest ABI, statement and hook contracts, plus the OP tooling unit tests",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/products/opstack/statement/build.zig",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tools/opstack/tests",
+          "-p",
+          "test_*.py"
+        ]
+      ]
+    },
+    "opstack_statement_releasefast": {
+      "host": "linux",
+      "description": "OP Stack golden ABI probe pin, image and statement binding (ReleaseFast)",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-e2e-probe",
+          "--build-file",
+          "src/products/opstack/statement/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
+    },
+    "riscv_rv64_pipeline": {
+      "host": "linux",
+      "description": "Product-neutral RV64 block pipeline hook contract, terminal, receiver and resource suites",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/riscv_cpu/rv64_pipeline/build.zig",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
     }
   },
   "product_scope_lanes": {
@@ -2475,6 +2539,34 @@
       "lanes": [
         "riscv_retained_contracts",
         "riscv_retained_contracts_releasefast"
+      ]
+    },
+    {
+      "prefixes": [
+        "guests/opstack",
+        "tools/opstack",
+        "tests/fixtures/opstack"
+      ],
+      "lanes": [
+        "script_contracts",
+        "opstack_statement"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/opstack"
+      ],
+      "lanes": [
+        "opstack_statement",
+        "opstack_statement_releasefast"
+      ]
+    },
+    {
+      "prefixes": [
+        "design/opstack"
+      ],
+      "lanes": [
+        "static"
       ]
     }
   ],

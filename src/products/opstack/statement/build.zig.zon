@@ -1,0 +1,13 @@
+.{
+    .name = .stwo_opstack_statement,
+    .version = "0.1.0",
+    .fingerprint = 0x3bf58fd9ca4bd0a2,
+    .minimum_zig_version = "0.15.2",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_riscv_cpu_integration = .{ .path = "../../../integrations/riscv_cpu" },
+        .stwo_riscv_frontend = .{ .path = "../../../frontends/riscv" },
+        .stwo_riscv_rv64 = .{ .path = "../../../frontends/riscv/rv64" },
+        .stwo_riscv_rv64_pipeline = .{ .path = "../../../integrations/riscv_cpu/rv64_pipeline" },
+    },
+}
