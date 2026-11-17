@@ -1,10 +1,18 @@
-# Reproducible RV32 Ethereum guest
+# RV32IM Ethereum block guest
 
-This builds the unmodified stateless-validator source at `a134a621`, installs
-Alloy's native transaction signer recovery in the entrypoint, and uses the
-retained exact-layout allocator and word-oriented Keccak sponge. Revm EVM
-precompiles and verification against a supplied public key retain software
-semantics. A rejected native recovery is fatal.
+A Rust guest for RV32IM (ILP32) that validates one Ethereum block statelessly.
+It builds the unmodified [`stateless-validator-reth`](https://github.com/paradigmxyz/stateless)
+source at `a134a621` and installs Alloy's transaction signer recovery on the
+native secp256k1 instruction. Keccak-f[1600] and SHA-256 compression run as
+custom-0 instructions. It uses the shared exact-layout allocator and
+word-oriented Keccak sponge from [`../runtime/`](../runtime/README.md). Revm
+EVM precompiles and verification against a supplied public key keep their
+software semantics. A rejected native recovery is fatal.
+
+The [RV64IM guest](../rv64/README.md) runs the same validator and input
+contract without custom instructions.
+
+## Build
 
 From this directory:
 
