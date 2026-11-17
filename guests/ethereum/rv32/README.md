@@ -24,8 +24,8 @@ snapshot. The build script tracks `linker.ld` so layout edits trigger relinking.
 
 The ELF is `target/riscv32i-stwo/release/stwo-ethereum-guest`. Its admission
 note selects `rv32im-zkvm-ethereum-v1`. Input is the four-byte length followed
-by canonical SSZ produced by [the projection tool](../projection/src/main.rs).
-The [host validator](../host_validation/src/main.rs) checks the same input and
+by canonical SSZ produced by [the projection tool](../tools/projection/src/main.rs).
+The [host validator](../tools/host_validation/src/main.rs) checks the same input and
 retains the expected 43-byte output. See [the archived block benchmark](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/ETHEREUM_BLOCK.md)
 for those commands.
 
@@ -38,7 +38,7 @@ from the repository root with:
 
 ```sh
 rustc +1.96.1 --edition 2024 --test \
-  guests/ethereum/src/single_thread_atomics.rs \
+  guests/ethereum/rv32/src/single_thread_atomics.rs \
   -o /tmp/stwo-guest-atomics-test
 /tmp/stwo-guest-atomics-test
 ```
