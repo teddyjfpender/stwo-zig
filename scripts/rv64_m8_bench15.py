@@ -591,7 +591,9 @@ class Bench:
             raise RuntimeError('refusing to prune outside this stream: ' + str(run))
         if not keep_proofs:
             for name in ('spool/out', 'nsys'):
-                if (run / name).exists():
+                if (run / name).is_symlink():
+                    (run / name).unlink()
+                elif (run / name).exists():
                     shutil.rmtree(run / name)
         stderr = run / 'producer.stderr'
         if not keep_proofs and stderr.is_file():

@@ -37,6 +37,23 @@ def service(arm, role, warm_s, cold_s=None, status='ok', **extra):
 
 
 class BasketTests(unittest.TestCase):
+    def test_prune_unlinks_profile_symlink_without_following_target(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(bench, 'M3', Path(tmp)):
+            run = Path(tmp) / 'runs/test/daemon-case'
+            (run / 'spool/out').mkdir(parents=True)
+            external = Path(tmp) / 'profiles'
+            external.mkdir()
+            evidence = external / 'timeline.nsys-rep'
+            evidence.write_bytes(b'profile')
+            (run / 'nsys').symlink_to(external, target_is_directory=True)
+            worker = object.__new__(bench.Bench)
+            worker.stream = 'test'
+            worker.prune(run)
+            worker.prune(run)
+            self.assertFalse((run / 'spool/out').exists())
+            self.assertFalse((run / 'nsys').is_symlink())
+            self.assertEqual(b'profile', evidence.read_bytes())
+
     def test_capacity_cli_selects_one_gpu_native_round_and_explicit_preset(self):
         argv = ['bench', 'run', '--assets', 'assets.json', '--out', 'run', '--arms', 'gpu-native',
                 '--gpus', '1', '--device-cap-bytes', str(48 << 30), '--preset', 'candidate.json',
