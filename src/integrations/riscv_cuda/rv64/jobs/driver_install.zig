@@ -11,6 +11,8 @@ const M = @import("driver_memory.zig");
 const Memory = @import("memory_plan.zig");
 const P = @import("driver_peer.zig");
 
+/// Null non-native keys select a conservative warmed-cache size/check bound,
+/// not a guessed authority; request-time class lookup remains mandatory.
 pub const SlabClass = struct { id: G.ProofId, key: ?G.ClassKey };
 
 pub fn proofSpec(entry: ?*const G.ClassEntry, id: G.ProofId, device: u32, stage_one: usize) G.ProofSpec {
@@ -22,22 +24,51 @@ pub fn stageOneBytes(entries: []const *const G.ClassEntry, wire: u64, base: usiz
     for (entries) |e| bytes = try std.math.add(usize, bytes, @max(e.stage_one_bytes, child));
     return if (bytes != 0) std.math.add(usize, bytes, base) else 0;
 }
-/// Put the ENTIRE admitted roster on one device: exact for one GPU, a
-/// placement-independent upper bound for every individual GPU otherwise.
+/// Entire admitted ID roster on one device, exact native class sizes and
+/// conservative warmed-cache bounds for request-scoped truth/outer classes.
+/// This upper-bounds each GPU regardless of actual placement.
 pub fn slabWords(a: std.mem.Allocator, cache: *G.ClassCache, rosters: []const []const SlabClass, exchange: G.Exchange, base: usize) !u64 {
     var largest: u64 = 0;
+    var max_bytes: usize = 0;
+    var extra_union = std.EnumSet(G.Check).initEmpty();
+    cache.mutex.lock();
+    var entries = cache.map.valueIterator();
+    while (entries.next()) |entry| {
+        max_bytes = @max(max_bytes, entry.*.max_encoded_bytes);
+        for (entry.*.extra_checks) |check| extra_union.insert(check);
+    }
+    cache.mutex.unlock();
     for (rosters) |roster| {
         const specs = try a.alloc(G.ProofSpec, roster.len);
         defer a.free(specs);
+        const extras = try a.alloc([std.meta.fields(G.Check).len]G.Check, roster.len);
+        defer a.free(extras);
         var stage_one: usize = 0;
         for (roster) |r| if (r.id.kind == .native_segment) {
             const entry = try cache.get(r.key orelse return error.GpuNativeClassNotWarmed);
             stage_one = try std.math.add(usize, stage_one, try stageOneBytes(&.{entry}, exchange.child_wire_words, 0));
         };
         if (stage_one != 0) stage_one = try std.math.add(usize, stage_one, base);
-        for (roster, specs) |r, *spec| {
-            if ((r.id.kind == .request) != (r.key == null)) return error.GpuNativeClassNotWarmed;
+        for (roster, specs, extras) |r, *spec, *checks| {
+            if (r.id.kind == .request and r.key != null) return error.GpuNativeClassNotWarmed;
             spec.* = proofSpec(if (r.key) |key| try cache.get(key) else null, r.id, 0, stage_one);
+            if (r.key == null and r.id.kind != .request) {
+                if (max_bytes == 0) return error.GpuNativeClassNotWarmed;
+                spec.max_encoded_bytes = max_bytes;
+                var n: usize = 0;
+                for (std.enums.values(G.Check)) |check| if (extra_union.contains(check)) {
+                    var required = false;
+                    for (G.requiredChecks(r.id.kind)) |c| if (c == check) {
+                        required = true;
+                        break;
+                    };
+                    if (!required) {
+                        checks[n] = check;
+                        n += 1;
+                    }
+                };
+                spec.extra_checks = checks[0..n];
+            }
         }
         // Preflight all u32 wire offsets with checked arithmetic before the
         // shared builder's casts. No new limit beyond its existing format.

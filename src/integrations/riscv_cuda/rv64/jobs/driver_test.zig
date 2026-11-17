@@ -615,6 +615,10 @@ test "D1: admitted roster slab sizing uses actual class bounds and rejects unkno
     var layout = try G.RequestLayout.build(testing.allocator, exchange.devices, &spec, exchange);
     defer layout.deinit();
     try testing.expectEqual(@as(u64, layout.segments[0].words), bound);
+    // No request-scoped class_of callback is needed to bound truth/outer IDs.
+    entry.extra_checks = &.{.class_unpack};
+    const conservative = [_]I.SlabClass{ roster[0], .{ .id = .{ .kind = .truth, .ordinal = 0 }, .key = null }, roster[1] };
+    try testing.expect(try I.slabWords(testing.allocator, cache, &.{&conservative}, exchange, 100) > bound + (70 << 20) / 4);
     entry.max_encoded_bytes = std.math.maxInt(usize);
     try testing.expectError(error.GpuNativeSlabTooLarge, I.slabWords(testing.allocator, cache, &.{&roster}, exchange, 100));
     entry.max_encoded_bytes = 70 << 20;

@@ -145,28 +145,11 @@ pub const Service = struct {
             const roster = try a.alloc(@import("driver_install.zig").SlabClass, rows.len + rs.truths + topo.nodes.len + 1);
             errdefer a.free(roster);
             for (keys, roster[0..keys.len], 0..) |key, *r, i| r.* = .{ .id = .{ .kind = .native_segment, .ordinal = @intCast(i) }, .key = key };
-            for (0..rs.truths) |i| roster[rows.len + i] = .{ .id = .{ .kind = .truth, .ordinal = @intCast(i) }, .key = try recursion.vtable.class_of(recursion.ctx, .{ .kind = .truth, .ordinal = @intCast(i) }, &.{}) };
+            // Truth/outer class selection is request-scoped and must never
+            // be called before the real driver warm/request lifecycle.
+            for (0..rs.truths) |i| roster[rows.len + i] = .{ .id = .{ .kind = .truth, .ordinal = @intCast(i) }, .key = null };
             const start = rows.len + rs.truths;
-            for (topo.nodes, 0..) |node, i| {
-                const child_keys = try a.alloc(G.ClassKey, node.segments.len + node.truths.len + node.children.len);
-                defer a.free(child_keys);
-                var n: usize = 0;
-                for (node.segments) |id| {
-                    child_keys[n] = roster[id].key.?;
-                    n += 1;
-                }
-                for (node.truths) |id| {
-                    child_keys[n] = roster[rows.len + id].key.?;
-                    n += 1;
-                }
-                for (node.children) |id| {
-                    if (id >= i) return error.GpuNativeTopologyOrder;
-                    child_keys[n] = roster[start + id].key.?;
-                    n += 1;
-                }
-                const id = G.ProofId{ .kind = if (node.children.len == 0) .leaf else if (i == topo.root) .root else .fold, .ordinal = @intCast(i) };
-                roster[start + i] = .{ .id = id, .key = try recursion.vtable.class_of(recursion.ctx, .{ .kind = id.kind, .ordinal = id.ordinal }, child_keys) };
-            }
+            for (topo.nodes, 0..) |node, i| roster[start + i] = .{ .id = .{ .kind = if (node.children.len == 0) .leaf else if (i == topo.root) .root else .fold, .ordinal = @intCast(i) }, .key = null };
             roster[roster.len - 1] = .{ .id = .{ .kind = .request, .ordinal = 0 }, .key = null };
             shape.* = .{ .slab_classes = roster, .block = block, .rows = rows, .truths = rs.truths, .fold_arity = rs.fold_arity, .topology = topo };
             made += 1;

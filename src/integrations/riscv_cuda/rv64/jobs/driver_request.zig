@@ -358,7 +358,7 @@ pub const InFlight = struct {
             };
             if (req.slab_classes.len != 0) {
                 var matched = false;
-                for (req.slab_classes) |r| if (r.id.eql(p.id) and std.meta.eql(r.key, if (entry) |e| @as(?G.ClassKey, e.key) else null)) {
+                for (req.slab_classes) |r| if (r.id.eql(p.id) and ((r.key == null and r.id.kind != .native_segment) or std.meta.eql(r.key, if (entry) |e| @as(?G.ClassKey, e.key) else null))) {
                     matched = true;
                     break;
                 };
