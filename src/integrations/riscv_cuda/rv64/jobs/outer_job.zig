@@ -233,6 +233,7 @@ pub const OuterNodeJob = struct {
         return out;
     }
     fn initWholeFresh(staged: *St.Staged, kernels: *const K.Kernels, whole: Whole) !OuterNodeJob {
+        if (kernels.contributions != null and @import("stwo_riscv_cpu_integration").rv64_om31_outer_wrap.hybridProfileActive()) return error.UnqualifiedHybridInterContributions;
         var out = try init(staged, kernels, false);
         errdefer out.deinit();
         out.mode = .full;
@@ -386,7 +387,8 @@ pub const OuterNodeJob = struct {
         var widest_inter: u64 = 0;
         for (p.geometry.components) |c| {
             const prefix = (@import("../prefix_plan.zig").Plan.init(c.log) catch unreachable).scratch_words;
-            widest_inter = @max(widest_inter, g(8 * @as(u64, c.pairs) << @intCast(c.log)) + g(prefix));
+            const numerators = N.numeratorWords(self.kernels, c.log, c.pairs);
+            widest_inter = @max(widest_inter, (if (numerators == 0) 0 else g(numerators)) + g(prefix));
         }
         const eval = g(p.main.coefficient_words);
         const main_commit: u64 = if (self.streams) |*st| st.main.scratchWords() else g(p.main.evaluation_words);
@@ -423,6 +425,7 @@ pub const OuterNodeJob = struct {
                 phase = @max(phase, fixed_commit);
                 if (!self.require_warm and self.packed_class == null) pinned_extra += fp.coefficient_words;
             };
+            std.debug.print("GPU_OUTER_FOOTPRINT ordinal={d} staged={d} held={d} phase={d} main_eval={d} assignment={d} main_commit={d} inter_commit={d} widest_inter={d} comp_widest={d} comp_buckets={d} comp_coeff={d} comp_commit={d} pcs={d}\n", .{ self.staged.ordinal, staged, held, phase, eval, g(self.staged.assignment.count * 4), main_commit, inter_commit, widest_inter, widest, buckets, g(cs.coefficientWords()), commit, self.pcsReserveWords(cs) });
         };
         // Diagnostic (measurement sweeps only): STWO_RV64_M8_OUTER_DECLARE_WORDS
         // caps the declared device peak so a node can run in an arena smaller

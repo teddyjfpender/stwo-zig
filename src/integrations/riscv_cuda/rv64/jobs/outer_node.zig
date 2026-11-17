@@ -36,6 +36,22 @@ const S = Plan.Section;
 /// framing can name their addresses; prefix runs allocate them here. The two
 /// trees exist only on the full-LDE path: a streamed commit (`streams`) keeps
 /// no tree, only its root in the slab section.
+/// Exact transient numerator requirement shared by execution and footprint.
+pub fn numeratorWords(k: *const K.Kernels, log: u32, pairs: u32) u64 {
+    return if (k.contributions != null and log >= 4 and log <= 27 and pairs != 0 and pairs <= 13) 0 else 8 * @as(u64, pairs) << @intCast(log);
+}
+fn enqueueInteraction(device: *K.Device, f: K.Fractions, g: Abi.GlobalPairs) !void {
+    const k = device.kernels;
+    const fused = numeratorWords(k, f.row_log, g.pairs) == 0;
+    if (fused) {
+        const j = K.Contributions{ .fixed = f.fixed, .main = f.main, .parameters = f.parameters, .output = f.denominators, .status = f.status, .fixed_words = f.fixed_words, .main_words = f.main_words, .output_words = f.denominator_words, .component = f.component, .row_log = f.row_log };
+        try device.check(k.contributions.?.generate(device.ctx, K.lane, &j));
+    } else try device.check(k.fractions(device.ctx, K.lane, &f));
+    try device.check(if (fused) k.contributions.?.scan(device.ctx, K.lane, &g) else k.global_pairs(device.ctx, K.lane, &g));
+    const c = K.Cumulative{ .output = g.output, .contributions = g.contributions, .claim = g.claim, .stride = g.stride, .row_log = g.row_log, .pairs = g.pairs };
+    try device.check(if (fused) k.contributions.?.cumulative(device.ctx, K.lane, &c) else k.cumulative(device.ctx, K.lane, &c));
+}
+
 pub const Long = struct {
     main_coef: K.Buffer,
     inter_coef: K.Buffer,
@@ -293,18 +309,17 @@ pub const Node = struct {
             const pairs: u64 = comp.pairs;
             const output = inter_coef.at(p.componentInter(ci));
             const indices: u64 = staged.statics.gather[ci].len;
-            const numerators = try device.alloc(@intCast(8 * pairs * rows));
+            const numerator_words = numeratorWords(k, comp.log, @intCast(pairs));
+            const numerators = if (numerator_words != 0) try device.alloc(@intCast(numerator_words)) else null;
+            const contributions = if (numerators) |buffer| buffer.ptr else output;
             const prefix = try Prefix.Plan.init(comp.log);
             const scratch = try device.alloc(prefix.scratch_words);
             const claim = self.section + S.claims + 8 * @as(usize, ci);
-            const fractions = K.Fractions{ .fixed = self.gathered(ci), .main = main_eval.at(p.componentMain(ci)), .parameters = parameters.ptr, .numerators = numerators.ptr, .denominators = output, .status = @ptrCast(inter_status), .fixed_words = indices * rows, .main_words = comp.width * rows, .numerator_words = 8 * pairs * rows, .denominator_words = 8 * pairs * rows, .component = ci, .row_log = comp.log };
-            try device.check(k.fractions(device.ctx, K.lane, &fractions));
-            const global = Abi.GlobalPairs{ .output = output, .contributions = numerators.ptr, .scan_scratch = scratch.ptr, .claim = claim, .status = inter_status, .stride = rows, .scan_words = prefix.scratch_words, .row_log = comp.log, .pairs = @intCast(pairs) };
-            try device.check(k.global_pairs(device.ctx, K.lane, &global));
-            const cumulative = K.Cumulative{ .output = output, .contributions = numerators.ptr, .claim = claim, .stride = rows, .row_log = comp.log, .pairs = @intCast(pairs) };
-            try device.check(k.cumulative(device.ctx, K.lane, &cumulative));
+            const fractions = K.Fractions{ .fixed = self.gathered(ci), .main = main_eval.at(p.componentMain(ci)), .parameters = parameters.ptr, .numerators = contributions, .denominators = output, .status = @ptrCast(inter_status), .fixed_words = indices * rows, .main_words = comp.width * rows, .numerator_words = 8 * pairs * rows, .denominator_words = 8 * pairs * rows, .component = ci, .row_log = comp.log };
+            const global = Abi.GlobalPairs{ .output = output, .contributions = contributions, .scan_scratch = scratch.ptr, .claim = claim, .status = inter_status, .stride = rows, .scan_words = prefix.scratch_words, .row_log = comp.log, .pairs = @intCast(pairs) };
+            try enqueueInteraction(device, fractions, global);
             device.free(scratch);
-            device.free(numerators);
+            if (numerators) |buffer| device.free(buffer);
         }
         device.free(main_eval);
         main_eval_live = false;
@@ -369,3 +384,44 @@ pub const Node = struct {
 /// Device channel steps the prefix enqueues (plan device_ops minus the
 /// composition root and OODS seed, which the tail owns).
 pub const prefix_steps: u32 = 5;
+
+test "fused outer interaction preserves generate scan cumulative order and exact alias" {
+    const F = struct {
+        step: u32 = 0,
+        fn generate(raw: *anyopaque, _: u32, j: *const K.Contributions) callconv(.c) c_int {
+            const f: *@This() = @ptrCast(@alignCast(raw));
+            if (f.step != 0 or j.output_words != 256) return 1;
+            f.step = 1;
+            return 0;
+        }
+        fn scan(raw: *anyopaque, _: u32, j: *const Abi.GlobalPairs) callconv(.c) c_int {
+            const f: *@This() = @ptrCast(@alignCast(raw));
+            if (f.step != 1 or j.output != j.contributions) return 1;
+            f.step = 2;
+            return 0;
+        }
+        fn cumulative(raw: *anyopaque, _: u32, j: *const K.Cumulative) callconv(.c) c_int {
+            const f: *@This() = @ptrCast(@alignCast(raw));
+            if (f.step != 2 or j.output != j.contributions) return 1;
+            f.step = 3;
+            return 0;
+        }
+    };
+    var fixture = F{};
+    var words: [384]u32 = undefined;
+    var kernels: K.Kernels = undefined;
+    kernels.contributions = .{ .generate = F.generate, .scan = F.scan, .cumulative = F.cumulative };
+    var device: K.Device = undefined;
+    device.ctx = &fixture;
+    device.kernels = &kernels;
+    device.counters = .{};
+    const f = K.Fractions{ .fixed = null, .main = &words, .parameters = &words, .numerators = &words, .denominators = &words, .status = &words[0], .fixed_words = 0, .main_words = 16, .numerator_words = 256, .denominator_words = 256, .component = 0, .row_log = 4 };
+    const g = Abi.GlobalPairs{ .output = &words, .contributions = &words, .scan_scratch = &words, .claim = &words, .status = &words, .stride = 16, .scan_words = 8, .row_log = 4, .pairs = 2 };
+    try enqueueInteraction(&device, f, g);
+    try std.testing.expectEqual(@as(u32, 3), fixture.step);
+    try std.testing.expectEqual(@as(u32, 3), device.counters.api);
+    try std.testing.expectEqual(@as(u64, 0), numeratorWords(&kernels, 4, 2));
+    try std.testing.expectEqual(@as(u64, 1792), numeratorWords(&kernels, 4, 14));
+    kernels.contributions = null;
+    try std.testing.expectEqual(@as(u64, 256), numeratorWords(&kernels, 4, 2));
+}

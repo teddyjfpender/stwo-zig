@@ -13,6 +13,7 @@ pub const Status = c_int;
 // are pinned below; outer_job_fixture.zig checks field equality against them.
 pub const Fractions = extern struct { fixed: ?[*]const u32, main: [*]const u32, parameters: [*]const u32, numerators: [*]u32, denominators: [*]u32, status: *u32, fixed_words: u64, main_words: u64, numerator_words: u64, denominator_words: u64, component: u32, row_log: u32, reserved: [2]u32 = .{ 0, 0 } };
 pub const Cumulative = extern struct { output: [*]u32, contributions: [*]const u32, claim: [*]const u32, stride: u64, row_log: u32, pairs: u32 };
+pub const Contributions = extern struct { fixed: ?[*]const u32, main: [*]const u32, parameters: [*]const u32, output: [*]u32, status: *u32, fixed_words: u64, main_words: u64, output_words: u64, component: u32, row_log: u32, reserved: [2]u32 = .{ 0, 0 } };
 pub const AssignmentJob = extern struct { values: [*]u32, records: [*]const u32, indices: ?[*]const u32, status: *u32, value_count: u32, record_count: u32, index_count: u32, first: u32, count: u32, reserved: u32 = 0 };
 pub const Launch = *const fn (*anyopaque, u32, *const AssignmentJob) callconv(.c) c_int;
 pub const LaunchRun = *const fn (*anyopaque, u32, *const AssignmentJob, [*]const u32, u32) callconv(.c) c_int;
@@ -26,6 +27,7 @@ pub const Tree = *const @TypeOf(Abi.stwo_rv64_trace_tree_on);
 pub const GlobalPairs = *const @TypeOf(Abi.stwo_rv64_global_pairs_on);
 pub const FractionFn = *const fn (*anyopaque, u32, *const Fractions) callconv(.c) c_int;
 pub const CumulativeFn = *const fn (*anyopaque, u32, *const Cumulative) callconv(.c) c_int;
+pub const ContributionKernels = struct { generate: *const fn (*anyopaque, u32, *const Contributions) callconv(.c) c_int, scan: GlobalPairs, cumulative: CumulativeFn };
 pub const SampleCheck = *const fn (*anyopaque, u32, [*]const u32, u32, [*]const [*]const u32, u32, u32, [*]const u32, u32, [*]u32) callconv(.c) c_int;
 pub const SamplePrefill = *const fn (*anyopaque, u32, [*]u32, u32, [*]const u32, [*]const u32, u32, [*]u32) callconv(.c) c_int;
 pub const ChannelInit = *const @TypeOf(Abi.stwo_rv64_channel_init_on);
@@ -58,6 +60,7 @@ pub const Kernels = struct {
     base: BaseFn,
     fractions: FractionFn,
     cumulative: CumulativeFn,
+    contributions: ?ContributionKernels = null,
     global_pairs: GlobalPairs,
     b2n: B2n,
     n2b_columns: N2bColumns,
@@ -98,6 +101,7 @@ pub const Kernels = struct {
             .base = try sym(BaseFn, base, "stwo_circuit_base_witness_on"),
             .fractions = try sym(FractionFn, base, "stwo_circuit_om31_fractions_on"),
             .cumulative = try sym(CumulativeFn, base, "stwo_circuit_om31_cumulative_on"),
+            .contributions = try contributionBinding(base.lookup(@FieldType(ContributionKernels, "generate"), "stwo_circuit_om31_contributions_v1_on"), base.lookup(GlobalPairs, "stwo_rv64_global_contributions_scan_v1_on"), base.lookup(CumulativeFn, "stwo_circuit_om31_cumulative_inplace_v1_on")),
             .global_pairs = try sym(GlobalPairs, base, "stwo_rv64_global_pairs_on"),
             .b2n = try sym(B2n, base, "stwo_ntt_b2n_columns_compact_on"),
             .n2b_columns = try sym(N2bColumns, base, "stwo_lde_n2b_columns_on"),
@@ -114,6 +118,11 @@ pub const Kernels = struct {
         };
     }
 };
+
+fn contributionBinding(generate: ?@FieldType(ContributionKernels, "generate"), scan: ?GlobalPairs, cumulative: ?CumulativeFn) !?ContributionKernels {
+    if (generate == null and scan == null and cumulative == null) return null;
+    return .{ .generate = generate orelse return error.MissingOuterJobSymbol, .scan = scan orelse return error.MissingOuterJobSymbol, .cumulative = cumulative orelse return error.MissingOuterJobSymbol };
+}
 
 fn compactEager(base: *std.DynLib) !bool {
     const Capability = *const fn () callconv(.c) c_int;
@@ -269,12 +278,25 @@ pub const RawChannel = struct {
 };
 
 test "outer kernel descriptors keep their native ABI" {
+    try std.testing.expectEqual(@as(usize, 80), @sizeOf(Contributions));
     try std.testing.expectEqual(@as(usize, 96), @sizeOf(Fractions));
     try std.testing.expectEqual(@as(usize, 40), @sizeOf(Cumulative));
     try std.testing.expectEqual(@as(usize, 56), @sizeOf(AssignmentJob));
     try std.testing.expectEqual(@as(usize, 72), @sizeOf(Abi.GlobalPairs));
     try std.testing.expectEqual(@as(usize, 32), @sizeOf(Abi.MixedSegment));
     try std.testing.expectEqual(@as(u64, 0x4f4d33310000002a), RawChannel.chainBase(42));
+}
+
+test "outer contribution kernels select a complete bundle or refuse a partial image" {
+    for (0..8) |mask| {
+        const generate: ?@FieldType(ContributionKernels, "generate") = if (mask & 1 != 0) @ptrFromInt(0x1000) else null;
+        const scan: ?@FieldType(ContributionKernels, "scan") = if (mask & 2 != 0) @ptrFromInt(0x2000) else null;
+        const cumulative: ?@FieldType(ContributionKernels, "cumulative") = if (mask & 4 != 0) @ptrFromInt(0x3000) else null;
+        if (mask == 0) try std.testing.expect((try contributionBinding(generate, scan, cumulative)) == null) else if (mask == 7) {
+            const bound = (try contributionBinding(generate, scan, cumulative)).?;
+            try std.testing.expect(bound.generate == generate.? and bound.scan == scan.? and bound.cumulative == cumulative.?);
+        } else try std.testing.expectError(error.MissingOuterJobSymbol, contributionBinding(generate, scan, cumulative));
+    }
 }
 
 test "outer compact eager binding requires claimed capability and matching kernel" {
