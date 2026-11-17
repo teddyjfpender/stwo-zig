@@ -110,6 +110,8 @@ fn addFamily(b: *std.Build, frontend: *std.Build.Module, protocol: ProtocolModul
             node.addImport(name, dependency);
         }
         for (contract.object.get("injected_modules").?.array.items) |injected| {
+            // Bound only on the package's focused_test_root (riscv_focused_suite.bind), never on the library node.
+            if (std.mem.eql(u8, injected.string, "focused_suite")) continue;
             if (!std.mem.eql(u8, injected.string, "interop_postcard"))
                 std.debug.panic("unbound RISC-V injection {s}: {s}", .{ entry.name, injected.string });
             node.addImport(injected.string, postcard);
