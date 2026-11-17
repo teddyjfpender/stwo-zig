@@ -1,0 +1,38 @@
+{
+  "status": "qualified trusted-source-literal fold; no new physical admission",
+  "production_admitted": false,
+  "security_qualified": false,
+  "only_folded_ids": [
+    "source literalZERO",
+    "source literalONE"
+  ],
+  "witness_values_inspected": false,
+  "source_logical_identity": "unchanged",
+  "before": {
+    "MAC12_rows": 32543,
+    "nonSG_rows": 16391,
+    "normalized_values": 34035,
+    "SSA_unit_read_mass": 815035
+  },
+  "after": {
+    "MAC12_rows": 32533,
+    "nonSG_rows": 16381,
+    "normalized_values": 34025,
+    "SSA_unit_read_mass": 814785
+  },
+  "whole_provider_geometry": "log15 unchanged; no measured speedup",
+  "potential": "nonSG below2^14by3; separatelysizedcomponenttradeoff requiresopening/composition review",
+  "passed": [
+    "15ReleaseSafe tests",
+    "everyoriginalsourcevalue equal to normalized output",
+    "variable IDs remainvariable even atwitness0/1",
+    "all25ports andassert masses exact",
+    "all6planOOM +first/lastlowerOOM clean"
+  ],
+  "command": "zig test -O ReleaseSafe --dep stwo_core -Mroot=src/frontends/riscv/rv64_bn254_pairing_lowering_test_root.zig -O ReleaseSafe -Mstwo_core=src/core/mod.zig",
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/literal_fold.zig": "906581b2ed27bd630b1adfd7fed257f330b6f332493a712a4ec81a08a597d01a",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/lowering.zig": "d1fbadda264c3c3563f5bb24c26593abd68004d4974d744ea19343e6239e3230",
+    "src/frontends/riscv/rv64/air/delegations/bn254_pairing/lowering_tests.zig": "b7617d39b64f6f43661e5ff6671e3f9f1c490a0d9f801cdbb85a31c848c40742"
+  }
+}
