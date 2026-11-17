@@ -25,7 +25,7 @@ test "e2e probe: golden ELF matches its pinned sha256" {
     defer a.free(bytes);
     var parsed = try manifest();
     defer parsed.deinit();
-    const pinned = parsed.value.object.get("sha256") orelse return error.MissingProbeSha256;
+    const pinned = parsed.value.object.get("elf_sha256") orelse return error.MissingProbeSha256;
     var digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
     const actual = std.fmt.bytesToHex(digest, .lower);
@@ -50,13 +50,14 @@ test "e2e probe: one flipped ELF byte breaks the pin" {
     var digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
     const actual = std.fmt.bytesToHex(digest, .lower);
-    try std.testing.expect(!std.mem.eql(u8, parsed.value.object.get("sha256").?.string, &actual));
+    try std.testing.expect(!std.mem.eql(u8, parsed.value.object.get("elf_sha256").?.string, &actual));
 }
 
 test "e2e probe: pinned expected output, when present, is a well-formed statement" {
     var parsed = try manifest();
     defer parsed.deinit();
-    const expected = parsed.value.object.get("expected_output") orelse return;
+    const request = parsed.value.object.get("request") orelse return;
+    const expected = request.object.get("expected_output") orelse return;
     const bytes = try frontend.statement.expectedFromHex(expected.string);
     var corrupted = bytes;
     corrupted[0] ^= 1;
