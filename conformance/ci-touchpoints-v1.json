@@ -1659,6 +1659,8 @@
           "discover",
           "-s",
           "tools/opstack/tests",
+          "-t",
+          "tools",
           "-p",
           "test_*.py"
         ]
