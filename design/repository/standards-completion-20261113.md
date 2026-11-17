@@ -13,7 +13,7 @@ them into passes. No remote host or CI run is an implementation prerequisite.
 
 | Requirement | Current evidence | Remaining gate |
 |---|---|---|
-| Ethereum physical corpus (#382) | Both original CSP suites pass on the local native M5 Max in ReleaseFast at q70/P26 with fresh receivers and all original negatives. Historical sizes and native-feature failures remain preserved. | Broad local Debug/ReleaseFast corpus and all 21 historical cases, publication and recursion. The saved x86-native defect remains deferred with Linux qualification. |
+| Ethereum physical corpus (#382) | Both original CSP suites pass on the local native M5 Max in Debug and ReleaseFast at q70/P26 with fresh receivers and all original negatives. Historical sizes and native-feature failures remain preserved. | Broad local Debug/ReleaseFast corpus and all 21 historical cases, publication and recursion. The saved x86-native defect remains deferred with Linux qualification. |
 | Validation partitions (#383) | Four default-owner aliases reuse the exact Run artifacts and retain the 479-case aggregate floor. Completed-command receipts survive interruption and record exact-child kernel resources with explicit RSS scope; a killed lane remains INCOMPLETE. CSP has two exact original suite images with floor one each under the original aggregate target. | Current-source physical owner timing/memory and broad coverage qualification. CSP still inherits Cairo AOT prerequisites through its actual CPU integration graph. |
 | Source ownership/size (#343) | All manual source owners fit unchanged ceilings; full non-strict source conformance passes with zero findings. Private helpers retain the original named cases and arithmetic authority. | Formal-source rebinding is out of active scope; physical qualification remains separate below. No ceiling was raised and moves earned no subtraction credit. |
 | Waist contracts (#359/#366) | All76 consumer roots/79 named cases are registered and configure with canonical SDK identities. Earlier standalone execution passed76/79 in ReleaseFast and75/78 in Debug. Latest focused Debug/ReleaseFast qualification executes complete Backend39, recursion provider32, actual transport consumer3 and upstream golden6 target cases, with finite origin-specific failure semantics. | Fresh complete consumer-matrix/aggregate execution remains open. The final-source RISC-V Metal Debug check again exceeded the unchanged1GiB cap (sampled1,113,538,560B); no case executed. Full proof/process behavior is separate from focused contracts. Canonical CUDA factory pointer identity and strict Engine guards remain enforced. |
@@ -307,3 +307,17 @@ One quiet workspace pair fell33.05s→7.55s with identical output; this is tooli
 time, not prover throughput. All nine final-tree census counters match the old
 algorithm exactly, including unowned files; all37 package rows are unchanged.
 Source+97/-15=+82; docs+10; no new configuration, flags, scripts or dependencies.
+
+## Native CSP Debug completion
+
+Both complete original CSP suites now pass native Debug and ReleaseFast locally.
+Blake2s Debug:19.922s whole body,12.560s prove/3.672s verify,789MB sampled RSS.
+Blake3 Debug:18.587s whole body,13.989s prove/2.123s verify,720MB sampled RSS.
+Original q70/P26,1,828cycles, fresh receivers and every negative assertion remain.
+
+ReleaseFast compile/runtime admission was4GiB; measured runtime637/738MB.
+Debug compilation used4GiB; Blake2s runtime kept maintained1GiB/110CPU/120wall.
+[Blake3's separate full-image admission](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6935671771) used1GiB/180CPU/120wall; actual113.55CPU.
+Its original110CPU SIGXCPU interruption stays INCOMPLETE, never relabeled or resumed.
+The4,700 common recorded Zig source identities match; ARM success is not an x86 fix.
+No production code, flags, fixtures, security profile or test body changed.
