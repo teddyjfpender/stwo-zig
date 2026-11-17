@@ -76,8 +76,11 @@ def local_build_command(command: list[str]) -> list[str]:
     return result
 
 
-def run_measured(argv: list[str], *, on_start=None, **kwargs: Any) -> tuple[subprocess.CompletedProcess, dict[str, Any]]:
-    """Wait for this exact child, retaining native output, parentage and exit semantics."""
+def run_measured(argv: list[str], *, on_start=None, on_reap=None, **kwargs: Any) -> tuple[subprocess.CompletedProcess, dict[str, Any]]:
+    """Measure the exact child; on_start borrows pipes and must not poll/reap it.
+
+    on_reap runs only after wait4 has set child.returncode, on success or failure.
+    """
     if not (sys.platform == "darwin" or sys.platform.startswith("linux")) or not hasattr(os, "wait4"):
         raise PlanError("command resource measurement requires Linux/macOS os.wait4")
     with subprocess.Popen(argv, **kwargs) as child:
@@ -88,20 +91,48 @@ def run_measured(argv: list[str], *, on_start=None, **kwargs: Any) -> tuple[subp
             # Public wait-status conversion preserves negative signal return codes.
             # Mark the externally reaped child before Popen's context manager waits.
             child.returncode = os.waitstatus_to_exitcode(status)
-        except BaseException:
+        except BaseException as original:
+            # Reap an already-exited leader before cleanup can obscure its cause.
+            pid, status, usage = os.wait4(child.pid, os.WNOHANG)
+            cleanup = {"requested_signal": int(signal.SIGKILL), "already_exited": pid != 0}
+            if pid:
+                child.returncode = os.waitstatus_to_exitcode(status)
             if kwargs.get("start_new_session"):
                 try:
                     os.killpg(child.pid, signal.SIGKILL)
                 except ProcessLookupError:
                     pass
-                except PermissionError:
-                    if child.poll() is None:  # Darwin may deny signaling an already-dead group.
-                        raise
-            else:
-                child.kill()
-            child.wait()
+                except PermissionError as error:
+                    original.add_note("owned group cleanup: " + repr(error))
+                    if not pid:
+                        try:
+                            os.kill(child.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+            elif not pid:
+                try:
+                    os.kill(child.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            if not pid:
+                _, status, usage = os.wait4(child.pid, 0)
+                child.returncode = os.waitstatus_to_exitcode(status)
+            cleanup["wait_status"] = status
+            if on_reap is not None:
+                try:
+                    on_reap(subprocess.CompletedProcess(argv, child.returncode), command_resources(usage), cleanup)
+                except BaseException as error:
+                    original.add_note("termination observer: " + repr(error))
             raise
-    return subprocess.CompletedProcess(argv, child.returncode), {
+    completed, resources = subprocess.CompletedProcess(argv, child.returncode), command_resources(usage)
+    if on_reap is not None:
+        on_reap(completed, resources, None)
+    return completed, resources
+
+
+def command_resources(usage):
+    """Kernel measurements from the exact wait4 operation, including failed callbacks."""
+    return {
         "schema": "stwo-command-resources-v1",
         "collector": "os.wait4",
         "rss_scope": "kernel maximum individual process RSS; not concurrent process-tree aggregate",

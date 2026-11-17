@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import os
+import signal
 from pathlib import Path
 import struct
 import subprocess
@@ -37,8 +38,14 @@ while True:
   send(3,struct.pack('<II',len(text),len(names))+struct.pack('<%dI'%len(names),*offsets)+struct.pack('<%dI'%len(names),*[cfg.get('panic',0)]*len(names))+text)
  if tag==5:
   i,=struct.unpack('<I',body)
+  if cfg.get('sleep'):__import__('time').sleep(20)
   with Path(CONFIG+'.runs').open('a') as f:f.write(str(i)+'\n')
+  if cfg.get('descendant'):
+   import subprocess
+   p=subprocess.Popen([sys.executable,'-c','import time;time.sleep(20)'])
+   Path(CONFIG+'.pid').write_text(str(p.pid))
   if cfg.get('crash')==i:os._exit(7)
+  if cfg.get('signal')==i:os.kill(os.getpid(),15)
   send(99 if cfg.get('unknown') else 4,struct.pack('<II',i+1 if cfg.get('forged') else i,cfg.get('flags',[0,0])[i]))
   if cfg.get('duplicate'):send(4,struct.pack('<II',i,0))
 '''
@@ -94,6 +101,59 @@ class ExactCaseTests(unittest.TestCase):
             self.run_cases(cases.sha(self.out / "receipt.json"))
         self.assertEqual("0\n1\n", Path(str(self.config) + ".runs").read_text())
 
+    def test_eof_retains_exit_and_signal_without_reclassifying_protocol_failure(self):
+        for key, code in (("crash", 7), ("signal", -signal.SIGTERM)):
+            with self.subTest(key=key):
+                self.out = self.folder / key
+                self.config.write_text(json.dumps({key: 0}))
+                with self.assertRaisesRegex(PlanError, "expected one result"):
+                    self.run_cases()
+                record = json.loads((self.out / "000000.interrupted.json").read_text())
+                self.assertEqual("INCOMPLETE", record["status"])
+                self.assertEqual(code, record["termination"]["returncode"])
+                self.assertTrue(record["termination"]["cleanup"]["already_exited"])
+                self.assertGreater(record["termination"]["resources"]["peak_rss_bytes"], 0)
+                self.assertGreater(record["duration_ns"], 0)
+                self.assertEqual({}, record["evidence_errors"])
+                for extension in (".stdout.bin", ".stderr"):
+                    self.assertEqual(cases.sha(self.out / ("000000" + extension)), record["evidence"][extension])
+                with self.assertRaisesRegex(PlanError, "cannot automatically retry"):
+                    self.run_cases(cases.sha(self.out / "receipt.json"))
+
+        self.out = self.folder / "hash-unavailable"
+        self.config.write_text('{"crash":0}')
+        original_sha = cases.sha
+        def unavailable(path):
+            if path.suffix == ".stderr":
+                raise OSError("evidence unavailable")
+            return original_sha(path)
+        with mock.patch.object(cases, "sha", side_effect=unavailable), self.assertRaisesRegex(PlanError, "expected one result"):
+            self.run_cases()
+        record = json.loads((self.out / "000000.interrupted.json").read_text())
+        self.assertIsNone(record["evidence"][".stderr"])
+        self.assertIn("evidence unavailable", record["evidence_errors"][".stderr"])
+        self.assertEqual(7, record["termination"]["returncode"])
+
+    def test_live_malformed_protocol_drains_owned_descendant_and_retains_cause(self):
+        self.config.write_text('{"unknown":true,"descendant":true}')
+        with self.assertRaisesRegex(PlanError, "expected one result"):
+            self.run_cases()
+        record = json.loads((self.out / "000000.interrupted.json").read_text())
+        self.assertEqual(-signal.SIGKILL, record["termination"]["returncode"])
+        self.assertFalse(record["termination"]["cleanup"]["already_exited"])
+        pid = Path(str(self.config) + ".pid").read_text()
+        remaining = subprocess.run(["ps", "-p", pid, "-o", "stat="], capture_output=True, text=True)
+        self.assertTrue(remaining.returncode != 0 or remaining.stdout.strip().startswith("Z"))
+
+    def test_guard_kill_retains_exact_native_status(self):
+        self.config.write_text('{"sleep":true}')
+        session = cases.Session(self.binary, 17, self.folder / "guard", 0, None)
+        with mock.patch.object(cases, "RSS_CAP", -1), self.assertRaises(PlanError):
+            session.run(ROOT)
+        self.assertEqual("RSS_CAP", session.reason)
+        self.assertEqual(-signal.SIGKILL, session.termination["returncode"])
+        self.assertGreater(session.termination["resources"]["peak_rss_bytes"], 0)
+
     def test_bad_version_inventory_panic_and_frames_fail_closed(self):
         for key, value in (("version", "0.16.0"), ("change", True), ("panic", 1), ("names", ["same", "same"]),
                            ("forged", True), ("duplicate", True), ("unknown", True)):
@@ -133,6 +193,11 @@ class ExactCaseTests(unittest.TestCase):
         with mock.patch.object(cases, "RSS_CAP", -1), self.assertRaises(PlanError):
             self.run_cases()
         self.assertEqual("INCOMPLETE", json.loads((self.out / "receipt.json").read_text())["status"])
+        interrupted = list(self.out.glob("*.interrupted.json"))
+        # The watchdog may stop discovery before a selected case is admitted.
+        if interrupted:
+            record = json.loads(interrupted[0].read_text())
+            self.assertEqual(-signal.SIGKILL, record["termination"]["returncode"])
 
     def test_binary_and_seed_admission_cannot_change_on_resume(self):
         with self.assertRaisesRegex(PlanError, "SHA256"):

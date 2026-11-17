@@ -274,3 +274,17 @@ The internal SDK exposes76 per-consumer aliases reusing each original test,
 discovery guard and installed artifact. All76 plus five aggregate steps configure
 exactly once; one actual Core consumer passes through its alias under326MB.
 These are internal SDK targets, not public root-dispatch or full-matrix proof.
+
+## Interrupted local-check evidence
+
+The [bounded measurement repair](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6934648223)
+retains native wait status, resource usage and output hashes when the test
+protocol ends early. Cleanup preserves the original exception and incomplete
+classification; missing evidence is explicit. It does not infer the cause of
+the earlier packet-worker interruption or retry that case.
+
+All29 focused Python tests pass locally in3.93s at57.5MB peak RSS, including
+real exit7, self-SIGTERM, descendant cleanup and evidence-failure cases.
+Source+152/-17=+135 against+160; documentation+14; no configuration, flags,
+scripts, dependencies, proof-profile or resource-schema changes. Local validation
+is the acceptance path; Linux and formal verification remain outside scope.

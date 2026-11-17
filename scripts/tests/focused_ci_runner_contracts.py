@@ -443,15 +443,35 @@ class CommandResourceReceiptTests(unittest.TestCase):
         script = ("import subprocess,sys,time; "
                   "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(10)']); "
                   "print(p.pid,flush=True); time.sleep(10)")
-        def interrupt(child):
+        original = RuntimeError("callback interrupted")
+        def fail(child):
             child_pid.append(int(child.stdout.readline()))
-            raise RuntimeError("callback interrupted")
-        with self.assertRaisesRegex(RuntimeError, "callback interrupted"):
+            raise original
+        observed = []
+        with self.assertRaises(RuntimeError) as raised:
             ci_scope_run.run_measured([sys.executable, "-c", script], stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL, start_new_session=True, on_start=interrupt)
+                stderr=subprocess.DEVNULL, start_new_session=True, on_start=fail,
+                on_reap=lambda *result: observed.append(result))
+        self.assertIs(original, raised.exception)
+        completed, usage, cleanup = observed[0]
+        self.assertEqual(-signal.SIGKILL, completed.returncode)
+        self.assertFalse(cleanup["already_exited"])
+        self.assertGreater(usage["peak_rss_bytes"], 0)
         remaining = subprocess.run(["ps", "-p", str(child_pid[0]), "-o", "stat="],
                                    capture_output=True, text=True)
         self.assertTrue(remaining.returncode != 0 or remaining.stdout.strip().startswith("Z"))
+
+    def test_failed_reap_observer_does_not_replace_original_callback_error(self):
+        original = RuntimeError("original callback")
+        def fail(_):
+            raise original
+        def observer(*_):
+            raise ValueError("observer failed")
+        with self.assertRaises(RuntimeError) as raised:
+            ci_scope_run.run_measured([sys.executable, "-c", "import time;time.sleep(10)"],
+                                     start_new_session=True, on_start=fail, on_reap=observer)
+        self.assertIs(original, raised.exception)
+        self.assertIn("termination observer", raised.exception.__notes__[0])
 
     def test_unsupported_measurement_never_launches_or_fabricates_usage(self):
         with mock.patch.object(ci_scope_run.sys, "platform", "unsupported"), mock.patch.object(

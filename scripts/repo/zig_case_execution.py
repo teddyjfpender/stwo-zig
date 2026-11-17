@@ -102,6 +102,7 @@ class Session:
         self.base, self.index, self.metadata = output, index, metadata
         self.stop, self.peak, self.reason = threading.Event(), 0, None
         self.thread = None
+        self.termination = None
 
     def watch(self, child):
         deadline = time.monotonic() + WALL_SECONDS
@@ -159,6 +160,11 @@ class Session:
                 captured.flush()
                 os.fsync(captured.fileno())
 
+    def reaped(self, completed, resources, cleanup):
+        self.termination = {"returncode": completed.returncode,
+                            "signal": -completed.returncode if completed.returncode < 0 else None,
+                            "resources": resources, "cleanup": cleanup}
+
     def run(self, cwd):
         def limits():
             resource.setrlimit(resource.RLIMIT_CPU, (CPU_SECONDS, CPU_SECONDS))
@@ -166,7 +172,7 @@ class Session:
             try:
                 completed, usage = run_measured(self.argv, cwd=cwd, stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE, stderr=stderr, start_new_session=True,
-                    preexec_fn=limits, on_start=self.exchange)
+                    preexec_fn=limits, on_start=self.exchange, on_reap=self.reaped)
                 require(completed.returncode == 0 and self.reason is None, "unclean process/guard termination")
                 return usage
             finally:
@@ -242,8 +248,21 @@ def execute_locked(binary, expected_sha, seed, output, cwd, resume_digest, max_c
         try:
             usage = session.run(cwd)
         except BaseException as error:
-            write_json(base.with_suffix(".interrupted.json"),
-                       {"status": "INCOMPLETE", "guard_reason": session.reason, "error": repr(error)})
+            evidence, evidence_errors = {}, {}
+            for extension in (".stdout.bin", ".stderr"):
+                try:
+                    evidence[extension] = sha(base.with_suffix(extension))
+                except Exception as hash_error:
+                    evidence[extension] = None
+                    evidence_errors[extension] = repr(hash_error)
+            try:
+                write_json(base.with_suffix(".interrupted.json"),
+                           {"status": "INCOMPLETE", "guard_reason": session.reason, "error": repr(error),
+                            "termination": session.termination, "duration_ns": time.monotonic_ns() - started,
+                            "sampled_aggregate_peak_rss_bytes": session.peak,
+                            "evidence": evidence, "evidence_errors": evidence_errors})
+            except Exception as receipt_error:
+                error.add_note("interrupted receipt: " + repr(receipt_error))
             raise
         require(sha(binary) == expected_sha, "executable changed during execution")
         record = {"index": index, "name": names[index], "flags": session.flags,
