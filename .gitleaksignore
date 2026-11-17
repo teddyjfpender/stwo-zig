@@ -1,0 +1,3 @@
+# Reviewed gitleaks false positives, by exact commit fingerprint (see .github/gitleaks.toml).
+# design/opstack/COMPLETION.md:94 is prose ("wrong-key proof, missing/duplicated ... leaves"), not a credential.
+cff1ed40c6704aa7856cf08eea4fa978e3545ef2:design/opstack/COMPLETION.md:generic-api-key:94
