@@ -59,7 +59,7 @@ MARK = re.compile(r"GPU_RESIDENT_BLOCK block=(\d+) trial=(\d+) iteration=(\d+) r
 
 
 def plan_for(blocks, args, run, paths, root):
-    template = P.plan_template()
+    template = dict(P.plan_template(), device_cap_bytes=R.positive(getattr(args, "device_cap_bytes", 28 << 30), "device cap bytes"))
     gpus = getattr(args, "gpus", 2)
     if type(gpus) is not int or gpus not in (1, 2, 4):
         raise ValueError("resident services require 1, 2 or 4 GPUs")
@@ -739,6 +739,7 @@ def main():
     s = sub.add_parser("serve")
     s.add_argument("blocks", type=int, nargs="+")
     s.add_argument("--gpus", type=int, choices=(1, 2, 4), default=2)
+    add_device_cap_argument(s)
     s.add_argument("--repeat", type=int, default=2)
     s.add_argument("--allow-scale-probe", action="store_true", help="permit one 24697070 request only, with --repeat 1")
     s.add_argument("--bench-basket-block", action="store_true", help="rv64_m8_bench15.py only: one M3-basket block per service, --repeat <= 2")
@@ -818,7 +819,7 @@ def main():
 
 
 from scripts.rv64.rv64_resident_resources import make_helpers as _rv64_resident_resources_helpers
-(tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary, service_worker,) = _rv64_resident_resources_helpers(
+(tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary, service_worker, add_device_cap_argument,) = _rv64_resident_resources_helpers(
     B,
     BASELINE_RUNS,
     FIELD_HASH,
@@ -839,7 +840,7 @@ from scripts.rv64.rv64_resident_resources import make_helpers as _rv64_resident_
     threading,
     time,
 )
-for _owned_helper in (tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary, service_worker,):
+for _owned_helper in (tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary, service_worker, add_device_cap_argument,):
     _owned_helper.__module__ = __name__
     _owned_helper.__qualname__ = _owned_helper.__name__
 

@@ -25,7 +25,8 @@ class GateTests(unittest.TestCase):
                 resources = {'schedule': dict(resident.P.DEFAULT_NATIVE_SCHEDULE, lane_workers=lane_workers)}
                 template = {'profile': 'test', 'device_cap_bytes': 24000000000,
                             'jobs': [{'block': 24628607, 'segments': 7, 'resources': resources}]}
-                args = SimpleNamespace(gpus=count, repeat=1, env=[], no_default_env=True)
+                cap = (40 << 30) if count == 1 else (28 << 30)
+                args = SimpleNamespace(gpus=count, repeat=1, env=[], no_default_env=True, device_cap_bytes=cap)
                 assets = {name: base / name for name in ('driver', 'library', 'receiver')}
                 with patch.object(resident, 'M3', base), \
                         patch.object(resident.P, 'plan_template', return_value=template):
@@ -42,7 +43,9 @@ class GateTests(unittest.TestCase):
                 worker = resident.service_worker(plan)
                 environment = resident.B.worker_environment(worker, {})
                 self.assertEqual(','.join(map(str, range(count))), environment['CUDA_VISIBLE_DEVICES'])
-                self.assertEqual([24000000000] * count, worker['device_caps_bytes'])
+                self.assertEqual([cap] * count, worker['device_caps_bytes'])
+                self.assertEqual(','.join([str(cap)] * count), environment['STWO_RV64_GPU_DEVICE_CAPS'])
+                self.assertEqual(24000000000, template['device_cap_bytes'])
                 self.assertEqual('7', environment['STWO_RV64_GPU_PLANNED_CPU_WORKERS'])
                 self.assertEqual(list(range(count)), resident.PhysicalBudgetGuard.selected_devices(environment))
 
@@ -53,6 +56,15 @@ class GateTests(unittest.TestCase):
                         patch.object(resident, command) as dispatch:
                     resident.main()
                     self.assertEqual(count, dispatch.call_args.args[0].gpus)
+                    self.assertEqual(28 << 30, dispatch.call_args.args[0].device_cap_bytes)
+        with patch.object(sys, 'argv', ['resident', 'daemon', '24628607', '--tag', 'unit', '--device-cap-bytes', str(40 << 30)]), \
+                patch.object(resident, 'daemon') as dispatch:
+            resident.main()
+            self.assertEqual(40 << 30, dispatch.call_args.args[0].device_cap_bytes)
+        for invalid in ('0', '-1'):
+            with patch.object(sys, 'argv', ['resident', 'daemon', '24628607', '--tag', 'unit', '--device-cap-bytes', invalid]), \
+                    self.assertRaises(SystemExit):
+                resident.main()
         for invalid in ('3', '0', '-1'):
             with patch.object(sys, 'argv', ['resident', 'daemon', '24628607', '--tag', 'unit', '--gpus', invalid]), \
                     self.assertRaises(SystemExit):

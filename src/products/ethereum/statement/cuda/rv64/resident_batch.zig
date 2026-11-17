@@ -71,7 +71,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     if (combined) {
         _ = try ReadyPolicy.workers(manifest.recursion_mode, config.ids, manifest.recursion_worker_budget, manifest.recursion_max_pending_authorities);
         if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_CAPS")) @memset(config.caps, 28 << 30);
-        for (config.caps) |cap| if (cap > 28 << 30 or manifest.combined_immutable_device_bytes == 0 or manifest.combined_immutable_device_bytes > cap) return error.InvalidCombinedBatchBudget;
+        for (config.caps) |cap| if (manifest.combined_immutable_device_bytes == 0 or manifest.combined_immutable_device_bytes > cap) return error.InvalidCombinedBatchBudget;
         if (manifest.combined_host_bytes == 0 or manifest.immutable_host_key_bytes > manifest.combined_host_bytes) return error.InvalidCombinedBatchBudget;
         for (manifest.execution_order) |block| {
             var name: [24]u8 = undefined;

@@ -173,6 +173,9 @@ def make_helpers(
             db.close()
 
 
+    def add_device_cap_argument(parser):
+        parser.add_argument("--device-cap-bytes", type=lambda value: R.positive(int(value), "device cap bytes"), default=28 << 30)
+
     def service_worker(plan):
         job = plan["jobs"][0]
         return {"device": ",".join(map(str, job["devices"])),
@@ -349,4 +352,4 @@ def make_helpers(
                           "cuda_api": {k: v["count"] for k, v in (receipt.get("cuda_api") or {}).items() if isinstance(v, dict) and "count" in v},
                           "requests": rows}, indent=1))
 
-    return (tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary, service_worker,)
+    return (tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary, service_worker, add_device_cap_argument,)

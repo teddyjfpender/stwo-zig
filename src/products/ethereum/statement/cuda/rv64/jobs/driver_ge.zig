@@ -351,6 +351,9 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     defer libs.close();
     const peer = try O.Peer.open(&libs.addon);
     const config = try mod.Config.fromEnv();
+    var device_budget = try @import("stwo_riscv_cuda_integration").rv64.execution.runtime.resident_router.Config.fromEnv(a);
+    defer device_budget.deinit(a);
+    if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_CAPS")) @memset(device_budget.caps, 28 << 30);
     // Build real immutable recursion classes before native workers carve the
     // device pool. Its cold proof construction is counted in init_ns.
     const recursion_classes = try Host.installRecursion(a, &libs, library, manifest_path, spool);
@@ -420,9 +423,12 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
         try binding.report(&text.writer);
         std.debug.print("GPU_M8_GN_BIND binding={s}\n", .{text.written()});
     }
-    // 28 GiB qualified cap per 5090 (rv64_combined_ethereum_main default);
-    // the driver plans against min(cap, measured free memory) per GPU.
-    var caps: [G.max_devices]u64 = @splat((28 << 30) / 4);
+    // Bind each configured budget to its physical worker; installation also
+    // limits it to the measured allocatable memory of that device.
+    var caps: [G.max_devices]u64 = undefined;
+    for (workers[0..made], 0..) |worker, i| caps[i] = for (device_budget.ids, device_budget.caps) |id, cap| {
+        if (id == worker.device_ordinal) break cap / 4;
+    } else return error.GpuNativeCapacityShape;
     const rc = R.Config{
         .capacity_words = caps[0..made],
         .max_segments = 64,
