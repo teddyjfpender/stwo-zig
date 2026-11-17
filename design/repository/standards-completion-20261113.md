@@ -13,7 +13,7 @@ them into passes. No remote host or CI run is an implementation prerequisite.
 
 | Requirement | Current evidence | Remaining gate |
 |---|---|---|
-| Ethereum physical corpus (#382) | Historical CSP successes preserved; current native Linux failures diagnosed separately from baseline-CPU success. Required security and original failure propagation retained. | Broad Debug/ReleaseFast corpus and all 21 historical physical cases, publication and recursion; actual native-feature root-cause fix. |
+| Ethereum physical corpus (#382) | Both original CSP suites pass on the local native M5 Max in ReleaseFast at q70/P26 with fresh receivers and all original negatives. Historical sizes and native-feature failures remain preserved. | Broad Debug/ReleaseFast corpus and all 21 historical physical cases, publication and recursion; actual native-feature root-cause fix. |
 | Validation partitions (#383) | Four default-owner aliases reuse the exact Run artifacts and retain the 479-case aggregate floor. Completed-command receipts survive interruption and record exact-child kernel resources with explicit RSS scope; a killed lane remains INCOMPLETE. CSP has two exact original suite images with floor one each under the original aggregate target. | Current-source physical owner timing/memory and broad coverage qualification. CSP still inherits Cairo AOT prerequisites through its actual CPU integration graph. |
 | Source ownership/size (#343) | All manual source owners fit unchanged ceilings; full non-strict source conformance passes with zero findings. Private helpers retain the original named cases and arithmetic authority. | Formal-source rebinding is out of active scope; physical qualification remains separate below. No ceiling was raised and moves earned no subtraction credit. |
 | Waist contracts (#359/#366) | All76 consumer roots/79 named cases are registered and configure with canonical SDK identities. Earlier standalone execution passed76/79 in ReleaseFast and75/78 in Debug. Latest focused Debug/ReleaseFast qualification executes complete Backend39, recursion provider32, actual transport consumer3 and upstream golden6 target cases, with finite origin-specific failure semantics. | Fresh complete consumer-matrix/aggregate execution remains open. The final-source RISC-V Metal Debug check again exceeded the unchanged1GiB cap (sampled1,113,538,560B); no case executed. Full proof/process behavior is separate from focused contracts. Canonical CUDA factory pointer identity and strict Engine guards remain enforced. |
@@ -24,7 +24,7 @@ them into passes. No remote host or CI run is an implementation prerequisite.
 
 ## Evidence interpretation
 
-The current Linux CSP native failures affect both canonical suites and persist
+The retained Linux CSP native failures affect both canonical suites and persist
 with one worker. An independently recorded baseline-CPU build passes both at
 the original profile and historical proof sizes. This narrows investigation to
 CPU-feature/codegen or recipe differences; it does not establish a root cause.
@@ -46,7 +46,7 @@ specific contracts; they do not qualify GPU hardware or timings.
 
 Small checks default to the enforced 1 GiB /120 s aggregate watchdog and the
 existing Zig build lock. Do not retry an identical oversized closure or silently
-raise the cap. The scoped CSP lease below is the sole recorded exception.
+raise the cap. Scoped CSP admission and its superseding decision are recorded below.
 Do not remove canonical imports, security, test discovery, acceptance floors,
 pins or rejection checks to make a local command fit. Capture a remaining
 physical gate explicitly when the admitted host cannot execute it.
@@ -246,3 +246,18 @@ scheme consumption, failed-proof output and byte assertions remain unchanged.
 The reused-diagnostic regression fails before the fix and passes in Debug and
 ReleaseFast afterward, including unchanged proof bytes, errors and ownership.
 Both use the default1GiB/120s/110CPU guard; no cap increase or retry was needed.
+
+## Superseding short CSP compiler admission
+
+The [delegated admission decision](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6933527883)
+revises only the original CSP compiler/operator lease to4GiB/120s/110CPU on the
+64GiB host, superseding the earlier operator-only no-increase rule. Proof
+settings, canonical providers, assertions and all prior cap receipts remain
+unchanged. This does not admit broad/default, block, Linux, formal, CI or GPU
+work. Stop at refusal without another increase; report actual footprint and
+semantic/runtime results separately. Other checks retain their existing leases.
+
+Both original ReleaseFast CSP bodies pass on native Apple M5 Max at q70/P26:
+B2 prove/verify0.820/0.294s; B3 0.937/0.180s, fresh receivers and negatives.
+Compile peaks3.419/3.429GB; runtime637/738MB. Instrumented measurements;
+this qualifies local ARM runtime, not the retained Emerald Rapids failure.
