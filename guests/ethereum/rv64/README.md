@@ -28,6 +28,12 @@ then runs the existing canonical projection and independent host validator.
 `zisk-input.bin`. Build artifacts live under the crate's ignored `target/`;
 published ELF/input/output/report files live at the explicit artifact path.
 
+**Known gap.** The `--prepare-fixture` comparison step still imports
+`autoresearch.benchmarks.ethereum_block_comparison`, which was retired from
+`main`. Fixture download, authentication, projection and host validation run;
+the comparison then fails on the missing module. Building without
+`--prepare-fixture` is unaffected.
+
 Runtime is one interrupt-free thread. A custom Rust target enables LLVM's
 forced atomic libcalls without the RISC-V A extension. Local 1/2/4/8-byte
 CAS/add/sub functions use volatile reads/writes plus compiler ordering fences.

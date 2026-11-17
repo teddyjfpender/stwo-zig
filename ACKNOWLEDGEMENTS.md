@@ -38,7 +38,7 @@ vector generators under [`tools/`](tools/README.md) (`stwo-vector-gen`,
 `stwo-interop-rs`, `stwo-air-derive-vector-gen` and others) build against
 pinned Stwo revisions. The LogUp-GKR prototype used Stwo's `prover/lookups`
 code as its read-only reference
-([design note](design/riscv/rv64-logup-gkr-prototype.md)). Licence: Apache 2.0.
+([design note](design/riscv/rv64-logup-gkr-prototype.md)). Licence: Apache-2.0.
 This repository uses the same licence, and we are grateful that StarkWare
 published such a clear, fast and well-tested prover to port.
 
@@ -48,54 +48,59 @@ crate define the Cairo lane. The Zig Cairo AIR, witness generation and proofs
 are checked against the official Stwo-Cairo and Stwo pair, and only the
 canonical Rust `verify_cairo` accepts a Cairo proof. Used in
 `src/frontends/cairo/`, `tools/stwo-cairo-*`, `tools/cairo-witness-compiler`
-and `vectors/cairo/`. The upstream sources are not redistributed; the tools
-pin them by revision.
+and `vectors/cairo/`. The tools fetch the upstream sources at pinned revisions
+instead of vendoring them.
 
 **[proving](https://github.com/starkware-libs/proving)** is StarkWare's
 monorepo for circuit recursion and the Cairo program runner. It is the single
 authority for the circuit recursion lane: `tools/stwo-circuit-oracle-rs`
-depends on it by pinned revision, and its checkpoints live under
-`vectors/circuit/`. The Cairo lane also uses its `cairo-program-runner-lib` to
+depends on it by pinned revision, and the checkpoints under
+`vectors/circuit/` are either that oracle's output or upstream files copied
+verbatim, each bound by `provenance.json`. The Cairo lane also uses its `cairo-program-runner-lib` to
 execute PIEs. `stwo-circuit-recursion-cpu` is byte-identical to its binaries
 on the canonical small registries.
 
 **[sequencer](https://github.com/starkware-libs/sequencer)** supplies the
 Starknet OS (`starknet_os`, `apollo_starknet_os_program`) that
 `tools/starknet-aggregator-rs` runs to aggregate multi-block proofs.
-**[SNOS](https://github.com/keep-starknet-strange/snos)** defines the RPC
-inputs that `tools/starknet-block-collector` records so that leaf PIEs can be
-rebuilt offline.
+**[SNOS](https://github.com/keep-starknet-strange/snos)** builds the Starknet
+OS input from RPC. `tools/starknet-block-collector` records every RPC response
+SNOS needs, so that leaf PIEs can be rebuilt offline.
 
 **[formal-proofs](https://github.com/starkware-libs/formal-proofs)** is
 StarkWare's Lean 4 verification of Stwo. Its LogUp result
 (`Stwo/Verification/Lookups/Logup.lean`) is the external formal evidence that
 [`design/soundness/SAIL_AIR_COMPOSITION.md`](design/soundness/SAIL_AIR_COMPOSITION.md)
 and [`TEAM_AB_INTERFACE.md`](design/soundness/TEAM_AB_INTERFACE.md) cite for the
-LogUp-to-multiset reduction. It is cited, not imported. Licence: Apache 2.0.
+LogUp-to-multiset reduction. It is cited, not imported. Licence: Apache-2.0.
 
 ## Ethereum execution
 
 **[stateless](https://github.com/paradigmxyz/stateless)** by Paradigm provides
 `stateless-validator-reth`, the stateless block validator built on Reth. The
 [RV32IM](guests/ethereum/rv32/README.md) and [RV64IM](guests/ethereum/rv64/README.md)
-Ethereum guests run it **unmodified** at the pinned revision `a134a621`. The
-host [projection and validation tools](guests/ethereum/README.md) use
-`stateless-validator-common` and `stateless-validator-reth`. It makes a
-pure-Rust, reproducible Ethereum guest possible, and every Ethereum result in
-this repository rests on it.
+Ethereum guests run `stateless-validator-reth` **unmodified** at the pinned
+revision `a134a621`; the RV64 service profiles patch only its `zeth-mpt`
+dependency (below). The host [projection and validation tools](guests/ethereum/README.md)
+use `stateless-validator-common` and `stateless-validator-reth`, so the
+expected output that every Ethereum guest, the C++ client included, is checked
+against also comes from it. It makes a pure-Rust, reproducible Ethereum guest
+possible.
 
 **[RISC Zero](https://github.com/risc0)** wrote `zeth-mpt`, the sparse Merkle
 Patricia trie used by the stateless validator (source headers: Copyright 2025
-RISC Zero, Inc.). A copy with small RLP decoding changes is vendored at
-[`guests/ethereum/rv64/vendor/zeth-mpt/`](guests/ethereum/rv64/vendor/README.md).
-Licence: Apache 2.0 per the source headers; the manifest declares MIT OR
-Apache-2.0.
+RISC Zero, Inc.). A copy of `crates/zeth-mpt` from the pinned stateless
+revision, with small RLP decoding changes, is vendored at
+[`guests/ethereum/rv64/vendor/zeth-mpt/`](guests/ethereum/rv64/vendor/README.md)
+for the RV64 service profiles. Licence: Apache-2.0 per the source headers; the
+manifest declares `MIT OR Apache-2.0`.
 
 **[revm](https://github.com/bluealloy/revm)** is the Rust EVM that the Rust
 guests execute. `revm-precompile` is a direct dependency. Patched copies of
 `revm-interpreter` and `revm-bytecode` 42.0.0 are vendored under
-`guests/ethereum/rv64/vendor/`; the patches add RV64IM word paths and the
-`arith256_mod` service. Licence: MIT.
+`guests/ethereum/rv64/vendor/` for the RV64 service profiles. The patches add
+RV64IM word paths, a table-driven JUMPDEST analysis, the admitted
+`arith256_mod` service and execution-only arithmetic candidates. Licence: MIT.
 
 **[Alloy](https://github.com/alloy-rs)** provides the consensus types,
 primitives and signer-recovery hook (`alloy-consensus`, `alloy-primitives`)
@@ -107,13 +112,13 @@ implementation. Its baseline interpreter (v0.24.0) is the EVM of the
 [evmone client guest](guests/ethereum/client_evmone/README.md). Its KZG test
 vectors feed the client's curve tests. Our RV64IM interpreter work is
 carried as patches in `guests/ethereum/client_evmone/patches/`. Licence:
-Apache 2.0. The source is fetched at a pinned commit and not committed.
+Apache-2.0. The source is fetched at a pinned commit and not committed.
 
 **[intx](https://github.com/chfast/intx)** (v0.15.0, 256-bit integers) and
 **[blst](https://github.com/supranational/blst)** (v0.3.17, BLS12-381 by
 Supranational) are evmone's dependencies in the client guest. The patches
 give blst 64-bit limbs and give intx byte-wise big-endian conversion and
-column-wise multiplication on RV64IM. Licence: Apache 2.0. Both are
+column-wise multiplication on RV64IM. Licence: Apache-2.0 (both). Both are
 fetched, not committed.
 
 **The Ethereum execution spec tests** (`tests@v21.0.2` blockchain tests)
@@ -130,7 +135,7 @@ RISC-V zkVM. Its team's public work shaped much of our Ethereum line:
   ZisK's C++ Ethereum block client. Its block pipeline, state database and
   evmone patch stack form the
   [evmone client guest](guests/ethereum/client_evmone/README.md). The source is
-  fetched at a pinned commit and not committed. Licence: Apache-2.0 OR MIT.
+  fetched at a pinned commit and not committed. Licence: `Apache-2.0 OR MIT`.
 - **Block fixtures.** [zisk-eth-client](https://github.com/0xPolygonHermez/zisk-eth-client)
   publishes the Reth-guest mainnet block inputs that make up our 15-block
   regression basket ([`tests/fixtures/ethereum/basket.json`](tests/fixtures/ethereum/basket.json))
@@ -160,20 +165,23 @@ clients and measurements that others can reproduce.
 
 **[RustCrypto](https://github.com/RustCrypto)** maintains `k256`, `ecdsa` and
 `sha2`. Patched copies of `k256` 0.13.4, `ecdsa` 0.16.9 and `sha2` 0.10.9 are
-vendored under `guests/ethereum/rv64/vendor/`. They add the secp256k1 service
-path, variable-time recovery for public data and a candidate SHA-256 hook.
-Unmodified `sha2` is the differential reference for
+vendored under `guests/ethereum/rv64/vendor/`. The `k256` copy adds the
+secp256k1 projective service path and variable-time GLV for public signature
+data, the `ecdsa` copy skips the re-verification that recovery already
+implies, and the `sha2` copy carries a candidate SHA-256 compression hook.
+Unmodified crates.io `sha2` is the differential reference for
 [`guests/ethereum/tests/sha256_precompile/`](guests/ethereum/tests/sha256_precompile/)
-and for our own RV64 SHA-256. Licence: Apache-2.0 OR MIT. The upstream licence
-files are kept beside each copy.
+(0.10.9) and for our own RV64 SHA-256, `vendor/sha2-rv64/` (0.11.0). Licence:
+`Apache-2.0 OR MIT`. The upstream licence files are kept beside each copy.
 
 **[Plonky3](https://github.com/Plonky3/Plonky3)** defines the Poseidon2-M31
 width-24 permutation that this repository pins. The reference sources are in
 [`third_party/poseidon2_plonky3/`](third_party/poseidon2_plonky3/) (reference
-only, not compiled). They are consumed by
+only, not compiled). The derived
+`src/waist/core/crypto/poseidon2_m31_w24_constants.zig`,
 `src/waist/core/crypto/poseidon2_m31_w24.zig` and
-`src/backends/cuda/native/rv64/poseidon2_m31.cuh`, which carry the Plonky3
-copyright notice. Licence: MIT.
+`src/backends/cuda/native/rv64/poseidon2_m31.cuh` carry the Plonky3 copyright
+notice. Licence: MIT.
 
 **[bzip2](https://sourceware.org/bzip2/)** 1.0.8 provides the compressor for
 the official Stwo-Cairo binary proof transport. A minimal closure is vendored
@@ -196,8 +204,9 @@ architectural test corpus (`conformance/riscv/arch-test/`). Both are pinned in
 the upstream ledger.
 
 **[Unicorn](https://www.unicorn-engine.org/)** 2.1.4 is the independent RV64
-execution oracle in `scripts/rv64/` (differential execution, retirement counts
-and the Ethereum guest's oracle linkage). Its agreement is execution evidence,
+execution oracle in `scripts/rv64/`: differential retirement comparisons,
+independent retirement counts, and the optional execution linkage of the
+RV64 Ethereum guest. Its agreement is execution evidence,
 not ISA conformance.
 
 **[Stark-V](https://github.com/ClementWalter/stark-v)** by Clément Walter is
@@ -240,10 +249,10 @@ projects' code is in this repository.
   [`rv64-m9-frontier-gap.md`](design/riscv/rv64-m9-frontier-gap.md).
 - **ZisK**, credited [above](#zisk).
 - **[SP1](https://github.com/succinctlabs/sp1)** and
-  **[OpenVM](https://github.com/openvm-org/openvm)**, whose published Ethproofs
-  results set the performance frontier that
-  [`rv64-m9-frontier-gap.md`](design/riscv/rv64-m9-frontier-gap.md) measures
-  against. The zkvm-benchmarks corpus pinned here is that suite's `sp1`
+  **[OpenVM](https://github.com/openvm-org/openvm)**, whose published results
+  (vendor documentation and Ethproofs) are part of the performance frontier
+  that [`rv64-m9-frontier-gap.md`](design/riscv/rv64-m9-frontier-gap.md)
+  measures against. The pinned zkvm-benchmarks corpus above uses its `sp1`
   program root.
 - **[Ethproofs](https://ethproofs.org)**, for publishing comparable
   block-proving results across provers.
@@ -279,7 +288,7 @@ paper behind that prototype:
   Proximity* (FRI, [ICALP 2018](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ICALP.2018.14)).
 - Ben-Sasson et al., *DEEP-FRI: Sampling Outside the Box Improves Soundness*
   ([ePrint 2019/336](https://eprint.iacr.org/2019/336)).
-- *Fiat-Shamir Security of FRI and Related SNARKs*
+- Block et al., *Fiat-Shamir Security of FRI and Related SNARKs*
   ([ePrint 2023/1071](https://eprint.iacr.org/2023/1071)).
 - Diamond and Posen, *From List-Decodability to Proximity Gaps: Revisiting
   FRI Soundness* ([ePrint 2025/870](https://eprint.iacr.org/2025/870)).

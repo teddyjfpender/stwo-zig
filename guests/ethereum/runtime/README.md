@@ -9,7 +9,7 @@ compiles them under its own target, features and profile.
 | [`exact_layout_allocator.rs`](exact_layout_allocator.rs) | `rv32`, `rv64` | Global allocator. Exact size and alignment classes hash into 4,096 intrusive free-list buckets: O(1) average with no header on live blocks and no scan over heap addresses. Exposes `ExactLayoutFreeListHeapV2`. |
 | [`fast_memory.rs`](fast_memory.rs) | `rv32` | `memcpy` built from bounded, aligned 32-bit loads and stores with exact byte tails. It uses ordinary instructions only: no host memory operation and no overread. |
 | [`fast_keccak_sponge_words.rs`](fast_keccak_sponge_words.rs) | `rv32` | Keccak-256 sponge over the authenticated `stwo.keccakf.1600.v1` permutation. Aligned input is absorbed four bytes per load; padding, permutation order and squeeze are byte-identical to the byte-wise sponge. |
-| [`sha256_precompile.rs`](sha256_precompile.rs) | `rv32`, `tests/sha256_precompile` | Allocation-free SHA-256 framing over the two-pointer compression instruction. It refuses to compile for anything except little-endian RV32. |
+| [`sha256_precompile.rs`](sha256_precompile.rs) | `rv32`, `tests/sha256_precompile` | Allocation-free SHA-256 framing over the two-pointer compression instruction. The framing is portable; the native `hash` entry point exists only under the `stwo_sha256_precompile_v1` cfg or `sha256-precompile` feature, which refuse to compile for anything except little-endian RV32. |
 | [`ethereum_admission.rs`](ethereum_admission.rs) | `rv32`, `tests/sha256_precompile` | The `.note.stwo.zkvm` ELF capability note. It declares the execution profile, capability mask and semantic digest that the executor admits. |
 
 The SHA-256 framing follows ZisK's aligned-block fast path and its

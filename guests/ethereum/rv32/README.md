@@ -5,9 +5,12 @@ It builds the unmodified [`stateless-validator-reth`](https://github.com/paradig
 source at `a134a621` and installs Alloy's transaction signer recovery on the
 native secp256k1 instruction. Keccak-f[1600] and SHA-256 compression run as
 custom-0 instructions. It uses the shared exact-layout allocator and
-word-oriented Keccak sponge from [`../runtime/`](../runtime/README.md). Revm
-EVM precompiles and verification against a supplied public key keep their
-software semantics. A rejected native recovery is fatal.
+word-oriented Keccak sponge from [`../runtime/`](../runtime/README.md). The
+EVM's `ecrecover` precompile uses the native recovery only when an untrusted
+success hint selects it and otherwise runs in software; the SHA-256 precompile
+uses the native compression under the default `sha256-precompile` feature.
+Other Revm precompiles and verification against a supplied public key keep
+their software semantics. A rejected native recovery is fatal.
 
 The [RV64IM guest](../rv64/README.md) runs the same validator and input
 contract without custom instructions.

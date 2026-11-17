@@ -1,9 +1,12 @@
 # Vendored crates
 
-Patched copies of upstream crates used by the RV64IM service guest. They are
-wired in by `[patch]` in [`../services/Cargo.toml`](../services/Cargo.toml).
+Patched copies of upstream crates used by the RV64IM service guest. `k256`,
+`ecdsa`, `revm-interpreter`, `revm-bytecode`, `zeth-mpt` and `sha2-rv64` (as
+`sha2`) are wired in by `[patch]` in [`../services/Cargo.toml`](../services/Cargo.toml).
 The [projective service test](../projective_service_test/Cargo.toml) also uses
-`k256` and `ecdsa`. The copies of crates.io packages keep their upstream
+`k256` and `ecdsa`. The `sha2/` copy carries the candidate SHA-256 hook described
+in [`candidate-services-abi.md`](../../abi/candidate-services-abi.md); no
+current manifest selects it. The copies of crates.io packages keep their upstream
 licence files and README. Local changes are gated behind `stwo-*` Cargo features or marked with
 a `stwo:` comment.
 

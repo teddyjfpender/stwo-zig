@@ -47,8 +47,9 @@ The Ethereum guests share one contract with the executor. The linker scripts
 `ethereum/rv64/linker-wide.ld`) are its source of truth.
 
 - **Machine.** RV32IM or RV64IM only, with no A, C, F or D extension. The
-  custom targets enable LLVM's forced-atomic libcalls, and each guest supplies
-  single-thread implementations. These are not synchronization primitives.
+  Rust guests' custom targets enable LLVM's forced-atomic libcalls, and each
+  Rust guest supplies single-thread implementations. These are not
+  synchronization primitives.
 - **Entry.** `_start` sets `gp` and `sp = __stack_top`, then calls the guest
   entry point. There are no interrupts and no host threads.
 - **Input.** The input window starts at `__input_start` and holds a
@@ -96,9 +97,8 @@ emulated execution do not establish a STARK proof.
 From the repository root:
 
 ```sh
-# RV64IM Rust guest, software profile, with the pinned fixture projected and
-# validated on the host:
-python3 guests/ethereum/rv64/build.py --artifacts OUT --prepare-fixture
+# RV64IM Rust guest, software profile:
+python3 guests/ethereum/rv64/build.py --artifacts OUT
 
 # RV64IM evmone client, admitted profile:
 python3 -I guests/ethereum/client_evmone/build.py --out OUT
@@ -108,6 +108,12 @@ cargo test --locked --manifest-path guests/ethereum/tests/sha256_precompile/Carg
 ```
 
 Each guest README documents its profiles, flags and remaining validation steps.
+
+`rv64/build.py --prepare-fixture` additionally downloads, authenticates,
+projects and host-validates the pinned block fixture. Its final comparison step
+still imports `autoresearch.benchmarks.ethereum_block_comparison`, which was
+retired from `main`, so that step currently fails; the build itself does not
+depend on it.
 
 ## Licences and credit
 
