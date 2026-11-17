@@ -430,7 +430,7 @@ class DevTestPlanTests(unittest.TestCase):
             ("src/frontends/riscv/tests/focused/retained_transcript_contracts.zig", "test-retained-transcript-contracts"),
             ("src/waist/core/air_components_test_root.zig", "test-air-components"),
             ("src/waist/core/tests/borrowed_proof_capture_root.zig", "test-proof-capture"),
-            ("src/frontends/riscv/tests/focused/retained_authority_contract.zig", "test-retained-authority-contracts"),
+            ("src/frontends/riscv/tests/focused/retained_authority_contracts.zig", "test-retained-authority-contracts"),
             ("src/integrations/riscv_cpu/division_contract_test_root.zig", "test-division-contracts"),
             ("src/integrations/riscv_cpu/services_truth_contract_test_root.zig", "test-services-truth-contracts"),
             ("src/frontends/riscv/air_lang/framework/control_row.zig", "test-recursion-framework-interaction"),

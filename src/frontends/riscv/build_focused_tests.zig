@@ -132,9 +132,9 @@ pub const specs = [_]Spec{
     .{
         .step = "test-retained-authority-contracts",
         .description = "Check retained guest relation and segment range authority regressions",
-        .root = "tests/focused/retained_authority_contract.zig",
+        .root = "tests/focused/retained_authority_contracts.zig",
         .minimum = 260,
-        .partition_roots = &.{ "tests/focused/retained_authority_contract.zig", "testing/tests/focused/retained_authority_contracts_1.zig", "testing/tests/focused/retained_authority_contracts_2.zig", "recursion/tests/focused/retained_authority_contracts_3.zig" },
+        .partition_roots = &.{ "tests/focused/retained_authority_contracts.zig", "testing/tests/focused/retained_authority_contracts_1.zig", "testing/tests/focused/retained_authority_contracts_2.zig", "recursion/tests/focused/retained_authority_contracts_3.zig" },
     },
     .{
         .step = "test-inventory",

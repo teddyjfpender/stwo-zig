@@ -63,7 +63,7 @@ test {
     _ = @import("tests/focused/minimal_trace_parallel_replay_benchmark.zig");
     _ = @import("tests/focused/rv64_execution.zig");
     _ = @import("tests/focused/sail_oracle.zig");
-    _ = @import("tests/focused/retained_authority_contract.zig");
+    _ = @import("tests/focused/retained_authority_contracts.zig");
     _ = @import("tests/focused/segment_publication_input_provider_authority.zig");
     _ = @import("tests/focused/statement_wire.zig");
     _ = @import("tests/focused/execution_session.zig");
