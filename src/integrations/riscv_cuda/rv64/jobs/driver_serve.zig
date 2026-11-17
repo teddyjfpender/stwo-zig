@@ -62,6 +62,7 @@ pub const RingConfig = struct {
 };
 
 pub const Shape = struct {
+    slab_classes: []const @import("driver_install.zig").SlabClass = &.{},
     block: u64,
     rows: []u64,
     truths: u32,
@@ -141,7 +142,33 @@ pub const Service = struct {
             };
             var topo = try D.Topology.carry(a, @intCast(rows.len), rs.truths, rs.fold_arity);
             errdefer topo.deinit();
-            shape.* = .{ .block = block, .rows = rows, .truths = rs.truths, .fold_arity = rs.fold_arity, .topology = topo };
+            const roster = try a.alloc(@import("driver_install.zig").SlabClass, rows.len + rs.truths + topo.nodes.len + 1);
+            errdefer a.free(roster);
+            for (keys, roster[0..keys.len], 0..) |key, *r, i| r.* = .{ .id = .{ .kind = .native_segment, .ordinal = @intCast(i) }, .key = key };
+            for (0..rs.truths) |i| roster[rows.len + i] = .{ .id = .{ .kind = .truth, .ordinal = @intCast(i) }, .key = try recursion.vtable.class_of(recursion.ctx, .{ .kind = .truth, .ordinal = @intCast(i) }, &.{}) };
+            const start = rows.len + rs.truths;
+            for (topo.nodes, 0..) |node, i| {
+                const child_keys = try a.alloc(G.ClassKey, node.segments.len + node.truths.len + node.children.len);
+                defer a.free(child_keys);
+                var n: usize = 0;
+                for (node.segments) |id| {
+                    child_keys[n] = roster[id].key.?;
+                    n += 1;
+                }
+                for (node.truths) |id| {
+                    child_keys[n] = roster[rows.len + id].key.?;
+                    n += 1;
+                }
+                for (node.children) |id| {
+                    if (id >= i) return error.GpuNativeTopologyOrder;
+                    child_keys[n] = roster[start + id].key.?;
+                    n += 1;
+                }
+                const id = G.ProofId{ .kind = if (node.children.len == 0) .leaf else if (i == topo.root) .root else .fold, .ordinal = @intCast(i) };
+                roster[start + i] = .{ .id = id, .key = try recursion.vtable.class_of(recursion.ctx, .{ .kind = id.kind, .ordinal = id.ordinal }, child_keys) };
+            }
+            roster[roster.len - 1] = .{ .id = .{ .kind = .request, .ordinal = 0 }, .key = null };
+            shape.* = .{ .slab_classes = roster, .block = block, .rows = rows, .truths = rs.truths, .fold_arity = rs.fold_arity, .topology = topo };
             made += 1;
         }
         // The service serves exactly the installed blocks: size the driver
@@ -158,6 +185,10 @@ pub const Service = struct {
             sized.max_truths = @max(sized.max_truths, sh.truths);
         }
         if (sized.max_truths > config.max_truths) return error.GpuNativeTruthsExceedPlan;
+        const rosters = try a.alloc([]const @import("driver_install.zig").SlabClass, shapes.len);
+        defer a.free(rosters);
+        for (shapes, rosters) |sh, *r| r.* = sh.slab_classes;
+        sized.slab_rosters = rosters;
         const driver = R.Driver.install(a, ops, peer, workers, native, recursion, sized) catch |err| {
             std.debug.print("GPU_RESIDENT_SERVICE install_stage=driver error={s}\n", .{@errorName(err)});
             return err;
@@ -198,6 +229,7 @@ pub const Service = struct {
         self.a.destroy(self);
     }
     fn freeShape(a: std.mem.Allocator, s: *Shape) void {
+        a.free(s.slab_classes);
         a.free(s.rows);
         s.topology.deinit();
     }
@@ -224,7 +256,7 @@ pub const Service = struct {
             stream.detach();
             return err;
         };
-        const req = R.Request{ .id = self.next_id, .segment_rows = shape.rows, .truths = shape.truths, .recursion = shape.topology.nodes, .root = shape.topology.root, .capture = stream, .block = block, .out = out };
+        const req = R.Request{ .slab_classes = shape.slab_classes, .id = self.next_id, .segment_rows = shape.rows, .truths = shape.truths, .recursion = shape.topology.nodes, .root = shape.topology.root, .capture = stream, .block = block, .out = out };
         self.next_id += 1;
         // A failed begin detached the capture (cancelled; it reported done):
         // join its thread.

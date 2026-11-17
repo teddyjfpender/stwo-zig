@@ -598,3 +598,28 @@ test {
     _ = @import("driver_service_test.zig");
     _ = @import("outer_fault_publication_test.zig");
 }
+
+test "D1: admitted roster slab sizing uses actual class bounds and rejects unknown or duplicate proofs" {
+    const I = @import("driver_install.zig");
+    var world = T.World{ .a = testing.allocator };
+    var rig = try T.Rig.init(&world);
+    defer rig.deinit();
+    const cache = &rig.driver.resources.classes;
+    const entry = @constCast(try cache.get(T.k_native));
+    entry.max_encoded_bytes = 70 << 20;
+    var roster = [_]I.SlabClass{ .{ .id = .{ .kind = .native_segment, .ordinal = 0 }, .key = T.k_native }, .{ .id = .{ .kind = .request, .ordinal = 0 }, .key = null } };
+    const exchange = rig.driver.resources.exchange_cap;
+    const bound = try I.slabWords(testing.allocator, cache, &.{&roster}, exchange, 100);
+    try testing.expect(bound > (70 << 20) / 4);
+    var spec = [_]G.ProofSpec{ I.proofSpec(entry, roster[0].id, 0, 0), I.proofSpec(null, roster[1].id, 0, try I.stageOneBytes(&.{entry}, exchange.child_wire_words, 100)) };
+    var layout = try G.RequestLayout.build(testing.allocator, exchange.devices, &spec, exchange);
+    defer layout.deinit();
+    try testing.expectEqual(@as(u64, layout.segments[0].words), bound);
+    entry.max_encoded_bytes = std.math.maxInt(usize);
+    try testing.expectError(error.GpuNativeSlabTooLarge, I.slabWords(testing.allocator, cache, &.{&roster}, exchange, 100));
+    entry.max_encoded_bytes = 70 << 20;
+    roster[1] = roster[0];
+    try testing.expectError(error.GpuNativeDuplicateProof, I.slabWords(testing.allocator, cache, &.{&roster}, exchange, 100));
+    roster[0].key = @splat(255);
+    try testing.expectError(error.GpuNativeClassNotWarmed, I.slabWords(testing.allocator, cache, &.{&roster}, exchange, 100));
+}

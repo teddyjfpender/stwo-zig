@@ -11,7 +11,53 @@ const M = @import("driver_memory.zig");
 const Memory = @import("memory_plan.zig");
 const P = @import("driver_peer.zig");
 
+pub const SlabClass = struct { id: G.ProofId, key: ?G.ClassKey };
+
+pub fn proofSpec(entry: ?*const G.ClassEntry, id: G.ProofId, device: u32, stage_one: usize) G.ProofSpec {
+    return .{ .id = id, .device = device, .max_encoded_bytes = if (entry) |e| e.max_encoded_bytes else stage_one, .extra_checks = if (entry) |e| e.extra_checks else &.{} };
+}
+pub fn stageOneBytes(entries: []const *const G.ClassEntry, wire: u64, base: usize) !usize {
+    const child = if (wire != 0) try std.math.add(usize, 76, try std.math.mul(usize, 4, @intCast(wire))) else 0;
+    var bytes: usize = 0;
+    for (entries) |e| bytes = try std.math.add(usize, bytes, @max(e.stage_one_bytes, child));
+    return if (bytes != 0) std.math.add(usize, bytes, base) else 0;
+}
+/// Put the ENTIRE admitted roster on one device: exact for one GPU, a
+/// placement-independent upper bound for every individual GPU otherwise.
+pub fn slabWords(a: std.mem.Allocator, cache: *G.ClassCache, rosters: []const []const SlabClass, exchange: G.Exchange, base: usize) !u64 {
+    var largest: u64 = 0;
+    for (rosters) |roster| {
+        const specs = try a.alloc(G.ProofSpec, roster.len);
+        defer a.free(specs);
+        var stage_one: usize = 0;
+        for (roster) |r| if (r.id.kind == .native_segment) {
+            const entry = try cache.get(r.key orelse return error.GpuNativeClassNotWarmed);
+            stage_one = try std.math.add(usize, stage_one, try stageOneBytes(&.{entry}, exchange.child_wire_words, 0));
+        };
+        if (stage_one != 0) stage_one = try std.math.add(usize, stage_one, base);
+        for (roster, specs) |r, *spec| {
+            if ((r.id.kind == .request) != (r.key == null)) return error.GpuNativeClassNotWarmed;
+            spec.* = proofSpec(if (r.key) |key| try cache.get(key) else null, r.id, 0, stage_one);
+        }
+        // Preflight all u32 wire offsets with checked arithmetic before the
+        // shared builder's casts. No new limit beyond its existing format.
+        var checked = try std.math.add(usize, G.header_words + G.region_align, exchange.words());
+        checked = try std.math.add(usize, checked, try std.math.mul(usize, specs.len, G.entry_words + 2 * G.region_align));
+        for (specs) |spec| {
+            checked = try std.math.add(usize, checked, G.requiredChecks(spec.id.kind).len + spec.extra_checks.len);
+            checked = try std.math.add(usize, checked, try std.math.add(usize, 1, try std.math.divCeil(usize, spec.max_encoded_bytes, 4)));
+        }
+        if (checked > std.math.maxInt(u32)) return error.GpuNativeSlabTooLarge;
+        var layout = try G.RequestLayout.build(a, exchange.devices, specs, exchange);
+        defer layout.deinit();
+        for (layout.segments) |segment| largest = @max(largest, try Memory.alignedWords(segment.words));
+    }
+    return largest;
+}
+
 pub const Config = struct {
+    /// Borrowed synchronously during install; never retained by the driver.
+    slab_rosters: []const []const SlabClass = &.{},
     /// Device capacity cap in words per driver device (index = worker
     /// index). The plan uses min(cap, memory measured at install: free +
     /// what the worker and the class cache already hold) when the base image
@@ -151,6 +197,8 @@ pub const Owner = struct {
         const wire_cap = self.maxLocalWire();
         self.exchange_cap = .{ .segments = config.max_segments, .claims_per_segment = claims_cap, .devices = @intCast(workers.len), .capacity_segments = config.max_segments, .capacity_claims = claims_cap, .partials_enabled = config.exchange_partials, .truths = truth_cap, .capacity_truths = truth_cap, .receipts = wire_cap != 0, .child_wire_words = wire_cap };
         errdefer self.peer.deinitHost(a);
+        self.config.slab_words = @max(config.slab_words, try slabWords(a, &self.classes, config.slab_rosters, self.exchange_cap, config.stage_one_base_bytes));
+        self.config.slab_rosters = &.{};
         try self.peer.reserve(a, self.exchange_cap.flagCapacity());
         const largest_main = try Memory.alignedWords(self.largestNativeMain());
         // Placement puts at most ceil(S / devices) segments' MAIN on one GPU
@@ -164,9 +212,9 @@ pub const Owner = struct {
             const main_words = if (config.main_resident_words != 0) config.main_resident_words else std.math.mul(u64, largest_main, per_gpu_segments) catch return error.ResourceSizeOverflow;
             const class_words = try self.classCacheWords(@intCast(d));
             const capacity = try self.measuredCapacity(l.worker, config.capacity_words[d], d);
-            const inputs = M.Inputs{ .device = @intCast(d), .capacity_words = capacity, .class_cache_words = class_words, .graph_exec_words = config.graph_exec_words, .main_resident_words = main_words, .phase_a_peak_words = @max(config.phase_a_peak_words, peaks[0]), .phase_b_peak_words = @max(config.phase_b_peak_words, peaks[1]), .slab_words = config.slab_words, .reserve_words = config.reserve_words, .arena_cap_words = config.arena_cap_words };
+            const inputs = M.Inputs{ .device = @intCast(d), .capacity_words = capacity, .class_cache_words = class_words, .graph_exec_words = config.graph_exec_words, .main_resident_words = main_words, .phase_a_peak_words = @max(config.phase_a_peak_words, peaks[0]), .phase_b_peak_words = @max(config.phase_b_peak_words, peaks[1]), .slab_words = self.config.slab_words, .reserve_words = config.reserve_words, .arena_cap_words = config.arena_cap_words };
             l.plan = M.plan(inputs) catch |err| {
-                std.log.warn("M8 GPU-native memory plan device {d}: {s} (capacity {d} words; class cache {d}, main_resident {d}, phase A/B peaks {d}/{d}, slab 2x{d}, graph {d}, reserve {d})", .{ d, @errorName(err), capacity, class_words, main_words, inputs.phase_a_peak_words, inputs.phase_b_peak_words, config.slab_words, config.graph_exec_words, config.reserve_words });
+                std.log.warn("M8 GPU-native memory plan device {d}: {s} (capacity {d} words; class cache {d}, main_resident {d}, phase A/B peaks {d}/{d}, slab 2x{d}, graph {d}, reserve {d})", .{ d, @errorName(err), capacity, class_words, main_words, inputs.phase_a_peak_words, inputs.phase_b_peak_words, self.config.slab_words, config.graph_exec_words, config.reserve_words });
                 return err;
             };
             var setup = Setup{ .owner = self, .lane = l, .device = @intCast(d) };
