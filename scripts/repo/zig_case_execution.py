@@ -128,7 +128,10 @@ class Session:
                 except ProcessLookupError:
                     pass
                 except PermissionError:
-                    child.kill()  # Failed guard path only; no result can be accepted.
+                    try:
+                        os.kill(child.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
                 return
             self.stop.wait(0.1)
 
@@ -183,6 +186,25 @@ class Session:
                 os.fsync(stderr.fileno())
 
 
+def interrupted(session, error, started):
+    """Publish available failure evidence without replacing the original cause."""
+    evidence, evidence_errors = {}, {}
+    for extension in (".stdout.bin", ".stderr"):
+        try:
+            evidence[extension] = sha(session.base.with_suffix(extension))
+        except Exception as hash_error:
+            evidence[extension] = None
+            evidence_errors[extension] = repr(hash_error)
+    try:
+        write_json(session.base.with_suffix(".interrupted.json"),
+                   {"status": "INCOMPLETE", "guard_reason": session.reason, "error": repr(error),
+                    "termination": session.termination, "duration_ns": time.monotonic_ns() - started,
+                    "sampled_aggregate_peak_rss_bytes": session.peak,
+                    "evidence": evidence, "evidence_errors": evidence_errors})
+    except Exception as receipt_error:
+        error.add_note("interrupted receipt: " + repr(receipt_error))
+
+
 def execute(binary, expected_sha, seed, output, cwd, resume_digest=None, max_cases=1):
     require(0 <= seed <= 0xffffffff, "seed must fit u32")
     require(1 <= max_cases <= 65536, "partition count must be positive and bounded")
@@ -215,7 +237,12 @@ def execute_locked(binary, expected_sha, seed, output, cwd, resume_digest, max_c
         aggregate = {"schema": "zig-exact-cases-v1", "identity": identity, "status": "INCOMPLETE", "results": []}
         write_json(receipt, aggregate)
     probe = Session(binary, seed, output / f"query-{time.time_ns()}", None, None)
-    probe.run(cwd)
+    started = time.monotonic_ns()
+    try:
+        probe.run(cwd)
+    except BaseException as error:
+        interrupted(probe, error, started)
+        raise
     require(sha(binary) == expected_sha, "executable changed during discovery")
     names, metadata = inventory(probe.metadata), probe.metadata
     meta_sha = hashlib.sha256(metadata).hexdigest()
@@ -248,21 +275,7 @@ def execute_locked(binary, expected_sha, seed, output, cwd, resume_digest, max_c
         try:
             usage = session.run(cwd)
         except BaseException as error:
-            evidence, evidence_errors = {}, {}
-            for extension in (".stdout.bin", ".stderr"):
-                try:
-                    evidence[extension] = sha(base.with_suffix(extension))
-                except Exception as hash_error:
-                    evidence[extension] = None
-                    evidence_errors[extension] = repr(hash_error)
-            try:
-                write_json(base.with_suffix(".interrupted.json"),
-                           {"status": "INCOMPLETE", "guard_reason": session.reason, "error": repr(error),
-                            "termination": session.termination, "duration_ns": time.monotonic_ns() - started,
-                            "sampled_aggregate_peak_rss_bytes": session.peak,
-                            "evidence": evidence, "evidence_errors": evidence_errors})
-            except Exception as receipt_error:
-                error.add_note("interrupted receipt: " + repr(receipt_error))
+            interrupted(session, error, started)
             raise
         require(sha(binary) == expected_sha, "executable changed during execution")
         record = {"index": index, "name": names[index], "flags": session.flags,

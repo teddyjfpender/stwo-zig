@@ -13,7 +13,7 @@ them into passes. No remote host or CI run is an implementation prerequisite.
 
 | Requirement | Current evidence | Remaining gate |
 |---|---|---|
-| Ethereum physical corpus (#382) | Both original CSP suites pass on the local native M5 Max in ReleaseFast at q70/P26 with fresh receivers and all original negatives. Historical sizes and native-feature failures remain preserved. | Broad Debug/ReleaseFast corpus and all 21 historical physical cases, publication and recursion; actual native-feature root-cause fix. |
+| Ethereum physical corpus (#382) | Both original CSP suites pass on the local native M5 Max in ReleaseFast at q70/P26 with fresh receivers and all original negatives. Historical sizes and native-feature failures remain preserved. | Broad local Debug/ReleaseFast corpus and all 21 historical cases, publication and recursion. The saved x86-native defect remains deferred with Linux qualification. |
 | Validation partitions (#383) | Four default-owner aliases reuse the exact Run artifacts and retain the 479-case aggregate floor. Completed-command receipts survive interruption and record exact-child kernel resources with explicit RSS scope; a killed lane remains INCOMPLETE. CSP has two exact original suite images with floor one each under the original aggregate target. | Current-source physical owner timing/memory and broad coverage qualification. CSP still inherits Cairo AOT prerequisites through its actual CPU integration graph. |
 | Source ownership/size (#343) | All manual source owners fit unchanged ceilings; full non-strict source conformance passes with zero findings. Private helpers retain the original named cases and arithmetic authority. | Formal-source rebinding is out of active scope; physical qualification remains separate below. No ceiling was raised and moves earned no subtraction credit. |
 | Waist contracts (#359/#366) | All76 consumer roots/79 named cases are registered and configure with canonical SDK identities. Earlier standalone execution passed76/79 in ReleaseFast and75/78 in Debug. Latest focused Debug/ReleaseFast qualification executes complete Backend39, recursion provider32, actual transport consumer3 and upstream golden6 target cases, with finite origin-specific failure semantics. | Fresh complete consumer-matrix/aggregate execution remains open. The final-source RISC-V Metal Debug check again exceeded the unchanged1GiB cap (sampled1,113,538,560B); no case executed. Full proof/process behavior is separate from focused contracts. Canonical CUDA factory pointer identity and strict Engine guards remain enforced. |
@@ -288,3 +288,12 @@ real exit7, self-SIGTERM, descendant cleanup and evidence-failure cases.
 Source+152/-17=+135 against+160; documentation+14; no configuration, flags,
 scripts, dependencies, proof-profile or resource-schema changes. Local validation
 is the acceptance path; Linux and formal verification remain outside scope.
+
+## Discovery interruption evidence
+
+[Discovery and selected-case failures](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6934989497)
+now share one interruption writer. Watchdog fallback signals directly, preserving
+exclusive wait4 ownership. All32 focused local tests pass, including real query
+exit7, SIGTERM, watchdog and spawn refusal:11.59s/73.2MB. Source+88/-17=+71;
+documentation+10/-1=+9; no new flags, scripts, dependencies or profile changes.
+Packet ReleaseFast emission separately hit120s at4.02GB; no image or proof ran.

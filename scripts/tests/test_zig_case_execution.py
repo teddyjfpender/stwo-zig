@@ -32,6 +32,9 @@ while True:
  tag,n=struct.unpack('<II',header);body=sys.stdin.buffer.read(n)
  if tag==0:break
  if tag==4:
+  if cfg.get('query_crash'):os._exit(7)
+  if cfg.get('query_signal'):os.kill(os.getpid(),15)
+  if cfg.get('query_sleep'):__import__('time').sleep(20)
   names=cfg.get('names',['first','second']); names=names[::-1] if cfg.get('change') and k>1 else names
   text=b'\0';offsets=[]
   for name in names:offsets.append(len(text));text+=name.encode()+b'\0'
@@ -133,6 +136,61 @@ class ExactCaseTests(unittest.TestCase):
         self.assertIsNone(record["evidence"][".stderr"])
         self.assertIn("evidence unavailable", record["evidence_errors"][".stderr"])
         self.assertEqual(7, record["termination"]["returncode"])
+
+    def test_discovery_failure_retains_native_evidence_before_case_admission(self):
+        for key, code in (("query_crash", 7), ("query_signal", -signal.SIGTERM)):
+            with self.subTest(key=key):
+                self.out = self.folder / key
+                self.config.write_text(json.dumps({key: True}))
+                with self.assertRaisesRegex(PlanError, "expected complete metadata"):
+                    self.run_cases()
+                records = list(self.out.glob("query-*.interrupted.json"))
+                self.assertEqual(1, len(records))
+                record = json.loads(records[0].read_text())
+                self.assertEqual(code, record["termination"]["returncode"])
+                base = records[0].name.removesuffix(".interrupted.json")
+                for suffix in (".stdout.bin", ".stderr"):
+                    self.assertEqual(cases.sha(self.out / (base + suffix)), record["evidence"][suffix])
+                self.assertEqual([], list(self.out.glob("*.started.json")))
+                self.assertEqual("INCOMPLETE", json.loads((self.out / "receipt.json").read_text())["status"])
+
+        self.out = self.folder / "query-hash-unavailable"
+        self.config.write_text('{"query_crash":true}')
+        original_sha = cases.sha
+        def unavailable(path):
+            if path.suffix == ".stderr":
+                raise OSError("query evidence unavailable")
+            return original_sha(path)
+        with mock.patch.object(cases, "sha", side_effect=unavailable), self.assertRaisesRegex(PlanError, "expected complete metadata"):
+            self.run_cases()
+        record = json.loads(next(self.out.glob("query-*.interrupted.json")).read_text())
+        self.assertIsNone(record["evidence"][".stderr"])
+        self.assertIn("query evidence unavailable", record["evidence_errors"][".stderr"])
+        self.assertEqual(7, record["termination"]["returncode"])
+
+    def test_discovery_spawn_failure_marks_unavailable_evidence(self):
+        self.binary.chmod(0o644)
+        with mock.patch.object(cases, "interrupted", wraps=cases.interrupted) as publication:
+            with self.assertRaises(PermissionError) as raised:
+                self.run_cases()
+        self.assertIs(raised.exception, publication.call_args.args[1])
+        record = json.loads(next(self.out.glob("query-*.interrupted.json")).read_text())
+        self.assertIsNone(record["termination"])
+        self.assertIsNone(record["evidence"][".stdout.bin"])
+        self.assertIn(".stdout.bin", record["evidence_errors"])
+        self.assertEqual(cases.sha(next(self.out.glob("query-*.stderr"))), record["evidence"][".stderr"])
+
+    def test_discovery_watchdog_direct_signal_preserves_wait4(self):
+        self.config.write_text('{"query_sleep":true}')
+        with mock.patch.object(cases, "RSS_CAP", -1), mock.patch.object(
+            cases.os, "killpg", side_effect=PermissionError("forced group refusal")
+        ), mock.patch.object(subprocess.Popen, "kill", side_effect=AssertionError("must not poll/reap")):
+            with self.assertRaises(PlanError):
+                self.run_cases()
+        record = json.loads(next(self.out.glob("query-*.interrupted.json")).read_text())
+        self.assertEqual("RSS_CAP", record["guard_reason"])
+        self.assertEqual(-signal.SIGKILL, record["termination"]["returncode"])
+        self.assertGreater(record["termination"]["resources"]["peak_rss_bytes"], 0)
 
     def test_live_malformed_protocol_drains_owned_descendant_and_retains_cause(self):
         self.config.write_text('{"unknown":true,"descendant":true}')
