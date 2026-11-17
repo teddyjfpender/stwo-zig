@@ -342,7 +342,10 @@ pub fn batchStage(self: *Worker, b: *Records.Batch, i: usize) ?*Records.Slot {
         for (bj.gates) |g| g.recorded.wait();
         b.gate_wait_ns += gate_timer.read();
         for (bj.gates) |g| if (g.failed.load(.acquire)) break :blk error.BatchDependencyFailed;
-        if (need > 0 and pinned.len == 0) break :blk error.JobFootprintExceedsBatchPinned;
+        if (need > 0 and pinned.len == 0) {
+            std.debug.print("GPU_BATCH_PINNED_REFUSED job={d} need_words={d} used_words={d} pool_words={d}\n", .{ i, need, b.pinned_used, pool.len });
+            break :blk error.JobFootprintExceedsBatchPinned;
+        }
         if (!resolved.planned) if (self.policy) |p| if (p.unplanned() == .refuse) break :blk error.JobClassNotInMemoryPolicy;
         const fixed = Channel.state_words + slot.footprint.slab_words;
         if (slot.footprint.device_words > self.arena.words or fixed > self.arena.words - slot.footprint.device_words) break :blk error.JobFootprintExceedsArena;

@@ -265,7 +265,7 @@ pub const Owner = struct {
             var job = try Job.OuterNodeJob.initWhole(entry.staged, &self.shared.kernels, self.shared.whole());
             defer job.deinit();
             job.require_warm = true;
-            total += job.footprint().pinned_words + entry.program.len;
+            total = std.math.add(usize, total, try entry.requestPinnedWords(job.footprint())) catch return error.ResourceSizeOverflow;
         }
         return total;
     }

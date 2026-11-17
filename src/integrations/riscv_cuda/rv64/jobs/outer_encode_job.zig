@@ -86,6 +86,12 @@ pub fn descriptorFor(a: std.mem.Allocator, shape: anytype, envelope: ?E.Envelope
     return E.buildDescriptor(a, .{ .config = config, .degree_log = shape.degree_log, .trees = trees }, envelope, root_words);
 }
 
+/// Declared encoder ingress, including warm persistent bindings: batchStage
+/// reserves the complete declaration before it knows which uploads are fresh.
+pub fn extraPinnedWords(descriptor: usize, expected: usize, oods: usize) error{ResourceSizeOverflow}!usize {
+    return std.math.add(usize, std.math.add(usize, descriptor, expected) catch return error.ResourceSizeOverflow, oods) catch error.ResourceSizeOverflow;
+}
+
 pub const EncodedNode = struct {
     inner: *Job.OuterNodeJob,
     symbols: E.Symbols,
@@ -208,8 +214,8 @@ pub const EncodedNode = struct {
         fp.device_words += @intCast(extra);
         fp.staged_words += @intCast(extra);
         // Descriptor (persistent, outside the window) and outputs come from pinned memory.
-        fp.pinned_words += self.desc.len + self.inner.staged.expected.len;
-        if (self.oods) |*o| fp.pinned_words += o.program.len;
+        const extra_pinned = extraPinnedWords(self.desc.len, self.inner.staged.expected.len, if (self.oods) |o| o.program.len else 0) catch std.math.maxInt(usize);
+        fp.pinned_words = std.math.add(usize, fp.pinned_words, extra_pinned) catch std.math.maxInt(usize);
         return fp;
     }
     pub fn stage(self: *EncodedNode, s: *api.Stager) !void {
@@ -397,3 +403,13 @@ pub const EncodedNode = struct {
         self.inner.abort();
     }
 };
+
+test "encoder wrapper pinned reservation includes every ingress and respects readback ownership" {
+    const extra = try extraPinnedWords(5, 6, 7);
+    try std.testing.expectEqual(@as(usize, 18), extra);
+    var fp = api.Footprint{ .device_words = 0, .pinned_words = extra + 3, .slab_words = 11 };
+    try std.testing.expectEqual(@as(usize, 32), try fp.pinnedWords());
+    fp.readback = .request_slab;
+    try std.testing.expectEqual(@as(usize, 21), try fp.pinnedWords());
+    try std.testing.expectError(error.ResourceSizeOverflow, extraPinnedWords(std.math.maxInt(usize), 1, 0));
+}

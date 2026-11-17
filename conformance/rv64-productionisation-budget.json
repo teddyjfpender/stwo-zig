@@ -3295,6 +3295,33 @@
         "versioned_files": 350
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/387#issuecomment-6952937193"
+    },
+    {
+      "package": "stwo_riscv_cuda_integration",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 345,
+        "code_lines": 80276,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 350
+      },
+      "after": {
+        "code_files": 345,
+        "code_lines": 80733,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 350
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/387#issuecomment-6953670712"
     }
   ]
 }

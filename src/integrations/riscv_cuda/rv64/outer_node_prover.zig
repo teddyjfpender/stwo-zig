@@ -338,6 +338,15 @@ pub const NodeClasses = struct {
         graphs: [OuterDevice.max_graph_devices]?*Graphs.Cache = @splat(null),
         /// The seed program for children regions of `region_words` words
         /// each (1 + the child class's encoded capacity), image at the end.
+        /// Same encoder + seed wrappers as the actual request adapter.
+        pub fn requestPinnedWords(self: *const Entry, base: api.Footprint) !usize {
+            var fp = base;
+            fp.readback = .request_slab;
+            const extra = try EncJob.extraPinnedWords(self.desc.len, self.staged.expected.len, if (self.runtime_symbols.oods != null) self.oods_program.len else 0);
+            fp.pinned_words = std.math.add(usize, fp.pinned_words, extra) catch return error.ResourceSizeOverflow;
+            fp.pinned_words = std.math.add(usize, fp.pinned_words, self.program.len) catch return error.ResourceSizeOverflow;
+            return fp.pinnedWords();
+        }
         pub fn programFor(self: *Entry, region_words: []const u32) !void {
             const a = std.heap.c_allocator;
             if (region_words.len != self.shapes.len) return error.GnNodeChildCount;
