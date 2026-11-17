@@ -44,13 +44,22 @@ pub fn build(b: *std.Build) void {
     probe_root.addImport("stwo_riscv_rv64", rv64);
     const probe = b.addRunArtifact(b.addTest(.{ .root_module = probe_root }));
     probe.has_side_effects = true;
-    const probe_step = b.step("test-e2e-probe", "Check the golden OP ABI probe guest pin, image and statement binding");
+    const probe_step = b.step("test-e2e-probe", "Pin the golden OP ABI probe, prove it, receive it in a fresh process and reject three corruptions");
     probe_step.dependOn(&probe.step);
     probe_step.dependOn(floor.addMany(b, &.{probe}, 4));
 
     const native_root = b.createModule(.{ .root_source_file = b.path("cpu/native_main.zig"), .target = target, .optimize = optimize });
     native_root.addImport("opstack_cpu_component", cpu_component);
     const native = b.addExecutable(.{ .name = "stwo-opstack-native", .root_module = native_root });
+    // Production and every reception run as separate `stwo-opstack-native`
+    // processes, so pipeline reports never reach the test runner's stdout.
+    const driver_root = b.createModule(.{ .root_source_file = b.path("tests/e2e_probe_prove.zig"), .target = target, .optimize = optimize });
+    const prove = b.addRunArtifact(b.addExecutable(.{ .name = "opstack-e2e-probe-prove", .root_module = driver_root }));
+    prove.addArtifactArg(native);
+    prove.addArg(b.pathFromRoot("../../../../vectors/opstack"));
+    _ = prove.addOutputDirectoryArg("probe-work");
+    prove.has_side_effects = true;
+    probe_step.dependOn(&prove.step);
     const install = b.addInstallArtifact(native, .{});
     b.step("opstack-native", "Build stwo-opstack-native (native CPU production and fresh reception)").dependOn(&install.step);
     const check = b.addExecutable(.{ .name = "stwo-opstack-native-check", .root_module = native_root });

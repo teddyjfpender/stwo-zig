@@ -72,6 +72,13 @@ named error until the S2 RFCs land. The receiver runs in a separate process
 with no setup directory. Fixture paths reach `test-e2e-probe` through the
 `opstack_fixture_paths` build options module, never through the environment.
 
+`test-e2e-probe` also runs `tests/e2e_probe_prove.zig`: it proves the golden
+probe with `stwo-opstack-native prove`, receives it with `verify` in a fresh
+process, and requires three corruptions to be rejected (a flipped proof byte,
+the same byte with a rehashed bundle manifest, and a different expected
+output). Every pipeline call is a child process, so its JSON reports never
+reach the test runner's stdout.
+
 ## Contract and invariants
 
 - The input window is a power of two in 4..32 MiB; 64 MiB is rejected.
