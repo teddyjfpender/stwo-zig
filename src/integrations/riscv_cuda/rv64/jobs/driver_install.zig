@@ -15,6 +15,20 @@ const P = @import("driver_peer.zig");
 /// not a guessed authority; request-time class lookup remains mandatory.
 pub const SlabClass = struct { id: G.ProofId, key: ?G.ClassKey };
 
+/// Sequential MAIN views on one GPU follow every admitted native occurrence.
+pub fn nativeMainWords(cache: *G.ClassCache, rosters: []const []const SlabClass) !u64 {
+    var largest: u64 = 0;
+    for (rosters) |roster| {
+        var words: u64 = 0;
+        for (roster) |r| if (r.id.kind == .native_segment) {
+            const entry = try cache.get(r.key orelse return error.GpuNativeClassNotWarmed);
+            words = try Memory.addWords(words, try Memory.alignedWords(entry.main_resident_words));
+        };
+        largest = @max(largest, words);
+    }
+    return largest;
+}
+
 pub fn proofSpec(entry: ?*const G.ClassEntry, id: G.ProofId, device: u32, stage_one: usize) G.ProofSpec {
     return .{ .id = id, .device = device, .max_encoded_bytes = if (entry) |e| e.max_encoded_bytes else stage_one, .extra_checks = if (entry) |e| e.extra_checks else &.{} };
 }
@@ -235,12 +249,13 @@ pub const Owner = struct {
         // Placement puts at most ceil(S / devices) segments' MAIN on one GPU
         // when every GPU's region holds that many (LPT, capacity-bounded).
         const per_gpu_segments = std.math.divCeil(u64, config.max_segments, workers.len) catch unreachable;
+        const roster_main: ?u64 = if (workers.len == 1 and config.slab_rosters.len != 0 and config.main_resident_words == 0) try nativeMainWords(&self.classes, config.slab_rosters) else null;
         // Lanes whose Setup started (a failed Setup is released too: Release
         // frees exactly what was allocated).
         var attempted: usize = 0;
         errdefer for (self.lanes[0..attempted]) |*l| self.releaseLane(l);
         for (self.lanes, 0..) |*l, d| {
-            const main_words = if (config.main_resident_words != 0) config.main_resident_words else std.math.mul(u64, largest_main, per_gpu_segments) catch return error.ResourceSizeOverflow;
+            const main_words = if (config.main_resident_words != 0) config.main_resident_words else roster_main orelse (std.math.mul(u64, largest_main, per_gpu_segments) catch return error.ResourceSizeOverflow);
             const class_words = try self.classCacheWords(@intCast(d));
             const capacity = try self.measuredCapacity(l.worker, config.capacity_words[d], d);
             const inputs = M.Inputs{ .device = @intCast(d), .capacity_words = capacity, .class_cache_words = class_words, .graph_exec_words = config.graph_exec_words, .main_resident_words = main_words, .phase_a_peak_words = @max(config.phase_a_peak_words, peaks[0]), .phase_b_peak_words = @max(config.phase_b_peak_words, peaks[1]), .slab_words = self.config.slab_words, .reserve_words = config.reserve_words, .arena_cap_words = config.arena_cap_words };
