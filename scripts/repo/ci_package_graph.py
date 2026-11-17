@@ -491,6 +491,24 @@ def check_product_placement(repository: Path, contracts) -> list[str]:
 
 
 
+def _lexical_contract_index(contracts):
+    """Request-local lexical directories, retaining stable equal-directory ties."""
+    owners = {}
+    for contract in contracts:
+        owners.setdefault(contract.directory, []).append(contract)
+    return owners
+
+
+def _ancestor_contracts(path: Path, owners):
+    """Nearest lexical prefix first; resolution and exclusions belong to callers."""
+    while True:
+        yield from owners.get(path, ())
+        parent = path.parent
+        if parent == path:
+            return
+        path = parent
+
+
 def package_owner(contracts: Mapping[str, Any], source: Path) -> Any | None:
     """Unique longest package prefix, then consumer exclusions; no import-based ownership.
 

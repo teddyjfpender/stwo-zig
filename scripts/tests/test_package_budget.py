@@ -2,7 +2,7 @@
 import json
 import tempfile
 import unittest
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -50,6 +50,69 @@ class PackageBudgetTests(unittest.TestCase):
         self.assertEqual(measured["packages"]["owner"]["code_lines"], 1)
         self.assertEqual(measured["packages"]["child"]["code_lines"], 1)
         self.assertEqual(measured["unowned"]["code_lines"], 2)
+
+    def test_lexical_owner_index_matches_original_geometric_oracle(self):
+        from scripts.repo import check_package_workspace as workspace, ci_package_graph as graph
+        parent = self.contract("src/a", "parent", ("consumer",))
+        child = self.contract("src/a/child", "child", ("consumer",))
+        duplicate = SimpleNamespace(**{**vars(child), "package": "duplicate"})
+        contracts = [parent, child, duplicate]
+        index = graph._lexical_contract_index(contracts)
+        outside = self.root / "outside"
+        outside.mkdir()
+        (parent.directory / "link").symlink_to(outside, target_is_directory=True)
+        paths = [parent.directory, child.directory, child.directory / "x.zig",
+                 child.directory / "consumer/x.zig", parent.directory / "consumer",
+                 self.root / "src/ab/x.zig", outside / "x.zig", Path("src/a/x.zig"),
+                 parent.directory / "../x.zig", parent.directory / "link/x.zig",
+                 (parent.directory / "link/x.zig").resolve()]
+        for path in paths:
+            with self.subTest(path=path):
+                old = [c for c in contracts if path.is_relative_to(c.directory)]
+                expected = max(old, key=lambda c: len(c.directory.parts)) if old else None
+                self.assertIs(expected, workspace._containing_contract(path, index))
+        win = SimpleNamespace(directory=PureWindowsPath("C:/Owner"))
+        win_path = PureWindowsPath("c:/owner/child/../file.zig")
+        self.assertTrue(win_path.is_relative_to(win.directory))
+        self.assertIs(win, workspace._containing_contract(win_path, graph._lexical_contract_index([win])))
+
+    def test_budget_index_preserves_exclusions_unknown_markers_and_duplicate_fallback(self):
+        from scripts.repo import check_package_workspace as workspace, ci_package_graph as graph
+        parent = self.contract("src/a", "parent", ("consumer",))
+        child = self.contract("src/a/child", "child", ("blocked",))
+        fallback = SimpleNamespace(**{**vars(child), "package": "fallback", "consumer_subdirs": ()})
+        contracts = [parent, child, fallback]
+        index = graph._lexical_contract_index(contracts)
+        self.write("src/a/unknown/package.contract.json", "{}")
+        paths = ["src/a/mod.zig", "src/a/consumer/x.zig", "src/a/consumer", "src/a",
+                 "src/a/child/blocked/x.zig", "src/a/unknown/x.zig", "src/ab/x.zig",
+                 "scripts/outside.py", "src/a/../x.zig"]
+        for path in paths:
+            with self.subTest(path=path):
+                source = self.root / path
+                old = [c for c in sorted(contracts, key=lambda c: len(c.directory.parts), reverse=True)
+                       if source.is_relative_to(c.directory) and workspace.owned_by(c, source)]
+                self.assertEqual(old[0].package if old else None, budget.owner_for(self.root, path, contracts, index))
+        self.assertEqual("fallback", budget.owner_for(self.root, "src/a/child/blocked/x.zig", contracts, index))
+        self.assertIs(parent, workspace._containing_contract(self.root / "src/a/unknown/x.zig", index))
+        self.assertIs(parent, graph.package_owner({"parent": parent, "child": child}, self.root / "src/a/unknown/x.zig"))
+        self.assertIsNone(budget.owner_for(self.root, "src/a/unknown/x.zig", contracts, index))
+        self.assertIsNone(workspace._containing_contract(self.root, graph._lexical_contract_index([])))
+
+    def test_owner_directory_index_is_built_once_per_existing_pass(self):
+        from scripts.repo import check_package_workspace as workspace, ci_package_graph as graph
+        owner = self.contract("src/a")
+        paths = [self.write("src/a/a.zig", "const a = 1;"), self.write("src/a/b.zig", "const b = 2;")]
+        self.write("conformance/rv64-flags.json", json.dumps({"flags": {
+            "STWO_RV64_" + "LIVE": {"status": "runtime", "owner": paths[0]}}}))
+        with patch.object(graph, "_lexical_contract_index", wraps=graph._lexical_contract_index) as make:
+            budget.measure(self.root, [owner], paths)
+            self.assertEqual(1, make.call_count)
+        with patch.object(graph, "_lexical_contract_index", wraps=graph._lexical_contract_index) as make:
+            failures = []
+            workspace._validate_relative_ingress(self.root, [owner], failures)
+            self.assertEqual([], failures)
+            self.assertEqual(1, make.call_count)
 
     def test_generated_scripts_count_as_scripts_and_generated_not_manual(self):
         owner = self.contract("src/a")

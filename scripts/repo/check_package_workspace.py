@@ -642,11 +642,8 @@ def _validate_ci_contracts(
             )
 
 
-def _containing_contract(path: Path, contracts: list[Contract]) -> Contract | None:
-    matches = [contract for contract in contracts if _inside(path, contract.directory)]
-    if not matches:
-        return None
-    return max(matches, key=lambda contract: len(contract.directory.parts))
+def _containing_contract(path: Path, owners) -> Contract | None:
+    return next(ci_package_graph._ancestor_contracts(path, owners), None)
 
 
 def _validate_relative_ingress(
@@ -664,14 +661,15 @@ def _validate_relative_ingress(
             for part in source.relative_to(repository).parts
         )
     )
+    owners = ci_package_graph._lexical_contract_index(contracts)
     for source in sorted(sources):
-        source_owner = _containing_contract(source.resolve(), contracts)
+        source_owner = _containing_contract(source.resolve(), owners)
         text = strip_comments(source.read_text(encoding="utf-8"))
         for imported in IMPORT_RE.findall(text):
             if not imported.endswith(".zig"):
                 continue
             target = (source.parent / imported).resolve()
-            target_owner = _containing_contract(target, contracts)
+            target_owner = _containing_contract(target, owners)
             if target_owner is None or source_owner == target_owner:
                 continue
             failures.append(
@@ -681,7 +679,7 @@ def _validate_relative_ingress(
             )
         for embedded in EMBED_FILE_RE.findall(text):
             target = (source.parent / embedded).resolve()
-            target_owner = _containing_contract(target, contracts)
+            target_owner = _containing_contract(target, owners)
             if target_owner is None or source_owner == target_owner:
                 continue
             failures.append(

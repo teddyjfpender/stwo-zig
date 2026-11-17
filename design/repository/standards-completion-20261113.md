@@ -297,3 +297,13 @@ exclusive wait4 ownership. All32 focused local tests pass, including real query
 exit7, SIGTERM, watchdog and spawn refusal:11.59s/73.2MB. Source+88/-17=+71;
 documentation+10/-1=+9; no new flags, scripts, dependencies or profile changes.
 Packet ReleaseFast emission separately hit120s at4.02GB; no image or proof ran.
+
+## Workspace owner lookup
+
+The [request-local lexical index](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6935049755)
+replaces repeated package scans while preserving geometric ingress ownership
+and the separate budget exclusions. All58 local tests pass in10.40s/71.9MB.
+One quiet workspace pair fell33.05s→7.55s with identical output; this is tooling
+time, not prover throughput. All nine final-tree census counters match the old
+algorithm exactly, including unowned files; all37 package rows are unchanged.
+Source+97/-15=+82; docs+10; no new configuration, flags, scripts or dependencies.

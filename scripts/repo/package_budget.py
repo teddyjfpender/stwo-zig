@@ -10,6 +10,7 @@ import json
 import subprocess
 from pathlib import Path
 
+from scripts.repo import ci_package_graph
 from scripts.repo.check_source_conformance import is_generated
 from scripts.repo.source_conformance_lib.rv64_flags import LIVE
 
@@ -27,12 +28,13 @@ def empty() -> dict[str, int]:
     return dict.fromkeys(COUNTERS, 0)
 
 
-def owner_for(repository: Path, path: str, contracts):
-    # Match the workspace's longest-prefix/nested-package exclusion authority.
+def owner_for(repository: Path, path: str, contracts, owners=None):
+    # Preserve lexical ancestry and each original nested-package/consumer exclusion.
     from scripts.repo.check_package_workspace import owned_by
     source = repository / path
-    for contract in sorted(contracts, key=lambda c: len(c.directory.parts), reverse=True):
-        if source.is_relative_to(contract.directory) and owned_by(contract, source):
+    index = owners if owners is not None else ci_package_graph._lexical_contract_index(contracts)
+    for contract in ci_package_graph._ancestor_contracts(source, index):
+        if owned_by(contract, source):
             return contract.package
     return None
 
@@ -42,6 +44,7 @@ def measure(repository: Path, contracts, paths=None) -> dict:
     if paths is None:
         raw = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=repository)
         paths = raw.decode().split("\0")
+    owners = ci_package_graph._lexical_contract_index(contracts)
     rows = {c.package: empty() for c in contracts}
     unowned = empty()
     for path in sorted(set(paths) - {""}):
@@ -50,7 +53,7 @@ def measure(repository: Path, contracts, paths=None) -> dict:
             raise ValueError(f"package budget refuses tracked symlink: {path}")
         if not source.is_file():
             continue
-        row = rows.get(owner_for(repository, path, contracts), unowned)
+        row = rows.get(owner_for(repository, path, contracts, owners), unowned)
         row["versioned_files"] += 1
         if source.suffix in {".py", ".sh"}:
             row["script_files"] += 1
@@ -67,7 +70,7 @@ def measure(repository: Path, contracts, paths=None) -> dict:
     if registry.is_file():
         for name, flag in json.loads(registry.read_text())["flags"].items():
             if name.startswith("STWO_RV64_") and flag["status"] in LIVE:
-                row = rows.get(owner_for(repository, flag["owner"], contracts), unowned)
+                row = rows.get(owner_for(repository, flag["owner"], contracts, owners), unowned)
                 row["rv64_registry_flags"] += 1
     return {"packages": rows, "unowned": unowned}
 
