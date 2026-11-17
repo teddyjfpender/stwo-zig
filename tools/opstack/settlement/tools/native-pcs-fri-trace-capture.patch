@@ -1,0 +1,104 @@
+diff --git a/src/core/pcs/verifier_family.zig b/src/core/pcs/verifier_family.zig
+index 3d07868d6..378321c1d 100644
+--- a/src/core/pcs/verifier_family.zig
++++ b/src/core/pcs/verifier_family.zig
+@@ -268,6 +268,19 @@ pub fn ForField(comptime Secure: type) type {
+
+                     const sampled_values_flat = try flattenSampledValues(allocator, proof.sampled_values);
+                     defer allocator.free(sampled_values_flat);
++                    if (comptime @TypeOf(self.trees.items[0].root) == [32]u8 and @sizeOf(QM31) == 32) {
++                        if (std.process.hasEnvVarConstant("STWO_EXPORT_PCS_SUFFIX")) {
++                            std.debug.print("PCS_PREFIX {x} {d}\n", .{ &channel.digestBytes(), sampled_values_flat.len });
++                            std.debug.print("PCS_SAMPLES ", .{});
++                            for (sampled_values_flat) |value| std.debug.print("{x}", .{&value.toBytesLe()});
++                            std.debug.print("\nPCS_ROOTS {x}", .{&proof.fri_proof.first_layer.commitment});
++                            for (proof.fri_proof.inner_layers) |layer| std.debug.print(" {x}", .{&layer.commitment});
++                            std.debug.print("\nPCS_LAST ", .{});
++                            for (proof.fri_proof.last_layer_poly.coefficients()) |value| std.debug.print("{x}", .{&value.toBytesLe()});
++                            std.debug.print("\n", .{});
++                        }
++                    }
++
+                     {
+                         const observer = @import("../crypto/blake2s_observer.zig");
+                         const previous = observer.phase;
+@@ -300,10 +313,21 @@ pub fn ForField(comptime Secure: type) type {
+                         bound,
+                     );
+                     defer fri_verifier.deinit(allocator);
++                    if (comptime @TypeOf(self.trees.items[0].root) == [32]u8 and @sizeOf(QM31) == 32) {
++                        if (std.process.hasEnvVarConstant("STWO_EXPORT_PCS_SUFFIX")) {
++                            std.debug.print("PCS_SUFFIX {x} {d}\n", .{ &channel.digestBytes(), lifting_log_size });
++                        }
++                    }
++
+
+                     if (!channel.verifyPowNonce(self.config.pow_bits, proof.proof_of_work)) {
+                         return verifier_types.VerificationError.ProofOfWork;
+                     }
++                    const fri_export_digest: ?[32]u8 =
++                        if (comptime H.Hash == [32]u8 and @sizeOf(QM31) == 32)
++                            if (std.process.hasEnvVarConstant("STWO_EXPORT_FRI_LAYERS")) channel.digestBytes() else null
++                        else
++                            null;
+                     channel.mixU64(proof.proof_of_work);
+
+                     var query_capture = try fri_verifier.sampleQueryPositionsWithRaw(
+@@ -414,7 +438,7 @@ pub fn ForField(comptime Secure: type) type {
+                     var fri_capture: fri.FriQueryCapture(H) = undefined;
+                     var fri_capture_owned = false;
+                     defer if (fri_capture_owned) fri_capture.deinit(allocator);
+-                    if (proof_capture_out != null) {
++                    if (proof_capture_out != null or fri_export_digest != null) {
+                         fri_verifier.decommitWithQueryCapture(
+                             allocator,
+                             fri_answers,
+@@ -434,6 +458,48 @@ pub fn ForField(comptime Secure: type) type {
+                         };
+                     }
+
++                    if (comptime H.Hash == [32]u8 and @sizeOf(QM31) == 32) {
++                        if (fri_export_digest) |digest| {
++                            std.debug.print("FRI_BEGIN {x} {d} {d}\nFRI_DEEP ", .{
++                                &digest, lifting_log_size, proof.proof_of_work,
++                            });
++                            for (fri_answers) |value| std.debug.print("{x}", .{&value.toBytesLe()});
++                            std.debug.print("\n", .{});
++                            for (fri_capture.layers, 0..) |layer, i| {
++                                std.debug.print("FRI_LAYER {x} {d}\nFRI_ROWS ", .{ &layer.commitment, layer.fold_step });
++                                for (layer.values) |value| std.debug.print("{x}", .{&value.toBytesLe()});
++                                std.debug.print("\nFRI_SIBLINGS ", .{});
++                                const layer_proof = if (i == 0) proof.fri_proof.first_layer else proof.fri_proof.inner_layers[i - 1];
++                                for (layer_proof.decommitment.hash_witness) |sibling| std.debug.print("{x}", .{&sibling});
++                                std.debug.print("\n", .{});
++                            }
++                            std.debug.print("FRI_END\n", .{});
++                            if (std.process.hasEnvVarConstant("STWO_EXPORT_FRI_TRACE")) {
++                                std.debug.print("FRI_TRACE_BEGIN {x}\nFRI_TRACE_ALPHA {x}\n", .{
++                                    &digest, &deep_randomness.toBytesLe(),
++                                });
++                                for (self.trees.items, 0..) |tree, i| {
++                                    const tree_log_size = self.queryTreeLogSize(i, column_log_sizes.items[i]);
++                                    std.debug.print("FRI_TRACE_TREE {x} {d} {d}\nFRI_TRACE_POSITIONS", .{
++                                        &tree.root, tree_log_size orelse 0, column_log_sizes.items[i].len,
++                                    });
++                                    for (query_positions_tree[i]) |position| std.debug.print(" {d}", .{position});
++                                    std.debug.print("\nFRI_TRACE_SIBLINGS ", .{});
++                                    for (proof.decommitments.items[i].hash_witness) |sibling| std.debug.print("{x}", .{&sibling});
++                                    std.debug.print("\n", .{});
++                                    for (column_log_sizes.items[i], sampled_points_owned.items[i], 0..) |column_log, points, column| {
++                                        std.debug.print("FRI_TRACE_COLUMN {d} {d} ", .{ column_log, points.len });
++                                        for (points) |point| std.debug.print("{x}{x}", .{ &point.x.toBytesLe(), &point.y.toBytesLe() });
++                                        std.debug.print("\nFRI_TRACE_VALUES ", .{});
++                                        for (proof.queried_values.items[i][column]) |value| std.debug.print("{x}", .{&value.toBytesLe()});
++                                        std.debug.print("\n", .{});
++                                    }
++                                }
++                                std.debug.print("FRI_TRACE_END\n", .{});
++                            }
++                        }
++                    }
++
+                     if (capture_out) |capture| {
+                         capture.* = query_capture;
+                         query_capture_owned = false;
