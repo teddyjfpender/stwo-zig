@@ -168,6 +168,7 @@ bool expect_hash(
 }
 
 #include "../../src/backends/cuda/testing/native_merkle_layers_test.h"
+#include "../../src/backends/cuda/testing/native_assignment_capture_test.h"
 
 bool test_pinned_zig_oracles() {
     const auto expect_domain_state = [](
@@ -831,6 +832,7 @@ int main() {
     }
     if (!test_pinned_zig_oracles() || !test_progressive(arena) || !test_mixed(arena) ||
         !test_merkle_and_fri(arena) || !test_merkle_layer_schedules(arena) ||
+        !test_assignment_capture(arena) ||
         !arena.close()) {
         return 1;
     }

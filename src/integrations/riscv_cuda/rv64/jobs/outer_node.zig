@@ -246,7 +246,7 @@ pub const Node = struct {
             job.first = 0;
             job.count = job.record_count;
             const replay: ?bool = cache.runDevice(k.assignment_graph_api orelse return error.MissingAssignmentGraphRuntime, device.ctx, K.lane, staged.statics.identity, sequence, &job, self.at(img.chain_ends), asg.ends.len) catch |err| switch (err) {
-                error.AssignmentGraphChargeUnknown, error.GraphBudgetExceeded => blk: {
+                error.AssignmentGraphChargeUnknown, error.GraphBudgetExceeded, error.AssignmentGraphEnclosingCapture => blk: {
                     std.debug.print("GPU_ASSIGNMENT_GRAPH_DIRECT reason={s}\n", .{@errorName(err)});
                     break :blk null;
                 },

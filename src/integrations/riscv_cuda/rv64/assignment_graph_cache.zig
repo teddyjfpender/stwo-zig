@@ -73,7 +73,9 @@ pub const Cache = struct {
                 _ = self.entries.orderedRemove(0);
             }
             try self.entries.ensureUnusedCapacity(a, 1);
-            if (api.create(context, lane, job, sequence.ptr, @intCast(sequence.len), ends, @intCast(end_count), &handle) != 0 or handle == null) return error.AssignmentGraphCreateFailed;
+            const created = api.create(context, lane, job, sequence.ptr, @intCast(sequence.len), ends, @intCast(end_count), &handle);
+            if (created == 900) return error.AssignmentGraphEnclosingCapture;
+            if (created != 0 or handle == null) return error.AssignmentGraphCreateFailed;
             const bytes = self.charge(context, handle.?) catch |err| {
                 if (api.destroy(context, handle.?) != 0) return error.AssignmentGraphDestroyFailed;
                 return err;
@@ -112,6 +114,7 @@ test "assignment device graph rebinds fresh pointers and rejects foreign context
         var destroys: u32 = 0;
         var latest: [4]usize = @splat(0);
         var create_fail: bool = false;
+        var enclosing_capture: bool = false;
         var fail: bool = false;
         var charge: u64 = 8;
         var query_fail: bool = false;
@@ -121,6 +124,7 @@ test "assignment device graph rebinds fresh pointers and rejects foreign context
         }
         fn create(_: *anyopaque, _: u32, _: *const anyopaque, _: [*]const Step, _: u32, _: [*]const u32, _: u32, out: *?*anyopaque) callconv(.c) c_int {
             creates += 1;
+            if (enclosing_capture) return 900;
             if (create_fail) {
                 out.* = null;
                 return 1;
@@ -169,6 +173,9 @@ test "assignment device graph rebinds fresh pointers and rejects foreign context
     F.charge = 9;
     try std.testing.expectError(error.GraphBudgetExceeded, cache.runDevice(undefined, ctx, 0, @splat(8), &sequence, &job, @ptrFromInt(512), 1));
     try std.testing.expectEqual(@as(u64, 8), budget.used);
+    F.enclosing_capture = true;
+    try std.testing.expectError(error.AssignmentGraphEnclosingCapture, cache.runDevice(undefined, ctx, 0, @splat(8), &sequence, &job, @ptrFromInt(512), 1));
+    F.enclosing_capture = false;
     F.create_fail = true;
     try std.testing.expectError(error.AssignmentGraphCreateFailed, cache.runDevice(undefined, ctx, 0, @splat(8), &sequence, &job, @ptrFromInt(512), 1));
     try std.testing.expectEqual(@as(usize, 1), cache.entries.items.len);
