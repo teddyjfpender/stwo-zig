@@ -30,9 +30,6 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
     const bindings = ctx.bindings;
     const composition_bundle = ctx.composition_bundle;
     const execute_composition = ctx.execute_composition;
-    const execute_quotient = ctx.execute_quotient;
-    const execute_fri = ctx.execute_fri;
-    const execute_decommit = ctx.execute_decommit;
     const execute_proof = ctx.execute_proof;
     const requested_commit_tree_count = ctx.requested_commit_tree_count;
     const transcript = ctx.transcript;
@@ -80,7 +77,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
             if (requested_commit_tree_count < 4 or execution_metrics.commitment_roots[2] == null)
                 return error.CommitmentInputsNotExecuted;
             if (!composition.isComplete() and
-                (execute_quotient or std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_OODS")))
+                (execute_proof or std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_OODS")))
                 return error.PartialCompositionCannotContinue;
             try composition.execute();
             execution_metrics.composition_gpu_ms = composition.accumulated_gpu_ms;
@@ -148,7 +145,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
                             if (transcript_reference != null) "exact" else "unchecked",
                         },
                     );
-            } else if (composition.isComplete() and execute_quotient) {
+            } else if (composition.isComplete() and execute_proof) {
                 const fixture = transcript_reference orelse return error.MissingTranscriptReference;
                 try transcript.loadInputWords(25, fixture.input_25);
                 try transcript.oodsAndQuotient();
@@ -173,7 +170,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
         );
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
             std.debug.print("quotient_prepare done\n", .{});
-        if (execute_quotient) {
+        if (execute_proof) {
             const quotient_reference_path = std.process.getEnvVarOwned(
                 allocator,
                 "STWO_ZIG_SN2_QUOTIENT_REFERENCE",
@@ -296,7 +293,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
         );
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
             std.debug.print("fri_prepare done\n", .{});
-        if (execute_fri) {
+        if (execute_proof) {
             if (!execution_metrics.quotient_executed) return error.QuotientRequired;
             if (transcript_reference) |fixture| {
                 if (fixture.fri_inputs.len != bindings.decommit_fri_trees.len)
@@ -343,7 +340,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
         );
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
             std.debug.print("decommit_prepare done\n", .{});
-        if (execute_decommit) {
+        if (execute_proof) {
             if (!execution_metrics.fri_executed or !execution_metrics.fri_final_degree_valid) return error.FriRequired;
             const nonce = if (transcript_reference) |fixture| blk: {
                 try transcript.queryPowAndPositionsNonce(fixture.query_nonce);

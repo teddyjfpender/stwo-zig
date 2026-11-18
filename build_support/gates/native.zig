@@ -4,12 +4,20 @@ pub const Result = struct {
     prove_checkpoints: *std.Build.Step,
 };
 
-pub fn addGates(b: *std.Build, zig_optimize_arg: []const u8) Result {
-    const deep = b.addSystemCommand(&.{ "python3", "scripts/repo/zig_protocol_test.py" });
+fn protocolTests(b: *std.Build, root: []const u8, zig_optimize_arg: []const u8) *std.Build.Step.Run {
+    const run = b.addSystemCommand(&.{ "python3", "scripts/repo/zig_protocol_test.py" });
     // The serial launcher already owns the scheduling lock for this build.
-    if (b.graph.env_map.get("STWO_ZIG_BUILD_HELD_LOCK") != null) deep.addArg("--no-lock");
-    deep.addArgs(&.{ "src/products/native/tests/deep_root.zig", zig_optimize_arg });
+    if (b.graph.env_map.get("STWO_ZIG_BUILD_HELD_LOCK") != null) run.addArg("--no-lock");
+    run.addArgs(&.{ root, zig_optimize_arg });
+    return run;
+}
+
+pub fn addGates(b: *std.Build, zig_optimize_arg: []const u8) Result {
+    const deep = protocolTests(b, "src/products/native/tests/deep_root.zig", zig_optimize_arg);
     b.step("deep-gate", "Run expanded deep graph coverage").dependOn(&deep.step);
+    const timings = protocolTests(b, "src/products/native/tests/timing_root.zig", "-OReleaseFast");
+    timings.addArgs(&.{ "--test-filter", "optional native timing:" });
+    b.step("native-timings", "Measure bounded native CPU quotient and Poseidon comparisons").dependOn(&timings.step);
 
     const fields = b.addSystemCommand(&.{ "python3", "scripts/repo/parity_fields.py", "--skip-zig" });
     const constraints = b.addSystemCommand(&.{
