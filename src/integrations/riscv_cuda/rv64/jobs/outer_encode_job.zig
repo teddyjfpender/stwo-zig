@@ -4,8 +4,7 @@
 //! The wrapper adds, after the node body on the same exec stream, ONE
 //! encoder launch that reads the node's own device results (the PCS image
 //! field, the outer section's claims / status latches / MAIN, INTER and
-//! composition roots) plus two staged inputs (the class descriptor, kept in
-//! a worker-persistent region per class, and the expected outputs) and writes
+//! composition roots) plus the class descriptor and expected outputs, and writes
 //! [length | om31 wire bytes] and the node_pcs_status / encode_bounds Verdict
 //! words into a field of the node's slab. Nothing is read back early: the
 //! bytes come home with the node's single slab D2H.
@@ -84,6 +83,12 @@ pub fn descriptorFor(a: std.mem.Allocator, shape: anytype, envelope: ?E.Envelope
         root_words = w;
     }
     return E.buildDescriptor(a, .{ .config = config, .degree_log = shape.degree_log, .trees = trees }, envelope, root_words);
+}
+
+/// Declared encoder ingress, including warm persistent bindings: batchStage
+/// reserves the complete declaration before it knows which uploads are fresh.
+pub fn extraPinnedWords(descriptor: usize, expected: usize, oods: usize) error{ResourceSizeOverflow}!usize {
+    return std.math.add(usize, std.math.add(usize, descriptor, expected) catch return error.ResourceSizeOverflow, oods) catch error.ResourceSizeOverflow;
 }
 
 pub const EncodedNode = struct {
@@ -198,7 +203,11 @@ pub const EncodedNode = struct {
     }
     fn extraStaged(self: *const EncodedNode) u64 {
         var n = g(self.desc[E.D.scratch_words]) + g(self.inner.staged.expected.len);
-        if (self.oods) |*o| n += g(o.scratchWords());
+        if (self.target == null) n += g(self.desc.len);
+        if (self.oods) |*o| {
+            n += g(o.scratchWords());
+            if (self.target == null) n += g(o.program.len);
+        }
         return n;
     }
     pub fn footprint(self: *EncodedNode) api.Footprint {
@@ -207,21 +216,29 @@ pub const EncodedNode = struct {
         const extra = self.extraStaged();
         fp.device_words += @intCast(extra);
         fp.staged_words += @intCast(extra);
-        // Descriptor (persistent, outside the window) and outputs come from pinned memory.
-        fp.pinned_words += self.desc.len + self.inner.staged.expected.len;
-        if (self.oods) |*o| fp.pinned_words += o.program.len;
+        // Class misses and diagnostic program uploads use the same pinned ingress.
+        const extra_pinned = extraPinnedWords(self.desc.len, self.inner.staged.expected.len, if (self.oods) |o| o.program.len else 0) catch std.math.maxInt(usize);
+        fp.pinned_words = std.math.add(usize, fp.pinned_words, extra_pinned) catch std.math.maxInt(usize);
         return fp;
+    }
+    // Only request-slab jobs can reuse the installed class. Discovery jobs
+    // stage their inputs in the two-sided arena so class count cannot retain them.
+    fn stageProgram(self: *const EncodedNode, s: *api.Stager, key: [32]u8, words: []const u32) !api.DeviceBuffer {
+        const region: api.Persistent = if (self.target != null)
+            try s.persistent(key, words.len)
+        else
+            .{ .buffer = try s.alloc(words.len), .fresh = true };
+        if (self.inner.require_warm and region.fresh) return error.GpuNativeRecursionEncoderCold;
+        if (region.fresh) {
+            const pinned = try s.pinned(words.len);
+            @memcpy(pinned, words);
+            try s.upload(region.buffer, pinned);
+        }
+        return region.buffer;
     }
     pub fn stage(self: *EncodedNode, s: *api.Stager) !void {
         try self.inner.stage(s);
-        const p = try s.persistent(self.desc_key, self.desc.len);
-        self.desc_buf = p.buffer;
-        if (self.inner.require_warm and p.fresh) return error.GpuNativeRecursionEncoderCold;
-        if (p.fresh) {
-            const pinned = try s.pinned(self.desc.len);
-            @memcpy(pinned, self.desc);
-            try s.upload(p.buffer, pinned);
-        }
+        self.desc_buf = try self.stageProgram(s, self.desc_key, self.desc);
         const outputs = self.inner.staged.expected;
         if (self.outputs_device != null or self.outputs_on_device) {} else if (outputs.len != 0) {
             const b = try s.alloc(outputs.len);
@@ -232,14 +249,7 @@ pub const EncodedNode = struct {
         }
         self.scratch = try s.alloc(self.desc[E.D.scratch_words]);
         if (self.oods) |*o| {
-            const q = try s.persistent(o.key, o.program.len);
-            o.buf = q.buffer;
-            if (self.inner.require_warm and q.fresh) return error.GpuNativeRecursionEncoderCold;
-            if (q.fresh) {
-                const pinned = try s.pinned(o.program.len);
-                @memcpy(pinned, o.program);
-                try s.upload(q.buffer, pinned);
-            }
+            o.buf = try self.stageProgram(s, o.key, o.program);
             o.scratch = try s.alloc(o.scratchWords());
         }
     }
@@ -397,3 +407,36 @@ pub const EncodedNode = struct {
         self.inner.abort();
     }
 };
+
+test "encoder wrapper pinned reservation includes every ingress and respects readback ownership" {
+    const extra = try extraPinnedWords(5, 6, 7);
+    try std.testing.expectEqual(@as(usize, 18), extra);
+    var fp = api.Footprint{ .device_words = 0, .pinned_words = extra + 3, .slab_words = 11 };
+    try std.testing.expectEqual(@as(usize, 32), try fp.pinnedWords());
+    fp.readback = .request_slab;
+    try std.testing.expectEqual(@as(usize, 21), try fp.pinnedWords());
+    try std.testing.expectError(error.ResourceSizeOverflow, extraPinnedWords(std.math.maxInt(usize), 1, 0));
+}
+
+test "encoder discovery owns its programs until completion and serving reuses its installed class" {
+    var desc = [_]u32{0} ** 129;
+    desc[E.D.scratch_words] = 1;
+    var oods = [_]u32{0} ** 65;
+    oods[OO.H.parts] = 1;
+    var node: EncodedNode = undefined;
+    var inner: Job.OuterNodeJob = undefined;
+    var staged: @import("outer_staged.zig").Staged = undefined;
+    staged.expected = &.{};
+    inner.staged = &staged;
+    node.inner = &inner;
+    node.desc = &desc;
+    node.oods = .{ .program = &oods, .symbols = undefined };
+    node.target = null;
+    try std.testing.expectEqual(@as(u64, 8 * 64), node.extraStaged());
+    const buffer = api.DeviceBuffer{ .ptr = undefined, .words = 1 };
+    node.target = .{ .region = buffer, .pcs_status = buffer, .encode_status = buffer };
+    try std.testing.expectEqual(@as(u64, 3 * 64), node.extraStaged());
+    node.target = null;
+    node.oods = null;
+    try std.testing.expectEqual(@as(u64, 5 * 64), node.extraStaged());
+}

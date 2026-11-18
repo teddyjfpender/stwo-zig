@@ -55,6 +55,7 @@ pub const Owner = struct {
     blocks: std.AutoHashMapUnmanaged(u64, Block) = .empty,
     classes: std.AutoHashMapUnmanaged(G.ClassKey, *Outer.NodeClasses.Entry) = .empty,
     twiddle_owner: std.AutoHashMapUnmanaged(G.ClassKey, G.ClassKey) = .empty,
+    execution: [G.max_devices]?Outer.Prover = @splat(null),
     const Block = struct { nodes: []*Outer.NodeClasses.Entry, stage_one: []u8, leaves: []Leaf = &.{}, coefficient_counts: [][]u32 = &.{}, leaf_keys: []G.ClassKey = &.{}, native_count: u32 = 0 };
 
     pub fn init(a: std.mem.Allocator, libs: *O.Libraries, library: []const u8, manifest_path: []const u8, spool: []const u8) !*Owner {
@@ -105,10 +106,13 @@ pub const Owner = struct {
             try std.fs.cwd().writeFile(.{ .sub_path = path, .data = text });
             const output = try std.fmt.allocPrint(a, "{s}/install-classes/{d}/warm", .{ spool, block });
             defer a.free(output);
-            Outer.NodeClasses.beginInstall();
             var timer = try std.time.Timer.start();
-            try @import("resident_batch.zig").runCombinedForInstall(a, library, path, output);
-            const nodes = try Outer.NodeClasses.installedNodes(a);
+            const nodes = blk: {
+                var discovery = try Outer.NodeClasses.beginInstall();
+                defer discovery.deinit();
+                try @import("resident_batch.zig").runCombinedForInstall(a, library, path, output);
+                break :blk try Outer.NodeClasses.installedNodes(a);
+            };
             errdefer a.free(nodes);
             if (nodes.len == 0) return error.GpuNativeNoRecursionClasses;
             for (nodes) |entry| {
@@ -119,6 +123,7 @@ pub const Owner = struct {
                     entry.shared = &self.shared;
                     entry.runtime_symbols = .{ .kernels = &self.shared.kernels, .whole = self.shared.whole(), .encode = self.shared.encode, .oods = self.shared.oods, .compressed = self.shared.compressed };
                     entry.graphs = @splat(null);
+                    entry.assignment_graphs = @splat(null);
                     if (std.posix.getenv("STWO_RV64_M9_CLASS_PACKED_INGRESS")) |flag| if (std.mem.eql(u8, flag, "1")) {
                         const before = entry.staged.image.words[@intFromEnum(St.Region.twiddles)];
                         try entry.staged.shareTwiddleTower();
@@ -155,6 +160,15 @@ pub const Owner = struct {
         return self;
     }
     fn deinitContents(self: *Owner) void {
+        var classes = self.classes.valueIterator();
+        while (classes.next()) |entry| {
+            entry.*.graphs = @splat(null);
+            entry.*.assignment_graphs = @splat(null);
+        }
+        for (&self.execution) |*slot| if (slot.*) |*prover| {
+            prover.deinitOnWorker() catch |err| std.log.err("recursion graph teardown: {s}", .{@errorName(err)});
+            slot.* = null;
+        };
         var it = self.blocks.valueIterator();
         while (it.next()) |b| {
             self.a.free(b.nodes);
@@ -265,7 +279,7 @@ pub const Owner = struct {
             var job = try Job.OuterNodeJob.initWhole(entry.staged, &self.shared.kernels, self.shared.whole());
             defer job.deinit();
             job.require_warm = true;
-            total += job.footprint().pinned_words + entry.program.len;
+            total = std.math.add(usize, total, try entry.requestPinnedWords(job.footprint())) catch return error.ResourceSizeOverflow;
         }
         return total;
     }
@@ -274,11 +288,22 @@ pub const Owner = struct {
     /// become persistent on each worker. Only the immutable FIXED commitment
     /// executes; no warm proof assignment or output is used as a request input.
     pub fn warm(self: *Owner, workers: []const *W.Worker) !void {
+        if (workers.len > self.execution.len) return error.InvalidGraphWorker;
+        for (workers, 0..) |worker, i| {
+            if (self.execution[i]) |*prover| {
+                if (prover.worker != worker) return error.GraphWorkerMismatch;
+            } else {
+                // Whole-body capture has no qualified fresh-block benefit;
+                // assignment-only replay retains the same worker owner.
+                self.execution[i] = Outer.Prover.init(self.a, &self.shared, worker, .{ .enabled = false });
+            }
+        }
         var it = self.classes.valueIterator();
         while (it.next()) |item| {
             const entry = item.*;
             if (entry.program.len == 0) return error.GpuNativeRecursionInstallTopology;
             for (workers, 0..) |worker, device| {
+                try self.execution[device].?.bindInstalled(entry, device);
                 var warm_job = try Warm.init(self, entry, @intCast(device));
                 defer warm_job.deinit();
                 var done = struct {
@@ -419,7 +444,7 @@ const Warm = struct {
     pub fn init(owner: *Owner, entry: *Outer.NodeClasses.Entry, device: u32) !Warm {
         const plan = if (entry.staged.statics.fixed_plan) |*p| p else return error.OuterJobWholeStagingMissing;
         const tw = try entry.staged.statics.table(plan.eval_log);
-        var fixed = try Fixed.FixedJob.init(.{ .plan = plan, .raw = entry.staged.fixed_raw, .sorted_logs = entry.staged.statics.fixed_sorted_logs, .twiddles = tw.twiddles, .itwiddles = tw.itwiddles }, &owner.shared.kernels);
+        var fixed = try Fixed.FixedJob.init(.{ .plan = plan, .raw = if (entry.compressed != null) null else entry.staged.fixed_raw, .sorted_logs = entry.staged.statics.fixed_sorted_logs, .twiddles = tw.twiddles, .itwiddles = tw.itwiddles }, &owner.shared.kernels);
         if (entry.compressed == null) fixed.handoff = .{ .key = entry.staged.fixedRegionKey(), .words = @intCast(plan.coefficient_words) };
         const dummy = api.DeviceBuffer{ .ptr = @ptrFromInt(64), .words = 1 + (std.math.divCeil(usize, entry.max_encoded_bytes, 4) catch unreachable) };
         const made = try entry.node.make(entry.node.ctx, owner.a, .{ .device = device, .region = dummy, .pcs_status = dummy, .encode_status = dummy, .oods_status = dummy });
@@ -445,6 +470,7 @@ const Warm = struct {
     pub fn stage(self: *Warm, s: *api.Stager) !void {
         try self.fixed.stage(s);
         try self.made.job.vtable.stage(self.made.job.ctx, s);
+        if (self.entry.compressed != null) self.fixed.packed_input = (try self.made.inputs(self.made.ctx)).packed_input orelse return error.PackedClassShape;
         const program = try s.persistent(self.entry.node.prog_key, self.entry.program.len);
         if (program.fresh) try s.upload(program.buffer, self.entry.program);
     }
@@ -456,5 +482,31 @@ const Warm = struct {
         const root = self.fixed.root orelse return error.GpuNativeRecursionFixedCold;
         if (!std.mem.eql(u8, &root, &self.entry.staged.fixed_root)) return error.GpuNativeRecursionFixedRootMismatch;
     }
-    pub fn abort(_: *Warm) void {}
+    pub fn abort(self: *Warm) void {
+        self.fixed.abort();
+    }
 };
+
+test "cold FIXED installation checks the decoder verdict and independently pinned root" {
+    const Tree = @typeInfo(@FieldType(Fixed.Inputs, "plan")).pointer.child;
+    var plan = try Tree.init(std.testing.allocator, &.{5}, 1);
+    defer plan.deinit(std.testing.allocator);
+    var installed: St.Staged = undefined;
+    installed.fixed_root = @splat(0x5a);
+    var entry: Outer.NodeClasses.Entry = undefined;
+    entry.staged = &installed;
+    var worker = Warm{
+        .entry = &entry,
+        .made = undefined,
+        .fixed = try Fixed.FixedJob.init(.{ .plan = &plan, .raw = null, .sorted_logs = &.{5}, .twiddles = &.{}, .itwiddles = &.{} }, undefined),
+    };
+    var words: [9]u32 = @splat(0x5a5a5a5a);
+    words[8] = G.Verdict.accepted;
+    const view = api.SlabView{ .layout = &worker.fixed.layout, .words = &words };
+    try worker.finish(view);
+    words[3] ^= 1;
+    try std.testing.expectError(error.GpuNativeRecursionFixedRootMismatch, worker.finish(view));
+    words[3] ^= 1;
+    words[8] = G.Verdict.reject(.class_unpack, 1);
+    try std.testing.expectError(error.PackedClassDecodeFailed, worker.finish(view));
+}

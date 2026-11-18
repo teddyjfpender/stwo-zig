@@ -25,7 +25,7 @@ latter is a test-only dependency, pinned with its checksum in Cargo.lock.
 
 ```sh
 cargo +nightly-2026-08-08 test --locked --release --manifest-path \
-  autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64/Cargo.toml
+  guests/ethereum/rv64/vendor/sha2-rv64/Cargo.toml
 ```
 
 This patch needs dependency and cryptographic review before promotion. The

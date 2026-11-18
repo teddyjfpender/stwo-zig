@@ -25,6 +25,8 @@ pub const Prover = struct {
     shared: *const Schema.Shared,
     worker: *Worker.Worker,
     graphs: Graphs.Cache,
+    graph_budget: Graphs.Budget = .{},
+    assignment_graphs: @import("assignment_graph_cache.zig").Cache,
     /// Fold class regions in worker-persistent memory (outside the arena).
     /// The hybrid window clears it (see OuterNodeJob.persistent_classes).
     persistent_classes: bool = true,
@@ -65,10 +67,35 @@ pub const Prover = struct {
     }
 
     pub fn init(a: std.mem.Allocator, shared: *const Schema.Shared, worker: *Worker.Worker, policy: Graphs.Policy) Prover {
-        return .{ .shared = shared, .worker = worker, .graphs = Graphs.Cache.init(a, shared.graph_api, policy) };
+        return .{ .shared = shared, .worker = worker, .graphs = Graphs.Cache.init(a, shared.graph_api, policy), .assignment_graphs = .{ .allocator = a } };
     }
     pub fn deinit(self: *Prover) void {
         self.graphs.deinit();
+    }
+    /// Bind borrowed caches by logical worker index, never physical ordinal.
+    pub fn bindInstalled(self: *Prover, entry: *NodeClasses.Entry, device: usize) !void {
+        if (device >= entry.graphs.len) return error.InvalidGraphWorker;
+        if (entry.graphs[device]) |cache| if (cache != &self.graphs) return error.GraphWorkerMismatch;
+        if (entry.assignment_graphs[device]) |cache| if (cache != &self.assignment_graphs) return error.GraphWorkerMismatch;
+        if (self.graphs.budget == null) {
+            try self.graph_budget.reserve(self.graphs.used_bytes);
+            self.graphs.budget = &self.graph_budget;
+            self.assignment_graphs.budget = &self.graph_budget;
+        }
+        entry.graphs[device] = &self.graphs;
+        entry.assignment_graphs[device] = &self.assignment_graphs;
+    }
+    /// Caller has drained requests; destroy executables while context is live.
+    pub fn deinitOnWorker(self: *Prover) !void {
+        const Cleanup = struct {
+            fn run(raw: *anyopaque, worker: *Worker.Worker) anyerror!void {
+                const owner: *Prover = @ptrCast(@alignCast(raw));
+                owner.assignment_graphs.deinitDevice(worker.context);
+                owner.deinit();
+                std.debug.print("GPU_GRAPH_BUDGET device={d} limit_bytes={d} retained_peak_bytes={d} candidate_peak_bytes={d} remaining_bytes={d}\n", .{ worker.device_ordinal, owner.graph_budget.limit, owner.graph_budget.peak, owner.graph_budget.candidate_peak, owner.graph_budget.used });
+            }
+        };
+        try self.worker.call(.{ .ctx = self, .run = Cleanup.run });
     }
 
     const Done = struct {
@@ -88,7 +115,7 @@ pub const Prover = struct {
     /// template, children from a node-local stand-in of the request slab) and
     /// require its device-encoded bytes == the published host bytes.
     fn gnJob(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, cur: *const @import("jobs/outer_staged.zig").Staged, g: *const Checks.GnCheck, wire: []const u8, image: []const u32, handoff: ?Job.FixedHandoff) !void {
-        const entry = NodeClasses.get(cur.class_key) orelse return error.GnNodeClassNotHarvested;
+        const entry = NodeClasses.get(NodeClasses.bindingKey(cur.class_key, g.prog_key)) orelse return error.GnNodeClassNotHarvested;
         // A leaf's Blake sample prefill tape is a per-node HOST input today
         // (leaf_graph): hand this node's to the template (same class, same
         // length; remaining host work, see the receipt).
@@ -130,7 +157,7 @@ pub const Prover = struct {
         // class's captured body (STWO_RV64_M8_OUTER_GRAPH_THRESHOLD=1: from
         // the second node of the class on this GPU).
         const dev = self.worker.device_ordinal;
-        if (dev < entry.graphs.len and entry.graphs[dev] == null) entry.graphs[dev] = &self.graphs;
+        if (dev < entry.graphs.len) try self.bindInstalled(entry, dev);
         var w = try GnJob.init(a, entry, g, region_words[0..nk], self.shared, image, dev);
         // The FIXED coefficients the node just used (the lane's precommit
         // handoff region): in the hybrid window a second class-persistent
@@ -336,8 +363,18 @@ pub const NodeClasses = struct {
         /// GPU; set by the binder). With it every node of the class replays
         /// the class's captured body graph (rebinding only node buffers).
         graphs: [OuterDevice.max_graph_devices]?*Graphs.Cache = @splat(null),
+        assignment_graphs: [OuterDevice.max_graph_devices]?*@import("assignment_graph_cache.zig").Cache = @splat(null),
         /// The seed program for children regions of `region_words` words
         /// each (1 + the child class's encoded capacity), image at the end.
+        /// Same encoder + seed wrappers as the actual request adapter.
+        pub fn requestPinnedWords(self: *const Entry, base: api.Footprint) !usize {
+            var fp = base;
+            fp.readback = .request_slab;
+            const extra = try EncJob.extraPinnedWords(self.desc.len, self.staged.expected.len, if (self.runtime_symbols.oods != null) self.oods_program.len else 0);
+            fp.pinned_words = std.math.add(usize, fp.pinned_words, extra) catch return error.ResourceSizeOverflow;
+            fp.pinned_words = std.math.add(usize, fp.pinned_words, self.program.len) catch return error.ResourceSizeOverflow;
+            return fp.pinnedWords();
+        }
         pub fn programFor(self: *Entry, region_words: []const u32) !void {
             const a = std.heap.c_allocator;
             if (region_words.len != self.shapes.len) return error.GnNodeChildCount;
@@ -368,10 +405,15 @@ pub const NodeClasses = struct {
     var mutex: std.Thread.Mutex = .{};
     var entries: std.ArrayListUnmanaged(*Entry) = .empty;
     var install_nodes: std.AutoHashMapUnmanaged(u32, *Entry) = .empty;
-    pub fn beginInstall() void {
+    pub fn beginInstall() !GnRecord.Live.Install {
         mutex.lock();
         defer mutex.unlock();
+        const Plan = @import("jobs/driver_dag.zig").CarryPlan;
+        // One native PCS per leaf and at most one PCS plus one wire per node.
+        const max_nodes = @typeInfo(@TypeOf(@as(Plan, undefined).nodes)).array.len;
+        const seeds = try GnRecord.Live.beginInstall(Plan.max_leaves + 2 * max_nodes);
         install_nodes.clearRetainingCapacity();
+        return seeds;
     }
     pub fn installedNodes(a: std.mem.Allocator) ![]*Entry {
         mutex.lock();
@@ -423,11 +465,23 @@ pub const NodeClasses = struct {
             if (old != e) return error.GnNodeInstallOrdinal;
         } else try install_nodes.put(std.heap.c_allocator, ordinal, e);
     }
+    // A universal verifier body can verify different child authorities.
+    // Only the seed program binds those immutable, ordered child contexts.
+    fn bindingKey(body: [32]u8, program: [32]u8) [32]u8 {
+        var h = std.crypto.hash.sha2.Sha256.init(.{});
+        h.update("rv64/outer-node/binding-class/v1\x00");
+        h.update(&body);
+        h.update(&program);
+        return h.finalResult();
+    }
+    fn find(list: []const *Entry, class_key: [32]u8) ?*Entry {
+        for (list) |e| if (std.mem.eql(u8, &e.class_key, &class_key)) return e;
+        return null;
+    }
     pub fn get(class_key: [32]u8) ?*Entry {
         mutex.lock();
         defer mutex.unlock();
-        for (entries.items) |e| if (std.mem.eql(u8, &e.class_key, &class_key)) return e;
-        return null;
+        return find(entries.items, class_key);
     }
     pub fn pack(entry: *Entry) !void {
         if (entry.compressed == null) entry.compressed = try Prestage.packTemplate(std.heap.c_allocator, entry.staged);
@@ -441,7 +495,8 @@ pub const NodeClasses = struct {
     /// Returns true when `staged` became the class template (the caller
     /// must not deinit it).
     fn harvest(shared: *const Schema.Shared, input: Prestage.Input, staged: *@import("jobs/outer_staged.zig").Staged, job: *Job.OuterNodeJob, g: *const Checks.GnCheck) !bool {
-        if (get(staged.class_key)) |known| {
+        const class_key = bindingKey(staged.class_key, g.prog_key);
+        if (get(class_key)) |known| {
             if (installing()) try installNode(input.ordinal, known);
             return false;
         }
@@ -460,9 +515,11 @@ pub const NodeClasses = struct {
         const own_template = installing();
         const template = if (own_template) try Prestage.retainTemplate(a, input, staged) else staged;
         errdefer if (own_template) template.deinit();
+        // Worker admission follows the binding; body graph/statics stay shared.
+        if (own_template) template.class_key = class_key;
         const nk = g.regions.len;
         e.* = .{
-            .class_key = staged.class_key,
+            .class_key = class_key,
             .node = .{ .program = &.{}, .prog_key = @splat(0), .n_children = @intCast(nk), .output_words = @intCast(staged.expected.len), .ctx = e, .make = Runtime.Adapter(Entry).make },
             .shared = shared,
             .runtime_symbols = .{ .kernels = &shared.kernels, .whole = shared.whole(), .encode = shared.encode, .oods = shared.oods },
@@ -515,7 +572,7 @@ pub const NodeClasses = struct {
         defer mutex.unlock();
         try entries.append(a, e);
         if (own_template) try install_nodes.put(a, input.ordinal, e);
-        std.debug.print("GN_NODE_CLASS harvested ordinal={d} class={x} leaf={} children={d} classes={d}\n", .{ input.ordinal, staged.class_key[0..8].*, input.is_leaf, nk, entries.items.len });
+        std.debug.print("GN_NODE_CLASS harvested ordinal={d} class={x} leaf={} children={d} classes={d}\n", .{ input.ordinal, class_key[0..8].*, input.is_leaf, nk, entries.items.len });
         return !own_template;
     }
     fn parseShape(a: std.mem.Allocator, words: []const u32) !Seed.Shape {
@@ -688,3 +745,61 @@ const GnJob = struct {
 // lane's legacy om31 Factory: host plan preparation, tape readiness,
 // admission and the FIXED precommit are the legacy ones; the node proof is
 // the job.
+
+test "installed recursion cache distinguishes bindings of the same verifier body" {
+    const t = std.testing;
+    const body = [_]u8{7} ** 32;
+    var first: NodeClasses.Entry = undefined;
+    var second: NodeClasses.Entry = undefined;
+    first.class_key = NodeClasses.bindingKey(body, @splat(1));
+    second.class_key = NodeClasses.bindingKey(body, @splat(2));
+    const entries = [_]*NodeClasses.Entry{ &first, &second };
+    try t.expect(NodeClasses.find(&entries, second.class_key) == &second);
+    try t.expect(NodeClasses.find(&entries, first.class_key) == &first);
+    try t.expect(NodeClasses.find(&entries, NodeClasses.bindingKey(body, @splat(3))) == null);
+    try t.expectEqual(first.class_key, NodeClasses.bindingKey(body, @splat(1)));
+}
+
+test "installed graph owners share within one worker and destroy before their live contexts" {
+    const F = @import("jobs/fake.zig");
+    const State = struct {
+        var expected_thread: std.Thread.Id = 0;
+        var destroyed: usize = 0;
+        var wrong_thread: bool = false;
+        fn destroy(_: *anyopaque) callconv(.c) void {
+            wrong_thread = wrong_thread or std.Thread.getCurrentId() != expected_thread;
+            destroyed += 1;
+        }
+    };
+    F.reset();
+    State.destroyed = 0;
+    State.wrong_thread = false;
+    const a = std.testing.allocator;
+    const w0 = try Worker.Worker.create(a, &F.ops, .{ .device = 3, .arena_words = 4096, .pinned_slot_words = 64, .plan_from_env = false });
+    defer w0.destroy();
+    const w1 = try Worker.Worker.create(a, &F.ops, .{ .device = 7, .arena_words = 4096, .pinned_slot_words = 64, .plan_from_env = false });
+    defer w1.destroy();
+    var shared: Schema.Shared = undefined;
+    shared.graph_api.destroy_exec = State.destroy;
+    var p0 = Prover.init(a, &shared, w0, .{});
+    var p1 = Prover.init(a, &shared, w1, .{});
+    var e0: NodeClasses.Entry = undefined;
+    var e1: NodeClasses.Entry = undefined;
+    e0.graphs = @splat(null);
+    e1.graphs = @splat(null);
+    e0.assignment_graphs = @splat(null);
+    e1.assignment_graphs = @splat(null);
+    try p0.bindInstalled(&e0, 0);
+    try p0.bindInstalled(&e1, 0);
+    try p1.bindInstalled(&e0, 1);
+    try std.testing.expectError(error.GraphWorkerMismatch, p1.bindInstalled(&e0, 0));
+    try std.testing.expectError(error.InvalidGraphWorker, p0.bindInstalled(&e1, e1.graphs.len));
+    try std.testing.expect(e0.graphs[0] == e1.graphs[0] and e0.graphs[0] != e0.graphs[1]);
+    try std.testing.expect(e0.assignment_graphs[0] == e1.assignment_graphs[0] and e0.assignment_graphs[0] != e0.assignment_graphs[1]);
+    try p0.graphs.entries.put(a, .{ .class = @splat(1), .placement = 0 }, .{ .exec = @ptrFromInt(64), .bytes = 0, .kernel_nodes = 0, .total_nodes = 0, .last_use = 0, .request = 0 });
+    State.expected_thread = w0.thread_id;
+    try p0.deinitOnWorker();
+    try p1.deinitOnWorker();
+    try std.testing.expectEqual(@as(usize, 1), State.destroyed);
+    try std.testing.expect(!State.wrong_thread);
+}

@@ -514,6 +514,7 @@
           "zig",
           "build",
           "test",
+          "test-rv64-jobs-node",
           "--build-file",
           "src/integrations/riscv_cuda/build.zig",
           "-Doptimize=ReleaseFast",

@@ -29,7 +29,10 @@ pub fn Adapter(comptime Entry: type) type {
             }
             m.job.require_warm = e.resources_warmed;
             m.job.defer_decode = true;
-            if (target.device < e.graphs.len) m.job.graphs = e.graphs[target.device];
+            if (target.device < e.graphs.len) {
+                m.job.graphs = e.graphs[target.device];
+                m.job.assignment_graphs = e.assignment_graphs[target.device];
+            }
             m.enc = try Enc.EncodedNode.initTarget(a, &m.job, sym.encode orelse return error.GnNodeEncoderUnloaded, e.desc, .{ .region = target.region, .pcs_status = target.pcs_status, .encode_status = target.encode_status, .layout_status_oods = target.oods_status });
             if (sym.oods) |s| try m.enc.withOods(s, e.oods_program);
             m.enc.image_tail = true;
@@ -41,7 +44,7 @@ pub fn Adapter(comptime Entry: type) type {
             const m: *Made = @ptrCast(@alignCast(raw));
             const st = m.job.staged;
             const b = m.job.bases;
-            const out = OD.Inputs{ .seeds = .{ .ptr = @constCast(b.at(st.image.seeds)), .words = st.assignment.seeds.len }, .channel_seed = .{ .ptr = @constCast(b.at(st.image.channel_seed)), .words = 9 }, .outputs = .{ .ptr = @constCast(b.at(st.image.expected)), .words = st.expected.len } };
+            const out = OD.Inputs{ .packed_input = m.job.staged_packed, .seeds = .{ .ptr = @constCast(b.at(st.image.seeds)), .words = st.assignment.seeds.len }, .channel_seed = .{ .ptr = @constCast(b.at(st.image.channel_seed)), .words = 9 }, .outputs = .{ .ptr = @constCast(b.at(st.image.expected)), .words = st.expected.len } };
             m.enc.outputs_device = out.outputs;
             return out;
         }

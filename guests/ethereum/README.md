@@ -1,49 +1,36 @@
-# Reproducible RV32 Ethereum guest
+# Ethereum block guests
 
-This builds the unmodified stateless-validator source at `a134a621`, installs
-Alloy's native transaction signer recovery in the entrypoint, and uses the
-retained exact-layout allocator and word-oriented Keccak sponge. Revm EVM
-precompiles and verification against a supplied public key retain software
-semantics. A rejected native recovery is fatal.
+These guests validate one Ethereum mainnet block statelessly. The input is the
+block's canonical SSZ `StatelessInput`: the execution payload plus the witness
+of trie nodes it touches. The guest re-executes every transaction, checks the
+resulting state root and header, and publishes a 43-byte output (request root,
+success flag, chain ID, schema ID). The [guest ABI](../README.md#the-guest-abi)
+fixes the memory map and the I/O contract.
 
-From this directory:
+| Directory | What it is |
+| :--- | :--- |
+| [`rv32/`](rv32/README.md) | **RV32IM Rust guest.** Runs the unmodified pinned `stateless-validator-reth` with Keccak-f, secp256k1 recovery and SHA-256 compression as custom-0 instructions. Profile `rv32im-zkvm-ethereum-v1`. |
+| [`rv64/`](rv64/README.md) | **RV64IM Rust guest.** The same validator and input contract on RV64IM/LP64. Its software profile uses no accelerator. Its service profiles reach the admitted Keccak-f and secp256k1 services through `ECALL`, and its v3 features add SHA-256, 256-bit modular arithmetic and bulk-memory services. |
+| [`client_evmone/`](client_evmone/README.md) | **evmone Ethereum client guest.** A C++ client on RV64IM built from ZisK's ziskethone block pipeline and evmone's interpreter. It reads the same input and writes the identical output. |
+| [`abi/`](abi/CONTEXT.md) | The service ABI, the prover's cost per instruction and per service call, and the execution-only candidate services. |
+| [`runtime/`](runtime/README.md) | Shared `no_std` modules that the Rust guests include by `#[path]`: allocator, word-wise memory copy and Keccak sponge, SHA-256 framing, ELF capability note. |
+| `tools/projection/` | Host tool `stwo-ethereum-input-projection`. It converts a ZisK `zisk-eth-client` block fixture into the canonical SSZ input and the runner input. |
+| `tools/host_validation/` | Host tool `stwo-ethereum-host-validation`. It executes the canonical input natively and produces the expected 43-byte output independently of any guest. By default it admits only the pinned block 24,628,607; `--general` admits any canonical input up to 16 MiB. |
+| `tests/sha256_precompile/` | Host and RV32 tests for `runtime/sha256_precompile.rs`, differential against RustCrypto `sha2`. |
 
-```sh
-rustup component add rust-src --toolchain nightly-2026-08-08
-RUSTFLAGS='-C link-arg=-Tlinker.ld' cargo +nightly-2026-08-08 build \
-  --locked -j 1 --release --target riscv32i-stwo.json \
-  -Z json-target-spec -Z build-std=core,alloc \
-  -Z build-std-features=compiler-builtins-mem
-```
+## How the pieces fit
 
-The linker declares the full DATA region, including the allocator's heap, in
-`__data_len`. `__data_end` still marks the end of static sections, so the allocator
-starts at the same aligned address. Excluding the heap lets execution run but
-makes retained proof capture reject accessed heap words missing from its RW
-snapshot. The build script tracks `linker.ld` so layout edits trigger relinking.
+1. `tools/projection` turns a pinned ZisK fixture into canonical SSZ.
+   [`rv64/build.py --prepare-fixture`](rv64/build.py) authenticates the fixture
+   first.
+2. `tools/host_validation` computes the expected output on the host.
+3. A guest ELF is built from `rv32/`, `rv64/` or `client_evmone/` and executed
+   by the RISC-V frontend. Its output must equal the host's byte for byte.
+4. The regression basket of 15 mainnet blocks is
+   [`tests/fixtures/ethereum/basket.json`](../../tests/fixtures/ethereum/basket.json).
 
-The ELF is `target/riscv32i-stwo/release/stwo-ethereum-guest`. Its admission
-note selects `rv32im-zkvm-ethereum-v1`. Input is the four-byte length followed
-by canonical SSZ produced by [the projection tool](../projection/src/main.rs).
-The [host validator](../host_validation/src/main.rs) checks the same input and
-retains the expected 43-byte output. See [the archived block benchmark](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/ETHEREUM_BLOCK.md)
-for those commands.
+All three guests are independent artifacts. A change to one does not change
+another guest's protocol identity or ELF.
 
-The custom target enables M and single-thread atomic lowering, without A or C
-instructions. Its `riscv32i` prefix is intentional: radium 0.7 detects targets
-by name and otherwise incorrectly assumes 64-bit atomics. Four LLVM libcalls
-implement the required operations in an interrupt-free guest. They must never
-be used as synchronization primitives in a host or threaded guest. Check them
-from the repository root with:
-
-```sh
-rustc +1.96.1 --edition 2024 --test \
-  guests/ethereum/src/single_thread_atomics.rs \
-  -o /tmp/stwo-guest-atomics-test
-/tmp/stwo-guest-atomics-test
-```
-
-This is a new guest artifact, not a reconstruction of the historical ELF's
-exact bytes. A successful execution does not establish a segment proof,
-secure block commitment, or recursive proof. Existing CSP guests and their
-protocol identities are unaffected by this independent guest crate.
+Upstream projects used here are credited in
+[ACKNOWLEDGEMENTS.md](../../ACKNOWLEDGEMENTS.md).

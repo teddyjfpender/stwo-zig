@@ -195,6 +195,7 @@ pub fn decommitTreesCapped(
     const n_queries = if (query_bits.len == 0) 0 else query_bits[0].len;
     const scratch = ctx.scratch();
     const bits_for_query = try scratch.alloc(Var, lifting_log);
+    var frontier: ?SparseCap = null;
     for (log_sizes, queried_values, auth_paths, roots, caps) |tree_logs, tree_values, tree_paths, root, cap| {
         if (tree_logs.len == 0) {
             if (cap.len != 0) return error.ShapeMismatch;
@@ -204,7 +205,11 @@ pub fn decommitTreesCapped(
         const height = treeHeight(tree_logs);
         const cl = capLogFor(height, cap_log);
         if (cap.len != (if (cl == 0) @as(usize, 0) else @as(usize, 1) << @intCast(cl))) return error.ShapeMismatch;
-        if (cl != 0) try verifyCap(V, ctx, cap, root);
+        if (height > lifting_log) return error.ShapeMismatch;
+        if (cl >= sparse_cap_log) {
+            if (frontier == null) frontier = try SparseCap.init(V, ctx, query_bits[lifting_log - cl ..]);
+            try frontier.?.verify(V, ctx, cap, root);
+        } else if (cl != 0) try verifyCap(V, ctx, cap, root);
         const order = try columnPermutation(scratch, tree_logs);
         for (tree_values) |column| {
             if (column.len != n_queries) return error.ShapeMismatch;
@@ -216,6 +221,8 @@ pub fn decommitTreesCapped(
             if (tree_paths[q].len != height - cl) return error.ShapeMismatch;
             if (cl == 0) {
                 try verifyPath(V, ctx, leaf, position_bits, tree_paths[q], root);
+            } else if (cl >= sparse_cap_log) {
+                try verifyPath(V, ctx, leaf, position_bits[0 .. height - cl], tree_paths[q], try frontier.?.terminal(V, ctx, cap, q));
             } else {
                 try verifyPathToCap(V, ctx, leaf, position_bits, tree_paths[q], cap);
             }
@@ -266,6 +273,123 @@ pub fn hostCap(comptime H: type, out: []H.Hash, positions: []const usize, leaves
         for (0..n) |i| layer[i] = H.hashChildren(.{ .left = layer[2 * i], .right = layer[2 * i + 1] });
     }
     if (!std.mem.eql(u8, std.mem.asBytes(&layer[0]), std.mem.asBytes(&root))) return error.MerkleCapMismatch;
+}
+
+pub const sparse_cap_log = 4;
+
+/// At most 64 cap slots. At each maximal unopened subtree, its leftmost slot
+/// carries the authenticated subtree digest. Every queried slot carries the
+/// ordinary terminal digest. The same top Fiat–Shamir bits drive all tall trees.
+pub const SparseCap = struct {
+    empty: [64]Var = undefined,
+    slots: usize,
+    selectors: []Var,
+
+    pub fn init(comptime V: type, ctx: *Context(V), top_bits: []const []const Var) DecommitError!SparseCap {
+        if (top_bits.len == 0 or top_bits.len > 6 or top_bits[0].len == 0) return error.ShapeMismatch;
+        const nq = top_bits[0].len;
+        for (top_bits) |col| if (col.len != nq) return error.ShapeMismatch;
+        const slots = @as(usize, 1) << @intCast(top_bits.len);
+        var result = SparseCap{ .slots = slots, .selectors = try ctx.scratch().alloc(Var, slots * nq) };
+        const pairs = result.slots / 2;
+        @memset(result.empty[pairs..result.slots], ctx.one());
+        for (0..nq) |q| {
+            var weights: [32]Var = undefined;
+            weights[0] = ctx.one();
+            var n: usize = 1;
+            for (top_bits[1..]) |col| {
+                for (0..n) |i| {
+                    const high = try ctx.mul(weights[i], col[q]);
+                    weights[n + i] = high;
+                    weights[i] = try ctx.sub(weights[i], high);
+                }
+                n *= 2;
+            }
+            for (result.empty[pairs..result.slots], weights[0..pairs], 0..) |*e, hit, i| {
+                e.* = try ctx.mul(e.*, try ctx.sub(ctx.one(), hit));
+                const right = try ctx.mul(hit, top_bits[0][q]);
+                result.selectors[q * slots + 2 * i] = try ctx.sub(hit, right);
+                result.selectors[q * slots + 2 * i + 1] = right;
+            }
+        }
+        var k = pairs;
+        while (k > 1) {
+            k -= 1;
+            result.empty[k] = try ctx.mul(result.empty[2 * k], result.empty[2 * k + 1]);
+        }
+        return result;
+    }
+
+    /// The same one-hot wires address every tree for this raw draw.
+    pub fn terminal(self: *const SparseCap, comptime V: type, ctx: *Context(V), cap: []const HashValue(Var), q: usize) DecommitError!HashValue(Var) {
+        if (cap.len != self.slots or q >= self.selectors.len / self.slots) return error.ShapeMismatch;
+        const weights = self.selectors[q * self.slots ..][0..self.slots];
+        var digest: HashValue(Var) = undefined;
+        for (&digest.words, 0..) |*word, j| {
+            var selected = try ctx.mul(weights[0], cap[0].words[j].get());
+            for (weights[1..], cap[1..]) |weight, entry|
+                selected = try ctx.add(selected, try ctx.mul(weight, entry.words[j].get()));
+            word.* = .newUnsafe(selected);
+        }
+        return digest;
+    }
+
+    pub fn verify(self: *const SparseCap, comptime V: type, ctx: *Context(V), cap: []const HashValue(Var), root: HashValue(Var)) DecommitError!void {
+        if (cap.len != self.slots) return error.ShapeMismatch;
+        var layer: [64]HashValue(Var) = undefined;
+        @memcpy(layer[0..cap.len], cap);
+        var n = cap.len;
+        while (n > 1) {
+            n /= 2;
+            for (0..n) |i| {
+                const hashed = try hashNode(V, ctx, layer[2 * i], layer[2 * i + 1]);
+                layer[i] = if (n == 1) hashed else try selectHashBit(V, ctx, self.empty[n + i], hashed, cap[i * (cap.len / n)]);
+            }
+        }
+        for (layer[0].words, root.words) |a, b| try ctx.eq(a.get(), b.get());
+    }
+};
+
+/// Reconstruct the frontier from full paths. Path indices use raw tree positions.
+pub fn hostSparseCap(comptime H: type, out: []H.Hash, positions: []const usize, leaves: []const H.Hash, paths: []const []const H.Hash, height: u32, root: H.Hash) error{ MerkleCapMismatch, ShapeMismatch }!void {
+    if (!std.math.isPowerOfTwo(out.len) or out.len < 2 or out.len > 64 or height >= @bitSizeOf(usize) or positions.len == 0 or positions.len != leaves.len or paths.len != leaves.len) return error.ShapeMismatch;
+    const depth = std.math.log2_int(usize, out.len);
+    if (height < depth) return error.ShapeMismatch;
+    const walk = height - depth;
+    var covered: [128]bool = @splat(false);
+    for (positions, paths) |pos, path| {
+        if (pos >> @intCast(height) != 0 or path.len != height) return error.ShapeMismatch;
+        var i = out.len + (pos >> @intCast(walk));
+        while (i != 0 and !covered[i]) : (i /= 2) covered[i] = true;
+    }
+    @memset(out, @splat(0));
+    var assigned: [64]bool = @splat(false);
+    for (positions, leaves, paths) |pos, leaf, path| {
+        var h = leaf;
+        var index = pos;
+        for (path, 0..) |sibling, l| {
+            if (l >= walk) {
+                // At this level either child is an unopened subtree, or the
+                // sibling is independently verified by another queried path.
+                const width = @as(usize, 1) << @intCast(l - walk);
+                const sibling_index = index ^ 1;
+                if (!covered[out.len / width + sibling_index]) {
+                    const slot = sibling_index * width;
+                    if (assigned[slot] and !std.meta.eql(out[slot], sibling)) return error.MerkleCapMismatch;
+                    assigned[slot] = true;
+                    out[slot] = sibling;
+                }
+                if (l == walk) {
+                    if (assigned[index] and !std.meta.eql(out[index], h)) return error.MerkleCapMismatch;
+                    assigned[index] = true;
+                    out[index] = h;
+                }
+            }
+            h = if (index & 1 == 1) H.hashChildren(.{ .left = sibling, .right = h }) else H.hashChildren(.{ .left = h, .right = sibling });
+            index /= 2;
+        }
+        if (!std.meta.eql(h, root)) return error.MerkleCapMismatch;
+    }
 }
 
 /// The committed column order of a tree: column indices sorted by log size,

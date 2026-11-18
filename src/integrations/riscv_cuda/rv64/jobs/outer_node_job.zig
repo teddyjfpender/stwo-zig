@@ -45,7 +45,12 @@ pub const Made = struct {
     destroy: *const fn (*anyopaque) void,
 };
 pub const max_graph_devices = G.max_devices;
-pub const Inputs = struct { seeds: api.DeviceBuffer, channel_seed: api.DeviceBuffer, outputs: api.DeviceBuffer };
+pub const Inputs = struct {
+    seeds: api.DeviceBuffer,
+    channel_seed: api.DeviceBuffer,
+    outputs: api.DeviceBuffer,
+    packed_input: ?@import("outer_packed_class.zig").Staged = null,
+};
 /// Device entry points the node job needs (bound by the service).
 pub const DeviceOps = struct {
     seed: Seed.Symbols,

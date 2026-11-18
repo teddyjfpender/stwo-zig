@@ -598,3 +598,61 @@ test {
     _ = @import("driver_service_test.zig");
     _ = @import("outer_fault_publication_test.zig");
 }
+
+test "D1: admitted roster slab sizing uses actual class bounds and rejects unknown or duplicate proofs" {
+    const I = @import("driver_install.zig");
+    var world = T.World{ .a = testing.allocator };
+    var rig = try T.Rig.init(&world);
+    defer rig.deinit();
+    const cache = &rig.driver.resources.classes;
+    const entry = @constCast(try cache.get(T.k_native));
+    entry.max_encoded_bytes = 70 << 20;
+    var roster = [_]I.SlabClass{ .{ .id = .{ .kind = .native_segment, .ordinal = 0 }, .key = T.k_native }, .{ .id = .{ .kind = .request, .ordinal = 0 }, .key = null } };
+    const exchange = rig.driver.resources.exchange_cap;
+    const bound = try I.slabWords(testing.allocator, cache, &.{&roster}, exchange, 100);
+    try testing.expect(bound > (70 << 20) / 4);
+    var spec = [_]G.ProofSpec{ I.proofSpec(entry, roster[0].id, 0, 0), I.proofSpec(null, roster[1].id, 0, try I.stageOneBytes(&.{entry}, exchange.child_wire_words, 100)) };
+    var layout = try G.RequestLayout.build(testing.allocator, exchange.devices, &spec, exchange);
+    defer layout.deinit();
+    try testing.expectEqual(@as(u64, layout.segments[0].words), bound);
+    // No request-scoped class_of callback is needed to bound truth/outer IDs.
+    entry.extra_checks = &.{.class_unpack};
+    const conservative = [_]I.SlabClass{ roster[0], .{ .id = .{ .kind = .truth, .ordinal = 0 }, .key = null }, roster[1] };
+    try testing.expect(try I.slabWords(testing.allocator, cache, &.{&conservative}, exchange, 100) > bound + (70 << 20) / 4);
+    entry.max_encoded_bytes = std.math.maxInt(usize);
+    try testing.expectError(error.GpuNativeSlabTooLarge, I.slabWords(testing.allocator, cache, &.{&roster}, exchange, 100));
+    entry.max_encoded_bytes = 70 << 20;
+    roster[1] = roster[0];
+    try testing.expectError(error.GpuNativeDuplicateProof, I.slabWords(testing.allocator, cache, &.{&roster}, exchange, 100));
+    roster[0].key = @splat(255);
+    try testing.expectError(error.GpuNativeClassNotWarmed, I.slabWords(testing.allocator, cache, &.{&roster}, exchange, 100));
+}
+
+test "D1: one-device MAIN reservation sums admitted native classes with checked alignment" {
+    const I = @import("driver_install.zig");
+    const g = @import("resources.zig").granule_words;
+    var world = T.World{ .a = testing.allocator };
+    var rig = try T.Rig.init(&world);
+    defer rig.deinit();
+    const cache = &rig.driver.resources.classes;
+    var small_key = T.k_native;
+    small_key[0] = 2;
+    const huge = @constCast(try cache.get(T.k_native));
+    const small = @constCast(try cache.get(small_key));
+    huge.main_resident_words = (1 << 29) + 1;
+    small.main_resident_words = (16 << 20) + 1;
+    var roster: [7]I.SlabClass = undefined;
+    for (&roster, 0..) |*r, i| r.* = .{ .id = .{ .kind = .native_segment, .ordinal = @intCast(i) }, .key = if (i == 0) T.k_native else small_key };
+    const expected: u64 = (1 << 29) + 6 * (16 << 20) + 7 * g;
+    try testing.expectEqual(expected, try I.nativeMainWords(cache, &.{&roster}));
+    try testing.expect(expected < 7 * ((1 << 29) + g));
+    const larger = [_]I.SlabClass{ roster[0], .{ .id = .{ .kind = .native_segment, .ordinal = 1 }, .key = T.k_native } };
+    try testing.expectEqual(@as(u64, 2 * ((1 << 29) + g)), try I.nativeMainWords(cache, &.{ &roster, &larger }));
+    roster[0].key = @splat(255);
+    try testing.expectError(error.GpuNativeClassNotWarmed, I.nativeMainWords(cache, &.{&roster}));
+    roster[0].key = T.k_native;
+    huge.main_resident_words = std.math.maxInt(u64);
+    try testing.expectError(error.ResourceSizeOverflow, I.nativeMainWords(cache, &.{&roster}));
+    huge.main_resident_words = std.math.maxInt(u64) - (g - 1);
+    try testing.expectError(error.ResourceSizeOverflow, I.nativeMainWords(cache, &.{&roster}));
+}

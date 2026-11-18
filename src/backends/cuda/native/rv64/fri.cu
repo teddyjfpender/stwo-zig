@@ -3,8 +3,7 @@
 #include "fri.h"
 #include "om31.cuh"
 using StwoFriHash = stwo::cuda::blake2s::Hash;
-extern "C" int stwo_blake2s_layer_on(const StwoFriHash *, uint32_t,
-                                     StwoFriHash *, void *);
+extern "C" int stwo_blake2s_merkle_layers_on(StwoFriHash *, uint32_t, uint64_t, void *);
 namespace stwo::cuda::rv64 {
 __global__ void fri_terminal(StwoRv64Plane input, uint32_t count,
                              uint32_t *output, uint32_t *status) {
@@ -90,15 +89,7 @@ extern "C" int stwo_rv64_fri_tree_on(void *ctx, uint32_t lane,
                                        tree, leaves);
   if (status)
     return status;
-  uint64_t offset = 0;
-  for (uint32_t n = leaves; n > 1; n >>= 1) {
-    status = stwo_blake2s_layer_on(
-        reinterpret_cast<const StwoFriHash *>(tree + offset * 8), n / 2,
-        reinterpret_cast<StwoFriHash *>(tree + (offset + n) * 8), c.stream);
-    if (status)
-      return status;
-    offset += n;
-  }
+  if (leaves > 1) return stwo_blake2s_merkle_layers_on(reinterpret_cast<StwoFriHash *>(tree), leaves, need / 8, c.stream);
   return int(cudaPeekAtLastError());
 }
 extern "C" int stwo_rv64_fri_terminal_on(void *ctx, uint32_t lane,

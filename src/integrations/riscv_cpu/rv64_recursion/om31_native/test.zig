@@ -416,3 +416,30 @@ test "corpus DW13 OM31 native PCS with a Merkle cap (diet-wire merkle-cap-v1) ac
         }
     }
 }
+
+test "OM31 native PCS short FRI real proof replays its verified capture" {
+    var cfg = try config(4);
+    cfg.fri_config.n_queries = 32;
+    var native = try produce(cfg);
+    defer native.proof.deinit(a);
+    defer native.aux.deinit(a);
+    var capture_data: V.proof.NativeCapture = undefined;
+    _ = try capture(cfg, &native.proof, &capture_data);
+    defer capture_data.deinit(a);
+    var arena = std.heap.ArenaAllocator.init(a);
+    defer arena.deinit();
+    const scratch = arena.allocator();
+    const shape = try geometry(scratch, cfg);
+    for ([_]u32{ 0, 3, 4 }) |cap_log| {
+        const proof = try V.proof.fromNativeCapped(scratch, &native.proof, &capture_data, &shape, cap_log);
+        const compact = proof.layers[proof.layers.len - 1];
+        const raw = capture_data.fri.layers[proof.layers.len - 1];
+        const group = raw.positions[0] >> @intCast(raw.fold_step);
+        try std.testing.expect(compact.cosets.len < raw.query_count);
+        try std.testing.expectEqualDeep(raw.queryValues(0), compact.cosets[group]);
+        try std.testing.expect(try checkCircuit(&proof, &shape, cfg, null));
+        const value = &@constCast(compact.cosets[group])[0];
+        value.* = value.add(O.one());
+        try std.testing.expect(!try checkCircuit(&proof, &shape, cfg, null));
+    }
+}

@@ -3,6 +3,7 @@
 //! Every symbol here is an existing `*_on` kernel or exec-context async op;
 //! none synchronizes, allocates, downloads or touches a lease.
 const std = @import("std");
+const AssignmentGraphs = @import("../assignment_graph_cache.zig");
 const Abi = @import("../abi.zig");
 const Base = @import("stwo_cuda_backend").abi.stages.circuit_base;
 const Transform = @import("stwo_cuda_backend").abi.stages.transform;
@@ -13,6 +14,7 @@ pub const Status = c_int;
 // are pinned below; outer_job_fixture.zig checks field equality against them.
 pub const Fractions = extern struct { fixed: ?[*]const u32, main: [*]const u32, parameters: [*]const u32, numerators: [*]u32, denominators: [*]u32, status: *u32, fixed_words: u64, main_words: u64, numerator_words: u64, denominator_words: u64, component: u32, row_log: u32, reserved: [2]u32 = .{ 0, 0 } };
 pub const Cumulative = extern struct { output: [*]u32, contributions: [*]const u32, claim: [*]const u32, stride: u64, row_log: u32, pairs: u32 };
+pub const Contributions = extern struct { fixed: ?[*]const u32, main: [*]const u32, parameters: [*]const u32, output: [*]u32, status: *u32, fixed_words: u64, main_words: u64, output_words: u64, component: u32, row_log: u32, reserved: [2]u32 = .{ 0, 0 } };
 pub const AssignmentJob = extern struct { values: [*]u32, records: [*]const u32, indices: ?[*]const u32, status: *u32, value_count: u32, record_count: u32, index_count: u32, first: u32, count: u32, reserved: u32 = 0 };
 pub const Launch = *const fn (*anyopaque, u32, *const AssignmentJob) callconv(.c) c_int;
 pub const LaunchRun = *const fn (*anyopaque, u32, *const AssignmentJob, [*]const u32, u32) callconv(.c) c_int;
@@ -26,6 +28,7 @@ pub const Tree = *const @TypeOf(Abi.stwo_rv64_trace_tree_on);
 pub const GlobalPairs = *const @TypeOf(Abi.stwo_rv64_global_pairs_on);
 pub const FractionFn = *const fn (*anyopaque, u32, *const Fractions) callconv(.c) c_int;
 pub const CumulativeFn = *const fn (*anyopaque, u32, *const Cumulative) callconv(.c) c_int;
+pub const ContributionKernels = struct { generate: *const fn (*anyopaque, u32, *const Contributions) callconv(.c) c_int, scan: GlobalPairs, cumulative: CumulativeFn };
 pub const SampleCheck = *const fn (*anyopaque, u32, [*]const u32, u32, [*]const [*]const u32, u32, u32, [*]const u32, u32, [*]u32) callconv(.c) c_int;
 pub const SamplePrefill = *const fn (*anyopaque, u32, [*]u32, u32, [*]const u32, [*]const u32, u32, [*]u32) callconv(.c) c_int;
 pub const ChannelInit = *const @TypeOf(Abi.stwo_rv64_channel_init_on);
@@ -39,6 +42,7 @@ pub const Powers = *const fn (*anyopaque, u32, [*]const u32, u64, u32, [*]u32, [
 pub const MixedSeeded = *const fn (u32, u32, [*]const Abi.MixedSegment, u32, u32, ?*const anyopaque, ?*anyopaque, ?*anyopaque, *anyopaque) callconv(.c) c_int;
 pub const MixedCompact = *const fn (u32, u32, [*]const Abi.MixedSegment, u32, u32, ?*const anyopaque, u64, ?*anyopaque, u64, ?*anyopaque, u64, *anyopaque) callconv(.c) c_int;
 pub const Layer = *const fn (*const anyopaque, u32, *anyopaque, *anyopaque) callconv(.c) c_int;
+pub const Layers = *const fn (*anyopaque, u32, u64, *anyopaque) callconv(.c) c_int;
 
 /// The exec stream is lane 0 of the worker's exec context. Every outer
 /// operation is ordered on it: one stream, no cross-lane joins.
@@ -58,6 +62,7 @@ pub const Kernels = struct {
     base: BaseFn,
     fractions: FractionFn,
     cumulative: CumulativeFn,
+    contributions: ?ContributionKernels = null,
     global_pairs: GlobalPairs,
     b2n: B2n,
     n2b_columns: N2bColumns,
@@ -71,12 +76,11 @@ pub const Kernels = struct {
     mixed_seeded: ?MixedSeeded = null,
     mixed_compact: ?MixedCompact = null,
     layer: ?Layer = null,
-    /// Compact eager state banks (8 + pending words per row instead of 24)
-    /// with STWO_RV64_COMPACT_EAGER_STATE=1 (same value parse as legacy
-    /// pcs_native.allocationOptions: exactly "1" requests it). Like legacy
-    /// (pcs_native.Context.init / trace_commit.zig), a request the image
-    /// cannot honour fails Kernels.load instead of silently using 24-word banks.
+    layers: ?Layers = null,
+    /// Compact banks require the image's explicit capability and matching
+    /// numerical entry; a claimed but incomplete image fails closed.
     compact_eager: bool = false,
+    assignment_graph_api: ?AssignmentGraphs.Api = null,
 
     fn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
         return lib.lookup(T, name) orelse {
@@ -91,6 +95,7 @@ pub const Kernels = struct {
             .memset = try sym(Memset, base, "stwo_exec_context_memset_async"),
             .h2d = try sym(Copy, base, "stwo_exec_context_memcpy_h2d_async"),
             .d2d = try sym(Copy, base, "stwo_exec_context_memcpy_d2d_async"),
+            .assignment_graph_api = try AssignmentGraphs.Api.load(base),
             .seed = try sym(Launch, base, "stwo_circuit_assignment_seed_on"),
             .level = try sym(Launch, base, "stwo_circuit_assignment_level_on"),
             .wide = base.lookup(Launch, "stwo_circuit_assignment_wide_level_on"),
@@ -101,6 +106,7 @@ pub const Kernels = struct {
             .base = try sym(BaseFn, base, "stwo_circuit_base_witness_on"),
             .fractions = try sym(FractionFn, base, "stwo_circuit_om31_fractions_on"),
             .cumulative = try sym(CumulativeFn, base, "stwo_circuit_om31_cumulative_on"),
+            .contributions = try contributionBinding(base.lookup(@FieldType(ContributionKernels, "generate"), "stwo_circuit_om31_contributions_v1_on"), base.lookup(GlobalPairs, "stwo_rv64_global_contributions_scan_v1_on"), base.lookup(CumulativeFn, "stwo_circuit_om31_cumulative_inplace_v1_on")),
             .global_pairs = try sym(GlobalPairs, base, "stwo_rv64_global_pairs_on"),
             .b2n = try sym(B2n, base, "stwo_ntt_b2n_columns_compact_on"),
             .n2b_columns = try sym(N2bColumns, base, "stwo_lde_n2b_columns_on"),
@@ -113,13 +119,27 @@ pub const Kernels = struct {
             .mixed_seeded = base.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_eager_on") orelse base.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_on"),
             .mixed_compact = base.lookup(MixedCompact, "stwo_blake2s_mixed_seeded_eager_compact_on"),
             .layer = base.lookup(Layer, "stwo_blake2s_layer_on"),
+            .layers = base.lookup(Layers, "stwo_blake2s_merkle_layers_on"),
             .compact_eager = try compactEager(base),
         };
     }
 };
 
-fn compactEager(_: *std.DynLib) !bool {
-    return false;
+fn contributionBinding(generate: ?@FieldType(ContributionKernels, "generate"), scan: ?GlobalPairs, cumulative: ?CumulativeFn) !?ContributionKernels {
+    if (generate == null and scan == null and cumulative == null) return null;
+    return .{ .generate = generate orelse return error.MissingOuterJobSymbol, .scan = scan orelse return error.MissingOuterJobSymbol, .cumulative = cumulative orelse return error.MissingOuterJobSymbol };
+}
+
+fn compactEager(base: *std.DynLib) !bool {
+    const Capability = *const fn () callconv(.c) c_int;
+    const capability = base.lookup(Capability, "stwo_rv64_compact_eager_state_capability");
+    return compactEagerBinding(if (capability) |read| read() else null, base.lookup(MixedCompact, "stwo_blake2s_mixed_seeded_eager_compact_on") != null);
+}
+
+fn compactEagerBinding(capability: ?c_int, matching_kernel: bool) !bool {
+    if (capability == null) return false;
+    if (capability.? != 1 or !matching_kernel) return error.MissingCompactEagerPcsCapability;
+    return true;
 }
 
 /// Node phases a measurement attributes the heap peak to (outer_heap.zig).
@@ -264,10 +284,32 @@ pub const RawChannel = struct {
 };
 
 test "outer kernel descriptors keep their native ABI" {
+    try std.testing.expectEqual(@as(usize, 80), @sizeOf(Contributions));
     try std.testing.expectEqual(@as(usize, 96), @sizeOf(Fractions));
     try std.testing.expectEqual(@as(usize, 40), @sizeOf(Cumulative));
     try std.testing.expectEqual(@as(usize, 56), @sizeOf(AssignmentJob));
     try std.testing.expectEqual(@as(usize, 72), @sizeOf(Abi.GlobalPairs));
     try std.testing.expectEqual(@as(usize, 32), @sizeOf(Abi.MixedSegment));
     try std.testing.expectEqual(@as(u64, 0x4f4d33310000002a), RawChannel.chainBase(42));
+}
+
+test "outer contribution kernels select a complete bundle or refuse a partial image" {
+    for (0..8) |mask| {
+        const generate: ?@FieldType(ContributionKernels, "generate") = if (mask & 1 != 0) @ptrFromInt(0x1000) else null;
+        const scan: ?@FieldType(ContributionKernels, "scan") = if (mask & 2 != 0) @ptrFromInt(0x2000) else null;
+        const cumulative: ?@FieldType(ContributionKernels, "cumulative") = if (mask & 4 != 0) @ptrFromInt(0x3000) else null;
+        if (mask == 0) try std.testing.expect((try contributionBinding(generate, scan, cumulative)) == null) else if (mask == 7) {
+            const bound = (try contributionBinding(generate, scan, cumulative)).?;
+            try std.testing.expect(bound.generate == generate.? and bound.scan == scan.? and bound.cumulative == cumulative.?);
+        } else try std.testing.expectError(error.MissingOuterJobSymbol, contributionBinding(generate, scan, cumulative));
+    }
+}
+
+test "outer compact eager binding requires claimed capability and matching kernel" {
+    try std.testing.expect(!try compactEagerBinding(null, false));
+    try std.testing.expect(!try compactEagerBinding(null, true));
+    try std.testing.expect(try compactEagerBinding(1, true));
+    try std.testing.expectError(error.MissingCompactEagerPcsCapability, compactEagerBinding(1, false));
+    try std.testing.expectError(error.MissingCompactEagerPcsCapability, compactEagerBinding(0, true));
+    try std.testing.expectError(error.MissingCompactEagerPcsCapability, compactEagerBinding(2, true));
 }

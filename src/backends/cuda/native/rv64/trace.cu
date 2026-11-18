@@ -15,8 +15,7 @@ extern "C" int stwo_blake2s_mixed_seeded_on(
 extern "C" int stwo_blake2s_mixed_seeded_eager_on(
     uint32_t, uint32_t, const b::MixedSegment *, uint32_t, uint32_t,
     const b::ProgressiveState *, b::ProgressiveState *, b::Hash *, void *);
-extern "C" int stwo_blake2s_layer_on(const b::Hash *, uint32_t, b::Hash *,
-                                     void *);
+extern "C" int stwo_blake2s_merkle_layers_on(b::Hash *, uint32_t, uint64_t, void *);
 namespace stwo::cuda::rv64 {
 struct TraceInputs {
   b::MixedSegment segments[b::kMaxMixedSegments];
@@ -216,13 +215,7 @@ extern "C" int stwo_rv64_trace_tree_on(void *ctx, uint32_t lane,
   auto *hashes = reinterpret_cast<b::Hash *>(tree);
   int status = native_height_leaves(input.segments, count, uint32_t(leaves),
                                     hashes, c.stream, scratch, banks);
-  uint64_t offset = 0, next_offset = leaves;
-  for (uint32_t nodes = leaves; !status && nodes > 1; nodes >>= 1) {
-    status = stwo_blake2s_layer_on(hashes + offset, nodes / 2,
-                                   hashes + next_offset, c.stream);
-    offset = next_offset;
-    next_offset += nodes / 2;
-  }
+  if (!status) status = stwo_blake2s_merkle_layers_on(hashes, uint32_t(leaves), 2 * leaves - 1, c.stream);
   return status;
 }
 extern "C" int stwo_rv64_trace_open_on(void *ctx, uint32_t lane,

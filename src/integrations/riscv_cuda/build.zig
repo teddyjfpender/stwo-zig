@@ -125,11 +125,8 @@ pub fn build(b: *std.Build) void {
     // r-truth (recursion): GPU-native TruthJob + device seed fill host tests
     // (rv64/jobs/truth_*.zig, outer_seed_*.zig); same imports as the native root.
     const jobs_truth_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_truth_test_root.zig"), .target = target, .optimize = optimize });
-    jobs_truth_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
-    jobs_truth_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
-    jobs_truth_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
-    jobs_truth_root.addImport("stwo_cuda_backend", backend);
-    jobs_truth_root.addImport("stwo_riscv_frontend", frontend);
+    for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_riscv_frontend" }) |name|
+        jobs_truth_root.addImport(name, integration.import_table.get(name).?);
     const jobs_truth_run = jobTestStep(b, b.addTest(.{ .root_module = jobs_truth_root }), check_only);
     jobs_step.dependOn(jobs_truth_run);
     b.step("test-rv64-jobs-truth", "Test the M8 GPU-native TruthJob plan, challenge scripts, parameter programs and seed programs without a GPU").dependOn(jobs_truth_run);
@@ -147,11 +144,13 @@ pub fn build(b: *std.Build) void {
     // cache policy and staged image, host tests without a GPU.
     const jobs_outer_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_outer_test_root.zig"), .target = target, .optimize = optimize });
     jobs_outer_root.addImport("stwo_cuda_backend", backend);
+    for ([_]*std.Build.Module{ outer_codec_root, jobs_root, recursion_jobs_root, jobs_truth_root, jobs_sched_root, jobs_parity_root, jobs_outer_root }) |root|
+        root.addImport("stwo_circuit_frontend", integration.import_table.get("stwo_circuit_frontend").?);
     const jobs_outer_tests = b.addTest(.{ .root_module = jobs_outer_root });
     jobs_outer_tests.linkLibC();
     b.step("test-rv64-jobs-outer", "Test the M8 OuterNodeJob class plan, enqueue-only trace commit, graph cache and staged image without a GPU").dependOn(jobTestStep(b, jobs_outer_tests, check_only));
     const jobs_node_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_node_test_root.zig"), .target = target, .optimize = optimize });
-    for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_cpu_integration" }) |name| jobs_node_root.addImport(name, integration.import_table.get(name) orelse @panic("missing node contract dependency"));
+    for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| jobs_node_root.addImport(name, integration.import_table.get(name) orelse @panic("missing node contract dependency"));
     const jobs_node_tests = b.addTest(.{ .root_module = jobs_node_root });
     jobs_node_tests.linkLibC();
     const jobs_node_step = jobTestStep(b, jobs_node_tests, check_only);
@@ -478,17 +477,6 @@ pub fn build(b: *std.Build) void {
     typed_pair.linkLibC();
     b.step("build-rv64-outer-hybrid-typed-pair", "Build scoped hybrid typed-fold proof and pinned root-only receiver fixture").dependOn(&b.addInstallArtifact(typed_pair, .{}).step);
 
-    // CPU-only independent receiver shares the exact authority loader without
-    // linking or initializing any CUDA context, including on restore.
-    const receiver_root = b.createModule(.{ .root_source_file = b.path("rv64_recursion_receiver_main.zig"), .target = target, .optimize = optimize });
-    receiver_root.addImport("stwo_riscv_cpu_integration", cpu_integration);
-    const receiver = b.addExecutable(.{ .name = "rv64-word16-ethereum-recursion-receiver", .root_module = receiver_root });
-    receiver.linkLibC();
-    b.step("build-rv64-ethereum-recursion-receiver", "Build independent CPU-only current OM31 recursion receiver").dependOn(&b.addInstallArtifact(receiver, .{}).step);
-    const receiver_check = b.addExecutable(.{ .name = "rv64-recursion-receiver-check", .root_module = receiver_root });
-    receiver_check.linkLibC();
-    b.step("check-rv64-ethereum-recursion-receiver", "Type-check independent CPU-only recursion receiver without emitting a binary").dependOn(&receiver_check.step);
-
     const combined_root = b.createModule(.{ .root_source_file = b.path("rv64_combined_ethereum_main.zig"), .target = target, .optimize = optimize });
     combined_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     combined_root.addImport("stwo_prover_api", cpu_integration.import_table.get("stwo_prover_api").?);
@@ -498,9 +486,6 @@ pub fn build(b: *std.Build) void {
     combined_root.addImport("stwo_cuda_backend", backend);
     combined_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     combined_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
-    const combined = b.addExecutable(.{ .name = "rv64-word16-ethereum-gpu-combined", .root_module = combined_root });
-    combined.linkLibC();
-    b.step("build-rv64-ethereum-gpu-combined", "Build one-process native GPU proving and GPU OM31 recursion").dependOn(&b.addInstallArtifact(combined, .{}).step);
     // M8 native-producers real-block parity harness (pod): legacy native pipeline with a
     // wrapped local-GKR stage that re-proves every segment as a job and compares.
     const native_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_m8_native_parity_main.zig"), .target = target, .optimize = optimize });
@@ -529,10 +514,6 @@ pub fn build(b: *std.Build) void {
     const gn_s2_check = b.addExecutable(.{ .name = "rv64-m8-gn-s2-parity-check", .root_module = gn_s2_parity_root });
     gn_s2_check.linkLibC();
     b.step("check-rv64-m8-gn-s2-parity", "Type-check the gn-s2 parity harness without emitting a binary").dependOn(&gn_s2_check.step);
-    const combined_check = b.addExecutable(.{ .name = "rv64-combined-gpu-check", .root_module = combined_root });
-    combined_check.linkLibC();
-    b.step("check-rv64-ethereum-gpu-combined", "Type-check combined GPU proving and recursion without emitting a binary").dependOn(&combined_check.step);
-
     binding_root.addImport("stwo_cuda_backend", backend);
     binding_root.addImport("stwo_riscv_frontend", frontend);
     const binding_object = b.addObject(.{ .name = "rv64-cuda-binding-check", .root_module = binding_root });

@@ -176,17 +176,17 @@ pub const Binding = struct {
             var words: usize = 1 << 18; // seal framing and batch metadata bound
             for (record.keys, b.native_inputs) |key, inputs| {
                 const cl = try self.binding.registry.class(key);
-                words += cl.requestPinnedWords();
+                words = std.math.add(usize, words, cl.requestPinnedWords()) catch return error.ResourceSizeOverflow;
                 const framing = self.native.class(key).?.framing.?;
-                words += S2.requestPinnedWords(&framing, inputs);
+                words = std.math.add(usize, words, S2.requestPinnedWords(&framing, inputs)) catch return error.ResourceSizeOverflow;
             }
             const factory = if (self.binding.truth) |*f| f else return error.GpuNativeTruthFactoryMissing;
             for (b.truths) |t| {
                 const c = factory.classes.get(t.class).?.class;
-                words += TJ.stage1Footprint(c, t.calls, 0).pinned_words;
-                words += TJ.stage2RequestFootprint(c, t.calls, @intCast(c.pcs.outputWords()), @intCast(c.pcs.ingressWords())).pinned_words;
+                words = std.math.add(usize, words, TJ.stage1Footprint(c, t.calls, 0).pinned_words) catch return error.ResourceSizeOverflow;
+                words = std.math.add(usize, words, TJ.stage2RequestFootprint(c, t.calls, @intCast(c.pcs.outputWords()), @intCast(c.pcs.ingressWords())).pinned_words) catch return error.ResourceSizeOverflow;
             }
-            words += try self.recursion_classes.requestPinnedWords(record.block);
+            words = std.math.add(usize, words, try self.recursion_classes.requestPinnedWords(record.block)) catch return error.ResourceSizeOverflow;
             max = @max(max, words);
         }
         return max;

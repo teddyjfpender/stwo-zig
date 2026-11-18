@@ -1,6 +1,6 @@
 #![cfg_attr(target_arch = "riscv32", no_std)]
 
-#[path = "../../sha256_precompile_v1.rs"]
+#[path = "../../../runtime/sha256_precompile.rs"]
 pub mod guest;
 
 /// Native ABI compilation gate, not an executable profile admission.

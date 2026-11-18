@@ -69,7 +69,7 @@ def job_metrics(lines):
     return out
 
 
-def request_metrics(request, combined, lines, native=None):
+def request_metrics(request, combined, lines, native=None, device_count=DEVICES):
     """One served request: walls [M], critical-path stages [M], tail [D], job receipts [M]."""
     ns = lambda key: combined.get(key)
     s = lambda value: None if value is None else round(value / 1e9, 4)
@@ -89,21 +89,21 @@ def request_metrics(request, combined, lines, native=None):
             'host_waits', 'd2h', 'd2h_bytes', 'job_slab_d2h', 'job_slab_d2h_bytes',
             'host_callbacks', 'capture_release_callbacks', 'job_receipts_complete', 'transfer_scope')}
         result['driver'].update(
-            device_span_s=[round(v / 1e6, 4) for v in receipt.get('device_gpu_us', [])[:DEVICES]],
-            device_enqueue_s=[s(v) for v in receipt.get('device_enqueue_ns', [])[:DEVICES]],
-            device_gate_s=[s(v) for v in receipt.get('device_gate_ns', [])[:DEVICES]],
-            memory_serializations=receipt.get('device_memory_serializations', [])[:DEVICES],
+            device_span_s=[round(v / 1e6, 4) for v in receipt.get('device_gpu_us', [])[:device_count]],
+            device_enqueue_s=[s(v) for v in receipt.get('device_enqueue_ns', [])[:device_count]],
+            device_gate_s=[s(v) for v in receipt.get('device_gate_ns', [])[:device_count]],
+            memory_serializations=receipt.get('device_memory_serializations', [])[:device_count],
             scope='Driver counters and CUDA-event spans; not a CUDA API census or a physical peak')
     return result
 
 
-def profile_metrics(gpu_row, api_row, nodes, proving_s):
+def profile_metrics(gpu_row, api_row, nodes, proving_s, device_count=DEVICES):
     """Profiled request: kernel GPU-s [M], busy [D], launches/syncs per node [D]."""
     out = {'profiled_proving_s': proving_s}
     if gpu_row:
         kernel = gpu_row['kernel_busy_gpu_seconds']
         out.update(kernel_gpu_s=round(kernel, 4), any_busy_gpu_s=round(gpu_row['any_busy_gpu_seconds'], 4),
-                   gpu_busy=round(kernel / (DEVICES * proving_s), 4) if proving_s else None)
+                   gpu_busy=round(kernel / (device_count * proving_s), 4) if proving_s else None)
     if api_row:
         out.update(launches=api_row.get('cudaLaunchKernel'), stream_syncs=api_row.get('cudaStreamSynchronize'))
         if nodes:

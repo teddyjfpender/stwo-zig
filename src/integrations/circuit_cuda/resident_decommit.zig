@@ -30,7 +30,7 @@ pub const Plan = struct {
             .evaluation_log = layer.evaluation_log,
             .cumulative_fold = layer.cumulative_fold,
             .fold_step = layer.fold_step,
-            .log_rows_per_leaf = 2,
+            .log_rows_per_leaf = layer.rows_per_leaf_log,
         };
         const capacity = try capacityWords(geometry, queries);
         return .{ .topology = try decommit.deriveGeneric(
@@ -106,10 +106,12 @@ fn capacityWords(geometry: *const geometry_module.Geometry, queries: usize) !usi
     for (geometry.fri_layers) |layer| {
         const expanded = try mul(queries, try pow2(layer.fold_step));
         words = try add(words, try mul(expanded, 9));
-        // Four rows share each FRI Merkle leaf. Its 28 staging words per
-        // leaf and level fit under seven words per expanded row; eight
-        // leaves margin for each fixed-capacity record.
-        words = try add(words, try mul(try mul(expanded, layer.evaluation_log), 8));
+        // Each FRI Merkle leaf stages 28 words per level. When four rows
+        // share a leaf that is seven words per expanded row (eight leaves
+        // margin for each fixed-capacity record); an unpacked layer (a
+        // one-level fold) has one row per leaf and needs the full 28, so 32.
+        const per_row_level: usize = if (layer.rows_per_leaf_log == 0) 32 else 8;
+        words = try add(words, try mul(try mul(expanded, layer.evaluation_log), per_row_level));
     }
     return try add(words, 1024);
 }

@@ -171,7 +171,7 @@ pub const StreamCommit = struct {
 /// scratch is allocated and freed (stream ordered) inside.
 pub fn enqueueStreamed(device: *K.Device, plan: *const Plan.TreePlan, stream: *const Stream, commit: StreamCommit) !void {
     if (plan.beta != 1) return error.UnsupportedOuterJobBlowup;
-    const layer = device.kernels.layer orelse return error.MissingOuterStreamKernels;
+    if (device.kernels.layers == null and device.kernels.layer == null) return error.MissingOuterStreamKernels;
     if (stream.compact and device.kernels.mixed_compact == null) return error.MissingOuterStreamKernels;
     if (!stream.compact and device.kernels.mixed_seeded == null) return error.MissingOuterStreamKernels;
     if (stream.rows.len != plan.order.len) return error.InvalidOuterTreePlan;
@@ -242,15 +242,19 @@ pub fn enqueueStreamed(device: *K.Device, plan: *const Plan.TreePlan, stream: *c
         }
         if (c.final) hashes = banks[c.out_bank].ptr;
     }
-    // Merkle layers above the leaves, in the dead final bank (legacy
-    // streamRoot / stwo_rv64_trace_tree_on layer loop).
-    var offset: usize = 0;
-    var next_offset: usize = p.leaves;
-    var nodes: usize = p.leaves;
-    while (nodes > 1) : (nodes >>= 1) {
-        try device.check(layer(@ptrCast(hashes + offset * 8), @intCast(nodes / 2), @ptrCast(hashes + next_offset * 8), device.stream));
-        offset = next_offset;
-        next_offset += nodes / 2;
+    if (p.leaves > 1) {
+        if (device.kernels.layers) |layers| {
+            try device.check(layers(@ptrCast(hashes), @intCast(p.leaves), p.tree_words / 8, device.stream));
+        } else {
+            var offset: usize = 0;
+            var next_offset: usize = p.leaves;
+            var nodes: usize = p.leaves;
+            while (nodes > 1) : (nodes >>= 1) {
+                try device.check(device.kernels.layer.?(@ptrCast(hashes + offset * 8), @intCast(nodes / 2), @ptrCast(hashes + next_offset * 8), device.stream));
+                offset = next_offset;
+                next_offset += nodes / 2;
+            }
+        }
     }
     try device.copy(commit.root_out, hashes + (p.tree_words - 8), 8);
 }
@@ -360,6 +364,7 @@ const Rec = struct {
     var lde: std.ArrayList(Lde) = .empty;
     var mixed: std.ArrayList(Mixed) = .empty;
     var layers: std.ArrayList(LayerCall) = .empty;
+    var tree_call: ?struct { src: usize, leaves: u32, capacity: u64 } = null;
     var b2ns: u32 = 0;
     var copy_to: usize = 0;
     var copy_from: usize = 0;
@@ -372,6 +377,7 @@ const Rec = struct {
         lde.clearRetainingCapacity();
         mixed.clearRetainingCapacity();
         layers.clearRetainingCapacity();
+        tree_call = null;
         b2ns = 0;
         n_allocs = 0;
         used = 0;
@@ -412,6 +418,10 @@ const Rec = struct {
         layers.append(testing.allocator, .{ .src = addr(src), .nodes = nodes, .dst = addr(dst) }) catch return 1;
         return 0;
     }
+    fn tree(src: *anyopaque, leaves: u32, capacity: u64, _: *anyopaque) callconv(.c) c_int {
+        tree_call = .{ .src = addr(src), .leaves = leaves, .capacity = capacity };
+        return 0;
+    }
     fn d2d(_: *anyopaque, to: *anyopaque, from: *const anyopaque, bytes: usize) callconv(.c) c_int {
         copy_to = addr(to);
         copy_from = addr(from);
@@ -440,6 +450,7 @@ test "streamed commit: seeded and compact calls, both twiddle modes, layer offse
     kernels.n2b_columns = Rec.n2b;
     kernels.d2d = Rec.d2d;
     kernels.layer = Rec.layer;
+    kernels.layers = null;
     kernels.mixed_seeded = Rec.seeded;
     kernels.mixed_compact = Rec.compact;
     var dummy: u8 = 0;
@@ -450,7 +461,9 @@ test "streamed commit: seeded and compact calls, both twiddle modes, layer offse
     var coefficients: [160]u32 = undefined;
     var root: [8]u32 = undefined;
     const statics = Statics{ .sorted_logs = &logs, .twiddles = &tw, .twiddle_words = 256, .itwiddles = &tw, .itwiddle_words = 256 };
-    for ([_]bool{ false, true }) |compact| for ([_]TwiddleMode{ .tail, .whole }) |mode| {
+    for ([_]bool{ false, true }) |fused| for ([_]bool{ false, true }) |compact| for ([_]TwiddleMode{ .tail, .whole }) |mode| {
+        kernels.layer = if (fused) null else Rec.layer;
+        kernels.layers = if (fused) Rec.tree else null;
         Rec.reset();
         // A 96-word chunk forces several calls (rows 32,32,64,64,128).
         var stream = try Stream.init(a, &plan, 96, compact);
@@ -508,17 +521,25 @@ test "streamed commit: seeded and compact calls, both twiddle modes, layer offse
         }
         // Merkle layers in the final bank: leaves, leaves/2, ... at 8-word nodes.
         const hashes = Rec.addr(banks[final_bank].ptr);
-        var offset: usize = 0;
-        var nodes: usize = stream.plan.leaves;
-        for (Rec.layers.items) |l| {
-            try testing.expectEqual(hashes + 32 * offset, l.src);
-            try testing.expectEqual(@as(u32, @intCast(nodes / 2)), l.nodes);
-            try testing.expectEqual(hashes + 32 * (offset + nodes), l.dst);
-            offset += nodes;
-            nodes >>= 1;
+        if (fused) {
+            const call = Rec.tree_call orelse return error.MissingFusedTreeCall;
+            try testing.expectEqual(hashes, call.src);
+            try testing.expectEqual(stream.plan.leaves, call.leaves);
+            try testing.expectEqual(stream.plan.tree_words / 8, call.capacity);
+            try testing.expectEqual(@as(usize, 0), Rec.layers.items.len);
+        } else {
+            var offset: usize = 0;
+            var nodes: usize = stream.plan.leaves;
+            for (Rec.layers.items) |l| {
+                try testing.expectEqual(hashes + 32 * offset, l.src);
+                try testing.expectEqual(@as(u32, @intCast(nodes / 2)), l.nodes);
+                try testing.expectEqual(hashes + 32 * (offset + nodes), l.dst);
+                offset += nodes;
+                nodes >>= 1;
+            }
+            try testing.expectEqual(@as(usize, 1), nodes);
+            try testing.expectEqual(std.math.log2_int(u32, stream.plan.leaves), @as(u32, @intCast(Rec.layers.items.len)));
         }
-        try testing.expectEqual(@as(usize, 1), nodes);
-        try testing.expectEqual(std.math.log2_int(u32, stream.plan.leaves), @as(u32, @intCast(Rec.layers.items.len)));
         // The root is the tree's last 8 words, copied to root_out.
         try testing.expectEqual(hashes + 4 * (stream.plan.tree_words - 8), Rec.copy_from);
         try testing.expectEqual(Rec.addr(&root), Rec.copy_to);

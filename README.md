@@ -313,6 +313,8 @@ python3 scripts/repo/install_hooks.py
 | **[Engineering collaboration and standards](ENGINEERING_STANDARDS.md)** | Binding contracts, invariant ownership, compatibility, complexity budgets, evidence and human/agent collaboration rules |
 | **[Contributing](CONTRIBUTING.md)** | Zig, SIMD, Metal, correctness, and engineering standards |
 | **[Security](SECURITY.md)** | Private reporting scope and supported product surfaces |
+| **[Guest programs](guests/README.md)** | RISC-V Ethereum guests, the guest ABI, and how guests are built and pinned |
+| **[Acknowledgements](ACKNOWLEDGEMENTS.md)** | The upstream projects this repository builds on, where each is used, and their licences |
 
 The compatibility target is pinned to upstream commit
 [`a8fcf4bd`](https://github.com/starkware-libs/stwo/commit/a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2).
@@ -320,4 +322,6 @@ Claims of equivalence apply to that revision and the committed conformance matri
 
 ## License
 
-Licensed under [Apache 2.0](LICENSE), matching upstream Stwo.
+Licensed under [Apache 2.0](LICENSE), matching upstream Stwo. Vendored third-party code keeps its
+upstream licence; [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) credits the projects this work
+builds on.
