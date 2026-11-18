@@ -80,7 +80,7 @@ pub const products = [_]Spec{
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
         .generated_module_roots = &.{"generated:options:"},
         .dependency_module_roots = catalog.package_dependencies.native_metal_cpu_protocol_package_roots,
-        .configure_allowed_files = &.{"build_support/product_policy_test.zig"},
+        .configure_allowed_files = &.{ "build_support/product_policy_test.zig", "src/products/native/artifact/mod.zig" },
     },
     .{
         .descriptor = cairo_cpu.descriptor,

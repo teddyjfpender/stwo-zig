@@ -171,11 +171,7 @@ pub fn add(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builti
             step.dependOn(&guard.step);
             const install = &context.b.addInstallArtifact(artifact, .{ .dest_sub_path = name }).step;
             step.dependOn(install);
-            // Keep underscores: identifiers contain no hyphens, so tuple boundaries are unique.
-            const alias_name = context.b.allocator.dupe(u8, context.b.fmt("test-cdc-one-{s}-{s}", .{ provider.name, registration.id })) catch @panic("OOM");
-            for (alias_name) |*character| if (character.* == ':') {
-                character.* = '-';
-            };
+            const alias_name = cdc.consumerAliasName(context.b, provider.name, registration.id);
             const alias = context.b.step(alias_name, "Run one exact registered consumer contract image");
             alias.dependOn(&guard.step);
             alias.dependOn(install);

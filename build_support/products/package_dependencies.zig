@@ -140,6 +140,7 @@ pub const cairo_cuda_protocol_package_roots = &.{
     "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
     "dependency:../src/frontends/cairo:interop/felt_json.zig",
     "dependency:../src/waist/recursion_wire:mod.zig",
+    "dependency:../src/waist/recursion_wire:postcard_error_codes.zig",
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
@@ -179,6 +180,7 @@ pub const circuit_recursion_cpu_protocol_package_roots = &.{
     "dependency:../src/waist/proof_wire:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/waist/recursion_wire:mod.zig",
+    "dependency:../src/waist/recursion_wire:postcard_error_codes.zig",
 };
 
 pub const cairo_metal_cpu_protocol_package_roots = &.{
@@ -254,6 +256,11 @@ pub const frontend_cuda_metal_cpu_protocol_package_roots = &([_][]const u8{
     "dependency:../src/waist/proof_wire:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
+    "dependency:../src/frontends/circuit:mod.zig",
+    "dependency:../src/integrations/circuit_cpu:mod.zig",
+    "dependency:../src/waist/recursion_wire:postcard_error_codes.zig",
+    "dependency:../src/waist/recursion_wire:mod.zig",
+    "dependency:../src/backends/cuda:runtime/stages/test_stubs.c",
 } ++ riscv_frontend_package_roots.*);
 
 pub const metal_tools_package_roots = &([_][]const u8{
@@ -275,6 +282,13 @@ pub const metal_tools_package_roots = &([_][]const u8{
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/backends/metal/session:mod.zig",
+    "dependency:../src/frontends/circuit:mod.zig",
+    "dependency:../src/integrations/circuit_cpu:mod.zig",
+    "dependency:../src/waist/recursion_wire:postcard_error_codes.zig",
+    "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
+    "dependency:../src/frontends/cairo:interop/felt_json.zig",
+    "dependency:../src/waist/recursion_wire:mod.zig",
+    "dependency:../src/waist/recursion_wire:postcard/mod.zig",
 } ++ riscv_frontend_package_roots.*);
 
 pub const riscv_cpu_protocol_package_roots = @import("riscv_cpu_dependencies.zig").roots;
@@ -332,6 +346,7 @@ pub const native_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/engine/prover:native/resource_admission.zig",
     "dependency:../src/engine/prover:native/runner.zig",
+    "dependency:../src/waist/recursion_wire:postcard/mod.zig",
 };
 
 pub const native_riscv_cpu_protocol_package_roots = &([_][]const u8{
@@ -341,6 +356,7 @@ pub const native_riscv_cpu_protocol_package_roots = &([_][]const u8{
     "dependency:../src/products/native/examples:mod.zig",
     "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
+    "dependency:../src/waist/recursion_wire:postcard_error_codes.zig",
     "dependency:../src/waist/proof_wire:mod.zig",
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",
@@ -374,16 +390,14 @@ pub const compatibility_package_roots = &([_][]const u8{
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/waist/recursion_wire:mod.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
+    "dependency:../src/frontends/circuit:mod.zig",
+    "dependency:../src/integrations/circuit_cpu:mod.zig",
+    "dependency:../src/waist/recursion_wire:postcard_error_codes.zig",
 } ++ riscv_frontend_package_roots.*);
 
 // The retained public `stwo` compatibility facade binds these existing
 // modules in addition to the focused core/prover products.
 pub const public_package_roots = &([_][]const u8{
-    "dependency:../src/frontends/sm83:mod.zig",
-    "dependency:../src/integrations/sm83_cpu:mod.zig",
-    "dependency:../src/integrations/sm83_metal:mod.zig",
-    "dependency:../src/integrations/riscv_metal:mod.zig",
-    "dependency:../src/integrations/circuit_metal:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
     "dependency:../src/backends/metal/session:mod.zig",
@@ -398,11 +412,21 @@ pub const public_package_roots = &([_][]const u8{
     "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
     "dependency:../src/frontends/cairo:interop/felt_json.zig",
     "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/frontends/circuit:mod.zig",
+    "dependency:../src/frontends/sm83:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/cairo_cuda:mod.zig",
     "dependency:../src/integrations/cairo_metal:mod.zig",
+    "dependency:../src/integrations/circuit_cpu:mod.zig",
+    "dependency:../src/integrations/circuit_metal:mod.zig",
     "dependency:../src/integrations/native_cuda:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
+    "dependency:../src/integrations/riscv_cuda:mod.zig",
+    "dependency:../src/integrations/riscv_metal:mod.zig",
+    "dependency:../src/integrations/sm83_cpu:mod.zig",
+    "dependency:../src/integrations/sm83_metal:mod.zig",
+    "dependency:../src/products/ethereum/statement:cpu.zig",
+    "dependency:../src/products/ethereum/statement:frontend.zig",
     "dependency:../src/products/native/examples:mod.zig",
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/waist/core:fields/om31_test.zig",
@@ -416,6 +440,7 @@ pub const public_package_roots = &([_][]const u8{
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/waist/recursion_wire:mod.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
+    "dependency:../src/waist/recursion_wire:postcard_error_codes.zig",
 } ++ riscv_frontend_package_roots.*);
 
 const std = @import("std");
@@ -437,6 +462,15 @@ pub const waist_providers = [_]struct { name: []const u8, directory: []const u8 
     .{ .name = "stwo_proof_wire", .directory = "proof_wire" },
     .{ .name = "stwo_circuit_recursion_wire", .directory = "recursion_wire" },
 };
+
+pub fn consumerAliasName(b: *std.Build, provider: []const u8, consumer: []const u8) []const u8 {
+    // Keep underscores to distinguish provider and consumer tuple boundaries.
+    const name = b.allocator.dupe(u8, b.fmt("test-cdc-one-{s}-{s}", .{ provider, consumer })) catch @panic("OOM");
+    for (name) |*character| if (character.* == ':') {
+        character.* = '-';
+    };
+    return name;
+}
 
 pub fn providerConsumers(b: *std.Build, directory: []const u8) []const Consumer {
     const bytes = std.fs.cwd().readFileAlloc(b.allocator, b.pathFromRoot(b.fmt("src/waist/{s}/package.contract.json", .{directory})), 1 << 20) catch @panic("read waist consumer metadata");
