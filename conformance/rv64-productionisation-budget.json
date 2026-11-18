@@ -4383,6 +4383,33 @@
         "versioned_files": 964
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/360#issuecomment-6992328604"
+    },
+    {
+      "package": "stwo_prover_engine",
+      "base_commit": "c733ce5c3537a11adf27cb4d42deed60b64bd99d",
+      "before": {
+        "code_files": 300,
+        "code_lines": 76464,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 29,
+        "dependencies": 3,
+        "rv64_registry_flags": 0,
+        "versioned_files": 304
+      },
+      "after": {
+        "code_files": 300,
+        "code_lines": 76476,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 29,
+        "dependencies": 3,
+        "rv64_registry_flags": 0,
+        "versioned_files": 304
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6992868497"
     }
   ]
 }
