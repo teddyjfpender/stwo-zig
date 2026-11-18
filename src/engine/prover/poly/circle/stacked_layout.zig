@@ -14,10 +14,12 @@ pub const Group = struct {
         return self.source_log + self.log_width;
     }
 
-    pub fn lift(self: Group, global_log: u32) !Lift {
-        if (self.source_log == 0 or self.source_log > global_log or global_log > max_log or
-            self.log_width > global_log - self.source_log) return error.InvalidStackShape;
-        return .{ .source_doublings = global_log - self.source_log, .packed_doublings = global_log - self.targetLog() };
+    /// Mask shifts use the original AIR domain. A packed commitment may
+    /// require a taller FRI domain; it only changes the query projection.
+    pub fn lift(self: Group, air_log: u32, fri_log: u32) !Lift {
+        if (self.source_log == 0 or self.source_log > air_log or air_log > fri_log or
+            fri_log > max_log or self.log_width > fri_log - self.source_log) return error.InvalidStackShape;
+        return .{ .source_doublings = air_log - self.source_log, .packed_doublings = fri_log - self.targetLog() };
     }
 };
 
@@ -51,15 +53,13 @@ pub const Layout = struct {
 
     /// null selects the original tree and its original single-row openings.
     /// Width is an experiment input until a production policy is admitted.
-    pub fn init(a: Allocator, logs: []const u32, masks: []const []const i32, max_width: usize) !?Layout {
-        if (logs.len != masks.len or max_width < 2 or !std.math.isPowerOfTwo(max_width) or
+    pub fn init(a: Allocator, logs: []const u32, masks: []const []const i32, height: u32, max_width: usize) !?Layout {
+        if (height == 0 or height > max_log or logs.len != masks.len or max_width < 2 or !std.math.isPowerOfTwo(max_width) or
             std.math.log2_int(usize, max_width) >= max_log) return error.InvalidStackShape;
-        var height: u32 = 0;
         var lowest: u32 = max_log;
         for (logs) |log| {
-            if (log == 0 or log > max_log) return error.InvalidStackShape;
+            if (log == 0 or log > height) return error.InvalidStackShape;
             lowest = @min(lowest, log);
-            height = @max(height, log);
         }
         if (height <= lowest or rowBlocks(logs.len) <= 2) return null;
         const order = try a.alloc(usize, logs.len);

@@ -9,7 +9,7 @@ fn exercise(a: std.mem.Allocator) !void {
     for (&masks, 0..) |*mask, i| mask.* = classes[i % 4];
     for (0..16) |i| heights[i * 4] = 8;
     heights[192] = 10;
-    var plan = (try Layout.init(a, &heights, &masks, 16)) orelse return error.ExpectedStack;
+    var plan = (try Layout.init(a, &heights, &masks, 10, 16)) orelse return error.ExpectedStack;
     defer plan.deinit(a);
     var seen: [193]bool = @splat(false);
     var body: usize = 0;
@@ -38,17 +38,34 @@ test "stacked Circle layout preserves exact masks, degrees and every source ordi
 }
 test "stacked Circle layout retains direct rows at the hash break-even and rejects invalid geometry" {
     const single = [_][]const i32{&.{0}} ** 32;
-    try std.testing.expect((try Layout.init(alloc, &.{}, &.{}, 8)) == null);
-    try std.testing.expect((try Layout.init(alloc, &(@as([32]u32, @splat(8))), &single, 8)) == null);
+    try std.testing.expect((try Layout.init(alloc, &.{}, &.{}, 9, 8)) == null);
+    try std.testing.expect((try Layout.init(alloc, &(@as([32]u32, @splat(8))), &single, 9, 8)) == null);
     var mixed: [32]u32 = @splat(6);
     mixed[31] = 9;
-    try std.testing.expect((try Layout.init(alloc, &mixed, &single, 8)) == null);
-    try std.testing.expectError(error.InvalidStackShape, Layout.init(alloc, &mixed, single[0..31], 8));
-    try std.testing.expectError(error.InvalidStackShape, Layout.init(alloc, &mixed, &single, 3));
+    try std.testing.expect((try Layout.init(alloc, &mixed, &single, 9, 8)) == null);
+    try std.testing.expectError(error.InvalidStackShape, Layout.init(alloc, &mixed, single[0..31], 9, 8));
+    try std.testing.expectError(error.InvalidStackShape, Layout.init(alloc, &mixed, &single, 9, 3));
     const Group = @import("stacked_layout.zig").Group;
     const g = Group{ .first = 0, .source_log = 8, .log_width = 3 };
-    try std.testing.expectError(error.InvalidStackShape, g.lift(10));
-    try std.testing.expectError(error.InvalidStackShape, g.lift(31));
+    try std.testing.expectError(error.InvalidStackShape, g.lift(8, 10));
+    try std.testing.expectError(error.InvalidStackShape, g.lift(8, 31));
     mixed[0] = 31;
-    try std.testing.expectError(error.InvalidStackShape, Layout.init(alloc, &mixed, &single, 8));
+    try std.testing.expectError(error.InvalidStackShape, Layout.init(alloc, &mixed, &single, 9, 8));
+}
+
+test "stacked Circle uniform service can raise commitment height independently of AIR masks" {
+    const logs = [_]u32{14} ** 129;
+    const masks = [_][]const i32{&.{0}} ** 129;
+    try std.testing.expect((try Layout.init(alloc, &logs, &masks, 14, 16)) == null);
+    var plan = (try Layout.init(alloc, &logs, &masks, 18, 16)) orelse return error.ExpectedStack;
+    defer plan.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 9), plan.groups.len);
+    const g = plan.groups[0];
+    try std.testing.expectEqual(@as(u32, 18), g.targetLog());
+    const lift = try g.lift(14, 19);
+    try std.testing.expectEqual(@as(u32, 0), lift.source_doublings);
+    try std.testing.expectEqual(@as(u32, 1), lift.packed_doublings);
+    try std.testing.expectError(error.InvalidStackShape, g.lift(20, 19));
+    try std.testing.expectError(error.InvalidStackShape, Layout.init(alloc, &logs, &masks, 13, 16));
+    try std.testing.expectError(error.InvalidStackShape, Layout.init(alloc, &logs, &masks, 31, 16));
 }
