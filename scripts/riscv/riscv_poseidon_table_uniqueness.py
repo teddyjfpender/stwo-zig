@@ -68,21 +68,21 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/waist/core/fields/cm31.zig":
         "a69ebf43415c9682d81a6f873217c1b006a28152f5a35fa6e917a6d50d9a70cf",
     "src/waist/core/fields/qm31.zig":
-        "916275ccc46e2b9d13c1d591a405dfa071018634ef652b053ee8e5414ba3c71e",
+        "8568bcf8dea1d8e5477d22da74c58f6cbf6f72905a1dbca6b104f522c442c0cf",
     "src/waist/core/utils.zig":
         "e6a4427e8cca5a83e0d2accd5c05cc08d9ac167238833fc225155dfd36f2fd18",
     "src/frontends/riscv/memory/air/poseidon2_air.zig":
-        "7c462d05324a01597f08cbf5c1b42baea1e7cb07df33176dd94ed380d26769c3",
+        "d5cc95b371bf66ee85536fdad252fe96166adc35560a6f5c94e984d9deddd53c",
     "src/frontends/riscv/memory/air/poseidon2_constants.zig":
         "d02b32f2f5302d21a440fbace2112d3232603e759cd0b24691c32e81d2bd4cfd",
     "src/frontends/riscv/memory/air/hash_component.zig":
-        "f10bf62978d6310f4af0c4fccf0445273fd451c8695868c08c375ce53d71ba35",
+        "36783369aee59b2eb1b5acf7bb7a4741eeb0e1c4718074136965a4342a37d0fc",
     "src/frontends/riscv/air_lang/shared/air/lookups/tables/schema.zig":
         "788273e0c240763e24423fa141c6218ef40aa6495bab8c5dc1182e747e1f197a",
     "src/frontends/riscv/rv32/air/lookups/tables/interaction.zig":
-        "987837845fb8aba423896a69e899bbfbc9e71a07a4fb11c3cf967a654e8e73aa",
+        "691472abbecca29e6758c6d369cfbf9bc9e0fee3a250d98f42755a99833af306",
     "src/frontends/riscv/rv32/air/lookups/tables/component.zig":
-        "89f0f1d77f827085ad8f2ace072265f75a08173e22599ae9d07b819764234f61",
+        "ead5dd95401b0664451e3e02a2c7d7e8313a7d8683b802258a9ac4b642d76b42",
     "src/frontends/riscv/air_lang/shared/air/lookups/tables/counter.zig":
         "689536aefa2a65e1f4c858e5bfc25f362793c3f0d9301f9f9808276748fecf29",
     "src/frontends/riscv/air_lang/shared/air/lookups/entry.zig":
@@ -92,9 +92,9 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/frontends/riscv/air_lang/shared/air/relation_challenges.zig":
         "4b9d027cb18013c8a5434fc7c5f4b6f4fe870db547db52432d991894f2303dd3",
     "src/frontends/riscv/rv32/prover/preprocessed.zig":
-        "005473b815ca576773bf7aac28deaaa03b6b671beb2e9787a59db2d730ccdd7c",
+        "aac2bf3179c41ebb5d878385d2f964ebea3773d861c52b4ceb09aa4f4c69f1cb",
     "src/frontends/riscv/rv32/prover/opcode_trace.zig":
-        "186eafc961fc0745aa80a032277d7c8397b5e861596ed86c064a4d01fde5d2be",
+        "4dd9f44099f6606ed2daf5d1556168563d83ca06e3332ed01ad59e2fcb0fc0b3",
     "src/frontends/riscv/air_lang/shared/infra_trace/permutation.zig":
         "2e6551f2c758b18f4a620d166b908a269297e9f1a74308c2ebd769dd8a474b98",
     "scripts/riscv/air_satisfaction_lib/poseidon2.py":
@@ -106,17 +106,17 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/frontends/riscv/memory/air/poseidon2_layout.zig":
         "f51c0964fcfb04f393f0bb747a968c9e267bd08ca393fc35a2b4053cfc106c3b",
     "src/frontends/riscv/memory/air/poseidon2_wide_equations.zig":
-        "462fff23439ad1563481842fc8e15aae9b28ce6b5849342fcb6f100b6b7fdec0",
+        "9f1007d68af95032031470b7f908cec4790242bde25924c4a212bf6b1168f268",
     "src/frontends/riscv/memory/air/poseidon2_wide_equation_kernel.zig":
         "4a1d1d5cb670b08c208e15628be76f59959bcee1af3f9cee439df67e68a73930",
     "src/frontends/riscv/air_lang/shared/air/lookups/tables/schema_definition.zig":
         "849f56ef92e42a579537bd39651871fe02424068beaf1a65d4a7cc4e4e2e9bb9",
     "src/frontends/riscv/rv32/air/lookups/tables/equations.zig":
-        "d1a1b3ebfd21ee8ec6e05845372da1dc3d8a9da957a79db07cadafe42ebd147f",
+        "da63cfc9c81fd63fdbd9adb844c6d382dd324574aa3b374565c6e89aaa579ccc",
     "src/frontends/riscv/rv32/air/lookups/tables/verifier.zig":
-        "f2168a09543586f75e93ab95ea15c05ad409b2586d9df0cf84b05d99e8b3a0e4",
+        "5cfd028372367d822ccdb24ce01f64555432ef43fefb09c5794df6caf03adefa",
     "src/frontends/riscv/rv32/air/lookups/tables/layout.zig":
-        "f9d870043d47dc548dd94be873b18b3ade73e02b8a670aefe455816d4be667b6",
+        "a5bac7efb68b066442c7b3c4445255b83a8985c85f158facb7d39b601b6f2d98",
     "src/frontends/riscv/air_lang/shared/air/logup_equations.zig":
         "d8524316007e5e0b842616210d064cc4dfd76d485d0bfa010672229d805fcefd",
 }
