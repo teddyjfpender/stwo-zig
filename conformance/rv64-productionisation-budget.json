@@ -4275,6 +4275,60 @@
         "versioned_files": 67
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/433#issuecomment-6979197982"
+    },
+    {
+      "package": "stwo_prover_engine",
+      "base_commit": "98d08ccb87adb5982eb1a347afe8f05c876673f9",
+      "before": {
+        "code_files": 300,
+        "code_lines": 76390,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 29,
+        "dependencies": 3,
+        "rv64_registry_flags": 0,
+        "versioned_files": 304
+      },
+      "after": {
+        "code_files": 300,
+        "code_lines": 76464,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 29,
+        "dependencies": 3,
+        "rv64_registry_flags": 0,
+        "versioned_files": 304
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/434#issuecomment-6986157702"
+    },
+    {
+      "package": "stwo_circuit_cpu_integration",
+      "base_commit": "98d08ccb87adb5982eb1a347afe8f05c876673f9",
+      "before": {
+        "code_files": 63,
+        "code_lines": 9452,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 8,
+        "rv64_registry_flags": 1,
+        "versioned_files": 66
+      },
+      "after": {
+        "code_files": 64,
+        "code_lines": 9751,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 8,
+        "rv64_registry_flags": 1,
+        "versioned_files": 67
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/434#issuecomment-6986157702"
     }
   ]
 }

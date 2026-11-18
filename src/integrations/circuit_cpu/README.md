@@ -315,6 +315,13 @@ identity. OM31 retains its existing **prefixed** Blake2s Merkle hasher and raw-m
 transcript; the older circuit profiles retain their existing plain family.
 No hash family, wire bytes, profile admission or device qualification changes.
 
+The CPU domain evaluator packs independent rows and resolves base-field products
+from the validated AIR. It fuses a lookup denominator only when the operands,
+register order and use counts match the full expression. OODS evaluation uses
+the scalar program. The prover engine owns the bounded packed inversion scratch
+for octic LogUp. The [full-block comparison and proof hashes](https://github.com/teddyjfpender/stwo-zig/issues/434#issuecomment-6986076656)
+cover an experimental direct OP root and a two-shard Ethereum Keccak configuration.
+
 Binary decode rejections preserve their stage/reason and optionally carry the
 origin-owned `wire_failure` diagnostic; allocation failure still propagates.
 

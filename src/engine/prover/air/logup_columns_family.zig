@@ -170,6 +170,31 @@ pub fn ForField(comptime Secure: type) type {
                         }
                     }
 
+                    fn reduceOcticFractions(self: *Worker) !void {
+                        // Keep norm scratch bounded and hot across chunks. The same
+                        // temporary denominator plane then holds each numerator.
+                        const pack = fields.packed_om31;
+                        const group = 256;
+                        const ones = [_]M31{M31.one()} ** group;
+                        var scratch: [2 * group]fields.qm31.QM31 = undefined;
+                        var start: usize = 0;
+                        while (start < self.inverses.len) {
+                            const size: usize = @min(group, self.inverses.len - start);
+                            const ds = self.denominators[start..][0..size];
+                            const inv = self.inverses[start..][0..size];
+                            try fields.om31.invertScaledPacked(ds, inv, scratch[0 .. 2 * size], ones[0..size]);
+                            for (ds, self.fractions[start..][0..size]) |*num, fraction| num.* = fraction.numerator;
+                            const lanes = fields.m31.PACK_WIDTH;
+                            var offset: usize = 0;
+                            while (offset + lanes <= size) : (offset += lanes) {
+                                const value = pack.mul(pack.loadNative(ds[offset..]), pack.loadNative(inv[offset..]));
+                                pack.storeNative(inv[offset..], value);
+                            }
+                            for (inv[offset..], ds[offset..]) |*dst, num| dst.* = dst.mul(num);
+                            start += size;
+                        }
+                    }
+
                     fn fillChunk(self: *Worker, index: usize) !void {
                         const shared = self.shared;
                         const width = shared.secure_columns;
@@ -182,7 +207,9 @@ pub fn ForField(comptime Secure: type) type {
                             }
                         }
                         for (self.fractions, self.denominators) |fraction, *denominator| denominator.* = fraction.denominator;
-                        try fields.batchInverseInPlace(Secure, self.denominators, self.inverses);
+                        if (Secure == fields.om31.OM31) {
+                            try self.reduceOcticFractions();
+                        } else try fields.batchInverseInPlace(Secure, self.denominators, self.inverses);
 
                         var partial = Secure.zero();
                         for (0..shared.chunk_rows) |offset| {
@@ -190,7 +217,8 @@ pub fn ForField(comptime Secure: type) type {
                             var cumulative = Secure.zero();
                             for (0..width) |batch| {
                                 const at = offset * width + batch;
-                                cumulative = cumulative.add(self.fractions[at].numerator.mul(self.inverses[at]));
+                                const value = if (Secure == fields.om31.OM31) self.inverses[at] else self.fractions[at].numerator.mul(self.inverses[at]);
+                                cumulative = cumulative.add(value);
                                 const coordinates = cumulative.toM31Array();
                                 for (coordinates, 0..) |coordinate, coordinate_index| {
                                     @constCast(shared.columns[DEGREE * batch + coordinate_index].values)[row] = coordinate;
@@ -288,4 +316,50 @@ test "shifted LogUp prefix matches the circle permutation at every coordinate" {
             try std.testing.expectEqual(expected[logical], v);
         }
     }
+}
+
+test "octic LogUp fractions preserve prefix columns and reject zero denominators" {
+    const O = fields.om31.OM31;
+    const L = ForField(O);
+    const Context = struct {
+        fault: bool,
+        fn fill(self: @This(), row: usize, fractions: []L.Fraction) !void {
+            for (fractions, 0..) |*fraction, j| {
+                var coordinates: [8]M31 = undefined;
+                for (&coordinates, 0..) |*value, k| value.* = M31.fromU64(1 + row + 7 * j + 53 * k);
+                fraction.* = .{ .numerator = if ((row + j) % 3 == 0) O.zero() else O.fromM31Array(coordinates).neg(), .denominator = if (self.fault and row == 85 and j == 1) O.zero() else O.fromM31Array(coordinates).add(O.one()) };
+            }
+        }
+    };
+    const a = std.testing.allocator;
+    const log = 7;
+    const rows = 1 << log;
+    const context = Context{ .fault = false };
+    const result = try L.build(a, log, 3, context, Context.fill);
+    defer {
+        for (result.columns) |column| a.free(column.values);
+        a.free(result.columns);
+    }
+    var sums: [rows]O = undefined;
+    var claim = O.zero();
+    for (&sums, 0..) |*sum, row| {
+        var fractions: [3]L.Fraction = undefined;
+        try context.fill(row, &fractions);
+        var prefix = O.zero();
+        for (fractions, 0..) |fraction, j| {
+            prefix = prefix.add(try fraction.numerator.div(fraction.denominator));
+            if (j < 2) for (prefix.toM31Array(), 0..) |coord, k| try std.testing.expectEqual(coord, result.columns[8 * j + k].values[row]);
+        }
+        sum.* = prefix;
+        claim = claim.add(prefix);
+    }
+    try std.testing.expectEqual(claim, result.claimed_sum);
+    const shift = claim.mulM31(try M31.fromU64(rows).inv());
+    for (0..8) |k| {
+        var expected: [rows]M31 = undefined;
+        for (sums, &expected) |sum, *v| v.* = sum.toM31Array()[k];
+        shiftedPrefix(&expected, shift.toM31Array()[k], log);
+        try std.testing.expectEqualSlices(M31, &expected, result.columns[16 + k].values);
+    }
+    try std.testing.expectError(error.DegenerateDenominator, L.build(a, log, 3, Context{ .fault = true }, Context.fill));
 }
