@@ -3180,6 +3180,33 @@
         "versioned_files": 304
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/404#issuecomment-6966854325"
+    },
+    {
+      "package": "stwo_riscv_cpu_integration",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 949,
+        "code_lines": 137358,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 1,
+        "api_entries": 93,
+        "dependencies": 9,
+        "rv64_registry_flags": 19,
+        "versioned_files": 961
+      },
+      "after": {
+        "code_files": 951,
+        "code_lines": 137545,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 1,
+        "api_entries": 93,
+        "dependencies": 9,
+        "rv64_registry_flags": 19,
+        "versioned_files": 963
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/418#issuecomment-6968960044"
     }
   ]
 }

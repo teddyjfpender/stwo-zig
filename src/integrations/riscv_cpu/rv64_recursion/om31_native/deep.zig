@@ -65,3 +65,7 @@ pub fn friInput(ctx: *C.Context, plan: *const Shape.SamplePlan, oods: C.Point, s
     try C.lane.check();
     return output;
 }
+
+test {
+    _ = @import("stacked_deep.zig");
+}
