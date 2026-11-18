@@ -4616,7 +4616,7 @@
       },
       "after": {
         "code_files": 635,
-        "code_lines": 192960,
+        "code_lines": 192961,
         "generated_code_files": 0,
         "generated_code_lines": 0,
         "script_files": 0,
@@ -4625,7 +4625,7 @@
         "rv64_registry_flags": 0,
         "versioned_files": 638
       },
-      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994564290"
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994777827"
     },
     {
       "package": "stwo_riscv_rv64",
@@ -4670,7 +4670,7 @@
       },
       "after": {
         "code_files": 320,
-        "code_lines": 70794,
+        "code_lines": 70795,
         "generated_code_files": 0,
         "generated_code_lines": 0,
         "script_files": 0,
@@ -4679,7 +4679,7 @@
         "rv64_registry_flags": 0,
         "versioned_files": 323
       },
-      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994564290"
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994777827"
     }
   ]
 }
