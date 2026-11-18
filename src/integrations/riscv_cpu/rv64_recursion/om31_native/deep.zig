@@ -129,3 +129,7 @@ test "recursive native DEEP matches independently weighted odd and empty sample 
         try std.testing.expectEqual(!corrupt, try ctx.isCircuitValid());
     }
 }
+
+test {
+    _ = @import("stacked_deep.zig");
+}

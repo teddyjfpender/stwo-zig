@@ -471,6 +471,9 @@ pub const evaluateDyadicExtensionBuffersWithTwiddlesWithPool = transforms.evalua
 
 test {
     _ = @import("dyadic_extension_test.zig");
+    _ = @import("stacked_opening_test.zig");
+    _ = @import("stacked_layout_test.zig");
+    _ = @import("stacked_opening_proof_test.zig");
 }
 
 fn checkedPow2(log_size: u32) PolyError!usize {
