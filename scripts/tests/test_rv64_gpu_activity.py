@@ -84,6 +84,44 @@ class ActivityTests(unittest.TestCase):
         self.assertEqual(len(result['ranges']), 1)
         self.assertEqual(len(result['excluded_incomplete_or_malformed_ranges']), 3)
 
+    def test_device_work_uses_submitting_process_and_thread_and_clips_kernels(self):
+        db = self.traced_database()
+        db.executescript("""
+            CREATE TABLE CUPTI_ACTIVITY_KIND_KERNEL(start,end,deviceId,globalPid,correlationId);
+            INSERT INTO CUPTI_ACTIVITY_KIND_KERNEL VALUES
+                (190,220,0,0,1),(155,180,1,0,1),(155,180,0,16777216,1),
+                (95,110,0,0,3),(125,130,0,0,5),(101,109,0,0,99);
+            INSERT INTO CUPTI_ACTIVITY_KIND_RUNTIME VALUES (110,115,1,1,16777226);
+            INSERT INTO NVTX_EVENTS VALUES (105,150,16777226,'rv64/gpu/root/2',NULL);
+        """)
+        stages = request_census(db, 100, 200)['device_kernel_work']['devices']
+        self.assertEqual(stages['0'], {
+            'fold': {'kernels': 1, 'duration_sum_ns': 10},
+            'root': {'kernels': 1, 'duration_sum_ns': 25},
+            'unattributed': {'kernels': 3, 'duration_sum_ns': 23},
+        })
+        self.assertEqual(stages['1']['fold'], {'kernels': 1, 'duration_sum_ns': 25})
+
+    def test_nested_ranges_and_duplicate_runtime_ids_leave_work_unattributed(self):
+        db = self.traced_database()
+        db.executescript("""
+            CREATE TABLE CUPTI_ACTIVITY_KIND_KERNEL(start,end,deviceId,globalPid,correlationId);
+            INSERT INTO CUPTI_ACTIVITY_KIND_KERNEL VALUES (143,150,0,0,1),(160,193,0,0,2);
+            INSERT INTO NVTX_EVENTS VALUES (108,125,10,'rv64/gpu/leaf/1',NULL);
+            INSERT INTO CUPTI_ACTIVITY_KIND_RUNTIME VALUES (104,108,2,1,10);
+        """)
+        work = request_census(db, 100, 200)['device_kernel_work']
+        self.assertEqual(work['devices'], {'0': {
+            'unattributed': {'kernels': 2, 'duration_sum_ns': 40}}})
+        self.assertEqual(work['status'], 'PARTIAL')
+
+    def test_device_projection_requires_kernel_origin_columns_and_instrumentation(self):
+        db = self.traced_database()
+        self.assertEqual(request_census(db, 100, 200)['device_kernel_work']['status'], 'UNAVAILABLE')
+        db.execute('CREATE TABLE CUPTI_ACTIVITY_KIND_KERNEL(start,end,deviceId,globalPid,correlationId)')
+        db.execute('DELETE FROM NVTX_EVENTS')
+        self.assertEqual(request_census(db, 100, 200)['device_kernel_work']['status'], 'NOT_INSTRUMENTED')
+
     def test_range_coverage_is_not_zero_when_absent(self):
         db = self.database()
         self.assertEqual(native_ranges(db, 100, 200)['status'], 'UNAVAILABLE')

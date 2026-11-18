@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "rtx_kernel_attribution_issue425",
+      "net_code_budget": 150,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue425: the GPU-seconds receipt owner attributes each clipped CUPTI kernel execution to at most one verified submitter, including CUDA graph children. Reconciles two physical 55,420-kernel requests with per-device accounting. The change is contained in existing offline tooling and its tests. Remove the additive receipt member and tests together to roll back."
+    },
+    {
       "id": "runtime_selector_replay_diagnostic",
       "net_code_budget": 40,
       "flags_added_budget": 0,
