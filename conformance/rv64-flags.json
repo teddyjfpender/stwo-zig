@@ -1444,20 +1444,6 @@
         "tools/stwo-circuit-oracle-rs/src/checkpoint.rs"
       ]
     },
-    "STWO_CIRCUIT_VERIFIER_STAGE_PROFILE": {
-      "owner": "src/integrations/circuit_cpu/recursion/stage_profile.zig",
-      "default": "disabled Profile{label,enabled=false}",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/circuit_cpu/recursion/stage_profile.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/recursion/stage_profile.zig",
-        "text": "        const setting = std.process.getEnvVarOwned(std.heap.page_allocator, \"STWO_CIRCUIT_VERIFIER_STAGE_PROFILE\") catch return .{\n            .label = label,\n            .enabled = false,\n        };\n        defer std.heap.page_allocator.free(setting);\n        const enabled = std.mem.eql(u8, setting, \"1\");\n        return .{ .label = label, .enabled = enabled, .timer = if (enabled) std.time.Timer.start() catch null else null };"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_CI_CACHE_DIR": {
       "owner": "build_support/graph/delegation.zig",
       "default": "b.cache_root joined with products/<scope>; respects caller-provided cache root",
@@ -3204,26 +3190,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_RECURSION_OUTER_TUPLE_VERBOSE": {
-      "owner": "src/frontends/riscv/recursion/detached_leaf_tuple_diagnostic.zig",
-      "default": "false (presence-only tuple diagnostic)",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/recursion/detached_leaf_tuple_diagnostic.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/recursion/detached_leaf_tuple_diagnostic.zig",
-        "text": "pub const VERBOSE_ENV = \"STWO_RECURSION_OUTER_TUPLE_VERBOSE\";\npub const RED_DOMAIN_MASK: u64 =\n    domainBit(.poseidon2_io) |\n    domainBit(.recursion_wire) |\n    domainBit(.recursion_step) |\n    domainBit(.recursion_transcript_digest_state) |\n    domainBit(.recursion_verifier_input_word) |",
-        "readers": [
-          {
-            "path": "src/frontends/riscv/recursion/detached_leaf_tuple_diagnostic.zig",
-            "text": "        if (std.process.hasEnvVarConstant(VERBOSE_ENV)) self.printVerbose();\n    }\n\n    pub fn printConcise(self: *const Report) void {\n        std.debug.print(\n            \"SegmentV2 exact tuple closure: mask=0x{x} contributions={d} unmatched={d} red_domains={d}\\n\",\n            .{"
-          }
-        ]
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_RECURSION_OUTER_WORKERS": {
       "owner": "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test_support.zig",
       "default": "no worker override; environmentUnsigned returns null and caller uses its owned schedule",
@@ -3422,20 +3388,6 @@
       "default_evidence": {
         "path": "src/frontends/riscv/testing/cases/air/memory_commitment/blake3_subtree_test.zig",
         "text": "    if (!std.process.hasEnvVarConstant(\"STWO_RISCV_FRONTIER_PROFILE\")) return;\n    const a = std.testing.allocator;\n    const Graph = @import(\"stwo_riscv_rv32\").prover.blake3_shared_path_topology.Graph;\n    const hasher = tree.TreeHasher.init(.memory);\n    var leaves: [64]tree.Leaf = undefined;\n    var addresses: [leaves.len]u32 = undefined;\n    for (&leaves, &addresses, 0..) |*leaf, *address, i| {"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_LOOKUP_DEMAND_PROFILE": {
-      "owner": "src/frontends/riscv/rv32/prover/blake3_execution_trace.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv32/prover/blake3_execution_trace.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv32/prover/blake3_execution_trace.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_RISCV_LOOKUP_DEMAND_PROFILE\")) {\n                var distinct: usize = 0;\n                for (counter.values) |value| {\n                    if (!value.isZero()) distinct += 1;\n                }\n                std.debug.print(\"BLAKE3_LOOKUP_DEMAND {{\\\"kind\\\":\\\"{s}\\\",\\\"domain_rows\\\":{d},\\\"distinct_nonzero\\\":{d}}}\\n\", .{\n                    @tagName(kind), counter.values.len, distinct,"
       },
       "expires": "2026-12-13"
     },
@@ -8009,20 +7961,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_LOG_CAPTURED_PARTS": {
-      "owner": "src/frontends/cairo/witness/resident_geometry.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/cairo/witness/resident_geometry.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/cairo/witness/resident_geometry.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_CAPTURED_PARTS\")) {\n        const component = captured.components[0];\n        for (component.parts, 0..) |part, part_index| {\n            std.debug.print(\n                \"captured_part index={} rc_base={} constraints={} base_insts={} ext_insts={} roots={any}\\n\",\n                .{\n                    part_index,"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_LOG_COMMIT_DIGESTS": {
       "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -8151,34 +8089,6 @@
       "default_evidence": {
         "path": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
         "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_INTERACTION_EVAL_DIGESTS\"))\n                try arena_binding_mod.logComponentInteractionDigests(\n                    allocator,\n                    resident_arena,\n                    schedule,\n                    plan,\n                    operation.component,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_OODS_TASKS": {
-      "owner": "src/integrations/cairo_metal/oods.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/oods.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/oods.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_OODS_TASKS\")) {\n        for (tasks.items, 0..) |task, task_index| std.debug.print(\n            \"oods_task index={} coefficient_log={} point_start={} point_count={} output_start={}\\n\",\n            .{\n                task_index,\n                task.coefficients.logSize(),\n                task.point_start,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_PROTOCOL_LAYOUT": {
-      "owner": "src/backends/metal/tools/arena_plan/runner.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/runner.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_PROTOCOL_LAYOUT\")) {\n        inline for ([_][]const u8{\n            \"PreprocessedCoefficients\",\n            \"BaseCoefficients\",\n            \"InteractionCoefficients\",\n            \"RelationAlphaPowers\",\n            \"RelationZ\","
       },
       "expires": "2026-12-13"
     },

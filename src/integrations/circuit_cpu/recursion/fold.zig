@@ -222,7 +222,7 @@ fn reduce(
                 .output_digest = builder.blake.hashValue(QM31, child.output_digest),
             };
         }
-        var stages = stage_profile.Profile.init("fold");
+        var stages = stage_profile.Profile.init("fold", recorder != null);
         const record_gates = fold.source == null;
         var ctx = try multiverifier.buildMultiverifierCircuitWithGateRecordingAndCapacity(
             QM31,

@@ -11,7 +11,6 @@ const arena_binding_mod = stwo.integrations.cairo_metal.arena_binding;
 const runtime_decommit_geometry = stwo.integrations.cairo_metal.runtime_decommit_geometry;
 const schedule_addressing = @import("schedule_addressing.zig");
 const schedule_coverage = @import("schedule_coverage.zig");
-const arena_diagnostics = @import("diagnostics.zig");
 const transcript_fixture = @import("transcript_fixture.zig");
 const canonical_protocol_support = @import("canonical_protocol.zig");
 
@@ -19,7 +18,6 @@ const buildMerkleCommitCoverage = schedule_coverage.buildMerkleCommitCoverage;
 const buildMerkleParentSources = schedule_coverage.buildMerkleParentSources;
 const buildPreprocessedSources = schedule_coverage.buildPreprocessedSources;
 const buildRetainedSources = schedule_coverage.buildRetainedSources;
-const logPurposeLayout = arena_diagnostics.logPurposeLayout;
 const CompositionCoverage = schedule_coverage.CompositionCoverage;
 const FixedTableCoverage = schedule_coverage.FixedTableCoverage;
 const RelationCoverage = schedule_coverage.RelationCoverage;
@@ -330,53 +328,6 @@ pub fn runOne(
     defer if (projected_plan) |*projected| projected.deinit();
     const plan = if (projected_plan) |projected| projected else full_plan;
     try validateNarrowAddressedBindings(schedule, plan);
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_PROTOCOL_LAYOUT")) {
-        inline for ([_][]const u8{
-            "PreprocessedCoefficients",
-            "BaseCoefficients",
-            "InteractionCoefficients",
-            "RelationAlphaPowers",
-            "RelationZ",
-            "RelationClaimedSum",
-            "CompositionCoefficients",
-            "CompositionDescriptors",
-            "CompositionLdeTile",
-            "CompositionAccumulators",
-            "CompositionRandomCoefficientPowers",
-            "CompositionExtParams",
-            "CommitLdeTile",
-            "MerkleLeafState",
-            "MerkleLayerScratch",
-            "QuotientTile",
-            "InverseTwiddles",
-            "FriRetainedEvaluation",
-            "FriFoldingChallenge",
-            "FriMerkleLayer",
-            "FriPing",
-            "FriPong",
-            "FriFinalCoefficients",
-            "FriFinalDegreeError",
-            "DecommitUniqueQueries",
-            "DecommitMappedQueries",
-            "DecommitWalkQueries",
-            "DecommitWalkScratch",
-            "DecommitExpandedPositions",
-            "DecommitSparseIndices",
-            "DecommitSparseHashes",
-            "DecommitCounts",
-            "DecommitValues",
-            "DecommitAssembly",
-            "DecommitTraceLdeTile",
-            "DecommitTraceEvaluationPointers",
-            "DecommitTraceRetainedPointers",
-            "DecommitFriCoordinatePointers",
-            "DecommitFriRetainedPointers",
-            "ProofBytes",
-            "TranscriptState",
-            "TranscriptInput",
-            "TranscriptOutput",
-        }) |wanted_purpose| try logPurposeLayout(schedule, plan, wanted_purpose);
-    }
     var decommit_geometry: ?runtime_decommit_geometry.OwnedProofDecommitGeometry = if (composition_bundle) |bundle|
         try runtime_decommit_geometry.OwnedProofDecommitGeometry.init(
             allocator,

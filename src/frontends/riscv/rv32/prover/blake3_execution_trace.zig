@@ -159,15 +159,6 @@ pub const Owner = struct {
         }
         for (order.lookupTables()) |kind| {
             const counter = self.opcode_columns.lookup_counters.?.get(kind);
-            if (std.process.hasEnvVarConstant("STWO_RISCV_LOOKUP_DEMAND_PROFILE")) {
-                var distinct: usize = 0;
-                for (counter.values) |value| {
-                    if (!value.isZero()) distinct += 1;
-                }
-                std.debug.print("BLAKE3_LOOKUP_DEMAND {{\"kind\":\"{s}\",\"domain_rows\":{d},\"distinct_nonzero\":{d}}}\n", .{
-                    @tagName(kind), counter.values.len, distinct,
-                });
-            }
             if (compact and (kind == .range_check_20 or kind == .range_check_8_11 or kind == .range_check_8_8_4)) continue;
             const active = for (counter.values) |value| {
                 if (!value.isZero()) break true;
