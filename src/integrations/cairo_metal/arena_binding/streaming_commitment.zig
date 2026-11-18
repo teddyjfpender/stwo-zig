@@ -8,8 +8,6 @@ const resident_binding = @import("../resident/binding.zig");
 const resident_twiddles = @import("../resident/twiddles.zig");
 const Error = @import("../resident/errors.zig").Error;
 const M31 = @import("stwo_core").fields.m31.M31;
-const circle_poly_mod = @import("stwo_prover_engine").poly.circle.poly;
-const canonic_circle_mod = @import("stwo_core").poly.circle.canonic;
 const CairoMerkleHasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher;
 
 const collectTreePurpose = commitment_ordering.collectTreePurpose;
@@ -130,8 +128,7 @@ fn executeWithMode(
     const requires_intermediate_visibility = std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS") or
         std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_LDE_DIGESTS") or
         std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_STEPS") or
-        std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPEAT_COMMIT_LDE") or
-        std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE");
+        std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPEAT_COMMIT_LDE");
     var command_epoch: ?metal_runtime.CommandEpoch = if (mode == .automatic and use_compact_leaf_state and !requires_intermediate_visibility)
         try metal.beginCommandEpoch(resident_arena.buffer)
     else
@@ -183,15 +180,6 @@ fn executeWithMode(
         }
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_SOURCE_DIGESTS"))
             try commitment_telemetry.logCommitSourceDigests(resident_arena, coefficient_cursor, group);
-        if (tree_index == 2 and
-            std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE") and
-            coefficient_cursor <= 2241 and 2241 < coefficient_cursor + width)
-        {
-            const local_index = 2241 - coefficient_cursor;
-            const file = try std.fs.createFileAbsolute("/tmp/sn2-column613-pre-group-source.u32le", .{});
-            defer file.close();
-            try file.writeAll(try resident_arena.bytes(group[local_index]));
-        }
         for (4..lifting_log + 1) |evaluation_log_usize| {
             const evaluation_log: u32 = @intCast(evaluation_log_usize);
             var sources = std.ArrayList(u64).empty;
@@ -233,66 +221,6 @@ fn executeWithMode(
                     .{ evaluation_log, first_digest, second_digest },
                 );
             }
-        }
-        if (tree_index == 2 and
-            std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE") and
-            coefficient_cursor <= 2241 and 2241 < coefficient_cursor + width)
-        {
-            const local_index = 2241 - coefficient_cursor;
-            const source = group[local_index];
-            const diagnostic_source = group[local_index - 1];
-            @memcpy(
-                try resident_arena.bytes(diagnostic_source),
-                try resident_arena.bytes(source),
-            );
-            const evaluation_log = output_logs[local_index];
-            const evaluation_twiddles = twiddleBankBinding(twiddles, evaluation_log);
-            const sources = [_]u64{diagnostic_source.offset_bytes / 4};
-            const logs = [_]u32{std.math.log2_int(u64, diagnostic_source.size_bytes / 4)};
-            const outputs = [_]u32{output_offsets[local_index]};
-            var repair = try metal.prepareCompositionLde(
-                &sources,
-                &logs,
-                &outputs,
-                evaluation_log,
-                try twiddleOffsetForLog(evaluation_twiddles, evaluation_log),
-            );
-            defer repair.deinit();
-            const repair_gpu_ms = try metal.compositionLdePrepared(resident_arena.buffer, repair);
-            gpu_ms += repair_gpu_ms;
-            lde_gpu_ms += repair_gpu_ms;
-            const lde_words = @as(usize, 1) << @intCast(evaluation_log);
-            const arena_bytes: [*]const u8 = @ptrCast(resident_arena.buffer.contents);
-            const lde_bytes = arena_bytes[@as(usize, outputs[0]) * 4 ..][0 .. lde_words * 4];
-            const file = try std.fs.createFileAbsolute("/tmp/sn2-column613-metal-lde.u32le", .{});
-            defer file.close();
-            try file.writeAll(lde_bytes);
-
-            const source_bytes = try resident_arena.bytes(source);
-            const source_file = try std.fs.createFileAbsolute("/tmp/sn2-column613-commit-source.u32le", .{});
-            defer source_file.close();
-            try source_file.writeAll(source_bytes);
-            const source_words: []align(1) const u32 = std.mem.bytesAsSlice(u32, source_bytes);
-            const coefficient_values = try allocator.alloc(M31, source_words.len);
-            for (source_words, coefficient_values) |word, *value|
-                value.* = M31.fromCanonical(word % 0x7fffffff);
-            var cpu_coefficients = try circle_poly_mod.CircleCoefficients.initOwned(coefficient_values);
-            defer cpu_coefficients.deinit(allocator);
-            const cpu_lde = try cpu_coefficients.evaluate(
-                allocator,
-                canonic_circle_mod.CanonicCoset.new(evaluation_log).circleDomain(),
-            );
-            defer allocator.free(@constCast(cpu_lde.values));
-            const cpu_file = try std.fs.createFileAbsolute("/tmp/sn2-column613-repair-cpu-lde.u32le", .{});
-            defer cpu_file.close();
-            try cpu_file.writeAll(std.mem.sliceAsBytes(cpu_lde.values));
-            @memcpy(
-                @constCast(lde_bytes),
-                std.mem.sliceAsBytes(cpu_lde.values),
-            );
-            const repaired_file = try std.fs.createFileAbsolute("/tmp/sn2-column613-repaired-lde.u32le", .{});
-            defer repaired_file.close();
-            try repaired_file.writeAll(lde_bytes);
         }
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_LDE_DIGESTS"))
             commitment_telemetry.logCommitLdeDigests(

@@ -190,10 +190,8 @@ pub const executeNativeEcConsumer = witness_execute.executeNativeEcConsumer;
 pub const executeScheduledWitnessGraph = witness_execute.executeScheduledWitnessGraph;
 pub const InteractionExecutionTelemetry = interaction_execute.InteractionExecutionTelemetry;
 pub const executeScheduledInteractionGraph = interaction_execute.executeScheduledInteractionGraph;
-pub const logComponentInteractionDigests = interaction_diagnostics.logComponentInteractionDigests;
 pub const logComponentBaseEvalDigests = trace_diagnostics.logComponentBaseEvalDigests;
 pub const logInteractionCoefficientDigests = interaction_diagnostics.logInteractionCoefficientDigests;
-pub const logLogicalBindingDigest = interaction_diagnostics.logLogicalBindingDigest;
 
 pub const gatherWitnessInput = witness_execute.gatherWitnessInput;
 
