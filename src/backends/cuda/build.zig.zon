@@ -1,7 +1,7 @@
 .{
     .fingerprint = 0x415a1138597997c8,
     .name = .stwo_cuda_backend,
-    .version = "0.2.0",
+    .version = "0.3.0",
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{

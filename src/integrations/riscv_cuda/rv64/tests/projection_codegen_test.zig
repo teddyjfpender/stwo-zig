@@ -170,7 +170,10 @@ test "LS-D64 descriptor45 seeded OWNER projection agrees across base lifted and 
     const tuple = D.equations.ownerTuple(F, &symbolic);
     var ids: [19]u32 = undefined;
     for (tuple, &ids) |value, *id| id.* = value.id;
-    var program = try recording.builder.finish(@splat(0), &ids);
+    var authority: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash("rv64/test/ls-d64-owner-projection/v1", &authority, .{});
+    try std.testing.expectError(error.InvalidSecurePolynomialSchema, recording.builder.finish(@splat(0), &ids));
+    var program = try recording.builder.finish(authority, &ids);
     defer program.deinit();
     const inputs = try a.alloc(O, program.inputs.len);
     defer a.free(inputs);

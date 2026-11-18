@@ -13,15 +13,15 @@ use core::{
 };
 use k256::ecdsa::{Signature, VerifyingKey, signature::hazmat::PrehashVerifier};
 
-#[path = "../../exact_layout_allocator_v2.rs"]
+#[path = "../../runtime/exact_layout_allocator.rs"]
 mod allocator;
-#[path = "../../fast_keccak_sponge_words_v1.rs"]
+#[path = "../../runtime/fast_keccak_sponge_words.rs"]
 mod keccak;
 mod single_thread_atomics;
-#[path = "../../fast_memory_v1.rs"]
+#[path = "../../runtime/fast_memory.rs"]
 mod fast_memory;
 #[cfg(feature = "sha256-precompile")]
-#[path = "../../sha256_precompile_v1.rs"]
+#[path = "../../runtime/sha256_precompile.rs"]
 mod sha256;
 mod evm_recovery;
 mod evm_hints;
@@ -50,7 +50,7 @@ unsafe impl critical_section::Impl for GuestCriticalSection {
     unsafe fn release(_: bool) {}
 }
 
-#[path = "../../ethereum_admission_v1.rs"]
+#[path = "../../runtime/ethereum_admission.rs"]
 mod admission;
 
 global_asm!(r#"

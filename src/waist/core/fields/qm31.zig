@@ -82,11 +82,12 @@ pub const QM31 = struct {
 
     /// Combines partial evaluations of base-field components into one QM31 value.
     pub fn fromPartialEvals(evals: [SECURE_EXTENSION_DEGREE]QM31) QM31 {
-        var out = evals[0];
-        out = out.add(evals[1].mul(QM31.fromU32Unchecked(0, 1, 0, 0)));
-        out = out.add(evals[2].mul(QM31.fromU32Unchecked(0, 0, 1, 0)));
-        out = out.add(evals[3].mul(QM31.fromU32Unchecked(0, 0, 0, 1)));
-        return out;
+        // e0 + i*e1 + u*(e2 + i*e3), where u² = 2+i.
+        const low = evals[0].c0.add(mulByI(evals[1].c0));
+        const high = evals[0].c1.add(mulByI(evals[1].c1));
+        const cross_low = evals[2].c0.add(mulByI(evals[3].c0));
+        const cross_high = evals[2].c1.add(mulByI(evals[3].c1));
+        return .{ .c0 = low.add(mulByR(cross_high)), .c1 = high.add(cross_low) };
     }
 
     pub inline fn mulCM31(self: QM31, rhs: CM31) QM31 {
@@ -404,5 +405,19 @@ test "qm31: randomized field laws" {
             const inv_a = try a.inv();
             try std.testing.expect(a.mul(inv_a).eql(QM31.one()));
         }
+    }
+}
+
+test "QM31 partial evaluations match the dense basis expansion" {
+    var prng = std.Random.DefaultPrng.init(427);
+    const basis = [_]QM31{ QM31.one(), QM31.fromU32Unchecked(0, 1, 0, 0), QM31.fromU32Unchecked(0, 0, 1, 0), QM31.fromU32Unchecked(0, 0, 0, 1) };
+    for (0..256) |_| {
+        var values: [4]QM31 = undefined;
+        var expected = QM31.zero();
+        for (&values, basis) |*v, b| {
+            v.* = randElem(prng.random());
+            expected = expected.add(mulReference(v.*, b));
+        }
+        try std.testing.expectEqual(expected, QM31.fromPartialEvals(values));
     }
 }

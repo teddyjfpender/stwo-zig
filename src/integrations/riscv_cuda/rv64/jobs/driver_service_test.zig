@@ -99,7 +99,22 @@ test "serve: install shapes every block from its warm capture; streamed requests
     defer ws[0].destroy();
     ws[1] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
     defer ws[1].destroy();
-    const svc = try S.Service.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), src.source(), &.{ 26235156, 24628607 }, T.serviceConfig(), .{ .buffers = 8, .words = 16 });
+    const Ordered = struct {
+        fn warm(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {
+            try T.World.rec_vt.warm(raw, cache);
+            const w: *T.World = @ptrCast(@alignCast(raw));
+            w.installed_cache = cache;
+        }
+        fn classOf(raw: *anyopaque, id: G.ProofId, children: []const G.ClassKey) anyerror!G.ClassKey {
+            const w: *T.World = @ptrCast(@alignCast(raw));
+            if (w.installed_cache == null) return error.GpuNativeClassNotWarmed;
+            return T.World.rec_vt.class_of(raw, id, children);
+        }
+    };
+    var recursion_vt = T.World.rec_vt;
+    recursion_vt.warm = Ordered.warm;
+    recursion_vt.class_of = Ordered.classOf;
+    const svc = try S.Service.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), .{ .ctx = &world, .vtable = &recursion_vt }, src.source(), &.{ 26235156, 24628607 }, T.serviceConfig(), .{ .buffers = 8, .words = 16 });
     defer svc.deinit();
     try testing.expectEqualSlices(u64, &.{ 26235156, 24628607 }, src.warmed.items);
     try testing.expectEqual(@as(usize, 2), src.released);
@@ -224,4 +239,34 @@ test "serve: the spool answers requests in order, refuses malformed and reused n
         try testing.expectError(error.FileNotFound, tmp.dir.access(try std.fmt.bufPrint(&buf, "spool/inbox/{s}.request", .{e.name}), .{}));
     }
     try testing.expectEqual(@as(usize, 2), src.joined);
+}
+
+test "serve: truth capacity rejects before topology and the exchange holds the exact installed roster" {
+    const Shape = struct {
+        fn get(_: *anyopaque, block: G.WarmBlock, _: []const G.ClassKey) anyerror!G.RecursionShape {
+            // The malformed topology must never be reached on the over-limit input.
+            return .{ .truths = 17, .fold_arity = if (block.block == 1) 0 else 4 };
+        }
+    };
+    const a = testing.allocator;
+    var world = T.World{ .a = a, .two_stage = true, .stage_one = true, .truth_end = true };
+    var src = T.FakeSource{ .segments = 1 };
+    defer src.warmed.deinit(a);
+    const worker = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1024, .pinned_slot_words = 1024 });
+    defer worker.destroy();
+    var vt = T.World.rec_vt2;
+    vt.shape = Shape.get;
+    const rec = G.RecursionFactory{ .ctx = &world, .vtable = &vt };
+    var config = T.serviceConfig();
+    config.capacity_words = &.{1 << 20};
+    config.max_jobs_per_device = 128;
+    try testing.expectError(error.GpuNativeTruthsExceedPlan, S.Service.install(a, &F.ops, &F.peer, &.{worker}, world.nativeFactory(), rec, src.source(), &.{1}, config, .{}));
+    try testing.expectEqual(@as(usize, 1), src.released);
+    config.max_truths = 32;
+    const service = try S.Service.install(a, &F.ops, &F.peer, &.{worker}, world.nativeFactory(), rec, src.source(), &.{2}, config, .{ .buffers = 8, .words = 64 });
+    defer service.deinit();
+    try testing.expectEqual(@as(u32, 17), service.driver.resources.exchange_cap.capacity_truths);
+    var result = try service.serve(2, null);
+    defer result.outcome.deinit();
+    try testing.expectEqual(@as(u32, (1 << 17) - 1), world.truth1_done.load(.acquire));
 }

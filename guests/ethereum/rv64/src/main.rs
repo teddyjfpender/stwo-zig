@@ -7,7 +7,7 @@ use core::{
     arch::{asm, global_asm},
     ptr,
 };
-#[path = "../../../exact_layout_allocator_v2.rs"]
+#[path = "../../runtime/exact_layout_allocator.rs"]
 mod allocator;
 mod single_thread_atomics;
 #[cfg(feature = "keccak-service")]

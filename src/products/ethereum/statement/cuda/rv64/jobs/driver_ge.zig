@@ -351,17 +351,22 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     defer libs.close();
     const peer = try O.Peer.open(&libs.addon);
     const config = try mod.Config.fromEnv();
+    var device_budget = try @import("stwo_riscv_cuda_integration").rv64.execution.runtime.resident_router.Config.fromEnv(a);
+    defer device_budget.deinit(a);
+    if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_CAPS")) @memset(device_budget.caps, 28 << 30);
     // Build real immutable recursion classes before native workers carve the
     // device pool. Its cold proof construction is counted in init_ns.
     const recursion_classes = try Host.installRecursion(a, &libs, library, manifest_path, spool);
-    defer recursion_classes.deinit();
+    var workers: [G.max_devices]*W.Worker = undefined;
+    var made: usize = 0;
+    defer {
+        recursion_classes.deinit();
+        for (workers[0..made]) |w| w.destroy();
+    }
     // [M component] truth-reuse-1 preserves all seven real-block truth
     // proofs with a lower scratch high-water. Keep opt-in for request gates.
     const reuse = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_REUSE", 0);
     if (reuse > 1) return error.InvalidM8GpuNativeEnvironment;
-    var workers: [G.max_devices]*W.Worker = undefined;
-    var made: usize = 0;
-    defer for (workers[0..made]) |w| w.destroy();
     if (config.device_count > G.max_devices) return error.GpuNativeTooManyDevices;
     for (config.devices[0..config.device_count]) |d| {
         // WarmJob uploads FIXED coefficients at install. Lazy slots allocate
@@ -420,17 +425,26 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
         try binding.report(&text.writer);
         std.debug.print("GPU_M8_GN_BIND binding={s}\n", .{text.written()});
     }
-    // 28 GiB qualified cap per 5090 (rv64_combined_ethereum_main default);
-    // the driver plans against min(cap, measured free memory) per GPU.
-    var caps: [G.max_devices]u64 = @splat((28 << 30) / 4);
+    // Bind each configured budget to its physical worker; installation also
+    // limits it to the measured allocatable memory of that device.
+    var caps: [G.max_devices]u64 = undefined;
+    for (workers[0..made], 0..) |worker, i| caps[i] = for (device_budget.ids, device_budget.caps) |id, cap| {
+        if (id == worker.device_ordinal) break cap / 4;
+    } else return error.GpuNativeCapacityShape;
     const rc = R.Config{
         .capacity_words = caps[0..made],
         .max_segments = 64,
+        // Admission follows the Ethereum bundle envelope. The exchange reserves
+        // only the actual, independently registered truth roster for this service.
+        .max_truths = (CPU.rv64_gkr_bundle_wire.Limits{}).max_truths,
         .exchange_partials = (try Chain.version()) != .flat,
         .pool_current = libs.base.lookup(*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int, "stwo_exec_context_pool_current"),
         .fixed_pool = if (std.posix.getenv("STWO_RV64_DEVICE_ARENA")) |v| !std.mem.eql(u8, v, "0") else true,
         .prewarm_resources = (try envUnsigned("STWO_RV64_M9_CLASS_PACKED_INGRESS", 0)) == 1,
         .slab_words = default_slab_bytes / 4,
+        // Shared retained metadata plus one measured-after-instantiation
+        // candidate. Opaque CUDA temporary peaks remain physically guarded.
+        .graph_exec_words = (512 << 20) / 4,
         .batch_pinned_words = default_batch_pinned_bytes / 4,
     };
     const ring = S.RingConfig{ .buffers = default_ring_buffers, .words = default_ring_bytes / 4 };

@@ -19,14 +19,15 @@ const api = @import("api.zig");
 const Plan = @import("outer_plan.zig");
 const K = @import("outer_kernels.zig");
 const TC = @import("outer_trace_commit.zig");
+const Packed = @import("outer_packed_class.zig");
 const Graphs = @import("outer_graph_cache.zig");
 
 pub const root_index: u32 = 0x4649_5852; // "FIXR"
 
 pub const Inputs = struct {
     plan: *const Plan.TreePlan,
-    /// Raw FIXED evaluations per ORIGINAL column (len 1 << plan.logs[i]).
-    raw: []const []const u32,
+    /// Original-order host evaluations, or null for worker-decoded FIXED.
+    raw: ?[]const []const u32,
     /// TC.sortedLogs(plan) (plan.order.len words).
     sorted_logs: []const u32,
     twiddles: []const u32,
@@ -40,6 +41,7 @@ pub const FixedJob = struct {
     kernels: *const K.Kernels,
     layout: api.ProofLayout = .{},
     evaluations: [*]const u32 = undefined,
+    packed_input: ?Packed.Staged = null,
     logs: [*]const u32 = undefined,
     twiddles: [*]const u32 = undefined,
     itwiddles: [*]const u32 = undefined,
@@ -64,9 +66,11 @@ pub const FixedJob = struct {
     timing: ?K.Timing = null,
 
     pub fn init(in: Inputs, kernels: *const K.Kernels) !FixedJob {
-        if (in.raw.len != in.plan.offsets.len or in.sorted_logs.len != in.plan.order.len) return error.InvalidOuterFixedGather;
+        if (in.sorted_logs.len != in.plan.order.len) return error.InvalidOuterFixedGather;
+        if (in.raw) |raw| if (raw.len != in.plan.offsets.len) return error.InvalidOuterFixedGather;
         var out = FixedJob{ .in = in, .kernels = kernels };
         _ = try out.layout.add(.opaque_words, root_index, 8);
+        if (in.raw == null) _ = try out.layout.add(.opaque_words, Packed.field_index, 1);
         return out;
     }
     pub fn job(self: *FixedJob) api.Job {
@@ -83,14 +87,14 @@ pub const FixedJob = struct {
     }
     fn stagedWords(self: *const FixedJob) u64 {
         const p = self.in.plan;
-        return g(p.coefficient_words) + g(self.in.sorted_logs.len) + g(self.in.twiddles.len) + g(self.in.itwiddles.len);
+        return (if (self.in.raw != null) g(p.coefficient_words) else 0) + g(self.in.sorted_logs.len) + g(self.in.twiddles.len) + g(self.in.itwiddles.len);
     }
     pub fn footprint(self: *FixedJob) api.Footprint {
         const p = self.in.plan;
         // Staged inputs + coefficients + tree/prefix + the LDE scratch TC
         // allocates and frees inside (one evaluation image).
         const device = self.stagedWords() + g(p.coefficient_words) + g(p.tree_words + p.prefix_words) + g(p.evaluation_words);
-        return .{ .device_words = @intCast(device), .staged_words = @intCast(self.stagedWords()), .slab_words = self.layout.words, .pinned_words = @intCast(p.coefficient_words + self.in.sorted_logs.len + self.in.twiddles.len + self.in.itwiddles.len) };
+        return .{ .device_words = @intCast(device), .staged_words = @intCast(self.stagedWords()), .slab_words = self.layout.words, .pinned_words = @intCast((if (self.in.raw != null) p.coefficient_words else 0) + self.in.sorted_logs.len + self.in.twiddles.len + self.in.itwiddles.len) };
     }
     fn upload(s: *api.Stager, words: []const u32) ![*]const u32 {
         const d = try s.alloc(@max(words.len, 1));
@@ -102,16 +106,20 @@ pub const FixedJob = struct {
         return d.ptr;
     }
     pub fn stage(self: *FixedJob, s: *api.Stager) !void {
+        self.root = null;
+        self.packed_input = null;
         const p = self.in.plan;
         if (p.beta != 1) return error.UnsupportedOuterJobBlowup;
-        const d = try s.alloc(@intCast(p.coefficient_words));
-        const pinned = try s.pinned(@intCast(p.coefficient_words));
-        for (self.in.raw, p.offsets, p.logs) |column, off, log| {
-            if (column.len != @as(usize, 1) << @intCast(log)) return error.InvalidOuterFixedGather;
-            @memcpy(pinned[@intCast(off)..][0..column.len], column);
+        if (self.in.raw) |raw| {
+            const d = try s.alloc(@intCast(p.coefficient_words));
+            const pinned = try s.pinned(@intCast(p.coefficient_words));
+            for (raw, p.offsets, p.logs) |column, off, log| {
+                if (column.len != @as(usize, 1) << @intCast(log)) return error.InvalidOuterFixedGather;
+                @memcpy(pinned[@intCast(off)..][0..column.len], column);
+            }
+            try s.upload(d, pinned);
+            self.evaluations = d.ptr;
         }
-        try s.upload(d, pinned);
-        self.evaluations = d.ptr;
         self.logs = try upload(s, self.in.sorted_logs);
         self.twiddles = try upload(s, self.in.twiddles);
         self.itwiddles = try upload(s, self.in.itwiddles);
@@ -151,6 +159,10 @@ pub const FixedJob = struct {
         try e.slab.bind(&self.layout);
         const out = try e.slab.field(.opaque_words, root_index);
         const p = self.in.plan;
+        if (self.in.raw == null) {
+            const input = self.packed_input orelse return error.PackedClassShape;
+            self.evaluations = (try input.decodeFixed(e.ctx(), try e.slab.field(.opaque_words, Packed.field_index), @intCast(p.coefficient_words))).ptr;
+        }
         var view = View{ .e = e };
         var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &View.vtable, .kernels = self.kernels };
         // Tree below the coefficients' LIFO scratch (TC frees its LDE inside).
@@ -198,10 +210,47 @@ pub const FixedJob = struct {
         self.handoff_buffer = null;
         self.receipt = view.receipt;
         if (self.timing) |t| t.resolve(t.ctx);
+        self.root = null;
+        if (self.in.raw == null) {
+            const status = try @import("slab.zig").read(view, .opaque_words, Packed.field_index);
+            if (status.len != 1 or status[0] != api.gpu_native.Verdict.accepted) return error.PackedClassDecodeFailed;
+        }
         const words = try @import("slab.zig").read(view, .opaque_words, root_index);
         var root: [32]u8 = undefined;
         for (0..8) |i| std.mem.writeInt(u32, root[4 * i ..][0..4], words[i], .little);
         self.root = root;
     }
-    pub fn abort(_: *FixedJob) void {}
+    pub fn abort(self: *FixedJob) void {
+        self.root = null;
+        self.packed_input = null;
+        self.handoff_buffer = null;
+    }
 };
+
+test "cold FIXED accepts only a successful device decode and budgets its resident source once" {
+    const t = std.testing;
+    var plan = try Plan.TreePlan.init(t.allocator, &.{ 7, 5 }, 1);
+    defer plan.deinit(t.allocator);
+    var dummy: K.Kernels = undefined;
+    const pp = Inputs{ .plan = &plan, .raw = &.{ &.{}, &.{} }, .sorted_logs = &.{ 5, 7 }, .twiddles = &.{1}, .itwiddles = &.{1} };
+    var external = pp;
+    external.raw = null;
+    var host = try FixedJob.init(pp, &dummy);
+    var resident = try FixedJob.init(external, &dummy);
+    const h = host.footprint();
+    const r = resident.footprint();
+    try t.expectEqual(plan.coefficient_words, h.pinned_words - r.pinned_words);
+    try t.expectEqual(FixedJob.g(plan.coefficient_words), h.staged_words - r.staged_words);
+    try t.expectEqual(h.staged_words - r.staged_words, h.device_words - r.device_words);
+    try t.expectEqual(h.slab_words + 1, r.slab_words);
+    var words: [9]u32 = @splat(17);
+    const view = api.SlabView{ .layout = &resident.layout, .words = &words, .receipt = .{} };
+    words[8] = api.gpu_native.Verdict.accepted;
+    try resident.finish(view);
+    try t.expect(resident.root != null);
+    for ([_]u32{ api.gpu_native.Verdict.unset, api.gpu_native.Verdict.reject(.class_unpack, 2) }) |bad| {
+        words[8] = bad;
+        try t.expectError(error.PackedClassDecodeFailed, resident.finish(view));
+        try t.expect(resident.root == null);
+    }
+}

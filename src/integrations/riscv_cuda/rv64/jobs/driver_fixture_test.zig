@@ -272,7 +272,7 @@ pub const World = struct {
     publish_at: u8 = 0,
     /// Two-stage truths (RecursionFactory.truth_stage2 bound).
     two_stage: bool = false,
-    truth_device: [8]u32 = @splat(0),
+    truth_device: [@bitSizeOf(u32)]u32 = @splat(0),
     truth1_done: std.atomic.Value(u32) = .init(0),
 
     pub fn reset(self: *World) void {

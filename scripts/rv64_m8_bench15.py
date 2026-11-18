@@ -146,6 +146,14 @@ def extra_environment(items):
     return result
 
 
+def validate_service_environment(environment, assets, pins):
+    validate_library_environment(environment, assets, pins)
+    observer = assets.get('observer')
+    selected = re.split(r'[:\s]+', environment.get('LD_PRELOAD', '').strip())
+    if not observer or Path(observer).resolve() not in {Path(p).resolve() for p in selected if p}:
+        raise RuntimeError('benchmark requires its pinned observer in LD_PRELOAD')
+
+
 # ----------------------------------------------------------------------------- parsing (pure)
 
 
@@ -200,9 +208,11 @@ def fmt(value, digits=1):
 def markdown(result):
     """Short tables: warm/cold proving per arm next to M3/M7, then the warm critical path per arm."""
     arms = result['arms']
+    config = result.get('config', {})
     lines = ['# RV64 M8 15-block benchmark', '',
              'proving = service request wall incl. witness generation, excl. fetch/submit. Warm/cold = median over headline services [M].',
              'M3 = one request per block (`rv64-m3-20261104`) [M]; M7 = default warm where measured [M].', '',
+             f"Selected GPUs: {config.get('gpus', DEVICES)}; logical cap per device: {config.get('device_cap_bytes', 28 << 30)} bytes. Admission alone establishes neither measured peak nor 5090 fit.", '',
              '| block | Minstr | seg | M3 s | M7 s | ' + ' | '.join(f'{a} warm / cold s' for a in arms) + ' | status |',
              '|---|---:|---:|---:|---:|' + '---:|' * len(arms) + '---|']
     for b in result['blocks']:
@@ -254,8 +264,8 @@ def markdown(result):
                          f"{fmt(device and device / 1e9, 1)} | {fmt(peak and peak / 1e9, 1)} | {fmt(launches, 0)} | {fmt(syncs, 1)} |")
     lines += ['', 'launches/syncs per node: job receipts (`GPU_M8_OUTER_NODE launches/host_waits`) where the arm runs OuterNodeJobs [M], '
               'else Nsight `cudaLaunchKernel`/`cudaStreamSynchronize` in the profiled warm window / nodes [D]. '
-              'device peak: NVML-sampled max used bytes over both GPUs in the headline services [M]. '
-              'per-node peak: job arena peak words x 4 B [D]. GPU busy: CUPTI kernel union / (2 GPUs x profiled window) [D].', '']
+              'device peak: NVML-sampled max used bytes over selected GPUs in the headline services [M]. '
+              'per-node peak: job arena peak words x 4 B [D]. GPU busy: CUPTI kernel union / (selected GPU count x profiled window) [D].', '']
     return '\n'.join(lines)
 
 
@@ -338,8 +348,21 @@ def load_assets(path):
     manifest = json.loads(Path(path).read_text())
     if manifest.get('schema') != 'rv64-m8-bench-assets/v1':
         raise RuntimeError('assets.json schema mismatch')
+    if 'observer' not in manifest['assets']:
+        raise RuntimeError('benchmark assets require the observer')
     validate_assets(manifest['assets'], manifest['asset_sha256'])
     return manifest
+
+
+def resume_identity(config):
+    return {k: config.get(k) for k in ('arms', 'rounds', 'profile', 'receivers', 'assets', 'gpus', 'device_cap_bytes', 'preset_sha256')}
+
+
+def positive_capacity(value):
+    result = int(value)
+    if result <= 0:
+        raise ValueError('device capacity must be positive')
+    return result
 
 
 def pin(args):
@@ -446,14 +469,17 @@ class Bench:
         self.stream = ROOT.name
         if ROOT != M3 / 'src' / self.stream:
             raise SystemExit('run only from the synced pod source tree /workspace/m3/src/<stream>')
-        self.preset = json.loads(stack.DEFAULT_PRESET.read_text())
+        self.preset_path = args.preset
+        self.preset = json.loads(self.preset_path.read_text())
+        self.preset_sha256 = stack.sha(self.preset_path)
         self.environment = dict(stack.clean_environment(os.environ), TMPDIR=str(M3 / 'tmp'))
         self.extra_env = extra_environment(args.env)
 
     # -- one service ---------------------------------------------------------
     def service(self, block, row, arm, role, round_index, attempt):
         label = f'{self.out.name}-{block}-{arm}-{role[0]}{round_index}-a{attempt}'
-        manifest = {'source_root': str(self.root), 'assets': self.assets['assets'], 'block': block, 'preset': self.preset}
+        manifest = {'source_root': str(self.root), 'assets': self.assets['assets'], 'block': block, 'preset': self.preset,
+                    'gpus': self.args.gpus, 'device_cap_bytes': self.args.device_cap_bytes}
         argv, tag = stack.command(manifest, 'baseline', 0, self.stream, role == 'profile', label)
         if block not in DEV_BLOCKS:
             argv.append('--bench-basket-block')
@@ -463,7 +489,7 @@ class Bench:
             argv += ['--nsys-root', str(self.args.nsys_root.resolve())]
         overlay = dict(block_environment(row), **arm_environment(arm, self.assets['assets']))
         overlay.update(self.extra_env)
-        validate_library_environment({**stack.arm_environment(self.preset, 'baseline', self.assets['assets']), **overlay}, self.assets['assets'], self.assets['asset_sha256'])
+        validate_service_environment({**stack.arm_environment(self.preset, 'baseline', self.assets['assets']), **overlay}, self.assets['assets'], self.assets['asset_sha256'])
         for key, value in sorted(overlay.items()):
             argv += ['--env', f'{key}={value}']
         run = M3 / 'runs' / self.stream / f'daemon-{block}-r2-{tag}'
@@ -493,7 +519,7 @@ class Bench:
             if arm == 'gpu-native' and (not native or native.get('schema') != 'rv64-m8-gpu-native-request/v1'):
                 entry.update(status='failed', reason='GPU-native driver receipt missing or schema changed')
                 return entry
-            entry['requests'].append(request_metrics(request, combined, per_request[index] if index < len(per_request) else [], native))
+            entry['requests'].append(request_metrics(request, combined, per_request[index] if index < len(per_request) else [], native, device_count=self.args.gpus))
         memory = receipt.get('physical_gpu_memory') or {}
         peaks = [v for v in (memory.get('peak_used_bytes') or {}).values() if v]
         entry['device_peak_bytes'] = max(peaks) if peaks else None
@@ -553,7 +579,7 @@ class Bench:
         gpu = load(run / 'gpu-seconds.json', {}).get('requests', []) if code == 0 else []
         warm = entry['requests'][1]
         profile = profile_metrics(gpu[1] if len(gpu) > 1 else None, api[1] if len(api) > 1 else None,
-                                  warm.get('nodes'), warm['proving_s'])
+                                  warm.get('nodes'), warm['proving_s'], device_count=self.args.gpus)
         if code:
             profile['gpu_seconds_error'] = log.read_text(errors='replace')[-600:]
         return profile
@@ -565,7 +591,9 @@ class Bench:
             raise RuntimeError('refusing to prune outside this stream: ' + str(run))
         if not keep_proofs:
             for name in ('spool/out', 'nsys'):
-                if (run / name).exists():
+                if (run / name).is_symlink():
+                    (run / name).unlink()
+                elif (run / name).exists():
                     shutil.rmtree(run / name)
         stderr = run / 'producer.stderr'
         if not keep_proofs and stderr.is_file():
@@ -678,14 +706,14 @@ class Bench:
         self.out.mkdir(parents=True, exist_ok=True)
         config = {'schema': SCHEMA, 'arms': self.args.arms, 'rounds': self.args.rounds, 'profile': self.args.profile,
                   'receivers': self.args.receivers, 'tolerate_arm_failure': self.args.tolerate_arm_failure, 'smoke': self.args.smoke, 'blocks': [r['block'] for r in rows],
-                  'assets': self.assets, 'preset_sha256': stack.sha(stack.DEFAULT_PRESET), 'stream': self.stream,
+                  'assets': self.assets, 'preset_sha256': self.preset_sha256, 'preset': str(self.preset_path), 'stream': self.stream,
+                  'gpus': self.args.gpus, 'device_cap_bytes': self.args.device_cap_bytes,
                   'source_commit': self.args.source_commit, 'extra_env': self.extra_env,
                   'nsys_root': str(self.args.nsys_root.resolve()) if self.args.nsys_root else None}
         previous = load(self.out / 'config.json')
         if previous and previous.get('extra_env', {}) != config['extra_env']:
             raise SystemExit('resume refused: common arm environment changed')
-        if previous and {k: previous.get(k) for k in ('arms', 'rounds', 'profile', 'receivers', 'assets')} != \
-                {k: config.get(k) for k in ('arms', 'rounds', 'profile', 'receivers', 'assets')}:
+        if previous and resume_identity(previous) != resume_identity(config):
             raise SystemExit('resume refused: this output directory was started with another configuration')
         atomic(self.out / 'config.json', previous or config)
         try:
@@ -710,7 +738,7 @@ def report_files(out, arms):
         blocks[state['block']] = state
     result = aggregate(blocks, arms, rows)
     config = load(out / 'config.json', {})
-    result['config'] = {k: config.get(k) for k in ('rounds', 'profile', 'receivers', 'smoke', 'stream', 'source_commit')}
+    result['config'] = {k: config.get(k) for k in ('rounds', 'profile', 'receivers', 'smoke', 'stream', 'source_commit', 'gpus', 'device_cap_bytes', 'preset_sha256')}
     result['asset_sha256'] = (config.get('assets') or {}).get('asset_sha256')
     atomic(out / 'bench15.json', result)
     (out / 'bench15.md').write_text(markdown(result))
@@ -749,6 +777,9 @@ def main():
     r.add_argument('--assets', required=True, type=Path)
     r.add_argument('--out', required=True, type=Path, help='bench directory; rerun the same command to resume')
     r.add_argument('--arms', type=arms_type, default=['default', 'gpu-native'], help='comma list of ' + ','.join(ARMS))
+    r.add_argument('--gpus', type=int, choices=(1, 2, 4), default=2)
+    r.add_argument('--device-cap-bytes', type=positive_capacity, default=28 << 30)
+    r.add_argument('--preset', type=Path, default=stack.DEFAULT_PRESET, help='explicit pinned preset; default selection is unchanged')
     r.add_argument('--rounds', type=int, default=3, help='headline services per arm per block (interleaved)')
     r.add_argument('--blocks', type=int, nargs='+', help='subset of the basket (still ascending, still stop-on-failure)')
     r.add_argument('--profile', choices=('warm', 'none'), default='warm', help='one Nsight service per arm per block for GPU-s/launches/syncs')

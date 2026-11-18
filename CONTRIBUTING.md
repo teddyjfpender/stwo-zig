@@ -179,6 +179,8 @@ docs                           architecture, protocols, performance claims, oper
   top; everything else lives in a `scripts/<area>/` package (see `scripts/README.md`).
   The RV64 pod-image recipe additionally calls `scripts/rv64/rv64_m8_native_relink.py`.
 - `tools/`: independently buildable adapters and developer utilities.
+- `guests/`: RISC-V guest programs. Their own build scripts produce them, and products consume
+  them as hashed ELF artifacts, never as source imports (see `guests/README.md`).
 - `vectors/`: committed conformance inputs, outputs, and machine-readable evidence.
 - `conformance/`: machine-read pins, parity ledger, and the source baseline. Prose design history lives in the sibling `stwo-zig-og-docs` archive.
 
@@ -1328,6 +1330,9 @@ This repository deliberately has a small Zig dependency surface. A new dependenc
 
 For core cryptographic or GPU execution logic, prefer small auditable implementations and pinned
 references over large frameworks.
+
+When a change vendors, ports, pins, fetches or adapts upstream work, keep its licence files and
+provenance beside it and add or update its entry in [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).
 
 ### Generated code and artifacts
 

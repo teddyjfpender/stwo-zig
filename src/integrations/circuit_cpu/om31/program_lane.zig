@@ -23,7 +23,14 @@ pub fn ForLane(comptime F: type) type {
             pub fn read(self: @This(), tree: u8, logical: u32, offset: i32) !F {
                 if (tree != 2) return self.get(self.context, tree, logical, offset);
                 const low = try std.math.add(u32, try std.math.mul(u32, logical / 4, 8), logical % 4);
-                return (try self.get(self.context, 2, low, offset)).add(basis().mul(try self.get(self.context, 2, try std.math.add(u32, low, 4), offset)));
+                const lo = try self.get(self.context, 2, low, offset);
+                const hi = try self.get(self.context, 2, try std.math.add(u32, low, 4), offset);
+                if (F == P.O) {
+                    // Multiplication by the octic basis swaps quartic halves, scaling by u.
+                    const mulByU = @import("stwo_core").fields.om31.NativeOps.mulByU;
+                    return .{ .c0 = lo.c0.add(mulByU(hi.c1)), .c1 = lo.c1.add(hi.c0) };
+                }
+                return lo.add(basis().mul(hi));
             }
         };
         pub fn embed(value: Q) F {
@@ -31,6 +38,13 @@ pub fn ForLane(comptime F: type) type {
             return F.fromM31Array(.{ c[0], c[1], c[2], c[3], M.zero(), M.zero(), M.zero(), M.zero() });
         }
         pub fn pack4(values: [4]F) F {
+            if (F == P.O) {
+                // The four weights belong to QM31. Each octic half uses the same basis.
+                return .{
+                    .c0 = Q.fromPartialEvals(.{ values[0].c0, values[1].c0, values[2].c0, values[3].c0 }),
+                    .c1 = Q.fromPartialEvals(.{ values[0].c1, values[1].c1, values[2].c1, values[3].c1 }),
+                };
+            }
             return F.fromPartialEvals(.{ values[0], values[1], values[2], values[3], F.zero(), F.zero(), F.zero(), F.zero() });
         }
         pub const Scratch = struct {

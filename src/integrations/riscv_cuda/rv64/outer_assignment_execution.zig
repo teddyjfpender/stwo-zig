@@ -71,8 +71,8 @@ pub const Execution = struct {
         var one_shot: [3]?N.Lease = .{ null, null, null };
         defer for (&one_shot) |*lease| if (lease.*) |*l| ctx.release(l) catch {};
         const Static = struct {
-            fn words(prepared: *const Schema.Prepared, c: *SC.Context, svc: anytype, slot: *?N.Lease, fixed: [32]u8, kind: u32, data: []const u32) !N.Lease {
-                if (prepared.reusable) return svc.immutableWords(c.native_context, c.scope, prepared.key(fixed, kind), data);
+            fn words(execution: *const Execution, c: *SC.Context, svc: anytype, slot: *?N.Lease, fixed: [32]u8, kind: u32, data: []const u32) !N.Lease {
+                if (execution.prepared.reusable) return svc.immutableWords(c.native_context, c.scope, execution.key(fixed, kind), data);
                 slot.* = try c.allocate(data.len, 0);
                 try c.upload(try c.borrow(slot.*.?), data);
                 return slot.*.?;

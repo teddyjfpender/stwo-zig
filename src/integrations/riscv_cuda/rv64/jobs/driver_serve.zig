@@ -62,6 +62,7 @@ pub const RingConfig = struct {
 };
 
 pub const Shape = struct {
+    slab_classes: []const @import("driver_install.zig").SlabClass = &.{},
     block: u64,
     rows: []u64,
     truths: u32,
@@ -139,9 +140,19 @@ pub const Service = struct {
                 std.debug.print("GPU_RESIDENT_SERVICE install_stage=recursion_shape block={d} error={s}\n", .{ block, @errorName(err) });
                 return err;
             };
+            if (rs.truths > config.max_truths) return error.GpuNativeTruthsExceedPlan;
             var topo = try D.Topology.carry(a, @intCast(rows.len), rs.truths, rs.fold_arity);
             errdefer topo.deinit();
-            shape.* = .{ .block = block, .rows = rows, .truths = rs.truths, .fold_arity = rs.fold_arity, .topology = topo };
+            const roster = try a.alloc(@import("driver_install.zig").SlabClass, rows.len + rs.truths + topo.nodes.len + 1);
+            errdefer a.free(roster);
+            for (keys, roster[0..keys.len], 0..) |key, *r, i| r.* = .{ .id = .{ .kind = .native_segment, .ordinal = @intCast(i) }, .key = key };
+            // Truth/outer class selection is request-scoped and must never
+            // be called before the real driver warm/request lifecycle.
+            for (0..rs.truths) |i| roster[rows.len + i] = .{ .id = .{ .kind = .truth, .ordinal = @intCast(i) }, .key = null };
+            const start = rows.len + rs.truths;
+            for (topo.nodes, 0..) |node, i| roster[start + i] = .{ .id = .{ .kind = if (node.children.len == 0) .leaf else if (i == topo.root) .root else .fold, .ordinal = @intCast(i) }, .key = null };
+            roster[roster.len - 1] = .{ .id = .{ .kind = .request, .ordinal = 0 }, .key = null };
+            shape.* = .{ .slab_classes = roster, .block = block, .rows = rows, .truths = rs.truths, .fold_arity = rs.fold_arity, .topology = topo };
             made += 1;
         }
         // The service serves exactly the installed blocks: size the driver
@@ -157,7 +168,10 @@ pub const Service = struct {
             sized.max_segments = @max(sized.max_segments, @as(u32, @intCast(sh.rows.len)));
             sized.max_truths = @max(sized.max_truths, sh.truths);
         }
-        if (sized.max_truths > config.max_truths) return error.GpuNativeTruthsExceedPlan;
+        const rosters = try a.alloc([]const @import("driver_install.zig").SlabClass, shapes.len);
+        defer a.free(rosters);
+        for (shapes, rosters) |sh, *r| r.* = sh.slab_classes;
+        sized.slab_rosters = rosters;
         const driver = R.Driver.install(a, ops, peer, workers, native, recursion, sized) catch |err| {
             std.debug.print("GPU_RESIDENT_SERVICE install_stage=driver error={s}\n", .{@errorName(err)});
             return err;
@@ -198,6 +212,7 @@ pub const Service = struct {
         self.a.destroy(self);
     }
     fn freeShape(a: std.mem.Allocator, s: *Shape) void {
+        a.free(s.slab_classes);
         a.free(s.rows);
         s.topology.deinit();
     }
@@ -224,7 +239,7 @@ pub const Service = struct {
             stream.detach();
             return err;
         };
-        const req = R.Request{ .id = self.next_id, .segment_rows = shape.rows, .truths = shape.truths, .recursion = shape.topology.nodes, .root = shape.topology.root, .capture = stream, .block = block, .out = out };
+        const req = R.Request{ .slab_classes = shape.slab_classes, .id = self.next_id, .segment_rows = shape.rows, .truths = shape.truths, .recursion = shape.topology.nodes, .root = shape.topology.root, .capture = stream, .block = block, .out = out };
         self.next_id += 1;
         // A failed begin detached the capture (cancelled; it reported done):
         // join its thread.

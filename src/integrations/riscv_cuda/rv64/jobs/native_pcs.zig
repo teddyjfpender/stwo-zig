@@ -110,6 +110,8 @@ pub const PcsJob = struct {
     descriptor: Native.Request,
     plan: Plan,
     base_shift: core.circle.CirclePointM31,
+    reserve_words: ?u64 = null,
+    require_borrowed_trees: bool = false,
 
     /// Host framing for one proof. `request.points` are mask points at
     /// `oods_placeholder`; `request.trees[].root` may be placeholders.
@@ -123,7 +125,15 @@ pub const PcsJob = struct {
             std.debug.print("GPU_PCS_JOB_PLAN error={s}\n", .{symbols.last_error()});
             return error.PcsJobPlanFailed;
         }
+        // Unsupported geometry retains the caller's historical reservation.
+        self.reserve_words = try reserveForSections(a, self.prepared.section_storage, false);
         return self;
+    }
+    /// Outer-only contract: checked again against REAL bound pointers before
+    /// enqueue; one contiguous kind1 transfer/tree is borrowed by JobOwner.
+    pub fn requireBorrowedTrees(self: *PcsJob, a: std.mem.Allocator) !void {
+        self.reserve_words = try reserveForSections(a, self.prepared.section_storage, true);
+        self.require_borrowed_trees = self.reserve_words != null;
     }
     /// Bind tree `tree`, ORIGINAL column `original` to its device coefficient
     /// words (a job-arena view, e.g. native_commit.Committed.column). The
@@ -156,6 +166,7 @@ pub const PcsJob = struct {
     /// are used. `pinned` is job-lifetime pinned memory from Stager.pinned.
     pub fn enqueue(self: *PcsJob, symbols: Symbols, e: anytype, pinned: []u32, io: Io) !void {
         if (pinned.len < self.plan.ingress_words or io.output_words != self.plan.output_words or io.point == null) return error.InvalidPcsJobSpan;
+        if (self.require_borrowed_trees) try checkBorrowedTrees(self.prepared.coefficients, self.prepared.section_storage[7]);
         const B = Bridge(@TypeOf(e));
         const memory = Memory{ .user = @ptrCast(e), .alloc = B.alloc, .release = B.release, .pinned = pinned.ptr, .pinned_words = pinned.len };
         // Worker exec contexts have one lane; lane 0 is the job's exec stream.
@@ -216,6 +227,109 @@ fn Bridge(comptime EnqueuePtr: type) type {
             e.free(Buffer{ .ptr = ptr, .words = @intCast(words) });
         }
     };
+}
+
+fn checkBorrowedTrees(columns: []const Native.Column, trees: []const u32) !void {
+    if (trees.len % 6 != 0) return error.PcsJobRequiresContiguousTrees;
+    for (0..trees.len / 6) |t| {
+        const d = trees[t * 6 ..][0..6];
+        if (d[1] == 0 or @as(u64, d[0]) + d[1] > columns.len) return error.PcsJobRequiresContiguousTrees;
+        const first = columns[d[0]];
+        var address = @intFromPtr(first.words orelse return error.PcsJobRequiresContiguousTrees);
+        for (columns[d[0]..][0..d[1]]) |c| {
+            if (c.kind != 1 or c.context_token != first.context_token or c.generation != first.generation or @intFromPtr(c.words orelse return error.PcsJobRequiresContiguousTrees) != address) return error.PcsJobRequiresContiguousTrees;
+            address = std.math.add(usize, address, std.math.mul(usize, @intCast(c.count), 4) catch return error.PcsJobRequiresContiguousTrees) catch return error.PcsJobRequiresContiguousTrees;
+        }
+    }
+}
+
+// Upper bound on EVERY JobOwner::plane allocation in jobs/pcs_enqueue.cu.
+// Count retired blocks again: its best-fit cache retains reservations until exit.
+// No reuse credit; coefficient borrowing requires the checked outer contract.
+// Only the fixed imported beta1 outer schedule is admitted here.
+fn reserveForSections(a: std.mem.Allocator, s: [17][]const u32, borrowed_trees: bool) !?u64 {
+    const h = s[0];
+    if ((h.len != 24 and h.len != 28) or h[0] != 0x52564d53 or h[21] != 1 or h[5] != 1 or h[4] > 28) return null;
+    const sc: u64 = h[8];
+    const tc: u64 = h[9];
+    const gc: u64 = h[10];
+    const nt: usize = h[12];
+    const layers: usize = h[14];
+    const queries: u64 = h[6];
+    if (sc == 0 or sc > 65536 or tc == 0 or tc > 65536 or gc == 0 or gc > 1024 or nt == 0 or nt > 4 or layers > 28 or s[3].len != sc * 4 or s[5].len != gc * 8 or s[6].len != @as(u64, h[11]) * 8 or s[7].len != nt * 6 or s[13].len != layers * 8) return null;
+    const Bound = struct {
+        words: u64 = 64, // enqueueOpening's separately live OODS draw plane.
+        fn add(b: *@This(), n: u64) void {
+            if (n != 0) b.words += std.mem.alignForward(u64, n, 64);
+        }
+    };
+    var b = Bound{};
+    var counts: [4]u64 = undefined;
+    for (&counts, 0..) |*v, i| v.* = h[15 + i] | (if (h.len == 28) @as(u64, h[24 + i]) << 32 else 0);
+    for (counts) |n| if (n > @as(u64, 1) << 48) return null;
+    // Possible per-tree coefficient copies (even though contiguous device
+    // sources are borrowed), then combined DEEP arena + descriptor packets.
+    for (0..nt) |t| {
+        const d = s[7][t * 6 ..][0..6];
+        if (@as(u64, d[0]) + d[1] > sc or d[4] > h[4]) return null;
+        var words: u64 = 0;
+        for (d[0]..d[0] + d[1]) |c| {
+            const log = s[3][4 * c + 3];
+            if (log > 28) return null;
+            words += @as(u64, 1) << @intCast(log);
+        }
+        if (!borrowed_trees) b.add(words);
+        b.add(@as(u64, d[1]) * queries);
+        b.add(queries * d[4] * 8);
+    }
+    b.add(counts[2] + counts[3] + 6 * sc + 48 * gc);
+    var scratch: u64 = 0;
+    var max_terms: u64 = 0;
+    for (0..@intCast(gc)) |g| {
+        const d = s[5][g * 8 ..][0..8];
+        if (d[2] > 28 or d[1] <= d[0]) return null;
+        const terms: u64 = d[1] - d[0];
+        scratch = @max(scratch, (((@as(u64, 1) << @intCast(d[2])) + 1023) / 1024) * terms * 8);
+        max_terms = @max(max_terms, terms);
+    }
+    const rows = @as(u64, 1) << @intCast(h[4]);
+    // Every standalone upload/plane at lines408,490–512 and544–545.
+    for ([_]u64{ h[19], nt * 8, h[13], @as(u64, h[13]) * 8, sc, 4 * sc, 4 * tc, 8 * gc, 4 * gc, 2 * rows, h[20], 16, 16, (gc + 1) * 16, gc * 224, gc + 1, scratch, scratch, max_terms, tc * 8, 8, tc * 8, gc * 16, 2, rows * 8, 8, queries, 2, 1, 8, 2, 1, 16, layers * 8 }) |n| b.add(n);
+    for (0..layers) |i| {
+        const d = s[13][i * 8 ..][0..8];
+        if (d[0] == 0 or !std.math.isPowerOfTwo(d[0]) or d[1] > 4 or d[2] > d[1] or d[2] > std.math.log2_int(u32, d[0])) return null;
+        if (i != 0) b.add(@as(u64, d[0]) * 8);
+        b.add((2 * (@as(u64, d[0]) >> @intCast(d[2])) - 1) * 8);
+        b.add(8);
+        b.add((queries << @intCast(d[1])) * 8);
+        b.add((queries << @intCast(d[1] - d[2])) * (std.math.log2_int(u32, d[0]) - d[2]) * 8);
+    }
+    // Same shared streaming planner as the C++ port; always use legacy
+    // 24-word banks, which also upper-bound the compact-eager variant.
+    const Stream = @import("../trace_stream_plan.zig");
+    var stream_words: u64 = 0;
+    const column_rows = try a.alloc(u32, @intCast(sc));
+    defer a.free(column_rows);
+    for (0..nt) |t| {
+        const d = s[7][t * 6 ..][0..6];
+        if (d[1] == 0) return null;
+        var n: usize = 0;
+        for (d[2]..d[2] + d[3]) |g| {
+            if (g >= h[11]) return null;
+            const v = s[6][g * 8 ..][0..8];
+            if (v[3] > 28 or n + v[5] > column_rows.len) return null;
+            @memset(column_rows[n..][0..v[5]], @as(u32, 1) << @intCast(v[3]));
+            n += v[5];
+        }
+        if (n != d[1]) return null;
+        var plan = try Stream.plan(a, column_rows[0..n], Stream.default_chunk_words);
+        defer plan.deinit(a);
+        const final_bank = plan.calls[plan.calls.len - 1].out_bank;
+        plan.bank_words[final_bank] = @max(plan.bank_words[final_bank], Stream.treeWords(@as(u32, 1) << @intCast(d[4])));
+        stream_words = @max(stream_words, plan.scratchWords());
+    }
+    b.add(stream_words);
+    return b.words;
 }
 
 // ---------------------------------------------------------------------------
@@ -292,4 +406,76 @@ test "enqueue bridge maps api.Enqueue alloc/free onto the C memory callbacks" {
     try std.testing.expect(B.alloc(&fake, 1000) == null);
     B.release(&fake, p, 16);
     try std.testing.expectEqual(@as(usize, 16), fake.freed);
+}
+
+test "PCS reserve derives rounded allocation upper bound from imported geometry" {
+    const a = std.testing.allocator;
+    var h = [_]u32{0} ** 24;
+    h[0] = 0x52564d53;
+    h[1] = 2;
+    h[4] = 5;
+    h[5] = 1;
+    h[6] = 2;
+    h[8] = 1;
+    h[9] = 1;
+    h[10] = 1;
+    h[11] = 1;
+    h[12] = 1;
+    h[13] = 1;
+    h[15] = 16;
+    h[17] = 128;
+    h[18] = 256;
+    h[14] = 1;
+    h[19] = 16;
+    h[20] = 16;
+    h[21] = 1;
+    var sections: [17][]const u32 = @splat(&.{});
+    sections[0] = &h;
+    sections[3] = &.{ 0, 0, 0, 4 };
+    sections[5] = &.{ 0, 1, 4, 5, 0, 0, 0, 0 };
+    sections[6] = &.{ 0, 0, 4, 5, 0, 1, 0, 16 };
+    sections[7] = &.{ 0, 1, 0, 1, 5, 0 };
+    sections[13] = &.{ 32, 4, 4, 0, 0, 0, 0, 0 };
+    const words = (try reserveForSections(a, sections, false)).?;
+    // Independent sum of rounded C++ plane calls for this tiny geometry.
+    try std.testing.expectEqual(@as(u64, 4352), words);
+    try std.testing.expectEqual(@as(?u64, 4288), try reserveForSections(a, sections, true));
+    try std.testing.expectEqual(@as(u64, 0), words % 64);
+    try std.testing.checkAllAllocationFailures(a, struct {
+        fn check(alloc: std.mem.Allocator, descriptors: [17][]const u32) !void {
+            _ = try reserveForSections(alloc, descriptors, false);
+        }
+    }.check, .{sections});
+    h[5] = 2;
+    try std.testing.expectEqual(@as(?u64, null), try reserveForSections(a, sections, false));
+    h[5] = 1;
+    h[1] = 3;
+    var wide = [_]u32{0} ** 28;
+    @memcpy(wide[0..24], &h);
+    wide[24] = 1 << 17;
+    sections[0] = &wide;
+    try std.testing.expectEqual(@as(?u64, null), try reserveForSections(a, sections, false));
+}
+
+test "PCS reserve refuses an absent descriptor" {
+    const sections: [17][]const u32 = @splat(&.{});
+    try std.testing.expectEqual(@as(?u64, null), try reserveForSections(std.testing.allocator, sections, false));
+}
+
+test "PCS borrowed tree contract rejects gaps host columns and address overflow" {
+    var storage: [32]u32 = undefined;
+    var columns = [_]Native.Column{
+        .{ .kind = 1, .coefficient_log = 4, .words = &storage, .count = 16 },
+        .{ .kind = 1, .coefficient_log = 4, .words = storage[16..].ptr, .count = 16 },
+    };
+    const trees = [_]u32{ 0, 2, 0, 0, 5, 0 };
+    try checkBorrowedTrees(&columns, &trees);
+    columns[1].words = storage[17..].ptr;
+    try std.testing.expectError(error.PcsJobRequiresContiguousTrees, checkBorrowedTrees(&columns, &trees));
+    columns[1].words = storage[16..].ptr;
+    columns[1].kind = 0;
+    try std.testing.expectError(error.PcsJobRequiresContiguousTrees, checkBorrowedTrees(&columns, &trees));
+    columns[1].kind = 1;
+    columns[0].count = std.math.maxInt(u64);
+    try std.testing.expectError(error.PcsJobRequiresContiguousTrees, checkBorrowedTrees(&columns, &trees));
 }

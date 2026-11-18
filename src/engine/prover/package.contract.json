@@ -56,7 +56,12 @@
       "air/device_composition.zig::admission resident callback identical error stays foreign after prior owned failure",
       "pcs/device_admission_test.zig::admission actual PCS replay keeps owned validation distinct from same-tag scheme refusal",
       "pcs/revision_lifting.zig::admission revision lifting isolates backend identical tags and preserves config failure",
-      "poly/circle/secure_poly.zig::prover poly circle secure poly: interpolate from evaluation roundtrip"
+      "poly/circle/secure_poly.zig::prover poly circle secure poly: interpolate from evaluation roundtrip",
+      "poly/circle/stacked_layout_test.zig::stacked Circle uniform service can raise commitment height independently of AIR masks",
+      "poly/circle/stacked_opening_test.zig::stacked Circle batch admission rejects mismatched extents and degeneracy",
+      "poly/circle/stacked_opening_test.zig::stacked Circle batch owns its weights and releases its only preparation allocation",
+      "poly/circle/stacked_opening_test.zig::stacked Circle batches share query reductions with non-real weights and shifted masks",
+      "poly/circle/stacked_opening_test.zig::stacked Circle raised FRI height preserves original AIR samples and rejects excess degree"
     ]
   },
   "ci": {
@@ -73,14 +78,14 @@
     ]
   },
   "budget": {
-    "code_files": 295,
-    "code_lines": 75468,
+    "code_files": 300,
+    "code_lines": 76390,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 29,
     "dependencies": 3,
     "rv64_registry_flags": 0,
-    "versioned_files": 299
+    "versioned_files": 304
   }
 }

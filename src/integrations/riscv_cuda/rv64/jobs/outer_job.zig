@@ -112,6 +112,7 @@ pub const OuterNodeJob = struct {
     tail: ?N.Tail = null,
     /// Per-worker graph cache (the integration layer keeps one per device).
     graphs: ?*Graphs.Cache = null,
+    assignment_graphs: ?*@import("../assignment_graph_cache.zig").Cache = null,
     /// Steps of the device channel snapshotted into the slab (parity only).
     snapshots: bool = false,
     layout: Slab.ProofLayout = .{},
@@ -154,9 +155,7 @@ pub const OuterNodeJob = struct {
     require_warm: bool = false,
     packed_class: ?*const Packed.Class = null,
     packed_launch: ?Packed.Launch = null,
-    packed_program: api.DeviceBuffer = undefined,
-    packed_output: api.DeviceBuffer = undefined,
-    packed_scratch: api.DeviceBuffer = undefined,
+    staged_packed: ?Packed.Staged = null,
     packed_verdict: ?api.DeviceBuffer = null,
     /// See FixedHandoff (whole nodes only).
     fixed_handoff: ?FixedHandoff = null,
@@ -233,6 +232,7 @@ pub const OuterNodeJob = struct {
         return out;
     }
     fn initWholeFresh(staged: *St.Staged, kernels: *const K.Kernels, whole: Whole) !OuterNodeJob {
+        if (kernels.contributions != null and @import("stwo_riscv_cpu_integration").rv64_om31_outer_wrap.hybridProfileActive()) return error.UnqualifiedHybridInterContributions;
         var out = try init(staged, kernels, false);
         errdefer out.deinit();
         out.mode = .full;
@@ -244,6 +244,7 @@ pub const OuterNodeJob = struct {
         // Framed once, here on the caller's thread (pre-stage side); stage()
         // only binds the real coefficient addresses (native_pcs.bindColumn).
         out.pcs = try Pcs.PcsJob.prepare(out.allocator, whole.pcs, placeholder, try Pcs.placeholderPoint(), whole.wide);
+        try out.pcs.?.requireBorrowedTrees(out.allocator);
         out.pcs_plan = out.pcs.?.plan;
         _ = try out.layout.add(.opaque_words, pcs_index, @intCast(out.pcs.?.outputWords()));
         _ = try out.layout.add(.opaque_words, oods_index, Pcs.oods_field_words);
@@ -336,15 +337,11 @@ pub const OuterNodeJob = struct {
     pub fn classKey(self: *OuterNodeJob) [32]u8 {
         return self.staged.class_key;
     }
-    /// PCS working set beyond the held coefficients, in words: fitted to the
-    /// measured heap peaks of whole nodes (the PCS rebuilds every tree it
-    /// opens, rolling and streamed; its scratch scales with the lifting
-    /// height, not the column count) [M wire-outer-p2, 26235156 leaves at
-    /// lifting 2^24: 4.920e9 heap peak - 2.05e9 held = 2.87e9 = 10.7 x the
-    /// lifting-height tree]. STWO_RV64_M8_OUTER_PCS_RESERVE_TREES overrides
-    /// the multiplier (measurement sweeps).
+    /// Schedule-derived bound for admitted imported beta1 jobs; retain the
+    /// historical eleven-tree reservation for unsupported geometries.
     pub fn pcsReserveWords(self: *const OuterNodeJob, cs: *const Comp.Static) u64 {
-        return self.pcs_reserve_trees * cs.treeWords();
+        const legacy = self.pcs_reserve_trees * cs.treeWords();
+        return if (self.pcs) |*pcs| @min(legacy, pcs.reserve_words orelse legacy) else legacy;
     }
 
     /// Whole nodes own Region.fixed (the FIXED coefficients RC and the PCS
@@ -389,7 +386,8 @@ pub const OuterNodeJob = struct {
         var widest_inter: u64 = 0;
         for (p.geometry.components) |c| {
             const prefix = (@import("../prefix_plan.zig").Plan.init(c.log) catch unreachable).scratch_words;
-            widest_inter = @max(widest_inter, g(8 * @as(u64, c.pairs) << @intCast(c.log)) + g(prefix));
+            const numerators = N.numeratorWords(self.kernels, c.log, c.pairs);
+            widest_inter = @max(widest_inter, (if (numerators == 0) 0 else g(numerators)) + g(prefix));
         }
         const eval = g(p.main.coefficient_words);
         const main_commit: u64 = if (self.streams) |*st| st.main.scratchWords() else g(p.main.evaluation_words);
@@ -426,6 +424,7 @@ pub const OuterNodeJob = struct {
                 phase = @max(phase, fixed_commit);
                 if (!self.require_warm and self.packed_class == null) pinned_extra += fp.coefficient_words;
             };
+            std.debug.print("GPU_OUTER_FOOTPRINT ordinal={d} staged={d} held={d} phase={d} main_eval={d} assignment={d} main_commit={d} inter_commit={d} widest_inter={d} comp_widest={d} comp_buckets={d} comp_coeff={d} comp_commit={d} pcs={d}\n", .{ self.staged.ordinal, staged, held, phase, eval, g(self.staged.assignment.count * 4), main_commit, inter_commit, widest_inter, widest, buckets, g(cs.coefficientWords()), commit, self.pcsReserveWords(cs) });
         };
         // Diagnostic (measurement sweeps only): STWO_RV64_M8_OUTER_DECLARE_WORDS
         // caps the declared device peak so a node can run in an arena smaller
@@ -454,6 +453,7 @@ pub const OuterNodeJob = struct {
     }
 
     pub fn stage(self: *OuterNodeJob, s: *api.Stager) !void {
+        self.staged_packed = null;
         if (self.mode == .full and self.tail == null and self.whole == null) return error.OuterJobTailUnbound;
         if (self.staged.plan().geometry.beta != 1) return error.UnsupportedOuterJobBlowup;
         const words = self.staged.image.words;
@@ -462,22 +462,21 @@ pub const OuterNodeJob = struct {
         if (self.packed_class) |compressed| {
             const program = try s.persistent(compressed.key, compressed.words.len);
             if (self.require_warm and program.fresh) return error.GpuNativeRecursionClassCold;
-            self.packed_program = program.buffer;
             if (program.fresh) {
                 const pinned = try s.pinned(compressed.words.len);
                 @memcpy(pinned, compressed.words);
                 try s.upload(program.buffer, pinned);
             }
-            self.packed_output = try s.alloc(compressed.outputWords());
-            self.packed_scratch = try s.alloc(12);
-            regions[@intFromEnum(St.Region.fixed)] = self.packed_output.ptr + compressed.class_words;
+            const output = try s.alloc(compressed.outputWords());
+            self.staged_packed = .{ .class = compressed, .launch = self.packed_launch orelse return error.PackedClassDecoderMissing, .program = program.buffer, .output = output, .scratch = try s.alloc(12) };
+            regions[@intFromEnum(St.Region.fixed)] = output.ptr + compressed.class_words;
         }
         for (St.uploaded) |region| {
             const n = words[@intFromEnum(region)];
             const buffer: api.DeviceBuffer, const fresh = switch (region) {
                 .node => .{ try s.alloc(@intCast(@max(n, 1))), true },
                 .class => blk: {
-                    if (self.packed_class) |compressed| break :blk .{ try self.packed_output.slice(0, compressed.class_words), false };
+                    if (self.packed_class) |compressed| break :blk .{ try self.staged_packed.?.output.slice(0, compressed.class_words), false };
                     if (!self.persistentClass()) break :blk .{ try s.alloc(@intCast(@max(n, 1))), true };
                     const p = try s.persistent(self.staged.classRegionKey(), @intCast(@max(n, 1)));
                     break :blk .{ p.buffer, p.fresh };
@@ -642,12 +641,12 @@ pub const OuterNodeJob = struct {
         var view = Heap.DeviceEnqueue{ .e = e, .heap = &heap };
         var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &Heap.DeviceEnqueue.vtable, .kernels = self.kernels, .phase_hook = Heap.DeviceEnqueue.phase };
         var materialize_launches: u32 = 0;
-        if (self.packed_class) |compressed| {
+        if (self.packed_class != null) {
+            const decoded = self.staged_packed orelse return error.PackedClassShape;
             const before = device.counters.total();
             const status = self.packed_verdict orelse try e.slab.field(.opaque_words, Packed.field_index);
-            try Packed.enqueue(self.packed_launch orelse return error.PackedClassDecoderMissing, e.ctx(), compressed, self.packed_program, self.packed_output, self.packed_scratch, status, api.gpu_native.Verdict.reject(.class_unpack, 0) & 0xffff0000);
             const plan = &(self.staged.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
-            const raw = @constCast(self.bases.regions[@intFromEnum(St.Region.fixed)]);
+            const raw = (try decoded.decodeFixed(e.ctx(), status, @intCast(plan.coefficient_words))).ptr;
             const tw = self.staged.image.twiddles[plan.eval_log];
             const itw = self.staged.image.itwiddles[plan.eval_log];
             try TC.interpolate(&device, plan, raw, raw, .{ .sorted_logs = self.bases.at(self.staged.image.fixed_logs), .twiddles = self.bases.at(tw), .twiddle_words = @intCast(tw.words), .itwiddles = self.bases.at(itw), .itwiddle_words = @intCast(itw.words) });
@@ -668,7 +667,7 @@ pub const OuterNodeJob = struct {
             for (&self.report.phase_high_words, heap.phase_high) |*o, v| o.* = v;
         }
         var tail_state = TailState{ .job = self, .e = e, .heap = &heap };
-        var node = N.Node{ .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null, .fixed = self.fixed_commit, .streams = if (self.streams) |*st| st else null };
+        var node = N.Node{ .assignment_graphs = self.assignment_graphs, .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null, .fixed = self.fixed_commit, .streams = if (self.streams) |*st| st else null };
         if (self.whole != null) node.tail = .{ .context = &tail_state, .enqueue = TailState.enqueue };
         var body = Body{ .job = self, .e = e, .device = &device, .node = &node, .saved = e.channel.* };
         if (self.snapshots) {

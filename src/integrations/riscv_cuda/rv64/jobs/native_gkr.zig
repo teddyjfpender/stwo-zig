@@ -1,33 +1,14 @@
-//! Enqueue-only local GKR (spec §3.5 item 1, "local GKR ... with the channel
-//! kept; no host partiallyVerifyBatch; the GKR section goes into the slab").
+//! Enqueue-only local OM31 GKR. The child transcript stays on device:
+//! stage the challenge-free header/statement/FIXED checkpoint, mix the MAIN
+//! root and ordered instance list, then project and traverse on the exec stream.
+//! No leases, joins or readbacks occur before `finish`; its single pinned D2H
+//! contains status, roots, records, masks and the child channel checkpoint.
 //!
-//! Same kernels, inputs and transcript as the legacy v1-flat numerical stage
-//! (rv64/gkr_stage.zig Job.execute), read-only reuse of rv64/gkr.zig (the
-//! traversal), rv64/gkr_sources.zig (projection plan) and rv64/gkr_result.zig
-//! (readback framing). What changes:
-//!
-//!   * The child transcript lives on the device. It is derived exactly as
-//!     gkr_local/child.zig `begin(scope, instances)`: the challenge-free host
-//!     prefix (header, statement, FIXED root) is a staged 9-word checkpoint;
-//!     the MAIN root is mixed straight from its device buffer (it is produced by
-//!     the MAIN commit in the same job); the instance list is mixed from staged
-//!     words. Relation draws, projection and the closure traversal follow on
-//!     the exec stream. Nothing returns to the host before `finish`.
-//!   * No leases, no joins, no readbacks. Status, the traversal header, the
-//!     child channel snapshot, the MAIN root, the packed roots and every layer's
-//!     records/masks are D2D-copied into slab fields; `finish` reads them from
-//!     the worker's single pinned D2H.
-//!
-//! Rejection / retry policy (decided here, M8-INTERFACES.md native-producers):
-//! the v1-flat local GKR has NO salt and NO retry. A nonzero device verdict
-//! (pole, zero-weight 0/0 or nonzero rational root sum) is a terminal
-//! `LocalGkrClosureRejected`, exactly like the legacy stage (gkr.zig
-//! ClosureEnqueued.validate). `finish` verifies status, traversal header and the
-//! device child transcript (replayed on the host from the slab's MAIN root);
-//! any mismatch fails the job, and the request fails closed (the legacy path
-//! fails the same way; no resubmission can change a deterministic transcript).
-//! Salted attempts exist only in the native-GKR v2 route (native_gkr_stage.zig),
-//! which this producer does not implement and refuses (v1 catalogue only).
+//! This v1-flat producer has no salt or retry. A pole, zero-weight 0/0 or
+//! nonzero rational root sum is terminal `LocalGkrClosureRejected`. `finish`
+//! checks the traversal header and replays the child transcript against MAIN;
+//! a mismatch fails the request. Salted native-GKR v2 is refused here.
+//! Existing OM31 fold/sum and tail kernels preserve that transcript order.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -112,18 +93,20 @@ pub const Symbols = struct {
             var name: [32]u8 = undefined;
             launch.* = try lookup(Launch, base, try std.fmt.bufPrintZ(&name, "launch_{}", .{i}));
         }
-        const n = &out.numerical;
-        const batch_available = n.stwo_rv64_batch_sum_on != null and n.stwo_rv64_batch_fold_on != null;
-        const explicit_batch = false;
-        const explicit_serial = false;
-        if (explicit_batch and explicit_serial) return error.ConflictingCudaGkrOracleModes;
-        if (explicit_batch and !batch_available) return error.MissingCudaBatchedOracleSymbol;
-        out.batched_oracles = batch_available and !explicit_serial;
-
-        out.batched_tail = false;
-        if (out.batched_tail and (!out.batched_oracles or n.stwo_rv64_batch_tail_on == null)) return error.MissingCudaBatchedTailSymbol;
+        out.selectRoutes();
 
         return out;
+    }
+
+    fn selectRoutes(self: *Symbols) void {
+        const n = &self.numerical;
+        self.batched_oracles = n.stwo_rv64_batch_sum_on != null and n.stwo_rv64_batch_fold_on != null;
+        self.batched_trees = false;
+        // These existing OM31 kernels preserve the mixed-height batch's draw
+        // order: fold also computes the next round's sums; tail finishes the
+        // last four rounds with the same records and sleeping-oracle weights.
+        self.batched_tail = self.batched_oracles and n.stwo_rv64_batch_tail_on != null;
+        self.batched_fold_sum = self.batched_oracles and n.stwo_rv64_batch_fold_sum_on != null;
     }
 };
 
@@ -834,4 +817,20 @@ test "local GKR job path is fully analyzed (stage, enqueue, finish, job adapter)
     _ = &GkrJob.init;
     _ = &GkrJob.deinit;
     _ = &api.Job.from(GkrJob, undefined).vtable;
+}
+
+test "active native OM31 GKR enables only available batched fusions" {
+    for (0..16) |mask| {
+        var sym: Symbols = undefined;
+        sym.numerical.stwo_rv64_batch_sum_on = if (mask & 1 != 0) @ptrFromInt(1) else null;
+        sym.numerical.stwo_rv64_batch_fold_on = if (mask & 2 != 0) @ptrFromInt(1) else null;
+        sym.numerical.stwo_rv64_batch_tail_on = if (mask & 4 != 0) @ptrFromInt(1) else null;
+        sym.numerical.stwo_rv64_batch_fold_sum_on = if (mask & 8 != 0) @ptrFromInt(1) else null;
+        sym.selectRoutes();
+        const batch = mask & 3 == 3;
+        try std.testing.expectEqual(batch, sym.batched_oracles);
+        try std.testing.expectEqual(batch and mask & 4 != 0, sym.batched_tail);
+        try std.testing.expectEqual(batch and mask & 8 != 0, sym.batched_fold_sum);
+        try std.testing.expect(!sym.batched_trees);
+    }
 }

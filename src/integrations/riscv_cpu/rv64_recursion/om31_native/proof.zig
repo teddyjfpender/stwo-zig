@@ -51,11 +51,21 @@ pub fn ForCrypto(comptime Crypto: type) type {
                 try validateProof(self.*, shape);
             }
         };
+        fn captureCap(cap: []H.Hash, positions: []const usize, leaves: []const H.Hash, siblings: []const []const H.Hash, height: u32, root: H.Hash) !void {
+            const merkle = circuit.native_verifier.merkle;
+            if (H == LegacyCrypto.H and cap.len >= 1 << merkle.sparse_cap_log)
+                return merkle.hostSparseCap(H, cap, positions, leaves, siblings, height, root);
+            return merkle.hostCap(H, cap, positions, leaves, siblings, height, root);
+        }
+
         fn capLen(height: u32, cap_log: u32) usize {
             const cl = circuit.native_verifier.merkle.capLogFor(height, cap_log);
             return if (cl == 0) 0 else @as(usize, 1) << @intCast(cl);
         }
         fn validateProof(proof: anytype, shape: *const Shape) !void {
+            try validateForCap(proof, shape, proof.cap_log);
+        }
+        fn validateForCap(proof: anytype, shape: *const Shape, planned_cap: u32) !void {
             try shape.validate();
             const cap_log: u32 = proof.cap_log;
             if (cap_log > 5) return error.ShapeMismatch;
@@ -81,9 +91,11 @@ pub fn ForCrypto(comptime Crypto: type) type {
             const steps = shape.foldSteps(&buffer);
             if (proof.layers.len != steps.len or proof.last_layer_coefs.len != shape.nLastLayerCoefficients()) return error.ShapeMismatch;
             var log = shape.liftingLogSize();
-            for (proof.layers, steps) |layer, step| {
-                if (layer.cosets.len != shape.nQueries() or layer.auth_paths.len != shape.nQueries()) return error.ShapeMismatch;
+            for (proof.layers, steps, 0..) |layer, step, index| {
                 log -= step;
+                const groups = if (H == LegacyCrypto.H) circuit.native_verifier.fri.shortLineGroups(index, log, step, shape.nQueries(), circuit.native_verifier.merkle.capLogFor(log, planned_cap)) else 0;
+                const rows = if (groups != 0) groups else shape.nQueries();
+                if (layer.cosets.len != rows or layer.auth_paths.len != rows) return error.ShapeMismatch;
                 const cl = circuit.native_verifier.merkle.capLogFor(log, cap_log);
                 if (layer.cap.len != capLen(log, cap_log)) return error.ShapeMismatch;
                 for (layer.cosets, layer.auth_paths) |coset, path| {
@@ -98,6 +110,9 @@ pub fn ForCrypto(comptime Crypto: type) type {
             return result;
         }
         pub fn fromNativeImpl(a: std.mem.Allocator, native: *const NativeProofImpl, capture: *const NativeCaptureImpl, shape: *const Shape) !CapturedImpl {
+            return captureForCap(a, native, capture, shape, 0);
+        }
+        fn captureForCap(a: std.mem.Allocator, native: *const NativeProofImpl, capture: *const NativeCaptureImpl, shape: *const Shape, planned_cap: u32) !CapturedImpl {
             try shape.validate();
             const pcs = &native.commitment_scheme_proof;
             const nt = shape.nTrees();
@@ -131,14 +146,26 @@ pub fn ForCrypto(comptime Crypto: type) type {
             }
             if (flat != capture.queried_values.len) return error.ShapeMismatch;
             const layers = try a.alloc(CapturedLayerImpl, capture.fri.layers.len);
-            for (layers, capture.fri.layers) |*out, in| {
-                if (in.query_count != nq or in.values.len != nq * in.fold_width) return error.ShapeMismatch;
+            var schedule: [64]u32 = undefined;
+            const steps = shape.foldSteps(&schedule);
+            if (layers.len != steps.len) return error.ShapeMismatch;
+            var log = shape.liftingLogSize();
+            for (layers, capture.fri.layers, steps, 0..) |*out, in, step, index| {
+                log -= step;
+                if (in.fold_step != step or in.fold_width != @as(usize, 1) << @intCast(step) or in.path_depth != log or in.query_count != nq or in.values.len != (std.math.mul(usize, nq, in.fold_width) catch return error.ShapeMismatch)) return error.ShapeMismatch;
+                if (comptime H == LegacyCrypto.H) {
+                    const groups = circuit.native_verifier.fri.shortLineGroups(index, log, step, nq, circuit.native_verifier.merkle.capLogFor(log, planned_cap));
+                    if (groups != 0) {
+                        out.* = try packLineGroups(a, in, groups);
+                        continue;
+                    }
+                }
                 const cosets = try a.alloc([]const O, nq);
                 for (cosets, 0..) |*coset, q| coset.* = try a.dupe(O, in.queryValues(q));
                 out.* = .{ .commitment = in.commitment, .cosets = cosets, .auth_paths = try paths(a, nq, in.path_depth, in.siblings) };
             }
             const result: CapturedImpl = .{ .commitments = try a.dupe(H.Hash, pcs.commitments.items), .sampled_values = sampled, .queried_values = queried, .auth_paths = auth, .pow_nonce = capture.proof_of_work, .layers = layers, .last_layer_coefs = try a.dupe(O, capture.last_layer_coefficients) };
-            try validateProof(result, shape);
+            try validateForCap(result, shape, planned_cap);
             return result;
         }
 
@@ -178,9 +205,9 @@ pub fn ForCrypto(comptime Crypto: type) type {
         /// (`merkle.hostCap`, which also re-hashes the cap to the committed root),
         /// and its auth paths are cut to the siblings below the cap.
         pub fn fromNativeCappedImpl(a: std.mem.Allocator, native: *const NativeProofImpl, capture: *const NativeCaptureImpl, shape: *const Shape, cap_log: u32) !CapturedImpl {
-            var result = try fromNativeImpl(a, native, capture, shape);
-            if (cap_log == 0) return result;
             if (cap_log > 5) return error.ShapeMismatch;
+            var result = try captureForCap(a, native, capture, shape, cap_log);
+            if (cap_log == 0) return result;
             const merkle = circuit.native_verifier.merkle;
             const nq = shape.nQueries();
             const caps = try a.alloc([]const H.Hash, shape.nTrees());
@@ -204,7 +231,7 @@ pub fn ForCrypto(comptime Crypto: type) type {
                     leaf.* = hasher.finalize();
                 }
                 const cap = try a.alloc(H.Hash, @as(usize, 1) << @intCast(cl));
-                try merkle.hostCap(H, cap, capture.trace_paths[t].positions, leaves, result.auth_paths[t], height, result.commitments[t]);
+                try captureCap(cap, capture.trace_paths[t].positions, leaves, result.auth_paths[t], height, result.commitments[t]);
                 caps[t] = cap;
                 auth[t] = try truncatePaths(a, result.auth_paths[t], height - cl);
             }
@@ -227,7 +254,7 @@ pub fn ForCrypto(comptime Crypto: type) type {
                     position.* = raw_position >> @intCast(step);
                 }
                 const cap = try a.alloc(H.Hash, @as(usize, 1) << @intCast(cl));
-                try merkle.hostCap(H, cap, positions, leaves, in.auth_paths, @intCast(log), in.commitment);
+                try captureCap(cap, positions, leaves, in.auth_paths, @intCast(log), in.commitment);
                 out.cap = cap;
                 out.auth_paths = try truncatePaths(a, in.auth_paths, log - cl);
             }
@@ -321,3 +348,36 @@ pub const Proof = Default.Proof;
 pub const fromNative = Default.fromNative;
 pub const fromNativeCapped = Default.fromNativeCapped;
 pub const guess = Default.guess;
+
+/// Copy only the first authenticated representative of each coset. Zero-filled
+/// slots have no authority. The circuit derives all membership from Fiat–Shamir.
+pub fn packLineGroups(a: std.mem.Allocator, raw: core.fri.ForField(O).FriLayerQueryCapture(LegacyCrypto.H), groups: usize) !CapturedLayer {
+    if (groups == 0 or groups > 8 or raw.path_depth > 3 or groups != @as(usize, 1) << @intCast(raw.path_depth) or
+        raw.fold_step == 0 or raw.fold_step > 4 or raw.fold_width != @as(usize, 1) << @intCast(raw.fold_step) or raw.positions.len != raw.query_count or
+        raw.values.len != (std.math.mul(usize, raw.query_count, raw.fold_width) catch return error.ShapeMismatch) or raw.siblings.len != (std.math.mul(usize, raw.query_count, raw.path_depth) catch return error.ShapeMismatch)) return error.ShapeMismatch;
+    var first: [8]?usize = @splat(null);
+    for (raw.positions, 0..) |position, q| {
+        const index = position >> @intCast(raw.fold_step);
+        if (index >= groups) return error.ShapeMismatch;
+        if (first[index]) |previous| {
+            for (raw.queryValues(previous), raw.queryValues(q)) |x, y| if (!x.eql(y)) return error.ShapeMismatch;
+            if (!std.mem.eql(u8, std.mem.sliceAsBytes(raw.queryPath(previous)), std.mem.sliceAsBytes(raw.queryPath(q)))) return error.ShapeMismatch;
+        } else first[index] = q;
+    }
+    const cosets = try a.alloc([]const O, groups);
+    const paths_out = try a.alloc([]const LegacyCrypto.H.Hash, groups);
+    for (cosets, paths_out, first[0..groups]) |*vs, *ss, representative| {
+        if (representative) |q| {
+            vs.* = try a.dupe(O, raw.queryValues(q));
+            ss.* = try a.dupe(LegacyCrypto.H.Hash, raw.queryPath(q));
+        } else {
+            const zeros = try a.alloc(O, raw.fold_width);
+            @memset(zeros, O.zero());
+            const nodes = try a.alloc(LegacyCrypto.H.Hash, raw.path_depth);
+            @memset(nodes, @splat(0));
+            vs.* = zeros;
+            ss.* = nodes;
+        }
+    }
+    return .{ .commitment = raw.commitment, .cosets = cosets, .auth_paths = paths_out };
+}

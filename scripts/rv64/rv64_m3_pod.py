@@ -160,7 +160,7 @@ def build(args):
             steps[step] = run_logged([ZIG, "build", step, "-Dtarget=x86_64-linux-gnu", "-Dcpu=x86_64_v4+sha",
                                       "-Doptimize=ReleaseFast", "--cache-dir", str(root / ".zig-cache"),
                                       "--prefix", str(paths["base"] / "zig-out")],
-                                     logs / f"{step}.log", cwd=root / "src/integrations/riscv_cuda", env=env)
+                                     logs / f"{step}.log", cwd=root / "src/products/ethereum/statement", env=env)
         receipt["zig_seconds"] = steps
         receipt["driver_sha256"] = sha(paths["driver"])
         receipt["receiver_sha256"] = sha(paths["receiver"])

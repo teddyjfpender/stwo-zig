@@ -194,9 +194,9 @@ pub const EncodeCheck = struct {
 pub const GnCheck = struct {
     pub const field_index: u32 = 0x474e_4f44; // "GNOD"
     /// Fold children: om31 node proofs under the diet-wire profile (fold
-    /// Merkle cap 2^3); leaf children: native proofs with full paths.
+    /// Merkle cap 2^3); native children use a transcript-derived sparse frontier.
     pub const cap_log: u32 = 3;
-    pub const leaf_cap_log: u32 = 0;
+    pub const leaf_cap_log: u32 = @import("stwo_circuit_frontend").native_verifier.merkle.sparse_cap_log;
     const fold_domain: u32 = 0x4f464c31;
     /// >= 1 + the largest om31 node wire in words: 759,512 B on 24628607 /
     /// 26235156 [M] (189,879 words); 2^18 words = 1 MiB of bytes.
@@ -386,7 +386,7 @@ pub const GnCheck = struct {
         return std.mem.alignForward(u64, @max(words, 1), 64);
     }
     fn extra(self: *const GnCheck) u64 {
-        var n = g(@as(u64, self.program.header(Seed.P.scratch_words)) + 8) + g(self.expected.len);
+        var n = g(self.program.words.len) + g(@as(u64, self.program.header(Seed.P.scratch_words)) + 8) + g(self.expected.len);
         for (self.regions) |x| n += g(x.len);
         return n;
     }
@@ -399,23 +399,23 @@ pub const GnCheck = struct {
         for (self.regions) |r| fp.pinned_words += r.len;
         return fp;
     }
+    fn stageWords(s: *api.Stager, words: []const u32) !api.DeviceBuffer {
+        const device = try s.alloc(words.len);
+        const pinned = try s.pinned(words.len);
+        @memcpy(pinned, words);
+        try s.upload(device, pinned);
+        return device;
+    }
     pub fn stage(self: *GnCheck, s: *api.Stager) !void {
         try self.next.vtable.stage(self.next.ctx, s);
         var t = try std.time.Timer.start();
-        const p = try s.persistent(self.prog_key, self.program.words.len);
-        self.d_prog = p.buffer;
-        if (p.fresh) {
-            const pinned = try s.pinned(self.program.words.len);
-            @memcpy(pinned, self.program.words);
-            try s.upload(p.buffer, pinned);
-        }
+        // Discovery runs on a temporary worker. The serving worker installs
+        // its own program after class admission, so this copy dies with the job.
+        self.d_prog = try stageWords(s, self.program.words);
         // Check mode only: the children's seed sources (GPU-native: their
         // request-slab regions, already on the device).
         for (self.regions, 0..) |x, k| {
-            self.d_regions[k] = try s.alloc(x.len);
-            const pinned = try s.pinned(x.len);
-            @memcpy(pinned, x);
-            try s.upload(self.d_regions[k], pinned);
+            self.d_regions[k] = try stageWords(s, x);
         }
         self.d_scratch = try s.alloc(@as(usize, self.program.header(Seed.P.scratch_words)) + 8);
         if (self.outer.staged.image.expected.words == 0) self.d_outputs = try s.alloc(@max(self.expected.len, 1));
@@ -496,3 +496,14 @@ pub const GnCheck = struct {
         if (!out_eq or !cp_eq) return error.GnNodeStatementMismatch;
     }
 };
+
+test "class discovery charges the current seed program to its job" {
+    var program = [_]u32{0} ** 65;
+    program[Seed.P.scratch_words] = 60;
+    var check: GnCheck = undefined;
+    check.program = .{ .words = &program };
+    check.expected = &.{};
+    check.regions = &.{};
+    // Two granules for the program, two for scratch/status and one for outputs.
+    try std.testing.expectEqual(@as(u64, 320), check.extra());
+}

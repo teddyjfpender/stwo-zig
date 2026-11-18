@@ -31,7 +31,9 @@ const shapes = [_]C.Shape{
     .{ .log_size = 5, .encoding = .evaluations },
 };
 
+const Placement = enum { allocated, sorted, original };
 const Probe = struct {
+    placement: Placement,
     plan: *C.CommitPlan,
     sym: C.Symbols,
     seed: [9]u32,
@@ -61,7 +63,23 @@ const Probe = struct {
     pub fn enqueue(self: *Probe, e: *api.Enqueue) !void {
         try e.channel.initFromCheckpoint(self.seed_buffer.?);
         const root = try e.slab.device.slice(0, 8);
-        const committed = try self.plan.enqueue(self.sym, e, &self.inputs, root, true);
+        const committed = if (self.placement == .allocated)
+            try self.plan.enqueue(self.sym, e, &self.inputs, root, true)
+        else blk: {
+            const output = try e.alloc(self.plan.coefficient_cells);
+            var views: [shapes.len]C.Input = undefined;
+            var offset: usize = 0;
+            for (self.inputs, self.host, 0..) |input, words, i| {
+                const source = input.device orelse self.plan.host_staged.?.ptr + self.plan.host_offsets[i];
+                const dst = output.ptr + if (self.placement == .sorted) self.plan.offsets[i] else offset;
+                try O.check(self.sym.copy_d2d(e.ctx(), dst, source, words.len * 4));
+                views[i] = .{ .device = dst };
+                offset += words.len;
+            }
+            const result = try self.plan.enqueueInto(self.sym, e, &views, output, root, true);
+            if (result.coefficients.ptr != output.ptr) return error.CommitPlacement;
+            break :blk result;
+        };
         try e.channel.snapshot(e.slab, 8);
         try O.check(self.sym.copy_d2d(e.ctx(), e.slab.device.ptr + 24, committed.coefficients.ptr, committed.coefficients.words * 4));
         e.free(committed.coefficients);
@@ -84,9 +102,17 @@ const Done = struct {
 test "GPU: enqueue-only trace commit root, device root mix and coefficients equal the host engine" {
     var gpu = (try @import("native_gpu_support_test.zig").Gpu.openNamed("native_commit_test")) orelse return error.SkipZigTest;
     defer gpu.close();
-    const libs = &gpu.libs;
+    for (1..5) |beta| {
+        for (std.enums.values(Placement)) |placement| try compareCommit(&gpu.libs, @intCast(beta), placement, false);
+        if (beta > 1) try compareCommit(&gpu.libs, @intCast(beta), .original, true);
+    }
+}
+
+fn compareCommit(libs: *O.Libraries, beta: u32, placement: Placement, addressed: bool) !void {
     const a = std.testing.allocator;
-    const sym = try C.Symbols.load(&libs.base);
+    var sym = try C.Symbols.load(&libs.base);
+    if (beta > 1 and sym.n2b_compact == null) return error.MissingCompactLde;
+    if (addressed) sym.n2b_compact = null;
 
     // Host reference: random coefficients, evaluations on each canonic domain.
     var prng = std.Random.DefaultPrng.init(0x6d38_636f);
@@ -102,7 +128,7 @@ test "GPU: enqueue-only trace commit root, device root mix and coefficients equa
         a.free(c);
         a.free(ev);
     };
-    const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = .{ .log_blowup_factor = 1, .log_last_layer_degree_bound = 0, .n_queries = 2, .fold_step = 1 } };
+    const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = .{ .log_blowup_factor = beta, .log_last_layer_degree_bound = 0, .n_queries = 2, .fold_step = 1 } };
     var scheme = try Scheme.init(a, config);
     defer scheme.deinit(a);
     var channel = Channel.init();
@@ -123,7 +149,7 @@ test "GPU: enqueue-only trace commit root, device root mix and coefficients equa
     }
     const host_root = scheme.trees.items[0].commitment.root();
 
-    var plan = try C.CommitPlan.init(a, &shapes, 1);
+    var plan = try C.CommitPlan.init(a, &shapes, beta);
     defer plan.deinit();
     var host_words: [shapes.len][]const u32 = undefined;
     for (&host_words, shapes, coefficients, evaluations) |*w, shape, c, ev| {
@@ -133,21 +159,24 @@ test "GPU: enqueue-only trace commit root, device root mix and coefficients equa
     const slab_words = 24 + plan.coefficient_cells;
     const result = try a.alloc(u32, slab_words);
     defer a.free(result);
-    var probe = Probe{ .plan = &plan, .sym = sym, .seed = seed, .host = host_words, .slab_words = slab_words, .result = result };
+    var probe = Probe{ .placement = placement, .plan = &plan, .sym = sym, .seed = seed, .host = host_words, .slab_words = slab_words, .result = result };
     const w = try W.Worker.create(a, &libs.ops, .{ .device = 0, .arena_words = 1 << 22, .pinned_slot_words = 1 << 16, .max_outstanding = 2 });
-    var done: Done = .{};
-    try w.submit(api.Job.from(Probe, &probe), .{ .ctx = &done, .done = Done.onDone });
-    while (done.n.load(.seq_cst) == 0) std.Thread.yield() catch {};
-    w.destroy();
-    if (done.err) |err| return err;
+    defer w.destroy();
+    for ([_]api.Placement{ .bottom, .top }) |slot| {
+        var done: Done = .{};
+        try w.submit(api.Job.from(Probe, &probe), .{ .ctx = &done, .done = Done.onDone });
+        while (done.n.load(.seq_cst) == 0) std.Thread.yield() catch {};
+        if (done.err) |err| return err;
 
-    for (0..8) |i| try std.testing.expectEqual(std.mem.readInt(u32, host_root[i * 4 ..][0..4], .little), result[i]);
-    for (0..8) |i| try std.testing.expectEqual(std.mem.readInt(u32, channel.inner.digest[i * 4 ..][0..4], .little), result[8 + i]);
-    try std.testing.expectEqual(channel.inner.n_draws, result[8 + 8]);
-    try std.testing.expectEqual(@as(u32, 0), result[8 + 10]); // channel status
-    for (shapes, coefficients, 0..) |_, c, original| {
-        const at = 24 + plan.offsets[original];
-        for (c, 0..) |x, k| try std.testing.expectEqual(x.v, result[at + k]);
+        for (0..8) |i| try std.testing.expectEqual(std.mem.readInt(u32, host_root[i * 4 ..][0..4], .little), result[i]);
+        for (0..8) |i| try std.testing.expectEqual(std.mem.readInt(u32, channel.inner.digest[i * 4 ..][0..4], .little), result[8 + i]);
+        try std.testing.expectEqual(channel.inner.n_draws, result[8 + 8]);
+        try std.testing.expectEqual(@as(u32, 0), result[8 + 10]); // channel status
+        for (shapes, coefficients, 0..) |_, c, original| {
+            const at = 24 + plan.offsets[original];
+            for (c, 0..) |x, k| try std.testing.expectEqual(x.v, result[at + k]);
+        }
+        try std.testing.expectEqual(slot, plan.placement);
     }
-    std.debug.print("GPU_M8_NATIVE_COMMIT_PARITY columns={} coefficient_cells={} eval_log={} root_equal=1 channel_equal=1 coefficients_equal=1\n", .{ shapes.len, plan.coefficient_cells, plan.eval_log });
+    std.debug.print("GPU_M8_NATIVE_COMMIT_PARITY columns={} coefficient_cells={} eval_log={} placement={s} addressed={} arena_placements=2 root_equal=1 channel_equal=1 coefficients_equal=1\n", .{ shapes.len, plan.coefficient_cells, plan.eval_log, @tagName(placement), addressed });
 }
