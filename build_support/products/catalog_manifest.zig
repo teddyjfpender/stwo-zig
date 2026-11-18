@@ -166,6 +166,12 @@ pub fn stepsForScope(b: *std.Build, scope: Scope) []const []const u8 {
         .package => {
             ProductScopes.add(&names, .core);
             ProductScopes.add(&names, .prover);
+            for (catalog.package_dependencies.waist_providers) |provider| {
+                for (catalog.package_dependencies.providerConsumers(b, provider.directory)) |consumer| {
+                    const name = catalog.package_dependencies.consumerAliasName(b, provider.name, consumer.id);
+                    names.put(name, {}) catch @panic("out of memory");
+                }
+            }
         },
         .riscv_cpu_compat => ProductScopes.add(&names, .riscv_cpu),
         else => ProductScopes.add(&names, scope),

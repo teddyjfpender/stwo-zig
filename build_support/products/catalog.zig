@@ -11,6 +11,8 @@ pub const Configure = types.Configure;
 
 pub const steps = @import("step_catalog.zig").steps;
 
+const macos = @import("builtin").os.tag == .macos;
+
 /// Configure declarations for scopes that are not a single catalog product.
 /// Product scopes are derived directly from their product descriptors.
 pub const configure = [_]Configure{
@@ -75,12 +77,12 @@ pub const configure = [_]Configure{
             .protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v2+authenticated-core-aot-v2+rv32im-zkvm-poseidon2-v1+csp-ecdsa-typed-recovery-v1",
         }},
     },
-    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/stwo/prover/root.zig", "src/products/stwo/root.zig", "src/products/stwo/tests/public_modules.zig", "build_support/products/consumer_laws.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.public_package_roots, .allowed_module_files = &.{ "src/products/stwo/root.zig", "src/products/stwo/tests/public_modules.zig", "build_support/products/consumer_laws.zig", "build_support/graph/identity/emitter.zig", "src/products/native/artifact/mod.zig", "src/products/riscv/artifact/mod.zig", "src/support/io/atomic_file.zig", "src/support/io/output_transaction.zig", "src/support/shims/mod.zig", "src/support/tracing/mod.zig" }, .allowed_module_prefixes = &.{ "src/products/stwo/core", "src/products/stwo/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
+    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/stwo/prover/root.zig", "src/products/stwo/root.zig", "src/products/stwo/tests/public_modules.zig", "build_support/products/consumer_laws.zig" }, .generated_module_roots = &.{ "generated:options:", "generated:circuit-composition-cpu-aot:" }, .dependency_module_roots = package_dependencies.public_package_roots, .allowed_module_files = &.{ "src/products/stwo/root.zig", "src/products/stwo/tests/public_modules.zig", "build_support/products/consumer_laws.zig", "build_support/graph/identity/emitter.zig", "src/products/native/artifact/mod.zig", "src/products/riscv/artifact/mod.zig", "src/support/io/atomic_file.zig", "src/support/io/output_transaction.zig", "src/support/shims/mod.zig", "src/support/tracing/mod.zig", "src/backends/metal/runtime.m" }, .allowed_module_prefixes = &.{ "src/products/stwo/core", "src/products/stwo/prover" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
         .{ .product_id = "stwo-core", .frontend = "none", .backend = "none", .role = "library", .protocol_manifest = "stwo-core-v1" },
         .{ .product_id = "stwo-prover", .frontend = "none", .backend = "contracts", .role = "library", .protocol_manifest = "generic-prover+backend-contracts-v1" },
         .{ .product_id = "stwo", .frontend = "aggregate", .backend = "contracts", .role = "library", .protocol_manifest = "aggregate-sdk-v1" },
     } },
-    .{ .scope = .metal_tools, .role = .backend_tools, .product_ids = &.{"stwo-native-metal-tools"}, .module_roots = &.{ "src/products/stwo/root.zig", "src/backends/metal/shader_manifest.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.metal_tools_package_roots, .allowed_module_files = &.{ "src/products/stwo/root.zig", "src/backends/metal/tests/system/root.zig", "src/backends/metal/tools/arena_plan/main.zig", "src/products/riscv/tools/bench/metal_main.zig" }, .allowed_module_prefixes = &.{ "src/backends", "src/frontends", "src/integrations", "src/products", "src/support", "src/waist" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{ "backends/metal_aot.addProducts", "benchmarks/metal.addProducts" } },
+    .{ .scope = .metal_tools, .role = .backend_tools, .product_ids = &.{"stwo-native-metal-tools"}, .module_roots = &.{ "src/products/stwo/root.zig", "src/backends/metal/shader_manifest.zig" }, .generated_module_roots = if (macos) &.{ "generated:options:", "generated:circuit-composition-cpu-aot:" } else &.{"generated:options:"}, .dependency_module_roots = package_dependencies.metal_tools_package_roots, .allowed_module_files = &.{ "src/products/stwo/root.zig", "src/backends/metal/tests/system/root.zig", "src/backends/metal/tools/arena_plan/main.zig", "src/products/riscv/tools/bench/metal_main.zig" }, .allowed_module_prefixes = &.{ "src/backends", "src/frontends", "src/integrations", "src/products", "src/support", "src/waist" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{ "backends/metal_aot.addProducts", "benchmarks/metal.addProducts" } },
     .{
         .scope = .cuda_tools,
         .role = .backend_tools,
@@ -91,6 +93,7 @@ pub const configure = [_]Configure{
             "src/products/cairo/tools/cuda_witness_aot/main.zig",
             "src/products/cairo/tools/witness_cpu_codegen/model.zig",
         },
+        .generated_module_roots = &.{"generated:circuit-composition-cpu-aot:"},
         .dependency_module_roots = package_dependencies.frontend_cuda_metal_cpu_protocol_package_roots,
         .allowed_module_files = &.{
             "tests/cuda/cumetal/native_frontend_execution.zig",
@@ -138,6 +141,7 @@ pub const configure = [_]Configure{
             "src/products/riscv/tools/bench/main.zig",
             "src/products/native/tools/proof_bench/cpu.zig",
         },
+        .generated_module_roots = &.{"generated:circuit-composition-cpu-aot:"},
         .dependency_module_roots = package_dependencies.compatibility_package_roots,
         .allowed_module_files = &.{ "src/products/stwo/root.zig", "src/support/shims/mod.zig", "src/support/tracing/mod.zig" },
         .allowed_module_prefixes = &.{

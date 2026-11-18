@@ -177,7 +177,10 @@ const Observer = struct {
 
     fn putModulePath(self: *Observer, path: std.Build.LazyPath) void {
         switch (path) {
-            .src_path => |source| self.put(&self.module_roots, source.sub_path),
+            .src_path => |source| if (source.owner.pkg_hash.len != 0)
+                self.put(&self.dependency_module_roots, self.b.fmt("dependency:{s}:{s}", .{ source.owner.pkg_hash, source.sub_path }))
+            else
+                self.put(&self.module_roots, source.sub_path),
             .cwd_relative => |source| self.put(&self.module_roots, source),
             .generated => |generated| {
                 const step_name = generated.file.step.name;

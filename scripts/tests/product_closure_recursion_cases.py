@@ -586,6 +586,8 @@ class RecursionOwnershipTest(unittest.TestCase):
             allowed_files=frozenset({
                 "src/waist/proof_wire/family.zig",
                 "src/waist/proof_wire/bounded_count_test.zig",
+                "src/waist/proof_wire/error_codes.zig",
+                "src/waist/proof_wire/error_codes_test.zig",
                 "src/waist/proof_wire/hash_family_test.zig",
                 "src/waist/proof_wire/wide_test.zig",
             }),
@@ -596,9 +598,8 @@ class RecursionOwnershipTest(unittest.TestCase):
                               "src/frontends/riscv/air_lang/artifacts"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
-        self.assertIn("src/frontends/riscv/runner/segment_session.zig", sources)
-        self.assertNotIn("src/frontends/riscv/runner/execute.zig", sources)
-        self.assertNotIn("execute_mod", (root / "src/frontends/riscv/runner/mod.zig").read_text())
+        self.assertIn("src/frontends/riscv/recursion/detached_segment_admission.zig", sources)
+        self.assertFalse(any(source.startswith("src/frontends/riscv/runner/") for source in sources))
         self.assertIn(manifest.entry_roots[0], sources)
         for source in sources:
             self.assertNotIn("src/integrations/", source)

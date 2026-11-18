@@ -488,6 +488,20 @@
           "src/backends/metal/build.zig",
           "-Doptimize=ReleaseSafe",
           "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-backend-contracts",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-backend-contracts",
+          "-Doptimize=ReleaseFast",
+          "-j2"
         ]
       ]
     },
@@ -1935,6 +1949,15 @@
       ],
       "lanes": [
         "package"
+      ]
+    },
+    {
+      "prefixes": [
+        "build_support/products/aggregate.zig"
+      ],
+      "lanes": [
+        "aggregate_cpu",
+        "aggregate_metal"
       ]
     },
     {

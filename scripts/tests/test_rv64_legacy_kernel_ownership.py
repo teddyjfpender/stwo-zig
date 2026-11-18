@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 NATIVE = ROOT / "src/backends/cuda/native/rv64"
 EXPECTED = {
     "deep_prepare": "4f1f8fa29e2ab9fd881cde57af56f781d9fe340d33668f1082748a98beb04164",
-    "deep_combine": "fa2a65e2d12c3e5df3f9ea26d7d659899128aeccd8d41ef0bdeae5e81ec4d889",
+    # d6625a01f qualifies the existing kernel to avoid host wrapper shadowing.
+    "deep_combine": "b331e2731e5307b40bbd7f107ea5fbc1ecdfe060a15554b92a7ff68452252af9",
     "sample_evaluate": "2e552ee435544ff834c15bc66d08d8fea5a4186a59b1177b4d750ad1889e8549",
     "benchmark": "a7ef7c5ad5292be7df059e834606de9df67cb04eec3755f9bcdcaabe0dc1cdbf",
 }
