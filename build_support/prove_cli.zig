@@ -61,6 +61,8 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     riscv_adapter.addImport("stwo", context.stwo_module);
+    riscv_adapter.addImport("stwo_circuit_recursion_wire", context.stwo_module.import_table.get("stwo_circuit_recursion_wire") orelse
+        @panic("aggregate proof adapter requires the canonical recursion wire"));
     riscv_adapter.addImport(
         "stwo_prover_engine",
         context.stwo_module.import_table.get("stwo_prover_engine").?,

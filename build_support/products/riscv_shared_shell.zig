@@ -169,6 +169,8 @@ pub const Binding = struct {
         const module = self.leafModule(adapter_source);
         spec.protocol.addImports(module);
         module.addImport("stwo", spec.stwo);
+        module.addImport("stwo_circuit_recursion_wire", spec.stwo.import_table.get("stwo_circuit_recursion_wire") orelse
+            @panic("RISC-V proof adapter requires the canonical recursion wire"));
         module.addImport("riscv_cpu_capabilities", spec.capabilities);
         // Full-width artifact verification derives its admitted fixed key on
         // CPU, including when the proving product is Metal and no device exists.

@@ -75,8 +75,9 @@ class PackageReleaseTests(unittest.TestCase):
             archive = output / second["archives"][0]["archive"]
             with tarfile.open(archive, mode="r") as bundle:
                 names = bundle.getnames()
-            self.assertIn("stwo_core-1.0.0-rc.1/PACKAGE-RELEASE.json", names)
-            self.assertIn("stwo_core-1.0.0-rc.1/src/waist/core/build.zig.zon", names)
+            prefix = f"stwo_core-{self.contracts['stwo_core'].version}"
+            self.assertIn(f"{prefix}/PACKAGE-RELEASE.json", names)
+            self.assertIn(f"{prefix}/src/waist/core/build.zig.zon", names)
             self.assertFalse(any(name.endswith(".rs") for name in names))
             self.assertFalse(any("/guests/" in name for name in names))
             self.assertFalse(any("/formal/" in name for name in names))

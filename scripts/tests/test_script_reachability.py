@@ -20,6 +20,10 @@ SCRIPTS = ROOT / "scripts"
 # Operator tools invoked by humans, not gates. Each entry must carry a
 # purpose; remove the entry in the same commit that deletes the tool.
 OPERATOR_TOOLS: dict[str, str] = {
+    # Owner: RV64 CUDA. Exact-archive performance and memory qualification.
+    "rv64_cuda_aot_register_schedule.py": "operator compiler for an admitted CUDA register schedule",
+    "rv64_m8_aot_register_relink.py": "relink an exact native AOT comparison archive",
+    "rv64_m8_rss_cap.py": "run a bounded GPU benchmark with a host RSS cap",
     # Owner: release-performance. Produces and validates authenticated host
     # performance receipts; architecture promotion is operator driven.
     "performance_epoch_gate.py":
