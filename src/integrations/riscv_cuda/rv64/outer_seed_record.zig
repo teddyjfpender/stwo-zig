@@ -100,6 +100,33 @@ pub const Live = struct {
     pub const capacity = 128;
     var mutex: std.Thread.Mutex = .{};
     var entries: std.ArrayListUnmanaged(Entry) = .empty;
+    var install_limit: ?usize = null;
+
+    pub const Install = struct {
+        active: bool = true,
+        pub fn deinit(self: *Install) void {
+            if (!self.active) return;
+            mutex.lock();
+            defer mutex.unlock();
+            clear();
+            install_limit = null;
+            self.active = false;
+        }
+    };
+    fn clear() void {
+        for (entries.items) |*e| e.deinit();
+        entries.deinit(std.heap.c_allocator);
+        entries = .empty;
+    }
+    pub fn beginInstall(limit: usize) !Install {
+        mutex.lock();
+        defer mutex.unlock();
+        if (install_limit != null) return error.GnNodeInstallBusy;
+        if (limit == 0) return error.GnNodeSeedCapacity;
+        clear();
+        install_limit = limit;
+        return .{};
+    }
     fn put(e: Entry) !void {
         mutex.lock();
         defer mutex.unlock();
@@ -109,36 +136,37 @@ pub const Live = struct {
             entries.items[i] = e;
             return;
         };
-        if (entries.items.len == capacity) {
+        if (entries.items.len == (install_limit orelse capacity)) {
+            if (install_limit != null) return error.GnNodeSeedCapacity;
             entries.items[0].deinit();
             _ = entries.orderedRemove(0);
         }
         try entries.append(a, e);
     }
-    pub fn putPcs(shape: anytype, image: []const u32) void {
-        putPcsInner(shape, image) catch |err| std.debug.print("GN_NODE_LIVE pcs error={s}\n", .{@errorName(err)});
-    }
-    fn putPcsInner(shape: anytype, image: []const u32) !void {
-        if (image.len < main_root_at + 8) return error.GnNodeImageTooShort;
-        const a = std.heap.c_allocator;
-        var sw: std.ArrayListUnmanaged(u32) = .empty;
-        errdefer sw.deinit(a);
-        try appendShape(a, &sw, shape);
-        const img = try a.dupe(u32, image);
-        errdefer a.free(img);
-        try put(.{ .key = image[main_root_at..][0..8].*, .node = false, .shape = try sw.toOwnedSlice(a), .image = img, .wire = try a.alloc(u8, 0) });
+    pub fn putPcs(shape: anytype, image: []const u32) !void {
+        store(shape, image, null, @splat(0), @splat(0), 0) catch |err| {
+            mutex.lock();
+            defer mutex.unlock();
+            if (install_limit != null) return err;
+            std.debug.print("GN_NODE_LIVE pcs error={s}\n", .{@errorName(err)});
+        };
     }
     pub fn putNode(shape: anytype, image: []const u32, wire: []const u8, identity: [8]u32, fixed_root: [8]u32, n_outputs: u32) !void {
+        try store(shape, image, wire, identity, fixed_root, n_outputs);
+    }
+    fn store(shape: anytype, image: []const u32, wire: ?[]const u8, identity: [8]u32, fixed_root: [8]u32, n_outputs: u32) !void {
         if (image.len < main_root_at + 8) return error.GnNodeImageTooShort;
         const a = std.heap.c_allocator;
         var sw: std.ArrayListUnmanaged(u32) = .empty;
-        errdefer sw.deinit(a);
+        defer sw.deinit(a);
         try appendShape(a, &sw, shape);
+        const words = try sw.toOwnedSlice(a);
+        errdefer a.free(words);
         const img = try a.dupe(u32, image);
         errdefer a.free(img);
-        const w = try a.dupe(u8, wire);
+        const w = try a.dupe(u8, wire orelse &.{});
         errdefer a.free(w);
-        try put(.{ .key = image[main_root_at..][0..8].*, .node = true, .shape = try sw.toOwnedSlice(a), .image = img, .wire = w, .identity = identity, .fixed_root = fixed_root, .n_outputs = n_outputs });
+        try put(.{ .key = image[main_root_at..][0..8].*, .node = wire != null, .shape = words, .image = img, .wire = w, .identity = identity, .fixed_root = fixed_root, .n_outputs = n_outputs });
     }
     /// A copy of an entry (caller frees with `a` via Found.deinit).
     pub const Found = struct {
@@ -165,7 +193,14 @@ pub const Live = struct {
                 for (0..8) |w| {
                     if (seeds[5 * (i + 2 * w) + 1] != (e.key[w] & 0xffff) or seeds[5 * (i + 2 * w + 1) + 1] != (e.key[w] >> 16)) continue :scan;
                 }
-                try out.append(a, .{ .at = i - 16, .entry = .{ .key = e.key, .node = e.node, .shape = try a.dupe(u32, e.shape), .image = try a.dupe(u32, e.image), .wire = try a.dupe(u8, e.wire), .identity = e.identity, .fixed_root = e.fixed_root, .n_outputs = e.n_outputs } });
+                var copy = e;
+                copy.shape = try a.dupe(u32, e.shape);
+                errdefer a.free(copy.shape);
+                copy.image = try a.dupe(u32, e.image);
+                errdefer a.free(copy.image);
+                copy.wire = try a.dupe(u8, e.wire);
+                errdefer a.free(copy.wire);
+                try out.append(a, .{ .at = i - 16, .entry = copy });
                 break;
             }
         }
@@ -176,3 +211,39 @@ pub const Live = struct {
         }.less);
     }
 };
+
+test "recursive discovery holds late leaf roots until its installation ends" {
+    const a = std.testing.allocator;
+    var lease = try Live.beginInstall(132);
+    defer lease.deinit();
+    try std.testing.expectError(error.GnNodeInstallBusy, Live.beginInstall(132));
+    for (0..132) |i| try Live.put(.{
+        .key = @splat(@intCast(i + 42)),
+        .node = i % 2 != 0,
+        .image = &.{},
+        .shape = &.{},
+        .wire = &.{},
+    });
+    var replacement = Live.entries.items[0];
+    replacement.n_outputs = 17;
+    try Live.put(replacement);
+    var excess = replacement;
+    excess.key = @splat(1001);
+    try std.testing.expectError(error.GnNodeSeedCapacity, Live.put(excess));
+    var seeds = [_]u32{0} ** (5 * 32);
+    for (0..8) |i| seeds[5 * (16 + 2 * i) + 1] = 42;
+    var found: std.ArrayListUnmanaged(Live.Found) = .empty;
+    defer {
+        for (found.items) |*f| f.deinit(a);
+        found.deinit(a);
+    }
+    try Live.find(a, &seeds, true, &found);
+    try std.testing.expectEqual(0, found.items.len);
+    try Live.find(a, &seeds, false, &found);
+    try std.testing.expectEqual(1, found.items.len);
+    try std.testing.expectEqual(17, found.items[0].entry.n_outputs);
+    lease.deinit();
+    var next = try Live.beginInstall(1);
+    defer next.deinit();
+    try std.testing.expectEqual(0, Live.entries.items.len);
+}

@@ -106,10 +106,13 @@ pub const Owner = struct {
             try std.fs.cwd().writeFile(.{ .sub_path = path, .data = text });
             const output = try std.fmt.allocPrint(a, "{s}/install-classes/{d}/warm", .{ spool, block });
             defer a.free(output);
-            Outer.NodeClasses.beginInstall();
             var timer = try std.time.Timer.start();
-            try @import("resident_batch.zig").runCombinedForInstall(a, library, path, output);
-            const nodes = try Outer.NodeClasses.installedNodes(a);
+            const nodes = blk: {
+                var discovery = try Outer.NodeClasses.beginInstall();
+                defer discovery.deinit();
+                try @import("resident_batch.zig").runCombinedForInstall(a, library, path, output);
+                break :blk try Outer.NodeClasses.installedNodes(a);
+            };
             errdefer a.free(nodes);
             if (nodes.len == 0) return error.GpuNativeNoRecursionClasses;
             for (nodes) |entry| {

@@ -405,10 +405,15 @@ pub const NodeClasses = struct {
     var mutex: std.Thread.Mutex = .{};
     var entries: std.ArrayListUnmanaged(*Entry) = .empty;
     var install_nodes: std.AutoHashMapUnmanaged(u32, *Entry) = .empty;
-    pub fn beginInstall() void {
+    pub fn beginInstall() !GnRecord.Live.Install {
         mutex.lock();
         defer mutex.unlock();
+        const Plan = @import("jobs/driver_dag.zig").CarryPlan;
+        // One native PCS per leaf and at most one PCS plus one wire per node.
+        const max_nodes = @typeInfo(@TypeOf(@as(Plan, undefined).nodes)).array.len;
+        const seeds = try GnRecord.Live.beginInstall(Plan.max_leaves + 2 * max_nodes);
         install_nodes.clearRetainingCapacity();
+        return seeds;
     }
     pub fn installedNodes(a: std.mem.Allocator) ![]*Entry {
         mutex.lock();
