@@ -71,41 +71,12 @@ pub fn addProducts(
         "Test CUDA source, AOT, toolchain, and build-plan contracts without a GPU",
     ).dependOn(&tests.step);
 
-    const runtime_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = graph.source(
-                b,
-                "src/backends/cuda/mod.zig",
-                target,
-                optimize,
-            ),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    runtime_tests.root_module.addImport(
-        "stwo_backend_contracts",
-        b.createModule(.{
-            .root_source_file = graph.source(
-                b,
-                "src/waist/backend/mod.zig",
-                target,
-                optimize,
-            ),
-            .target = target,
-            .optimize = optimize,
-        }),
-    );
-    runtime_tests.addCSourceFile(.{
-        .file = b.path("src/backends/cuda/runtime/stages/test_stubs.c"),
-        .flags = &.{ "-std=c11", "-Wno-strict-prototypes" },
-    });
-    runtime_tests.linkLibC();
+    const cuda_package = b.dependency("stwo_cuda_backend", .{ .target = target, .optimize = optimize });
     const runtime_contract = b.step(
         "test-cuda-runtime-contract",
-        "Test proof-owned CUDA context, residency, and strict-AOT contracts",
+        "Run the CUDA backend package's host-only runtime contracts",
     );
-    runtime_contract.dependOn(&b.addRunArtifact(runtime_tests).step);
+    runtime_contract.dependOn(&cuda_package.builder.top_level_steps.get("test").?.step);
     inline for (.{
         "runtime/device_arena_test.cpp",
         "rv64/pcs_idle_cache_test.cpp",

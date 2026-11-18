@@ -671,6 +671,12 @@ def validate_registered_consumers(repository: Path, contracts: Mapping[str, Any]
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         return [f"CDC source/policy inventory failed: {error}"]
     failures = []
+    declared_roots = {entry.root for provider in active for entry in provider.metadata.consumers}
+    riscv = repository / "src/frontends/riscv"
+    for path in sorted(riscv.glob("**/contract_tests/*_test.zig")):
+        relative = path.relative_to(repository).as_posix()
+        if relative in tracked and relative not in declared_roots:
+            failures.append(f"{relative}: RISC-V consumer test is absent from the waist CDC registry")
     for provider in active:
         expected = {"package:" + owner.package for owner in contracts.values()
                     if (set(provider.public_modules) & (set(owner.dependencies) | set(owner.injected_modules))
