@@ -109,7 +109,7 @@ fn addMissingConsumerModules(b: *std.Build, target: std.Build.ResolvedTarget, op
     }
 }
 
-fn selectedOwnerModule(b: *std.Build, registration: @import("package_dependencies.zig").Consumer, package_name: []const u8) []const u8 {
+fn selectedOwnerModule(b: *std.Build, registration: @import("waist_consumer_registrations.zig").Consumer, package_name: []const u8) []const u8 {
     const selected = registration.owner_module orelse return package_name;
     const owned = @import("../graph/package_ownership.zig").resolve(registration.root) orelse @panic("unowned consumer module selection");
     const directory = registration.root[0 .. registration.root.len - owned.sub_path.len - 1];
@@ -123,7 +123,7 @@ fn selectedOwnerModule(b: *std.Build, registration: @import("package_dependencie
 
 pub fn add(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, facade: *std.Build.Module, product: graph.Product) void {
     const context = .{ .b = b, .target = target, .optimize = optimize };
-    const cdc = @import("package_dependencies.zig");
+    const cdc = @import("waist_consumer_registrations.zig");
     addMissingConsumerModules(b, target, optimize, facade, product);
     assertCudaFactoryCallerBindings(b, target, optimize, facade, product);
     const laws = b.createModule(.{ .root_source_file = b.path("build_support/products/consumer_laws.zig"), .target = target, .optimize = optimize });
