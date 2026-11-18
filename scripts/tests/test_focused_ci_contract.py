@@ -360,8 +360,10 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual("macos", lane["host"])
         self.assertNotIn("hosted", lane)
         commands = lane["commands"]
-        self.assertEqual(1, len(commands))
+        self.assertEqual(3, len(commands))
         self.assertIn("src/backends/metal/build.zig", commands[0])
+        for command, mode in zip(commands[1:], ("Debug", "ReleaseFast"), strict=True):
+            self.assertEqual(["zig", "build", "test-cdc-stwo-backend-contracts", f"-Doptimize={mode}", "-j2"], command)
 
     def test_cuda_backend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/backends/cuda/runtime/session.zig")
