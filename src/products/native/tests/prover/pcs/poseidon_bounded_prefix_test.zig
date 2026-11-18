@@ -8,7 +8,6 @@ const recursion = @import("stwo_riscv_frontend").recursion;
 const Hasher = recursion.engine.Hasher;
 const Prover = prover_engine.vcs_lifted.prover.MerkleProverLifted(Hasher);
 const ColumnRef = Prover.ColumnRef;
-const benchmark_env = "STWO_ZIG_RUN_POSEIDON_PREFIX_BENCH";
 
 const HeightGroup = struct {
     log_size: u32,
@@ -184,8 +183,7 @@ fn median3(values: [3]u64) u64 {
     return ordered[1];
 }
 
-test "Poseidon bounded prefix ReleaseFast representative no-regression gate" {
-    if (!std.process.hasEnvVarConstant(benchmark_env)) return error.SkipZigTest;
+pub fn measurePrefix() !void {
     if (@import("builtin").mode != .ReleaseFast) return error.ReleaseFastRequired;
 
     const allocator = std.testing.allocator;
@@ -382,8 +380,7 @@ test "Poseidon bounded tail reuse handles empty and uniform height trees" {
     }
 }
 
-test "Poseidon bounded tail reuse measured heterogeneous commitment comparison" {
-    if (!std.process.hasEnvVarConstant("STWO_ZIG_RUN_POSEIDON_TAIL_REUSE_BENCH")) return error.SkipZigTest;
+pub fn measureTailReuse() !void {
     if (@import("builtin").mode != .ReleaseFast) return error.ReleaseFastRequired;
     const allocator = std.testing.allocator;
     var pool: prover_engine.work_pool.WorkPool = undefined;

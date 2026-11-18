@@ -5740,20 +5740,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_BENCH_WIDE_QUOTIENT": {
-      "owner": "src/products/native/tests/prover/om31_quotient_batch_test.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/products/native/tests/prover/om31_quotient_batch_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/native/tests/prover/om31_quotient_batch_test.zig",
-        "text": "    const bench = std.process.hasEnvVarConstant(\"STWO_ZIG_BENCH_WIDE_QUOTIENT\");\n    const log: u32 = if (bench) 16 else 9;\n    const domain = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain();\n    var channel = core.channel.raw_mod_m31.Om31Channel.init();\n    var batches: [8]Q.ColumnSampleBatch = undefined;\n    for (&batches) |*b| b.* = .{ .point = try core.circle.randomSecureFieldPointFor(O, &channel), .cols_vals_randpows = &.{} };\n    var workspace = try Q.RowQuotientWorkspace.init(a, &batches);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_BLAKE2S_METAL": {
       "owner": "src/backends/metal/shaders/include/blake2s.metal",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -5796,7 +5782,7 @@
       ],
       "default_evidence": {
         "path": "build_support/gates/native.zig",
-        "text": "    if (b.graph.env_map.get(\"STWO_ZIG_BUILD_HELD_LOCK\") != null) deep.addArg(\"--no-lock\");\n    deep.addArgs(&.{ \"src/products/native/tests/deep_root.zig\", zig_optimize_arg });\n    b.step(\"deep-gate\", \"Run expanded deep graph coverage\").dependOn(&deep.step);\n\n    const fields = b.addSystemCommand(&.{ \"python3\", \"scripts/repo/parity_fields.py\", \"--skip-zig\" });\n    const constraints = b.addSystemCommand(&.{\n        \"python3\", \"scripts/repo/parity_constraint_expr.py\", \"--skip-zig\","
+        "text": "    if (b.graph.env_map.get(\"STWO_ZIG_BUILD_HELD_LOCK\") != null) run.addArg(\"--no-lock\");\n    run.addArgs(&.{ root, zig_optimize_arg });\n    return run;"
       },
       "expires": "2026-12-13"
     },
@@ -7238,40 +7224,6 @@
       "default_evidence": {
         "path": "src/frontends/riscv/air_lang/framework/framework_device_interaction.zig",
         "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_ROW_MAJOR_WITNESS_COPY\")) {\n            for (rows, 0..) |row, offset| {\n                const committed = framework.committedRow(logical_first + offset, log);\n                for (destination, 0..) |column, index| column[committed] = row[start + index];\n            }\n            return;\n        }"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_RUN_POSEIDON_PREFIX_BENCH": {
-      "owner": "src/products/native/tests/prover/pcs/poseidon_bounded_prefix_test.zig",
-      "default": "disabled (benchmark not selected)",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/products/native/tests/prover/pcs/poseidon_bounded_prefix_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/native/tests/prover/pcs/poseidon_bounded_prefix_test.zig",
-        "text": "const benchmark_env = \"STWO_ZIG_RUN_POSEIDON_PREFIX_BENCH\";\n\nconst HeightGroup = struct {\n    log_size: u32,\n    column_count: usize,\n};\n",
-        "readers": [
-          {
-            "path": "src/products/native/tests/prover/pcs/poseidon_bounded_prefix_test.zig",
-            "text": "    if (!std.process.hasEnvVarConstant(benchmark_env)) return error.SkipZigTest;\n    if (@import(\"builtin\").mode != .ReleaseFast) return error.ReleaseFastRequired;\n\n    const allocator = std.testing.allocator;\n    // The absent production histogram is modeled without inventing one: the\n    // observed 625-column tree count is exact, while four mixed heights expose\n    // the prefix-replay failure mode. Logs and the byte cap are shifted down by"
-          }
-        ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_RUN_POSEIDON_TAIL_REUSE_BENCH": {
-      "owner": "src/products/native/tests/prover/pcs/poseidon_bounded_prefix_test.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/products/native/tests/prover/pcs/poseidon_bounded_prefix_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/native/tests/prover/pcs/poseidon_bounded_prefix_test.zig",
-        "text": "    if (!std.process.hasEnvVarConstant(\"STWO_ZIG_RUN_POSEIDON_TAIL_REUSE_BENCH\")) return error.SkipZigTest;\n    if (@import(\"builtin\").mode != .ReleaseFast) return error.ReleaseFastRequired;\n    const allocator = std.testing.allocator;\n    var pool: prover_engine.work_pool.WorkPool = undefined;\n    try pool.initInPlaceWithOptions(.{ .worker_count = 1 });\n    defer pool.deinit();\n    var binding = try prover_engine.work_pool.ScopedPoolBinding.init(&pool);"
       },
       "expires": "2026-12-13"
     },
