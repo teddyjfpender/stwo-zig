@@ -380,8 +380,8 @@ pub fn retainTemplate(a: std.mem.Allocator, input: Input, source: *const St.Stag
     assignment.reusable = true;
     const expected = try ar.alloc(u32, source.expected.len);
     @memset(expected, 0);
-    const fixed = try ar.alloc([]const u32, source.fixed_raw.len);
-    for (fixed, source.fixed_raw) |*out, column| out.* = try ar.dupe(u32, column);
+    const fixed = try raw.alloc([]const u32, source.fixed_raw.len);
+    for (fixed, source.fixed_raw) |*out, column| out.* = try raw.dupe(u32, column);
     owner.staged = source.*;
     owner.staged.assignment = assignment;
     owner.staged.statics = statics;
@@ -403,10 +403,11 @@ const TemplateOwner = struct {
     statics: ?*Statics = null,
     staged: St.Staged = undefined,
     // The image keeps all device extents. The packed program now supplies
-    // the assignment ranges. FIXED remains live for worker root checks.
+    // assignment and FIXED ranges, including cold worker root checks.
     fn releasePackedSources(self: *TemplateOwner) void {
         self.staged.assignment.tasks = &.{};
         self.staged.assignment.indices = &.{};
+        self.staged.fixed_raw = &.{};
         _ = self.raw_sources.reset(.free_all);
     }
     fn release(raw: *anyopaque) void {
@@ -628,8 +629,8 @@ test "packed template releases host sources and preserves device extents" {
     const raw = owner.raw_sources.allocator();
     owner.staged.assignment.tasks = try raw.alloc(u32, 16);
     owner.staged.assignment.indices = try raw.alloc(u32, 7);
-    const fixed = try owner.arena.allocator().alloc([]const u32, 1);
-    fixed[0] = try owner.arena.allocator().dupe(u32, &.{29});
+    const fixed = try raw.alloc([]const u32, 1);
+    fixed[0] = try raw.dupe(u32, &.{29});
     owner.staged.fixed_raw = fixed;
     owner.staged.image.tasks = .{ .region = .class, .offset = 0, .words = 16 };
     owner.staged.image.indices = .{ .region = .class, .offset = 64, .words = 7 };
@@ -639,6 +640,6 @@ test "packed template releases host sources and preserves device extents" {
     try std.testing.expectEqual(@as(usize, 0), owner.staged.assignment.tasks.len + owner.staged.assignment.indices.len);
     try std.testing.expectEqual(@as(u32, 2), owner.staged.image.taskCount());
     try std.testing.expectEqual(@as(u64, 7), owner.staged.image.indices.words);
-    try std.testing.expectEqualSlices(u32, &.{29}, owner.staged.fixed_raw[0]);
+    try std.testing.expectEqual(@as(usize, 0), owner.staged.fixed_raw.len);
     try std.testing.expectEqualSlices(u32, &.{17}, owner.staged.expected);
 }

@@ -45,7 +45,9 @@
       "rv64/jobs/driver_service_test.zig::serve: truth capacity rejects before topology and the exchange holds the exact installed roster",
       "rv64/jobs/native_commit.zig::direct commitment stages permuted and partial overlaps and accepts exact column aliases",
       "rv64/jobs/outer_encode_job.zig::encoder discovery owns its programs until completion and serving reuses its installed class",
+      "rv64/jobs/outer_fixed_job.zig::cold FIXED accepts only a successful device decode and budgets its resident source once",
       "rv64/jobs/outer_graph_cache.zig::graph cache: shared metadata budget evicts only owned executables and releases every charge",
+      "rv64/jobs/outer_packed_class.zig::cold FIXED decoder returns only the authenticated class tail and refuses invalid extents",
       "rv64/jobs/outer_seed_device_test.zig::seed program: short FRI gather owns coordinate order and clears unseen groups",
       "rv64/jobs/plan_test.zig::worker final plans: output failure still destroys every joined resource",
       "rv64/jobs/plan_test.zig::worker final plans: own worker cannot join itself or close healthy submissions",
@@ -84,7 +86,7 @@
   },
   "budget": {
     "code_files": 347,
-    "code_lines": 81698,
+    "code_lines": 81798,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
