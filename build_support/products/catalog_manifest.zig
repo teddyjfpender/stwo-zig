@@ -6,6 +6,7 @@ const graph = @import("../graph/modules.zig");
 const product_policy = @import("../graph/product.zig");
 const aggregate = @import("aggregate.zig");
 const catalog = @import("catalog.zig");
+const waist_consumers = @import("waist_consumer_registrations.zig");
 const specs = @import("product_specs.zig");
 
 pub const Scope = specs.Scope;
@@ -38,10 +39,10 @@ pub fn scopeManifest(b: *std.Build, scope: Scope, aggregate_metal: bool) ScopeMa
             .scope = scope,
             .role = configured.role,
             .product_ids = configured.product_ids,
-            .module_roots = if (scope == .package) catalog.package_dependencies.withWaistConsumerRoots(b, configured.module_roots, .product_roots) else configured.module_roots,
+            .module_roots = if (scope == .package) waist_consumers.withWaistConsumerRoots(b, configured.module_roots, .product_roots) else configured.module_roots,
             .generated_module_roots = configured.generated_module_roots,
-            .dependency_module_roots = if (scope == .package) catalog.package_dependencies.withWaistConsumerRoots(b, configured.dependency_module_roots, .package_roots) else configured.dependency_module_roots,
-            .allowed_module_files = if (scope == .package) catalog.package_dependencies.withWaistConsumerRoots(b, configured.allowed_module_files, .product_roots) else configured.allowed_module_files,
+            .dependency_module_roots = if (scope == .package) waist_consumers.withWaistConsumerRoots(b, configured.dependency_module_roots, .package_roots) else configured.dependency_module_roots,
+            .allowed_module_files = if (scope == .package) waist_consumers.withWaistConsumerRoots(b, configured.allowed_module_files, .product_roots) else configured.allowed_module_files,
             .allowed_module_prefixes = configured.allowed_module_prefixes,
             .external_tools = configured.external_tools,
             .runtime_probes = configured.runtime_probes,
@@ -166,9 +167,9 @@ pub fn stepsForScope(b: *std.Build, scope: Scope) []const []const u8 {
         .package => {
             ProductScopes.add(&names, .core);
             ProductScopes.add(&names, .prover);
-            for (catalog.package_dependencies.waist_providers) |provider| {
-                for (catalog.package_dependencies.providerConsumers(b, provider.directory)) |consumer| {
-                    const name = catalog.package_dependencies.consumerAliasName(b, provider.name, consumer.id);
+            for (waist_consumers.waist_providers) |provider| {
+                for (waist_consumers.providerConsumers(b, provider.directory)) |consumer| {
+                    const name = waist_consumers.consumerAliasName(b, provider.name, consumer.id);
                     names.put(name, {}) catch @panic("out of memory");
                 }
             }
