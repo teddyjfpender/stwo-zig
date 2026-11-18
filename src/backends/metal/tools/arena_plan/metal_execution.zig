@@ -44,9 +44,6 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
     const runner_phase_timing = ctx.runner_phase_timing;
     const recipe_preparation_timing = ctx.recipe_preparation_timing;
     const execute_composition = ctx.execute_composition;
-    const execute_quotient = ctx.execute_quotient;
-    const execute_fri = ctx.execute_fri;
-    const execute_decommit = ctx.execute_decommit;
     const execute_proof = ctx.execute_proof;
     const proof_plan = ctx.proof_plan;
     const statement_bootstrap = ctx.statement_bootstrap;
@@ -772,9 +769,6 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
             .bindings = bindings,
             .composition_bundle = composition_bundle,
             .execute_composition = execute_composition,
-            .execute_quotient = execute_quotient,
-            .execute_fri = execute_fri,
-            .execute_decommit = execute_decommit,
             .execute_proof = execute_proof,
             .requested_commit_tree_count = requested_commit_tree_count,
             .transcript = &transcript,

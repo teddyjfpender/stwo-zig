@@ -5,8 +5,11 @@ const O = core.fields.om31.OM31;
 const Q = core.pcs.ForField(O).quotients;
 const Inner = O.InnerField;
 const a = std.testing.allocator;
-test "OM31 actual quotient denominator row versus batch-major inversion profile" {
-    const bench = std.process.hasEnvVarConstant("STWO_ZIG_BENCH_WIDE_QUOTIENT");
+test "OM31 actual quotient denominator row versus batch-major inversion parity" {
+    try compare(false);
+}
+
+pub fn compare(bench: bool) !void {
     const log: u32 = if (bench) 16 else 9;
     const domain = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain();
     var channel = core.channel.raw_mod_m31.Om31Channel.init();

@@ -367,6 +367,7 @@ pub const steps = [_]Step{
     .{ .name = "cuda-test", .description = "Unavailable compatibility alias; CUDA now requires an explicit product toolchain", .scope = .deferred },
     .{ .name = "riscv-release-gate", .description = "Run the staged CLI and validate committed Sail/Spike evidence", .scope = .verification },
     .{ .name = "deep-gate", .description = "Run expanded deep graph coverage", .scope = .verification },
+    .{ .name = "native-timings", .description = "Measure bounded native CPU quotient and Poseidon comparisons", .scope = .verification },
     .{ .name = "vectors", .description = "Validate committed parity vectors", .scope = .verification },
     .{ .name = "interop", .description = "Run interoperability harness (Rust <-> Zig proof exchange)", .scope = .verification },
     .{ .name = "prove-checkpoints", .description = "Run prove/prove_ex checkpoint harness (Rust -> Zig/Rust verification)", .scope = .verification },
