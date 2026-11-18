@@ -434,6 +434,9 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     const rc = R.Config{
         .capacity_words = caps[0..made],
         .max_segments = 64,
+        // Admission follows the Ethereum bundle envelope. The exchange reserves
+        // only the actual, independently registered truth roster for this service.
+        .max_truths = (CPU.rv64_gkr_bundle_wire.Limits{}).max_truths,
         .exchange_partials = (try Chain.version()) != .flat,
         .pool_current = libs.base.lookup(*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int, "stwo_exec_context_pool_current"),
         .fixed_pool = if (std.posix.getenv("STWO_RV64_DEVICE_ARENA")) |v| !std.mem.eql(u8, v, "0") else true,

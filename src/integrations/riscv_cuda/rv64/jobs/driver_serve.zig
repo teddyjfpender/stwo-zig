@@ -140,6 +140,7 @@ pub const Service = struct {
                 std.debug.print("GPU_RESIDENT_SERVICE install_stage=recursion_shape block={d} error={s}\n", .{ block, @errorName(err) });
                 return err;
             };
+            if (rs.truths > config.max_truths) return error.GpuNativeTruthsExceedPlan;
             var topo = try D.Topology.carry(a, @intCast(rows.len), rs.truths, rs.fold_arity);
             errdefer topo.deinit();
             const roster = try a.alloc(@import("driver_install.zig").SlabClass, rows.len + rs.truths + topo.nodes.len + 1);
@@ -167,7 +168,6 @@ pub const Service = struct {
             sized.max_segments = @max(sized.max_segments, @as(u32, @intCast(sh.rows.len)));
             sized.max_truths = @max(sized.max_truths, sh.truths);
         }
-        if (sized.max_truths > config.max_truths) return error.GpuNativeTruthsExceedPlan;
         const rosters = try a.alloc([]const @import("driver_install.zig").SlabClass, shapes.len);
         defer a.free(rosters);
         for (shapes, rosters) |sh, *r| r.* = sh.slab_classes;
