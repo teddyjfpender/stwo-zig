@@ -149,7 +149,7 @@ test "native octic circuit CUDA fractions share tuple authority all components" 
                 first += lanes;
             }
         }
-        if (@import("fraction_options").fixture_directory) |directory| {
+        if (@import("circuit_test_options").fixture_directory) |directory| {
             try std.fs.cwd().makePath(directory);
             var final = try L.build(a, 4, pairs, Provider{ .values = &all_fractions }, Provider.fill);
             defer circuit.witness.trace.freeColumns(a, final.columns);

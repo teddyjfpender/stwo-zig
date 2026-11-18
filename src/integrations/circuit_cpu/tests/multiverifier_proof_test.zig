@@ -61,7 +61,7 @@ const StepTimer = struct {
 
 test "R7: the multiverifier proof.bin is reproduced byte for byte" {
     const allocator = std.heap.smp_allocator;
-    const inputs_path = @import("multiverifier_options").inputs orelse {
+    const inputs_path = @import("circuit_test_options").inputs orelse {
         std.debug.print("skipped: set -Dtest-multiverifier-inputs to the oracle's multiverifier-inputs file\n", .{});
         return error.SkipZigTest;
     };
@@ -112,7 +112,7 @@ test "R7: the multiverifier proof.bin is reproduced byte for byte" {
     var steps = StepTimer{ .timer = try std.time.Timer.start() };
     var proof = try circuit_cpu.Internal.prove(allocator, inputs.values, &pp, &bundle, pcs_config, .{
         .recorder = &recorder,
-        .compact_polynomial_min_log = @import("multiverifier_options").compact_min_log,
+        .compact_polynomial_min_log = @import("circuit_test_options").compact_min_log,
     }, &steps);
     defer proof.deinit();
     const prove_ns = steps.last;

@@ -15,7 +15,7 @@
 //! -Doptimize=ReleaseFast`. Large: several GB.
 
 const std = @import("std");
-const bench = @import("bench_options");
+const bench = @import("circuit_test_options");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const circuit = @import("stwo_circuit_frontend");
