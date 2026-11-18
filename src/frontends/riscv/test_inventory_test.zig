@@ -197,14 +197,7 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
     },
 };
 
-/// Where this package's sources sit, relative to the test's working directory.
-///
-/// Both spellings are real: the product gate runs from the repository root and
-/// the package's own `zig build test --build-file src/frontends/riscv/build.zig`
-/// does too, while running that build file from inside the package directory
-/// gives the second. A directory only counts as this package when it holds both
-/// the contract and the inventory, so a partial match cannot be mistaken for a
-/// hit.
+// Both the repository root and package directory are test working directories.
 const candidate_roots = [_][]const u8{ "src/frontends/riscv", "." };
 
 fn openPackageRoot() !std.fs.Dir {
@@ -281,6 +274,8 @@ test "test inventory: every test-bearing file in this package is named" {
             }
         }
         const relative = if (inventory.prefix.len == 0) entry.path else entry.path[inventory.prefix.len + 1 ..];
+        // The workspace gate checks this separate suite against the provider's CDC registry.
+        if (std.mem.startsWith(u8, relative, "contract_tests/") and std.mem.endsWith(u8, relative, "_test.zig") and std.mem.indexOfScalar(u8, relative["contract_tests/".len..], '/') == null) continue;
         if (inventory.prefix.len != 0 and (std.mem.eql(u8, relative, "mod.zig") or std.mem.eql(u8, relative, "tests/root.zig"))) continue;
         const quoted = try std.fmt.allocPrint(allocator, "\"{s}{s}\"", .{ if (inventory.prefix.len == 0 or std.mem.startsWith(u8, relative, "tests/")) "" else "../", if (inventory.prefix.len != 0 and std.mem.startsWith(u8, relative, "tests/")) relative[6..] else relative });
         defer allocator.free(quoted);
@@ -288,7 +283,7 @@ test "test inventory: every test-bearing file in this package is named" {
             named += 1;
             continue;
         }
-        if (inventory.prefix.len != 0 and std.mem.startsWith(u8, relative, "focused") and
+        if (inventory.prefix.len != 0 and (std.mem.startsWith(u8, relative, "focused") or std.mem.eql(u8, relative, "dword_owner_test_root.zig")) and
             std.fs.path.dirname(relative) == null and try @import("test_inventory_collector.zig").coveredCollector(allocator, source, inventory.source)) continue;
         missing += 1;
         std.debug.print(
