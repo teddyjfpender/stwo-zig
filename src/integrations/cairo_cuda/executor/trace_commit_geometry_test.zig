@@ -31,7 +31,7 @@ test "canonical CUDA preprocessed base reconstruction preserves the full coeffic
         }
     };
     const Ops = struct {
-        const Transform = struct {
+        pub const Transform = struct {
             pub fn forwardInPlace(session: anytype, stage: telemetry.Stage, columns: common.WordMatrix, log_n: u32, _: common.Words) !void {
                 try std.testing.expectEqual(telemetry.Stage.ingress, stage);
                 try std.testing.expectEqual(@as(u32, 4), log_n);
