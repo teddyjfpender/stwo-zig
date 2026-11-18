@@ -665,8 +665,11 @@ class CiTests(unittest.TestCase):
             "  release-gate:", 1
         )[0]
         self.assertEqual(4, focused.count("use-cache: false"))
-        self.assertEqual(2, focused.count("fetch-depth: 1"))
-        self.assertEqual(3, focused.count("fetch-depth: 0"))
+        self.assertEqual(1, focused.count("fetch-depth: 1"))
+        self.assertEqual(4, focused.count("fetch-depth: 0"))
+        for first, next_job in (("focused-linux", "focused-macos"), ("focused-macos", "focused-cuda")):
+            lane = focused.split(f"  {first}:", 1)[1].split(f"  {next_job}:", 1)[0]
+            self.assertIn("fetch-depth: 0", lane)
         self.assertIn("if: matrix.lane != 'static'", focused)
         self.assertNotIn(
             "hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json')",

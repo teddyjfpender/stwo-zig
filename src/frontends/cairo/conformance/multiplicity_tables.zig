@@ -174,7 +174,6 @@ const TableWork = struct {
     worker_index: usize,
     worker_count: usize,
     parallel_tables: []const bool,
-    profile_tables: bool,
     failure: ?anyerror = null,
 
     pub fn run(self: *TableWork) void {
@@ -182,11 +181,8 @@ const TableWork = struct {
         while (index < self.tables.len) : (index += self.worker_count) {
             if (self.parallel_tables[index]) continue;
             const dense = self.tables[index].dense orelse continue;
-            var timer = if (self.profile_tables) std.time.Timer.start() catch null else null;
-            var feed_rows: usize = 0;
             for (self.feeds) |feed| {
                 if (feed.table_index != index) continue;
-                feed_rows += feed.rows;
                 for (0..feed.rows) |row| {
                     const base = row * feed.stride + feed.word_base;
                     feed.plan.increment(dense, feed.words[base..][0..feed.plan.word_count]) catch |err| {
@@ -195,10 +191,6 @@ const TableWork = struct {
                     };
                 }
             }
-            if (timer) |*running| std.log.info(
-                "Cairo fixed table {s}: {d} feed rows, {d} destination words, {d:.3} ms",
-                .{ self.tables[index].entry.component, feed_rows, dense.len, @as(f64, @floatFromInt(running.read())) / std.time.ns_per_ms },
-            );
         }
     }
 };
@@ -310,7 +302,6 @@ fn accumulate(allocator: std.mem.Allocator, tables: []const Table, feeds: []cons
         }
     }
     const worker_count = @min(tables.len, pool_workers);
-    const profile_tables = std.posix.getenv("STWO_CAIRO_PROFILE_FIXED_TABLES") != null;
     var work: [pool_split.work_pool.MAX_WORKERS]TableWork = undefined;
     for (work[0..worker_count], 0..) |*item, index| item.* = .{
         .tables = tables,
@@ -318,15 +309,9 @@ fn accumulate(allocator: std.mem.Allocator, tables: []const Table, feeds: []cons
         .worker_index = index,
         .worker_count = worker_count,
         .parallel_tables = parallel_tables,
-        .profile_tables = profile_tables,
     };
     try pool_split.dispatch(TableWork, work[0..worker_count]);
-    var timer = if (profile_tables) std.time.Timer.start() catch null else null;
     try accumulateAtomic(tables, feeds, tasks.items, @min(pool_workers, tasks.items.len));
-    if (timer) |*running| std.log.info(
-        "Cairo fixed atomic scatter: {d} bounded tasks over {d} workers, {d:.3} ms",
-        .{ tasks.items.len, @min(pool_workers, tasks.items.len), @as(f64, @floatFromInt(running.read())) / std.time.ns_per_ms },
-    );
 }
 
 test "Cairo fixed feed parallel table ownership preserves collisions without replicas" {

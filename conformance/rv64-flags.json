@@ -322,20 +322,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_CAIRO_CUDA_DUMP_PLAN": {
-      "owner": "src/integrations/cairo_cuda/canonical_source.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_cuda/canonical_source.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_cuda/canonical_source.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_CAIRO_CUDA_DUMP_PLAN\")) {\n            for (prepared.request.resident.slots) |slot| {\n                if (slot.words < 1 << 26) continue;\n                const placement = try controllers.resident.combined_arena.placement(slot.id);\n                std.debug.print(\"canonical_host_slot SN_PIE_{} kind={s} ordinal={} bytes={} offset={} lifetime={s}..{s}\\n\", .{\n                    number,                     @tagName(slot.kind),      slot.ordinal,                slot.words * 4,\n                    placement.offset_words * 4, @tagName(slot.live_from), @tagName(slot.live_through),"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_CAIRO_CUDA_FAILURE_TRANSPORT": {
       "owner": "src/integrations/cairo_cuda/executor/terminal_controller.zig",
       "default": "disabled: failure transport returns without writing when path is absent",
@@ -409,20 +395,6 @@
       "default_evidence": {
         "path": "src/products/cairo/cuda/canonical_paths.zig",
         "text": "        const variant_name = std.process.getEnvVarOwned(allocator, \"STWO_CAIRO_CUDA_PREPROCESSED_VARIANT\") catch |err| switch (err) {\n            error.EnvironmentVariableNotFound => \"canonical_small\",\n            else => return err,\n        };\n        const variant = std.meta.stringToEnum(stwo.frontend.preprocessed.trace.Variant, variant_name) orelse return error.InvalidPreprocessedVariant;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_CAIRO_CUDA_PROFILE_PREPROCESSED": {
-      "owner": "src/integrations/cairo_cuda/executor/preprocessed_cache.zig",
-      "default": "null (no process override; enclosing caller policy is pinned)",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_cuda/executor/preprocessed_cache.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_cuda/executor/preprocessed_cache.zig",
-        "text": "    const profile_setting = std.process.getEnvVarOwned(allocator, \"STWO_CAIRO_CUDA_PROFILE_PREPROCESSED\") catch null;\n    defer if (profile_setting) |value| allocator.free(value);\n    const profile = profile_setting != null and std.mem.eql(u8, profile_setting.?, \"1\");\n    var phase_timer = try std.time.Timer.start();\n    var read_ns: u64 = 0;\n    var validate_ns: u64 = 0;\n    var transpose_ns: u64 = 0;"
       },
       "expires": "2026-12-13"
     },
@@ -907,20 +879,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_CAIRO_PROFILE_FIXED_TABLES": {
-      "owner": "src/frontends/cairo/conformance/multiplicity_tables.zig",
-      "default": "null at environment lookup; enclosing presence predicate is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/cairo/conformance/multiplicity_tables.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/cairo/conformance/multiplicity_tables.zig",
-        "text": "    const profile_tables = std.posix.getenv(\"STWO_CAIRO_PROFILE_FIXED_TABLES\") != null;\n    var work: [pool_split.work_pool.MAX_WORKERS]TableWork = undefined;\n    for (work[0..worker_count], 0..) |*item, index| item.* = .{\n        .tables = tables,\n        .feeds = feeds,\n        .worker_index = index,\n        .worker_count = worker_count,"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_CAIRO_PROOF_OUTPUT": {
       "owner": "src/products/cairo/cpu/tests/cpu_proof_test.zig",
       "default": "disabled: no proof output directory",
@@ -977,20 +935,6 @@
       "default_evidence": {
         "path": "scripts/cairo/generate_cairo_claim_registry.py",
         "text": "        \"STWO_CAIRO_RUST_ROOT\",\n        ROOT.parent / \"stwo-cairo\",\n    )\n)\nDEFAULT_OUTPUT = ROOT / \"src/frontends/cairo/air/official_claim_registry.zig\"\n\nPINNED_STWO_CAIRO_REVISION = \"82f21252a68ec006d73e299f5bf1ce6d4db0ee78\""
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_CAIRO_SOURCE_STAGE_PROFILE": {
-      "owner": "src/integrations/cairo_cuda/canonical_source.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_cuda/canonical_source.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_cuda/canonical_source.zig",
-        "text": "        if (!std.process.hasEnvVarConstant(\"STWO_CAIRO_SOURCE_STAGE_PROFILE\")) return .{ .timer = null };\n        return .{ .timer = std.time.Timer.start() catch null };\n    }\n\n    fn mark(self: *SourceProfile, name: []const u8) void {\n        if (self.timer) |*timer| std.debug.print(\"cairo-cuda source-stage name={s} elapsed_ns={}\\n\", .{ name, timer.lap() });\n    }"
       },
       "expires": "2026-12-13"
     },
