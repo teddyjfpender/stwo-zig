@@ -256,7 +256,8 @@ pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Pr
     var interaction = try W.writeReleasing(a, &base, key.pp, elements.z, elements.alpha);
     defer interaction.deinit();
     channel.mixFelts(&interaction.claimed_sums.toArray());
-    try scheme.commit(a, interaction.columns, &channel);
+    // PCS consumes the interaction buffers on success and on failure.
+    try scheme.commitOwned(a, interaction.takeColumns(), &channel);
     const bound = try bind(a, key, elements.z, elements.alpha, interaction.claimed_sums);
     defer a.free(bound);
     const components = try a.alloc(Components.ComponentProver, bound.len);
