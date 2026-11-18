@@ -25,7 +25,7 @@ const Key = struct {
     }
     fn init(input: anytype, shape: *const V.Shape) Key {
         var self = Key{ .h = std.crypto.hash.sha2.Sha256.init(.{}) };
-        self.h.update("rv64-om31-leaf-seed-class/v1\x00");
+        self.h.update("rv64-om31-leaf-seed-class/v2\x00");
         self.h.update(@import("stwo_circuit_cpu_integration").om31.protocol.domainName());
         self.h.update(@tagName(Outer.shape()));
         self.h.update(&input.expected.fixed);

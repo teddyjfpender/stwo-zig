@@ -139,6 +139,7 @@
       "rv64_component_profiles.zig::joined custody diagnostics execute actual component group without ownership transfer on refusal",
       "rv64_component_profiles.zig::joined custody diagnostics preserve ownership on self adoption and every allocation failure",
       "rv64_proof_artifact_support.zig::artifact directory sync accepts borrowed non-iterable handles and preserves ownership",
+      "rv64_recursion/om31_native/short_fri_test.zig::OM31 native PCS short FRI authenticates dense, repeated and sparse queries at fixed shape",
       "rv64_recursion/packed_admission.zig::packed root admission executes public codec bytes depth refusal and every allocation cleanup"
     ]
   },
@@ -159,14 +160,14 @@
     ]
   },
   "budget": {
-    "code_files": 949,
-    "code_lines": 137358,
+    "code_files": 950,
+    "code_lines": 137651,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 1,
     "api_entries": 93,
     "dependencies": 9,
     "rv64_registry_flags": 19,
-    "versioned_files": 961
+    "versioned_files": 962
   }
 }

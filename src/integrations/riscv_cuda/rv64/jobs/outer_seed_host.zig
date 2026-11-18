@@ -41,6 +41,10 @@ pub fn fillHost(program: Schema.Program, children: []const []const u32, scratch_
         const n_cap = @as(usize, 1) << @intCast(c.cl);
         var known: [64]bool = @splat(false);
         const cap = scratch[c.scratch..][0 .. n_cap * 8];
+        const groups = if (c.kind == 2) @as(usize, 1) << @intCast(c.height) else 0;
+        const value_words = c.width * 8;
+        const depth = c.height * 8;
+        if (groups != 0) @memset(scratch[c.scratch..][0 .. groups * (value_words + depth)], 0);
         var bad = false;
         for (0..c.nq) |qi| {
             const q = img[c.queries + qi];
@@ -72,6 +76,22 @@ pub fn fillHost(program: Schema.Program, children: []const []const u32, scratch_
             }
             if (c.cl == 0) {
                 if (!std.mem.eql(u32, &node, img[c.root..][0..8])) rank.note(&worst, .cap_root);
+                if (groups != 0) {
+                    if (pos >= groups) {
+                        rank.note(&worst, .query_range);
+                        continue;
+                    }
+                    const vs = scratch[c.scratch + pos * value_words ..][0..value_words];
+                    const ss = scratch[c.scratch + groups * value_words + pos * depth ..][0..depth];
+                    const src = img[c.values + qi * value_words ..][0..value_words];
+                    if (known[pos]) {
+                        if (!std.mem.eql(u32, vs, src) or !std.mem.eql(u32, ss, path[0..depth])) rank.note(&worst, .cap_mismatch);
+                    } else {
+                        known[pos] = true;
+                        @memcpy(vs, src);
+                        @memcpy(ss, path[0..depth]);
+                    }
+                }
                 continue;
             }
             const at: usize = pos >> @intCast(walk);

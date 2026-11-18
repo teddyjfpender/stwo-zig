@@ -125,11 +125,8 @@ pub fn build(b: *std.Build) void {
     // r-truth (recursion): GPU-native TruthJob + device seed fill host tests
     // (rv64/jobs/truth_*.zig, outer_seed_*.zig); same imports as the native root.
     const jobs_truth_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_truth_test_root.zig"), .target = target, .optimize = optimize });
-    jobs_truth_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
-    jobs_truth_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
-    jobs_truth_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
-    jobs_truth_root.addImport("stwo_cuda_backend", backend);
-    jobs_truth_root.addImport("stwo_riscv_frontend", frontend);
+    for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_riscv_frontend" }) |name|
+        jobs_truth_root.addImport(name, integration.import_table.get(name).?);
     const jobs_truth_run = jobTestStep(b, b.addTest(.{ .root_module = jobs_truth_root }), check_only);
     jobs_step.dependOn(jobs_truth_run);
     b.step("test-rv64-jobs-truth", "Test the M8 GPU-native TruthJob plan, challenge scripts, parameter programs and seed programs without a GPU").dependOn(jobs_truth_run);
@@ -147,6 +144,8 @@ pub fn build(b: *std.Build) void {
     // cache policy and staged image, host tests without a GPU.
     const jobs_outer_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_outer_test_root.zig"), .target = target, .optimize = optimize });
     jobs_outer_root.addImport("stwo_cuda_backend", backend);
+    for ([_]*std.Build.Module{ outer_codec_root, jobs_root, recursion_jobs_root, jobs_truth_root, jobs_sched_root, jobs_parity_root, jobs_outer_root }) |root|
+        root.addImport("stwo_circuit_frontend", integration.import_table.get("stwo_circuit_frontend").?);
     const jobs_outer_tests = b.addTest(.{ .root_module = jobs_outer_root });
     jobs_outer_tests.linkLibC();
     b.step("test-rv64-jobs-outer", "Test the M8 OuterNodeJob class plan, enqueue-only trace commit, graph cache and staged image without a GPU").dependOn(jobTestStep(b, jobs_outer_tests, check_only));

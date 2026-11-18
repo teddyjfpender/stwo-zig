@@ -49,7 +49,7 @@ const Enc = @import("outer_encode.zig");
 
 pub const modulus: u32 = 0x7fff_ffff;
 pub const program_magic: u32 = 0x3144_534f; // "OSD1"
-pub const program_version: u32 = 1;
+pub const program_version: u32 = 2;
 pub const max_children = 8;
 /// om31 claims per node proof (outer_plan.n_components), in the wire after the outputs.
 pub const n_claims = 11;
@@ -288,7 +288,7 @@ pub const Op = extern struct {
     }
 };
 pub const Cap = extern struct {
-    kind: u32, // 0 trace tree, 1 FRI layer
+    kind: u32, // 0 trace tree, 1 FRI layer, 2 grouped FRI layer
     child: u32,
     height: u32, // hostCap height (tree height / layer log after the fold)
     cl: u32,
@@ -421,22 +421,25 @@ const Builder = struct {
             try self.op(.hash, k, .scratch, at, @as(usize, 1) << @intCast(cl), 8, 1, 0);
         };
         var log = L.initial_log;
-        for (L.layers[0..L.n_layers]) |l| {
+        for (L.layers[0..L.n_layers], 0..) |l, index| {
             const layer_log = log;
             log -= l.step;
             const cl = capLogFor(log, cap_log);
-            const subset = @as(usize, 1) << @intCast(l.step);
-            try self.op(.om31, k, .image, l.values, subset, 8, nq, subset * 8);
-            if (cl == 0) {
-                try self.caps.append(self.a, .{ .kind = 1, .child = k, .height = log, .cl = 0, .values = @intCast(l.values), .width = @intCast(subset), .paths = @intCast(l.paths + (l.step - l.leaf_log) * 8), .path_stride = l.slots * l.height * 8, .level0 = l.step - l.leaf_log, .root = @intCast(l.root), .scratch = 0, .queries = @intCast(L.queries), .nq = nq, .from_log = l.shift, .to_log = l.step, .layer_log = layer_log, .pack = @intFromBool(layer_log >= 2 and l.step > 1) });
-            } else {
-                const at = self.scratch;
-                try self.caps.append(self.a, .{ .kind = 1, .child = k, .height = log, .cl = cl, .values = @intCast(l.values), .width = @intCast(subset), .paths = @intCast(l.paths + (l.step - l.leaf_log) * 8), .path_stride = l.slots * l.height * 8, .level0 = l.step - l.leaf_log, .root = @intCast(l.root), .scratch = at, .queries = @intCast(L.queries), .nq = nq, .from_log = l.shift, .to_log = l.step, .layer_log = layer_log, .pack = @intFromBool(layer_log >= 2 and l.step > 1) });
+            const subset = @as(u32, 1) << @intCast(l.step);
+            const groups: u32 = @intCast(@import("stwo_circuit_frontend").native_verifier.fri.shortLineGroups(index, log, l.step, nq, cl));
+            const at = self.scratch;
+            const c = Cap{ .kind = if (groups != 0) 2 else 1, .child = k, .height = log, .cl = cl, .values = @intCast(l.values), .width = subset, .paths = @intCast(l.paths + (l.step - l.leaf_log) * 8), .path_stride = l.slots * l.height * 8, .level0 = l.step - l.leaf_log, .root = @intCast(l.root), .scratch = if (groups != 0 or cl != 0) at else 0, .queries = @intCast(L.queries), .nq = nq, .from_log = l.shift, .to_log = l.step, .layer_log = layer_log, .pack = @intFromBool(layer_log >= 2 and l.step > 1) };
+            try self.caps.append(self.a, c);
+            if (groups != 0) {
+                self.scratch += groups * (subset + log) * 8;
+                try self.op(.om31, k, .scratch, at, subset, 8, groups, subset * 8);
+            } else try self.op(.om31, k, .image, c.values, subset, 8, nq, subset * 8);
+            if (cl != 0) {
                 self.scratch += (@as(u32, 1) << @intCast(cl)) * 8;
                 try self.op(.hash, k, .scratch, at, @as(usize, 1) << @intCast(cl), 8, 1, 0);
             }
-            try self.op(.hash, k, .image, l.root, 1, 8, 1, 0);
-            try self.op(.hash, k, .image, l.paths + (l.step - l.leaf_log) * 8, log - cl, 8, nq, l.slots * l.height * 8);
+            try self.op(.hash, k, .image, c.root, 1, 8, 1, 0);
+            if (groups != 0) try self.op(.hash, k, .scratch, at + groups * subset * 8, log, 8, groups, log * 8) else try self.op(.hash, k, .image, c.paths, log - cl, 8, nq, c.path_stride);
         }
         try self.op(.word, k, .image, L.nonce, 2, 1, 1, 0);
         try self.op(.om31, k, .image, L.terminal, 1, 8, 1, 0);
@@ -508,6 +511,8 @@ pub const kernel_max_coset_leaves: u32 = 16;
 pub fn capFitsKernel(c: Cap) bool {
     if (c.nq > kernel_max_queries or c.cl > kernel_max_cap_log or c.cl > c.height) return false;
     if (c.kind == 0) return true;
+    if (c.kind > 2) return false;
+    if (c.kind == 2 and (c.from_log >= 32 or @import("stwo_circuit_frontend").native_verifier.fri.shortLineGroups(c.from_log, c.height, c.to_log, c.nq, c.cl) == 0)) return false;
     const per: u32 = if (c.pack != 0) 4 else 1;
     if (c.width == 0 or c.width % per != 0) return false;
     const leaves = c.width / per;
@@ -724,7 +729,7 @@ pub const Symbols = struct {
     pub fn load(lib: *std.DynLib) !Symbols {
         const Version = *const fn () callconv(.c) u32;
         const v = lib.lookup(Version, "stwo_rv64_outer_seed_version") orelse return error.MissingOuterSeedKernel;
-        if (v() != 1) return error.OuterSeedKernelVersion;
+        if (v() != program_version) return error.OuterSeedKernelVersion;
         return .{ .fill = lib.lookup(@FieldType(Symbols, "fill"), "stwo_rv64_outer_seed_fill_v1_on") orelse return error.MissingOuterSeedKernel };
     }
 };
@@ -744,20 +749,25 @@ pub const Synthetic = struct {
     s2o: [2][3]u32,
     sc: [2][3]u32,
     pub fn init(self: *Synthetic, a: std.mem.Allocator, seed: u64, wire_words: u32) !void {
+        return self.initQueries(a, seed, wire_words, null);
+    }
+    pub fn initQueries(self: *Synthetic, a: std.mem.Allocator, seed: u64, wire_words: u32, draws: ?[]const u32) !void {
         var rng = std.Random.DefaultPrng.init(seed);
         const r = rng.random();
         self.logs = .{ .{ 3, 2, 3 }, .{ 3, 3, 1 } };
         self.s2o = .{ .{ 1, 0, 2 }, .{ 2, 0, 1 } };
         self.sc = .{ .{ 1, 0, 2 }, .{ 1, 1, 0 } };
         for (&self.trees_store, 0..) |*t, i| t.* = .{ .logs = &self.logs[i], .sorted_to_original = &self.s2o[i], .sample_counts = &self.sc[i] };
-        self.shape = .{ .pow_bits = 1, .log_blowup = 1, .log_last = 0, .n_queries = 6, .fold_step = 1, .lifting = null, .degree_log = 3, .trees = &self.trees_store };
+        self.shape = .{ .pow_bits = 1, .log_blowup = 1, .log_last = 0, .n_queries = if (draws) |v| @intCast(v.len) else 6, .fold_step = 1, .lifting = null, .degree_log = 3, .trees = &self.trees_store };
         const L = try Layout.of(self.shape);
         self.image = try a.alloc(u32, L.words);
         for (self.image) |*w| w.* = r.int(u32) & 0x3fff_ffff;
         self.image[0] = image_magic;
         self.image[1] = 2;
         const queries = self.image[L.queries..][0..L.nq];
-        for (queries) |*q| q.* = r.uintLessThan(u32, @as(u32, 1) << @intCast(L.initial_log));
+        if (draws) |v| @memcpy(queries, v) else {
+            for (queries) |*q| q.* = r.uintLessThan(u32, @as(u32, 1) << @intCast(L.initial_log));
+        }
         for (0..2) |t| {
             const tl = L.trees[t];
             const h = tl.height;

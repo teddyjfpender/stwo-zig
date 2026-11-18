@@ -49,7 +49,7 @@ namespace stwo::cuda::rv64 {
 namespace {
 constexpr uint32_t kModulus = 0x7fffffffu;
 constexpr uint32_t kSeedTape = 0x0305u, kChildBinding = 0x0306u;
-constexpr uint32_t kProgramMagic = 0x3144534fu, kImageMagic = 0x52564d4fu;
+constexpr uint32_t kProgramMagic = 0x3144534fu, kProgramVersion = 2, kImageMagic = 0x52564d4fu;
 constexpr uint32_t kWireMagic0 = 0x4f575453u, kWireMagic1 = 0x314d4f43u;
 constexpr uint32_t kNone = 0xffffu;
 enum : uint32_t {  // outer_seed_device.zig P
@@ -120,7 +120,7 @@ __global__ void seed_begin(StwoRv64OuterSeedIo io) {
   if (threadIdx.x == 0) *rank = kNone;
   __syncthreads();
   const uint32_t *p = io.program;
-  if (p[pMagic] != kProgramMagic || p[pVersion] != 1 || p[pWords] != io.program_words || p[pChildren] != io.n_children ||
+  if (p[pMagic] != kProgramMagic || p[pVersion] != kProgramVersion || p[pWords] != io.program_words || p[pChildren] != io.n_children ||
       p[pOps] != io.n_ops || p[pCaps] != io.n_caps ||
       io.seeds_words < 5ull * p[pSeeds] || io.scratch_words < uint64_t(p[pScratch]) + 8) {
     if (threadIdx.x == 0) note(rank, sProgram);
@@ -142,26 +142,77 @@ __global__ void seed_begin(StwoRv64OuterSeedIo io) {
 // One block per cap job; one thread per query (strided).
 __global__ void seed_caps(StwoRv64OuterSeedIo io) {
   uint32_t *rank = io.scratch + (io.scratch_words - 8);
-  if (*rank <= sImageHeader) return;
+  __shared__ int bad;
+  if (threadIdx.x == 0) bad = *rank <= sImageHeader;
+  __syncthreads();
+  if (bad) return;
   const uint32_t *p = io.program;
   const Cap c = reinterpret_cast<const Cap *>(p + p[pCapsAt])[blockIdx.x];
   const uint32_t *e = p + p[pChildrenAt] + c.child * cWords;
   const uint32_t *img = io.children[c.child] + e[cImage];
+  if (c.kind > 2 || c.nq > 1024 || c.cl > 6 || c.cl > c.height) {
+    if (threadIdx.x == 0) note(rank, sProgram);
+    return;
+  }
   const uint32_t n_cap = 1u << c.cl;
   __shared__ uint32_t at_of[1024];
   __shared__ uint32_t nodes[1024][8];
-  __shared__ int bad;
-  if (threadIdx.x == 0) bad = 0;
-  __syncthreads();
+  // For short domains one warp can address every possible group. Representatives
+  // come from the raw query image; the recursive circuit derives membership anew.
+  __shared__ uint32_t representative[8];
+  const bool grouped = c.kind == 2;
+  if (grouped) {
+    if (c.height > 3 || c.cl || c.to_log == 0 || c.to_log > 4 ||
+        !c.from_log || c.from_log >= 32 || c.nq < (4u << c.height) || c.width != (1u << c.to_log) ||
+        uint64_t(c.scratch) + (uint64_t(c.width + c.height) << c.height) * 8 > p[pScratch]) {
+      if (threadIdx.x == 0) note(rank, sProgram);
+      return;
+    }
+    const uint32_t groups = 1u << c.height;
+    if (threadIdx.x < groups) representative[threadIdx.x] = c.nq;
+    __syncthreads();
+    for (uint32_t q = threadIdx.x; q < c.nq; q += blockDim.x) {
+      const uint32_t g = (img[c.queries + q] >> c.from_log) >> c.to_log;
+      if (g < groups) atomicMin(representative + g, q);
+      else note(rank, sQueryRange);
+    }
+    __syncthreads();
+    const uint32_t value_words = 8 * c.width, path_words = 8 * c.height;
+    const uint32_t end = groups * (value_words + path_words);
+    for (uint32_t i = threadIdx.x; i < end; i += blockDim.x) {
+      const bool path = i >= groups * value_words;
+      const uint32_t local = path ? i - groups * value_words : i;
+      const uint32_t stride = path ? path_words : value_words;
+      const uint32_t q = representative[local / stride];
+      const uint32_t base = path ? c.paths : c.values;
+      const uint32_t pitch = path ? c.path_stride : value_words;
+      io.scratch[c.scratch + i] = q == c.nq ? 0 : img[base + q * pitch + local % stride];
+    }
+  }
   const uint32_t walk = c.height - c.cl;
   for (uint32_t qi = threadIdx.x; qi < c.nq; qi += blockDim.x) {
     const uint32_t q = img[c.queries + qi];
+    if (grouped) {
+      const uint32_t group = (q >> c.from_log) >> c.to_log;
+      if (group >= (1u << c.height)) continue;
+      const uint32_t first = representative[group];
+      if (first != qi) {
+        for (uint32_t i = 0; i < 8 * c.width; ++i) {
+          const uint32_t word = img[c.values + qi * 8 * c.width + i];
+          if (word >= kModulus) note(rank, sNoncanonical);
+          if (word != img[c.values + first * 8 * c.width + i]) note(rank, sCapMismatch);
+        }
+        for (uint32_t i = 0; i < 8 * c.height; ++i)
+          if (img[c.paths + qi * c.path_stride + i] != img[c.paths + first * c.path_stride + i]) note(rank, sCapMismatch);
+        continue;
+      }
+    }
     uint32_t node[8];
     uint32_t pos;
     if (c.kind == 0) {
       if (c.from_log >= 32 || q >= (1u << c.from_log)) {
         note(rank, sQueryRange);
-        bad = 1;
+        atomicExch(&bad, 1);
         at_of[qi] = 0xffffffffu;
         continue;
       }
@@ -217,7 +268,7 @@ __global__ void seed_caps(StwoRv64OuterSeedIo io) {
     const uint32_t at = pos >> walk;
     if (at >= n_cap) {
       note(rank, sQueryRange);
-      bad = 1;
+      atomicExch(&bad, 1);
       at_of[qi] = 0xffffffffu;
       continue;
     }
@@ -458,4 +509,4 @@ extern "C" int stwo_rv64_outer_seed_fill_v1_on(void *context, uint32_t lane, con
   return int(cudaPeekAtLastError());
 }
 
-extern "C" uint32_t stwo_rv64_outer_seed_version(void) { return 1; }
+extern "C" uint32_t stwo_rv64_outer_seed_version(void) { return stwo::cuda::rv64::kProgramVersion; }

@@ -94,8 +94,69 @@ test "seed program: caps outside the kernel's fixed arrays are refused" {
     try t.expect(Schema.capFitsKernel(c));
     c.to_log = 4; // leaves != 2^(to_log - 2)
     try t.expect(!Schema.capFitsKernel(c));
+    c = ok;
+    c.kind = 2;
+    c.cl = 0;
+    c.height = 3;
+    c.from_log = 4;
+    c.nq = 32;
+    try t.expect(Schema.capFitsKernel(c));
+    c.nq = 31;
+    try t.expect(!Schema.capFitsKernel(c));
+    c.nq = 32;
+    c.from_log = 0;
+    try t.expect(!Schema.capFitsKernel(c));
     var tr = ok;
     tr.kind = 0;
     tr.width = 300; // trace leaves stream their columns: any width
     try t.expect(Schema.capFitsKernel(tr));
+}
+
+test "seed program: short FRI gather owns coordinate order and clears unseen groups" {
+    const a = std.testing.allocator;
+    for ([_]bool{ false, true }) |sparse| {
+        var draws: [32]u32 = undefined;
+        for (&draws, 0..) |*q, i| q.* = if (sparse) 5 else @intCast(i % 16);
+        var child: Schema.Synthetic = undefined;
+        try child.initQueries(a, 531, 128, &draws);
+        defer child.deinit(a);
+        const cls = Schema.ChildClass{ .shape = child.shape, .wire_words = 128, .n_outputs = 2, .identity = @splat(7), .fixed_root = @splat(0) };
+        const tape = try Schema.leafTapeLength(a, cls, 0);
+        const vars = try a.alloc(u32, tape);
+        defer a.free(vars);
+        for (vars, 0..) |*v, i| v.* = @intCast(i);
+        const prog = try Schema.buildLeaf(a, cls, 0, 0, vars, &.{}, null);
+        defer prog.deinit(a);
+        const scratch = try a.alloc(u32, prog.header(Schema.P.scratch_words) + 8);
+        defer a.free(scratch);
+        @memset(scratch, 0xabababab);
+        const out = try a.alloc(u32, 5 * vars.len);
+        defer a.free(out);
+        try std.testing.expectEqual(0, Schema.fillHost(prog, &.{child.region}, scratch, out));
+        var grouped: usize = 0;
+        for (prog.caps()) |c| if (c.kind == 2) {
+            grouped += 1;
+            const slots = @as(usize, 1) << @intCast(c.height);
+            const row = c.width * 8;
+            const paths = c.scratch + slots * row;
+            for (0..slots) |group| {
+                const q: ?usize = for (draws, 0..) |pos, j| {
+                    if ((pos >> @intCast(c.from_log + c.to_log)) == group) break j;
+                } else null;
+                const vv = scratch[c.scratch + group * row ..][0..row];
+                const pp = scratch[paths + group * c.height * 8 ..][0 .. c.height * 8];
+                if (q) |j| {
+                    try std.testing.expectEqualSlices(u32, child.image[c.values + j * row ..][0..row], vv);
+                    try std.testing.expectEqualSlices(u32, child.image[c.paths + j * c.path_stride ..][0..pp.len], pp);
+                } else {
+                    try std.testing.expect(std.mem.allEqual(u32, vv, 0));
+                    try std.testing.expect(std.mem.allEqual(u32, pp, 0));
+                }
+            }
+        };
+        try std.testing.expectEqual(2, grouped);
+        const bad = prog.caps()[prog.caps().len - 1];
+        child.region[128 + bad.values] = Schema.modulus;
+        try std.testing.expectEqual((@as(u32, 0x0305) << 16) | @intFromEnum(Schema.SeedDetail.noncanonical), Schema.fillHost(prog, &.{child.region}, scratch, out));
+    }
 }
