@@ -36,7 +36,7 @@ pub fn cspProof(comptime Engine: type, backend_name: []const u8) !void {
             });
             // Diagnostic only: preserve the original required proof's failure.
             // The control changes scheduling, never the statement or security.
-            if (csp.prove(Engine, allocator, elf, input, frontend.prover_mod.SECURE_PCS_CONFIG, 1)) |control| {
+            if (csp.proveWithRecorder(Engine, allocator, elf, input, frontend.prover_mod.SECURE_PCS_CONFIG, 1, &recorder)) |control| {
                 defer allocator.free(control.encoded);
                 std.debug.print("CSP one-worker control: PASS suite={s} proof_bytes={d}\n", .{
                     @tagName(control.transcript_receipt.suite), control.proof_bytes,
