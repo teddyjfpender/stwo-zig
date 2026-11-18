@@ -54,6 +54,7 @@ pub fn decommit(ctx: *C.Context, proof: *const P.Proof, lifting_log: u32, config
     var step_buffer: [64]u32 = undefined;
     const steps = core.fri.allFoldSteps(degree_log - config.log_last_layer_degree_bound, config.fold_step, &step_buffer);
     if (steps.len != proof.layers.len) return error.ShapeMismatch;
+    var frontier: ?native.merkle.SparseCap = null;
     var values = try a.dupe(F, input);
     var bits = queries.unpacked;
     var packed_bits = queries.bits;
@@ -90,7 +91,11 @@ pub fn decommit(ctx: *C.Context, proof: *const P.Proof, lifting_log: u32, config
         const leaves = try a.alloc(C.Hash, size / width);
         const next = try a.alloc(F, queries.n_queries);
         const per_fold = try a.alloc([]C.Var, step);
-        if (cl != 0) try native.merkle.verifyCap(Q, ctx, layer.cap, layer.commitment);
+        if (cl >= native.merkle.sparse_cap_log) {
+            if (cl > bits.len) return error.ShapeMismatch;
+            if (frontier == null) frontier = try native.merkle.SparseCap.init(Q, ctx, bits[bits.len - cl ..]);
+            try frontier.?.verify(Q, ctx, layer.cap, layer.commitment);
+        } else if (cl != 0) try native.merkle.verifyCap(Q, ctx, layer.cap, layer.commitment);
         for (layer.cosets, layer.auth_paths, values, next, 0..) |coset, path, value, *out, q| {
             if (coset.len != size or path.len + cl != bits.len) return error.ShapeMismatch;
             for (position, query_bits[0..step]) |column, *bit| bit.* = column[q];
@@ -102,6 +107,8 @@ pub fn decommit(ctx: *C.Context, proof: *const P.Proof, lifting_log: u32, config
             for (bits, query_bits[0..bits.len]) |column, *bit| bit.* = column[q];
             if (cl == 0) {
                 try native.merkle.verifyPath(Q, ctx, leaves[0], query_bits[0..bits.len], path, layer.commitment);
+            } else if (cl >= native.merkle.sparse_cap_log) {
+                try native.merkle.verifyPath(Q, ctx, leaves[0], query_bits[0..path.len], path, try frontier.?.terminal(Q, ctx, layer.cap, q));
             } else {
                 try native.merkle.verifyPathToCap(Q, ctx, leaves[0], query_bits[0..bits.len], path, layer.cap);
             }

@@ -49,7 +49,7 @@ namespace stwo::cuda::rv64 {
 namespace {
 constexpr uint32_t kModulus = 0x7fffffffu;
 constexpr uint32_t kSeedTape = 0x0305u, kChildBinding = 0x0306u;
-constexpr uint32_t kProgramMagic = 0x3144534fu, kProgramVersion = 2, kImageMagic = 0x52564d4fu;
+constexpr uint32_t kProgramMagic = 0x3144534fu, kProgramVersion = 3, kImageMagic = 0x52564d4fu;
 constexpr uint32_t kWireMagic0 = 0x4f575453u, kWireMagic1 = 0x314d4f43u;
 constexpr uint32_t kNone = 0xffffu;
 enum : uint32_t {  // outer_seed_device.zig P
@@ -150,7 +150,7 @@ __global__ void seed_caps(StwoRv64OuterSeedIo io) {
   const Cap c = reinterpret_cast<const Cap *>(p + p[pCapsAt])[blockIdx.x];
   const uint32_t *e = p + p[pChildrenAt] + c.child * cWords;
   const uint32_t *img = io.children[c.child] + e[cImage];
-  if (c.kind > 2 || c.nq > 1024 || c.cl > 6 || c.cl > c.height) {
+  if (c.kind > 2 || !c.nq || c.nq > 1024 || c.cl > 6 || c.cl > c.height) {
     if (threadIdx.x == 0) note(rank, sProgram);
     return;
   }
@@ -279,40 +279,59 @@ __global__ void seed_caps(StwoRv64OuterSeedIo io) {
   if (threadIdx.x != 0 || bad || c.cl == 0) return;
   // Assemble in query order (the host's first-writer wins, later must agree).
   uint32_t *cap = io.scratch + c.scratch;
-  uint64_t known = 0;
+  const bool sparse = c.cl >= 4;
+  uint64_t known = 0, touched = 0;
+  for (uint32_t qi = 0; qi < c.nq; ++qi) touched |= 1ull << at_of[qi];
+  if (sparse)
+    for (uint32_t i = 0; i < n_cap * 8; ++i) cap[i] = 0;
+  auto store = [&](uint32_t slot, const uint32_t *h) {
+    const uint64_t bit = 1ull << slot;
+    for (int j = 0; j < 8; ++j) {
+      if ((known & bit) && cap[slot * 8 + j] != h[j]) note(rank, sCapMismatch);
+      cap[slot * 8 + j] = h[j];
+    }
+    known |= bit;
+  };
   for (uint32_t qi = 0; qi < c.nq; ++qi) {
     const uint32_t at = at_of[qi];
-    const uint32_t *sib = img + c.paths + qi * c.path_stride + walk * 8;
-    const uint32_t idx[2] = {at, at ^ 1u};
-    for (int k = 0; k < 2; ++k) {
-      const uint32_t *h = k == 0 ? nodes[qi] : sib;
-      if (known >> idx[k] & 1) {
-        for (int i = 0; i < 8; ++i)
-          if (cap[idx[k] * 8 + i] != h[i]) {
-            note(rank, sCapMismatch);
-            break;
-          }
-      } else {
-        for (int i = 0; i < 8; ++i) cap[idx[k] * 8 + i] = h[i];
-        known |= 1ull << idx[k];
-      }
+    const uint32_t *path = img + c.paths + qi * c.path_stride + walk * 8;
+    store(at, nodes[qi]);
+    if (!sparse) {
+      store(at ^ 1u, path);
+      continue;
+    }
+    for (uint32_t l = 0; l < c.cl; ++l) {
+      const uint32_t width = 1u << l, first = ((at >> l) ^ 1u) * width;
+      if (!(touched & (((1ull << width) - 1) << first))) store(first, path + 8 * l);
     }
   }
   const uint64_t all = n_cap == 64 ? ~0ull : ((1ull << n_cap) - 1);
-  if ((known & all) != all) {
+  if (!sparse && known != all) {
     note(rank, sCapUncovered);
     return;
   }
   uint32_t layer[64][8];
   for (uint32_t i = 0; i < n_cap; ++i)
     for (int j = 0; j < 8; ++j) layer[i][j] = cap[i * 8 + j];
-  for (uint32_t n = n_cap; n > 1;) {
+  for (uint32_t n = n_cap, l = 0; n > 1; ++l) {
+    // Every supplied upper sibling is authenticated, including duplicates.
+    if (sparse) for (uint32_t qi = 0; qi < c.nq; ++qi) {
+      const uint32_t *path = img + c.paths + qi * c.path_stride + (walk + l) * 8;
+      const uint32_t *expected = layer[(at_of[qi] >> l) ^ 1u];
+      for (int j = 0; j < 8; ++j) if (path[j] != expected[j]) note(rank, sCapMismatch);
+    }
     n /= 2;
-    for (uint32_t i = 0; i < n; ++i) node_hash(layer[2 * i], layer[2 * i + 1], layer[i]);
+    const uint32_t width = n_cap / n;
+    for (uint32_t i = 0; i < n; ++i) {
+      const uint32_t first = i * width;
+      if (sparse && n > 1 && !(touched & (((1ull << width) - 1) << first))) {
+        for (int j = 0; j < 8; ++j) layer[i][j] = cap[first * 8 + j];
+      } else node_hash(layer[2 * i], layer[2 * i + 1], layer[i]);
+    }
   }
   for (int i = 0; i < 8; ++i)
     if (layer[0][i] != img[c.root + i]) {
-      note(rank, sCapRoot);
+      note(rank, sparse ? sCapMismatch : sCapRoot);
       return;
     }
 }

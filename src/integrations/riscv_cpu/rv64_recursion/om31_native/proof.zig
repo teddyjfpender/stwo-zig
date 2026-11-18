@@ -51,6 +51,13 @@ pub fn ForCrypto(comptime Crypto: type) type {
                 try validateProof(self.*, shape);
             }
         };
+        fn captureCap(cap: []H.Hash, positions: []const usize, leaves: []const H.Hash, siblings: []const []const H.Hash, height: u32, root: H.Hash) !void {
+            const merkle = circuit.native_verifier.merkle;
+            if (H == LegacyCrypto.H and cap.len >= 1 << merkle.sparse_cap_log)
+                return merkle.hostSparseCap(H, cap, positions, leaves, siblings, height, root);
+            return merkle.hostCap(H, cap, positions, leaves, siblings, height, root);
+        }
+
         fn capLen(height: u32, cap_log: u32) usize {
             const cl = circuit.native_verifier.merkle.capLogFor(height, cap_log);
             return if (cl == 0) 0 else @as(usize, 1) << @intCast(cl);
@@ -224,7 +231,7 @@ pub fn ForCrypto(comptime Crypto: type) type {
                     leaf.* = hasher.finalize();
                 }
                 const cap = try a.alloc(H.Hash, @as(usize, 1) << @intCast(cl));
-                try merkle.hostCap(H, cap, capture.trace_paths[t].positions, leaves, result.auth_paths[t], height, result.commitments[t]);
+                try captureCap(cap, capture.trace_paths[t].positions, leaves, result.auth_paths[t], height, result.commitments[t]);
                 caps[t] = cap;
                 auth[t] = try truncatePaths(a, result.auth_paths[t], height - cl);
             }
@@ -247,7 +254,7 @@ pub fn ForCrypto(comptime Crypto: type) type {
                     position.* = raw_position >> @intCast(step);
                 }
                 const cap = try a.alloc(H.Hash, @as(usize, 1) << @intCast(cl));
-                try merkle.hostCap(H, cap, positions, leaves, in.auth_paths, @intCast(log), in.commitment);
+                try captureCap(cap, positions, leaves, in.auth_paths, @intCast(log), in.commitment);
                 out.cap = cap;
                 out.auth_paths = try truncatePaths(a, in.auth_paths, log - cl);
             }

@@ -430,7 +430,7 @@ test "OM31 native PCS short FRI real proof replays its verified capture" {
     defer arena.deinit();
     const scratch = arena.allocator();
     const shape = try geometry(scratch, cfg);
-    for ([_]u32{ 0, 3 }) |cap_log| {
+    for ([_]u32{ 0, 3, 4 }) |cap_log| {
         const proof = try V.proof.fromNativeCapped(scratch, &native.proof, &capture_data, &shape, cap_log);
         const compact = proof.layers[proof.layers.len - 1];
         const raw = capture_data.fri.layers[proof.layers.len - 1];

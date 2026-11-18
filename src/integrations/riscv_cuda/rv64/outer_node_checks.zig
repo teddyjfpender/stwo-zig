@@ -194,9 +194,9 @@ pub const EncodeCheck = struct {
 pub const GnCheck = struct {
     pub const field_index: u32 = 0x474e_4f44; // "GNOD"
     /// Fold children: om31 node proofs under the diet-wire profile (fold
-    /// Merkle cap 2^3); leaf children: native proofs with full paths.
+    /// Merkle cap 2^3); native children use a transcript-derived sparse frontier.
     pub const cap_log: u32 = 3;
-    pub const leaf_cap_log: u32 = 0;
+    pub const leaf_cap_log: u32 = @import("stwo_circuit_frontend").native_verifier.merkle.sparse_cap_log;
     const fold_domain: u32 = 0x4f464c31;
     /// >= 1 + the largest om31 node wire in words: 759,512 B on 24628607 /
     /// 26235156 [M] (189,879 words); 2^18 words = 1 MiB of bytes.

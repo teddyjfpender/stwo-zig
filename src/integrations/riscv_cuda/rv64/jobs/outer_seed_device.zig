@@ -49,7 +49,7 @@ const Enc = @import("outer_encode.zig");
 
 pub const modulus: u32 = 0x7fff_ffff;
 pub const program_magic: u32 = 0x3144_534f; // "OSD1"
-pub const program_version: u32 = 2;
+pub const program_version: u32 = 3;
 pub const max_children = 8;
 /// om31 claims per node proof (outer_plan.n_components), in the wire after the outputs.
 pub const n_claims = 11;
@@ -509,7 +509,7 @@ pub const kernel_max_queries: u32 = 1024;
 pub const kernel_max_cap_log: u32 = 6;
 pub const kernel_max_coset_leaves: u32 = 16;
 pub fn capFitsKernel(c: Cap) bool {
-    if (c.nq > kernel_max_queries or c.cl > kernel_max_cap_log or c.cl > c.height) return false;
+    if (c.nq == 0 or c.nq > kernel_max_queries or c.cl > kernel_max_cap_log or c.cl > c.height) return false;
     if (c.kind == 0) return true;
     if (c.kind > 2) return false;
     if (c.kind == 2 and (c.from_log >= 32 or @import("stwo_circuit_frontend").native_verifier.fri.shortLineGroups(c.from_log, c.height, c.to_log, c.nq, c.cl) == 0)) return false;
@@ -752,13 +752,17 @@ pub const Synthetic = struct {
         return self.initQueries(a, seed, wire_words, null);
     }
     pub fn initQueries(self: *Synthetic, a: std.mem.Allocator, seed: u64, wire_words: u32, draws: ?[]const u32) !void {
+        return self.initAtDegree(a, seed, wire_words, draws, 3);
+    }
+    pub fn initAtDegree(self: *Synthetic, a: std.mem.Allocator, seed: u64, wire_words: u32, draws: ?[]const u32, degree: u32) !void {
+        if (degree < 3 or degree > 8) return error.InvalidSeedProgram;
         var rng = std.Random.DefaultPrng.init(seed);
         const r = rng.random();
-        self.logs = .{ .{ 3, 2, 3 }, .{ 3, 3, 1 } };
+        self.logs = .{ .{ degree, 2, degree }, .{ degree, degree, 1 } };
         self.s2o = .{ .{ 1, 0, 2 }, .{ 2, 0, 1 } };
         self.sc = .{ .{ 1, 0, 2 }, .{ 1, 1, 0 } };
         for (&self.trees_store, 0..) |*t, i| t.* = .{ .logs = &self.logs[i], .sorted_to_original = &self.s2o[i], .sample_counts = &self.sc[i] };
-        self.shape = .{ .pow_bits = 1, .log_blowup = 1, .log_last = 0, .n_queries = if (draws) |v| @intCast(v.len) else 6, .fold_step = 1, .lifting = null, .degree_log = 3, .trees = &self.trees_store };
+        self.shape = .{ .pow_bits = 1, .log_blowup = 1, .log_last = 0, .n_queries = if (draws) |v| @intCast(v.len) else 6, .fold_step = 1, .lifting = null, .degree_log = degree, .trees = &self.trees_store };
         const L = try Layout.of(self.shape);
         self.image = try a.alloc(u32, L.words);
         for (self.image) |*w| w.* = r.int(u32) & 0x3fff_ffff;

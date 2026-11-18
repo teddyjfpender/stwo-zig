@@ -160,3 +160,30 @@ test "seed program: short FRI gather owns coordinate order and clears unseen gro
         try std.testing.expectEqual((@as(u32, 0x0305) << 16) | @intFromEnum(Schema.SeedDetail.noncanonical), Schema.fillHost(prog, &.{child.region}, scratch, out));
     }
 }
+
+test "seed program: a sparse depth-four frontier binds every upper sibling" {
+    const a = std.testing.allocator;
+    const draws = [_]u32{63} ** 54;
+    var child: Schema.Synthetic = undefined;
+    try child.initAtDegree(a, 539, 128, &draws, 5);
+    defer child.deinit(a);
+    const cls = Schema.ChildClass{ .shape = child.shape, .wire_words = 128, .n_outputs = 2, .identity = @splat(7), .fixed_root = @splat(0) };
+    const vars = try a.alloc(u32, try Schema.leafTapeLength(a, cls, 4));
+    defer a.free(vars);
+    for (vars, 0..) |*v, i| v.* = @intCast(i);
+    const prog = try Schema.buildLeaf(a, cls, 4, 0, vars, &.{}, null);
+    defer prog.deinit(a);
+    const scratch = try a.alloc(u32, prog.header(Schema.P.scratch_words) + 8);
+    defer a.free(scratch);
+    const out = try a.alloc(u32, 5 * vars.len);
+    defer a.free(out);
+    @memset(scratch, 0xabababab);
+    try std.testing.expectEqual(0, Schema.fillHost(prog, &.{child.region}, scratch, out));
+    const cap = prog.caps()[0];
+    try std.testing.expectEqual(4, cap.cl);
+    // Only the leftmost slot of the wholly untouched left half holds its digest.
+    try std.testing.expect(std.mem.allEqual(u32, scratch[cap.scratch + 8 ..][0 .. 7 * 8], 0));
+    const last = 128 + cap.paths + cap.path_stride + (cap.height - 1) * 8;
+    child.region[last] ^= 1;
+    try std.testing.expect(Schema.fillHost(prog, &.{child.region}, scratch, out) != 0);
+}

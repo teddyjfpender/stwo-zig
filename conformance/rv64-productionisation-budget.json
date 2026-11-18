@@ -644,7 +644,7 @@
       "net_code_budget": 5,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Correct the full circuit generation allocation preflight from topology-only memory to a 32 GiB minimum accounting for fold-tree\u2019s documented roughly 22 GB per reduction. The first hosted attempt terminated at that owner; refuse another undersized host rather than weaken or omit the full parity workload. No laptop build, larger paid runner or GPU is started."
+      "positive_growth_justification": "Correct the full circuit generation allocation preflight from topology-only memory to a 32 GiB minimum accounting for fold-tree’s documented roughly 22 GB per reduction. The first hosted attempt terminated at that owner; refuse another undersized host rather than weaken or omit the full parity workload. No laptop build, larger paid runner or GPU is started."
     },
     {
       "id": "delivery_independent_manual_cpu_cancellation",
@@ -658,7 +658,7 @@
       "net_code_budget": 50,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Repair the FRI regression\u2019s duplicate relative module import by using the existing named circuit frontend export. Bind the aggregate lexical closure to the exact support modules already injected by its real compiler graph, retaining leaf ownership and all rejection checks. Make the exhaustive Merkle allocation-fault sequence deterministic by refusing backing resizes, retaining all failure/leak checks. Compose the aggregate legacy CPU engine through its existing generic frontend constructor instead of importing unrelated RV64 recursion services. No dependency/API ledger, directory prefix, proof bytes or compiler assertion is widened."
+      "positive_growth_justification": "Repair the FRI regression’s duplicate relative module import by using the existing named circuit frontend export. Bind the aggregate lexical closure to the exact support modules already injected by its real compiler graph, retaining leaf ownership and all rejection checks. Make the exhaustive Merkle allocation-fault sequence deterministic by refusing backing resizes, retaining all failure/leak checks. Compose the aggregate legacy CPU engine through its existing generic frontend constructor instead of importing unrelated RV64 recursion services. No dependency/API ledger, directory prefix, proof bytes or compiler assertion is widened."
     },
     {
       "id": "delivery_fri_independent_integer_reference",
@@ -3795,6 +3795,114 @@
         "versioned_files": 352
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/422#issuecomment-6969891550"
+    },
+    {
+      "package": "stwo_cuda_backend",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 404,
+        "code_lines": 94644,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 3,
+        "rv64_registry_flags": 6,
+        "versioned_files": 424
+      },
+      "after": {
+        "code_files": 406,
+        "code_lines": 94807,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 3,
+        "rv64_registry_flags": 6,
+        "versioned_files": 426
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/423#issuecomment-6970831305"
+    },
+    {
+      "package": "stwo_circuit_frontend",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 116,
+        "code_lines": 22402,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 7,
+        "dependencies": 2,
+        "rv64_registry_flags": 0,
+        "versioned_files": 119
+      },
+      "after": {
+        "code_files": 116,
+        "code_lines": 22595,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 7,
+        "dependencies": 2,
+        "rv64_registry_flags": 0,
+        "versioned_files": 119
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/423#issuecomment-6970831305"
+    },
+    {
+      "package": "stwo_riscv_cpu_integration",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 949,
+        "code_lines": 137358,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 1,
+        "api_entries": 93,
+        "dependencies": 9,
+        "rv64_registry_flags": 19,
+        "versioned_files": 961
+      },
+      "after": {
+        "code_files": 950,
+        "code_lines": 137665,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 1,
+        "api_entries": 93,
+        "dependencies": 9,
+        "rv64_registry_flags": 19,
+        "versioned_files": 962
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/423#issuecomment-6970831305"
+    },
+    {
+      "package": "stwo_riscv_cuda_integration",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 345,
+        "code_lines": 80276,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 350
+      },
+      "after": {
+        "code_files": 347,
+        "code_lines": 81851,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 352
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/423#issuecomment-6970831305"
     }
   ]
 }

@@ -130,7 +130,7 @@ fn cpuMode(a: std.mem.Allocator, input: CpuInput, trace_only: bool, factory: ?Ou
     var arena = std.heap.ArenaAllocator.init(a);
     defer arena.deinit();
     const shape = try Capture.geometry(arena.allocator(), input.setup, input.config);
-    const values = try V.proof.fromNative(arena.allocator(), &admitted.proof, &admitted.capture, &shape);
+    const values = try V.proof.fromNativeCapped(arena.allocator(), &admitted.proof, &admitted.capture, &shape, circuit.native_verifier.merkle.sparse_cap_log);
     const local = input.manifest.entries[input.index].local orelse return error.WideCpuLocalRequired;
     const words = try Cpu.expectedWords(arena.allocator(), input.setup, input.request, input.first, input.expected, input.manifest.digest, admitted.proof.commitment_scheme_proof.commitments.items[1], local.digest, input.encoded.claims);
     const class = if (factory != null and Tape.mode() != .off) try Tape.cpuClass(input, &shape) else null;
@@ -192,7 +192,7 @@ fn truthMode(a: std.mem.Allocator, input: TruthInput, trace_only: bool, factory:
     var arena = std.heap.ArenaAllocator.init(a);
     defer arena.deinit();
     const shape = if (input.truth == .keccak) try Keccak.shape(arena.allocator(), input.truth, input.config) else try Truth.shape(arena.allocator(), input.truth, input.config);
-    const values = try V.proof.fromNative(arena.allocator(), &native, &capture, &shape);
+    const values = try V.proof.fromNativeCapped(arena.allocator(), &native, &capture, &shape, circuit.native_verifier.merkle.sparse_cap_log);
     const class = if (factory != null and Tape.mode() != .off) Tape.truthClass(input, &shape) else null;
     if (class) |key| if (Tape.mode() == .on and Outer.tapeReady(factory.?, key)) {
         const seeds = try Tape.truth(a, input, &values);
