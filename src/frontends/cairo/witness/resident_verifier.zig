@@ -43,7 +43,6 @@ pub const freeSampleShape = geometry.freeSampleShape;
 pub const ProofCapture = core_verifier.ProofCapture(Hasher);
 
 const qm31FromWords = types.qm31FromWords;
-const qm31Words = types.qm31Words;
 const validateMaximumDegreeLog = geometry.validateMaximumDegreeLog;
 const componentSpan = geometry.componentSpan;
 const spanLength = geometry.spanLength;
@@ -164,31 +163,6 @@ fn verifyWithGeometry(
     channel.mixU32s(claim_words);
     channel.mixU32s(commitment_words[16..24]);
 
-    var diagnostic_point: ?Point = null;
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_VERIFIER_ACCUMULATORS")) {
-        var diagnostic_channel = channel;
-        const random_coefficient = diagnostic_channel.drawSecureFelt();
-        var composition_root: Hasher.Hash = undefined;
-        @memcpy(&composition_root, std.mem.sliceAsBytes(commitment_words[24..32]));
-        MC.mixRoot(&diagnostic_channel, composition_root);
-        const parameter = diagnostic_channel.drawSecureFelt();
-        const parameter_square = parameter.square();
-        const denominator = parameter_square.add(QM31.one()).inv() catch unreachable;
-        diagnostic_point = .{
-            .x = QM31.one().sub(parameter_square).mul(denominator),
-            .y = parameter.add(parameter).mul(denominator),
-        };
-        std.debug.print(
-            "verifier_transcript random_coefficient={any} oods_parameter={any} oods_x={any} oods_y={any}\n",
-            .{
-                qm31Words(random_coefficient),
-                qm31Words(parameter),
-                qm31Words(diagnostic_point.?.x),
-                qm31Words(diagnostic_point.?.y),
-            },
-        );
-    }
-
     const runtime_components = try allocator.alloc(RuntimeComponent, input.composition.components.len);
     defer allocator.free(runtime_components);
     const verifier_components = try allocator.alloc(air_components.Component, runtime_components.len);
@@ -221,14 +195,6 @@ fn verifyWithGeometry(
     );
     var proof_moved = false;
     defer if (!proof_moved) proof.deinit(allocator);
-    if (diagnostic_point) |point| {
-        const expected = proof.extractCompositionOodsEval(
-            point,
-            input.composition.max_evaluation_log_size,
-        ) orelse return Error.InvalidProofShape;
-        std.debug.print("verifier_composition expected={any}\n", .{qm31Words(expected)});
-    }
-
     const config = proof.commitment_scheme_proof.config;
     var commitment_scheme = if (comptime @import("stwo_core").protocol_revision.Revision.of(MC) == .proving_5a7c5ed)
         try pcs_verifier.CommitmentSchemeVerifier(Hasher, MC).init(allocator, @import("stwo_core").pcs.config_v2.PcsConfigV2.fromFriAndLiftingSize(
@@ -488,24 +454,12 @@ pub const RuntimeComponent = struct {
         for (component.parts) |part| {
             try self.evaluateProgram(
                 part.program,
-                part.rc_base,
                 mask,
                 base_offsets,
                 interaction_offsets,
                 ext_params,
                 denominator_inverse,
                 accumulator,
-            );
-        }
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_VERIFIER_ACCUMULATORS")) {
-            std.debug.print(
-                "verifier_accumulator component={s} instance={} constraint_end={} cumulative={any}\n",
-                .{
-                    component.label,
-                    component.instance,
-                    component.random_coefficient_offset + component.n_constraints,
-                    qm31Words(accumulator.finalize()),
-                },
             );
         }
     }
@@ -533,7 +487,6 @@ pub const RuntimeComponent = struct {
     fn evaluateProgram(
         self: RuntimeComponent,
         program: eval_program.Program,
-        constraint_base: u32,
         mask: *const air_components.MaskValues,
         base_offsets: []const std.ArrayList(i32),
         interaction_offsets: []const std.ArrayList(i32),
@@ -567,15 +520,6 @@ pub const RuntimeComponent = struct {
                 .neg => base[instruction.a].neg(),
                 .inv => try base[instruction.a].inv(),
             };
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_VERIFIER_LOGUP_INPUTS") and
-                self.captured.random_coefficient_offset == 0 and instruction.op == .trace_col and
-                instruction.interaction == 2)
-            {
-                std.debug.print(
-                    "verifier_logup_base dst={} column={} offset={} value={any}\n",
-                    .{ instruction.dst, instruction.a, instruction.imm, qm31Words(base[instruction.dst]) },
-                );
-            }
         }
         for (program.ext_insts) |instruction| {
             extension[instruction.dst] = switch (instruction.op) {
@@ -597,28 +541,9 @@ pub const RuntimeComponent = struct {
                 .mul => extension[instruction.a].mul(extension[instruction.b]),
                 .neg => extension[instruction.a].neg(),
             };
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_VERIFIER_LOGUP_INPUTS") and
-                self.captured.random_coefficient_offset == 0 and
-                (instruction.op == .secure_col or instruction.op == .param))
-            {
-                std.debug.print(
-                    "verifier_logup_ext op={s} dst={} slot={} value={any}\n",
-                    .{ @tagName(instruction.op), instruction.dst, instruction.a, qm31Words(extension[instruction.dst]) },
-                );
-            }
         }
-        for (program.constraint_roots, 0..) |root, root_index| {
+        for (program.constraint_roots) |root| {
             const evaluation = extension[root].mul(denominator_inverse);
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_VERIFIER_CONSTRAINTS")) {
-                std.debug.print(
-                    "verifier_constraint component={s} local={} evaluation={any}\n",
-                    .{
-                        self.captured.label,
-                        constraint_base + root_index,
-                        qm31Words(evaluation),
-                    },
-                );
-            }
             accumulator.accumulate(evaluation);
         }
     }
@@ -754,7 +679,6 @@ test "resident verifier evaluates secure OODS trace samples in QM31" {
 
     try runtime.evaluateProgram(
         program,
-        0,
         &mask,
         base_offsets[0..],
         no_offsets[0..],

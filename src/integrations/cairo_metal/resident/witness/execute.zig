@@ -19,7 +19,6 @@ const Error = @import("../errors.zig").Error;
 const collectComponent = schedule_bindings.collectComponent;
 const oneComponent = schedule_bindings.oneComponent;
 const oneComponentOrdinal = schedule_bindings.oneComponentOrdinal;
-const oneOrdinal = schedule_bindings.oneOrdinal;
 const wordOffset = resident_binding.wordOffset;
 
 const MultiplicityFeedBatch = multiplicity_feeds.MultiplicityFeedBatch;
@@ -264,9 +263,6 @@ pub fn executeScheduledWitnessGraph(
                 .interpolate => try self.interpolation.executeIndex(component_index),
                 .feed => try self.executeFeed(component),
             };
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_RC99_DIGESTS")) {
-                try self.logRc99Digest(component, @tagName(stage));
-            }
             if (stage == .writer and std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS"))
                 try logComponentBaseEvalDigests(
                     self.resident_arena,
@@ -274,12 +270,6 @@ pub fn executeScheduledWitnessGraph(
                     self.arena,
                     component,
                 );
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS") and
-                ((std.mem.eql(u8, component, "add_opcode") and stage == .interpolate) or
-                    std.mem.eql(u8, component, "add_opcode_small") or stage == .feed))
-            {
-                try self.logAddOpcodeCoefficientDigests(component, @tagName(stage));
-            }
             switch (stage) {
                 .seed, .gather, .compact => self.input_gpu_ms += gpu_ms,
                 .writer => {},
@@ -320,141 +310,14 @@ pub fn executeScheduledWitnessGraph(
                         self.arena,
                         "ec_op_builtin",
                     );
-                if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_RC99_DIGESTS"))
-                    try self.logRc99Digest(component, "native_ec");
                 interpolation_gpu_ms = try self.interpolation.interpolateEcOp(component_index);
                 self.interpolation_gpu_ms += interpolation_gpu_ms;
-                if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_RC99_DIGESTS"))
-                    try self.logRc99Digest(component, "native_ec_interpolate");
             }
             const initial = self.batch.accumulated_gpu_ms;
             try self.batch.executeIndex(index);
             writer_gpu_ms += self.batch.accumulated_gpu_ms - initial;
-            if (std.mem.eql(u8, component, "blake_g") and
-                std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BLAKE_G_EVAL_DIGESTS"))
-            {
-                const bindings = try collectComponent(
-                    self.allocator,
-                    self.schedule,
-                    self.arena,
-                    "BaseTrace",
-                    component,
-                );
-                defer self.allocator.free(bindings);
-                const coefficient_bindings = try collectComponent(
-                    self.allocator,
-                    self.schedule,
-                    self.arena,
-                    "BaseCoefficients",
-                    component,
-                );
-                defer self.allocator.free(coefficient_bindings);
-                if (coefficient_bindings.len != bindings.len) return Error.InvalidCardinality;
-                for (bindings, 0..) |binding, column_ordinal| {
-                    const bytes = try self.resident_arena.bytes(binding);
-                    var digest: u64 = 0xcbf29ce484222325;
-                    for (bytes) |byte| {
-                        digest ^= byte;
-                        digest *%= 0x100000001b3;
-                    }
-                    std.debug.print(
-                        "blake_g_eval_digest ordinal={} source_offset={} destination_offset={} words={} first={x:0>8} last={x:0>8} fnv64={x:0>16}\n",
-                        .{
-                            column_ordinal,
-                            binding.offset_bytes,
-                            coefficient_bindings[column_ordinal].offset_bytes,
-                            bytes.len / 4,
-                            std.mem.readInt(u32, bytes[0..4], .little),
-                            std.mem.readInt(u32, bytes[bytes.len - 4 ..][0..4], .little),
-                            digest,
-                        },
-                    );
-                }
-            }
-            if (std.mem.eql(u8, component, "add_opcode") and
-                std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_EVAL_DIGESTS"))
-            {
-                const bindings = try collectComponent(
-                    self.allocator,
-                    self.schedule,
-                    self.arena,
-                    "BaseTrace",
-                    component,
-                );
-                defer self.allocator.free(bindings);
-                for ([_]usize{ 62, 65, 80 }) |column_ordinal| {
-                    if (column_ordinal >= bindings.len) return Error.InvalidCardinality;
-                    const bytes = try self.resident_arena.bytes(bindings[column_ordinal]);
-                    var digest: u64 = 0xcbf29ce484222325;
-                    for (bytes) |byte| {
-                        digest ^= byte;
-                        digest *%= 0x100000001b3;
-                    }
-                    std.debug.print(
-                        "add_opcode_eval_digest ordinal={} words={} first={x:0>8} last={x:0>8} fnv64={x:0>16}\n",
-                        .{
-                            column_ordinal,
-                            bytes.len / 4,
-                            std.mem.readInt(u32, bytes[0..4], .little),
-                            std.mem.readInt(u32, bytes[bytes.len - 4 ..][0..4], .little),
-                            digest,
-                        },
-                    );
-                }
-            }
             self.writer_gpu_ms += writer_gpu_ms;
             return writer_gpu_ms + interpolation_gpu_ms;
-        }
-
-        fn logRc99Digest(self: *@This(), component: []const u8, stage: []const u8) !void {
-            var digest: u64 = 0xcbf29ce484222325;
-            for ([_]u32{ 89, 90 }) |fixed_ordinal| {
-                const binding = try oneOrdinal(
-                    self.schedule,
-                    self.arena,
-                    "PreprocessedEvaluations",
-                    fixed_ordinal,
-                );
-                for (try self.resident_arena.bytes(binding)) |byte| {
-                    digest ^= byte;
-                    digest *%= 0x100000001b3;
-                }
-            }
-            std.debug.print(
-                "rc99_digest component={s} stage={s} fnv64={x:0>16}\n",
-                .{ component, stage, digest },
-            );
-        }
-
-        fn logAddOpcodeCoefficientDigests(self: *@This(), component: []const u8, stage: []const u8) !void {
-            const bindings = try collectComponent(
-                self.allocator,
-                self.schedule,
-                self.arena,
-                "BaseCoefficients",
-                "add_opcode",
-            );
-            defer self.allocator.free(bindings);
-            for ([_]usize{ 62, 64, 65, 79, 80 }) |column_ordinal| {
-                if (column_ordinal >= bindings.len) return Error.InvalidCardinality;
-                const bytes = try self.resident_arena.bytes(bindings[column_ordinal]);
-                var digest: u64 = 0xcbf29ce484222325;
-                for (bytes) |byte| {
-                    digest ^= byte;
-                    digest *%= 0x100000001b3;
-                }
-                std.debug.print(
-                    "add_opcode_coeff_digest component={s} stage={s} ordinal={} first={x:0>8} last={x:0>8} fnv64={x:0>16}\n",
-                    .{
-                        component,
-                        stage,
-                        column_ordinal,
-                        std.mem.readInt(u32, bytes[0..4], .little),
-                        std.mem.readInt(u32, bytes[bytes.len - 4 ..][0..4], .little),
-                        digest,
-                    },
-                );
-            }
         }
 
         fn executeFeed(self: *@This(), component: []const u8) !f64 {

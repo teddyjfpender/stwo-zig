@@ -134,7 +134,7 @@ fn bench(comptime S: type) !void {
     std.debug.print("GKR_PACKED_KERNEL field={s} terms={d} rounds=5 scalar_ns={d} packed_ns={d} speedup={d:.3}\n", .{ @typeName(S), terms, scalar_ns, packed_ns, @as(f64, @floatFromInt(scalar_ns)) / @as(f64, @floatFromInt(packed_ns)) });
 }
 test "optional packed GKR kernel microbenchmark" {
-    if (!std.process.hasEnvVarConstant("STWO_ZIG_BENCH_GKR_PACKED")) return;
+    if (!@import("prover_test_options").timings) return;
     try bench(core.fields.qm31.QM31);
     try bench(core.fields.om31.OM31);
 }

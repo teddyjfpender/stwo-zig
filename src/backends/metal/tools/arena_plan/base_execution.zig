@@ -3,13 +3,9 @@ const stwo = @import("stwo");
 const protocol_recipes = stwo.backends.metal.protocol_recipes;
 const blake2_merkle = stwo.core.vcs_lifted.blake2_merkle;
 const arena_binding_mod = stwo.integrations.cairo_metal.arena_binding;
-const diagnostics = @import("diagnostics.zig");
 const timing = @import("timing.zig");
 const ExecutionMetrics = @import("execution_metrics.zig").ExecutionMetrics;
 
-const logAddOpcodeCoefficientDigests = diagnostics.logAddOpcodeCoefficientDigests;
-const logPurposeDigests = diagnostics.logPurposeDigests;
-const dumpAddOpcodeCoefficients = diagnostics.dumpAddOpcodeCoefficients;
 const RunnerPhaseTiming = timing.RunnerPhaseTiming;
 const nanosecondsToSeconds = timing.nanosecondsToSeconds;
 
@@ -211,19 +207,13 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
             );
             if (!std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_PREPROCESSED"))
                 return error.MissingPreprocessedEvaluations;
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS"))
-                try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, "recorded_graph");
             const trace = if (memory_trace) |value| value else return error.MissingMemoryTrace;
             try trace.populateRc99Lut(resident_arena);
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=rc99_lut done\n", .{});
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS"))
-                try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, "rc99_lut");
             execution_metrics.memory_public_seed_gpu_ms = try trace.seedPublicMemory(metal, resident_arena, adapted);
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=public_memory done\n", .{});
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS"))
-                try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, "public_memory");
             execution_metrics.memory_trace_gpu_ms = try trace.executeAddress(metal, resident_arena, adapted);
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=memory_address done\n", .{});
@@ -234,18 +224,12 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
                     plan,
                     "memory_address_to_id",
                 );
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS"))
-                try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, "memory_address");
             execution_metrics.base_interpolation_gpu_ms += try native_interpolation.interpolateMemoryAddress();
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=memory_address_ifft done\n", .{});
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS"))
-                try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, "memory_address_ifft");
             const memory_values = try trace.executeValues(metal, resident_arena);
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=memory_values done\n", .{});
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS"))
-                try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, "memory_values");
             execution_metrics.memory_trace_gpu_ms += memory_values.trace_gpu_ms;
             execution_metrics.memory_rc99_gpu_ms = memory_values.rc99_gpu_ms;
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS"))
@@ -258,17 +242,9 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
             execution_metrics.base_interpolation_gpu_ms += try native_interpolation.interpolateMemoryValues();
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=memory_values_ifft done\n", .{});
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS"))
-                try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, "memory_values_ifft");
             execution_metrics.base_interpolation_gpu_ms += try native_interpolation.executeFixed(schedule, plan);
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=fixed_ifft done\n", .{});
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS"))
-                try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, "fixed_ifft");
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_DUMP_ADD_OPCODE_COEFFICIENTS"))
-                try dumpAddOpcodeCoefficients(resident_arena, schedule, plan);
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BASE_DIGESTS"))
-                try logPurposeDigests(resident_arena, schedule, plan, "BaseCoefficients");
         }
     }
     if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION")) {

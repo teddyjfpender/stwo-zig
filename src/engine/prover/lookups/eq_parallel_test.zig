@@ -64,7 +64,7 @@ fn benchmark(comptime S: type) !void {
     std.debug.print("GKR_EQ_LEVELS field={s} variables=20 rounds=3 serial_ns={d} pool4_ns={d} ratio={d:.3}\n", .{ @typeName(S), times[0], times[1], @as(f64, @floatFromInt(times[0])) / @as(f64, @floatFromInt(times[1])) });
 }
 test "optional bounded Eq levels microbenchmark" {
-    if (!std.process.hasEnvVarConstant("STWO_ZIG_BENCH_GKR_EQ")) return;
+    if (!@import("prover_test_options").timings) return;
     try benchmark(core.fields.qm31.QM31);
     try benchmark(core.fields.om31.OM31);
 }
