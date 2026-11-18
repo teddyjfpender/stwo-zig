@@ -67,6 +67,7 @@ const source_closure = product_policy.SourceClosure{
         "src/products/riscv/cpu/tests/recursive_framework_resident_test.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
+        .{ .name = "postcard_error_codes", .source = "src/waist/recursion_wire/postcard_error_codes.zig" },
         .{ .name = "stwo", .source = "src/products/riscv/metal/root.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },

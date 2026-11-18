@@ -20,7 +20,11 @@ pub fn run(
     if (comptime Engine.Hasher != stwo.core.proof_suites.Blake3.Hasher) return error.LegacyProofGenerationRemoved;
     const requested = try requestedExecutionProfile(allocator, elf_path);
     return switch (requested) {
-        inline .rv32im_zkvm_v1, .rv32im_zkvm_poseidon2_v1, .rv32im_zkvm_ethereum_v1 => |profile| @import("blake3_execution_product.zig").runForProfile(Engine, backend, profile, allocator, elf_path, input_path, options, process_identity),
+        inline .rv32im_zkvm_v1, .rv32im_zkvm_poseidon2_v1 => |profile| @import("blake3_execution_product.zig").runForProfile(Engine, backend, profile, allocator, elf_path, input_path, options, process_identity),
+        .rv32im_zkvm_ethereum_v1 => if (comptime @hasDecl(stwo.frontends.riscv.prover_mod, "blake3_ethereum_artifact"))
+            @import("blake3_execution_product.zig").runForProfile(Engine, backend, .rv32im_zkvm_ethereum_v1, allocator, elf_path, input_path, options, process_identity)
+        else
+            error.UnsupportedExecutionProfile,
         else => error.UnsupportedExecutionProfile,
     };
 }
@@ -46,8 +50,9 @@ pub fn verifyPath(
     if (stwo.frontends.riscv.prover_mod.blake3_profile_artifact.ForExecutionProfile(.rv32im_zkvm_poseidon2_v1).hasMagic(prefix[0..prefix_len])) {
         return blake3_execution_verifier.verifyForExecutionProfile(Engine, .rv32im_zkvm_poseidon2_v1, allocator, artifact_path, requested_policy, expected_statement_digest, elf_path, input_path);
     }
-    if (stwo.frontends.riscv.prover_mod.blake3_ethereum_artifact.hasMagic(prefix[0..prefix_len])) {
-        return blake3_execution_verifier.verifyProfile(Engine, true, allocator, artifact_path, requested_policy, expected_statement_digest, elf_path, input_path);
+    if (comptime @hasDecl(stwo.frontends.riscv.prover_mod, "blake3_ethereum_artifact")) {
+        if (stwo.frontends.riscv.prover_mod.blake3_ethereum_artifact.hasMagic(prefix[0..prefix_len]))
+            return blake3_execution_verifier.verifyProfile(Engine, true, allocator, artifact_path, requested_policy, expected_statement_digest, elf_path, input_path);
     }
     if (blake3_execution_verifier.hasMagic(prefix[0..prefix_len])) {
         return blake3_execution_verifier.verifyPath(Engine, allocator, artifact_path, requested_policy, expected_statement_digest, elf_path, input_path);

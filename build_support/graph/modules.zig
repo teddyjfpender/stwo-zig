@@ -133,11 +133,23 @@ pub fn createCircuitRecursionWire(
         .optimize = optimize,
     });
     wire.addImport("stwo_core", protocol.core);
+    wire.addImport("postcard_error_codes", createPostcardErrorCodes(b, protocol.core, product, target, optimize));
     inline for (.{ "interop_felt_json", "interop_cairo_prover_parameters" }) |name| {
         wire.addImport(name, cairo_frontend.import_table.get(name) orelse
             @panic("Cairo frontend is missing " ++ name));
     }
     return wire;
+}
+
+pub fn createPostcardErrorCodes(b: *std.Build, core: *std.Build.Module, product: Product, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
+    const module = create(b, .{
+        .product = product,
+        .root_source_file = "src/waist/recursion_wire/postcard_error_codes.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    module.addImport("stwo_core", core);
+    return module;
 }
 
 /// Declares a consumer's dependency on the package-owned Cairo API.

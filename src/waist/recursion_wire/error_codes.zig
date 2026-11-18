@@ -2,35 +2,14 @@ const std = @import("std");
 const Entry = @import("stwo_core").error_codes.Entry;
 const DecodeError = @import("circuit_serialize.zig").DecodeError;
 
-// Structural ABI contract: the actual postcard consumer asserts exact equality
-// with its separately owned parser Error set before mapping any rejection.
-const PostcardPreflightError = error{
-    EndOfStream,
-    InvalidOptionTag,
-    InvalidProofConfig,
-    InvalidProofShape,
-    InvalidPreflightShape,
-    NonCanonicalM31,
-    NonCanonicalVarint,
-    ProofResourceLimitExceeded,
-    TrailingProofBytes,
-    VarintOverflow,
-};
+const postcard = @import("postcard_error_codes");
+const PostcardPreflightError = postcard.Error;
 
 /// Append-only meanings owned by the circuit binary decoder, not error ordinals.
 pub const table = [_]Entry{
     .{ .tag = "NotEnoughData", .code = 0x5001, .class = .invalid_input, .since = "0.2.0" },
     .{ .tag = "ValueOutOfRange", .code = 0x5002, .class = .invalid_input, .since = "0.2.0" },
-    .{ .tag = "EndOfStream", .code = 0x5101, .class = .invalid_input, .since = "1.0.0-rc.2" },
-    .{ .tag = "InvalidOptionTag", .code = 0x5102, .class = .invalid_input, .since = "1.0.0-rc.2" },
-    .{ .tag = "InvalidProofConfig", .code = 0x5103, .class = .invalid_input, .since = "1.0.0-rc.2" },
-    .{ .tag = "InvalidProofShape", .code = 0x5104, .class = .invalid_input, .since = "1.0.0-rc.2" },
-    .{ .tag = "InvalidPreflightShape", .code = 0x5105, .class = .invalid_input, .since = "1.0.0-rc.2" },
-    .{ .tag = "NonCanonicalM31", .code = 0x5106, .class = .invalid_input, .since = "1.0.0-rc.2" },
-    .{ .tag = "NonCanonicalVarint", .code = 0x5107, .class = .invalid_input, .since = "1.0.0-rc.2" },
-    .{ .tag = "ProofResourceLimitExceeded", .code = 0x5108, .class = .resource_exhausted, .since = "1.0.0-rc.2" },
-    .{ .tag = "TrailingProofBytes", .code = 0x5109, .class = .invalid_input, .since = "1.0.0-rc.2" },
-    .{ .tag = "VarintOverflow", .code = 0x510a, .class = .invalid_input, .since = "1.0.0-rc.2" },
+} ++ postcard.table ++ [_]Entry{
     .{ .tag = "InvalidJson", .code = 0x5201, .class = .invalid_input, .since = "1.0.0-rc.3" },
     .{ .tag = "MissingField", .code = 0x5202, .class = .invalid_input, .since = "1.0.0-rc.3" },
     .{ .tag = "InvalidValue", .code = 0x5203, .class = .invalid_input, .since = "1.0.0-rc.3" },
@@ -65,21 +44,7 @@ pub fn fromCircuitDecode(err: DecodeError) Entry {
         error.ValueOutOfRange => table[1],
     };
 }
-/// Only an exact parser-owned catch may call this typed ABI projection.
-pub fn fromPostcard(err: PostcardPreflightError) Entry {
-    return switch (err) {
-        error.EndOfStream => table[2],
-        error.InvalidOptionTag => table[3],
-        error.InvalidProofConfig => table[4],
-        error.InvalidProofShape => table[5],
-        error.InvalidPreflightShape => table[6],
-        error.NonCanonicalM31 => table[7],
-        error.NonCanonicalVarint => table[8],
-        error.ProofResourceLimitExceeded => table[9],
-        error.TrailingProofBytes => table[10],
-        error.VarintOverflow => table[11],
-    };
-}
+pub const fromPostcard = postcard.fromPostcard;
 pub fn fromJsonRead(err: @import("json_text.zig").ReadError) Entry {
     return switch (err) {
         error.InvalidJson => table[12],

@@ -18,8 +18,9 @@ pub fn build(b: *std.Build) void {
     // The wire package shares the Cairo frontend's injected interop modules:
     // a file belongs to one module per compilation
     // (`build_support/graph/modules.zig` `createCircuitRecursionWire`).
+    const wire_package = b.dependency("stwo_circuit_recursion_wire", dependency_options);
     const wire = b.createModule(.{
-        .root_source_file = b.dependency("stwo_circuit_recursion_wire", dependency_options).path("mod.zig"),
+        .root_source_file = wire_package.path("mod.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -27,6 +28,10 @@ pub fn build(b: *std.Build) void {
     inline for (.{ "interop_felt_json", "interop_cairo_prover_parameters" }) |name| {
         wire.addImport(name, cairo.import_table.get(name) orelse @panic("Cairo frontend is missing " ++ name));
     }
+
+    const postcard_codes = b.createModule(.{ .root_source_file = wire_package.path("postcard_error_codes.zig"), .target = target, .optimize = optimize });
+    postcard_codes.addImport("stwo_core", core);
+    wire.addImport("postcard_error_codes", postcard_codes);
 
     const integration = b.addModule("stwo_circuit_cpu_integration", .{
         .root_source_file = b.path("mod.zig"),

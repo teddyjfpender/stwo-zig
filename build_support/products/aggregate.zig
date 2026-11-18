@@ -92,6 +92,7 @@ const metal_allowed_prefixes = common_allowed_prefixes ++ .{
 };
 
 const shared_named_imports = [_]policy.NamedImport{
+    .{ .name = "postcard_error_codes", .source = "src/waist/recursion_wire/postcard_error_codes.zig" },
     .{ .name = "atomic_file", .source = "src/support/io/atomic_file.zig" },
     .{ .name = "stwo_native_artifact", .source = "src/products/native/artifact/mod.zig" },
     .{ .name = "interop_riscv_artifact", .source = "src/products/riscv/artifact/mod.zig" },
