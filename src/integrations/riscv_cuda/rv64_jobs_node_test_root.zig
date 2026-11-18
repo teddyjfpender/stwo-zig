@@ -1,6 +1,7 @@
 //! Node result/lifetime contracts; complete proof parity belongs to rv64_gate.
 test {
     _ = @import("rv64/outer_node_prover.zig");
+    _ = @import("rv64/outer_job_prestage.zig");
     _ = @import("rv64/outer_node_checks.zig");
     _ = @import("rv64/jobs/outer_result.zig");
     _ = @import("rv64/jobs/outer_job.zig");

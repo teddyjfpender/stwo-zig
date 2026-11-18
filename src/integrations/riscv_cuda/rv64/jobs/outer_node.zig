@@ -228,10 +228,10 @@ pub const Node = struct {
             try device.check(prefill(device.ctx, K.lane, values.ptr, @intCast(asg.count), self.at(img.sample_tape), self.at(img.sample_map), asg.sampleRecords(), status));
         }
         job.records = self.at(img.tasks);
-        job.record_count = asg.taskCount();
-        if (asg.indices.len != 0) {
+        job.record_count = img.taskCount();
+        if (img.indices.words != 0) {
             job.indices = self.at(img.indices);
-            job.index_count = @intCast(asg.indices.len);
+            job.index_count = @intCast(img.indices.words);
         }
         const graph_eligible = asg.runs.len != 0 and asg.needs_device_ends and for (asg.runs) |run| {
             if (run.kind == .narrow) break false;

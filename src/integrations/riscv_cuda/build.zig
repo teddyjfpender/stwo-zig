@@ -151,7 +151,7 @@ pub fn build(b: *std.Build) void {
     jobs_outer_tests.linkLibC();
     b.step("test-rv64-jobs-outer", "Test the M8 OuterNodeJob class plan, enqueue-only trace commit, graph cache and staged image without a GPU").dependOn(jobTestStep(b, jobs_outer_tests, check_only));
     const jobs_node_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_node_test_root.zig"), .target = target, .optimize = optimize });
-    for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| jobs_node_root.addImport(name, integration.import_table.get(name) orelse @panic("missing node contract dependency"));
+    for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| jobs_node_root.addImport(name, integration.import_table.get(name) orelse @panic("missing node contract dependency"));
     const jobs_node_tests = b.addTest(.{ .root_module = jobs_node_root });
     jobs_node_tests.linkLibC();
     const jobs_node_step = jobTestStep(b, jobs_node_tests, check_only);

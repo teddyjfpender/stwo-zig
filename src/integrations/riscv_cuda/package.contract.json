@@ -50,6 +50,7 @@
       "rv64/jobs/plan_test.zig::worker final plans: own worker cannot join itself or close healthy submissions",
       "rv64/jobs/plan_test.zig::worker final plans: postjoin output allocation failure consumes metadata exactly once",
       "rv64/jobs/plan_test.zig::worker final plans: quiesce drains and retains exact postshutdown snapshot until destroy",
+      "rv64/outer_job_prestage.zig::packed template releases host sources and preserves device extents",
       "rv64/outer_node_checks.zig::class discovery charges the current seed program to its job",
       "rv64/outer_node_prover.zig::installed graph owners share within one worker and destroy before their live contexts",
       "rv64/outer_seed_record.zig::recursive discovery holds late leaf roots until its installation ends",
@@ -82,7 +83,7 @@
   },
   "budget": {
     "code_files": 347,
-    "code_lines": 81565,
+    "code_lines": 81608,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

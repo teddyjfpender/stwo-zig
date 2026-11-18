@@ -26,6 +26,10 @@ pub const Range = struct {
 };
 
 pub const Image = struct {
+    pub fn taskCount(self: *const Image) u32 {
+        return @intCast(self.tasks.words / 8);
+    }
+
     /// Composition statics (class region offset 0, so Comp ranges are absolute).
     rc_blob: Range = .{},
     channel_seed: Range = .{},
@@ -116,9 +120,6 @@ pub const Assignment = struct {
     sample_first_gg: u32 = 0,
     /// A fold's static schedule is class data; a leaf's is its own.
     reusable: bool,
-    pub fn taskCount(self: *const Assignment) u32 {
-        return @intCast(self.tasks.len / 8);
-    }
     pub fn seedCount(self: *const Assignment) u32 {
         return @intCast(self.seeds.len / 5);
     }
