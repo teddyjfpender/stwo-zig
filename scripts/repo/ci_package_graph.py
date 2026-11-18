@@ -629,7 +629,7 @@ def validate_package_consumer_sources(repository: Path, provider: Any, metadata:
                         raise GraphError("consumer tests must be named top-level cases")
                     tests.append(json.loads(tokens[index + 1]))
                 depth += (token == "{") - (token == "}")
-            if set(imports) - {"std"} != set(entry.imports):
+            if set(imports) - {"std", "builtin"} != set(entry.imports):
                 raise GraphError("consumer imports differ from the exact registration")
             if tuple(sorted(tests)) != entry.tests or len(tests) != len(set(tests)):
                 raise GraphError("consumer test discovery differs from the exact registration")

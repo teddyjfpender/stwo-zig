@@ -800,7 +800,7 @@ class ConsumerRootBindingTests(unittest.TestCase):
             owner = replace(subject.load_contract(ROOT / "src/backends/cpu_scalar/package.contract.json"), directory=root / "src/consumer", dependencies={"stwo_core": "../provider"}, consumer_subdirs=())
             relative = "src/consumer/contract_tests/stwo_core_test.zig"
             row = {"id": "package:stwo_cpu_backend", "root": relative, "route": "dependency:stwo_core", "imports": ["stwo_core", "stwo_cpu_backend"], "tests": ["cdc: one", "cdc: two"]}
-            source = 'const std = @import("std"); const core = @import("stwo_core"); const witness = @import("stwo_cpu_backend");\ntest "cdc: one" {}\ntest "cdc: two" {}\n'
+            source = 'const std = @import("std"); const builtin = @import("builtin"); const core = @import("stwo_core"); const witness = @import("stwo_cpu_backend");\ntest "cdc: one" {}\ntest "cdc: two" {}\n'
             tracked = {relative}
             if mutation:
                 row, source, owner, tracked = mutation(row, source, owner, tracked)
