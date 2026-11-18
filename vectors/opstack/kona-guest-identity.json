@@ -1,0 +1,65 @@
+{
+  "schema": "stwo.opstack.kona-guest-identity.v1",
+  "description": "Kona guest identity pins: tools/opstack/build.py --variant <v> must reproduce elf_sha256. Rust embeds crate-relative source paths, so moving the crate from opstack/kona to guests/opstack/kona changes ELF bytes; elf_sha256 is null until the first build at this layout pins it (design/opstack/integration.md \u00a78.4). pr372_reference values were measured on the PR head layout and are not expected to reproduce.",
+  "toolchain": {
+    "channel": "nightly-2026-08-08",
+    "rustc": "rustc 1.99.0-nightly (1a98b1e13 2026-08-07)",
+    "components": [
+      "rust-src"
+    ]
+  },
+  "cargo_lock_sha256": {
+    "guests/opstack/kona/Cargo.lock": "54cde5e66e97e3a8a74c828e84351021a78c213b896f785e64d3916bad19eeec",
+    "guests/opstack/kona/lean/Cargo.lock": "cf3ae157bd6a083e9fc30a611bca026dbdfa9af824a59f271f37e7f096b9ed6a",
+    "guests/opstack/mantle/Cargo.lock": "c538e693165cdfdeac711fe12e776189cf243aafafe911566c8739b3704c62cb"
+  },
+  "variants": {
+    "sha": {
+      "manifest": "guests/opstack/kona/lean/Cargo.toml",
+      "profile": "frontier",
+      "features": [
+        "sha-service"
+      ],
+      "required_execution_profile": "ethereum_services_v3",
+      "elf_sha256": null,
+      "pr372_reference": null
+    },
+    "canonical": {
+      "manifest": "guests/opstack/kona/lean/Cargo.toml",
+      "profile": "frontier",
+      "features": [
+        "memory-service",
+        "sha-service",
+        "arithmetic-service",
+        "pairing-cache",
+        "jumpdest-service",
+        "bn254-canonical"
+      ],
+      "required_execution_profile": "ethereum_services_v3",
+      "elf_sha256": null,
+      "pr372_reference": null
+    },
+    "canonical-glv": {
+      "manifest": "guests/opstack/kona/lean/Cargo.toml",
+      "profile": "frontier",
+      "features": [
+        "memory-service",
+        "sha-service",
+        "arithmetic-service",
+        "pairing-cache",
+        "jumpdest-service",
+        "bn254-canonical",
+        "bn254-glv"
+      ],
+      "required_execution_profile": "ethereum_services_v3",
+      "elf_sha256": null,
+      "pr372_reference": {
+        "elf_sha256": "2fc1eb93bc9d5bc7b34c64ade9cd814a0e1eaa18719350f0aec697dd94585eea",
+        "elf_bytes": 3232984,
+        "source_head": "5b7d3ffbd5603c3fabc98934859b655c69f8b63d",
+        "receipt": "https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-cpu-20261108/qualification.json",
+        "label": "[M]"
+      }
+    }
+  }
+}

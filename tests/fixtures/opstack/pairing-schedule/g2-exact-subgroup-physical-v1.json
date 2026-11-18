@@ -1,0 +1,103 @@
+{
+  "schema": "op-G2-exact-subgroup-physical-foundation/v1",
+  "scope": "Conditional canonical non-infinity generatorQ, explicitcurve and exact[r-1]Q=-Q, Q-specifictoyFIXED; not VM/pairing/native-suiteadmission",
+  "profile": {
+    "field": "OM31",
+    "hash": "Blake2sPrefixed",
+    "blowup": 2,
+    "queries": 12,
+    "PoW": 0,
+    "security_claim": false
+  },
+  "role_order": [
+    "frontier",
+    "arithmetic",
+    "hints",
+    "BYTEtable"
+  ],
+  "logs": [
+    "/private/tmp/op-g2-subgroup-physical.log",
+    "/private/tmp/op-g2-subgroup-degree.log"
+  ],
+  "active_rows": [
+    365,
+    4038,
+    352,
+    256
+  ],
+  "widths": {
+    "fixed": [
+      35,
+      33,
+      3,
+      1
+    ],
+    "main": [
+      33,
+      530,
+      95,
+      1
+    ],
+    "inter": [
+      16,
+      32,
+      32,
+      16
+    ]
+  },
+  "cells": {
+    "fixed": 154880,
+    "main": 2236672,
+    "inter": 159744,
+    "total": 2551296
+  },
+  "GKR_padded_facts": 2163968,
+  "BYTE_consumer_mass": 1447942,
+  "SSA_mass": 16434,
+  "qualification": {
+    "ReleaseSafe_physical_suite": true,
+    "fresh_independent_expectedQ_and_FIXED": true,
+    "physical_mutations": 8,
+    "alternate_real_FIXED_controls": 5,
+    "separate_BYTE_SSA_balanced_debt_rejects": true,
+    "coherent_hint_plus_p_laterarith_and_finalpoint_unchanged_child_closes_native_rejects_OodsNotMatching": true,
+    "all_equations_and_bindings_degree_le3": true,
+    "canonical_hint_source_tests": true,
+    "arithmetic_group1_guard": true
+  },
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/g2-subgroup-physical-v1/generator",
+  "files": {
+    "chain.proof.bin": {
+      "bytes": 108568,
+      "sha256": "0616af25b77a4a35edb3ddde67371fa3d156705e003249a1886a344c08410b6c"
+    },
+    "temporary-plus-p.gkr.bin": {
+      "bytes": 38088,
+      "sha256": "233e988c92490af5844ed4a045cdba187f8fa86a9ffff4c479159bfb6a07448f"
+    },
+    "chain.gkr.bin": {
+      "bytes": 38088,
+      "sha256": "41708d4ac4073829ae8b73013a1a4737d5770c59e427629aa62cb1dd4cb85495"
+    },
+    "temporary-plus-p.unverified.proof.bin": {
+      "bytes": 108184,
+      "sha256": "0725c1e3d622eb35e845de651a47e3c0f486aa42b8dd17c072b40ff2448841e6"
+    }
+  },
+  "resource": {
+    "cap_bytes": 2147483648,
+    "peak_requested_bytes": 114169323
+  },
+  "whole_suite_OS_wall_seconds": 5.0,
+  "performance_claim": false,
+  "physical_suite_tests": 4,
+  "production_admission": false,
+  "security_qualified": false,
+  "not_done": [
+    "variable/call-bound externalfrontier",
+    "globalRAM/Wire/packet",
+    "infinity/universalpairingpolicy",
+    "wholepairingcomposition",
+    "native/recursiveworkersandsecurity"
+  ]
+}

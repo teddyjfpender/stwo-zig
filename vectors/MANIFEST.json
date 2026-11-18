@@ -726,6 +726,17 @@
       ],
       "owner": "circuit-recursion",
       "kind": "golden_fixture"
+    },
+    "vectors/opstack": {
+      "files": 4,
+      "consumers": [
+        "src/products/opstack/statement/build.zig",
+        "src/products/opstack/statement/tests/e2e_probe_test.zig",
+        "src/products/opstack/statement/tests/statement_test.zig",
+        "tools/opstack/build.py"
+      ],
+      "owner": "opstack-statement",
+      "kind": "golden_fixture"
     }
   },
   "files": [
@@ -1988,6 +1999,30 @@
       "sha256": "f7cfb28b988526c059580f4eae78e1db4ae9eff8760ff3b86b12f7603d2cc36f",
       "bytes": 1519,
       "group": "vectors/metal/circuit"
+    },
+    {
+      "bytes": 3600,
+      "group": "vectors/opstack",
+      "path": "vectors/opstack/abi-probe.elf",
+      "sha256": "ca0886c1e1db16b69b4d3e05f6cdf251e71645d2ed8fb2e828f48e2c7b56d045"
+    },
+    {
+      "bytes": 2913,
+      "group": "vectors/opstack",
+      "path": "vectors/opstack/abi-probe.json",
+      "sha256": "db271eb2edd17ca865e3bf59274c9417b90aa2b6e14ad15609ebdf44c36c9428"
+    },
+    {
+      "bytes": 2505,
+      "group": "vectors/opstack",
+      "path": "vectors/opstack/kona-guest-identity.json",
+      "sha256": "d7c396d06b0942086e3a3b528475c8e3ed6dd0c4be97a84b5d4ec041b8e4ca12"
+    },
+    {
+      "bytes": 1908,
+      "group": "vectors/opstack",
+      "path": "vectors/opstack/transition-outputs.json",
+      "sha256": "4f1b83edc27e324e4d345f4419aaca4e9a9f965cb5055019129edc4760a8819e"
     },
     {
       "path": "vectors/recursion/registries/production.json",

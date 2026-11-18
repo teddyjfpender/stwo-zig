@@ -1,0 +1,64 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_rv64_pipeline",
+  "version": "0.1.0",
+  "layer": "integration",
+  "owner": "riscv-cpu-integration",
+  "public_modules": {
+    "stwo_riscv_rv64_pipeline": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_circuit_cpu_integration": "../../circuit_cpu",
+    "stwo_prover_engine": "../../../engine/prover",
+    "stwo_riscv_cpu_integration": "..",
+    "stwo_riscv_frontend": "../../../frontends/riscv",
+    "stwo_riscv_precompiles": "../../../frontends/riscv/precompiles",
+    "stwo_riscv_rv64": "../../../frontends/riscv/rv64"
+  },
+  "injected_modules": [
+    "rv64_pipeline_hooks"
+  ],
+  "api_surface": [
+    "Pipeline",
+    "ProductHooks",
+    "ServiceFamily",
+    "assertHooks"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: hooks contract rejects incomplete hooks and admits the reference hooks"
+    ],
+    "invariant_tests": [
+      "mod.zig::api invariant: guest abi view forwards the injected hooks unchanged",
+      "tests/hooks_test.zig::hooks: empty service families keep the base roster",
+      "tests/hooks_test.zig::hooks: non-admitted profile is rejected before any file is read"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_rv64_pipeline",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/integrations/riscv_cpu/rv64_pipeline/build.zig",
+      "-Doptimize=Debug",
+      "-j2",
+      "--verbose",
+      "--summary",
+      "all"
+    ]
+  },
+  "budget": {
+    "code_files": 56,
+    "code_lines": 9726,
+    "generated_code_files": 0,
+    "generated_code_lines": 0,
+    "script_files": 0,
+    "api_entries": 4,
+    "dependencies": 6,
+    "rv64_registry_flags": 0,
+    "versioned_files": 59
+  }
+}

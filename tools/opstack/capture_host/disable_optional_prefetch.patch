@@ -1,0 +1,94 @@
+--- a/rust/kona/bin/host/src/single/cfg.rs
++++ b/rust/kona/bin/host/src/single/cfg.rs
+@@ -87,6 +87,10 @@
+     /// Run the client program natively.
+     #[arg(long, conflicts_with = "server", required_unless_present = "server")]
+     pub native: bool,
++    /// Disable only the optional execution-witness prefetch in this host.
++    /// Fine-grained authenticated account/storage/code hints remain enabled.
++    #[arg(long)]
++    pub disable_execution_witness_prefetch: bool,
+     /// Run in pre-image server mode without executing any client program. If not provided, the
+     /// host will run the client program in the host process.
+     #[arg(long, conflicts_with = "native", required_unless_present = "native")]
+@@ -188,8 +192,12 @@
+                 kv_store.clone(),
+                 providers,
+                 SingleChainHintHandler,
+-            )
+-            .with_high_level_hint(HintType::L2PayloadWitness);
++            );
++            let backend = if self.disable_execution_witness_prefetch {
++                backend.with_ignored_hint(HintType::L2PayloadWitness)
++            } else {
++                backend.with_high_level_hint(HintType::L2PayloadWitness)
++            };
+ 
+             task::spawn(async {
+                 PreimageServer::new(
+--- a/rust/kona/bin/host/src/backend/online.rs
++++ b/rust/kona/bin/host/src/backend/online.rs
+@@ -59,6 +59,8 @@
+     providers: C::Providers,
+     /// Hint types treated as "high-level" (see [`Self::last_high_level_hint`]).
+     high_level_hint_types: HashSet<C::HintType>,
++    /// Explicit host-only optional hints ignored without inventing preimages.
++    ignored_hint_types: HashSet<C::HintType>,
+     /// The latest high-level hint. High-level hints bulk-populate the key-value store, so rather
+     /// than being fetched once on receipt the latest is retained and tried before
+     /// [`Self::last_hint`] on every [`Self::get_preimage`] attempt: cleared once it succeeds (its
+@@ -84,10 +86,18 @@
+             kv,
+             providers,
+             high_level_hint_types: HashSet::default(),
++            ignored_hint_types: HashSet::default(),
+             last_high_level_hint: Arc::new(RwLock::new(None)),
+             last_hint: Arc::new(RwLock::new(None)),
+             _hint_handler: std::marker::PhantomData,
+         }
++    }
++
++    /// Ignore an optional host prefetch hint; required preimages still fetch
++    /// through ordinary authenticated hints or fail if unavailable.
++    pub fn with_ignored_hint(mut self, hint_type: C::HintType) -> Self {
++        self.ignored_hint_types.insert(hint_type);
++        self
+     }
+ 
+     /// Registers a hint type as "high-level": rather than being fetched once and discarded, the
+@@ -111,6 +121,9 @@
+         let parsed_hint = hint
+             .parse::<Hint<C::HintType>>()
+             .map_err(|e| PreimageOracleError::HintParseFailed(e.to_string()))?;
++        if self.ignored_hint_types.contains(&parsed_hint.ty) {
++            return Ok(());
++        }
+         if self.high_level_hint_types.contains(&parsed_hint.ty) {
+             debug!(target: "host_backend", "High-level hint received; retaining {hint}");
+             self.last_high_level_hint.write().await.replace(parsed_hint);
+@@ -282,6 +295,25 @@
+             .with_high_level_hint(TestHint::HighLevel)
+     }
+ 
++    #[tokio::test]
++    async fn explicitly_ignored_prefetch_keeps_authenticated_fine_grained_path() {
++        let (key, target) = target_key();
++        let high = Arc::new(AtomicUsize::new(0));
++        let low = Arc::new(AtomicUsize::new(0));
++        let backend = new_backend(TestProviders {
++            target, value: b"node".to_vec(), high_level_fail_until: usize::MAX,
++            high_level_stores_target: false, high_level_attempts: high.clone(),
++            low_level_stores_target: true, low_level_attempts: low.clone(),
++        }).with_ignored_hint(TestHint::HighLevel);
++        backend.route_hint("high 00".to_string()).await.unwrap();
++        assert!(backend.last_high_level_hint.read().await.is_none());
++        assert!(backend.last_hint.read().await.is_none());
++        backend.route_hint("low 00".to_string()).await.unwrap();
++        assert_eq!(backend.get_preimage(key).await.unwrap(), b"node".to_vec());
++        assert_eq!(high.load(Ordering::SeqCst), 0);
++        assert_eq!(low.load(Ordering::SeqCst), 1);
++    }
++
+     /// The core regression: a transient high-level (witness) fetch failure is retried by the
+     /// `get_preimage` loop until it succeeds, rather than being surfaced as a permanent error that
+     /// forces a fall-through to the unsupported `debug_dbGet`.

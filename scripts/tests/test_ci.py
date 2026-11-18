@@ -459,6 +459,20 @@ class CiTests(unittest.TestCase):
             focused_linux,
         )
 
+    def test_focused_opstack_installs_its_pinned_host_packages(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        focused_linux = workflow.split("  focused-linux:", 1)[1].split(
+            "  focused-macos:", 1
+        )[0]
+        install = focused_linux.index("name: Install pinned OP Stack host Python packages")
+        run = focused_linux.index("name: Run focused lane")
+        self.assertLess(install, run)
+        self.assertIn("if: matrix.lane == 'opstack_statement'", focused_linux)
+        pins = (ROOT / "tools/opstack/requirements-host.txt").read_text(encoding="utf-8").split()
+        for package in ("pycryptodome==", "rocksdict=="):
+            pin = next(line for line in pins if line.startswith(package))
+            self.assertIn(pin, focused_linux)
+
     def test_hosted_ci_has_no_archived_stark_v_release_lane(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         dispatch = workflow.split("permissions:", 1)[0]

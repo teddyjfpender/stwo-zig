@@ -1,0 +1,17 @@
+[package]
+name = "stwo-opstack-abi-probe"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Tiny no_std RV64 guest on the OP Stack guest ABI for hosted end-to-end proof tests"
+
+# Standalone: not a member of the Kona workspace and no dependencies, so the
+# prebuilt vectors/opstack/abi-probe.elf is reproducible offline.
+[workspace]
+
+[profile.release]
+opt-level = "s"
+codegen-units = 1
+lto = true
+panic = "abort"
+debug = false

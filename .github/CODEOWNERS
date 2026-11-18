@@ -100,6 +100,8 @@
 # owner-role: riscv-cpu-integration
 /src/integrations/riscv_cpu/build.zig.zon @teddyjfpender
 /src/integrations/riscv_cpu/package.contract.json @teddyjfpender
+/src/integrations/riscv_cpu/rv64_pipeline/build.zig.zon @teddyjfpender
+/src/integrations/riscv_cpu/rv64_pipeline/package.contract.json @teddyjfpender
 
 # owner-role: riscv-cuda-integration
 /src/integrations/riscv_cuda/build.zig.zon @teddyjfpender
@@ -147,3 +149,7 @@
 # owner-role: ethereum-statement
 /src/products/ethereum/statement/package.contract.json @teddyjfpender
 /src/products/ethereum/statement/build.zig.zon @teddyjfpender
+
+# owner-role: opstack-statement
+/src/products/opstack/statement/package.contract.json @teddyjfpender
+/src/products/opstack/statement/build.zig.zon @teddyjfpender

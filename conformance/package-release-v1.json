@@ -70,6 +70,10 @@
       "status": "published",
       "reason": "Native AIR examples are supported reusable Zig source modules."
     },
+    "stwo_opstack_statement": {
+      "status": "internal",
+      "reason": "The OP Stack statement product (PR #400) is pre-release: no CI lane proves a real Kona block yet, so it is not a supported SDK package."
+    },
     "stwo_proof_wire": {
       "status": "published",
       "reason": "The versioned proof interchange package is part of the supported Zig SDK."
@@ -129,6 +133,10 @@
     "stwo_riscv_rv64": {
       "status": "internal",
       "reason": "C3 owned frontend package; public SDK promotion requires its independent contract and release qualification."
+    },
+    "stwo_riscv_rv64_pipeline": {
+      "status": "internal",
+      "reason": "The product-neutral RV64 pipeline is new shared integration code (RFC-1, issue #390, pending owner decision); SDK promotion waits on that decision and release qualification."
     },
     "stwo_riscv_testing": {
       "status": "internal",

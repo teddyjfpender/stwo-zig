@@ -1,0 +1,4 @@
+# Reviewed gitleaks false positives, by exact commit fingerprint (see .github/gitleaks.toml).
+# The design/opstack/COMPLETION.md line 94 match is English prose about proof leaves, not a credential.
+cff1ed40c6704aa7856cf08eea4fa978e3545ef2:design/opstack/COMPLETION.md:generic-api-key:94
+47ec5c830e52ad65f77a843e297304b086e0ecb5:.gitleaksignore:generic-api-key:2

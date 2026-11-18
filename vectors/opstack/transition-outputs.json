@@ -1,0 +1,35 @@
+{
+  "schema": "stwo.opstack.transition-outputs.v1",
+  "description": "Expected 43-byte public outputs (digest[32] || status || chain_id u64 LE || tag) of the Kona guest for the S1 acceptance blocks. Values come from PR #372 receipts where native, RV64 and Unicorn execution agreed [M on the PR head].",
+  "blocks": {
+    "120794432": {
+      "network": "op-mainnet",
+      "chain_id": 10,
+      "role": "small; CPU + Keccak + SHA",
+      "expected_output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+      "receipt": "https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-cpu-20261108/qualification.json"
+    },
+    "121057303": {
+      "network": "op-mainnet",
+      "chain_id": 10,
+      "role": "user transactions",
+      "expected_output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+      "receipt": "https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-cpu-20261108/qualification.json"
+    },
+    "121065789": {
+      "network": "op-mainnet",
+      "chain_id": 10,
+      "role": "heavy (may need RFC-4a, risk R-2)",
+      "expected_output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+      "receipt": "https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-cpu-20261108/heavy-guest.json"
+    },
+    "26207960": {
+      "network": "op-sepolia",
+      "chain_id": 11155420,
+      "role": "upstream Kona fixture",
+      "block_hash": "0xdb32d9ddfa5fd26c9fb0260bbfa53da88326aa2a465e34d75180564aa31b851e",
+      "expected_output": "7193612a08406268c6333ddb08247a55d1acbe94a5dc20fc2fe1f38a39629fab01dc37aa00000000004f50",
+      "receipt": "https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-20261106/execution-evidence.json"
+    }
+  }
+}

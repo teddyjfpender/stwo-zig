@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/bluealloy/revm",
+  "crate": "revm-bytecode 42.0.0",
+  "forked_from": "guests/ethereum/rv64/vendor/revm-bytecode",
+  "forked_from_commit": "e625fd582eba4475c514279904f7806e62b07221",
+  "upstream_files": null,
+  "upstream_files_note": "The Ethereum vendored copy is the base; this fork applies the PR #372 delta beside it (exception E-3) so Ethereum guest bytes stay unchanged.",
+  "changes": "OP jumpdest analysis service (legacy/jumpdest_service.rs) and bounded jump-map construction from PR #372",
+  "modified_files": [
+    "Cargo.lock",
+    "Cargo.toml",
+    "src/legacy.rs",
+    "src/legacy/analysis.rs",
+    "src/legacy/jump_map.rs"
+  ],
+  "added_files": [
+    "src/legacy/jumpdest_service.rs",
+    "UPSTREAM.json"
+  ],
+  "source": "PR #372 guests/ethereum/rv64/vendor/revm-bytecode @ 089bc2437"
+}

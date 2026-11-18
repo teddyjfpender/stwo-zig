@@ -1,0 +1,266 @@
+{
+  "schema": "stwo.opstack.fixtures-manifest.v1",
+  "description": "OP Stack system-test fixtures ported from PR #372 (design/opstack/integration.md \u00a72). Golden rows replace PR receipts that live code reads; every other receipt stays at the PR head.",
+  "owner": "opstack-statement",
+  "archive": "https://github.com/teddyjfpender/stwo-zig/tree/089bc2437",
+  "files": [
+    {
+      "path": "ethereum-trie-vectors.json",
+      "bytes": 8510,
+      "sha256": "f6f33368b3be3591a1df69c7839cb85144adb0d8b5a8c98e204c0eb322e136a2",
+      "source": "089bc2437:opstack/tests/fixtures/ethereum-trie-vectors.json",
+      "rule": "F5",
+      "kind": "fixture"
+    },
+    {
+      "path": "heavy-mainnet-plan.json",
+      "bytes": 5025,
+      "sha256": "8891846bf7b4eb688641d81410a3ff5748c533708e0d62f34f22110e9fa681b3",
+      "source": "089bc2437:vectors/reports/rv64-opstack-cpu-20261107/heavy-mainnet-plan.json",
+      "rule": "G2",
+      "kind": "golden"
+    },
+    {
+      "path": "mainnet-corpus.json",
+      "bytes": 7648,
+      "sha256": "30a39310bda6d5729b3dea50b5f55b7705ee16520204feb7605cff3b705009eb",
+      "source": "089bc2437:vectors/reports/rv64-opstack-mainnet-20261106/mainnet-corpus.json",
+      "rule": "G1",
+      "kind": "golden"
+    },
+    {
+      "path": "mantle-deposit-103132217.json",
+      "bytes": 3628,
+      "sha256": "8f38eecee7a1aa7aa6fe659260f1bfd086108f77b05fb04202db4eb39dddb602",
+      "source": "089bc2437:opstack/tests/fixtures/mantle-deposit-103132217.json",
+      "rule": "F5",
+      "kind": "fixture"
+    },
+    {
+      "path": "pairing-schedule/composite-pairing-literal-fold-v1.json",
+      "bytes": 1621,
+      "sha256": "c5b9c64dcfc527a4fb2958b8c9a932bbeb95dc730e2dc837ff56390f8d082b22",
+      "source": "089bc2437:vectors/reports/rv64-opstack-performance-20261109/guest/composite-pairing-literal-fold-v1.json",
+      "rule": "G3",
+      "kind": "golden"
+    },
+    {
+      "path": "pairing-schedule/composite-pairing-source-v1.json",
+      "bytes": 2869,
+      "sha256": "4c0b45c03bd38ca6744a28c5f3dba1f61cc3a75424584d190ee28a96cd0eef0a",
+      "source": "089bc2437:vectors/reports/rv64-opstack-performance-20261109/guest/composite-pairing-source-v1.json",
+      "rule": "G3",
+      "kind": "golden"
+    },
+    {
+      "path": "pairing-schedule/g2-exact-subgroup-physical-v1.json",
+      "bytes": 2670,
+      "sha256": "7278d738277d39cac0ec6fb87eff10b5971eefadfe6d0b09980a546d0416ab27",
+      "source": "089bc2437:vectors/reports/rv64-opstack-cpu-20261110/g2-exact-subgroup-physical-v1.json",
+      "rule": "G4",
+      "kind": "golden"
+    },
+    {
+      "path": "pairing-schedule/mac6-source-cost-v1.json",
+      "bytes": 4120,
+      "sha256": "2d4306983fbec413bd6b986343f9ec74386d1fb40c1c792f60752e82e5ff8133",
+      "source": "089bc2437:vectors/reports/opstack-cpu-20261110/mac6-source-cost-v1.json",
+      "rule": "G3",
+      "kind": "golden"
+    },
+    {
+      "path": "recent-account-proof.json",
+      "bytes": 9354,
+      "sha256": "7d1c2f487cf32dfdcad7f513c019dc93adcc7632c9c599cdafe1ac00c3eca8a5",
+      "source": "089bc2437:opstack/tests/fixtures/recent-account-proof.json",
+      "rule": "F5",
+      "kind": "fixture"
+    },
+    {
+      "path": "recent-storage-code.json.zlib",
+      "bytes": 14027,
+      "sha256": "070c6cbc7ded344c41ab356a33db9ed1b42751af92b96422b5b3d93566bb5e95",
+      "source": "089bc2437:opstack/tests/fixtures/recent-storage-code.json.zlib",
+      "rule": "F5",
+      "kind": "fixture"
+    },
+    {
+      "path": "recent-transactions.json.zlib",
+      "bytes": 29159,
+      "sha256": "fd13c0724edb6348d0cf86df12d3f7592f07a01925256b5002d63e40d6313070",
+      "source": "089bc2437:opstack/tests/fixtures/recent-transactions.json.zlib",
+      "rule": "F5",
+      "kind": "fixture"
+    },
+    {
+      "path": "recovered-code-provenance.json.zlib",
+      "bytes": 11801,
+      "sha256": "e0c71a0bcf212fabb29c72f34ec65ef65b772576bae85d1c6409bcea2a064297",
+      "source": "089bc2437:opstack/tests/fixtures/recovered-code-provenance.json.zlib",
+      "rule": "F5",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/gas-benchmark.json",
+      "bytes": 1731,
+      "sha256": "5b3e5c8f50db9cd2849b5906a61c419bbb5368ad43091d6ce637295478d9aea9",
+      "source": "089bc2437:settlement/fixtures/gas-benchmark.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/kona-transition-159257842.json",
+      "bytes": 1186,
+      "sha256": "d84fb8237d67a9404181ce698b6f03540a64eb50b974835969cc83cf20314f95",
+      "source": "089bc2437:settlement/fixtures/kona-transition-159257842.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/native-air-initial.json",
+      "bytes": 9740,
+      "sha256": "1c5e736c48978c03295138695460182bb21adb6bea6fdd591205112628ea3c91",
+      "source": "089bc2437:settlement/fixtures/native-air-initial.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/native-deep-120794432-cpu-0.json.gz",
+      "bytes": 190759,
+      "sha256": "cf66363eb996d5d29493a1859371bf42a5f641f0513c2960e8fef2fb666103a8",
+      "source": "089bc2437:settlement/fixtures/native-deep-120794432-cpu-0.json.gz",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/native-deep-vector.json",
+      "bytes": 10628,
+      "sha256": "adea0e5f413c6df2d4b7a4edbfa29e559c7674c549b6788bc0bb23df142fd032",
+      "source": "089bc2437:settlement/fixtures/native-deep-vector.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/native-fri-120794432-truth-1.json",
+      "bytes": 494620,
+      "sha256": "663f1d8925c327e14a6d0dace9a6ece0983ba7e2bcc426bcfc1638110243d22e",
+      "source": "089bc2437:settlement/fixtures/native-fri-120794432-truth-1.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/native-pcs-121057303-truth-4.json",
+      "bytes": 354728,
+      "sha256": "f6af35c8bef5775b9f780c292d1ea16f1a38445fa400be8dc21011759b8c6f37",
+      "source": "089bc2437:settlement/fixtures/native-pcs-121057303-truth-4.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/native-queries-121057303.json",
+      "bytes": 496,
+      "sha256": "fc4f2ac28afb7af19bbe2adc006003e6643cdbb91b4b429ae7b80f6c73f76c81",
+      "source": "089bc2437:settlement/fixtures/native-queries-121057303.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/native-receive-121057303.json",
+      "bytes": 3266,
+      "sha256": "91c58672e5ce0ce40517e98729e74e984c1133d7916036269daedf87c26fc7fa",
+      "source": "089bc2437:settlement/fixtures/native-receive-121057303.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/op-mainnet-121057303-truth-3.json",
+      "bytes": 24993,
+      "sha256": "e33bd66e3133fb28280f45eb7a52e1e9c5da0b5bc339f7d9b5ff577c3f7b5ed8",
+      "source": "089bc2437:settlement/fixtures/op-mainnet-121057303-truth-3.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/op-mainnet-121057303-truth-4.json",
+      "bytes": 23830,
+      "sha256": "7e01de6ac169441cd5963c03eae4c5e586e7038aae4527acafd51f66f2c4b21e",
+      "source": "089bc2437:settlement/fixtures/op-mainnet-121057303-truth-4.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/packed-air-gas.json",
+      "bytes": 1970,
+      "sha256": "10c0987f3e0a4a33b55df5034561b99fcc7f12457d8f314fc074eaca013f0aee",
+      "source": "089bc2437:settlement/fixtures/packed-air-gas.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "settlement/query-gas-benchmark.json",
+      "bytes": 4266,
+      "sha256": "e9f9cea3979611d0684ffa2a42b0c3ad649aa5b2b6ed5cfebe1625a5340ebecd",
+      "source": "089bc2437:settlement/fixtures/query-gas-benchmark.json",
+      "rule": "F11",
+      "kind": "fixture"
+    },
+    {
+      "path": "transition-159257842-headers.json",
+      "bytes": 3640,
+      "sha256": "f6ad2c1efa43e49f5cedfe04db4a1a185cf84d8a431a654bc0cd278ae0737c15",
+      "source": "089bc2437:opstack/tests/fixtures/transition-159257842-headers.json",
+      "rule": "F5",
+      "kind": "fixture"
+    },
+    {
+      "path": "transition-159257842-receipt.json",
+      "bytes": 4296,
+      "sha256": "e5673fd6f1d1f927c6bcd11b6806fbc6fb99e235d56787986c3488bebed6847f",
+      "source": "089bc2437:opstack/transition-159257842-receipt.json",
+      "rule": "G6",
+      "kind": "golden"
+    },
+    {
+      "path": "transition-159321794/README.md",
+      "bytes": 3642,
+      "sha256": "6a5c2148eb0bdff013516181df55ccb7e6b14fbb8d5a2eca77ca8953af5d8e34",
+      "source": "089bc2437:opstack/tests/fixtures/transition-159321794/README.md",
+      "rule": "F5",
+      "kind": "fixture"
+    },
+    {
+      "path": "transition-159321794/manifest.json",
+      "bytes": 3238,
+      "sha256": "e06259024f9fd6708640f4d1a0abed42789a4fbf595896f65e883ed52b60e904",
+      "source": "089bc2437:opstack/tests/fixtures/transition-159321794/manifest.json",
+      "rule": "F5",
+      "kind": "fixture"
+    },
+    {
+      "path": "transition-anchor-receipts.json.zlib",
+      "bytes": 95088,
+      "sha256": "2443c8ed6bcc40e2435b830c06be5dc9f19c55aefd861ed795b02ec064e09e44",
+      "source": "089bc2437:opstack/tests/fixtures/transition-anchor-receipts.json.zlib",
+      "rule": "F5",
+      "kind": "fixture"
+    },
+    {
+      "path": "transition-anchor-transactions.json.zlib",
+      "bytes": 71248,
+      "sha256": "0ac6ec38171ab879ff8951b4fd4640f3e3e84c72bedfc5d5d2074cf53721bbe9",
+      "source": "089bc2437:opstack/tests/fixtures/transition-anchor-transactions.json.zlib",
+      "rule": "F5",
+      "kind": "fixture"
+    }
+  ],
+  "fetched": [
+    {
+      "path": "transition-159321794/input.opd.gz",
+      "bytes": 13885356,
+      "sha256": "98564470263f75a0a2703f3c79b6111e5378da8bc71c8fb12f7a8c54be94486f",
+      "url": "https://github.com/teddyjfpender/stwo-zig/raw/089bc2437/opstack/tests/fixtures/transition-159321794/input.opd.gz",
+      "rule": "F4",
+      "note": "not committed (13.9 MB); fetch beside manifest.json and check sha256 before use"
+    }
+  ]
+}

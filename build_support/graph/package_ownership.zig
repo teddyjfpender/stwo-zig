@@ -44,6 +44,8 @@ pub const Package = enum {
     native_examples,
     native_cuda_integration,
     cairo_cuda_integration,
+    opstack_statement,
+    riscv_rv64_pipeline,
 };
 
 pub const Source = struct {
@@ -96,6 +98,8 @@ const owners = [_]Owner{
     .{ .prefix = "src/products/native/examples/", .package = .native_examples, .dependency_name = "stwo_native_examples" },
     .{ .prefix = "src/integrations/native_cuda/", .package = .native_cuda_integration, .dependency_name = "stwo_native_cuda_integration" },
     .{ .prefix = "src/integrations/cairo_cuda/", .package = .cairo_cuda_integration, .dependency_name = "stwo_cairo_cuda_integration" },
+    .{ .prefix = "src/products/opstack/statement/", .package = .opstack_statement, .dependency_name = "stwo_opstack_statement" },
+    .{ .prefix = "src/integrations/riscv_cpu/rv64_pipeline/", .package = .riscv_rv64_pipeline, .dependency_name = "stwo_riscv_rv64_pipeline" },
 };
 
 /// Longest prefix wins: packages nest (`backends/metal/session` inside

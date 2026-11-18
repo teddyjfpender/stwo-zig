@@ -189,6 +189,23 @@
         "script_contracts"
       ],
       "extraction": "Externalize network collection behind immutable fixtures once the Starknet product has an authenticated offline regeneration owner"
+    },
+    "opstack": {
+      "owner": "opstack-statement",
+      "role": "qualification-adapter",
+      "required_for": "Kona/Mantle guest build, fixture capture, CPU proof qualification and settlement verifier tests for the OP Stack product",
+      "live_callers": [
+        "tools/opstack/build.py",
+        "tools/opstack/cpu.py",
+        "tools/opstack/tests/test_build.py",
+        "tools/opstack/tests/test_cpu.py"
+      ],
+      "pr_lanes": [
+        "static",
+        "script_contracts",
+        "opstack_statement"
+      ],
+      "extraction": "Move to a separate repository after the S3 settlement verifier stabilises (restructure plan section 9)"
     }
   }
 }
