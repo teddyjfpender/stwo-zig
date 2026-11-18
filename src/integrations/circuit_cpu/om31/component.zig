@@ -13,6 +13,7 @@ const Air = core.air.components.ForField(O);
 const Acc = core.air.accumulation.ForField(O);
 const ProverAir = prover.air.component_prover.ForField(O);
 const Domain = prover.air.accumulation.ForField(O);
+const Packed = @import("domain_pack.zig");
 const Canonic = core.poly.circle.canonic.CanonicCoset;
 pub const Component = struct {
     allocator: std.mem.Allocator,
@@ -138,10 +139,9 @@ pub const Component = struct {
             for (roots) |value| acc.accumulate(value.mul(inv));
         }
     }
-    /// Outer profiles with blowup > 2 (m3) commit LDEs larger than the 2n
-    /// evaluation domain. Their reads are re-expressed exactly as the beta1
-    /// route sees them: each read column's minimal polynomial evaluated on its
-    /// own 2x canonic domain (coefficient log + 1), then lifted as before.
+    /// Materialize only this component's reads on their native 2n domains.
+    /// Compact trees retain coefficients. Larger blowups retain evaluations on
+    /// another coset. Both need the same evaluation before lifting.
     const Shadow = struct {
         values: [3][]?[]M,
         fn deinit(self: *Shadow, a: std.mem.Allocator) void {
@@ -155,7 +155,7 @@ pub const Component = struct {
         for (trace.polys.items) |tree| for (tree) |poly| {
             if (poly.device != null) continue;
             const coefficients = poly.coefficients orelse continue;
-            if (poly.log_size != coefficients.logSize() + 1) return true;
+            if (poly.values.len == 0 or poly.log_size != coefficients.logSize() + 1) return true;
         };
         return false;
     }
@@ -174,6 +174,8 @@ pub const Component = struct {
             @memset(tree.*, null);
             made += 1;
         }
+        var twiddles = prover.poly.twiddle_source.TwiddleSource.initOwned(a);
+        defer twiddles.deinit(a);
         const Circle = prover.poly.circle;
         for (0..3) |t| {
             if (t >= trace.polys.items.len) continue;
@@ -186,38 +188,13 @@ pub const Component = struct {
                 const poly = trace.polys.items[t][global];
                 const coefficients = poly.coefficients orelse return error.Om31CircuitRequiresHostLde;
                 const log = coefficients.logSize() + 1;
-                if (poly.log_size == log) continue;
-                var evaluation = try coefficients.evaluate(a, Circle.CanonicCoset.new(log).circleDomain());
-                _ = &evaluation;
+                if (poly.values.len != 0 and poly.log_size == log) continue;
+                const evaluation = try coefficients.evaluateWithTwiddles(a, Circle.CanonicCoset.new(log).circleDomain(), try twiddles.get(a, log));
                 shadow.values[t][global] = @constCast(evaluation.values);
             }
         }
         return shadow;
     }
-    const DomainRead = struct {
-        component: *const Component,
-        trace: *const ProverAir.Trace,
-        row: usize,
-        shadow: ?*const Shadow = null,
-        fn get(raw: *const anyopaque, tree: u8, column: u32, offset: i32) !O {
-            const self: *const DomainRead = @ptrCast(@alignCast(raw));
-            if (tree >= self.trace.polys.items.len) return error.MissingOm31Trace;
-            const global = if (tree == 0) blk: {
-                if (column >= self.component.captured.preprocessed_indices.len) return error.MissingOm31Trace;
-                break :blk self.component.captured.preprocessed_indices[column];
-            } else (try G.span(self.component.captured.*, tree)).start + column;
-            if (global >= self.trace.polys.items[tree].len) return error.MissingOm31Trace;
-            var poly = self.trace.polys.items[tree][global];
-            if (self.shadow) |shadow| if (shadow.values[tree][global]) |values| {
-                poly = .{ .log_size = std.math.log2_int(usize, values.len), .values = values };
-            };
-            // The initial native beta1 proof retains its exact2n LDE; no
-            // hidden scalar re-expansion or fabricated host device columns.
-            if (poly.device != null or poly.values.len == 0) return error.Om31CircuitRequiresHostLde;
-            const index = core.utils.offsetBitReversedCircleDomainIndex(self.row, self.component.captured.trace_log_size, self.component.captured.evaluation_log_size, offset);
-            return O.fromBase(try poly.valueAtLiftingPosition(self.component.captured.evaluation_log_size, index));
-        }
-    };
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const ProverAir.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
         return self.evaluateDomainWithPool(trace, acc, prover.work_pool.getGlobalPool());
     }
@@ -237,25 +214,20 @@ pub const Component = struct {
         defer if (shadow_storage) |*shadow| shadow.deinit(a);
         const shadow: ?*const Shadow = if (shadow_storage) |*value| value else null;
         const workers = if (pool) |p| @min(p.workerCount(), @max(1, n / 4096)) else 1;
-        if (workers == 1) {
-            var job = try Rows.init(a, self, trace, params, column.*, 0, n);
-            job.shadow = shadow;
-            defer job.deinit(a);
-            return job.evaluate();
+        var arena = std.heap.ArenaAllocator.init(a);
+        defer arena.deinit();
+        const temp = arena.allocator();
+        const plan = try Packed.Plan.init(temp, self.captured, trace, if (shadow) |v| v.values else null, params, column.random_coeff_powers);
+        // Each worker owns registers and writes a disjoint range. Allocate on
+        // this thread so callers can supply a single-threaded arena.
+        if (workers > 1) column.next_fresh_index = null;
+        var jobs: [prover.work_pool.MAX_WORKERS]Rows = undefined;
+        for (jobs[0..workers], 0..) |*job, i| {
+            job.* = .{ .plan = &plan, .registers = try plan.registers(temp), .column = column.*, .first = n * i / workers, .end = n * (i + 1) / workers };
         }
+        if (workers == 1) return jobs[0].evaluate();
         var lease = try pool.?.acquire(try prover.work_pool.WorkerBudget.init(workers));
         defer lease.deinit();
-        // Every job writes a disjoint row range into the already zeroed bucket.
-        // Disable the sequential fresh cursor before copying it to helpers.
-        column.next_fresh_index = null;
-        var jobs: [prover.work_pool.MAX_WORKERS]Rows = undefined;
-        var prepared: usize = 0;
-        defer for (jobs[0..prepared]) |*job| job.deinit(a);
-        for (jobs[0..workers], 0..) |*job, i| {
-            job.* = try Rows.init(a, self, trace, params, column.*, n * i / workers, n * (i + 1) / workers);
-            job.shadow = shadow;
-            prepared += 1;
-        }
         var group = std.Thread.WaitGroup{};
         var joined = false;
         defer {
@@ -269,52 +241,27 @@ pub const Component = struct {
         for (jobs[0..workers]) |job| if (job.failure) |err| return err;
     }
     const Rows = struct {
-        component: *const Component,
-        trace: *const ProverAir.Trace,
-        parameters: []const O,
+        plan: *const Packed.Plan,
+        registers: Packed.Registers,
         column: Domain.ColumnAccumulator,
-        scratch: []E.Scratch,
-        roots: []O,
         first: usize,
         end: usize,
         failure: ?anyerror = null,
-        shadow: ?*const Shadow = null,
-        fn init(a: std.mem.Allocator, component: *const Component, trace: *const ProverAir.Trace, parameters: []const O, column: Domain.ColumnAccumulator, first: usize, end: usize) !Rows {
-            const scratch = try a.alloc(E.Scratch, component.captured.parts.len);
-            errdefer a.free(scratch);
-            var made: usize = 0;
-            errdefer for (scratch[0..made]) |*item| item.deinit();
-            var max_roots: usize = 0;
-            for (scratch, component.captured.parts) |*item, part| {
-                item.* = try E.Scratch.init(a, part.program);
-                made += 1;
-                max_roots = @max(max_roots, part.program.constraint_roots.len);
-            }
-            return .{ .component = component, .trace = trace, .parameters = parameters, .column = column, .scratch = scratch, .roots = try a.alloc(O, max_roots), .first = first, .end = end };
-        }
-        fn deinit(self: *Rows, a: std.mem.Allocator) void {
-            for (self.scratch) |*item| item.deinit();
-            a.free(self.scratch);
-            a.free(self.roots);
-        }
         fn run(self: *Rows) void {
             self.evaluate() catch |err| {
                 self.failure = err;
             };
         }
         fn evaluate(self: *Rows) !void {
-            const component = self.component;
-            var read = DomainRead{ .component = component, .trace = self.trace, .row = self.first, .shadow = self.shadow };
-            for (self.first..self.end) |r| {
-                read.row = r;
-                var value = O.zero();
-                for (self.scratch, component.captured.parts) |*item, part| {
-                    const values = self.roots[0..part.program.constraint_roots.len];
-                    try item.evaluateInto(part.program, .{ .context = &read, .get = DomainRead.get }, self.parameters, values);
-                    for (values, 0..) |root, i| value = value.add(root.mul(self.column.random_coeff_powers[component.captured.n_constraints - 1 - part.rc_base - i]));
+            var r = self.first;
+            while (r < self.end) {
+                const active = @min(self.end - r, core.fields.m31.PACK_WIDTH);
+                const value = try self.plan.evaluate(self.registers, r, active);
+                for (0..active) |lane| {
+                    const inverse = self.plan.component.denominator_inverses[(r + lane) >> @intCast(self.plan.component.trace_log_size)];
+                    self.column.accumulate(r + lane, core.fields.packed_om31.lane(value, lane).mulM31(M.fromCanonical(inverse)));
                 }
-                const inv = M.fromCanonical(component.captured.denominator_inverses[r >> @intCast(component.captured.trace_log_size)]);
-                self.column.accumulate(r, value.mulM31(inv));
+                r += active;
             }
         }
     };
