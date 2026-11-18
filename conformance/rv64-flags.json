@@ -7719,7 +7719,7 @@
       ],
       "default_evidence": {
         "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "text": "            if (!std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_PREPROCESSED\"))\n                return error.MissingPreprocessedEvaluations;\n            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS\"))\n                try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, \"recorded_graph\");\n            const trace = if (memory_trace) |value| value else return error.MissingMemoryTrace;\n            try trace.populateRc99Lut(resident_arena);\n            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\"))"
+        "text": "            if (!std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_PREPROCESSED\"))\n                return error.MissingPreprocessedEvaluations;\n            const trace = if (memory_trace) |value| value else return error.MissingMemoryTrace;\n            try trace.populateRc99Lut(resident_arena);\n            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\"))"
       },
       "expires": "2026-12-13"
     },
@@ -7802,35 +7802,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS": {
-      "owner": "src/backends/metal/tools/arena_plan/base_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "src/integrations/cairo_metal/resident/witness/execute.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS\"))\n                try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, \"recorded_graph\");\n            const trace = if (memory_trace) |value| value else return error.MissingMemoryTrace;\n            try trace.populateRc99Lut(resident_arena);\n            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\"))\n                std.debug.print(\"base stage=rc99_lut done\\n\", .{});\n            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS\"))"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_ADD_OPCODE_EVAL_DIGESTS": {
-      "owner": "src/integrations/cairo_metal/resident/witness/execute.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/resident/witness/execute.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/resident/witness/execute.zig",
-        "text": "                std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_ADD_OPCODE_EVAL_DIGESTS\"))\n            {\n                const bindings = try collectComponent(\n                    self.allocator,\n                    self.schedule,\n                    self.arena,\n                    \"BaseTrace\","
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS": {
       "owner": "src/backends/metal/tools/arena_plan/base_execution.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -7845,20 +7816,6 @@
       "default_evidence": {
         "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
         "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS\"))\n                try arena_binding_mod.logComponentBaseEvalDigests(\n                    resident_arena,\n                    schedule,\n                    plan,\n                    \"memory_address_to_id\",\n                );"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_BLAKE_G_EVAL_DIGESTS": {
-      "owner": "src/integrations/cairo_metal/resident/witness/execute.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/resident/witness/execute.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/resident/witness/execute.zig",
-        "text": "                std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_BLAKE_G_EVAL_DIGESTS\"))\n            {\n                const bindings = try collectComponent(\n                    self.allocator,\n                    self.schedule,\n                    self.arena,\n                    \"BaseTrace\","
       },
       "expires": "2026-12-13"
     },
@@ -7990,20 +7947,6 @@
       "default_evidence": {
         "path": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
         "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_INTERACTION_EVAL_DIGESTS\"))\n                try arena_binding_mod.logComponentInteractionDigests(\n                    allocator,\n                    resident_arena,\n                    schedule,\n                    plan,\n                    operation.component,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_RC99_DIGESTS": {
-      "owner": "src/integrations/cairo_metal/resident/witness/execute.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/resident/witness/execute.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/resident/witness/execute.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_RC99_DIGESTS\")) {\n                try self.logRc99Digest(component, @tagName(stage));\n            }\n            if (stage == .writer and std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS\"))\n                try logComponentBaseEvalDigests(\n                    self.resident_arena,\n                    self.schedule,"
       },
       "expires": "2026-12-13"
     },

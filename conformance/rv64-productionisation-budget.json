@@ -4386,7 +4386,7 @@
     },
     {
       "package": "stwo_prover_engine",
-      "base_commit": "c733ce5c3537a11adf27cb4d42deed60b64bd99d",
+      "base_commit": "352cae60e4fb807d82ec1d758335eef52d807478",
       "before": {
         "code_files": 300,
         "code_lines": 76464,
