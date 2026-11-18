@@ -13,7 +13,7 @@ const readPathAlloc = journal_support.readPathAlloc;
 const digest = journal_support.digest;
 const frontend = @import("stwo_riscv_frontend");
 
-const runner = frontend.runner;
+const runner = @import("legacy_riscv_frontend").runner;
 const TraceRow = runner.trace.TraceRow;
 
 const schema = "stwo.riscv.memcpy-call-hotspot-observation.v1";

@@ -61,6 +61,7 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     riscv_adapter.addImport("stwo", context.stwo_module);
+    riscv_adapter.addImport("postcard_error_codes", graph.createPostcardErrorCodes(b, context.stwo_module.import_table.get("stwo_core").?, context.product, context.target, context.optimize));
     riscv_adapter.addImport(
         "stwo_prover_engine",
         context.stwo_module.import_table.get("stwo_prover_engine").?,

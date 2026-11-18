@@ -54,6 +54,10 @@
       "status": "deferred",
       "reason": "Working CUDA sources remain preserved, but publishing waits for hardware validation and separation of generated authority payloads."
     },
+    "stwo_ethereum_statement": {
+      "status": "internal",
+      "reason": "The Ethereum statement is a repository product and does not ship as a standalone SDK package."
+    },
     "stwo_metal_backend": {
       "status": "published",
       "reason": "The resident Apple Metal backend is distributed as a macOS Zig source package."

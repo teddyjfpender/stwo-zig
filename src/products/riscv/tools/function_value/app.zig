@@ -11,7 +11,7 @@ const JournalAuthority = journal_support.JournalAuthority;
 const readPathAlloc = @import("input.zig").readPathAlloc;
 const frontend = @import("stwo_riscv_frontend");
 
-const runner = frontend.runner;
+const runner = @import("legacy_riscv_frontend").runner;
 const TraceRow = runner.trace.TraceRow;
 
 const schema = "stwo.riscv.function-load-value-observation.v1";

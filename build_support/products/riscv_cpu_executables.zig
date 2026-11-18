@@ -102,6 +102,7 @@ pub fn addObserver(
         optimize,
         root,
     );
+    _ = integration_graph.addEthereumFrontendCompatibility(b, target, optimize, root.import_table.get("stwo_riscv_frontend").?, root);
     root.addOptions(
         "build_identity",
         graph_identity.buildOptions(b, context.identity),
