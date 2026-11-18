@@ -3,9 +3,11 @@
 
 pub const roots = &.{
     "dependency:../src/products/ethereum/statement:frontend.zig",
+    "dependency:../src/products/ethereum/statement:cpu/rv64_services_gkr_policy_test_root.zig",
     "dependency:../src/products/ethereum/statement:cpu.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/engine/prover:mod.zig",
+    "dependency:../src/engine/artifact_store:mod.zig",
     "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
     "dependency:../src/frontends/cairo:interop/felt_json.zig",
     "dependency:../src/frontends/cairo:mod.zig",
@@ -229,4 +231,5 @@ pub const roots = &.{
     "dependency:../src/waist/prover_api:mod.zig",
     "dependency:../src/waist/recursion_wire:mod.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
+    "dependency:../src/waist/recursion_wire:postcard_error_codes.zig",
 };

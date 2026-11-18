@@ -12,7 +12,8 @@
   },
   "injected_modules": [
     "interop_cairo_prover_parameters",
-    "interop_felt_json"
+    "interop_felt_json",
+    "postcard_error_codes"
   ],
   "api_surface": [
     "blake2_felt252",
@@ -64,15 +65,15 @@
     "postcard"
   ],
   "budget": {
-    "code_files": 16,
-    "code_lines": 3254,
+    "code_files": 17,
+    "code_lines": 3269,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 12,
     "dependencies": 1,
     "rv64_registry_flags": 0,
-    "versioned_files": 19
+    "versioned_files": 20
   },
   "consumers": [
     {

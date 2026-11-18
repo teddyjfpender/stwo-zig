@@ -33,6 +33,10 @@ pub fn build(b: *std.Build) void {
     wire.addImport("interop_felt_json", felt_json);
     wire.addImport("interop_cairo_prover_parameters", prover_parameters);
 
+    const postcard_codes = b.createModule(.{ .root_source_file = b.path("postcard_error_codes.zig"), .target = target, .optimize = optimize });
+    postcard_codes.addImport("stwo_core", core);
+    wire.addImport("postcard_error_codes", postcard_codes);
+
     const unit_tests = b.addRunArtifact(b.addTest(.{ .root_module = wire, .filters = filters }));
 
     // Upstream fixtures live in the monorepo's `vectors/circuit/`; the

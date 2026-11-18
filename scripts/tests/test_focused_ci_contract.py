@@ -360,8 +360,10 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual("macos", lane["host"])
         self.assertNotIn("hosted", lane)
         commands = lane["commands"]
-        self.assertEqual(1, len(commands))
+        self.assertEqual(3, len(commands))
         self.assertIn("src/backends/metal/build.zig", commands[0])
+        for command, mode in zip(commands[1:], ("Debug", "ReleaseFast"), strict=True):
+            self.assertEqual(["zig", "build", "test-cdc-stwo-backend-contracts", f"-Doptimize={mode}", "-j2"], command)
 
     def test_cuda_backend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/backends/cuda/runtime/session.zig")
@@ -543,6 +545,10 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("package", runtime)
         self.assertIn("native_metal", runtime)
         self.assertIn("riscv_metal", runtime)
+
+    def test_aggregate_descriptor_selects_both_linked_source_closures(self) -> None:
+        lanes = self.lanes_for("build_support/products/aggregate.zig")
+        self.assertTrue({"aggregate_cpu", "aggregate_metal"}.issubset(lanes))
 
     def test_multiple_paths_take_the_conservative_union(self) -> None:
         selected = self.lanes_for(

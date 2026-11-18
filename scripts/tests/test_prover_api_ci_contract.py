@@ -51,8 +51,11 @@ class ProverApiCiContractTests(unittest.TestCase):
             }.issubset(selected)
         )
         commands = self.policy["lanes"]["prover_api"]["commands"]
-        self.assertEqual(1, len(commands))
-        self.assertIn("src/waist/prover_api/build.zig", commands[0])
+        self.assertEqual(
+            [["zig", "build", "test", "--build-file", "src/waist/prover_api/build.zig", "-Doptimize=ReleaseFast", "-j2"]]
+            + [["zig", "build", "test-cdc-stwo-prover-api", f"-Doptimize={mode}", "-j2"] for mode in ("Debug", "ReleaseFast")],
+            commands,
+        )
 
 
 if __name__ == "__main__":

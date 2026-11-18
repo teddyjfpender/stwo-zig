@@ -138,8 +138,8 @@ class DevTestPlanTests(unittest.TestCase):
                             command, = dev_test.commands_for_paths(ROOT, [path], optimize=mode, check_only=check)
                             self.assertEqual(["zig", "test", "-O" + mode] + (["-fno-emit-bin"] if check else []) + [root], command)
         for build, step, source in (
-            ("src/integrations/riscv_cuda/BUILD.zig", "test-recording-datasets", "rv64/recording_dataset.zig"),
-            ("src/products/ethereum/statement/BUILD.zig", "test-capture-inputs", "cuda/rv64/capture_inputs.zig"),
+            ("src/integrations/riscv_cuda/build.zig", "test-recording-datasets", "rv64/recording_dataset.zig"),
+            ("src/products/ethereum/statement/build.zig", "test-capture-inputs", "cuda/rv64/capture_inputs.zig"),
         ):
             text = (ROOT / build).read_text()
             self.assertIn('b.step("' + step + '"', text)
