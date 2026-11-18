@@ -4248,6 +4248,33 @@
         "versioned_files": 157
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/427#issuecomment-6974160311"
+    },
+    {
+      "package": "stwo_circuit_cpu_integration",
+      "base_commit": "98d08ccb87adb5982eb1a347afe8f05c876673f9",
+      "before": {
+        "code_files": 63,
+        "code_lines": 9452,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 8,
+        "rv64_registry_flags": 1,
+        "versioned_files": 66
+      },
+      "after": {
+        "code_files": 64,
+        "code_lines": 9553,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 9,
+        "dependencies": 8,
+        "rv64_registry_flags": 1,
+        "versioned_files": 67
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/433#issuecomment-6979197982"
     }
   ]
 }
