@@ -4185,7 +4185,9 @@
       "date": "2026-11-08",
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
+        "scripts/rv64/rv64_resident_resources.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
+        "scripts/tests/test_rv64_gate.py",
         "scripts/tests/test_rv64_resident_basket.py",
         "src/integrations/riscv_cuda/rv64/cpu_replay.zig",
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
@@ -4211,19 +4213,21 @@
     },
     "STWO_RV64_GPU_DEVICE_CAPS": {
       "owner": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
-      "default": "parsed resident defaults (28 GiB for device 0 in combined entrypoint)",
+      "default": "parsed resident defaults (28 GiB for combined entrypoints); explicit per-device capacities limited by measured allocatable memory",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
+        "scripts/tests/test_rv64_gate.py",
         "src/integrations/riscv_cuda/rv64/resident_router.zig",
+        "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
         "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
         "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig"
       ],
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64/resident_batch.zig",
-        "text": "        if (!std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_CAPS\")) @memset(config.caps, 28 << 30);\n        for (config.caps) |cap| if (cap > 28 << 30 or manifest.combined_immutable_device_bytes == 0 or manifest.combined_immutable_device_bytes > cap) return error.InvalidCombinedBatchBudget;\n        if (manifest.combined_host_bytes == 0 or manifest.immutable_host_key_bytes > manifest.combined_host_bytes) return error.InvalidCombinedBatchBudget;\n        for (manifest.execution_order) |block| {\n            var name: [24]u8 = undefined;\n            const item = manifest.blocks.map.get(try std.fmt.bufPrint(&name, \"{d}\", .{block})) orelse return error.MissingResidentBatchBlock;\n            if (item.prefix_count != 0 or !std.mem.eql(u8, item.jobs, \"-\")) return error.CombinedRequiresCompleteDirectExecution;\n            try config.validatePlan(cpuCount(item));"
+        "text": "        if (!std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_CAPS\")) @memset(config.caps, 28 << 30);\n        for (config.caps) |cap| if (manifest.combined_immutable_device_bytes == 0 or manifest.combined_immutable_device_bytes > cap) return error.InvalidCombinedBatchBudget;\n        if (manifest.combined_host_bytes == 0 or manifest.immutable_host_key_bytes > manifest.combined_host_bytes) return error.InvalidCombinedBatchBudget;\n        for (manifest.execution_order) |block| {\n            var name: [24]u8 = undefined;\n            const item = manifest.blocks.map.get(try std.fmt.bufPrint(&name, \"{d}\", .{block})) orelse return error.MissingResidentBatchBlock;\n            if (item.prefix_count != 0 or !std.mem.eql(u8, item.jobs, \"-\")) return error.CombinedRequiresCompleteDirectExecution;\n            try config.validatePlan(cpuCount(item));"
       },
       "expires": "2026-12-09"
     },
@@ -4324,6 +4328,7 @@
       "references": [
         "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
+        "scripts/tests/test_rv64_gate.py",
         "src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig",
         "src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig"
       ],
@@ -4558,7 +4563,7 @@
       ],
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
-        "text": "    const reuse = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_REUSE\", 0);\n    if (reuse > 1) return error.InvalidM8GpuNativeEnvironment;\n    var workers: [G.max_devices]*W.Worker = undefined;\n    var made: usize = 0;\n    defer for (workers[0..made]) |w| w.destroy();\n    if (config.device_count > G.max_devices) return error.GpuNativeTooManyDevices;\n    for (config.devices[0..config.device_count]) |d| {\n        // WarmJob uploads FIXED coefficients at install. Lazy slots allocate"
+        "text": "    const reuse = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_REUSE\", 0);\n    if (reuse > 1) return error.InvalidM8GpuNativeEnvironment;\n    if (config.device_count > G.max_devices) return error.GpuNativeTooManyDevices;\n    for (config.devices[0..config.device_count]) |d| {\n        // WarmJob uploads FIXED coefficients at install. Lazy slots allocate\n        // nothing initially; allow the class's actual upload footprint.\n        workers[made] = try W.Worker.create(a, &libs.ops, .{ .device = d, .arena_words = 1 << 16, .pinned_slot_words = (8 << 30) / 4, .pinned_lazy = true, .plan_from_env = false, .reuse_frees = reuse == 1 });\n        made += 1;"
       },
       "expires": "2026-12-09"
     },
@@ -4615,7 +4620,7 @@
       ],
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
-        "text": "    const addon = std.posix.getenv(\"STWO_RV64_M8_JOBS_LIBRARY\") orelse return error.MissingJobsAddon;\n    var libs = try O.Libraries.open(library, addon);\n    defer libs.close();\n    const peer = try O.Peer.open(&libs.addon);\n    const config = try mod.Config.fromEnv();\n    // Build real immutable recursion classes before native workers carve the\n    // device pool. Its cold proof construction is counted in init_ns.\n    const recursion_classes = try Host.installRecursion(a, &libs, library, manifest_path, spool);"
+        "text": "    const addon = std.posix.getenv(\"STWO_RV64_M8_JOBS_LIBRARY\") orelse return error.MissingJobsAddon;\n    var libs = try O.Libraries.open(library, addon);\n    defer libs.close();\n    const peer = try O.Peer.open(&libs.addon);\n    const config = try mod.Config.fromEnv();\n    var device_budget = try @import(\"stwo_riscv_cuda_integration\").rv64.execution.runtime.resident_router.Config.fromEnv(a);\n    defer device_budget.deinit(a);\n    if (!std.process.hasEnvVarConstant(\"STWO_RV64_GPU_DEVICE_CAPS\")) @memset(device_budget.caps, 28 << 30);"
       },
       "expires": "2026-12-09"
     },
@@ -4889,7 +4894,7 @@
       ],
       "default_evidence": {
         "path": "src/products/ethereum/statement/cuda/rv64/jobs/driver_ge.zig",
-        "text": "        .prewarm_resources = (try envUnsigned(\"STWO_RV64_M9_CLASS_PACKED_INGRESS\", 0)) == 1,\n        .slab_words = default_slab_bytes / 4,\n        .batch_pinned_words = default_batch_pinned_bytes / 4,\n    };\n    const ring = S.RingConfig{ .buffers = default_ring_buffers, .words = default_ring_bytes / 4 };\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});\n        binding.reportStage1();"
+        "text": "        .prewarm_resources = (try envUnsigned(\"STWO_RV64_M9_CLASS_PACKED_INGRESS\", 0)) == 1,\n        .slab_words = default_slab_bytes / 4,\n        // Shared retained metadata plus one measured-after-instantiation\n        // candidate. Opaque CUDA temporary peaks remain physically guarded.\n        .graph_exec_words = (512 << 20) / 4,\n        .batch_pinned_words = default_batch_pinned_bytes / 4,\n    };\n    const ring = S.RingConfig{ .buffers = default_ring_buffers, .words = default_ring_bytes / 4 };"
       },
       "expires": "2026-12-09"
     },

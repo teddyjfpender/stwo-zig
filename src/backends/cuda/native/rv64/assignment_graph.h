@@ -12,3 +12,4 @@ extern "C" int stwo_assignment_graph_create_v1(void*, uint32_t,
 extern "C" int stwo_assignment_graph_launch_v1(void*, uint32_t, void*,
     const StwoCircuitAssignmentJob*, const uint32_t*, uint32_t);
 extern "C" int stwo_assignment_graph_destroy_v1(void*, void*);
+extern "C" int stwo_assignment_graph_charged_bytes_v1(void*, void*, uint64_t*);

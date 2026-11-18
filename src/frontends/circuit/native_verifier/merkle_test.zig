@@ -160,3 +160,64 @@ test "native merkle: decommitment of a mixed-height lifted tree verifies in the 
     // The same tree queried from a lifting domain two bits larger.
     try std.testing.expect(try checkTree(&columns, &log_sizes, &.{ 5, 24, 31, 0 }, 5, false));
 }
+
+test "sparse cap binds queried paths and unopened subtrees with a fixed circuit shape" {
+    const height = 6;
+    const depth = 4;
+    var levels: [height + 1][1 << height]Hasher.Hash = undefined;
+    for (&levels[0], 0..) |*leaf, i| for (leaf, 0..) |*b, j| {
+        b.* = @truncate(i * 19 + j * 7);
+    };
+    for (1..height + 1) |l| for (0..@as(usize, 1) << @intCast(height - l)) |i| {
+        levels[l][i] = Hasher.hashChildren(.{ .left = levels[l - 1][2 * i], .right = levels[l - 1][2 * i + 1] });
+    };
+    const Case = enum { honest, frontier_digest, terminal, bit, root };
+    var counts: ?@TypeOf(@as(Context, undefined).gate_counts) = null;
+    for ([_][16]usize{ @splat(0), @splat(63), .{ 0, 0, 1, 5, 9, 12, 15, 19, 23, 23, 24, 34, 37, 43, 48, 51 }, .{ 0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60 } }) |pos| {
+        var leaves: [pos.len]Hasher.Hash = undefined;
+        var store: [pos.len][height]Hasher.Hash = undefined;
+        var paths: [pos.len][]const Hasher.Hash = undefined;
+        for (pos, &leaves, &store, &paths) |v, *leaf, *nodes, *path| {
+            leaf.* = levels[0][v];
+            for (nodes, 0..) |*n, l| n.* = levels[l][(v >> @intCast(l)) ^ 1];
+            path.* = nodes;
+        }
+        var cap: [1 << depth]Hasher.Hash = undefined;
+        try merkle.hostSparseCap(Hasher, &cap, &pos, &leaves, &paths, height, levels[height][0]);
+        for ([_]Case{ .honest, .frontier_digest, .terminal, .bit, .root }) |case| {
+            var ctx = try Context.init(std.testing.allocator, 0);
+            defer ctx.deinit();
+            var raw: [depth][pos.len]Var = undefined;
+            var high: [depth][]const Var = undefined;
+            for (&raw, &high, 0..) |*column, *view, j| {
+                for (column, pos, 0..) |*wire, v, qi| {
+                    const b: u32 = @intCast((v >> @intCast(height - depth + j)) & 1);
+                    wire.* = try bitWire(&ctx, b ^ @intFromBool(case == .bit and qi == 0 and j == depth - 1));
+                }
+                view.* = column;
+            }
+            var ws: [cap.len]HashValue(Var) = undefined;
+            for (cap, &ws, 0..) |digest, *w, i| {
+                var d = digest;
+                if (case == .frontier_digest and i == (if (pos[0] < 32) @as(usize, 8) else 0)) d[0] ^= 1;
+                w.* = try guessDigest(&ctx, d);
+            }
+            var root = levels[height][0];
+            if (case == .root) root[0] ^= 1;
+            const frontier = try merkle.SparseCap.init(QM31, &ctx, &high);
+            try frontier.verify(QM31, &ctx, &ws, try guessDigest(&ctx, root));
+            for (pos, 0..) |v, i| {
+                const selected = try frontier.terminal(QM31, &ctx, &ws, i);
+                var term = levels[height - depth][v >> (height - depth)];
+                if (case == .terminal and i == 0) term[0] ^= 1;
+                const expected = try guessDigest(&ctx, term);
+                for (expected.words, selected.words) |a, b| try ctx.eq(a.get(), b.get());
+            }
+            try ctx.finalize(false);
+            try std.testing.expectEqual(case == .honest, try ctx.isCircuitValid());
+            if (counts) |c| try std.testing.expectEqualDeep(c, ctx.gate_counts) else counts = ctx.gate_counts;
+        }
+        store[0][height - 1][0] ^= 1;
+        try std.testing.expectError(error.MerkleCapMismatch, merkle.hostSparseCap(Hasher, &cap, &pos, &leaves, &paths, height, levels[height][0]));
+    }
+}

@@ -25,7 +25,8 @@ const P = @import("truth_params.zig");
 
 pub const Launch = *const fn (*anyopaque, u32, [*]const u32, [*]const u32, [*]const u32, [*]u32, [*]u32, [*]u32, u32) callconv(.c) c_int;
 const N2b = *const fn ([*]u32, usize, u32, u32, [*]const u32, u32, u32, *anyopaque, *u32) callconv(.c) c_int;
-const CopyD2d = *const fn (*anyopaque, *anyopaque, *const anyopaque, usize) callconv(.c) c_int;
+const Copies = @import("column_copy_runs.zig");
+const CopyD2d = Copies.Copy;
 const Memset = *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int;
 const Pairs = *const @TypeOf(Abi.stwo_rv64_global_pairs_on);
 pub const Cumulative = extern struct { output: [*]u32, contributions: [*]const u32, stride: u64, row_log: u32, pairs: u32 };
@@ -35,6 +36,7 @@ pub const Layout = enum { inverse_prefix, cumulative_batches };
 
 pub const Symbols = struct {
     copy_d2d: CopyD2d,
+    validate_allocation: ?Copies.Validate = null,
     memset: Memset,
     n2b: N2b,
     pairs: Pairs,
@@ -42,6 +44,7 @@ pub const Symbols = struct {
     pub fn load(base: *std.DynLib) !Symbols {
         return .{
             .copy_d2d = base.lookup(CopyD2d, "stwo_exec_context_memcpy_d2d_async") orelse return error.MissingTruthInteractionSymbol,
+            .validate_allocation = base.lookup(Copies.Validate, "stwo_exec_context_validate_allocation"),
             .memset = base.lookup(Memset, "stwo_exec_context_memset_async") orelse return error.MissingTruthInteractionSymbol,
             .n2b = base.lookup(N2b, "stwo_ntt_n2b_columns_on") orelse return error.MissingTruthInteractionSymbol,
             .pairs = base.lookup(Pairs, "stwo_rv64_global_pairs_on") orelse return error.MissingTruthInteractionSymbol,
@@ -190,8 +193,10 @@ pub fn enqueue(plan: *const Plan, sym: *const Symbols, e: anytype, in: Inputs, o
     const stream = e.stream();
     const rows = p.rows;
     const source = try e.alloc((p.fixed_count + p.main_count) * rows);
-    for (in.fixed, 0..) |from, i| try check(sym.copy_d2d(ctx, source.ptr + i * rows, from, rows * 4));
-    for (in.main, 0..) |from, i| try check(sym.copy_d2d(ctx, source.ptr + (p.fixed_count + i) * rows, from, rows * 4));
+    var copies = Copies.Runs{ .ctx = ctx, .copy = sym.copy_d2d, .validate = sym.validate_allocation };
+    for (in.fixed, 0..) |from, i| try copies.push(source.ptr + i * rows, from, rows);
+    for (in.main, 0..) |from, i| try copies.push(source.ptr + (p.fixed_count + i) * rows, from, rows);
+    try copies.finish();
     var launches: u32 = 0;
     const tw_count: u32 = @intCast(p.twiddleWords());
     try check(sym.n2b(source.ptr, rows, p.log, @intCast(p.fixed_count + p.main_count), in.twiddles.ptr + in.twiddles.words - tw_count, tw_count, tw_count, stream, &launches));

@@ -173,9 +173,29 @@ def make_helpers(
             db.close()
 
 
+    def add_device_cap_argument(parser):
+        parser.add_argument("--device-cap-bytes", type=lambda value: R.positive(int(value), "device cap bytes"), default=28 << 30)
+
+    def service_worker(plan):
+        job = plan["jobs"][0]
+        return {"device": ",".join(map(str, job["devices"])),
+                "device_caps_bytes": [plan["device_cap_bytes"]] * job["device_count"],
+                "planned_cpu_workers": job["segments"], "retained_scopes": 64}
+
     class PhysicalBudgetGuard:
         """Hold physical CUDA allocation under the harness GPU lease, through exit."""
+        @staticmethod
+        def selected_devices(environment):
+            visible = environment.get("CUDA_VISIBLE_DEVICES")
+            default = ",".join(map(str, range(len(visible.split(","))))) if visible is not None else "0,1"
+            raw = environment.get("STWO_RV64_GPU_DEVICES", default).split(",")
+            if (len(raw) not in (1, 2, 4) or raw != list(map(str, range(len(raw)))) or
+                    (visible is not None and (not visible or len(visible.split(",")) != len(raw)))):
+                raise ValueError("physical guard requires the selected 1/2/4 logical GPUs")
+            return list(range(len(raw)))
+
         def __init__(self, binary, run, environment):
+            devices = self.selected_devices(environment)
             self.process = None
             self.record = None
             self.stop = threading.Event()
@@ -186,7 +206,7 @@ def make_helpers(
             binary = Path(binary).resolve()
             self.record = {"binary": str(binary), "sha256": P.sha(binary), "requested_limit_bytes": 28000000000}
             try:
-                self.process = subprocess.Popen([str(binary), "--limit-bytes", "28000000000", "--devices", "0,1"],
+                self.process = subprocess.Popen([str(binary), "--limit-bytes", "28000000000", "--devices", ",".join(map(str, devices))],
                                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.stderr,
                                                 env={k:v for k,v in environment.items() if k != "LD_PRELOAD" and not k.startswith("STWO_")})
                 selector = selectors.DefaultSelector()
@@ -200,7 +220,7 @@ def make_helpers(
                 ready = json.loads(line)
                 if (ready.get("schema") != "rv64-physical-budget-guard/v1" or not ready.get("ready") or
                         ready.get("requested_limit_bytes") != 28000000000 or
-                        sorted(d["device"] for d in ready.get("devices", [])) != [0, 1]):
+                        sorted(d["device"] for d in ready.get("devices", [])) != devices):
                     raise RuntimeError("invalid physical budget guard ready record")
                 for device in ready["devices"]:
                     held = device["held_physical_bytes"]
@@ -247,6 +267,9 @@ def make_helpers(
                         self.process.wait(timeout=30)
                 if self.process.returncode != 0:
                     self.failure.append(f"guard terminal exit {self.process.returncode}")
+                for pipe in (self.process.stdin, self.process.stdout):
+                    if pipe is not None and not pipe.closed:
+                        pipe.close()
                 if self.record is not None:
                     self.record.update(exit_code=self.process.returncode, status="INVALID" if self.failure else "RELEASED", failure=self.failure)
                     B.atomic_json(self.path, self.record)
@@ -329,4 +352,4 @@ def make_helpers(
                           "cuda_api": {k: v["count"] for k, v in (receipt.get("cuda_api") or {}).items() if isinstance(v, dict) and "count" in v},
                           "requests": rows}, indent=1))
 
-    return (tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary,)
+    return (tree_sha, store_components, store_key, open_store, store_census, baseline, m3_parity, markers, nsys_directory, nsys_api_census, nsys_window_counts, PhysicalBudgetGuard, cgroup_cpu_delta, loaded_native_runtime, service_wall_ns, ledger_rows, print_summary, service_worker, add_device_cap_argument,)

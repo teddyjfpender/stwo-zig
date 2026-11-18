@@ -98,7 +98,8 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
         root: H.Hash,
         column_log_sizes: []u32,
         /// Number of Merkle layers above the leaves. Every column is lifted to
-        /// `2^height` leaves; 0 exactly when no column was committed.
+        /// `2^height` leaves. Height zero also represents a nonempty constant
+        /// tree; the column count distinguishes it from an empty commitment.
         height: u32,
 
         const Self = @This();
@@ -190,15 +191,29 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
                 return MerkleVerificationError.InvalidQueryShape;
             }
             if (self.column_log_sizes.len == 0) {
-                // Empty trees still publish an owned, destructible capture.
-                // PCS capture retires every tree slot, including this one.
+                // Empty commitments authenticate one canonical empty leaf,
+                // with no queries or witness. Validate before publishing custody.
+                if (self.height != 0 or query_positions.len != 0)
+                    return MerkleVerificationError.InvalidQueryShape;
+                if (decommitment.hash_witness.len != 0)
+                    return MerkleVerificationError.WitnessTooLong;
+                var empty_leaf = H.defaultWithInitialState();
+                if (!vcs_hash.eql(empty_leaf.finalize(), self.root))
+                    return MerkleVerificationError.RootMismatch;
                 if (capture_out) |destination| {
-                    const positions = try allocator.dupe(usize, query_positions);
+                    const positions = try allocator.alloc(usize, 0);
                     errdefer allocator.free(positions);
                     const siblings = try allocator.alloc(H.Hash, 0);
                     destination.* = .{ .positions = positions, .path_depth = 0, .siblings = siblings };
                 }
                 return;
+            }
+
+            // Query addresses must fit the tree and the host index width.
+            if (self.height >= @bitSizeOf(usize)) return MerkleVerificationError.InvalidQueryShape;
+            for (query_positions) |position| {
+                if (position >> @intCast(self.height) != 0)
+                    return MerkleVerificationError.InvalidQueryShape;
             }
 
             for (queried_values) |column| {
@@ -436,17 +451,16 @@ test "vcs_lifted verifier: empty tree publishes owned destructible capture" {
 }
 fn emptyCaptureWithAllocator(allocator: std.mem.Allocator) !void {
     const Hasher = @import("blake2_merkle.zig").Blake2sMerkleHasher;
-    var verifier = try MerkleVerifierLifted(Hasher).init(allocator, @splat(0), &.{});
+    var empty_leaf = Hasher.defaultWithInitialState();
+    var verifier = try MerkleVerifierLifted(Hasher).init(allocator, empty_leaf.finalize(), &.{});
     defer verifier.deinit(allocator);
-    var positions = [_]usize{ 1, 3 };
     var capture = MerklePathCapture(Hasher){ .positions = &.{}, .path_depth = 7, .siblings = &.{} };
-    verifier.verifyWithPathCapture(allocator, &positions, &.{}, .{ .hash_witness = &.{} }, &capture) catch |err| {
+    verifier.verifyWithPathCapture(allocator, &.{}, &.{}, .{ .hash_witness = &.{} }, &capture) catch |err| {
         try std.testing.expectEqual(@as(u32, 7), capture.path_depth);
         return err;
     };
     defer capture.deinit(allocator);
-    positions[0] = 9;
-    try std.testing.expectEqualSlices(usize, &.{ 1, 3 }, capture.positions);
+    try std.testing.expectEqual(@as(usize, 0), capture.positions.len);
     try std.testing.expectEqual(@as(u32, 0), capture.path_depth);
     try std.testing.expectEqual(@as(usize, 0), capture.siblings.len);
 }
@@ -622,4 +636,53 @@ test "vcs_lifted verifier: duplicate mismatch releases only initialized columns"
     var capture = sentinel;
     try std.testing.expectError(error.DuplicateQueryMismatch, verifier.verifyWithPathCapture(alloc, &positions, &columns, .{ .hash_witness = &.{} }, &capture));
     try std.testing.expectEqualDeep(sentinel, capture);
+}
+
+test "vcs_lifted verifier: rejects an out-of-domain alias of an authenticated leaf" {
+    const Hasher = @import("blake2_merkle.zig").Blake2sMerkleHasher;
+    const Decommitment = MerkleDecommitmentLifted(Hasher);
+    const Verifier = MerkleVerifierLifted(Hasher);
+    const alloc = std.testing.allocator;
+
+    const value = M31.fromCanonical(7);
+    var hasher = Hasher.defaultWithInitialState();
+    hasher.updateLeaf(&.{value});
+    const leaf = hasher.finalize();
+    hasher = Hasher.defaultWithInitialState();
+    hasher.updateLeaf(&.{M31.fromCanonical(9)});
+    const sibling = hasher.finalize();
+    const root = Hasher.hashChildren(.{ .left = sibling, .right = leaf });
+    var tree = try Verifier.init(alloc, root, &.{1});
+    defer tree.deinit(alloc);
+    var proof = Decommitment{ .hash_witness = try alloc.dupe(Hasher.Hash, &.{sibling}) };
+    defer proof.deinit(alloc);
+    const columns = [_][]const M31{&.{value}};
+
+    try tree.verify(alloc, &.{1}, &columns, proof);
+    // With one Merkle level, index 3 had the same path bits as index 1.
+    // Before the bound check it was accepted against the same root.
+    try std.testing.expectError(
+        MerkleVerificationError.InvalidQueryShape,
+        tree.verify(alloc, &.{3}, &columns, proof),
+    );
+    const sentinel = MerklePathCapture(Hasher){
+        .positions = &.{},
+        .path_depth = std.math.maxInt(u32),
+        .siblings = &.{},
+    };
+    var capture = sentinel;
+    try std.testing.expectError(
+        MerkleVerificationError.InvalidQueryShape,
+        tree.verifyWithPathCapture(alloc, &.{3}, &columns, proof, &capture),
+    );
+    try std.testing.expectEqualDeep(sentinel, capture);
+
+    // The height-zero tree has only leaf index 0.
+    var constant = try Verifier.init(alloc, leaf, &.{0});
+    defer constant.deinit(alloc);
+    try constant.verify(alloc, &.{0}, &columns, .{ .hash_witness = &.{} });
+    try std.testing.expectError(
+        MerkleVerificationError.InvalidQueryShape,
+        constant.verify(alloc, &.{1}, &columns, .{ .hash_witness = &.{} }),
+    );
 }

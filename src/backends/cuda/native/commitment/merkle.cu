@@ -351,26 +351,8 @@ extern "C" int stwo_blake2s_contiguous_tail_plain_on(
 
 namespace stwo::cuda::blake2s {
 
-// T6 tree schedule (STWO_RV64_M8_MERKLE_FUSED=1). Receipt:
-// vectors/reports/rv64-m8-20261106/opt-T6-merkle-leaf-tree/ (CUDA events,
-// RTX 5090, 7 reps, median ms of the fused layers for 2^10 / 2^14 / 2^20 /
-// 2^24 leaves; callers' layer loop 0.0301 / 0.0437 / 0.1041 / 1.0464):
-//   kFusedTailNodes (layers of <= this many nodes are built by one CTA)
-//     [M tune-1] 1024: 0.0136 / 0.0259 / 0.0684 / 0.8296, sum logs 10-24 1.810
-//                2048: 0.0135 / 0.0290 / 0.0724 / 0.8338, sum 1.820
-//                4096: 0.0136 / 0.0295 / 0.0735 / 0.8420; 8192: 0.0137 / 0.0343 /
-//                0.0785 / 0.8446 -> 2048 (tie with 1024 within noise).
-//   kSubtreeBlock (threads per subtree_levels_kernel CTA = its launch bound)
-//     [M tune-2] 64: 0.0139 / 0.0292 / 0.0724 / 0.8356; 128: 0.0134 / 0.0301 /
-//                0.0724 / 0.8294; 256: 0.0140 / 0.0322 / 0.0847 / 0.8373 -> 128.
-//   kFusedTailBlock (threads of the tail CTA = its launch bound)
-//     [M review-r2, 3 rounds x 9 reps] 256: 0.0136 / 0.0305 / 0.0725 / 0.8300;
-//                512: 0.0137 / 0.0305 / 0.0725 / 0.8292; 1024: 0.0134 / 0.0305 /
-//                0.0725 / 0.8282 -> 1024 (all three within noise).
-//   fused_tail_kernel is kept beside upper_tail_kernel (same layers): the
-//     frozen kernel indexes the global arrays directly, which [M review-r1]
-//     makes it ~2 us slower as the tail (2^10 / 2^12 / 2^14: 0.0156 / 0.0203 /
-//     0.0337 vs 0.0134 / 0.0178 / 0.0303), at 256 and 1024 threads alike.
+// Three-level subtrees retain all intermediate hashes; one CTA finishes the
+// small upper tail. Geometry is shared by plain and prefixed hash protocols.
 constexpr uint32_t kFusedTailNodes = STWO_T6_TAIL_NODES;
 constexpr uint32_t kSubtreeBlock = STWO_T6_SUBTREE_BLOCK;
 constexpr uint32_t kFusedTailBlock = STWO_T6_TAIL_BLOCK;
@@ -410,8 +392,7 @@ static int fused_tree_layers(Hash *tree, uint32_t leaves, cudaStream_t stream) {
 
 }  // namespace stwo::cuda::blake2s
 
-// Test/bench hook: forces the STWO_RV64_M8_MERKLE_FUSED mode for this process
-// (0 or 1; -2 returns to the environment value).
+// Test/bench oracle selection (0 or 1; -2 restores the canonical schedule).
 extern "C" void stwo_blake2s_m8_merkle_fused_override(int mode) {
     __atomic_store_n(&stwo::cuda::blake2s::merkle_fused_override_slot(), mode,
                      __ATOMIC_RELAXED);
@@ -423,9 +404,9 @@ extern "C" void stwo_blake2s_m8_merkle_fused_override(int mode) {
 // of the callers' loop
 //   for (n = leaves, off = 0; n > 1; off += n, n /= 2)
 //     stwo_blake2s_layer_on(tree + off, n / 2, tree + off + n, stream);
-// which is what runs here with STWO_RV64_M8_MERKLE_FUSED unset/0. With =1
-// the layers come from subtree_levels_kernel passes and one tail CTA
-// (bit-identical). tree_capacity_nodes must cover 2 * leaves - 1 hashes.
+// retained as the explicit test oracle. The canonical schedule uses
+// subtree passes and one tail CTA, preserving every hash. The capacity
+// must cover 2 * leaves - 1 hashes.
 template <bool Prefixed>
 static int stwo_blake2s_merkle_layers_on_impl(
     stwo::cuda::blake2s::Hash *tree, uint32_t leaves, uint64_t tree_capacity_nodes,

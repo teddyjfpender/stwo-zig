@@ -76,6 +76,14 @@ pub const Queries = struct {
     n_queries: usize,
 };
 
+/// Number of candidate cosets for a short, uncapped line layer. Zero uses
+/// ordinary per-query openings. Bounded counts are injective in M31.
+pub fn shortLineGroups(layer_index: usize, height: usize, step: usize, queries: usize, cap_log: usize) usize {
+    if (layer_index == 0 or height > 3 or cap_log != 0 or step == 0 or step > 4 or queries >= core.fields.m31.Modulus) return 0;
+    const groups = @as(usize, 1) << @intCast(height);
+    return if (queries >= 4 * groups) groups else 0;
+}
+
 /// `FriVerifier.commit`: returns the folding alphas, one per layer
 /// (scratch-owned).
 pub fn friCommit(comptime V: type, ctx: *Context(V), channel: *NativeChannel, proof: *const FriProof(Var)) Error![]const Var {

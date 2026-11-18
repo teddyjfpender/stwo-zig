@@ -643,10 +643,10 @@ pub fn enqueuePrologue(c: *const Class, sym: *const Symbols, e: *api.Enqueue, se
             const psym = &(sym.pack orelse return error.MissingGnPackKernel);
             const program = cw.program orelse return error.NativeStage1NotStaged;
             const bound = cw.bound orelse return error.NativeStage1NotStaged;
-            // Witness evaluations live in the eventual coefficient region.
-            // The beta >= 2 CommitPlan stages them into its private commit
-            // scratch before writing coefficients back, so they may alias
-            // the output. This removes the v1 expanded-image arena term.
+            // checkMainLogs authenticates a single height for each launch span.
+            // Stable sorting preserves contiguous column offsets within that span.
+            const sorted = c.spec.beta != 1 and sym.commit.n2b_compact != null and program.relocatable_columns;
+            const offsets = if (sorted) main.offsets else c.image_offsets;
             if (main_view.words < c.image_words) return error.NativeStage1PrologueShape;
             const img = if (c.spec.beta != 1) try main_view.slice(0, c.image_words) else blk: {
                 const allocated = try e.alloc(c.image_words);
@@ -656,8 +656,8 @@ pub fn enqueuePrologue(c: *const Class, sym: *const Symbols, e: *api.Enqueue, se
             // Zero first: a kernel that leaves padding rows untouched commits
             // zeros exactly as the legacy fresh MAIN leases did.
             try cuda(sym.memset(ectx, @ptrCast(img.ptr), 0, img.words * 4));
-            try bound.enqueue(program, psym, e, img, c.image_offsets);
-            for (inputs, c.image_offsets) |*i, off| i.* = .{ .device = img.ptr + off };
+            try bound.enqueue(program, psym, e, img, offsets);
+            for (inputs, offsets) |*i, off| i.* = .{ .device = img.ptr + off };
             compact_len = (try bound.statusWords(program, &compact_status)).len;
         },
     }

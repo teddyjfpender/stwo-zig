@@ -2,6 +2,13 @@
 const std = @import("std");
 const Enc = @import("outer_encode.zig");
 const Schema = @import("outer_seed_device.zig");
+const Merkle = @import("stwo_circuit_frontend").native_verifier.merkle;
+const SeedHasher = struct {
+    pub const Hash = Schema.Hash;
+    pub fn hashChildren(pair: anytype) Hash {
+        return Schema.nodeHash(pair.left, pair.right);
+    }
+};
 fn reject(check: u16, detail: anytype) u32 {
     return (@as(u32, check) << 16) | @intFromEnum(detail);
 }
@@ -36,11 +43,19 @@ pub fn fillHost(program: Schema.Program, children: []const []const u32, scratch_
     if (worst != 0xffff) return (@as(u32, seed_check) << 16) | worst;
     // Caps.
     for (program.caps()) |c| {
+        if (c.nq == 0 or c.nq > Schema.kernel_max_queries) return reject(seed_check, Schema.SeedDetail.program);
         const e = program.child(c.child);
         const img = children[c.child][e[Schema.C.image]..][0..e[Schema.C.image_words]];
         const n_cap = @as(usize, 1) << @intCast(c.cl);
         var known: [64]bool = @splat(false);
         const cap = scratch[c.scratch..][0 .. n_cap * 8];
+        const groups = if (c.kind == 2) @as(usize, 1) << @intCast(c.height) else 0;
+        const value_words = c.width * 8;
+        const depth = c.height * 8;
+        if (groups != 0) @memset(scratch[c.scratch..][0 .. groups * (value_words + depth)], 0);
+        var terminals: [Schema.kernel_max_queries]Schema.Hash = undefined;
+        var positions: [Schema.kernel_max_queries]usize = undefined;
+        var upper_paths: [Schema.kernel_max_queries][]const Schema.Hash = undefined;
         var bad = false;
         for (0..c.nq) |qi| {
             const q = img[c.queries + qi];
@@ -72,12 +87,34 @@ pub fn fillHost(program: Schema.Program, children: []const []const u32, scratch_
             }
             if (c.cl == 0) {
                 if (!std.mem.eql(u32, &node, img[c.root..][0..8])) rank.note(&worst, .cap_root);
+                if (groups != 0) {
+                    if (pos >= groups) {
+                        rank.note(&worst, .query_range);
+                        continue;
+                    }
+                    const vs = scratch[c.scratch + pos * value_words ..][0..value_words];
+                    const ss = scratch[c.scratch + groups * value_words + pos * depth ..][0..depth];
+                    const src = img[c.values + qi * value_words ..][0..value_words];
+                    if (known[pos]) {
+                        if (!std.mem.eql(u32, vs, src) or !std.mem.eql(u32, ss, path[0..depth])) rank.note(&worst, .cap_mismatch);
+                    } else {
+                        known[pos] = true;
+                        @memcpy(vs, src);
+                        @memcpy(ss, path[0..depth]);
+                    }
+                }
                 continue;
             }
             const at: usize = pos >> @intCast(walk);
             if (at >= n_cap) {
                 rank.note(&worst, .query_range);
                 bad = true;
+                continue;
+            }
+            if (c.cl >= Merkle.sparse_cap_log) {
+                terminals[qi] = node;
+                positions[qi] = at;
+                upper_paths[qi] = std.mem.bytesAsSlice(Schema.Hash, std.mem.sliceAsBytes(path[walk * 8 ..][0 .. c.cl * 8]));
                 continue;
             }
             const pairs = [2]struct { i: usize, h: Schema.Hash }{ .{ .i = at, .h = node }, .{ .i = at ^ 1, .h = path[walk * 8 ..][0..8].* } };
@@ -91,6 +128,11 @@ pub fn fillHost(program: Schema.Program, children: []const []const u32, scratch_
             }
         }
         if (bad or c.cl == 0) continue;
+        if (c.cl >= Merkle.sparse_cap_log) {
+            const frontier = std.mem.bytesAsSlice(Schema.Hash, std.mem.sliceAsBytes(cap));
+            Merkle.hostSparseCap(SeedHasher, frontier, positions[0..c.nq], terminals[0..c.nq], upper_paths[0..c.nq], c.cl, img[c.root..][0..8].*) catch rank.note(&worst, .cap_mismatch);
+            continue;
+        }
         for (known[0..n_cap]) |k| if (!k) rank.note(&worst, .cap_uncovered);
         var layer: [64]Schema.Hash = undefined;
         for (0..n_cap) |i| layer[i] = cap[i * 8 ..][0..8].*;

@@ -441,3 +441,14 @@ test "batched fold sum counters record only successful native enqueues" {
     try std.testing.expectEqual(@as(usize, 2), CounterApi.calls);
     CounterApi.failure = false;
 }
+
+test "mixed fused prefetch stops before the persistent tail" {
+    var fixture = Fixture.initSized(.{ 4, 64, 2 });
+    fixture.bind();
+    var context = Context{};
+    var commands = Commands{ .context = &context, .batched_oracles = true, .tail_enabled = true, .fold_sum_enabled = true };
+    _ = try B.enqueue(&commands, fixture.request, fixture.shared);
+    try std.testing.expectEqual(@as(usize, 1), commands.tail_count);
+    try std.testing.expectEqual(@as(usize, 0), commands.fold_sum_batches);
+    try std.testing.expectEqual(@as(usize, 1), commands.fold_batches);
+}

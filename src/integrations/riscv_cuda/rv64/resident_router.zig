@@ -443,6 +443,13 @@ fn testRequest(scope: ?D.Scope) !D.Request {
 
 test "resident router config plans seven CPU workers on four devices before opening CUDA" {
     const a = std.testing.allocator;
+    var large = try Config.parse(a, "2", "68719476736");
+    defer large.deinit(a);
+    try large.validatePlan(2);
+    try std.testing.expectError(error.InsufficientResidentCapacity, large.validatePlan(7));
+    try std.testing.expectEqual(@as(u64, 64 << 30), large.caps[0]);
+    try std.testing.expectEqual(@as(u32, 2), large.ids[0]);
+    try std.testing.expectError(error.InvalidResidentDeviceCaps, Config.parse(a, "2", "0"));
     var config = try Config.parse(a, "0, 2,4,6", "1000,2000,3000,4000");
     defer config.deinit(a);
     try config.validatePlan(7);

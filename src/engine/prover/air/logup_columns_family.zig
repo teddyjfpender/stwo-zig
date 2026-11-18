@@ -110,8 +110,7 @@ pub fn ForField(comptime Secure: type) type {
             const last_base = DEGREE * (secure_columns - 1);
             for (0..DEGREE) |coordinate| {
                 const values = @constCast(columns[last_base + coordinate].values);
-                for (values) |*value| value.* = value.sub(shift_coordinates[coordinate]);
-                try inclusivePrefixSum(allocator, values);
+                shiftedPrefix(values, shift_coordinates[coordinate], log_size);
             }
             return .{ .columns = columns, .claimed_sum = claimed_sum };
         }
@@ -204,25 +203,89 @@ pub fn ForField(comptime Secure: type) type {
                 };
             };
         }
-
-        fn inclusivePrefixSum(
-            allocator: std.mem.Allocator,
-            values: []M31,
-        ) !void {
-            utils.bitReverse(M31, values);
-            const coset = try utils.circleDomainOrderToCosetOrder(M31, allocator, values);
-            defer allocator.free(coset);
-
-            var sum = M31.zero();
-            for (coset) |*value| {
-                sum = sum.add(value.*);
-                value.* = sum;
-            }
-
-            const circle = try utils.cosetOrderToCircleDomainOrder(M31, allocator, coset);
-            defer allocator.free(circle);
-            utils.bitReverse(M31, circle);
-            @memcpy(values, circle);
-        }
     };
+}
+
+// A coset visits circle positions i and n-1-i consecutively. Their physical
+// (bit-reversed) indices are complements. Scan 128 independent coset intervals
+// together so that each visit consumes contiguous cache lines on both sides.
+fn shiftedPrefix(values: []M31, shift: M31, log: u32) void {
+    const lane_log = 7;
+    const lanes = 1 << lane_log;
+    const n = values.len;
+    if (n < 2 * lanes) {
+        if (n == 1) {
+            values[0] = values[0].sub(shift);
+            return;
+        }
+        var sum = M31.zero();
+        for (0..n / 2) |i| {
+            const even = utils.bitReverseIndex(i, log);
+            sum = sum.add(values[even].sub(shift));
+            values[even] = sum;
+            const odd = n - 1 - even;
+            sum = sum.add(values[odd].sub(shift));
+            values[odd] = sum;
+        }
+        return;
+    }
+    var sums = [_]M31{M31.zero()} ** lanes;
+    for (0..n / (2 * lanes)) |i| {
+        const base = utils.bitReverseIndex(i, log);
+        for (0..lanes) |lane| {
+            const even = base + 2 * lane;
+            const odd = n - 1 - even;
+            sums[lane] = sums[lane].add(values[even].sub(shift));
+            values[even] = sums[lane];
+            sums[lane] = sums[lane].add(values[odd].sub(shift));
+            values[odd] = sums[lane];
+        }
+    }
+    // Turn interval totals into exclusive offsets in chronological order.
+    var offset = M31.zero();
+    for (0..lanes) |interval| {
+        const lane = utils.bitReverseIndex(interval, lane_log);
+        const total = sums[lane];
+        sums[lane] = offset;
+        offset = offset.add(total);
+    }
+    var base: usize = 0;
+    while (base < n) : (base += 2 * lanes) {
+        for (0..lanes) |lane| {
+            const even = base + 2 * lane;
+            values[even] = values[even].add(sums[lane]);
+            values[even + 1] = values[even + 1].add(sums[lanes - 1 - lane]);
+        }
+    }
+}
+
+test "shifted LogUp prefix matches the circle permutation at every coordinate" {
+    const a = std.testing.allocator;
+    var rng = std.Random.DefaultPrng.init(427);
+    for (0..15) |log| {
+        const n = @as(usize, 1) << @intCast(log);
+        const input = try a.alloc(M31, n);
+        defer a.free(input);
+        for (input) |*v| v.* = M31.fromU64(rng.next());
+        const shift = M31.fromU64(rng.next());
+        const expected = try a.dupe(M31, input);
+        defer a.free(expected);
+        // Independent reference uses the explicit physical -> circle -> coset maps.
+        var sum = M31.zero();
+        for (0..n) |i| {
+            const physical = utils.bitReverseIndex(i, @intCast(log));
+            const logical = if (n == 1) 0 else utils.circleDomainIndexToCosetIndex(physical, @intCast(log));
+            expected[logical] = input[i].sub(shift);
+        }
+        for (expected) |*v| {
+            sum = sum.add(v.*);
+            v.* = sum;
+        }
+        shiftedPrefix(input, shift, @intCast(log));
+        for (input, 0..) |v, i| {
+            const circle = utils.bitReverseIndex(i, @intCast(log));
+            const logical = if (n == 1) 0 else utils.circleDomainIndexToCosetIndex(circle, @intCast(log));
+            try std.testing.expectEqual(expected[logical], v);
+        }
+    }
 }

@@ -2,6 +2,7 @@
 //! call sequence, per-class graph cache policy, staged image layout.
 test {
     _ = @import("rv64/jobs/outer_plan.zig");
+    _ = @import("rv64/jobs/outer_node.zig");
     _ = @import("rv64/jobs/outer_trace_commit.zig");
     _ = @import("rv64/jobs/outer_graph_cache.zig");
     _ = @import("rv64/jobs/outer_kernels.zig");

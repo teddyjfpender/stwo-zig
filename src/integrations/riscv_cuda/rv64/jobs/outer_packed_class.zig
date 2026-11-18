@@ -63,8 +63,55 @@ pub fn build(a: std.mem.Allocator, compressed: anytype, class_words: usize, fixe
     std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(words), &key, .{});
     return .{ .words = words, .key = key, .class_words = class_words, .fixed_words = fixed_words, .channel_count = compressed.channels };
 }
+/// Worker-local staging for one class. Both cold FIXED recommitment and
+/// request execution decode the same sorted evaluations on the exec stream.
+pub const Staged = struct {
+    class: *const Class,
+    launch: Launch,
+    program: api.DeviceBuffer,
+    output: api.DeviceBuffer,
+    scratch: api.DeviceBuffer,
+
+    pub fn decodeFixed(self: Staged, ctx: *anyopaque, status: api.DeviceBuffer, fixed_words: usize) !api.DeviceBuffer {
+        if (fixed_words != self.class.fixed_words) return error.PackedClassShape;
+        const fixed = try self.output.slice(self.class.class_words, fixed_words);
+        try enqueue(self.launch, ctx, self.class, self.program, self.output, self.scratch, status, api.gpu_native.Verdict.reject(.class_unpack, 0) & 0xffff0000);
+        return fixed;
+    }
+};
+
 pub fn enqueue(sym: Launch, ctx: *anyopaque, class: *const Class, program: api.DeviceBuffer, output: api.DeviceBuffer, scratch: api.DeviceBuffer, verdict: api.DeviceBuffer, reject_code: u32) !void {
     if (program.words != class.words.len or output.words != class.outputWords() or scratch.words < 12 or verdict.words < 1) return error.PackedClassShape;
     const run = Run{ .program = program.ptr, .program_words = program.words, .output = output.ptr, .output_words = output.words, .scratch = scratch.ptr, .verdict = verdict.ptr, .blocks = class.blocks(), .data_bytes = class.dataBytes(), .reject_code = reject_code, .channels = class.channel_count };
     if (sym(ctx, 0, &run) != 0) return error.PackedClassEnqueueFailed;
+}
+
+test "cold FIXED decoder returns only the authenticated class tail and refuses invalid extents" {
+    const Mock = struct {
+        fn decode(raw: *anyopaque, lane: u32, run: *const Run) callconv(.c) c_int {
+            const calls: *u32 = @ptrCast(@alignCast(raw));
+            calls.* += 1;
+            if (lane != 0 or run.output_words != 5 or run.blocks != 1 or run.channels != 1) return 1;
+            @memcpy(run.output[0..5], &[_]u32{ 91, 92, 15, 17, 21 });
+            run.verdict[0] = api.gpu_native.Verdict.accepted;
+            return 0;
+        }
+        fn buffer(words: []u32) api.DeviceBuffer {
+            return .{ .ptr = words.ptr, .words = words.len };
+        }
+    };
+    var desc = [_]u32{ magic, 2, 6, 5, 1, 12 };
+    const class = Class{ .words = &desc, .key = @splat(0), .class_words = 2, .fixed_words = 3, .channel_count = 1 };
+    var image: [5]u32 = @splat(0);
+    var scratch: [12]u32 = undefined;
+    var status = [_]u32{api.gpu_native.Verdict.unset};
+    var calls: u32 = 0;
+    var staged = Staged{ .class = &class, .launch = Mock.decode, .program = Mock.buffer(&desc), .output = Mock.buffer(&image), .scratch = Mock.buffer(&scratch) };
+    const fixed = try staged.decodeFixed(&calls, Mock.buffer(&status), 3);
+    try std.testing.expectEqualSlices(u32, &.{ 15, 17, 21 }, fixed.ptr[0..fixed.words]);
+    try std.testing.expectEqual(api.gpu_native.Verdict.accepted, status[0]);
+    try std.testing.expectError(error.PackedClassShape, staged.decodeFixed(&calls, Mock.buffer(&status), 4));
+    staged.output.words = 4;
+    try std.testing.expectError(error.DeviceBufferOutOfRange, staged.decodeFixed(&calls, Mock.buffer(&status), 3));
+    try std.testing.expectEqual(@as(u32, 1), calls);
 }
