@@ -206,8 +206,9 @@ The parity lanes run each rung of design §8.2 as its own `zig build`, one
 after another. `circuit-parity-local`: the wire vectors (R0), the frontend
 rungs (R0 FRI, R1-R5, R4, R6 fold), R4 values, R6 leaf, R7, registry
 generation, R10b/R10c (`test-cairo-leaf-proof`) and R11.
-`circuit-parity-large`: R8, R8b, R9 and, when
-`STWO_CIRCUIT_MULTIVERIFIER_INPUTS` names its inputs, the R7 multiverifier.
+`circuit-parity-large` includes R8, R8b and R9. To run the R7 multiverifier
+against the pinned oracle input, pass `-Dtest-multiverifier-inputs=<path>`
+to the circuit CPU package's `circuit-parity-r7-multiverifier` target.
 
 `circuit-parity-r8b` (labelled large) is the end-to-end chain: the Zig lane
 proves and wraps upstream's leaf simple bootloader running the

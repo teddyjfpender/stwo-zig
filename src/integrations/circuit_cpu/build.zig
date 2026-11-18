@@ -64,6 +64,9 @@ pub fn build(b: *std.Build) void {
     om31_fraction_root.addIncludePath(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native") });
     om31_fraction_root.addCSourceFile(.{ .file = .{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/rv64/circuit_interaction.cu") }, .flags = &.{ "-std=c++17", "-O3", "-DSTWO_CIRCUIT_OM31_HOST_EMULATION", "-Wall", "-Wextra", "-Werror" }, .language = .cpp });
     om31_fraction_test.linkLibCpp();
+    const fraction_options = b.addOptions();
+    fraction_options.addOption(?[]const u8, "fixture_directory", b.option([]const u8, "test-fraction-fixture-dir", "Emit optional OM31 fraction fixtures into this directory"));
+    om31_fraction_root.addOptions("fraction_options", fraction_options);
     const om31_fraction_run = b.addRunArtifact(om31_fraction_test);
     om31_fraction_run.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     b.step("test-circuit-om31-cuda-fractions", "Compare native octic CUDA fractions with all original native lookup tuples").dependOn(&om31_fraction_run.step);
@@ -149,12 +152,17 @@ pub fn build(b: *std.Build) void {
     multiverifier_root.addImport("stwo_prover_engine", prover);
     multiverifier_root.addImport("stwo_circuit_frontend", circuit);
     multiverifier_root.addImport("stwo_circuit_recursion_wire", wire);
+    const compact = b.option([]const u8, "test-compact-min-log", "Multiverifier test compact threshold, or off") orelse "18";
+    const multiverifier_options = b.addOptions();
+    multiverifier_options.addOption(?u32, "compact_min_log", if (std.mem.eql(u8, compact, "off")) null else std.fmt.parseInt(u32, compact, 10) catch @panic("test-compact-min-log must be a u32 or off"));
+    multiverifier_options.addOption(?[]const u8, "inputs", b.option([]const u8, "test-multiverifier-inputs", "Pinned oracle multiverifier input file"));
+    multiverifier_root.addOptions("multiverifier_options", multiverifier_options);
     const multiverifier_tests = b.addRunArtifact(b.addTest(.{ .root_module = multiverifier_root, .filters = filters }));
     multiverifier_tests.setCwd(repository_root);
     // Large (a 2^21-row circuit at blowup 3); not part of `test`.
     b.step(
         "circuit-parity-r7-multiverifier",
-        "Rung R7: reproduce test_data/circuit_multiverifier/proof.bin (needs STWO_CIRCUIT_MULTIVERIFIER_INPUTS)",
+        "Rung R7: reproduce test_data/circuit_multiverifier/proof.bin (needs -Dtest-multiverifier-inputs)",
     ).dependOn(&multiverifier_tests.step);
 
     // R4, value mode: the multiverifier over the committed proofs, stage by
@@ -267,6 +275,12 @@ pub fn build(b: *std.Build) void {
     bench_root.addImport("stwo_circuit_frontend", circuit);
     bench_root.addImport("stwo_circuit_cpu_integration", integration);
     bench_root.addImport("stwo_circuit_recursion_wire", wire);
+    const bench_options = b.addOptions();
+    bench_options.addOption(usize, "bench_repetitions", b.option(usize, "bench-repetitions", "Number of witness measurements") orelse 3);
+    bench_options.addOption(bool, "bench_prove", b.option(bool, "bench-prove", "Run the benchmark proof") orelse true);
+    bench_options.addOption(bool, "bench_native", b.option(bool, "bench-native", "Use native composition in the benchmark") orelse true);
+    bench_options.addOption(bool, "bench_value_replay", b.option(bool, "bench-value-replay", "Replay and measure witness values") orelse false);
+    bench_root.addOptions("bench_options", bench_options);
     const bench_tests = b.addRunArtifact(b.addTest(.{ .root_module = bench_root, .filters = filters }));
     bench_tests.setCwd(repository_root);
     bench_tests.has_side_effects = true;

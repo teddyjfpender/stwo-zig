@@ -11,7 +11,7 @@
 //! value table (179 MB, `STWZCIRC/1`); the checkpoint
 //! `vectors/circuit/r7/multiverifier_inputs.json` pins the file, the
 //! circuit's digests and the preprocessed root. The file is too large for the
-//! tree: this test reads it from `STWO_CIRCUIT_MULTIVERIFIER_INPUTS` and is
+//! tree: this test reads it from `-Dtest-multiverifier-inputs` and is
 //! skipped without it.
 
 const std = @import("std");
@@ -29,7 +29,6 @@ const Step = circuit_cpu.prove.Step;
 
 const checkpoint_path = "vectors/circuit/r7/multiverifier_inputs.json";
 const proof_path = "vectors/circuit/official/circuit_multiverifier/proof.bin";
-const inputs_env = "STWO_CIRCUIT_MULTIVERIFIER_INPUTS";
 
 const Json = std.json.Value;
 
@@ -62,14 +61,10 @@ const StepTimer = struct {
 
 test "R7: the multiverifier proof.bin is reproduced byte for byte" {
     const allocator = std.heap.smp_allocator;
-    const inputs_path = std.process.getEnvVarOwned(allocator, inputs_env) catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => {
-            std.debug.print("skipped: set {s} to the oracle's multiverifier-inputs file\n", .{inputs_env});
-            return error.SkipZigTest;
-        },
-        else => return err,
+    const inputs_path = @import("multiverifier_options").inputs orelse {
+        std.debug.print("skipped: set -Dtest-multiverifier-inputs to the oracle's multiverifier-inputs file\n", .{});
+        return error.SkipZigTest;
     };
-    defer allocator.free(inputs_path);
 
     const checkpoint_bytes = try std.fs.cwd().readFileAlloc(allocator, checkpoint_path, 1 << 20);
     defer allocator.free(checkpoint_bytes);
@@ -117,7 +112,7 @@ test "R7: the multiverifier proof.bin is reproduced byte for byte" {
     var steps = StepTimer{ .timer = try std.time.Timer.start() };
     var proof = try circuit_cpu.Internal.prove(allocator, inputs.values, &pp, &bundle, pcs_config, .{
         .recorder = &recorder,
-        .compact_polynomial_min_log = compactThreshold(),
+        .compact_polynomial_min_log = @import("multiverifier_options").compact_min_log,
     }, &steps);
     defer proof.deinit();
     const prove_ns = steps.last;
@@ -152,14 +147,6 @@ test "R7: the multiverifier proof.bin is reproduced byte for byte" {
     var digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(encoded, &digest, .{});
     try rust_verifier.expectAccepted(allocator, "multiverifier", &digest);
-}
-
-/// `STWO_CIRCUIT_COMPACT_MIN_LOG`: compact storage threshold (default 18);
-/// `off` keeps every blown-up evaluation resident.
-fn compactThreshold() ?u32 {
-    const value = std.posix.getenv("STWO_CIRCUIT_COMPACT_MIN_LOG") orelse return 18;
-    if (std.mem.eql(u8, value, "off")) return null;
-    return std.fmt.parseInt(u32, value, 10) catch 18;
 }
 
 fn printStages(recorder: *prover.stage_profile.Recorder) !void {

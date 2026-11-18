@@ -246,7 +246,7 @@ class PlannerContractTests(unittest.TestCase):
         job = workflow.split("  package-workspace:", 1)[1].split("  focused-plan:", 1)[0]
         self.assertIn("name: Package workspace contracts", job)
         self.assertIn("github.event_name == 'pull_request'", job)
-        self.assertIn("run: python3 scripts/repo/check_package_workspace.py", job)
+        self.assertIn("python3 scripts/repo/check_package_workspace.py --budget-report", job)
         self.assertNotIn("continue-on-error", job)
         self.assertNotIn("|| true", job)
 

@@ -149,8 +149,7 @@ test "native octic circuit CUDA fractions share tuple authority all components" 
                 first += lanes;
             }
         }
-        if (std.process.getEnvVarOwned(a, "STWO_OM31_FRACTIONS_FIXTURES")) |directory| {
-            defer a.free(directory);
+        if (@import("fraction_options").fixture_directory) |directory| {
             try std.fs.cwd().makePath(directory);
             var final = try L.build(a, 4, pairs, Provider{ .values = &all_fractions }, Provider.fill);
             defer circuit.witness.trace.freeColumns(a, final.columns);
@@ -169,7 +168,7 @@ test "native octic circuit CUDA fractions share tuple authority all components" 
             var file = try std.fs.cwd().createFile(path, .{});
             defer file.close();
             try file.writeAll(encoded.items);
-        } else |err| if (err != error.EnvironmentVariableNotFound) return err;
+        }
         job.denominator_words -= 1;
         try std.testing.expectEqual(@as(c_int, 1), stwo_circuit_om31_fractions_emulate(&job));
         job.denominator_words += 1;
