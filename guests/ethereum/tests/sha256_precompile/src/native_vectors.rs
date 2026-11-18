@@ -4,7 +4,7 @@
 
 use core::{arch::{asm, global_asm}, ptr};
 use stwo_sha256_precompile_guest_tests::guest;
-#[path = "../../ethereum_admission_v1.rs"]
+#[path = "../../../runtime/ethereum_admission.rs"]
 mod admission;
 
 unsafe extern "C" {

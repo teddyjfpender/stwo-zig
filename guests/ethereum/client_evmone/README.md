@@ -1,10 +1,22 @@
-# client_evmone: ziskethone + evmone on the stwo RV64IM guest ABI
+# evmone Ethereum client guest (RV64IM)
 
-A C++ stateless Ethereum client for the RV64 guest (track A, move A of
-`autoresearch/guest_efficiency/PROGRAM.md`). It runs ziskethone's block
-pipeline and state DB with evmone v0.24's baseline interpreter, reads the same
-canonical SSZ `StatelessInput` as the Rust guest and writes the identical
-43-byte output. Exact on all 15 basket blocks, admitted and candidate profiles.
+A C++ stateless Ethereum client for this repository's RV64IM guest ABI. It is
+built on [ziskethone](https://github.com/0xPolygonHermez/ziskethone), the ZisK
+team's C++ Ethereum block client, and on [evmone](https://github.com/ethereum/evmone)'s
+baseline interpreter (v0.24). The guest runs ziskethone's block pipeline and
+state database with evmone as the EVM. It reads the same canonical SSZ
+`StatelessInput` as the [Rust guests](../rv64/README.md) and writes the
+identical 43-byte output. It is exact on all 15 basket blocks under both the
+admitted and the candidate profiles.
+
+The design is ZisK's. Their measurements, quoted in
+[`../abi/CONTEXT.md`](../abi/CONTEXT.md), put ziskethone at 2.02 steps per gas
+against 6.21 for ZisK's Reth guest. Most of the work here adapts ziskethone and
+evmone to a plain RV64IM machine without ZisK's DMA and bit-manipulation
+instructions: aligned-word memory paths, a lazily walked SSZ witness, and the
+admitted Keccak-f and secp256k1 services. Changes to upstream source are
+carried as patches in `patches/` and summarised below. The work started as track A of the archived
+[guest-efficiency program](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/PROGRAM.md).
 
 ## Licences and third-party sources
 
@@ -20,7 +32,7 @@ into a cache directory and applies the patches in `patches/`:
 
 ziskethone's own evmone patch stack (02-16, from the fetched tree) is applied
 first; its `ZEG_ZISK`-gated hunks are inactive here. Licence review by legal is
-still required before any of this code is vendored (PROGRAM.md).
+still required before any of this code is vendored ([PROGRAM.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/PROGRAM.md)).
 
 Everything under `glue/`, `tests/`, `adapter.py`, `build.py`, `patches/` and
 `linker-wide-cxx.ld` is ours.
@@ -43,6 +55,9 @@ Toolchain: `zig c++` 0.15.2 only (bundled libc++ headers and compiler-rt,
 
 ## Score
 
+The scoring harness behind this README's numbers is archived as
+[`bench.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/bench.py); run it from a checkout of that tag:
+
 ```sh
 python3 -I autoresearch/guest_efficiency/bench.py run --elf OUT/client-evmone-admitted.elf \
   --executor EXEC --cache CACHE --out RUN --set all --client evmone \
@@ -64,7 +79,7 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
 | Keccak-f | `0x0001_0001` in `glue/keccak_stwo.cpp` (replaces evmone's `keccak.c`) |
 | secp256k1 | `0x0002_0011/0012` word packets, complete RCB formulas, in `glue/secp256k1_stwo.cpp` |
 | Candidate | `0x0003_0001-0003` bulk memory (runtime), `0x0003_0010` SHA-256 compress, `0x0003_0021` arith256_mod (MULMOD, ADDMOD, 256-bit `ModArith` in plain form), optional `0x0003_0020` arith256 for MUL |
-| Candidate curves | groups `bn` (needs `arith`): `0x0003_0100/0101` BN254 affine add/double for ecAdd/ecMul, `0x0003_0102` Fq2 product in ecPairing; `bls`: `0x0003_0121` arith384_mont for blst's 384-bit Montgomery products and `0x0003_0112` BLS12-381 Fp2 product (KZG, EIP-2537); `keccak`: `0x0003_0130` Keccak-256 sponge for inputs over 64 bytes. Glue `glue/curves_stwo.cpp`, `glue/candidate_curves.hpp`, patches 0020/0021; ABI `autoresearch/guest_efficiency/notes/candidate-curves-abi.md` |
+| Candidate curves | groups `bn` (needs `arith`): `0x0003_0100/0101` BN254 affine add/double for ecAdd/ecMul, `0x0003_0102` Fq2 product in ecPairing; `bls`: `0x0003_0121` arith384_mont for blst's 384-bit Montgomery products and `0x0003_0112` BLS12-381 Fp2 product (KZG, EIP-2537); `keccak`: `0x0003_0130` Keccak-256 sponge for inputs over 64 bytes. Glue `glue/curves_stwo.cpp`, `glue/candidate_curves.hpp`, patches 0020/0021; ABI [`../abi/candidate-curves-abi.md`](../abi/candidate-curves-abi.md) |
 
 ## Design
 
@@ -119,7 +134,7 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   tested on the decremented value and a constant on failed requirements (no
   per-opcode moves); host storage/log calls pass `msg->recipient` in place;
   sentinel JUMPDEST scan over the padded copy, unrolled by four; LT/GT/SLT/SGT
-  join the fused `PUSH2 JUMPI` set. Measurements: `notes/client-interpreter.md`.
+  join the fused `PUSH2 JUMPI` set. Measurements: [`notes/client-interpreter.md`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/notes/client-interpreter.md) (archived).
 - **Client pass 2 (glue, patches 0025-0027).** Memory functions: 32-byte
   funnel copy for misaligned sources, word heads/tails (one aligned RMW each)
   for memset and around the admitted service calls, service only from 64
@@ -129,7 +144,7 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   0026). Hot evmc bytes32/address copies in ziskethone use `zisk_xmemcpy` (patch 0027); the secp glue's 96-byte
   point copies, the SHA-256 block copy and the Keccak first-block absorb are
   forced inline instead of memcpy calls. Measurements:
-  `autoresearch/guest_efficiency/notes/client-pass2-20261102.md`.
+  [`notes/client-pass2-20261102.md`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/notes/client-pass2-20261102.md) (archived).
 - **JUMPDEST service (patches 0028, 0029).** With `ADMITTED_JUMPDEST` (default
   in `--profile v3`; `--v3-set sha,arith,mem` builds the previous v3 client)
   or `CANDIDATE_JUMPDEST` evmone's analysis is one `jumpdest_bitmap` ECALL
@@ -138,7 +153,7 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   per slot), sentinel scan as the fallback for a misaligned copy. Without the
   defines both patches are inert (v3 per-block instruction counts identical).
   Proposal and measurements:
-  `autoresearch/guest_efficiency/proposals/jumpdest-bitmap.md`.
+  [`proposals/jumpdest-bitmap.md`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/proposals/jumpdest-bitmap.md) (archived).
 
 ## Tests
 
@@ -171,11 +186,11 @@ exact output.
 
 ## Known gaps
 
-- **EEST.** `autoresearch/guest_efficiency/eest/` runs the `tests@v21.0.2`
+- **EEST.** The archived [`eest/`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/eest/README.md) harness runs the `tests@v21.0.2`
   blockchain tests (Prague, Osaka, BPO1, BPO2 and transitions) on the host and
   RV64 builds of this client's EEST variant (`build.py --eest`: fork and blob
   schedule from the schema id; never deployed). Receipt:
-  `vectors/reports/rv64-ethereum-20261101/eest-guests-v1.json`. The run found
+  [`eest-guests-v1.json`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-ethereum-20261101/eest-guests-v1.json) (archived). The run found
   and fixed two witness-dependence bugs (patch 0005: EIP-7702 delegation code
   registered at authorization; `glue/stwo_client.cpp`: trie inserts before
   deletions). Still open: table pre-sizing from the gas limit fails on synthetic
@@ -192,6 +207,6 @@ exact output.
 - **Heap.** 212 MiB window; ziskethone's JUMPDEST analysis cache reserves
   85 MiB of it (1152 slots, sized for full call depth).
 - **Candidate costs** are the sibling track's nominal estimates
-  (`codex/rv64-guest-candidate-services`, `proposals/candidate-service-costs.json`);
-  this repository's `calibration.json` has none, so candidate runs used a
+  (`codex/rv64-guest-candidate-services`, [`proposals/candidate-service-costs.json`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/proposals/candidate-service-costs.json));
+  the archived [`calibration.json`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/calibration.json) has none, so candidate runs used a
   scratch copy of the harness with those entries.

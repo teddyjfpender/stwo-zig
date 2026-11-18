@@ -68,7 +68,7 @@ def main():
               "runtime_sources": [identity(HERE / "src/single_thread_atomics.rs"),
                                   identity(workspace / "Cargo.toml"), identity(workspace / linker),
                                   identity(HERE / "build.rs")],
-              "allocator_source": identity(HERE.parents[1] / "exact_layout_allocator_v2.rs"),
+              "allocator_source": identity(HERE.parent / "runtime/exact_layout_allocator.rs"),
               "target": identity(workspace / "riscv64i-stwo.json"),
               "lockfile": identity(workspace / "Cargo.lock"),
               "host_validation_verified": False, "rv64_execution_verified": False,
@@ -102,12 +102,12 @@ def main():
         if blob != expected["git_blob"]:
             raise ValueError("pinned ZisK fixture Git blob mismatch")
         fixture.write_bytes(data)
-        runtime = HERE.parents[1]
+        tools = HERE.parent / "tools"
         for package in ("projection", "host_validation"):
-            run(["cargo", "+" + TOOLCHAIN, "build", *common], runtime / package)
+            run(["cargo", "+" + TOOLCHAIN, "build", *common], tools / package)
         projected = artifacts / "fixture"
         if not projected.exists():
-            run([str(runtime / "projection/target/release/stwo-ethereum-input-projection"),
+            run([str(tools / "projection/target/release/stwo-ethereum-input-projection"),
                  str(fixture), str(projected)], ROOT)
         # Existing validation joins independent expected hashes and formats.
         import sys
@@ -116,7 +116,7 @@ def main():
         output = projected / "expected-output.bin"
         candidate = projected / "host-validation-candidate.bin"
         candidate.unlink(missing_ok=True)
-        run([str(runtime / "host_validation/target/release/stwo-ethereum-host-validation"),
+        run([str(tools / "host_validation/target/release/stwo-ethereum-host-validation"),
              str(projected / "canonical-input.ssz"), str(candidate)], ROOT)
         comparison.validate_stwo_projection(projected / "canonical-input.ssz",
                                             projected / "stwo-runner-input.bin", candidate, manifest)
