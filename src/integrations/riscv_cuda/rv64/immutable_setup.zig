@@ -346,7 +346,13 @@ test "immutable setup reuses one upload and protects live requests from eviction
     try std.testing.expectError(error.ImmutableSetupStillBorrowed, cache.words(&fake, scope, @splat(3), &words_));
     try std.testing.expectError(error.ImmutableSetupShapeMismatch, cache.lookup(scope, key, 15));
     try std.testing.expectError(error.ImmutableSetupStillBorrowed, cache.deinit());
+    try std.testing.expectEqual(@as(u64, 0), try cache.trimUnborrowed());
+    try std.testing.expectEqual(first.generation, (try cache.lookup(scope, key, words_.len)).?.generation);
+    try std.testing.expectEqual(@as(usize, 0), fake.frees);
     try cache.releaseScope(scope);
+    try std.testing.expectEqual(@as(u64, 64), try cache.trimUnborrowed());
+    try std.testing.expectEqual(@as(u64, 0), try cache.trimUnborrowed());
+    try std.testing.expectEqual(@as(usize, 0), cache.borrows.items.len);
     _ = try cache.words(&fake, scope, @splat(3), &words_);
     try std.testing.expectEqual(@as(u64, 64), cache.bytes);
     try std.testing.expectEqual(@as(usize, 1), fake.frees);

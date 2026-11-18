@@ -366,10 +366,19 @@ pub const Hybrid = struct {
         failure: ?anyerror = null,
         fn run(raw: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
             const job: *Trim = @ptrCast(@alignCast(data.?));
-            job.released = (Memory.trimUnused(&job.service.library, job.service.session) catch |err| {
+            // Native proofs leave reusable setup behind. Retire only idle
+            // entries on their owner thread; live request aliases retain custody.
+            const immutable = if (job.service.immutable_setup) |cache| cache.trimUnborrowed() catch |err| {
+                job.failure = err;
+                return 1;
+            } else 0;
+            job.released = immutable;
+            const pcs = (Memory.trimUnused(&job.service.library, job.service.session) catch |err| {
                 job.failure = err;
                 return 1;
             }) orelse 0;
+            job.released += pcs;
+            std.debug.print("GPU_M8_OUTER_PHASE_TRIM immutable_bytes={d} pcs_idle_bytes={d} borrowed_setup_preserved=true\n", .{ immutable, pcs });
             const snapshot = Memory.query(&job.service.library, raw) catch |err| {
                 job.failure = err;
                 return 1;

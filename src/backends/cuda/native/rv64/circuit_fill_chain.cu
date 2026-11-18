@@ -550,6 +550,7 @@ struct Node { cudaGraphNode_t handle{}; StwoAssignmentGraphStep step{}; };
 struct Graph {
   void* context{}; uint64_t identity{}; uint32_t lane{}, values{}, records{}, indices{}, ends{};
   int flow{};  // circuit_fill::flow_mode() at creation; fixed for the graph's life
+  uint64_t charged_bytes{UINT64_MAX};
   cudaGraph_t graph{}; cudaGraphExec_t exec{}; std::vector<Node> nodes;
   ~Graph() {
     if (exec) (void)cudaGraphExecDestroy(exec);
@@ -573,7 +574,7 @@ int validate(rv64::Custody& c, const StwoCircuitAssignmentJob* j,
   return 0;
 }
 int setNode(Graph& g, Node& node, const StwoCircuitAssignmentJob& base,
-            const uint32_t* ends, bool creating, cudaGraphNode_t previous) {
+            const uint32_t* ends, bool creating, cudaGraphNode_t previous, cudaStream_t enclosing = nullptr) {
   auto job = base; job.first = node.step.first; job.count = node.step.count;
   uint32_t first = node.step.first_level, levels = node.step.levels;
   void* args[] = {&job, &ends, &first, &levels};
@@ -586,6 +587,10 @@ int setNode(Graph& g, Node& node, const StwoCircuitAssignmentJob& base,
   p.kernelParams = args;
   // CUDA copies the complete argument values during Add/SetParams. The
   // dependency chain and launch geometry are unchanged across all replays.
+  // An enclosing capture owns submission; compose the same fresh arguments
+  // directly instead of mutating or launching a nested executable.
+  if (enclosing) return int(cudaLaunchKernel(p.func, p.gridDim, p.blockDim,
+      p.kernelParams, p.sharedMemBytes, enclosing));
   if (creating) return int(cudaGraphAddKernelNode(&node.handle, g.graph,
       previous ? &previous : nullptr, previous ? 1 : 0, &p));
   return int(cudaGraphExecKernelNodeSetParams(g.exec, node.handle, &p));
@@ -613,12 +618,20 @@ extern "C" int stwo_assignment_graph_create_v1(void* ctx, uint32_t lane,
     task += s.count; last_level = s.first_level + s.levels;
   }
   if (task != j->record_count) return int(cudaErrorInvalidValue);
+  cudaStreamCaptureStatus capture = cudaStreamCaptureStatusNone;
+  if (const auto rc = cudaStreamIsCapturing(custody.stream, &capture)) return int(rc);
+  // Refuse before any capture-unsafe allocation; the owner may record the
+  // original kernels directly. Custody and geometry were still checked.
+  if (capture == cudaStreamCaptureStatusActive) return int(cudaErrorStreamCaptureUnsupported);
+  if (capture == cudaStreamCaptureStatusInvalidated) return int(cudaErrorStreamCaptureInvalidated);
   try {
     auto g = std::make_unique<assignment_graph::Graph>();
     g->context = ctx; g->identity = identity; g->lane = lane;
     g->values = j->value_count; g->records = j->record_count; g->indices = j->index_count; g->ends = end_count;
     g->flow = circuit_fill::flow_mode();
     if (g->flow < 0) return int(cudaErrorInvalidValue);
+    size_t before = 0, after = 0, total = 0;
+    if (const auto rc = cudaMemGetInfo(&before, &total)) return int(rc);
     if (const auto rc = cudaGraphCreate(&g->graph, 0)) return int(rc);
     g->nodes.resize(count);
     cudaGraphNode_t previous = nullptr;
@@ -628,6 +641,8 @@ extern "C" int stwo_assignment_graph_create_v1(void* ctx, uint32_t lane,
       previous = g->nodes[i].handle;
     }
     if (const auto rc = cudaGraphInstantiate(&g->exec, g->graph, nullptr, nullptr, 0)) return int(rc);
+    if (const auto rc = cudaMemGetInfo(&after, &total)) return int(rc);
+    g->charged_bytes = before > after ? uint64_t(before - after) : 0;
     *result = g.release();
     return 0;
   } catch (const std::bad_alloc&) { return int(cudaErrorMemoryAllocation); }
@@ -645,9 +660,13 @@ extern "C" int stwo_assignment_graph_launch_v1(void* ctx, uint32_t lane, void* h
   if (const int rc = assignment_graph::validate(custody, j, ends, end_count)) return rc;
   if (j->value_count != g.values || j->record_count != g.records ||
       j->index_count != g.indices || end_count != g.ends) return int(cudaErrorInvalidValue);
+  cudaStreamCaptureStatus capture = cudaStreamCaptureStatusNone;
+  if (const auto rc = cudaStreamIsCapturing(custody.stream, &capture)) return int(rc);
+  if (capture == cudaStreamCaptureStatusInvalidated) return int(cudaErrorStreamCaptureInvalidated);
   for (auto& node : g.nodes)
-    if (const int rc = assignment_graph::setNode(g, node, *j, ends, false, nullptr)) return rc;
-  return int(cudaGraphLaunch(g.exec, custody.stream));
+    if (const int rc = assignment_graph::setNode(g, node, *j, ends, false, nullptr,
+        capture == cudaStreamCaptureStatusActive ? custody.stream : nullptr)) return rc;
+  return capture == cudaStreamCaptureStatusActive ? 0 : int(cudaGraphLaunch(g.exec, custody.stream));
 }
 extern "C" int stwo_assignment_graph_destroy_v1(void* ctx, void* handle) {
   using namespace stwo::cuda;
@@ -657,5 +676,16 @@ extern "C" int stwo_assignment_graph_destroy_v1(void* ctx, void* handle) {
   if (const int rc = stwo_exec_context_identity(ctx, &identity)) return rc;
   if (g->context != ctx || g->identity != identity) return int(cudaErrorInvalidResourceHandle);
   delete g;
+  return 0;
+}
+
+extern "C" int stwo_assignment_graph_charged_bytes_v1(void* ctx, void* handle, uint64_t* out) {
+  if (!handle || !out) return int(cudaErrorInvalidValue);
+  *out = UINT64_MAX;
+  const auto& g = *static_cast<stwo::cuda::assignment_graph::Graph*>(handle);
+  uint64_t identity = 0;
+  if (const int rc = stwo_exec_context_identity(ctx, &identity)) return rc;
+  if (g.context != ctx || g.identity != identity) return int(cudaErrorInvalidResourceHandle);
+  *out = g.charged_bytes;
   return 0;
 }

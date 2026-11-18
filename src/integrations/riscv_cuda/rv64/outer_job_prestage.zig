@@ -325,7 +325,9 @@ pub fn prestageHook(_: ?*anyopaque, a: std.mem.Allocator, input: *const anyopaqu
 /// Own the class schedule and statics after a real install-time proof. The
 /// retained template has no seed values, public outputs, channel checkpoint,
 /// sample tape or pointer into the warm request's authority/allocator.
-pub fn packTemplate(a: std.mem.Allocator, source: *const St.Staged) !@import("jobs/outer_packed_class.zig").Class {
+pub fn packTemplate(a: std.mem.Allocator, source: *St.Staged) !@import("jobs/outer_packed_class.zig").Class {
+    if (source.release != TemplateOwner.release) return error.GnPackedTemplateNotOwned;
+    const owner: *TemplateOwner = @ptrCast(@alignCast(source.owner));
     const class_words: usize = @intCast(source.image.words[@intFromEnum(St.Region.class)]);
     const fixed_words: usize = @intCast((source.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing).coefficient_words);
     const raw = try a.alloc(u32, class_words + fixed_words);
@@ -338,16 +340,20 @@ pub fn packTemplate(a: std.mem.Allocator, source: *const St.Staged) !@import("jo
     // are granule-aligned; scalar-only odd images retain one channel.
     var compressed = try Outer.cache_pack.pack(a, raw, if (raw.len % 8 == 0) 8 else 1);
     defer compressed.deinit(a);
-    return @import("jobs/outer_packed_class.zig").build(a, compressed, class_words, fixed_words);
+    const result = try @import("jobs/outer_packed_class.zig").build(a, compressed, class_words, fixed_words);
+    owner.releasePackedSources();
+    return result;
 }
 
 pub fn retainTemplate(a: std.mem.Allocator, input: Input, source: *const St.Staged) !*St.Staged {
     if (source.assignment.sample_tape != null or source.assignment.sample_map != null) return error.GnTemplateContainsSampleWitness;
     const owner = try a.create(TemplateOwner);
     errdefer a.destroy(owner);
-    owner.* = .{ .a = a, .arena = std.heap.ArenaAllocator.init(a) };
+    owner.* = .{ .a = a, .arena = std.heap.ArenaAllocator.init(a), .raw_sources = std.heap.ArenaAllocator.init(a) };
     errdefer owner.arena.deinit();
+    errdefer owner.raw_sources.deinit();
     const ar = owner.arena.allocator();
+    const raw = owner.raw_sources.allocator();
     const statics = if (ClassPin.take(@ptrCast(@constCast(source.statics)))) |pin| blk: {
         owner.pin = pin;
         break :blk source.statics;
@@ -366,16 +372,16 @@ pub fn retainTemplate(a: std.mem.Allocator, input: Input, source: *const St.Stag
     if (seeds.len % 5 != 0) return error.InvalidOuterSeedLayout;
     for (0..seeds.len / 5) |i| @memset(seeds[5 * i + 1 ..][0..4], 0);
     assignment.seeds = seeds;
-    assignment.tasks = try ar.dupe(u32, assignment.tasks);
-    assignment.indices = try ar.dupe(u32, assignment.indices);
+    assignment.tasks = try raw.dupe(u32, assignment.tasks);
+    assignment.indices = try raw.dupe(u32, assignment.indices);
     assignment.runs = try ar.dupe(St.Run, assignment.runs);
     assignment.level_ends = try ar.dupe(usize, assignment.level_ends);
     assignment.ends = try ar.dupe(u32, assignment.ends);
     assignment.reusable = true;
     const expected = try ar.alloc(u32, source.expected.len);
     @memset(expected, 0);
-    const fixed = try ar.alloc([]const u32, source.fixed_raw.len);
-    for (fixed, source.fixed_raw) |*out, column| out.* = try ar.dupe(u32, column);
+    const fixed = try raw.alloc([]const u32, source.fixed_raw.len);
+    for (fixed, source.fixed_raw) |*out, column| out.* = try raw.dupe(u32, column);
     owner.staged = source.*;
     owner.staged.assignment = assignment;
     owner.staged.statics = statics;
@@ -392,12 +398,22 @@ pub fn retainTemplate(a: std.mem.Allocator, input: Input, source: *const St.Stag
 const TemplateOwner = struct {
     a: std.mem.Allocator,
     arena: std.heap.ArenaAllocator,
+    raw_sources: std.heap.ArenaAllocator,
     pin: ?ClassPin = null,
     statics: ?*Statics = null,
     staged: St.Staged = undefined,
+    // The image keeps all device extents. The packed program now supplies
+    // assignment and FIXED ranges, including cold worker root checks.
+    fn releasePackedSources(self: *TemplateOwner) void {
+        self.staged.assignment.tasks = &.{};
+        self.staged.assignment.indices = &.{};
+        self.staged.fixed_raw = &.{};
+        _ = self.raw_sources.reset(.free_all);
+    }
     fn release(raw: *anyopaque) void {
         const self: *@This() = @ptrCast(@alignCast(raw));
         const a = self.a;
+        self.raw_sources.deinit();
         self.arena.deinit();
         if (self.pin) |pin| ClassPin.release(pin.statics);
         if (self.statics) |s| s.destroy();
@@ -600,4 +616,30 @@ pub fn oodsProgram(a: std.mem.Allocator, key: *const Authority, sample_counts: [
     header[OP.H.samples] = total;
     header[OP.H.claims] = Plan.n_components;
     return b.finish(header);
+}
+
+test "packed template releases host sources and preserves device extents" {
+    var owner = TemplateOwner{
+        .a = std.testing.allocator,
+        .arena = std.heap.ArenaAllocator.init(std.testing.allocator),
+        .raw_sources = std.heap.ArenaAllocator.init(std.testing.allocator),
+    };
+    defer owner.arena.deinit();
+    defer owner.raw_sources.deinit();
+    const raw = owner.raw_sources.allocator();
+    owner.staged.assignment.tasks = try raw.alloc(u32, 16);
+    owner.staged.assignment.indices = try raw.alloc(u32, 7);
+    const fixed = try raw.alloc([]const u32, 1);
+    fixed[0] = try raw.dupe(u32, &.{29});
+    owner.staged.fixed_raw = fixed;
+    owner.staged.image.tasks = .{ .region = .class, .offset = 0, .words = 16 };
+    owner.staged.image.indices = .{ .region = .class, .offset = 64, .words = 7 };
+    owner.staged.expected = try owner.arena.allocator().dupe(u32, &.{17});
+    owner.releasePackedSources();
+    try std.testing.expectEqual(@as(usize, 0), owner.raw_sources.queryCapacity());
+    try std.testing.expectEqual(@as(usize, 0), owner.staged.assignment.tasks.len + owner.staged.assignment.indices.len);
+    try std.testing.expectEqual(@as(u32, 2), owner.staged.image.taskCount());
+    try std.testing.expectEqual(@as(u64, 7), owner.staged.image.indices.words);
+    try std.testing.expectEqual(@as(usize, 0), owner.staged.fixed_raw.len);
+    try std.testing.expectEqualSlices(u32, &.{17}, owner.staged.expected);
 }

@@ -1,17 +1,12 @@
 #ifndef STWO_ZIG_CUDA_BLAKE2S_MERKLE_FUSED_CUH
 #define STWO_ZIG_CUDA_BLAKE2S_MERKLE_FUSED_CUH
 
-// T6 (M8 round 2) Merkle tree kernels behind STWO_RV64_M8_MERKLE_FUSED, used by
-// stwo_blake2s_merkle_layers_on (merkle.cu). Existing entry points, kernels
-// and buffer layouts are unchanged. Both kernels hash every node with the
-// established hash_children_for, so all nodes and the root are bit-identical
-// to the callers' layer loop.
+// Canonical subtree and upper-tail schedule. Every intermediate node uses
+// hash_children_for, retaining the established tree layout and exact hashes.
 
 #include "blake2s_protocol.cuh"
 
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 // Schedule constants; their measured A/Bs are in the comment above
 // fused_tree_layers (merkle.cu). The -D overrides exist only for those
@@ -28,9 +23,8 @@
 
 namespace stwo::cuda::blake2s {
 
-// 0 = established kernels, 1 = T6 kernels, -1 = invalid value (fail closed).
-// A process-wide test override (stwo_blake2s_m8_merkle_fused_override) wins
-// over the environment so one binary can A/B both arms.
+// Canonical fused schedule; the explicit test override retains the layer-loop
+// oracle and invalid-mode refusal without another production selector.
 inline int &merkle_fused_override_slot() {
     static int value = -2;  // -2: no override
     return value;
@@ -39,7 +33,7 @@ inline int &merkle_fused_override_slot() {
 inline int merkle_fused_mode() {
     const int forced = __atomic_load_n(&merkle_fused_override_slot(), __ATOMIC_RELAXED);
     if (forced != -2) return forced;
-    return 0;
+    return 1;
 }
 
 // Explicit 2x128-bit loads/stores. [M review-r3] Indexing the global Hash

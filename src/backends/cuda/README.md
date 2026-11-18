@@ -7,7 +7,7 @@ exists.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.2.0` |
+| Version | `0.3.0` |
 | Layer | `backend` |
 | Owner | `cuda-backend` |
 | Public Zig module | `stwo_cuda_backend` |

@@ -163,6 +163,13 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
             '--quiet-pressure-max', str(preset['measurement'].get('quiet_pressure_max', 0.0)),
             '--quiet-timeout', str(preset['measurement']['quiet_timeout_s']),
             '--quiet-stable-samples', str(preset['measurement']['quiet_stable_samples'])]
+    if 'gpus' in manifest and (type(manifest['gpus']) is not int or manifest['gpus'] not in (1, 2, 4)):
+        raise ValueError('GPU count must be 1, 2 or 4')
+    if 'device_cap_bytes' in manifest and (type(manifest['device_cap_bytes']) is not int or manifest['device_cap_bytes'] <= 0):
+        raise ValueError('device capacity must be positive')
+    for name in ('gpus', 'device_cap_bytes'):
+        if name in manifest:
+            argv += ['--' + name.replace('_', '-'), str(manifest[name])]
     if preset.get('coalesce_truth_families', True):
         argv.append('--coalesce-truth-families')
     if manifest.get('allowed_block'):

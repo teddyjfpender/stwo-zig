@@ -807,7 +807,7 @@ int stwo::cuda::rv64::detail::deep_combine(void *ctx, uint32_t lane,
   deep_combine_validate<<<1, 1, 0, c.stream>>>(
       j, const_cast<uint32_t *>(j.valid) + 1);
   if (legacy || j.group_count > kDeepCombineGroups)
-    deep_combine<<<((1u << j.output_log) + 127) / 128, 128, 0, c.stream>>>(j);
+    stwo::cuda::rv64::deep_combine<<<((1u << j.output_log) + 127) / 128, 128, 0, c.stream>>>(j);
   else
     deep_combine_classes<<<deep_combine_grid(1u << j.output_log),
                            kDeepCombineThreads, 0, c.stream>>>(j);

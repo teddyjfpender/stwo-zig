@@ -191,20 +191,20 @@ pub const Span = struct {
     begin: ?*anyopaque = null,
     end: ?*anyopaque = null,
     gpu_ms: f32 = -1,
-    fn open(self: *Span, events: ?*const Events.Api) !void {
+    pub fn open(self: *Span, events: ?*const Events.Api) !void {
         const ev = events orelse return;
         if (self.begin == null and ev.create(&self.begin, 0) != 0) return error.CudaTimingFailed;
         if (self.end == null and ev.create(&self.end, 0) != 0) return error.CudaTimingFailed;
     }
-    fn mark(self: *Span, events: ?*const Events.Api, end: bool, stream: *anyopaque) !void {
+    pub fn mark(self: *Span, events: ?*const Events.Api, end: bool, stream: *anyopaque) !void {
         const ev = events orelse return;
         if (ev.record((if (end) self.end else self.begin) orelse return error.CudaTimingFailed, stream) != 0) return error.CudaTimingFailed;
     }
-    fn read(self: *Span, events: ?*const Events.Api) void {
+    pub fn read(self: *Span, events: ?*const Events.Api) void {
         const ev = events orelse return;
         if (self.begin == null or self.end == null or ev.elapsed(&self.gpu_ms, self.begin.?, self.end.?) != 0) self.gpu_ms = -1;
     }
-    fn close(self: *Span, events: ?*const Events.Api) void {
+    pub fn close(self: *Span, events: ?*const Events.Api) void {
         const ev = events orelse return;
         if (self.begin) |b| _ = ev.destroy(b);
         if (self.end) |b| _ = ev.destroy(b);

@@ -153,7 +153,10 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
         prefetched = @splat(false);
         var materialized = true;
         for (current[0..input.oracles.len]) |source| materialized = materialized and source.projected == null;
-        const fuse_next = if (comptime @hasDecl(@TypeOf(commands.*), "supportsBatchFoldSum") and @hasDecl(@TypeOf(commands.*), "foldSumBatch")) materialized and remaining > 1 and commands.supportsBatchFoldSum() else false;
+        // The persistent tail computes its own sums; do not prefetch a round
+        // that it will consume without reading the sum buffers.
+        const tail_next = if (comptime @hasDecl(@TypeOf(commands.*), "supportsBatchTail")) remaining <= 5 and commands.supportsBatchTail() else false;
+        const fuse_next = if (comptime @hasDecl(@TypeOf(commands.*), "supportsBatchFoldSum") and @hasDecl(@TypeOf(commands.*), "foldSumBatch")) materialized and remaining > 1 and !tail_next and commands.supportsBatchFoldSum() else false;
         var fused_jobs: [abi.batch_max_oracles]R.BatchFoldSum = undefined;
         var fused_indices: [abi.batch_max_oracles]usize = undefined;
         var fold_jobs: [abi.batch_max_oracles]R.BatchFold = undefined;

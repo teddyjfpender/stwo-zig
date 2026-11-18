@@ -50,6 +50,7 @@ pub const Config = Install.Config;
 /// One request as the service hands it over (host shape; class keys come
 /// from the factories).
 pub const Request = struct {
+    slab_classes: []const Install.SlabClass = &.{},
     id: u64,
     /// Rows per native segment (geometry known at plan time; the capture
     /// stream must be `prepare`d with exactly these and checks every sealed
@@ -346,9 +347,8 @@ pub const InFlight = struct {
         const specs = try a.alloc(G.ProofSpec, placed.len);
         // The request pseudo-proof carries the stage-one bytes (native seal
         // job): fixed base + each segment class's share, when any is declared.
-        var stage_one: usize = 0;
-        for (native_cls) |e| stage_one += @max(e.stage_one_bytes, if (drv.exchange_cap.child_wire_words != 0) 76 + 4 * drv.exchange_cap.child_wire_words else 0);
-        if (stage_one != 0) stage_one += drv.config.stage_one_base_bytes;
+        const stage_one = try Install.stageOneBytes(native_cls, drv.exchange_cap.child_wire_words, drv.config.stage_one_base_bytes);
+        if (req.slab_classes.len != 0 and req.slab_classes.len != specs.len) return error.GpuNativeCaptureShapeChanged;
         for (placed, specs) |p, *spec| {
             const entry: ?*const G.ClassEntry = switch (p.id.kind) {
                 .native_segment => native_cls[p.id.ordinal],
@@ -356,7 +356,15 @@ pub const InFlight = struct {
                 .leaf, .fold, .root => node_cls[p.id.ordinal],
                 .request => null,
             };
-            spec.* = .{ .id = p.id, .device = p.device, .max_encoded_bytes = if (entry) |e| e.max_encoded_bytes else stage_one, .extra_checks = if (entry) |e| e.extra_checks else &.{} };
+            if (req.slab_classes.len != 0) {
+                var matched = false;
+                for (req.slab_classes) |r| if (r.id.eql(p.id) and ((r.key == null and r.id.kind != .native_segment) or std.meta.eql(r.key, if (entry) |e| @as(?G.ClassKey, e.key) else null))) {
+                    matched = true;
+                    break;
+                };
+                if (!matched) return error.GpuNativeCaptureShapeChanged;
+            }
+            spec.* = Install.proofSpec(entry, p.id, p.device, stage_one);
         }
         // Install capacities fix every exchange offset; only GPUs that host a
         // segment own a partial slot (a GPU without one could never publish it).

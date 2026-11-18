@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_cuda_integration",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "layer": "integration",
   "owner": "riscv-cuda-integration",
   "public_modules": {
@@ -37,10 +37,26 @@
     ],
     "invariant_tests": [
       "mod.zig::RISC-V structural admission rejects missing formal evidence",
+      "rv64/jobs/column_copy_runs.zig::authenticated run copies real column bytes exactly once",
+      "rv64/jobs/column_copy_runs.zig::column copy runs fail terminally on overflow validator and copy errors",
+      "rv64/jobs/column_copy_runs.zig::column copy runs merge only authenticated contiguous spans",
+      "rv64/jobs/column_copy_runs.zig::column copy runs refuse adjacent foreign allocations and overlapping unions",
+      "rv64/jobs/column_copy_runs.zig::column copy runs retain gaps reordered columns and absent capability",
+      "rv64/jobs/driver_service_test.zig::serve: truth capacity rejects before topology and the exchange holds the exact installed roster",
+      "rv64/jobs/native_commit.zig::direct commitment stages permuted and partial overlaps and accepts exact column aliases",
+      "rv64/jobs/outer_encode_job.zig::encoder discovery owns its programs until completion and serving reuses its installed class",
+      "rv64/jobs/outer_fixed_job.zig::cold FIXED accepts only a successful device decode and budgets its resident source once",
+      "rv64/jobs/outer_graph_cache.zig::graph cache: shared metadata budget evicts only owned executables and releases every charge",
+      "rv64/jobs/outer_packed_class.zig::cold FIXED decoder returns only the authenticated class tail and refuses invalid extents",
+      "rv64/jobs/outer_seed_device_test.zig::seed program: short FRI gather owns coordinate order and clears unseen groups",
       "rv64/jobs/plan_test.zig::worker final plans: output failure still destroys every joined resource",
       "rv64/jobs/plan_test.zig::worker final plans: own worker cannot join itself or close healthy submissions",
       "rv64/jobs/plan_test.zig::worker final plans: postjoin output allocation failure consumes metadata exactly once",
       "rv64/jobs/plan_test.zig::worker final plans: quiesce drains and retains exact postshutdown snapshot until destroy",
+      "rv64/outer_job_prestage.zig::packed template releases host sources and preserves device extents",
+      "rv64/outer_node_checks.zig::class discovery charges the current seed program to its job",
+      "rv64/outer_node_prover.zig::installed graph owners share within one worker and destroy before their live contexts",
+      "rv64/outer_seed_record.zig::recursive discovery holds late leaf roots until its installation ends",
       "rv64/recorded_replay.zig::recorded replay admission: absent role skips while provided data remains mandatory",
       "rv64/recording_dataset_test.zig::recording dataset: active borrows refuse finalization and cannot outlive their owner",
       "rv64/recording_dataset_test.zig::recording dataset: device binding refuses duplicate contexts rather than borrowing a foreign request",
@@ -61,6 +77,7 @@
       "zig",
       "build",
       "test",
+      "test-rv64-jobs-node",
       "--build-file",
       "src/integrations/riscv_cuda/build.zig",
       "-Doptimize=ReleaseFast",
@@ -68,14 +85,14 @@
     ]
   },
   "budget": {
-    "code_files": 345,
-    "code_lines": 80276,
+    "code_files": 347,
+    "code_lines": 81851,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 8,
     "dependencies": 9,
     "rv64_registry_flags": 22,
-    "versioned_files": 350
+    "versioned_files": 352
   }
 }
