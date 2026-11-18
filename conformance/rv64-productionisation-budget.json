@@ -4413,7 +4413,7 @@
     },
     {
       "package": "stwo_riscv_air_lang",
-      "base_commit": "19871ab95d6401bbc83ffada84ba39f40e59711f",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
       "before": {
         "code_files": 255,
         "code_lines": 61191,
@@ -4440,7 +4440,7 @@
     },
     {
       "package": "stwo_riscv_isa",
-      "base_commit": "19871ab95d6401bbc83ffada84ba39f40e59711f",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
       "before": {
         "code_files": 40,
         "code_lines": 4736,
@@ -4467,7 +4467,7 @@
     },
     {
       "package": "stwo_riscv_memory",
-      "base_commit": "19871ab95d6401bbc83ffada84ba39f40e59711f",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
       "before": {
         "code_files": 122,
         "code_lines": 30947,
@@ -4494,7 +4494,7 @@
     },
     {
       "package": "stwo_riscv_frontend",
-      "base_commit": "19871ab95d6401bbc83ffada84ba39f40e59711f",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
       "before": {
         "code_files": 184,
         "code_lines": 48758,
@@ -4521,7 +4521,7 @@
     },
     {
       "package": "stwo_riscv_precompiles",
-      "base_commit": "19871ab95d6401bbc83ffada84ba39f40e59711f",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
       "before": {
         "code_files": 86,
         "code_lines": 15230,
@@ -4548,7 +4548,7 @@
     },
     {
       "package": "stwo_riscv_recursion",
-      "base_commit": "19871ab95d6401bbc83ffada84ba39f40e59711f",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
       "before": {
         "code_files": 410,
         "code_lines": 121201,
@@ -4575,7 +4575,7 @@
     },
     {
       "package": "stwo_riscv_recursion_air",
-      "base_commit": "19871ab95d6401bbc83ffada84ba39f40e59711f",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
       "before": {
         "code_files": 186,
         "code_lines": 50617,
@@ -4602,7 +4602,7 @@
     },
     {
       "package": "stwo_riscv_rv32",
-      "base_commit": "19871ab95d6401bbc83ffada84ba39f40e59711f",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
       "before": {
         "code_files": 634,
         "code_lines": 192920,
@@ -4629,7 +4629,7 @@
     },
     {
       "package": "stwo_riscv_rv64",
-      "base_commit": "19871ab95d6401bbc83ffada84ba39f40e59711f",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
       "before": {
         "code_files": 526,
         "code_lines": 69355,
@@ -4656,7 +4656,7 @@
     },
     {
       "package": "stwo_riscv_testing",
-      "base_commit": "19871ab95d6401bbc83ffada84ba39f40e59711f",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
       "before": {
         "code_files": 319,
         "code_lines": 70711,

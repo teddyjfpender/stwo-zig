@@ -177,8 +177,8 @@ is a contract change even if a function signature stays the same.
   - Source: inside its owning package under `src/` (or a tool crate under
     `tools/`).
   - Tests: next to the code, or in the package's declared test root.
-    Focused CI suites live in `<package>/tests/focused/<topic>.zig` and are
-    compiled through the package's single `focused_test_root.zig`.
+    RISC-V focused CI suites live in `<package>/tests/focused/<topic>.zig`
+    and compile through the package's single `focused_test_root.zig`.
   - Fixtures and golden vectors: `vectors/`, content-addressed or hash-pinned,
     with provenance. Large binary fixtures need a reason, hash and retention
     policy.
