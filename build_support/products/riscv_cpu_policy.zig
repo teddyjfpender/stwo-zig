@@ -24,6 +24,9 @@ pub const source_closure = product_policy.SourceClosure{
         "src/frontends/riscv/focused_product_sail_oracle_test_root.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
+        .{ .name = "postcard_error_codes", .source = "src/waist/recursion_wire/postcard_error_codes.zig" },
+        .{ .name = "legacy_riscv_frontend", .source = "src/products/ethereum/statement/frontend.zig" },
+        .{ .name = "legacy_riscv_cpu_integration", .source = "src/products/ethereum/statement/cpu.zig" },
         .{ .name = "observation_journal", .source = "src/products/riscv/tools/observations/journal.zig" },
         .{ .name = "stwo", .source = "src/products/riscv/cpu/root.zig" },
         .{ .name = "stwo_artifact_store", .source = "src/engine/artifact_store/mod.zig" },
@@ -70,6 +73,8 @@ pub const source_closure = product_policy.SourceClosure{
         "src/frontends/riscv",
         "src/integrations/riscv_cpu",
         "src/products/riscv/cpu",
+        "src/products/ethereum/statement/frontend",
+        "src/products/ethereum/statement/cpu",
         "src/products/riscv/shared",
         "src/waist/recursion_wire/postcard",
         "src/products/riscv/artifact",

@@ -21,6 +21,7 @@ const embedded_assets = [_]struct { name: []const u8, path: []const u8 }{
 const source_closure = product_policy.SourceClosure{
     .entry_roots = &.{"src/products/cairo/recursion/cpu/main.zig"},
     .named_imports = &.{
+        .{ .name = "postcard_error_codes", .source = "src/waist/recursion_wire/postcard_error_codes.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },
         .{ .name = "stwo_proof_wire", .source = "src/waist/proof_wire/mod.zig" },

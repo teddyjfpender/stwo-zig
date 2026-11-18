@@ -20,7 +20,7 @@ const CallObservation = classifier.CallObservation;
 const classify = classifier.classify;
 const frontend = @import("stwo_riscv_frontend");
 
-const runner = frontend.runner;
+const runner = @import("legacy_riscv_frontend").runner;
 const TraceRow = runner.trace.TraceRow;
 
 const schema = "stwo.riscv.bulk-memcpy-admission-observation.v1";

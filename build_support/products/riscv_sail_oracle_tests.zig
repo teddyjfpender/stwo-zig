@@ -81,6 +81,10 @@ pub fn add(
         .optimize = optimize,
     });
     protocol.addImports(root);
+    const frontend = graph.addRiscVFrontendImport(b, protocol, test_product, target, optimize, root);
+    for (frontend.import_table.keys(), frontend.import_table.values()) |name, dependency| {
+        if (!root.import_table.contains(name)) root.addImport(name, dependency);
+    }
     const tests = b.addTest(.{
         .root_module = root,
         .filters = test_filter.apply(b, &.{}),

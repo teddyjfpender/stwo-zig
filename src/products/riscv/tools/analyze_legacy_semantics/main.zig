@@ -3,7 +3,7 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 const witness_codes = @import("witness_codes.zig");
 
-const runner = frontend.runner;
+const runner = @import("legacy_riscv_frontend").runner;
 
 const authority_owner = @import("authority.zig");
 const InputFile = authority_owner.InputFile;

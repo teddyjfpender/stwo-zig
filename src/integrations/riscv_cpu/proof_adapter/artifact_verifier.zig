@@ -118,7 +118,7 @@ pub fn verify(
 // either direction without importing its source into the provider twice.
 fn admitProofBytesTo(writer: anytype, raw: []const u8, shape: stwo.interop.postcard.proof_preflight.Shape) stwo.interop.postcard.proof_preflight.Error!void {
     const preflight = stwo.interop.postcard.proof_preflight;
-    const codes = stwo.recursion_wire.error_codes;
+    const codes = @import("postcard_error_codes");
     comptime {
         if (@typeInfo(@TypeOf(codes.fromPostcard)).@"fn".params[0].type.? != preflight.Error)
             @compileError("postcard diagnostic error contract must equal the owned parser error set");

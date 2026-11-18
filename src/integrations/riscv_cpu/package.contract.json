@@ -27,6 +27,7 @@
     "interop_postcard",
     "keccakf_proof_harness",
     "lookup_v2_test_backend",
+    "postcard_error_codes",
     "riscv_cpu_capabilities",
     "secp256k1_proof_harness",
     "stwo",
@@ -163,7 +164,7 @@
   },
   "budget": {
     "code_files": 952,
-    "code_lines": 137916,
+    "code_lines": 137921,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 1,
