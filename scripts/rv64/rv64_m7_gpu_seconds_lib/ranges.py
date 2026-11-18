@@ -78,6 +78,7 @@ def device_kernel_work(db, lower, upper, host):
                    MIN(r.globalTid) AS thread,MIN(r.start) AS start,MAX(r.end) AS end
             FROM CUPTI_ACTIVITY_KIND_RUNTIME r JOIN ids i ON
                 (r.globalTid & ~16777215)=i.globalPid AND r.correlationId=i.correlationId
+            WHERE i.correlationId>0
             GROUP BY i.globalPid,i.correlationId
         )
         SELECT a.deviceId,a.n,a.elapsed,o.n,o.thread,o.start,o.end
@@ -89,10 +90,10 @@ def device_kernel_work(db, lower, upper, host):
         stage = 'unattributed'
         if origins == 1 and start is not None and end is not None and lower <= start <= end <= upper:
             owners = [(lo, hi, name) for lo, hi, name in ranges[thread]
-                      if lo <= start and (hi is None or hi >= end)]
+                      if lo < max(end, start + 1) and (hi is None or hi > start)]
             if len(owners) == 1:
                 lo, hi, name = owners[0]
-                if hi is not None and lower <= lo <= hi <= upper and LABEL.fullmatch(name):
+                if hi is not None and lower <= lo <= start <= end <= hi <= upper and LABEL.fullmatch(name):
                     stage = name.split('/')[2]
         partial |= stage == 'unattributed'
         stages = result.setdefault(str(device), {})

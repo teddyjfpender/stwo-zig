@@ -115,6 +115,17 @@ class ActivityTests(unittest.TestCase):
             'unattributed': {'kernels': 2, 'duration_sum_ns': 40}}})
         self.assertEqual(work['status'], 'PARTIAL')
 
+    def test_unknown_correlation_and_a_range_boundary_do_not_assign_a_kernel(self):
+        db = self.traced_database()
+        db.executescript("""
+            CREATE TABLE CUPTI_ACTIVITY_KIND_KERNEL(start,end,deviceId,globalPid,correlationId);
+            INSERT INTO CUPTI_ACTIVITY_KIND_RUNTIME VALUES (130,140,0,1,10);
+            INSERT INTO NVTX_EVENTS VALUES (138,148,10,'rv64/gpu/leaf/2',NULL);
+            INSERT INTO CUPTI_ACTIVITY_KIND_KERNEL VALUES (151,151,0,0,0),(155,170,0,0,2);
+        """)
+        stages = request_census(db, 100, 200)['device_kernel_work']['devices']
+        self.assertEqual(stages['0'], {'unattributed': {'kernels': 2, 'duration_sum_ns': 15}})
+
     def test_device_projection_requires_kernel_origin_columns_and_instrumentation(self):
         db = self.traced_database()
         self.assertEqual(request_census(db, 100, 200)['device_kernel_work']['status'], 'UNAVAILABLE')
