@@ -277,6 +277,7 @@ fn createStwoModule(context: Context) *std.Build.Module {
         context.optimize,
         module,
     );
+    integration_graph.addEthereumCpuCompatibility(context.b, context.target, context.optimize, module);
     graph.addFacadeSupportImports(
         context.b,
         context.protocol,
