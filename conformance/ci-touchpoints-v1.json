@@ -1651,6 +1651,19 @@
         ]
       ]
     },
+    "ethereum_csp_cpu_cohort": {
+      "host": "linux",
+      "local": "hosted",
+      "description": "Diagnostic CSP proof comparison across x86-64 feature levels",
+      "commands": [
+        [
+          "bash",
+          "-eu",
+          "-c",
+          "status=0\nfor cpu in x86_64_v2 x86_64_v3 native; do\n  printf '\\nCSP CPU cohort %s\\n' \"$cpu\"\n  if python3 scripts/repo/zig_serial_build.py --cwd src/products/ethereum/statement test-csp-ecdsa-proof -Doptimize=ReleaseFast -j2 --verbose --summary all \"-Dcpu=$cpu\"; then\n    printf 'CSP CPU cohort %s PASS\\n' \"$cpu\"\n  else\n    printf 'CSP CPU cohort %s FAIL\\n' \"$cpu\"\n    status=1\n  fi\ndone\nexit \"$status\"\n"
+        ]
+      ]
+    },
     "opstack_statement": {
       "host": "linux",
       "description": "OP Stack product guest ABI, statement and hook contracts, plus the OP tooling unit tests",
