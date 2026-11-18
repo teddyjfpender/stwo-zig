@@ -544,6 +544,10 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("native_metal", runtime)
         self.assertIn("riscv_metal", runtime)
 
+    def test_aggregate_descriptor_selects_both_linked_source_closures(self) -> None:
+        lanes = self.lanes_for("build_support/products/aggregate.zig")
+        self.assertTrue({"aggregate_cpu", "aggregate_metal"}.issubset(lanes))
+
     def test_multiple_paths_take_the_conservative_union(self) -> None:
         selected = self.lanes_for(
             "docs/release.md",
