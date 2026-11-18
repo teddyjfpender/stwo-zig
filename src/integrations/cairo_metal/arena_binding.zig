@@ -26,7 +26,6 @@ const interaction_diagnostics = @import("resident/interaction/diagnostics.zig");
 const interaction_execute = @import("resident/interaction/execute.zig");
 const resident_binding = @import("resident/binding.zig");
 const resident_errors = @import("resident/errors.zig");
-const trace_diagnostics = @import("resident/trace/diagnostics.zig");
 const trace_interpolation = @import("resident/trace/interpolation.zig");
 const transcript_operations = @import("resident/transcript/operations.zig");
 const resident_twiddles = @import("resident/twiddles.zig");
@@ -190,7 +189,6 @@ pub const executeNativeEcConsumer = witness_execute.executeNativeEcConsumer;
 pub const executeScheduledWitnessGraph = witness_execute.executeScheduledWitnessGraph;
 pub const InteractionExecutionTelemetry = interaction_execute.InteractionExecutionTelemetry;
 pub const executeScheduledInteractionGraph = interaction_execute.executeScheduledInteractionGraph;
-pub const logComponentBaseEvalDigests = trace_diagnostics.logComponentBaseEvalDigests;
 pub const logInteractionCoefficientDigests = interaction_diagnostics.logInteractionCoefficientDigests;
 
 pub const gatherWitnessInput = witness_execute.gatherWitnessInput;

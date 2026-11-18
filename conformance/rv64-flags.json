@@ -7442,34 +7442,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_DUMP_BASE_EVAL_LOGICAL_ID": {
-      "owner": "src/integrations/cairo_metal/resident/trace/diagnostics.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/resident/trace/diagnostics.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/resident/trace/diagnostics.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_DUMP_BASE_EVAL_LOGICAL_ID\")) {\n            const wanted_text = try std.process.getEnvVarOwned(\n                std.heap.page_allocator,\n                \"STWO_ZIG_SN2_DUMP_BASE_EVAL_LOGICAL_ID\",\n            );\n            defer std.heap.page_allocator.free(wanted_text);\n            const wanted = std.fmt.parseInt(u32, wanted_text, 10) catch return Error.InvalidSchedule;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_DUMP_BASE_EVAL_PATH": {
-      "owner": "src/integrations/cairo_metal/resident/trace/diagnostics.zig",
-      "default": "disabled: no base evaluation dump path",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/resident/trace/diagnostics.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/resident/trace/diagnostics.zig",
-        "text": "                    \"STWO_ZIG_SN2_DUMP_BASE_EVAL_PATH\",\n                );\n                defer std.heap.page_allocator.free(path);\n                const file = try std.fs.createFileAbsolute(path, .{});\n                defer file.close();\n                try file.writeAll(bytes);\n                std.debug.print("
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_ENABLE_COMPOSITION_PART_FUSION": {
       "owner": "src/integrations/cairo_metal/resident/composition/config.zig",
       "default": "false",
@@ -7624,37 +7596,6 @@
       "default_evidence": {
         "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
         "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_WITNESS\")) {\n            if (!std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION\"))\n                return error.MissingBaseInterpolation;\n            if (!base_inverse_twiddles_prepared)\n                try bindings.populateCommitmentInverseTwiddles(allocator, resident_arena, plan, 1);\n            const recorded_base_interpolation_started_ns = runner_wall_timer.read();\n            var local_recorded_interpolation: ?arena_binding_mod.RecordedBaseInterpolationBatch = null;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_INPUT_SHA256": {
-      "owner": "src/backends/metal/tools/arena_plan/runner.zig",
-      "default": "error.EnvironmentVariableNotFound (required value)",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/runner.zig",
-        "text": "        const prover_input_sha256 = try std.process.getEnvVarOwned(allocator, \"STWO_ZIG_SN2_INPUT_SHA256\");\n        defer allocator.free(prover_input_sha256);\n        if (prover_input_sha256.len != 64) return error.InvalidInputDigest;\n        std.debug.print(\"base_eval_digest_input sha256={s}\\n\", .{prover_input_sha256});\n    }\n    const reference_read_started_ns = runner_wall_timer.read();\n    const transcript_reference_path = std.process.getEnvVarOwned("
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS": {
-      "owner": "src/backends/metal/tools/arena_plan/base_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/integrations/cairo_metal/resident/trace/interpolation.zig",
-        "src/integrations/cairo_metal/resident/witness/execute.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS\"))\n                try arena_binding_mod.logComponentBaseEvalDigests(\n                    resident_arena,\n                    schedule,\n                    plan,\n                    \"memory_address_to_id\",\n                );"
       },
       "expires": "2026-12-13"
     },
