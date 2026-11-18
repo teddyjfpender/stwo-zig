@@ -146,3 +146,71 @@ test "stacked Circle lifted source masks normalize after the global shift and en
     try std.testing.expect(try checkDegree(8, 4, 128, -1, .wrong_mask_domain) > 0);
     try std.testing.expect(try checkDegree(8, 4, 128, -1, .excessive_degree) > 0);
 }
+
+test "stacked Circle batches share query reductions with non-real weights and shifted masks" {
+    const domain = core.poly.circle.canonic.CanonicCoset.new(8).circleDomain();
+    const base_sample = try oodsPoint();
+    const w0 = base_sample.x;
+    const weights = [_]Secure{ w0, w0.square(), base_sample.y };
+    const plus = [_]Base{ Base.fromCanonical(101), Base.fromCanonical(202), Base.fromCanonical(303) };
+    const minus = [_]Base{ Base.fromCanonical(404), Base.fromCanonical(505), Base.fromCanonical(606) };
+    var values: [24]Secure = undefined;
+    for (&values, 0..) |*v, i| v.* = w0.mulM31(Base.fromU64(i + 13)).add(base_sample.y.square().mulM31(Base.fromU64(i * i + 1)));
+    for ([_]usize{ 1, 2, 4, 8 }) |width| {
+        const samples = values[0 .. width * weights.len];
+        for ([_]i8{ -1, 0, 1 }) |shift| {
+            const z = base_sample.add(extend(domain.half_coset.step.mulSigned(shift)));
+            var prep = try stack.Batch.init(alloc, width, &weights, z, samples);
+            defer prep.deinit(alloc);
+            for (0..8) |i| {
+                const query = domain.at(core.utils.bitReverseIndex(i, 8));
+                var expected = Secure.zero();
+                for (weights, plus, minus, 0..) |alpha, v, s, g| {
+                    const q = if (width == 1) try originalQuotient(query, z, Secure.fromBase(v), samples[g]) else try stack.quotient(query, v, s, z, samples[g * width ..][0..width]);
+                    expected = expected.add(alpha.mul(q));
+                }
+                try std.testing.expect(expected.eql(try prep.answer(query, &plus, &minus)));
+                var changed = plus;
+                changed[1] = changed[1].add(Base.one());
+                try std.testing.expect(!expected.eql(try prep.answer(query, &changed, &minus)));
+                changed = minus;
+                changed[1] = changed[1].add(Base.one());
+                try std.testing.expectEqual(width == 1, expected.eql(try prep.answer(query, &plus, &changed)));
+            }
+        }
+    }
+}
+
+test "stacked Circle batch admission rejects mismatched extents and degeneracy" {
+    const point = try oodsPoint();
+    const alpha = [_]Secure{ point.y, point.x };
+    const values = [_]Secure{point.y} ** 8;
+    try std.testing.expectError(error.InvalidStackShape, stack.Batch.init(alloc, 0, &alpha, point, &values));
+    try std.testing.expectError(error.InvalidStackShape, stack.Batch.init(alloc, 3, &alpha, point, &values));
+    try std.testing.expectError(error.InvalidStackShape, stack.Batch.init(alloc, 4, alpha[0..0], point, values[0..0]));
+    try std.testing.expectError(error.InvalidStackShape, stack.Batch.init(alloc, 4, &alpha, point, values[0..7]));
+    try std.testing.expectError(error.DegenerateLine, stack.Batch.init(alloc, 4, &alpha, extend(core.circle.M31_CIRCLE_GEN), &values));
+    var prep = try stack.Batch.init(alloc, 4, &alpha, point, &values);
+    defer prep.deinit(alloc);
+    const row = [_]Base{Base.one()} ** 2;
+    try std.testing.expectError(error.InvalidStackShape, prep.answer(core.circle.M31_CIRCLE_GEN, row[0..1], &row));
+    try std.testing.expectError(error.InvalidStackShape, prep.answer(core.circle.M31_CIRCLE_GEN, &row, row[0..1]));
+    try std.testing.expectError(error.SingularFiber, prep.answer(BasePoint.identity(), &row, &row));
+    try std.testing.expectError(error.InvalidCirclePoint, prep.answer(.{ .x = Base.one(), .y = Base.one() }, &row, &row));
+}
+
+test "stacked Circle batch owns its weights and releases its only preparation allocation" {
+    const z = try oodsPoint();
+    var weights = [_]Secure{ z.x, z.y };
+    var values = [_]Secure{z.x} ** 8;
+    var fail = std.testing.FailingAllocator.init(alloc, .{ .fail_index = 0 });
+    try std.testing.expectError(error.OutOfMemory, stack.Batch.init(fail.allocator(), 4, &weights, z, &values));
+    var prep = try stack.Batch.init(alloc, 4, &weights, z, &values);
+    defer prep.deinit(alloc);
+    const p = core.circle.M31_CIRCLE_GEN;
+    const row = [_]Base{ Base.one(), Base.fromCanonical(73) };
+    const expected = try prep.answer(p, &row, &row);
+    @memset(&weights, Secure.zero());
+    @memset(&values, Secure.zero());
+    try std.testing.expect(expected.eql(try prep.answer(p, &row, &row)));
+}
