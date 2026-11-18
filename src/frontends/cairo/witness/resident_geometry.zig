@@ -176,22 +176,6 @@ test "resident verifier derives exact SN2 OODS shape" {
         "vectors/cairo/sn_pie_2_composition.bin",
     );
     defer captured.deinit();
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_CAPTURED_PARTS")) {
-        const component = captured.components[0];
-        for (component.parts, 0..) |part, part_index| {
-            std.debug.print(
-                "captured_part index={} rc_base={} constraints={} base_insts={} ext_insts={} roots={any}\n",
-                .{
-                    part_index,
-                    part.rc_base,
-                    part.program.header.n_constraints,
-                    part.program.base_insts.len,
-                    part.program.ext_insts.len,
-                    part.program.constraint_roots,
-                },
-            );
-        }
-    }
     const shape = try sampleShape(allocator, captured, .{ 161, 3449, 2268 });
     defer freeSampleShape(allocator, shape);
     try std.testing.expectEqual(@as(usize, 4), shape.len);

@@ -21,7 +21,6 @@ pub const RelationDomain = @TypeOf(@as(TupleContribution, undefined).domain);
 pub const RelationRole = @TypeOf(@as(TupleContribution, undefined).role);
 
 pub const COMPONENT_COUNT: usize = 38;
-pub const VERBOSE_ENV = "STWO_RECURSION_OUTER_TUPLE_VERBOSE";
 pub const RED_DOMAIN_MASK: u64 =
     domainBit(.poseidon2_io) |
     domainBit(.recursion_wire) |
@@ -105,10 +104,8 @@ pub const Report = struct {
     /// hashes and field multiplicities while retaining the exact ordered
     /// row/event/role provenance signature. This turns thousands of concrete
     /// tuple failures into the small set of authority seams that can fix them.
-    /// Set `STWO_RECURSION_OUTER_TUPLE_VERBOSE=1` to append every tuple group.
     pub fn print(self: *const Report) void {
         self.printConcise();
-        if (std.process.hasEnvVarConstant(VERBOSE_ENV)) self.printVerbose();
     }
 
     pub fn printConcise(self: *const Report) void {
@@ -193,8 +190,8 @@ pub const Report = struct {
             }
         }
         std.debug.print(
-            "SegmentV2 tuple authority classes: {d} (verbose: {s}=1)\n",
-            .{ class_count, VERBOSE_ENV },
+            "SegmentV2 tuple authority classes: {d}\n",
+            .{class_count},
         );
     }
 

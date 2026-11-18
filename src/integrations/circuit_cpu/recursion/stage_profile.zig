@@ -10,13 +10,7 @@ pub const Profile = struct {
     previous_variables: usize = 0,
     timer: ?std.time.Timer = null,
 
-    pub fn init(label: []const u8) Profile {
-        const setting = std.process.getEnvVarOwned(std.heap.page_allocator, "STWO_CIRCUIT_VERIFIER_STAGE_PROFILE") catch return .{
-            .label = label,
-            .enabled = false,
-        };
-        defer std.heap.page_allocator.free(setting);
-        const enabled = std.mem.eql(u8, setting, "1");
+    pub fn init(label: []const u8, enabled: bool) Profile {
         return .{ .label = label, .enabled = enabled, .timer = if (enabled) std.time.Timer.start() catch null else null };
     }
 
