@@ -214,18 +214,6 @@ pub fn populate(
         );
         return error.InvalidOodsShape;
     }
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_OODS_TASKS")) {
-        for (tasks.items, 0..) |task, task_index| std.debug.print(
-            "oods_task index={} coefficient_log={} point_start={} point_count={} output_start={}\n",
-            .{
-                task_index,
-                task.coefficients.logSize(),
-                task.point_start,
-                task.point_count,
-                task.output_start,
-            },
-        );
-    }
 
     var timer = try std.time.Timer.start();
     const gpu_ms = if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_OODS_CPU")) blk: {

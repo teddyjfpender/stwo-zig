@@ -357,7 +357,7 @@ fn wrapCairoProofImpl(
     const record_gates = wrap.source == null or cached == null;
 
     // 4. The leaf circuit with values, padded to the shared target.
-    var stages = stage_profile.Profile.init("leaf");
+    var stages = stage_profile.Profile.init("leaf", recorder != null);
     var ctx = try cairo_verifier.buildCairoVerifierCircuitWithGateRecordingAndCapacity(QM31, allocator, wrap.cairo_table, &config, wrap.constants(), .{
         .proof = &proof_values,
         .serialized_aux_data = aux,
