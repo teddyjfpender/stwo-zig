@@ -276,10 +276,7 @@ pub fn runOne(
     );
     const arena_plan_started_ns = runner_wall_timer.read();
     const execute_proof = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_PROOF");
-    const execute_decommit = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_DECOMMIT") or execute_proof;
-    const execute_fri = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_FRI") or execute_decommit;
-    const execute_quotient = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_QUOTIENT") or execute_fri;
-    const execute_composition = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_COMPOSITION") or execute_quotient;
+    const execute_composition = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_COMPOSITION") or execute_proof;
     const projection_tick: ?u16 = if (!std.process.hasEnvVarConstant("STWO_ZIG_SN2_PREPARE_METAL") or execute_composition)
         null
     else if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_RELATIONS"))
@@ -398,9 +395,6 @@ pub fn runOne(
         .runner_phase_timing = &runner_phase_timing,
         .recipe_preparation_timing = &recipe_preparation_timing,
         .execute_composition = execute_composition,
-        .execute_quotient = execute_quotient,
-        .execute_fri = execute_fri,
-        .execute_decommit = execute_decommit,
         .execute_proof = execute_proof,
         .proof_plan = if (proof_plan) |*value| value else null,
         .statement_bootstrap = if (statement_bootstrap) |*value| value else null,
