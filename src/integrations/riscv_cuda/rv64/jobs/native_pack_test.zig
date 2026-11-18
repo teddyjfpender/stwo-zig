@@ -70,6 +70,7 @@ test "gn-pack v2: writer/parser round trip across ring buffers; data split exact
     for (r.chunks.items[0 .. r.chunks.items.len - 1]) |c| try testing.expect(!c.last and c.rows == 0);
     var p = try P.Program.parse(testing.allocator, r.chunks.items, 7);
     defer p.deinit();
+    try testing.expect(p.relocatable_columns);
     try testing.expectEqual(@as(usize, 4), p.launches.items.len);
     try testing.expectEqual(@as(u64, 10_000), p.data_words);
     try testing.expectEqual(@as(usize, 1), p.status_len);
@@ -123,6 +124,10 @@ test "gn-pack v2: structural refusals (truncation, coverage, overlap, gaps, refs
             try testing.expectError(error.GnPackMainCoverage, P.Program.parse(a, mutated, 7));
             copy[at + 5] = 1;
             job.main = P.column(6);
+            job.counts = P.column(0);
+            var shared = try P.Program.parse(a, mutated, 7);
+            defer shared.deinit();
+            try testing.expect(!shared.relocatable_columns);
             // a ref past its buffer
             job.counts = P.ref(2, 1000);
             try testing.expectError(error.GnPackRefOutOfRange, P.Program.parse(a, mutated, 7));

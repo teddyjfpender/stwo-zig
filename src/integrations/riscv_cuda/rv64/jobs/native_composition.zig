@@ -39,7 +39,7 @@ const M = core.fields.m31.M31;
 pub const RoleKernel = *const @TypeOf(Abi.stwo_rv64_composition_role_on);
 pub const Finish = *const @TypeOf(Abi.stwo_rv64_composition_finish_on);
 pub const Auxiliary = *const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on);
-pub const N2bCompact = *const fn ([*]const u32, usize, [*]const u32, [*]u32, usize, u32, u32, [*]const u32, u32, u32, usize, ?*anyopaque, *u32) callconv(.c) c_int;
+pub const N2bCompact = C.N2bCompact;
 pub const Powers = *const fn (*anyopaque, u32, [*]const u32, u32, [*]u32, [*]u32) callconv(.c) c_int;
 pub const Memset = *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int;
 

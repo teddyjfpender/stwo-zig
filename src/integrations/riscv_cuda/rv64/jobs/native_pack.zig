@@ -337,6 +337,8 @@ pub const Program = struct {
     status: [max_status]Ref = @splat(0),
     status_len: usize = 0,
     columns: u32 = 0,
+    // An auxiliary image reference can span columns outside a single output group.
+    relocatable_columns: bool = true,
     rows: u64 = 0,
     data_words: u64 = 0,
     chunk_words: u64 = 0,
@@ -487,7 +489,11 @@ pub const Program = struct {
                 inline else => |op| {
                     const T = op.Type();
                     const job = std.mem.bytesToValue(T, std.mem.sliceAsBytes(l.body));
-                    inline for (T.refs) |name| try self.checkRef(@field(job, name), nullableRef(op, name));
+                    inline for (T.refs) |name| {
+                        const ref_value = @field(job, name);
+                        try self.checkRef(ref_value, nullableRef(op, name));
+                        if (refBuffer(ref_value) == image_buffer and (!std.mem.eql(u8, name, "main") or l.main_columns == 0)) self.relocatable_columns = false;
+                    }
                     if (op == .copy) {
                         const words = job.words;
                         inline for (.{ "dst", "src" }) |name| {
