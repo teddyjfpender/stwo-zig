@@ -2,7 +2,20 @@ const std = @import("std");
 
 // An import-only focused collector adds no assertion to the default suite when
 // each subject is already collected there directly. Parse conservatively.
+// Collectors live in `<package>/tests/focused/`; each subject must appear in
+// the package's `tests/root.zig` spelled from `tests/`: `../../air/x.zig` as
+// `../air/x.zig`, `../x.zig` as `x.zig`, sibling `x.zig` as `focused/x.zig`.
 pub fn coveredCollector(allocator: std.mem.Allocator, source: []const u8, inventory: []const u8) !bool {
+    return collectorIsCovered(allocator, source, inventory, .focused);
+}
+
+pub fn coveredRootCollector(allocator: std.mem.Allocator, source: []const u8, inventory: []const u8) !bool {
+    return collectorIsCovered(allocator, source, inventory, .package);
+}
+
+const Location = enum { package, focused };
+
+fn collectorIsCovered(allocator: std.mem.Allocator, source: []const u8, inventory: []const u8, location: Location) !bool {
     const text = try allocator.dupeZ(u8, source);
     defer allocator.free(text);
     var tokens = std.zig.Tokenizer.init(text);
@@ -19,9 +32,17 @@ pub fn coveredCollector(allocator: std.mem.Allocator, source: []const u8, invent
         const path = tokens.next();
         if (path.tag != .string_literal) return false;
         const literal = text[path.loc.start + 1 .. path.loc.end - 1];
-        if (!std.mem.endsWith(u8, literal, ".zig") or std.mem.indexOf(u8, literal, "..") != null or std.mem.indexOfScalar(u8, literal, '\\') != null or std.fs.path.isAbsolute(literal)) return false;
+        var subject = literal;
+        var depth: usize = 0;
+        while (depth < 2 and std.mem.startsWith(u8, subject, "../")) : (depth += 1) subject = subject["../".len..];
+        if (!std.mem.endsWith(u8, subject, ".zig") or std.mem.indexOf(u8, subject, "..") != null or std.mem.indexOfScalar(u8, subject, '\\') != null or std.fs.path.isAbsolute(subject)) return false;
+        if (location == .package and depth != 0) return false;
+        const from_package = location == .package or depth == 2;
+        const under_tests = from_package and std.mem.startsWith(u8, subject, "tests/");
+        const spelled = if (under_tests) subject["tests/".len..] else subject;
+        const prefix: []const u8 = if (from_package and !under_tests) "../" else if (location == .focused and depth == 0) "focused/" else "";
         var buffer: [512]u8 = undefined;
-        const statement = std.fmt.bufPrint(&buffer, "_ = @import(\"{s}{s}\");", .{ if (std.mem.startsWith(u8, literal, "tests/")) "" else "../", if (std.mem.startsWith(u8, literal, "tests/")) literal[6..] else literal }) catch return false;
+        const statement = std.fmt.bufPrint(&buffer, "_ = @import(\"{s}{s}\");", .{ prefix, spelled }) catch return false;
         var lines = std.mem.tokenizeAny(u8, inventory, "\r\n");
         var covered = false;
         while (lines.next()) |line| covered = covered or std.mem.eql(u8, std.mem.trim(u8, line, " \t"), statement);
@@ -32,11 +53,20 @@ pub fn coveredCollector(allocator: std.mem.Allocator, source: []const u8, invent
 
 test "test inventory: redundant collectors cannot hide assertions or absent subjects" {
     const allocator = std.testing.allocator;
-    const source = "test { _ = @import(\"air/example.zig\"); }";
+    const source = "test { _ = @import(\"../../air/example.zig\"); }";
     const inventory = "    _ = @import(\"../air/example.zig\");";
     try std.testing.expect(try coveredCollector(allocator, source, inventory));
     try std.testing.expect(!try coveredCollector(allocator, source, "// " ++ inventory));
     try std.testing.expect(!try coveredCollector(allocator, source, ""));
-    try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"air/example.zig\"); unreachable; }", inventory));
+    try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"../../air/example.zig\"); unreachable; }", inventory));
     try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"../outside.zig\"); }", inventory));
+    try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"../../../outside.zig\"); }", inventory));
+    try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"air/example.zig\"); }", inventory));
+    try std.testing.expect(try coveredCollector(allocator, "test { _ = @import(\"sibling.zig\"); }", "_ = @import(\"focused/sibling.zig\");"));
+    try std.testing.expect(try coveredCollector(allocator, "test { _ = @import(\"../../tests/shared.zig\"); }", "_ = @import(\"shared.zig\");"));
+    try std.testing.expect(try coveredCollector(allocator, "test { _ = @import(\"../shared.zig\"); }", "_ = @import(\"shared.zig\");"));
+    try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"../shared.zig\"); }", "_ = @import(\"../shared.zig\");"));
+    try std.testing.expect(!try coveredCollector(allocator, "test { _ = @import(\"../../../outside.zig\"); }", "_ = @import(\"../../outside.zig\");"));
+    try std.testing.expect(try coveredRootCollector(allocator, "test { _ = @import(\"air/example.zig\"); }", inventory));
+    try std.testing.expect(!try coveredRootCollector(allocator, source, inventory));
 }

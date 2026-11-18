@@ -14,7 +14,9 @@
     "stwo_riscv_air_lang": "../air_lang",
     "stwo_riscv_isa": "../isa"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "focused_suite"
+  ],
   "api_surface": [
     "aggregation",
     "air",
@@ -46,14 +48,14 @@
     ]
   },
   "budget": {
-    "code_files": 122,
-    "code_lines": 30947,
+    "code_files": 123,
+    "code_lines": 30971,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 7,
     "dependencies": 5,
     "rv64_registry_flags": 0,
-    "versioned_files": 125
+    "versioned_files": 126
   }
 }

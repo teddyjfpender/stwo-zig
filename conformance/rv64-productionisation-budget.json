@@ -651,7 +651,7 @@
       "net_code_budget": 5,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Correct the full circuit generation allocation preflight from topology-only memory to a 32 GiB minimum accounting for fold-tree’s documented roughly 22 GB per reduction. The first hosted attempt terminated at that owner; refuse another undersized host rather than weaken or omit the full parity workload. No laptop build, larger paid runner or GPU is started."
+      "positive_growth_justification": "Correct the full circuit generation allocation preflight from topology-only memory to a 32 GiB minimum accounting for fold-tree\u2019s documented roughly 22 GB per reduction. The first hosted attempt terminated at that owner; refuse another undersized host rather than weaken or omit the full parity workload. No laptop build, larger paid runner or GPU is started."
     },
     {
       "id": "delivery_independent_manual_cpu_cancellation",
@@ -665,7 +665,7 @@
       "net_code_budget": 50,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Repair the FRI regression’s duplicate relative module import by using the existing named circuit frontend export. Bind the aggregate lexical closure to the exact support modules already injected by its real compiler graph, retaining leaf ownership and all rejection checks. Make the exhaustive Merkle allocation-fault sequence deterministic by refusing backing resizes, retaining all failure/leak checks. Compose the aggregate legacy CPU engine through its existing generic frontend constructor instead of importing unrelated RV64 recursion services. No dependency/API ledger, directory prefix, proof bytes or compiler assertion is widened."
+      "positive_growth_justification": "Repair the FRI regression\u2019s duplicate relative module import by using the existing named circuit frontend export. Bind the aggregate lexical closure to the exact support modules already injected by its real compiler graph, retaining leaf ownership and all rejection checks. Make the exhaustive Merkle allocation-fault sequence deterministic by refusing backing resizes, retaining all failure/leak checks. Compose the aggregate legacy CPU engine through its existing generic frontend constructor instead of importing unrelated RV64 recursion services. No dependency/API ledger, directory prefix, proof bytes or compiler assertion is widened."
     },
     {
       "id": "delivery_fri_independent_integer_reference",
@@ -4410,6 +4410,276 @@
         "versioned_files": 304
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6992868497"
+    },
+    {
+      "package": "stwo_riscv_air_lang",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
+      "before": {
+        "code_files": 255,
+        "code_lines": 61191,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 65,
+        "dependencies": 4,
+        "rv64_registry_flags": 0,
+        "versioned_files": 292
+      },
+      "after": {
+        "code_files": 256,
+        "code_lines": 61220,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 65,
+        "dependencies": 4,
+        "rv64_registry_flags": 0,
+        "versioned_files": 293
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994564290"
+    },
+    {
+      "package": "stwo_riscv_isa",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
+      "before": {
+        "code_files": 40,
+        "code_lines": 4736,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 18,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 43
+      },
+      "after": {
+        "code_files": 41,
+        "code_lines": 4763,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 18,
+        "dependencies": 1,
+        "rv64_registry_flags": 0,
+        "versioned_files": 44
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994564290"
+    },
+    {
+      "package": "stwo_riscv_memory",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
+      "before": {
+        "code_files": 122,
+        "code_lines": 30947,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 7,
+        "dependencies": 5,
+        "rv64_registry_flags": 0,
+        "versioned_files": 125
+      },
+      "after": {
+        "code_files": 123,
+        "code_lines": 30971,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 7,
+        "dependencies": 5,
+        "rv64_registry_flags": 0,
+        "versioned_files": 126
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994564290"
+    },
+    {
+      "package": "stwo_riscv_frontend",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
+      "before": {
+        "code_files": 184,
+        "code_lines": 48758,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 39,
+        "dependencies": 12,
+        "rv64_registry_flags": 0,
+        "versioned_files": 195
+      },
+      "after": {
+        "code_files": 185,
+        "code_lines": 48853,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 39,
+        "dependencies": 12,
+        "rv64_registry_flags": 0,
+        "versioned_files": 196
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994564290"
+    },
+    {
+      "package": "stwo_riscv_precompiles",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
+      "before": {
+        "code_files": 86,
+        "code_lines": 15230,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 5,
+        "dependencies": 5,
+        "rv64_registry_flags": 0,
+        "versioned_files": 89
+      },
+      "after": {
+        "code_files": 87,
+        "code_lines": 15256,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 5,
+        "dependencies": 5,
+        "rv64_registry_flags": 0,
+        "versioned_files": 90
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994564290"
+    },
+    {
+      "package": "stwo_riscv_recursion",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
+      "before": {
+        "code_files": 410,
+        "code_lines": 121201,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 105,
+        "dependencies": 9,
+        "rv64_registry_flags": 0,
+        "versioned_files": 413
+      },
+      "after": {
+        "code_files": 411,
+        "code_lines": 121238,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 105,
+        "dependencies": 9,
+        "rv64_registry_flags": 0,
+        "versioned_files": 414
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994564290"
+    },
+    {
+      "package": "stwo_riscv_recursion_air",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
+      "before": {
+        "code_files": 186,
+        "code_lines": 50617,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 54,
+        "dependencies": 5,
+        "rv64_registry_flags": 0,
+        "versioned_files": 189
+      },
+      "after": {
+        "code_files": 187,
+        "code_lines": 50633,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 54,
+        "dependencies": 5,
+        "rv64_registry_flags": 0,
+        "versioned_files": 190
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994564290"
+    },
+    {
+      "package": "stwo_riscv_rv32",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
+      "before": {
+        "code_files": 634,
+        "code_lines": 192920,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 11,
+        "dependencies": 8,
+        "rv64_registry_flags": 0,
+        "versioned_files": 637
+      },
+      "after": {
+        "code_files": 635,
+        "code_lines": 192961,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 11,
+        "dependencies": 8,
+        "rv64_registry_flags": 0,
+        "versioned_files": 638
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994777827"
+    },
+    {
+      "package": "stwo_riscv_rv64",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
+      "before": {
+        "code_files": 526,
+        "code_lines": 69355,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 18,
+        "dependencies": 6,
+        "rv64_registry_flags": 0,
+        "versioned_files": 529
+      },
+      "after": {
+        "code_files": 527,
+        "code_lines": 69383,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 18,
+        "dependencies": 6,
+        "rv64_registry_flags": 0,
+        "versioned_files": 530
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994564290"
+    },
+    {
+      "package": "stwo_riscv_testing",
+      "base_commit": "cbb3c59f162fd924fbcf8533c3aee1aef792b2a2",
+      "before": {
+        "code_files": 319,
+        "code_lines": 70711,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 3,
+        "dependencies": 11,
+        "rv64_registry_flags": 0,
+        "versioned_files": 322
+      },
+      "after": {
+        "code_files": 320,
+        "code_lines": 70795,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 3,
+        "dependencies": 11,
+        "rv64_registry_flags": 0,
+        "versioned_files": 323
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/436#issuecomment-6994777827"
     }
   ]
 }

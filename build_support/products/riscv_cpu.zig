@@ -53,14 +53,14 @@ pub fn addProduct(context: Context) void {
         .minimum = 9,
     }}));
     context.b.step("test-riscv64-air", "Test RV64 constraint authority").dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/rv64/focused_product_rv64_air_test_root.zig", &.{}),
+        .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/rv64/tests/focused/air.zig", &.{}),
         .minimum = 35,
     }}));
     const rv64_execution = context.b.step("test-riscv64-execution", "Test experimental RV64IM execution without proof admission");
     rv64_execution.dependOn(test_filter.addCombinedSuites(context.b, &.{
-        .{ .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/rv64/focused_product_rv64_execution_test_root.zig", &.{}) },
-        .{ .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/focused_product_rv64_execution_test_root.zig", &.{}) },
-        .{ .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/isa/focused_product_rv64_execution_test_root.zig", &.{}) },
+        .{ .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/rv64/tests/focused/rv64_execution.zig", &.{}) },
+        .{ .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/tests/focused/rv64_execution.zig", &.{}) },
+        .{ .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/isa/tests/focused/rv64_execution.zig", &.{}) },
     }, 67));
     // Compile standalone tools without injected proof modules: execution must
     // stay usable independently of the frontend AIR/prover dependency graph.
@@ -296,7 +296,7 @@ pub fn addProduct(context: Context) void {
         "test-riscv-statement-wire",
         "Check shared statement metadata and guest artifact compatibility",
     ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/focused_statement_wire_test_root.zig", &.{ "guest proof artifact", "public input byte binding" }),
+        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/tests/focused/statement_wire.zig", &.{ "guest proof artifact", "public input byte binding" }),
         .minimum = 6,
     }}));
 

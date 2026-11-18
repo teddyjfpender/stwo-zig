@@ -84,8 +84,8 @@ EXPLICIT_NON_AUTHORITY_CONSUMERS = frozenset({
     Path("frontends/riscv/memory/tests/root.zig"),
     Path("frontends/riscv/rv32/tests/root.zig"),
     Path("frontends/riscv/testing/tests/root.zig"),
-    Path("frontends/riscv/testing/focused_test_lookup_polynomial_v2_edit_0.zig"),
-    Path("frontends/riscv/testing/focused_test_polynomial_compiler_0.zig"),
+    Path("frontends/riscv/testing/tests/focused/lookup_polynomial_v2_edit.zig"),
+    Path("frontends/riscv/testing/tests/focused/testing_polynomial_compiler.zig"),
 })
 ARTIFACT_TEST = Path("frontends/riscv/memory/typed/tests/typed_poseidon2_frontier_artifact_test.zig")
 LAYOUT_EXECUTOR_TEST = Path("frontends/riscv/memory/typed/tests/typed_poseidon2_layout_executor_test.zig")
