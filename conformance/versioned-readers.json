@@ -232,7 +232,7 @@
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/recursion/focused_test_recursion_segment_statement_source_v2_0.zig",
+      "path": "src/frontends/riscv/recursion/tests/focused/recursion_segment_statement_source_v2.zig",
       "reason": "Live variable-boundary SegmentV2 authority or companion coverage coexists with fixed-geometry V1; preserve both protocols."
     },
     {

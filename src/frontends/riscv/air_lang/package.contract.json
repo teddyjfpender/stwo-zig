@@ -13,7 +13,9 @@
     "stwo_prover_engine": "../../../engine/prover",
     "stwo_riscv_isa": "../isa"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "focused_suite"
+  ],
   "api_surface": [
     "access_transaction_support",
     "capabilities",
@@ -103,14 +105,14 @@
     ]
   },
   "budget": {
-    "code_files": 255,
-    "code_lines": 61191,
+    "code_files": 256,
+    "code_lines": 61220,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 65,
     "dependencies": 4,
     "rv64_registry_flags": 0,
-    "versioned_files": 292
+    "versioned_files": 293
   }
 }

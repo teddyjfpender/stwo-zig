@@ -20,7 +20,9 @@
     "stwo_riscv_rv32": "../rv32",
     "stwo_riscv_rv64": "../rv64"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "focused_suite"
+  ],
   "api_surface": [
     "benchmarks",
     "regressions",
@@ -48,14 +50,14 @@
     ]
   },
   "budget": {
-    "code_files": 319,
-    "code_lines": 70711,
+    "code_files": 320,
+    "code_lines": 70794,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 3,
     "dependencies": 11,
     "rv64_registry_flags": 0,
-    "versioned_files": 322
+    "versioned_files": 323
   }
 }

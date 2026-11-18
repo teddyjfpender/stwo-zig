@@ -7,7 +7,7 @@ test {
     _ = @import("../custom0.zig");
     _ = @import("../decode.zig");
     _ = @import("../execution_profile.zig");
-    _ = @import("../focused_test_isa_0.zig");
+    _ = @import("focused/isa.zig");
     _ = @import("../implementation.zig");
     _ = @import("../opcode_manifest.zig");
     _ = @import("../profile.zig");
