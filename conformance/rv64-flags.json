@@ -7329,20 +7329,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_COMMIT_FULL_LOG_LEAVES": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "    const use_compact_leaf_state = !std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_COMMIT_FULL_LOG_LEAVES\") and\n        !std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_STEPS\");"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_COMMIT_TREE_COUNT": {
       "owner": "src/backends/metal/tools/arena_plan/runner.zig",
       "default": "1 when commitment execution is selected; otherwise0",
@@ -7599,76 +7585,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_LOG_COMMIT_DIGESTS": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_DIGESTS\"))\n        try commitment_telemetry.logBindingDigest(resident_arena, \"commit_leaf\", 0, leaf_state);\n    const bottom_hashes = retained[0].size_bytes / 32;\n    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\")) {\n        std.debug.print(\"commit_merkle tree={d} scratch_count={d} retained_count={d} bottom_hashes={d}\\n\", .{\n            tree_index, scratch_items.len, retained.len, bottom_hashes,\n        });"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_COMMIT_LDE_DIGESTS": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_LDE_DIGESTS\"))\n            commitment_telemetry.logCommitLdeDigests(\n                resident_arena,\n                coefficient_cursor,\n                group,\n                output_offsets[0..width],\n                output_logs[0..width],"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_COMMIT_SOURCE_DIGESTS": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_SOURCE_DIGESTS\"))\n            try commitment_telemetry.logCommitSourceDigests(resident_arena, coefficient_cursor, group);"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_COMMIT_SOURCE_INDEX": {
-      "owner": "src/integrations/cairo_metal/resident/commitment/telemetry.zig",
-      "default": "null (no source index diagnostic)",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/resident/commitment/telemetry.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/resident/commitment/telemetry.zig",
-        "text": "    const target_index = if (std.posix.getenv(\"STWO_ZIG_SN2_LOG_COMMIT_SOURCE_INDEX\")) |encoded|\n        try std.fmt.parseUnsigned(usize, encoded, 10)\n    else\n        2241;\n    for (sources, 0..) |source, group_index| {\n        const sorted_index = coefficient_cursor + group_index;\n        if (sorted_index != target_index) continue;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_COMMIT_STEPS": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "    const use_compact_leaf_state = !std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_COMMIT_FULL_LOG_LEAVES\") and\n        !std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_STEPS\");"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_LOG_COMPOSITION_DIGESTS": {
       "owner": "src/backends/metal/runtime/composition.m",
       "default": "null at environment lookup; enclosing presence predicate is pinned",
@@ -7876,20 +7792,6 @@
       "default_evidence": {
         "path": "src/backends/metal/tools/arena_plan/protocol_execution.zig",
         "text": "                \"STWO_ZIG_SN2_QUOTIENT_REFERENCE\",\n            ) catch |err| switch (err) {\n                error.EnvironmentVariableNotFound => null,\n                else => return err,\n            };\n            defer if (quotient_reference_path) |path| allocator.free(path);\n            if (quotient_reference_path != null) execution_metrics.parity_fixture_used = true;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_REPEAT_COMMIT_LDE": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "            if (group_index == 48 and std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPEAT_COMMIT_LDE\")) {\n                const first_digest = commitment_telemetry.sampleCommitOutputs(resident_arena, outputs.items, evaluation_log);\n                const repeated_gpu_ms = try metal.compositionLdePrepared(resident_arena.buffer, lde);"
       },
       "expires": "2026-12-13"
     },

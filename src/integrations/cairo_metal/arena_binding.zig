@@ -13,7 +13,6 @@ const witness_bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
 const eval_codegen = @import("eval_codegen.zig");
 const cairo_proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const commitment_ordering = @import("resident/commitment/ordering.zig");
-const commitment_telemetry = @import("resident/commitment/telemetry.zig");
 const composition_config = @import("resident/composition/config.zig");
 const fixed_tables = @import("resident/lookups/fixed_tables.zig");
 const multiplicity_feeds = @import("resident/lookups/multiplicity_feeds.zig");
