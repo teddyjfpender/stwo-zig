@@ -143,9 +143,13 @@ zig build circuit-parity-r6-leaf --build-file src/integrations/circuit_cpu/build
 zig build circuit-parity-r9 --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
 zig build circuit-parity-registry --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
 zig build circuit-parity-r11 --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
-STWO_CIRCUIT_MULTIVERIFIER_INPUTS=<path> \
-  zig build circuit-parity-r7-multiverifier --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
+zig build circuit-parity-r7-multiverifier --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2 -Dtest-multiverifier-inputs=<path>
 ```
+
+The `circuit-bench-witness` target accepts `-Dbench-repetitions`,
+`-Dbench-prove`, `-Dbench-native` and `-Dbench-value-replay`. Use
+`-Dtest-fraction-fixture-dir=<path>` with `test-circuit-om31-cuda-fractions`
+to export the qualification fixtures.
 
 `circuit-parity-r7` proves the six `prover_test.rs` circuits under the
 upstream tests' default config and two of them under the 26-bit circuit FRI
@@ -184,7 +188,7 @@ registry's.
 --inputs-output <path>` and pinned by `vectors/circuit/r7/multiverifier_inputs.json`;
 without the environment variable the test is skipped.
 `STWO_CIRCUIT_STAGE_PROFILE=1` prints the stage times and
-`STWO_CIRCUIT_COMPACT_MIN_LOG` (default 18, `off` to disable) selects compact
+`-Dtest-compact-min-log` (default 18, `off` to disable) selects compact
 storage. `STWO_CIRCUIT_R7_EMIT_DIR` makes both steps write the proofs and the
 oracle's `verify-circuit` requests.
 

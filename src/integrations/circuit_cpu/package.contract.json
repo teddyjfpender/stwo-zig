@@ -20,6 +20,7 @@
   "injected_modules": [
     "circuit_composition_cpu_aot",
     "circuit_provers_under_test",
+    "circuit_test_options",
     "circuit_testing"
   ],
   "api_surface": [

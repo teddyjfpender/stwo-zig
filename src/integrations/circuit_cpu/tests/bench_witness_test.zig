@@ -5,7 +5,7 @@
 //! tree does, padded to the recursive-tree test registry's canonical target
 //! (2^23-row blake_g_gate and qm31_ops), then:
 //!
-//! - times `writeTrace` and `writeInteractionTrace` (`STWO_BENCH_REPS`
+//! - times `writeTrace` and `writeInteractionTrace` (`-Dbench-repetitions`
 //!   repetitions, fixed lookup elements) and prints a SHA-256 over every
 //!   column they write, so two builds can be compared for identical bytes;
 //! - proves the node once on the internal profile with a stage recorder and
@@ -15,6 +15,7 @@
 //! -Doptimize=ReleaseFast`. Large: several GB.
 
 const std = @import("std");
+const bench = @import("circuit_test_options");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const circuit = @import("stwo_circuit_frontend");
@@ -31,12 +32,6 @@ const witness = circuit.witness.trace;
 const registry_path = "vectors/circuit/official/registries/recursive_tree_test.json";
 const leaf_path = "vectors/circuit/official/recursive_tree/four_leaves/leaf.json";
 const projection_path = "vectors/circuit/official/compiled_air_constraints_v1.bin";
-
-fn envUsize(name: []const u8, default: usize) usize {
-    const value = std.process.getEnvVarOwned(std.heap.page_allocator, name) catch return default;
-    defer std.heap.page_allocator.free(value);
-    return std.fmt.parseInt(usize, value, 10) catch default;
-}
 
 fn hashColumns(hasher: *std.crypto.hash.sha2.Sha256, columns: []const prover.pcs.ColumnEvaluation) void {
     for (columns) |column| hasher.update(std.mem.sliceAsBytes(column.values));
@@ -113,7 +108,7 @@ test "bench: multiverifier witness and prove" {
     // The CUDA fold rebuilds only values against the authenticated topology.
     // This local path checks every padded value, not merely the output digest,
     // while timing the exact-capacity, gate-free handoff used by the GPU path.
-    if (envUsize("STWO_BENCH_VALUE_REPLAY", 0) != 0) {
+    if (bench.bench_value_replay) {
         var expected: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(values), &expected, .{});
         for (0..2) |variant| {
@@ -162,7 +157,7 @@ test "bench: multiverifier witness and prove" {
         return;
     }
 
-    const reps = envUsize("STWO_BENCH_REPS", 3);
+    const reps = bench.bench_repetitions;
     const pp = &canonical.preprocessed;
     const z = QM31.fromU32Unchecked(12345, 678, 91011, 1213);
     const alpha = QM31.fromU32Unchecked(1415, 161718, 1920, 212223);
@@ -189,12 +184,12 @@ test "bench: multiverifier witness and prove" {
     }
     std.debug.print("BENCH base_sha256 {s}\nBENCH interaction_sha256 {s}\n", .{ std.fmt.bytesToHex(base_digest, .lower), std.fmt.bytesToHex(interaction_digest, .lower) });
 
-    if (envUsize("STWO_BENCH_PROVE", 1) == 0) return;
+    if (!bench.bench_prove) return;
     var recorder = prover.stage_profile.Recorder.init(gpa, "cpu", "circuit-bench");
     defer recorder.deinit();
     var options = fold.options;
     options.recorder = &recorder;
-    if (envUsize("STWO_BENCH_NATIVE", 1) == 0) options.composition_executor = null;
+    if (!bench.bench_native) options.composition_executor = null;
     timer.reset();
     var proof = try circuit_cpu.Internal.prove(gpa, values, pp, &bundle, canonical.shared.pcs_config, options, {});
     defer proof.deinit();

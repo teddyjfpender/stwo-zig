@@ -104,6 +104,12 @@ def report(repository: Path, contracts) -> dict:
     new_files = git("ls-files", "--others", "--exclude-standard", "-z").decode().split("\0")
     new_hashes = {path: hashlib.sha256((repository / path).read_bytes()).hexdigest()
                   for path in new_files if path and (repository / path).is_file()}
+    flag_path = repository / "conformance/rv64-flags.json"
+    flags = json.loads(flag_path.read_text())["flags"] if flag_path.is_file() else {}
+    environment_controls = {
+        status: sum(entry["status"] == status for entry in flags.values())
+        for status in sorted(LIVE)
+    }
     return {"schema": "package-complexity-census/v1",
             "new_file_sha256": new_hashes,
             "source_suffixes": sorted(SOURCE_SUFFIXES),
@@ -112,6 +118,7 @@ def report(repository: Path, contracts) -> dict:
             "index_tree": git("write-tree").decode().strip(),
             "tracked_worktree_diff_sha256": hashlib.sha256(git("diff", "HEAD", "--binary")).hexdigest(),
             "measurement": measure(repository, contracts),
+            "environment_controls": environment_controls,
             "scope": "Tracked and nonignored new files plus declared API/dependencies/live flag ownership; no runtime bound."}
 
 

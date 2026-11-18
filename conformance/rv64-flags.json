@@ -155,62 +155,6 @@
         "src/backends/cuda/native/transform/b2n_fused.cuh"
       ]
     },
-    "STWO_BENCH_NATIVE": {
-      "owner": "src/integrations/circuit_cpu/tests/bench_witness_test.zig",
-      "default": "1",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/circuit_cpu/tests/bench_witness_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/tests/bench_witness_test.zig",
-        "text": "    if (envUsize(\"STWO_BENCH_NATIVE\", 1) == 0) options.composition_executor = null;\n    timer.reset();\n    var proof = try circuit_cpu.Internal.prove(gpa, values, pp, &bundle, canonical.shared.pcs_config, options, {});\n    defer proof.deinit();\n    const prove_ns = timer.lap();\n    var converted = try circuit_cpu.verifier_proof.prepare(gpa, &proof);\n    defer converted.deinit();"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_BENCH_PROVE": {
-      "owner": "src/integrations/circuit_cpu/tests/bench_witness_test.zig",
-      "default": "1",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/circuit_cpu/tests/bench_witness_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/tests/bench_witness_test.zig",
-        "text": "    if (envUsize(\"STWO_BENCH_PROVE\", 1) == 0) return;\n    var recorder = prover.stage_profile.Recorder.init(gpa, \"cpu\", \"circuit-bench\");\n    defer recorder.deinit();\n    var options = fold.options;\n    options.recorder = &recorder;\n    if (envUsize(\"STWO_BENCH_NATIVE\", 1) == 0) options.composition_executor = null;\n    timer.reset();"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_BENCH_REPS": {
-      "owner": "src/integrations/circuit_cpu/tests/bench_witness_test.zig",
-      "default": "3",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/circuit_cpu/tests/bench_witness_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/tests/bench_witness_test.zig",
-        "text": "    const reps = envUsize(\"STWO_BENCH_REPS\", 3);\n    const pp = &canonical.preprocessed;\n    const z = QM31.fromU32Unchecked(12345, 678, 91011, 1213);\n    const alpha = QM31.fromU32Unchecked(1415, 161718, 1920, 212223);\n    var base_digest: [32]u8 = undefined;\n    var interaction_digest: [32]u8 = undefined;\n    for (0..reps) |rep| {"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_BENCH_VALUE_REPLAY": {
-      "owner": "src/integrations/circuit_cpu/tests/bench_witness_test.zig",
-      "default": "0",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/circuit_cpu/tests/bench_witness_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/tests/bench_witness_test.zig",
-        "text": "    if (envUsize(\"STWO_BENCH_VALUE_REPLAY\", 0) != 0) {\n        var expected: [32]u8 = undefined;\n        std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(values), &expected, .{});\n        for (0..2) |variant| {\n            timer.reset();\n            const replay = blk: {\n                var inputs_arena = std.heap.ArenaAllocator.init(gpa);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_BIG_MEMORY_FIXTURE": {
       "owner": "tests/cuda/cumetal/memory_base_execution.cu",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -1231,20 +1175,6 @@
         "src/integrations/circuit_cuda/native/emulation/include/cuda_runtime_api.h"
       ]
     },
-    "STWO_CIRCUIT_COMPACT_MIN_LOG": {
-      "owner": "src/integrations/circuit_cpu/tests/multiverifier_proof_test.zig",
-      "default": "18",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/circuit_cpu/tests/multiverifier_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/tests/multiverifier_proof_test.zig",
-        "text": "    const value = std.posix.getenv(\"STWO_CIRCUIT_COMPACT_MIN_LOG\") orelse return 18;\n    if (std.mem.eql(u8, value, \"off\")) return null;\n    return std.fmt.parseInt(u32, value, 10) catch 18;\n}\n\nfn printStages(recorder: *prover.stage_profile.Recorder) !void {\n    var profile = try recorder.snapshot(std.heap.smp_allocator);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_CIRCUIT_CUDA_COMPILE_CHECK_RUNTIME_API_H": {
       "owner": "src/integrations/circuit_cuda/native/compile_check/include/cuda_runtime_api.h",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -1391,27 +1321,6 @@
         "src/backends/cuda/native/circuit/lookup_sum.cu",
         "src/integrations/circuit_cuda/native/emulation/include/cuda_runtime_api.h"
       ]
-    },
-    "STWO_CIRCUIT_MULTIVERIFIER_INPUTS": {
-      "owner": "src/integrations/circuit_cpu/tests/multiverifier_proof_test.zig",
-      "default": "error.SkipZigTest (oracle input checkpoint not selected)",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/circuit_cpu/build.zig",
-        "src/integrations/circuit_cpu/tests/multiverifier_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/tests/multiverifier_proof_test.zig",
-        "text": "const inputs_env = \"STWO_CIRCUIT_MULTIVERIFIER_INPUTS\";\n\nconst Json = std.json.Value;\n\nfn field(value: Json, name: []const u8) Json {\n    return value.object.get(name) orelse std.debug.panic(\"checkpoint is missing {s}\", .{name});\n}",
-        "readers": [
-          {
-            "path": "src/integrations/circuit_cpu/tests/multiverifier_proof_test.zig",
-            "text": "    const inputs_path = std.process.getEnvVarOwned(allocator, inputs_env) catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => {\n            std.debug.print(\"skipped: set {s} to the oracle's multiverifier-inputs file\\n\", .{inputs_env});\n            return error.SkipZigTest;\n        },\n        else => return err,\n    };"
-          }
-        ]
-      },
-      "expires": "2026-12-13"
     },
     "STWO_CIRCUIT_OM31_HOST_EMULATION": {
       "owner": "src/backends/cuda/native/rv64/circuit_interaction.cu",
@@ -2963,20 +2872,6 @@
       "references": [
         "src/backends/cuda/authority/active/cuda_mem_pool.cuh"
       ]
-    },
-    "STWO_OM31_FRACTIONS_FIXTURES": {
-      "owner": "src/integrations/circuit_cpu/om31/fractions_qualification.zig",
-      "default": "disabled: no fixture output directory",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/circuit_cpu/om31/fractions_qualification.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/om31/fractions_qualification.zig",
-        "text": "        if (std.process.getEnvVarOwned(a, \"STWO_OM31_FRACTIONS_FIXTURES\")) |directory| {\n            defer a.free(directory);\n            try std.fs.cwd().makePath(directory);\n            var final = try L.build(a, 4, pairs, Provider{ .values = &all_fractions }, Provider.fill);\n            defer circuit.witness.trace.freeColumns(a, final.columns);\n            var encoded: std.ArrayList(u8) = .empty;\n            defer encoded.deinit(a);"
-      },
-      "expires": "2026-12-13"
     },
     "STWO_OM31_OUTER_GRAPH_ONLY": {
       "owner": "src/integrations/riscv_cpu/rv64_om31_outer_test_root.zig",

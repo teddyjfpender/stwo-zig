@@ -49,7 +49,19 @@ jobs:
         with:
           python-version: "3.13.17"
       - name: Validate exact package ownership and contracts
-        run: python3 scripts/repo/check_package_workspace.py
+        run: |
+          python3 scripts/repo/check_package_workspace.py --budget-report "$RUNNER_TEMP/package-budget.json"
+          python3 - "$RUNNER_TEMP/package-budget.json" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1]) as report:
+              counts = json.load(report)["environment_controls"]
+          print("| Environment controls | Count |")
+          print("| --- | ---: |")
+          for status, count in counts.items():
+              print(f"| {status} | {count} |")
+          PY
 
   focused-plan:
     name: Select focused gates

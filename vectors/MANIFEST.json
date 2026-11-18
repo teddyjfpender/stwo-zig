@@ -1666,8 +1666,8 @@
     },
     {
       "path": "vectors/circuit/provenance.json",
-      "sha256": "0a0aed9f5c86032b938ff20f33119c4d7232f18935badfdc98314f9b86f12aa0",
-      "bytes": 40382,
+      "sha256": "701b69a6f51f978cacdb91e6745a1548c88fbeada73283307a17e1911a5e3acf",
+      "bytes": 39862,
       "group": "vectors/circuit"
     },
     {
