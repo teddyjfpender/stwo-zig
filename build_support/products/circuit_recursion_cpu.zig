@@ -40,6 +40,8 @@ const source_closure = product_policy.SourceClosure{
         "src/frontends/cairo/interop/felt_json.zig",
         "src/frontends/cairo/interop/cairo_prover_parameters.zig",
         "src/waist/proof_wire/family.zig",
+        "src/waist/proof_wire/error_codes.zig",
+        "src/waist/proof_wire/error_codes_test.zig",
         "src/waist/proof_wire/bounded_count_test.zig",
         "src/waist/proof_wire/hash_family_test.zig",
         "src/waist/proof_wire/wide_test.zig",

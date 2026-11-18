@@ -278,8 +278,8 @@ fn wrapCairoProofImpl(
     if (pcs.trace_lifting_log_size != pcs.preprocessed_lifting_log_size) return error.UnequalLiftingHeights;
     const trace_log_size = std.math.sub(u32, pcs.trace_lifting_log_size, pcs.fri_config.log_blowup_factor) catch
         return error.LiftingBelowBlowup;
-    const entry = try registry_admission.query(.leaf, registry, trace_log_size);
-    const circuit_config = try registry_admission.query(.config, registry, entry.config);
+    const entry = try registry_admission.query(.leaf, registry.*, trace_log_size);
+    const circuit_config = try registry_admission.query(.config, registry.*, entry.config);
     const circuit_fri = circuit_config.fri_config;
     const target = finalize.ComponentSizes.fromLogSizes(circuit_config.component_log_sizes);
 

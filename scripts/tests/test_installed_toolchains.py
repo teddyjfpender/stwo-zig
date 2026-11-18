@@ -14,7 +14,7 @@ class InstalledToolchainTests(unittest.TestCase):
     def test_cpu_requires_both_actual_versions_and_records_their_outputs(self):
         with mock.patch.object(T, "host", return_value="aarch64-macos"), mock.patch.object(
             T.subprocess, "run", side_effect=[subprocess.CompletedProcess([], 0, "0.15.2\n", ""),
-                                             subprocess.CompletedProcess([], 0, "Python 3.13.18\n", "")],
+                                             subprocess.CompletedProcess([], 0, "Python 3.13.17\n", "")],
         ):
             report = T.inspect(ROOT, "cpu")
         self.assertEqual("PASS", report["status"])
@@ -25,7 +25,7 @@ class InstalledToolchainTests(unittest.TestCase):
         for failure in (subprocess.CompletedProcess([], 0, "0.15.1\n", ""),
                         FileNotFoundError("zig"), subprocess.TimeoutExpired(["zig"], 20)):
             with self.subTest(failure=failure), mock.patch.object(T, "host", return_value="aarch64-macos"), mock.patch.object(
-                T.subprocess, "run", side_effect=[failure, subprocess.CompletedProcess([], 0, "Python 3.13.18\n", "")],
+                T.subprocess, "run", side_effect=[failure, subprocess.CompletedProcess([], 0, "Python 3.13.17\n", "")],
             ) as run:
                 report = T.inspect(ROOT, "cpu")
                 self.assertEqual("FAIL", report["status"])

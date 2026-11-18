@@ -469,7 +469,7 @@ pub const Bound = struct {
         return self.materializeBaseEvaluationsWith(NativeOps, session, stage);
     }
 
-    fn materializeBaseEvaluationsWith(
+    pub fn materializeBaseEvaluationsWith(
         self: *Bound,
         comptime Ops: type,
         session: anytype,

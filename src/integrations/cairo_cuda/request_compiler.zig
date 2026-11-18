@@ -85,7 +85,7 @@ const LoweringAdmission = struct {
     relation_plan: relation_adapter.Plan,
     resident_ingress: resident_plan.IngressGeometry,
 
-    fn deinit(self: *LoweringAdmission, allocator: std.mem.Allocator) void {
+    pub fn deinit(self: *LoweringAdmission, allocator: std.mem.Allocator) void {
         self.relation_plan.deinit();
         self.trace_dispatch.deinit();
         allocator.free(self.missing);
