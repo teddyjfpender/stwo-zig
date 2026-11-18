@@ -173,6 +173,9 @@ pub fn addProduct(context: Context) void {
     const poseidon_run = runTestsFresh(context.b, poseidon_tests);
     context.b.step("test-native-cpu-poseidon2", "Qualify named Poseidon2 PCS and FS with fresh proof files").dependOn(&poseidon_run.step);
     test_step.dependOn(&poseidon_run.step);
+    const test_options = context.b.addOptions();
+    test_options.addOption(bool, "timings", false);
+    const test_options_module = test_options.createModule();
     const sampling_root = graph.create(context.b, .{
         .product = product(.@"test"),
         .root_source_file = "src/engine/prover/wide_sampling_test_root.zig",
@@ -180,6 +183,7 @@ pub fn addProduct(context: Context) void {
         .optimize = context.optimize,
     });
     context.protocol.addImports(sampling_root);
+    sampling_root.addImport("prover_test_options", test_options_module);
     const sampling_tests = context.b.addTest(.{ .root_module = sampling_root });
     const sampling_run = runTestsFresh(context.b, sampling_tests);
     context.b.step("test-native-cpu-wide-sampling", "Qualify bounded shared wide point bases, normalization and allocation failures").dependOn(&sampling_run.step);
@@ -191,6 +195,7 @@ pub fn addProduct(context: Context) void {
         .optimize = context.optimize,
     });
     context.protocol.addImports(gkr_rows_root);
+    gkr_rows_root.addImport("prover_test_options", test_options_module);
     const gkr_rows_tests = context.b.addTest(.{ .root_module = gkr_rows_root });
     const gkr_rows_run = runTestsFresh(context.b, gkr_rows_tests);
     context.b.step("test-native-cpu-gkr-rows", "Qualify bounded pooled GKR row kernels and exact transcript parity").dependOn(&gkr_rows_run.step);

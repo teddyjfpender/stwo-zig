@@ -5796,49 +5796,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_BENCH_GKR_EQ": {
-      "owner": "src/engine/prover/lookups/eq_parallel_test.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/lookups/eq_parallel_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/lookups/eq_parallel_test.zig",
-        "text": "    if (!std.process.hasEnvVarConstant(\"STWO_ZIG_BENCH_GKR_EQ\")) return;\n    try benchmark(core.fields.qm31.QM31);\n    try benchmark(core.fields.om31.OM31);\n}"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_BENCH_GKR_PACKED": {
-      "owner": "src/engine/prover/lookups/gkr_interpolation_test.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/lookups/gkr_interpolation_test.zig",
-        "src/engine/prover/lookups/packed_rows_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/lookups/gkr_interpolation_test.zig",
-        "text": "    if (!std.process.hasEnvVarConstant(\"STWO_ZIG_BENCH_GKR_PACKED\")) return;\n    try bench(core.fields.qm31.QM31);\n    try bench(core.fields.om31.OM31);\n}"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_BENCH_GKR_ROWS": {
-      "owner": "src/engine/prover/lookups/parallel_rows_test.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/lookups/parallel_rows_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/lookups/parallel_rows_test.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_BENCH_GKR_ROWS\")) std.debug.print(\"GKR_ROW_CAPTURE field={s} workers={d} control_ns={d} prove_ns={d} json_bytes={d}\\n\", .{ @typeName(S), workers, control_ns, ns_elapsed, bytes.len });\n    }\n}\ntest \"Q mixed-gate scoped row kernels preserve complete proof transcript and fresh binding\" {\n    try exerciseWithBaseline(core.fields.qm31.QM31, New.ForField(core.fields.qm31.QM31));\n}\ntest \"OM mixed-gate scoped row kernels preserve complete proof transcript and fresh binding\" {"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_BENCH_WIDE_QUOTIENT": {
       "owner": "src/products/native/tests/prover/om31_quotient_batch_test.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -5850,20 +5807,6 @@
       "default_evidence": {
         "path": "src/products/native/tests/prover/om31_quotient_batch_test.zig",
         "text": "    const bench = std.process.hasEnvVarConstant(\"STWO_ZIG_BENCH_WIDE_QUOTIENT\");\n    const log: u32 = if (bench) 16 else 9;\n    const domain = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain();\n    var channel = core.channel.raw_mod_m31.Om31Channel.init();\n    var batches: [8]Q.ColumnSampleBatch = undefined;\n    for (&batches) |*b| b.* = .{ .point = try core.circle.randomSecureFieldPointFor(O, &channel), .cols_vals_randpows = &.{} };\n    var workspace = try Q.RowQuotientWorkspace.init(a, &batches);"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_BENCH_WIDE_SAMPLING": {
-      "owner": "src/engine/prover/pcs/sampled_values_field_test.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/sampled_values_field_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/sampled_values_field_test.zig",
-        "text": "    if (!std.process.hasEnvVarConstant(\"STWO_ZIG_BENCH_WIDE_SAMPLING\")) return;\n    const log: u32 = 16;\n    const rows = 1 << log;\n    const columns = 16;\n    const c = try a.alloc(M, rows * columns);\n    defer a.free(c);\n    for (c, 0..) |*v, i| v.* = M.fromCanonical(@intCast(i % 1048573));"
       },
       "expires": "2026-12-13"
     },
