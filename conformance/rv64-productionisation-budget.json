@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "rtx_kernel_attribution_issue425",
+      "net_code_budget": 150,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue425: the GPU-seconds receipt owner attributes each clipped CUPTI kernel execution to at most one verified submitter, including CUDA graph children. Reconciles two physical 55,420-kernel requests with per-device accounting. The change is contained in existing offline tooling and its tests. Remove the additive receipt member and tests together to roll back."
+    },
+    {
       "id": "runtime_selector_replay_diagnostic",
       "net_code_budget": 40,
       "flags_added_budget": 0,
@@ -4092,6 +4099,60 @@
         "versioned_files": 963
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/418#issuecomment-6968960044"
+    },
+    {
+      "package": "stwo_prover_engine",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 295,
+        "code_lines": 75468,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 29,
+        "dependencies": 3,
+        "rv64_registry_flags": 0,
+        "versioned_files": 299
+      },
+      "after": {
+        "code_files": 300,
+        "code_lines": 76327,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 29,
+        "dependencies": 3,
+        "rv64_registry_flags": 0,
+        "versioned_files": 304
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/427#issuecomment-6973701095"
+    },
+    {
+      "package": "stwo_riscv_cpu_integration",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 949,
+        "code_lines": 137358,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 1,
+        "api_entries": 93,
+        "dependencies": 9,
+        "rv64_registry_flags": 19,
+        "versioned_files": 961
+      },
+      "after": {
+        "code_files": 952,
+        "code_lines": 137916,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 1,
+        "api_entries": 93,
+        "dependencies": 9,
+        "rv64_registry_flags": 19,
+        "versioned_files": 964
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/427#issuecomment-6973701095"
     }
   ]
 }

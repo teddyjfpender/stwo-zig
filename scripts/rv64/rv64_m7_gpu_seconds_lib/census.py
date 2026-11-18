@@ -5,7 +5,7 @@ request window. Correlation IDs attribute CUDA's host-staged peer transport;
 unmatched or ambiguous IDs remain explicitly unattributed.
 """
 from collections import Counter, defaultdict
-from .ranges import native_ranges
+from .ranges import device_kernel_work, native_ranges
 
 
 def request_census(db, lower, upper):
@@ -16,7 +16,8 @@ def request_census(db, lower, upper):
     if not required.issubset(tables):
         return {'status': 'UNAVAILABLE', 'missing_tables': sorted(required - tables),
                 'runtime_api_entered': None, 'd2h_activities': None,
-                'native_enqueue_ranges': {'status': 'UNAVAILABLE', 'ranges': None}}
+                'native_enqueue_ranges': {'status': 'UNAVAILABLE', 'ranges': None},
+                'device_kernel_work': {'status': 'UNAVAILABLE', 'devices': None}}
     apis = db.execute('''SELECT r.correlationId, s.value, r.start, r.end
         FROM CUPTI_ACTIVITY_KIND_RUNTIME r JOIN StringIds s ON s.id=r.nameId
         WHERE r.start>=? AND r.start<?''', (lower, upper)).fetchall()
@@ -40,6 +41,7 @@ def request_census(db, lower, upper):
                 origin = 'ordinary_cuda_copy'
         d2h[origin]['activities'] += 1
         d2h[origin]['bytes'] += size
+    host = native_ranges(db, lower, upper)
     return {
         'status': 'MEASURED',
         'scope': 'Runtime calls entered in the window; overlapping CUPTI D2H activities. API durations sum across threads, not elapsed request time. Ordinary copies are not classified as private or final readbacks without further evidence.',
@@ -49,5 +51,6 @@ def request_census(db, lower, upper):
         'host_synchronization_calls': sum(n for name, n in counts.items() if name.startswith(('cudaEventSynchronize', 'cudaStreamSynchronize', 'cudaDeviceSynchronize', 'cuEventSynchronize', 'cuStreamSynchronize', 'cuCtxSynchronize'))),
         'host_callback_calls': sum(n for name, n in counts.items() if name.startswith('cudaLaunchHostFunc')),
         'event_creation_calls': sum(n for name, n in counts.items() if name.startswith(('cudaEventCreate', 'cuEventCreate'))),
-        'native_enqueue_ranges': native_ranges(db, lower, upper),
+        'native_enqueue_ranges': host,
+        'device_kernel_work': device_kernel_work(db, lower, upper, host),
     }
