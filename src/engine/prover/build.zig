@@ -189,10 +189,20 @@ pub fn build(b: *std.Build) void {
         .root = "pcs_quotient_tiles_test_root.zig",
     });
 
+    const test_timings = b.addOptions();
+    test_timings.addOption(bool, "timings", b.option(bool, "test-timings", "Run optional timing comparisons for the focused GKR and sampling tests") orelse false);
+    const timings_module = test_timings.createModule();
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-wide-sampling",
+        .description = "Check wide sampled-point bases and optionally measure their timing",
+        .root = "wide_sampling_test_root.zig",
+        .test_options = timings_module,
+    });
     const gkr_rows_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-gkr-rows",
         .description = "Qualify bounded pooled GKR row kernels and exact transcript parity",
         .root = "gkr_parallel_test_root.zig",
+        .test_options = timings_module,
     });
     const gkr_resource_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-gkr-resources",
@@ -216,6 +226,7 @@ const FocusedTest = struct {
     description: []const u8,
     root: []const u8,
     filters: []const []const u8 = &.{},
+    test_options: ?*std.Build.Module = null,
 };
 
 fn addFocusedTests(
@@ -236,6 +247,7 @@ fn addFocusedTests(
     root.addImport("stwo_core", core);
     root.addImport("stwo_backend_contracts", backend_contracts);
     root.addImport("stwo_prover_api", prover_api);
+    if (spec.test_options) |options| root.addImport("prover_test_options", options);
     const tests = b.addTest(.{ .root_module = root, .filters = spec.filters });
     const step = b.step(spec.step, spec.description);
     step.dependOn(if (check_only) &tests.step else &b.addRunArtifact(tests).step);

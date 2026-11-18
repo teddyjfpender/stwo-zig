@@ -70,7 +70,7 @@ fn bench(comptime S: type) !void {
     std.debug.print("GKR_CUBIC field={s} rounds=100 generic_ns={d} fixed_ns={d} speedup={d:.3}\n", .{ @typeName(S), generic_ns, fixed_ns, @as(f64, @floatFromInt(generic_ns)) / @as(f64, @floatFromInt(fixed_ns)) });
 }
 test "optional GKR corrected cubic numerical microbenchmark" {
-    if (!std.process.hasEnvVarConstant("STWO_ZIG_BENCH_GKR_PACKED")) return;
+    if (!@import("prover_test_options").timings) return;
     try bench(core.fields.qm31.QM31);
     try bench(core.fields.om31.OM31);
 }

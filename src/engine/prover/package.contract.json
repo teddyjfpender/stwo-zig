@@ -15,6 +15,7 @@
   "injected_modules": [
     "lifted_height_vectors",
     "native_resource_admission",
+    "prover_test_options",
     "stwo"
   ],
   "api_surface": [
@@ -79,7 +80,7 @@
   },
   "budget": {
     "code_files": 300,
-    "code_lines": 76464,
+    "code_lines": 76476,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,

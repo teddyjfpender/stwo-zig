@@ -100,7 +100,7 @@ test "wide split basis has sqrt geometry and matches independent coefficient pro
     }
 }
 test "optional wide sampled scalar vs shared split basis kernel benchmark" {
-    if (!std.process.hasEnvVarConstant("STWO_ZIG_BENCH_WIDE_SAMPLING")) return;
+    if (!@import("prover_test_options").timings) return;
     const log: u32 = 16;
     const rows = 1 << log;
     const columns = 16;

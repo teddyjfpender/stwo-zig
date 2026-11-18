@@ -90,7 +90,7 @@ fn exercisePolicyWithBaseline(comptime checkpointed: bool, comptime S: type, com
         try std.testing.expectEqualSlices(u8, control_bytes, bytes);
         try std.testing.expect(control_draw.eql(ch.drawSecureFelt()));
         try fresh(S, &input, &result.proof);
-        if (std.process.hasEnvVarConstant("STWO_ZIG_BENCH_GKR_ROWS")) std.debug.print("GKR_ROW_CAPTURE field={s} workers={d} control_ns={d} prove_ns={d} json_bytes={d}\n", .{ @typeName(S), workers, control_ns, ns_elapsed, bytes.len });
+        if (@import("prover_test_options").timings) std.debug.print("GKR_ROW_CAPTURE field={s} workers={d} control_ns={d} prove_ns={d} json_bytes={d}\n", .{ @typeName(S), workers, control_ns, ns_elapsed, bytes.len });
     }
 }
 test "Q mixed-gate scoped row kernels preserve complete proof transcript and fresh binding" {
