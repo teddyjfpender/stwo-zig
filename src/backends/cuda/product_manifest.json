@@ -387,7 +387,7 @@
       },
       {
         "path": "native/rv64/jobs/pcs_enqueue.cu",
-        "sha256": "009e2f0adb9f77b2ae99ca8861b207e784cd4321ce566e082f18c01853bf5627"
+        "sha256": "f44f7bb8a3704d4957f341bbf05b7e57877604d37d803dc095406f280c3bbc00"
       },
       {
         "path": "native/rv64/pcs_native.cu",
@@ -395,7 +395,7 @@
       },
       {
         "path": "native/rv64/pcs_pipeline.cuh",
-        "sha256": "93743df247e703bda477a7f7dcde1a214af1723f9ea1e0e54ad4f650b89bd810"
+        "sha256": "62768fc27e3fe4a6b80c54911d18951a6d7a16e629d8768ad3061d1ec9feb4b0"
       }
     ]
   }
