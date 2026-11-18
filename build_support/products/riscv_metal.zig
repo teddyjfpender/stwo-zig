@@ -107,6 +107,8 @@ const source_closure = product_policy.SourceClosure{
         "src/waist/recursion_wire/postcard/mod.zig",
         "src/waist/proof_wire/mod.zig",
         "src/waist/proof_wire/family.zig",
+        "src/waist/proof_wire/error_codes.zig",
+        "src/waist/proof_wire/error_codes_test.zig",
         "src/products/riscv/artifact/mod.zig",
     },
     .allowed_prefixes = &.{

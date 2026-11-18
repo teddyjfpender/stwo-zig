@@ -23,6 +23,7 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
         build_file: str,
         consumers: set[str],
         steps: tuple[str, ...] = ("test",),
+        consumer_step: str | None = None,
     ) -> None:
         selected, _ = ci_scope_plan.select_lanes(
             [path],
@@ -33,6 +34,8 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             {"static", lane, "package", *consumers}.issubset(selected)
         )
         commands = self.policy["lanes"][lane]["commands"]
+        if consumer_step is not None:
+            commands = [command for command in commands if command[2] != consumer_step]
         self.assertEqual(len(steps), len(commands))
         for step, command in zip(steps, commands, strict=True):
             self.assertEqual(["zig", "build", step], command[:3])
@@ -156,6 +159,7 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
         self.assert_package_lane(
             path="src/waist/proof_wire/mod.zig",
             lane="proof_wire",
+            consumer_step="test-cdc-stwo-proof-wire",
             steps=("test", "test"),
             build_file="src/waist/proof_wire/build.zig",
             consumers={
@@ -171,7 +175,13 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             },
         )
 
-        self.assertEqual(["-Doptimize=Debug", "-Doptimize=ReleaseFast"], [command[-2] for command in self.policy["lanes"]["proof_wire"]["commands"]])
+        commands = self.policy["lanes"]["proof_wire"]["commands"]
+        modes = ("Debug", "ReleaseFast")
+        self.assertEqual([f"-Doptimize={mode}" for mode in modes], [command[-2] for command in commands[:2]])
+        self.assertEqual(
+            [["zig", "build", "test-cdc-stwo-proof-wire", f"-Doptimize={mode}", "-j2"] for mode in modes],
+            commands[2:],
+        )
 
     def test_native_examples_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(

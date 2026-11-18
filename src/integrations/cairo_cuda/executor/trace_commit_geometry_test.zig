@@ -75,7 +75,7 @@ test "canonical CUDA smaller twiddle views match separately computed domains" {
     defer twiddle.deinitM31(std.testing.allocator, &small);
     const Provider = struct {
         words: common.Words,
-        fn slot(self: @This(), _: u32) !common.Words {
+        pub fn slot(self: @This(), _: u32) !common.Words {
             return self.words;
         }
     };
