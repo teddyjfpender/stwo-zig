@@ -3606,6 +3606,60 @@
         "versioned_files": 352
       },
       "decision": "https://github.com/teddyjfpender/stwo-zig/issues/416#issuecomment-6968752000"
+    },
+    {
+      "package": "stwo_riscv_cuda_integration",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 345,
+        "code_lines": 80276,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 350
+      },
+      "after": {
+        "code_files": 347,
+        "code_lines": 81708,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 8,
+        "dependencies": 9,
+        "rv64_registry_flags": 22,
+        "versioned_files": 352
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/422#issuecomment-6969852490"
+    },
+    {
+      "package": "stwo_ethereum_statement",
+      "base_commit": "e625fd582eba4475c514279904f7806e62b07221",
+      "before": {
+        "code_files": 427,
+        "code_lines": 76238,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 6,
+        "dependencies": 20,
+        "rv64_registry_flags": 21,
+        "versioned_files": 430
+      },
+      "after": {
+        "code_files": 427,
+        "code_lines": 76321,
+        "generated_code_files": 0,
+        "generated_code_lines": 0,
+        "script_files": 0,
+        "api_entries": 6,
+        "dependencies": 20,
+        "rv64_registry_flags": 21,
+        "versioned_files": 430
+      },
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/422#issuecomment-6969852490"
     }
   ]
 }

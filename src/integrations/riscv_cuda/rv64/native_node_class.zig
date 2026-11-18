@@ -44,7 +44,7 @@ pub fn Adapter(comptime Entry: type) type {
             const m: *Made = @ptrCast(@alignCast(raw));
             const st = m.job.staged;
             const b = m.job.bases;
-            const out = OD.Inputs{ .seeds = .{ .ptr = @constCast(b.at(st.image.seeds)), .words = st.assignment.seeds.len }, .channel_seed = .{ .ptr = @constCast(b.at(st.image.channel_seed)), .words = 9 }, .outputs = .{ .ptr = @constCast(b.at(st.image.expected)), .words = st.expected.len } };
+            const out = OD.Inputs{ .packed_input = m.job.staged_packed, .seeds = .{ .ptr = @constCast(b.at(st.image.seeds)), .words = st.assignment.seeds.len }, .channel_seed = .{ .ptr = @constCast(b.at(st.image.channel_seed)), .words = 9 }, .outputs = .{ .ptr = @constCast(b.at(st.image.expected)), .words = st.expected.len } };
             m.enc.outputs_device = out.outputs;
             return out;
         }

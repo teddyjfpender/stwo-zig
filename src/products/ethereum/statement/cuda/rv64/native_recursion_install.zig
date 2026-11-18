@@ -444,7 +444,7 @@ const Warm = struct {
     pub fn init(owner: *Owner, entry: *Outer.NodeClasses.Entry, device: u32) !Warm {
         const plan = if (entry.staged.statics.fixed_plan) |*p| p else return error.OuterJobWholeStagingMissing;
         const tw = try entry.staged.statics.table(plan.eval_log);
-        var fixed = try Fixed.FixedJob.init(.{ .plan = plan, .raw = entry.staged.fixed_raw, .sorted_logs = entry.staged.statics.fixed_sorted_logs, .twiddles = tw.twiddles, .itwiddles = tw.itwiddles }, &owner.shared.kernels);
+        var fixed = try Fixed.FixedJob.init(.{ .plan = plan, .raw = if (entry.compressed != null) null else entry.staged.fixed_raw, .sorted_logs = entry.staged.statics.fixed_sorted_logs, .twiddles = tw.twiddles, .itwiddles = tw.itwiddles }, &owner.shared.kernels);
         if (entry.compressed == null) fixed.handoff = .{ .key = entry.staged.fixedRegionKey(), .words = @intCast(plan.coefficient_words) };
         const dummy = api.DeviceBuffer{ .ptr = @ptrFromInt(64), .words = 1 + (std.math.divCeil(usize, entry.max_encoded_bytes, 4) catch unreachable) };
         const made = try entry.node.make(entry.node.ctx, owner.a, .{ .device = device, .region = dummy, .pcs_status = dummy, .encode_status = dummy, .oods_status = dummy });
@@ -470,6 +470,7 @@ const Warm = struct {
     pub fn stage(self: *Warm, s: *api.Stager) !void {
         try self.fixed.stage(s);
         try self.made.job.vtable.stage(self.made.job.ctx, s);
+        if (self.entry.compressed != null) self.fixed.packed_input = (try self.made.inputs(self.made.ctx)).packed_input orelse return error.PackedClassShape;
         const program = try s.persistent(self.entry.node.prog_key, self.entry.program.len);
         if (program.fresh) try s.upload(program.buffer, self.entry.program);
     }
@@ -481,5 +482,31 @@ const Warm = struct {
         const root = self.fixed.root orelse return error.GpuNativeRecursionFixedCold;
         if (!std.mem.eql(u8, &root, &self.entry.staged.fixed_root)) return error.GpuNativeRecursionFixedRootMismatch;
     }
-    pub fn abort(_: *Warm) void {}
+    pub fn abort(self: *Warm) void {
+        self.fixed.abort();
+    }
 };
+
+test "cold FIXED installation checks the decoder verdict and independently pinned root" {
+    const Tree = @typeInfo(@FieldType(Fixed.Inputs, "plan")).pointer.child;
+    var plan = try Tree.init(std.testing.allocator, &.{5}, 1);
+    defer plan.deinit(std.testing.allocator);
+    var installed: St.Staged = undefined;
+    installed.fixed_root = @splat(0x5a);
+    var entry: Outer.NodeClasses.Entry = undefined;
+    entry.staged = &installed;
+    var worker = Warm{
+        .entry = &entry,
+        .made = undefined,
+        .fixed = try Fixed.FixedJob.init(.{ .plan = &plan, .raw = null, .sorted_logs = &.{5}, .twiddles = &.{}, .itwiddles = &.{} }, undefined),
+    };
+    var words: [9]u32 = @splat(0x5a5a5a5a);
+    words[8] = G.Verdict.accepted;
+    const view = api.SlabView{ .layout = &worker.fixed.layout, .words = &words };
+    try worker.finish(view);
+    words[3] ^= 1;
+    try std.testing.expectError(error.GpuNativeRecursionFixedRootMismatch, worker.finish(view));
+    words[3] ^= 1;
+    words[8] = G.Verdict.reject(.class_unpack, 1);
+    try std.testing.expectError(error.PackedClassDecodeFailed, worker.finish(view));
+}

@@ -155,9 +155,7 @@ pub const OuterNodeJob = struct {
     require_warm: bool = false,
     packed_class: ?*const Packed.Class = null,
     packed_launch: ?Packed.Launch = null,
-    packed_program: api.DeviceBuffer = undefined,
-    packed_output: api.DeviceBuffer = undefined,
-    packed_scratch: api.DeviceBuffer = undefined,
+    staged_packed: ?Packed.Staged = null,
     packed_verdict: ?api.DeviceBuffer = null,
     /// See FixedHandoff (whole nodes only).
     fixed_handoff: ?FixedHandoff = null,
@@ -455,6 +453,7 @@ pub const OuterNodeJob = struct {
     }
 
     pub fn stage(self: *OuterNodeJob, s: *api.Stager) !void {
+        self.staged_packed = null;
         if (self.mode == .full and self.tail == null and self.whole == null) return error.OuterJobTailUnbound;
         if (self.staged.plan().geometry.beta != 1) return error.UnsupportedOuterJobBlowup;
         const words = self.staged.image.words;
@@ -463,22 +462,21 @@ pub const OuterNodeJob = struct {
         if (self.packed_class) |compressed| {
             const program = try s.persistent(compressed.key, compressed.words.len);
             if (self.require_warm and program.fresh) return error.GpuNativeRecursionClassCold;
-            self.packed_program = program.buffer;
             if (program.fresh) {
                 const pinned = try s.pinned(compressed.words.len);
                 @memcpy(pinned, compressed.words);
                 try s.upload(program.buffer, pinned);
             }
-            self.packed_output = try s.alloc(compressed.outputWords());
-            self.packed_scratch = try s.alloc(12);
-            regions[@intFromEnum(St.Region.fixed)] = self.packed_output.ptr + compressed.class_words;
+            const output = try s.alloc(compressed.outputWords());
+            self.staged_packed = .{ .class = compressed, .launch = self.packed_launch orelse return error.PackedClassDecoderMissing, .program = program.buffer, .output = output, .scratch = try s.alloc(12) };
+            regions[@intFromEnum(St.Region.fixed)] = output.ptr + compressed.class_words;
         }
         for (St.uploaded) |region| {
             const n = words[@intFromEnum(region)];
             const buffer: api.DeviceBuffer, const fresh = switch (region) {
                 .node => .{ try s.alloc(@intCast(@max(n, 1))), true },
                 .class => blk: {
-                    if (self.packed_class) |compressed| break :blk .{ try self.packed_output.slice(0, compressed.class_words), false };
+                    if (self.packed_class) |compressed| break :blk .{ try self.staged_packed.?.output.slice(0, compressed.class_words), false };
                     if (!self.persistentClass()) break :blk .{ try s.alloc(@intCast(@max(n, 1))), true };
                     const p = try s.persistent(self.staged.classRegionKey(), @intCast(@max(n, 1)));
                     break :blk .{ p.buffer, p.fresh };
@@ -643,12 +641,12 @@ pub const OuterNodeJob = struct {
         var view = Heap.DeviceEnqueue{ .e = e, .heap = &heap };
         var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &Heap.DeviceEnqueue.vtable, .kernels = self.kernels, .phase_hook = Heap.DeviceEnqueue.phase };
         var materialize_launches: u32 = 0;
-        if (self.packed_class) |compressed| {
+        if (self.packed_class != null) {
+            const decoded = self.staged_packed orelse return error.PackedClassShape;
             const before = device.counters.total();
             const status = self.packed_verdict orelse try e.slab.field(.opaque_words, Packed.field_index);
-            try Packed.enqueue(self.packed_launch orelse return error.PackedClassDecoderMissing, e.ctx(), compressed, self.packed_program, self.packed_output, self.packed_scratch, status, api.gpu_native.Verdict.reject(.class_unpack, 0) & 0xffff0000);
             const plan = &(self.staged.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
-            const raw = @constCast(self.bases.regions[@intFromEnum(St.Region.fixed)]);
+            const raw = (try decoded.decodeFixed(e.ctx(), status, @intCast(plan.coefficient_words))).ptr;
             const tw = self.staged.image.twiddles[plan.eval_log];
             const itw = self.staged.image.itwiddles[plan.eval_log];
             try TC.interpolate(&device, plan, raw, raw, .{ .sorted_logs = self.bases.at(self.staged.image.fixed_logs), .twiddles = self.bases.at(tw), .twiddle_words = @intCast(tw.words), .itwiddles = self.bases.at(itw), .itwiddle_words = @intCast(itw.words) });
