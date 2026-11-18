@@ -7618,20 +7618,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_DUMP_ADD_OPCODE_COEFFICIENTS": {
-      "owner": "src/backends/metal/tools/arena_plan/base_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/base_execution.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_DUMP_ADD_OPCODE_COEFFICIENTS\"))\n                try dumpAddOpcodeCoefficients(resident_arena, schedule, plan);\n            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_BASE_DIGESTS\"))\n                try logPurposeDigests(resident_arena, schedule, plan, \"BaseCoefficients\");\n        }\n    }\n    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION\")) {"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_DUMP_BASE_EVAL_LOGICAL_ID": {
       "owner": "src/integrations/cairo_metal/resident/trace/diagnostics.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -7902,34 +7888,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_LOG_ARENA_LAYOUT": {
-      "owner": "src/backends/metal/tools/arena_plan/metal_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/metal_execution.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/metal_execution.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_ARENA_LAYOUT\")) {\n            try logPurposeLayout(schedule, plan, \"ForwardTwiddles\");\n            try logPurposeLayout(schedule, plan, \"PreprocessedEvaluations\");\n            try logPurposeLayout(schedule, plan, \"RuntimeMultiplicity\");\n            try logPurposeLayout(schedule, plan, \"FixedMultiplicity\");\n            try logPurposeLayout(schedule, plan, \"CommitLdeTile\");\n            try logPurposeLayout(schedule, plan, \"MerkleLeafState\");"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_BASE_DIGESTS": {
-      "owner": "src/backends/metal/tools/arena_plan/base_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/base_execution.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_BASE_DIGESTS\"))\n                try logPurposeDigests(resident_arena, schedule, plan, \"BaseCoefficients\");\n        }\n    }\n    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION\")) {\n        if (execution_metrics.executed_witness_programs != witness_bundle.?.entries.len) return error.WitnessGraphNotExecuted;\n        if (execution_metrics.base_interpolation_gpu_ms == 0) return error.MissingBaseInterpolation;"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS": {
       "owner": "src/backends/metal/tools/arena_plan/base_execution.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -8145,34 +8103,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_LOG_VERIFIER_ACCUMULATORS": {
-      "owner": "src/frontends/cairo/witness/resident_verifier.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/cairo/witness/resident_verifier.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/cairo/witness/resident_verifier.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_VERIFIER_ACCUMULATORS\")) {\n        var diagnostic_channel = channel;\n        const random_coefficient = diagnostic_channel.drawSecureFelt();\n        var composition_root: Hasher.Hash = undefined;\n        @memcpy(&composition_root, std.mem.sliceAsBytes(commitment_words[24..32]));\n        MC.mixRoot(&diagnostic_channel, composition_root);\n        const parameter = diagnostic_channel.drawSecureFelt();"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_VERIFIER_CONSTRAINTS": {
-      "owner": "src/frontends/cairo/witness/resident_verifier.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/cairo/witness/resident_verifier.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/cairo/witness/resident_verifier.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_VERIFIER_CONSTRAINTS\")) {\n                std.debug.print(\n                    \"verifier_constraint component={s} local={} evaluation={any}\\n\",\n                    .{\n                        self.captured.label,\n                        constraint_base + root_index,\n                        qm31Words(evaluation),"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_LOG_VERIFIER_DECOMMIT": {
       "owner": "src/frontends/cairo/witness/resident_verifier.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -8186,20 +8116,6 @@
       "default_evidence": {
         "path": "src/frontends/cairo/witness/resident_verifier.zig",
         "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_VERIFIER_DECOMMIT\")) {\n        std.debug.print(\"verifier_bundle_raw_queries={any}\\n\", .{input.bundle.decommitment.raw_queries});\n        std.debug.print(\"verifier_bundle_unique_queries={any}\\n\", .{input.bundle.decommitment.unique_queries});\n        for (input.bundle.decommitment.trees, 0..) |tree, index| {\n            std.debug.print(\n                \"verifier_bundle_tree index={} role={} query_count={} value_count={} hash_count={} leaf_log={}\\n\",\n                .{ index, tree.role, tree.query_count, tree.values_count, tree.hash_witness_count, tree.leaf_log_size },"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_VERIFIER_LOGUP_INPUTS": {
-      "owner": "src/frontends/cairo/witness/resident_verifier.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/cairo/witness/resident_verifier.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/cairo/witness/resident_verifier.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_VERIFIER_LOGUP_INPUTS\") and\n                self.captured.random_coefficient_offset == 0 and instruction.op == .trace_col and\n                instruction.interaction == 2)\n            {\n                std.debug.print(\n                    \"verifier_logup_base dst={} column={} offset={} value={any}\\n\",\n                    .{ instruction.dst, instruction.a, instruction.imm, qm31Words(base[instruction.dst]) },"
       },
       "expires": "2026-12-13"
     },

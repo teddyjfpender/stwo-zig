@@ -8,8 +8,6 @@ const timing = @import("timing.zig");
 const ExecutionMetrics = @import("execution_metrics.zig").ExecutionMetrics;
 
 const logAddOpcodeCoefficientDigests = diagnostics.logAddOpcodeCoefficientDigests;
-const logPurposeDigests = diagnostics.logPurposeDigests;
-const dumpAddOpcodeCoefficients = diagnostics.dumpAddOpcodeCoefficients;
 const RunnerPhaseTiming = timing.RunnerPhaseTiming;
 const nanosecondsToSeconds = timing.nanosecondsToSeconds;
 
@@ -265,10 +263,6 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
                 std.debug.print("base stage=fixed_ifft done\n", .{});
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ADD_OPCODE_COEFF_DIGESTS"))
                 try logAddOpcodeCoefficientDigests(resident_arena, schedule, plan, "fixed_ifft");
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_DUMP_ADD_OPCODE_COEFFICIENTS"))
-                try dumpAddOpcodeCoefficients(resident_arena, schedule, plan);
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BASE_DIGESTS"))
-                try logPurposeDigests(resident_arena, schedule, plan, "BaseCoefficients");
         }
     }
     if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION")) {

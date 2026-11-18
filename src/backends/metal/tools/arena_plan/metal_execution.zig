@@ -6,7 +6,6 @@ const protocol_recipes = stwo.backends.metal.protocol_recipes;
 const blake2_merkle = stwo.core.vcs_lifted.blake2_merkle;
 const arena_binding_mod = stwo.integrations.cairo_metal.arena_binding;
 const cairo_memory_trace = stwo.integrations.cairo_metal.memory_trace;
-const diagnostics = @import("diagnostics.zig");
 const timing = @import("timing.zig");
 const PreparedStateAcquire = @import("prepared_state_cache.zig").PreparedStateAcquire;
 const ExecutionMetrics = @import("execution_metrics.zig").ExecutionMetrics;
@@ -14,8 +13,6 @@ const base_execution = @import("base_execution.zig");
 const interaction_execution = @import("interaction_execution.zig");
 const protocol_execution = @import("protocol_execution.zig");
 
-const logComponentPurposeLayout = diagnostics.logComponentPurposeLayout;
-const logPurposeLayout = diagnostics.logPurposeLayout;
 const RunnerPhaseTiming = timing.RunnerPhaseTiming;
 
 fn requireResidentPreprocessedCoefficients(composition_requested: bool, populated: bool) !void {
@@ -208,35 +205,6 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
             execution_metrics.prepared_state_snapshot_bytes = telemetry.snapshot_bytes;
             execution_metrics.prepared_state_clear_bytes = telemetry.clear_bytes;
             execution_metrics.prepared_state_restore_gpu_ms = telemetry.restore_gpu_ms;
-        }
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_ARENA_LAYOUT")) {
-            try logPurposeLayout(schedule, plan, "ForwardTwiddles");
-            try logPurposeLayout(schedule, plan, "PreprocessedEvaluations");
-            try logPurposeLayout(schedule, plan, "RuntimeMultiplicity");
-            try logPurposeLayout(schedule, plan, "FixedMultiplicity");
-            try logPurposeLayout(schedule, plan, "CommitLdeTile");
-            try logPurposeLayout(schedule, plan, "MerkleLeafState");
-            try logPurposeLayout(schedule, plan, "MerkleLayerScratch");
-            try logPurposeLayout(schedule, plan, "TranscriptState");
-            try logPurposeLayout(schedule, plan, "TranscriptInput");
-            try logPurposeLayout(schedule, plan, "TranscriptOutput");
-            try logPurposeLayout(schedule, plan, "ExecutionTablePointers");
-            try logPurposeLayout(schedule, plan, "ExecutionTableStrides");
-            try logPurposeLayout(schedule, plan, "FixedTableSourcePointers");
-            try logComponentPurposeLayout(schedule, plan, "WitnessInput", "partial_ec_mul_generic");
-            try logComponentPurposeLayout(schedule, plan, "BaseTrace", "ec_op_builtin");
-            try logComponentPurposeLayout(schedule, plan, "BaseCoefficients", "blake_g");
-            try logComponentPurposeLayout(schedule, plan, "InteractionTrace", "blake_g");
-            try logComponentPurposeLayout(schedule, plan, "InteractionCoefficients", "blake_g");
-            try logComponentPurposeLayout(schedule, plan, "BaseTrace", "add_opcode");
-            try logComponentPurposeLayout(schedule, plan, "BaseCoefficients", "add_opcode");
-            try logComponentPurposeLayout(schedule, plan, "BaseTrace", "add_opcode_small");
-            try logComponentPurposeLayout(schedule, plan, "LookupInputs", "add_opcode_small");
-            try logComponentPurposeLayout(schedule, plan, "SubcomponentInputs", "add_opcode_small");
-            try logComponentPurposeLayout(schedule, plan, "WitnessInput", "add_opcode_small");
-            try logComponentPurposeLayout(schedule, plan, "WitnessOutputPointers", "add_opcode_small");
-            try logComponentPurposeLayout(schedule, plan, "WitnessInputPointers", "add_opcode_small");
-            try logComponentPurposeLayout(schedule, plan, "WitnessMultiplicityPointers", "add_opcode_small");
         }
         const memory_trace_started_ns = runner_wall_timer.read();
         var memory_trace: ?cairo_memory_trace.CairoMemoryTrace = if (prover_input != null)
