@@ -10,7 +10,6 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const schedule_bindings = @import("../../schedule_bindings.zig");
 const resident_binding = @import("../binding.zig");
 const resident_twiddles = @import("../twiddles.zig");
-const trace_diagnostics = @import("diagnostics.zig");
 const Error = @import("../errors.zig").Error;
 
 const collectComponent = schedule_bindings.collectComponent;
@@ -135,21 +134,10 @@ pub const NativeBaseInterpolationBatch = struct {
         return gpu_ms;
     }
 
-    pub fn executeFixed(
-        self: *NativeBaseInterpolationBatch,
-        schedule: []const std.json.Value,
-        plan: arena_plan.Plan,
-    ) !f64 {
+    pub fn executeFixed(self: *NativeBaseInterpolationBatch) !f64 {
         var gpu_ms: f64 = 0;
         for (self.fixed) |*operation| {
             gpu_ms += try self.metal.arenaCopyPrepared(self.resident_arena.buffer, operation.copy);
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS"))
-                try trace_diagnostics.logComponentBaseEvalDigests(
-                    self.resident_arena,
-                    schedule,
-                    plan,
-                    operation.component,
-                );
             const initial = operation.interpolation.accumulated_gpu_ms;
             try operation.interpolation.execute();
             gpu_ms += operation.interpolation.accumulated_gpu_ms - initial;
