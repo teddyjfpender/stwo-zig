@@ -12,7 +12,7 @@ class RetiredInteractionTests(unittest.TestCase):
         allowed = {
             "src/frontends/riscv/rv32/mod.zig",
             "src/frontends/riscv/rv32/tests/root.zig",
-            "src/frontends/riscv/rv32/focused_test_air_semantics_0.zig",
+            "src/frontends/riscv/rv32/tests/focused/rv32_air_semantics_0.zig",
         }
         consumers = set()
         for source in (ROOT / "src").rglob("*.zig"):

@@ -21,7 +21,7 @@ pub const source_closure = product_policy.SourceClosure{
         "src/products/riscv/cpu/trace/main.zig",
         "src/frontends/riscv/rv32/refinement_ir_export_test.zig",
         "src/frontends/riscv/rv32/refinement_program_export_test.zig",
-        "src/frontends/riscv/focused_product_sail_oracle_test_root.zig",
+        "src/frontends/riscv/tests/focused/sail_oracle.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
         .{ .name = "postcard_error_codes", .source = "src/waist/recursion_wire/postcard_error_codes.zig" },

@@ -14,7 +14,9 @@
     "stwo_riscv_memory": "../memory",
     "stwo_riscv_isa": "../isa"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "focused_suite"
+  ],
   "api_surface": [
     "arithmetic_fusion_fixed_columns",
     "blake3",
@@ -93,14 +95,14 @@
     ]
   },
   "budget": {
-    "code_files": 186,
-    "code_lines": 50617,
+    "code_files": 187,
+    "code_lines": 50633,
     "generated_code_files": 0,
     "generated_code_lines": 0,
     "script_files": 0,
     "api_entries": 54,
     "dependencies": 5,
     "rv64_registry_flags": 0,
-    "versioned_files": 189
+    "versioned_files": 190
   }
 }

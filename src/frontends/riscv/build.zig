@@ -19,7 +19,7 @@ const test_floor = 1103;
 /// this owner; consumers supply the already selected native module graph.
 pub fn retainedTypedTestModule(b: *std.Build, native: *std.Build.Module, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
     const source = native.root_source_file orelse @panic("selected frontend lacks source root");
-    return createBoundRoot(b, native, source.dirname().path(b, "focused_test_retained_typed_components_upper.zig"), native, target, optimize);
+    return createBoundRoot(b, native, source.dirname().path(b, focused_root), "retained_typed_components_upper", native, target, optimize);
 }
 
 /// BUILD-only signer fixture over the actual selected Testing predecessor.
@@ -27,7 +27,7 @@ pub fn signerRecoveryTestModule(b: *std.Build, native: *std.Build.Module, target
     const owner = native.import_table.get("stwo_riscv_testing") orelse @panic("selected frontend lacks Testing");
     const source = owner.root_source_file orelse @panic("selected Testing lacks source root");
     if (owner.import_table.get("stwo_core") != native.import_table.get("stwo_core")) @panic("selected Testing Core drift");
-    return createBoundRoot(b, owner, source.dirname().path(b, "focused_test_signer_recovery_0.zig"), null, target, optimize);
+    return createBoundRoot(b, owner, source.dirname().path(b, focused_root), "signer_recovery", null, target, optimize);
 }
 
 pub fn build(b: *std.Build) void {
@@ -286,19 +286,45 @@ fn signatureName(b: *std.Build, module: *std.Build.Module) []const u8 {
     return reference[separator + 2 ..];
 }
 
+/// Each package's focused suites live in `<package>/tests/focused/<suite>.zig`.
+/// Zig confines a module's imports to its root file's directory, so a suite is
+/// compiled through its package's `focused_test_root.zig`, which analyses only
+/// the suite named by the `focused_suite` option and rejects any other name.
+const focused_root = "focused_test_root.zig";
+const focused_suites = "tests/focused/";
+
+const FocusedSuite = struct { package: []const u8, name: []const u8 };
+
+/// Null for the few catalog roots that are ordinary package files.
+fn focusedSuite(source: []const u8) ?FocusedSuite {
+    const at = std.mem.indexOf(u8, source, focused_suites) orelse return null;
+    if (at != 0 and source[at - 1] != '/') std.debug.panic("focused suite outside a package tests/ directory: {s}", .{source});
+    const file = source[at + focused_suites.len ..];
+    if (!std.mem.endsWith(u8, file, ".zig") or std.mem.indexOfScalar(u8, file, '/') != null)
+        std.debug.panic("focused suite must be a direct tests/focused/*.zig file: {s}", .{source});
+    return .{ .package = source[0..at], .name = file[0 .. file.len - ".zig".len] };
+}
+
 fn createOwnedRoot(b: *std.Build, frontend: *std.Build.Module, owners: []const OwnedModule, source: []const u8, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
     var provider = frontend;
     for (owners) |owner| if (std.mem.startsWith(u8, source, owner.prefix)) {
         provider = owner.module;
         break;
     };
-    return createBoundRoot(b, provider, b.path(source), if (provider == frontend) frontend else null, target, optimize);
+    const selected = if (provider == frontend) frontend else null;
+    const suite = focusedSuite(source) orelse return createBoundRoot(b, provider, b.path(source), null, selected, target, optimize);
+    return createBoundRoot(b, provider, b.path(b.fmt("{s}{s}", .{ suite.package, focused_root })), suite.name, selected, target, optimize);
 }
 
-fn createBoundRoot(b: *std.Build, provider: *std.Build.Module, source: std.Build.LazyPath, frontend: ?*std.Build.Module, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
+fn createBoundRoot(b: *std.Build, provider: *std.Build.Module, source: std.Build.LazyPath, suite: ?[]const u8, frontend: ?*std.Build.Module, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
     const root = b.createModule(.{ .root_source_file = source, .target = target, .optimize = optimize });
     for (provider.import_table.keys(), provider.import_table.values()) |name, dependency| root.addImport(name, dependency);
     if (frontend) |selected| root.addImport("stwo_riscv_frontend", selected);
+    if (suite) |name| {
+        const selection = b.addOptions();
+        selection.addOption([]const u8, "name", name);
+        root.addOptions("focused_suite", selection);
+    }
     return root;
 }
 
@@ -440,7 +466,11 @@ test "retained BUILD constructor preserves selected modules and native ownership
     try std.testing.expect(module.import_table.get("stwo_core") == core);
     try std.testing.expectEqual(@as(usize, 2), native.import_table.count());
     try std.testing.expect(module.import_table.get("stwo_riscv_frontend") == native);
-    try std.testing.expectEqual(@as(usize, 3), module.import_table.count());
+    try std.testing.expect(module.import_table.contains("focused_suite"));
+    try std.testing.expectEqual(@as(usize, 4), module.import_table.count());
     try std.testing.expectEqual(std.builtin.OptimizeMode.Debug, module.optimize.?);
-    try std.testing.expect(std.mem.endsWith(u8, module.root_source_file.?.getPath(b), "focused_test_retained_typed_components_upper.zig"));
+    try std.testing.expect(std.mem.endsWith(u8, module.root_source_file.?.getPath(b), "src/frontends/riscv/focused_test_root.zig"));
+    try std.testing.expectEqualDeep(FocusedSuite{ .package = "rv32/", .name = "air_semantics_0" }, focusedSuite("rv32/tests/focused/air_semantics_0.zig").?);
+    try std.testing.expectEqualDeep(FocusedSuite{ .package = "", .name = "runner" }, focusedSuite("tests/focused/runner.zig").?);
+    try std.testing.expect(focusedSuite("test_inventory_test.zig") == null);
 }
