@@ -34,14 +34,8 @@
     {
       "package": "stwo_riscv_frontend",
       "owner": "riscv-frontend",
-      "path": "src/frontends/riscv/rv32/air/incremental_public_logup_v3.zig",
-      "reason": "Live full-state and Ethereum role-aware compensation differ; v4 delegates to v3."
-    },
-    {
-      "package": "stwo_riscv_frontend",
-      "owner": "riscv-frontend",
       "path": "src/frontends/riscv/rv32/air/incremental_public_logup_v4.zig",
-      "reason": "Live full-state and Ethereum role-aware compensation differ; v4 delegates to v3."
+      "reason": "The existing V4 role-aware consumer owns the retained public boundary digest and its original V3 public-I/O domain."
     },
     {
       "package": "stwo_riscv_frontend",
