@@ -141,7 +141,7 @@ pub const configure = [_]Configure{
             "src/products/riscv/tools/bench/main.zig",
             "src/products/native/tools/proof_bench/cpu.zig",
         },
-        .generated_module_roots = &.{"generated:circuit-composition-cpu-aot:"},
+        .generated_module_roots = &.{ "generated:circuit-composition-cpu-aot:", "generated:options:" },
         .dependency_module_roots = package_dependencies.compatibility_package_roots,
         .allowed_module_files = &.{ "src/products/stwo/root.zig", "src/support/shims/mod.zig", "src/support/tracing/mod.zig" },
         .allowed_module_prefixes = &.{
