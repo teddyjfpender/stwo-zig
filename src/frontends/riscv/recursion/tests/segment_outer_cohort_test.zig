@@ -4,8 +4,8 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-const subject = @import("../segment_outer_cohort.zig");
-const shared_schedule = @import("../segment_shared_poseidon_schedule.zig");
+const subject = @import("../segment/outer/segment_outer_cohort.zig");
+const shared_schedule = @import("../segment/segment_shared_poseidon_schedule.zig");
 const manifest_mod = @import("../air/segment_outer_adapter_manifest.zig");
 const catalog_mod = @import("../air/segment_outer_typed_catalog.zig");
 const universal_manifest = @import("stwo_riscv_rv32").recursion.air.universal_manifest;
@@ -15,10 +15,10 @@ const row17_witness_v2 =
     @import("stwo_riscv_recursion_air").vm_public_logup_control_witness;
 const relation_interaction = @import("stwo_riscv_air_lang").framework.relation_interaction;
 const range_bridge = @import("stwo_riscv_rv32").recursion.air.range_check_8_8_bridge;
-const boundary_air = @import("../segment_leaf_outer_air.zig");
-const boundary_manifest = @import("../segment_leaf_outer_authority.zig");
+const boundary_air = @import("../segment/leaf/segment_leaf_outer_air.zig");
+const boundary_manifest = @import("../segment/leaf/segment_leaf_outer_authority.zig");
 const input_provider_authority =
-    @import("../segment_publication_input_provider_authority.zig");
+    @import("../segment/public/segment_publication_input_provider_authority.zig");
 
 test "cohort plan binds the exact 39-row roster trees and shared row-34 order" {
     const manifest = try fixtureManifest();

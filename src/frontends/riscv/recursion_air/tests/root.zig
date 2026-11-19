@@ -1,14 +1,14 @@
 //! Complete literal discovery for this owner; original focused exclusions are retained.
 test {
-    _ = @import("../blake3_direct_cohort_columns.zig");
-    _ = @import("../blake3_path_sharing_census.zig");
-    _ = @import("../control_component.zig");
-    _ = @import("../control_witness.zig");
+    _ = @import("../blake3/trace/blake3_direct_cohort_columns.zig");
+    _ = @import("../blake3/openings/blake3_path_sharing_census.zig");
+    _ = @import("../composition/control_component.zig");
+    _ = @import("../composition/control_witness.zig");
     _ = @import("../protocol/recursion/fixed_profile.zig");
     _ = @import("../protocol/recursion/fixed_wire_fixed_stark_proof_wire.zig");
     _ = @import("../protocol/recursion/protocol.zig");
-    _ = @import("../structural_sha256.zig");
-    _ = @import("../verifier_schedule.zig");
+    _ = @import("../wire/structural_sha256.zig");
+    _ = @import("../composition/verifier_schedule.zig");
     _ = @import("blake3_compact_metadata_test.zig");
     _ = @import("blake3_direct_source_columns_test.zig");
     _ = @import("blake3_frame_test.zig");

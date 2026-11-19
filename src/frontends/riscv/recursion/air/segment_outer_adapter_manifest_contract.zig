@@ -52,13 +52,13 @@ pub const componentBit = pure.componentBit;
 pub const requireNativeDigest = pure.requireNativeDigest;
 pub const allZero = pure.allZero;
 pub const base = @import("stwo_riscv_air_lang").framework.universal_adapter_manifest;
-pub const boundary_v2 = @import("../segment_leaf_outer_authority.zig");
+pub const boundary_v2 = @import("../segment/leaf/segment_leaf_outer_authority.zig");
 pub const provider_authority_v2 =
-    @import("../segment_publication_input_provider_authority.zig");
+    @import("../segment/public/segment_publication_input_provider_authority.zig");
 pub const prover_component = @import("stwo_prover_engine").air.component_prover;
-pub const transcript_v2 = @import("../variable_boundary_transcript_source.zig");
-pub const statement_v2 = @import("../variable_boundary_statement_source.zig");
-pub const public_v2 = @import("../variable_boundary_outer_source.zig");
+pub const transcript_v2 = @import("../segment/transcript/variable_boundary_transcript_source.zig");
+pub const statement_v2 = @import("../segment/statement/variable_boundary_statement_source.zig");
+pub const public_v2 = @import("../segment/public/variable_boundary_outer_source.zig");
 pub const AdapterBinding = base.AdapterBinding;
 
 pub fn validateAgainstSources(

@@ -1,6 +1,6 @@
 const std = @import("std");
 const core = @import("stwo_core");
-const recorder = @import("../blake3_native_recorder.zig");
+const recorder = @import("../blake3/transcript/blake3_native_recorder.zig");
 const Q = core.fields.qm31.QM31;
 test "BLAKE3 native recorder owns encoder temporaries and propagates allocation failures" {
     const a = std.testing.allocator;

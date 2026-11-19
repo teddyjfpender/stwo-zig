@@ -134,7 +134,7 @@
       "tests/contracts.zig::C3 canonical API identity: native sample-layout type"
     ],
     "invariant_tests": [
-      "vm_composition_graph_base.zig::authenticated VM AIR ProfileV2 schema5 infrastructure recording equals native evaluator order"
+      "composition/vm/vm_composition_graph_base.zig::authenticated VM AIR ProfileV2 schema5 infrastructure recording equals native evaluator order"
     ]
   },
   "ci": {

@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const admission = @import("../outer_parent_child_admission.zig");
-const pair_node = @import("../pair_node.zig");
+const admission = @import("../parent/admission/outer_parent_child_admission.zig");
+const pair_node = @import("../parent/pair/pair_node.zig");
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
-const source = @import("../outer_parent_statement_source.zig");
+const source = @import("../parent/statement/outer_parent_statement_source.zig");
 const support = @import("outer_parent_transcript_source_test.zig");
 
 const Dimensions = support.TEST_DIMENSIONS;
@@ -306,7 +306,7 @@ test "outer parent statement source rejects aliased workspaces before publicatio
 const HonestFixture = struct {
     left: support.AdmittedChild,
     right: support.AdmittedChild,
-    pair: @import("../outer_parent_transcript_source.zig").PairInputsV1,
+    pair: @import("../parent/transcript/outer_parent_transcript_source.zig").PairInputsV1,
     left_binding: admission.PairChildInputsV1,
     right_binding: admission.PairChildInputsV1,
     authority: pair_node.VerifierAuthorityV1,

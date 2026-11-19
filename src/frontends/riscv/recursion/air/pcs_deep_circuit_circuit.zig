@@ -15,7 +15,7 @@ pub const QM31 = stwo_core.fields.qm31.QM31;
 pub const digest = @import("stwo_riscv_air_lang").digest;
 pub const graph_mod = @import("stwo_riscv_rv32").recursion.air.composition_circuit;
 pub const input_mod = @import("stwo_riscv_rv32").recursion.air.pcs_deep_input_witness;
-pub const sample_point_layout = @import("../sample_point_layout.zig");
+pub const sample_point_layout = @import("../pcs/sample_point_layout.zig");
 
 pub const SECURE_WORD_COUNT: usize = input_mod.SECURE_WORD_COUNT;
 pub const M31_BIT_COUNT: usize = input_mod.M31_BIT_COUNT;

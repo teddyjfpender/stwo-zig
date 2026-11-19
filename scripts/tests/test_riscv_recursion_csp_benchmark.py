@@ -236,7 +236,7 @@ def _native_raw(report: dict[str, object] | None = None) -> bytes:
 
 
 def _write_boundary(root: Path, text: str = PAIR_NODE) -> Path:
-    path = root / "src/frontends/riscv/recursion/pair_node.zig"
+    path = root / "src/frontends/riscv/recursion/parent/pair/pair_node.zig"
     path.parent.mkdir(parents=True)
     path.write_text(text, encoding="utf-8")
     for relative, contents in AUDIT_FIXTURES.items():

@@ -1,6 +1,6 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const pair_node = @import("../pair_node.zig");
+const pair_node = @import("../parent/pair/pair_node.zig");
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 
@@ -35,7 +35,7 @@ const GOLDEN_NODE_ID = Digest{
     314_473_721,   245_804_358,   601_591_189,   264_131_684,
 };
 
-const test_support = @import("../pair_node_test_support.zig");
+const test_support = @import("../parent/pair/pair_node_test_support.zig");
 const Fixture = test_support.Fixture;
 const makeChild = test_support.makeChild;
 const verifiedChild = test_support.verifiedChild;
@@ -751,5 +751,5 @@ test "R-009 pair node identity folds bind each ordered evidence class" {
 }
 
 test {
-    _ = @import("../pair_node_test_continuation_1.zig");
+    _ = @import("../parent/pair/pair_node_test_continuation_1.zig");
 }

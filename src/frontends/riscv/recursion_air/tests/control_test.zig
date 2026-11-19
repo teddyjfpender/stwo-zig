@@ -5,8 +5,8 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const control = @import("stwo_riscv_air_lang").framework.control;
 const relation = @import("stwo_riscv_air_lang").relation;
 const relation_plan = @import("stwo_riscv_air_lang").framework.control_relation;
-const witness = @import("../control_witness.zig");
-const schedule = @import("../verifier_schedule.zig");
+const witness = @import("../composition/control_witness.zig");
+const schedule = @import("../composition/verifier_schedule.zig");
 const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 
 test "R-012 exact control component compiles its source geometry and seal" {

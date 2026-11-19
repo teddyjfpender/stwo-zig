@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const temporal = @import("../temporal_pair_node.zig");
+const temporal = @import("../parent/temporal/temporal_pair_node.zig");
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 const span = @import("stwo_riscv_rv32").recursion.span_statement;
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;

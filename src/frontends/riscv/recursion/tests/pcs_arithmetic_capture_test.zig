@@ -1,7 +1,7 @@
 //! Admission and ownership tests, separate from expensive real-proof gates.
 const std = @import("std");
 const core = @import("stwo_core");
-const adapter = @import("../pcs_arithmetic_capture.zig");
+const adapter = @import("../pcs/pcs_arithmetic_capture.zig");
 const deep = @import("../air/pcs_deep_circuit.zig");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;

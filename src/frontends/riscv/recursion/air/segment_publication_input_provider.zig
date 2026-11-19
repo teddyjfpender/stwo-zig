@@ -21,7 +21,7 @@ const types = @import("stwo_riscv_air_lang").types;
 const validate_mod = @import("stwo_riscv_air_lang").validate;
 const direct_program = @import("stwo_riscv_air_lang").framework.direct_constraint_program;
 const relation_effect = @import("stwo_riscv_air_lang").framework.relation_effect;
-const leaf_source = @import("../segment_leaf_layout.zig");
+const leaf_source = @import("../segment/leaf/segment_leaf_layout.zig");
 const composition_tags = @import("stwo_riscv_recursion_air").verifier_parameter_tags.vm_input;
 
 pub const STABLE_NAME =

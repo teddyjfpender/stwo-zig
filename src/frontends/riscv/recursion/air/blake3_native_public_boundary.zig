@@ -2,9 +2,9 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const verifier = @import("stwo_riscv_rv32").prover.verifier;
-const authority = @import("../segment_public_native_sum_authority.zig");
-const arithmetic = @import("../arithmetic_circuit.zig");
-const bytes = @import("../segment_register_byte_layout.zig");
+const authority = @import("../segment/public/segment_public_native_sum_authority.zig");
+const arithmetic = @import("../composition/arithmetic_circuit.zig");
+const bytes = @import("../segment/segment_register_byte_layout.zig");
 const Q = core.fields.qm31.QM31;
 const M = core.fields.m31.M31;
 pub const Prepared = struct {

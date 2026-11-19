@@ -11,13 +11,27 @@ Public module `stwo_riscv_recursion`.
 
 ## Purpose and architecture
 
-Canonical recursion source ownership under RFC #344; public module aliases point to one implementation each.
+This package assembles RISC-V leaf and parent proofs, admits child statements,
+and verifies and publishes the resulting artifacts. The public facade is
+[`mod.zig`](mod.zig).
 
 ```mermaid
 graph LR
-  Consumer --> recursion
-  recursion --> DeclaredProviders
+  Input[Native segment or child proofs] --> Admission[Admission and preparation]
+  Admission --> Proof[Leaf or parent proof]
+  Air[Recursion AIR] --> Proof
+  Proof --> Publication[Verification and publication]
 ```
+
+| Directory | Responsibility |
+| --- | --- |
+| [`segment/`](segment/) | Leaf authority, statement and transcript sources, public claims, and outer proof assembly |
+| [`parent/`](parent/) | Child admission, pair and temporal folds, and the native Blake3 parent pipeline |
+| [`binary/`](binary/) | Binary proof construction, including FRI bundles, global closure, and transcript sources |
+| [`detached/`](detached/) | Detached leaf and parent preparation, recording, and verification |
+| [`pcs/`](pcs/) and [`transcript/`](transcript/) | Opening geometry, FRI capture, and transcript recording and replay |
+| [`composition/`](composition/), [`air/`](air/), and [`components/`](components/) | Circuit composition, public input providers, and verifier AIR components |
+| [`engine/`](engine/) and [`publication/`](publication/) | Proof execution, artifact identity, and verified output custody |
 
 ## Public API
 

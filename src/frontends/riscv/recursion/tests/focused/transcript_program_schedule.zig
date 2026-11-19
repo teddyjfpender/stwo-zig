@@ -1,7 +1,7 @@
 //! Focused compile/test root for the disjoint V2 generic transcript authority.
 
 test {
-    _ = @import("../../variable_boundary_transcript_program.zig");
+    _ = @import("../../segment/transcript/variable_boundary_transcript_program.zig");
     _ = @import("../variable_boundary_transcript_program_test.zig");
     const std = @import("std");
     const required = .{

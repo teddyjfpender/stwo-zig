@@ -1,6 +1,6 @@
 //! Scalar native composition inputs -> QM31 packing -> transcript felt bytes.
 const std = @import("std");
-const vm = @import("../vm_air_composition_circuit.zig");
+const vm = @import("../composition/vm/vm_air_composition_circuit.zig");
 const native = @import("stwo_riscv_rv32").recursion.air.blake3_native_transcript;
 const recorder = @import("stwo_riscv_recursion_air").blake3.native_recorder;
 const claims = @import("stwo_riscv_rv32").air.transcript.claims;

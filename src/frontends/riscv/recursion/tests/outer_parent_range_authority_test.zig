@@ -6,8 +6,8 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-const authority_mod = @import("../outer_parent_range_authority.zig");
-const circuit_mod = @import("../statement_semantics_circuit.zig");
+const authority_mod = @import("../parent/outer_parent_range_authority.zig");
+const circuit_mod = @import("../segment/statement/statement_semantics_circuit.zig");
 const row11 = @import("stwo_riscv_rv32").recursion.air.statement_semantics_input_witness;
 const statement = @import("stwo_riscv_rv32").recursion.span_statement;
 

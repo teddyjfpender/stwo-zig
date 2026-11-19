@@ -11,8 +11,8 @@ const public_data_v2 = @import("stwo_riscv_rv32").air.public_data_v2;
 const support = @import("stwo_riscv_rv32").testing.air.public_data_test_support;
 const relation_challenges = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 const statement_v1 = @import("stwo_riscv_rv32").air.statement;
-const boundary_air = @import("../segment_leaf_outer_air.zig");
-const boundary_manifest = @import("../segment_leaf_outer_authority.zig");
+const boundary_air = @import("../segment/leaf/segment_leaf_outer_air.zig");
+const boundary_manifest = @import("../segment/leaf/segment_leaf_outer_authority.zig");
 const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 const manifest_mod = @import("../air/segment_outer_adapter_manifest.zig");
@@ -23,11 +23,11 @@ const row17_witness_v2 =
 const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 const universal_manifest = @import("stwo_riscv_rv32").recursion.air.universal_manifest;
 const universal_roster = @import("stwo_riscv_air_lang").framework.universal_roster;
-const source_v2 = @import("../variable_boundary_transcript_source.zig");
-const subject = @import("../segment_transcript_outer_components.zig");
-const transcript = @import("../variable_boundary_transcript_program.zig");
+const source_v2 = @import("../segment/transcript/variable_boundary_transcript_source.zig");
+const subject = @import("../segment/transcript/segment_transcript_outer_components.zig");
+const transcript = @import("../segment/transcript/variable_boundary_transcript_program.zig");
 const provider_authority =
-    @import("../segment_publication_input_provider_authority.zig");
+    @import("../segment/public/segment_publication_input_provider_authority.zig");
 
 const config = PcsConfig{
     .pow_bits = 0,

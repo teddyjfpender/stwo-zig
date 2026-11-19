@@ -6,14 +6,14 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-const admission = @import("../outer_parent_child_admission.zig");
-const air_source = @import("../outer_parent_statement_air_source.zig");
-const parent_source = @import("../outer_parent_statement_source.zig");
-const pair_node = @import("../pair_node.zig");
+const admission = @import("../parent/admission/outer_parent_child_admission.zig");
+const air_source = @import("../parent/statement/outer_parent_statement_air_source.zig");
+const parent_source = @import("../parent/statement/outer_parent_statement_source.zig");
+const pair_node = @import("../parent/pair/pair_node.zig");
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 const span_statement = @import("stwo_riscv_rv32").recursion.span_statement;
-const leaf_owner = @import("../segment_leaf_authority.zig");
-const segment_source = @import("../segment_statement_outer_source.zig");
+const leaf_owner = @import("../segment/leaf/segment_leaf_authority.zig");
+const segment_source = @import("../segment/statement/segment_statement_outer_source.zig");
 const transcript_support = @import("outer_parent_transcript_source_test.zig");
 const vm_claim = @import("stwo_riscv_rv32").recursion.vm_public_claim;
 const lowering = @import("stwo_riscv_rv32").recursion.air.verifier_arithmetic_lowering;
@@ -403,7 +403,7 @@ const Fixture = struct {
     right: transcript_support.AdmittedChild,
     left_binding: admission.PairChildInputsV1,
     right_binding: admission.PairChildInputsV1,
-    pair: @import("../outer_parent_transcript_source.zig").PairInputsV1,
+    pair: @import("../parent/transcript/outer_parent_transcript_source.zig").PairInputsV1,
     verifier_authority: pair_node.VerifierAuthorityV1,
     suite: pair_node.PreparedProtocolSuiteV1,
     scratch: []u8,

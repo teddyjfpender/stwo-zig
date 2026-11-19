@@ -11,9 +11,9 @@ pub const base = @import("stwo_riscv_air_lang").framework.universal_manifest_con
 pub const universal_manifest = @import("stwo_riscv_rv32").recursion.air.universal_manifest;
 pub const universal_roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 pub const typed_catalog_v2 = @import("segment_outer_typed_catalog.zig");
-pub const boundary_v2 = @import("../segment_leaf_outer_geometry.zig");
+pub const boundary_v2 = @import("../segment/leaf/segment_leaf_outer_geometry.zig");
 pub const provider_authority_v2 =
-    @import("../segment_publication_input_provider_contract.zig");
+    @import("../segment/public/segment_publication_input_provider_contract.zig");
 
 pub const FORMAT_VERSION: u16 = 3;
 pub const TRANSCRIPT_FORMAT_VERSION: u32 = 3;

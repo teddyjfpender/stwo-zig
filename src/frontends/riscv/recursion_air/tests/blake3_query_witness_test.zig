@@ -1,6 +1,6 @@
 const std = @import("std");
 const core = @import("stwo_core");
-const query = @import("../blake3_query_witness.zig");
+const query = @import("../blake3/openings/blake3_query_witness.zig");
 const M31 = core.fields.m31.M31;
 test "BLAKE3 query batches preserve native partial blocks counters and private fixed columns" {
     const a = std.testing.allocator;
@@ -87,7 +87,7 @@ fn allocationCase(a: std.mem.Allocator, s: query.Statement) !void {
 }
 
 fn mainColumnCase(a: std.mem.Allocator, s: query.Statement) !void {
-    const support = @import("../blake3_main_column_test_support.zig");
+    const support = @import("../blake3/trace/blake3_main_column_test_support.zig");
     var expected = try query.prepare(a, s);
     defer expected.deinit();
     var fixed = try query.trusted(a, s);

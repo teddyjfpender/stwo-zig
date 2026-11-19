@@ -3,10 +3,10 @@ pub fn ForBackend(comptime Backend: type) type {
     return struct {
         const std = @import("std");
         const native = @import("../air/blake3_native_parent_rows.zig");
-        const protocol = @import("../blake3_native_parent_protocol.zig");
+        const protocol = @import("../parent/blake3/blake3_native_parent_protocol.zig");
         const f = @import("stwo_riscv_rv32").recursion.air.blake3_proof_fixture.ForBackend(Backend);
         const F = @import("../air/blake3_native_parent_roster.zig").Roster;
-        pub fn check(comptime Engine: type, backing: std.mem.Allocator, prepared: *native.Prepared, context: protocol.Context, policy: anytype, jobs: []const @import("../blake3_native_parent_pipeline.zig").Job(Engine)) !void {
+        pub fn check(comptime Engine: type, backing: std.mem.Allocator, prepared: *native.Prepared, context: protocol.Context, policy: anytype, jobs: []const @import("../parent/blake3/blake3_native_parent_pipeline.zig").Job(Engine)) !void {
             var arena = std.heap.ArenaAllocator.init(backing);
             defer arena.deinit();
             const a = arena.allocator();
@@ -42,7 +42,7 @@ pub fn ForBackend(comptime Backend: type) type {
             changed_root[31] ^= 0x80;
             try std.testing.expectError(error.UntrustedBlake3ParentRoot, admitted.admitRoot(changed_root));
             std.debug.print("V2_BLAKE3_NATIVE_PARENT_KEY id={s} profile=diagnostic_q8_pow0\n", .{std.fmt.bytesToHex(expected, .lower)});
-            const Worker = @import("../blake3_native_parent_worker.zig").Worker(Backend);
+            const Worker = @import("../parent/blake3/blake3_native_parent_worker.zig").Worker(Backend);
             try std.testing.expectError(error.InvalidWorkerBudget, Worker.init(backing, prepared, admitted, .{ .worker_count = 0, .host_byte_limit = 1, .retained_scratch_limit = 0 }));
             try std.testing.expectError(error.OutOfMemory, Worker.init(backing, prepared, admitted, .{ .worker_count = 1, .host_byte_limit = 1, .retained_scratch_limit = 0 }));
             const worker = try Worker.init(backing, prepared, admitted, .{ .worker_count = 2, .host_byte_limit = 4 * 1024 * 1024 * 1024, .retained_scratch_limit = 64 * 1024 * 1024 });
@@ -85,7 +85,7 @@ pub fn ForBackend(comptime Backend: type) type {
             try std.testing.expectError(error.ParentOutputAllocatorAliasesScratch, plan.proveWithWorkspace(workspace.arena.allocator(), prepared, workspace));
             {
                 var failing = std.testing.FailingAllocator.init(backing, .{ .fail_index = 0 });
-                var failed_workspace = @import("../blake3_native_parent_producer.zig").Workspace.init(failing.allocator(), 0);
+                var failed_workspace = @import("../parent/blake3/blake3_native_parent_producer.zig").Workspace.init(failing.allocator(), 0);
                 defer failed_workspace.deinit();
                 try std.testing.expectError(error.OutOfMemory, plan.proveWithWorkspace(backing, prepared, &failed_workspace));
                 _ = try failed_workspace.begin();
@@ -94,7 +94,7 @@ pub fn ForBackend(comptime Backend: type) type {
             const plan_bytes = plan.arena.state.end_index;
             const fixed_columns = plan.fixed_commitment.columns.ptr;
             const fixed_coefficients = plan.fixed_commitment.coefficients;
-            const pipeline = @import("../blake3_native_parent_pipeline.zig");
+            const pipeline = @import("../parent/blake3/blake3_native_parent_pipeline.zig");
             const sizing = pipeline.Sizing{ .preparation_bytes = 2 * 1024 * 1024 * 1024, .worker_bytes = 4 * 1024 * 1024 * 1024, .queued_bytes = 512 * 1024 * 1024, .external_reserved_bytes = 4 * 1024 * 1024 * 1024 };
             var excessive = sizing;
             excessive.external_reserved_bytes = std.math.maxInt(usize) / 2;
@@ -136,7 +136,7 @@ pub fn ForBackend(comptime Backend: type) type {
             worker.deinit();
             // Codec copies use an independent allocator. The original proof's
             // budget lease must also survive through verification capture.
-            const codec = @import("../blake3_native_parent_codec.zig");
+            const codec = @import("../parent/blake3/blake3_native_parent_codec.zig");
             const bytes = try codec.encode(backing, produced, &admitted);
             defer backing.free(bytes);
             var copied = try codec.decode(backing, bytes, &admitted);
@@ -144,7 +144,7 @@ pub fn ForBackend(comptime Backend: type) type {
             const proof = copied.proof.?;
             copied.proof = null;
             _ = try (GateProtocol{ .admission = admitted }).verifyOwned(backing, proof, copied.claims);
-            var verified = try @import("../blake3_native_parent_verifier.zig").verify(produced, &admitted);
+            var verified = try @import("../parent/blake3/blake3_native_parent_verifier.zig").verify(produced, &admitted);
             defer verified.deinit();
             produced.deinit();
             try std.testing.expect(verified.allocation_budget != null);
@@ -166,8 +166,8 @@ pub fn ForBackend(comptime Backend: type) type {
             pub fn admitRoot(self: @This(), root: f.Hasher.Hash) !void {
                 return self.admission.admitRoot(root);
             }
-            pub fn verifyOwned(self: @This(), a: std.mem.Allocator, proof: @import("stwo_riscv_recursion_air").protocol.recursion.blake3_engine_protocol.Proof, claims: @import("../blake3_native_parent_artifact.zig").Claims) !f.Channel {
-                const artifact = @import("../blake3_native_parent_artifact.zig");
+            pub fn verifyOwned(self: @This(), a: std.mem.Allocator, proof: @import("stwo_riscv_recursion_air").protocol.recursion.blake3_engine_protocol.Proof, claims: @import("../parent/blake3/blake3_native_parent_artifact.zig").Claims) !f.Channel {
+                const artifact = @import("../parent/blake3/blake3_native_parent_artifact.zig");
                 var owned = artifact.Owned.init(a, proof, self.admission.expected_id, claims);
                 defer owned.deinit();
                 try owned.validate(&self.admission);
@@ -182,7 +182,7 @@ pub fn ForBackend(comptime Backend: type) type {
                 try std.testing.expectError(error.UntrustedBlake3ParentRoot, owned.validate(&self.admission));
                 owned.proof.?.commitment_scheme_proof.commitments.items[0][31] ^= 0x80;
                 try std.testing.expect(owned.proof != null);
-                const codec = @import("../blake3_native_parent_codec.zig");
+                const codec = @import("../parent/blake3/blake3_native_parent_codec.zig");
                 const bytes = try codec.encode(a, &owned, &self.admission);
                 defer a.free(bytes);
                 try std.testing.expectError(error.TruncatedBlake3ParentArtifact, codec.decode(a, bytes[0 .. codec.HEADER_BYTES - 1], &self.admission));
@@ -216,12 +216,12 @@ pub fn ForBackend(comptime Backend: type) type {
                     defer rejected.deinit();
                     if (mode == 0) {
                         rejected.key_id[0] ^= 1;
-                        try std.testing.expectError(error.UntrustedBlake3ParentKey, @import("../blake3_native_parent_verifier.zig").verify(&rejected, &self.admission));
+                        try std.testing.expectError(error.UntrustedBlake3ParentKey, @import("../parent/blake3/blake3_native_parent_verifier.zig").verify(&rejected, &self.admission));
                     } else {
                         rejected.claims[0] = rejected.claims[0].add(f.QM31.one());
                         rejected.claims[1] = rejected.claims[1].sub(f.QM31.one());
                         try rejected.validate(&self.admission); // Cancellation alone still holds.
-                        try std.testing.expectError(error.OodsNotMatching, @import("../blake3_native_parent_verifier.zig").verify(&rejected, &self.admission));
+                        try std.testing.expectError(error.OodsNotMatching, @import("../parent/blake3/blake3_native_parent_verifier.zig").verify(&rejected, &self.admission));
                     }
                     try std.testing.expect(rejected.proof == null);
                 }
@@ -231,7 +231,7 @@ pub fn ForBackend(comptime Backend: type) type {
                 defer a.free(reencoded);
                 try std.testing.expectEqualSlices(u8, bytes, reencoded);
                 std.debug.print("V2_BLAKE3_NATIVE_PARENT_CODEC wire_bytes={d} canonical_roundtrip=true\n", .{bytes.len});
-                var verified = try @import("../blake3_native_parent_verifier.zig").verify(&owned, &self.admission);
+                var verified = try @import("../parent/blake3/blake3_native_parent_verifier.zig").verify(&owned, &self.admission);
                 defer verified.deinit();
                 try std.testing.expect(owned.proof == null);
                 try std.testing.expectError(error.ConsumedBlake3ParentArtifact, owned.validate(&self.admission));

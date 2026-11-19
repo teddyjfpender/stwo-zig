@@ -422,7 +422,7 @@ transcript digest after each §1.3 step, and per-component trace SHA-256s
 | Cairo AIR, witness, canonical_small, n_id_to_big=16 | `src/frontends/cairo/` (`preprocessed/variant.zig`, `claim_generator.zig`) | The vendored AIR is byte-identical to `82f2125`. |
 | Felt JSON writer, query transpose | `src/frontends/cairo/proof/cairo_serde/{felt_json,queries,pcs}.zig` | `felt_json` matches the serde pretty array. `pcs.zig` rejects lifting ≠ 0, and `queries.zig` is tied to the Cairo composition bundle; both need circuit variants. |
 | Blake AIR precedent | `src/products/native/examples/blake/*` | Style template for blake_g_gate and the xor tables. |
-| Graph-builder engineering | `src/frontends/riscv/recursion/arithmetic_circuit.zig` | Take the patterns only (flat nodes, u32 ids, scoped scratch). Its hash-consing **must not** be used because it reorders gates. Do not import from `riscv/`. |
+| Graph-builder engineering | `src/frontends/riscv/recursion/composition/arithmetic_circuit.zig` | Take the patterns only (flat nodes, u32 ids, scoped scratch). Its hash-consing **must not** be used because it reorders gates. Do not import from `riscv/`. |
 
 **Not reusable as generators:**
 

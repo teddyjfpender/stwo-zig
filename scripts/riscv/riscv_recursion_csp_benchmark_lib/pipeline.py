@@ -53,7 +53,7 @@ from .native_adapter import (
     _rounded_mean,
     adapt_native_report,
 )
-PAIR_NODE_RELATIVE = Path("src/frontends/riscv/recursion/pair_node.zig")
+PAIR_NODE_RELATIVE = Path("src/frontends/riscv/recursion/parent/pair/pair_node.zig")
 RECURSIVE_FRI_OUTER_RELATIVE = Path(
     "src/integrations/riscv_cpu/recursive_fri_outer.zig"
 )

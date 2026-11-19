@@ -11,15 +11,15 @@ const public_data_support = @import("stwo_riscv_rv32").testing.air.public_data_t
 const native_relations = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 const statement_v1 = @import("stwo_riscv_rv32").air.statement;
 const native_statement = @import("stwo_riscv_rv32").air.statement_v2;
-const leaf_source = @import("../variable_boundary_leaf_authority.zig");
-const public_source = @import("../variable_boundary_outer_source.zig");
-const subject = @import("../segment_public_native_sum_authority.zig");
-const fixture_support = @import("../segment_public_outer_test_support.zig");
+const leaf_source = @import("../segment/variable_boundary_leaf_authority.zig");
+const public_source = @import("../segment/public/variable_boundary_outer_source.zig");
+const subject = @import("../segment/public/segment_public_native_sum_authority.zig");
+const fixture_support = @import("../segment/public/segment_public_outer_test_support.zig");
 const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
-const register_bytes = @import("../segment_register_byte_layout.zig");
+const register_bytes = @import("../segment/segment_register_byte_layout.zig");
 const lowering = @import("stwo_riscv_rv32").recursion.air.verifier_arithmetic_lowering;
 
 const Fixture = fixture_support.Fixture;
@@ -675,8 +675,8 @@ const sparseValueCanonicalWords = public_data_support.sparseValueCanonicalWords;
 test "SegmentV2 native-sum sparse values preserve fixed graph under identical address topology" {
     const allocator = std.testing.allocator;
     const segment = @import("stwo_riscv_rv32").recursion.segment_statement;
-    const graph_contract = @import("../segment_public_native_sum_authority_contract.zig");
-    const graph_builder = @import("../segment_public_native_sum_authority_add_boundary_terms.zig");
+    const graph_contract = @import("../segment/public/segment_public_native_sum_authority_contract.zig");
+    const graph_builder = @import("../segment/public/segment_public_native_sum_authority_add_boundary_terms.zig");
     const values = [_]u32{ 13, 14, 269 };
     var graphs: [values.len]graph_contract.OwnedGraph = undefined;
     var initialized: usize = 0;
@@ -749,8 +749,8 @@ fn sparseSpecializationTermsEqual(left: []const lowering.PublicWireTerm, right: 
 // Independent input construction for the production graph, using its shared
 // typed coordinates and the native public-sum oracle. No native verification
 // receipt is fabricated just to exercise an arithmetic compiler regression.
-fn evaluateSparseCanonicalGraph(allocator: std.mem.Allocator, circuit: *const @import("../arithmetic_circuit.zig").Circuit, words: []const M31) !QM31 {
-    const build = @import("../segment_public_native_sum_authority_add_boundary_terms.zig");
+fn evaluateSparseCanonicalGraph(allocator: std.mem.Allocator, circuit: *const @import("../composition/arithmetic_circuit.zig").Circuit, words: []const M31) !QM31 {
+    const build = @import("../segment/public/segment_public_native_sum_authority_add_boundary_terms.zig");
     const data = try public_data_v2.PublicDataV2.authenticate(words);
     const view = try data.authenticatedView();
     const memory = try register_bytes.MemoryLayout.init(&view);

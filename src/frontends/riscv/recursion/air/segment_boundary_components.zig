@@ -10,8 +10,8 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 
-const air_v2 = @import("../segment_leaf_outer_air.zig");
-const authority_v2 = @import("../segment_leaf_outer_authority.zig");
+const air_v2 = @import("../segment/leaf/segment_leaf_outer_air.zig");
+const authority_v2 = @import("../segment/leaf/segment_leaf_outer_authority.zig");
 const manifest_v2 = @import("segment_outer_adapter_manifest.zig");
 const typed_component = @import("stwo_riscv_air_lang").framework.universal_typed_component;
 const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;

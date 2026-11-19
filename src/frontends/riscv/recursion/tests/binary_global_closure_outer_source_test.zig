@@ -4,7 +4,7 @@ const stwo_core = @import("stwo_core");
 const m31 = stwo_core.fields.m31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-const owner = @import("../binary_global_closure_outer_source.zig");
+const owner = @import("../binary/closure/binary_global_closure_outer_source.zig");
 const relation = @import("stwo_riscv_air_lang").relation;
 const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 

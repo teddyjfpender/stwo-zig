@@ -3,9 +3,9 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const public_data_mod = @import("stwo_riscv_rv32").air.public_data;
-const leaf_owner = @import("../segment_leaf_authority.zig");
+const leaf_owner = @import("../segment/leaf/segment_leaf_authority.zig");
 const claim = @import("stwo_riscv_rv32").recursion.vm_public_claim;
-const source = @import("../segment_statement_outer_source.zig");
+const source = @import("../segment/statement/segment_statement_outer_source.zig");
 const framework = @import("stwo_riscv_air_lang").framework.framework_interaction;
 const manifest_mod = @import("stwo_riscv_air_lang").framework.universal_adapter_manifest;
 const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
@@ -17,7 +17,7 @@ const row11_relation = @import("stwo_riscv_recursion_air").statement.semantics_i
 const row11_witness = @import("stwo_riscv_rv32").recursion.air.statement_semantics_input_witness;
 const range_bridge = @import("stwo_riscv_rv32").recursion.air.range_check_8_8_bridge;
 
-const test_support = @import("../segment_statement_outer_source_test_support.zig");
+const test_support = @import("../segment/statement/segment_statement_outer_source_test_support.zig");
 const authorityFailureCase = test_support.authorityFailureCase;
 const workspaceFailureCase = test_support.workspaceFailureCase;
 const preparedFailureCase = test_support.preparedFailureCase;
@@ -761,5 +761,5 @@ test "R-012 segment statement outer source rejects mutations before commit" {
 }
 
 test {
-    _ = @import("../segment_statement_outer_source_test_continuation_1.zig");
+    _ = @import("../segment/statement/segment_statement_outer_source_test_continuation_1.zig");
 }

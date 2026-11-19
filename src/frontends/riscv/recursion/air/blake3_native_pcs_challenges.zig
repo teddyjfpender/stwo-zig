@@ -1,7 +1,7 @@
 //! Role-indexed transcript challenge routing across native VM, DEEP and FRI.
 const std = @import("std");
 const core = @import("stwo_core");
-const vm = @import("../vm_air_composition_circuit.zig");
+const vm = @import("../composition/vm/vm_air_composition_circuit.zig");
 const native = @import("stwo_riscv_rv32").recursion.air.blake3_native_transcript;
 const vm_links = @import("blake3_native_challenge_links.zig");
 const deep_mod = @import("blake3_native_deep.zig");

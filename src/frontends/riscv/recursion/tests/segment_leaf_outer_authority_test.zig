@@ -3,9 +3,9 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const air_v2 = @import("../segment_leaf_outer_air.zig");
-const authority = @import("../segment_leaf_outer_authority.zig");
-const source_v2 = @import("../variable_boundary_leaf_authority.zig");
+const air_v2 = @import("../segment/leaf/segment_leaf_outer_air.zig");
+const authority = @import("../segment/leaf/segment_leaf_outer_authority.zig");
+const source_v2 = @import("../segment/variable_boundary_leaf_authority.zig");
 const public_data_v2 = @import("stwo_riscv_rv32").air.public_data_v2;
 const native_relations = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 const statement_v1 = @import("stwo_riscv_rv32").air.statement;
@@ -16,7 +16,7 @@ const relation = @import("stwo_riscv_air_lang").relation;
 const framework = @import("stwo_riscv_air_lang").framework.framework_interaction;
 const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 
-const test_support = @import("../segment_leaf_outer_authority_test_support.zig");
+const test_support = @import("../segment/leaf/segment_leaf_outer_authority_test_support.zig");
 const OwnedTraces = test_support.OwnedTraces;
 const expectedStatementClaim = test_support.expectedStatementClaim;
 const expectedPublicLogUpClaim = test_support.expectedPublicLogUpClaim;

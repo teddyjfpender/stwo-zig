@@ -10,7 +10,7 @@ const M31 = stwo_core.fields.m31.M31;
 
 const air = @import("segment_publication_input_provider.zig");
 const binding = @import("segment_publication_input_provider_relation.zig");
-const authority = @import("../segment_publication_input_provider_authority.zig");
+const authority = @import("../segment/public/segment_publication_input_provider_authority.zig");
 const framework = @import("stwo_riscv_air_lang").framework.framework_interaction;
 const segment_manifest = @import("segment_outer_adapter_manifest.zig");
 const typed_component = @import("stwo_riscv_air_lang").framework.universal_typed_component;
