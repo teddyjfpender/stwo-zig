@@ -313,8 +313,6 @@ pub fn ForField(comptime Secure: type) type {
                     var query_capture_owned = true;
                     defer if (query_capture_owned) query_capture.deinit(allocator);
                     const query_positions = query_capture.unique;
-                    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_VERIFIER_DECOMMIT"))
-                        std.debug.print("verifier_sampled_queries={any}\n", .{query_positions});
 
                     const query_positions_tree = try allocator.alloc([]const usize, self.trees.items.len);
                     var query_trees_initialized: usize = 0;

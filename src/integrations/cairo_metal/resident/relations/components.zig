@@ -245,37 +245,6 @@ pub fn prepareComponents(
     return .{ .allocator = allocator, .operations = try operations.toOwnedSlice(allocator) };
 }
 
-pub fn logDiagnostics(
-    bindings: Bindings,
-    resident_arena: *arena_plan.ResidentArena,
-    relations: PreparedRelationComponents,
-) !void {
-    const z_bytes: []align(4) u8 = @alignCast(try resident_arena.bytes(bindings.z));
-    const alpha_bytes: []align(4) u8 = @alignCast(try resident_arena.bytes(bindings.alpha_powers));
-    const z = std.mem.bytesAsSlice(u32, z_bytes);
-    const alpha_powers = std.mem.bytesAsSlice(u32, alpha_bytes);
-    if (z.len < 4 or alpha_powers.len < 8) return Error.InvalidBindingSize;
-    std.debug.print(
-        "relation_challenge z={},{},{},{} alpha={},{},{},{}\n",
-        .{ z[0], z[1], z[2], z[3], alpha_powers[4], alpha_powers[5], alpha_powers[6], alpha_powers[7] },
-    );
-    for (relations.operations) |operation| {
-        for (0..operation.claimed_sum_count) |instance_index| {
-            const claimed_index = @as(usize, operation.claimed_sum_start) + instance_index;
-            if (claimed_index >= bindings.claimed_sums.len) return Error.InvalidClaimedSumCount;
-            const claimed_bytes: []align(4) u8 = @alignCast(
-                try resident_arena.bytes(bindings.claimed_sums[claimed_index]),
-            );
-            const claimed = std.mem.bytesAsSlice(u32, claimed_bytes);
-            if (claimed.len < 4) return Error.InvalidBindingSize;
-            std.debug.print(
-                "relation_claimed ordinal={} component={s} instance={} value={},{},{},{}\n",
-                .{ claimed_index, operation.component, instance_index, claimed[0], claimed[1], claimed[2], claimed[3] },
-            );
-        }
-    }
-}
-
 fn countFixedRelationTraces(traces: []const relation_bundle_mod.Trace) usize {
     var count: usize = 0;
     for (traces) |trace| count += switch (trace.part) {

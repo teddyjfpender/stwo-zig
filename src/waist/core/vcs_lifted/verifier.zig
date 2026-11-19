@@ -387,13 +387,7 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
                 return MerkleVerificationError.WitnessTooLong;
             }
             if (prev_layer.items.len != 1) return MerkleVerificationError.RootMismatch;
-            if (!vcs_hash.eql(prev_layer.items[0].hash, self.root)) {
-                if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_VERIFIER_DECOMMIT")) {
-                    std.debug.print("verifier_merkle_actual={any}\n", .{prev_layer.items[0].hash});
-                    std.debug.print("verifier_merkle_expected={any}\n", .{self.root});
-                }
-                return MerkleVerificationError.RootMismatch;
-            }
+            if (!vcs_hash.eql(prev_layer.items[0].hash, self.root)) return MerkleVerificationError.RootMismatch;
 
             if (capture_out) |destination| {
                 var capture = MerklePathCapture(H){

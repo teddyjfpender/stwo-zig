@@ -779,14 +779,6 @@ pub const PreparedProofBindings = struct {
         try transcript_operations.publishInteractionClaim(self.transcriptBindings(), resident_arena, schedule, plan);
     }
 
-    pub fn logRelationDiagnostics(
-        self: PreparedProofBindings,
-        resident_arena: *arena_plan.ResidentArena,
-        relations: PreparedRelationComponents,
-    ) !void {
-        try relation_components.logDiagnostics(self.relationBindings(), resident_arena, relations);
-    }
-
     fn commitmentTwiddleBinding(self: PreparedProofBindings, plan: arena_plan.Plan, tree_index: u32) arena_plan.Binding {
         _ = plan;
         _ = tree_index;
