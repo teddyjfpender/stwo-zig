@@ -2272,20 +2272,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ETHEREUM_PUBLIC_SUMS_BENCH_WORDS": {
-      "owner": "src/frontends/riscv/rv32/air/tests/incremental_public_logup_bench_test.zig",
-      "default": "null",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv32/air/tests/incremental_public_logup_bench_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv32/air/tests/incremental_public_logup_bench_test.zig",
-        "text": "    const count_text = std.process.getEnvVarOwned(allocator, \"STWO_ETHEREUM_PUBLIC_SUMS_BENCH_WORDS\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => null,\n        else => return err,\n    };\n    defer if (count_text) |text| allocator.free(text);\n    const count = if (count_text) |text| try std.fmt.parseUnsigned(u32, text, 10) else 4096;\n    if (count == 0 or count > (std.math.maxInt(u32) - 0x2000) / 4) return error.InvalidBenchmarkWordCount;"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_FELT_INVERSE": {
       "owner": "tests/cuda/cumetal/felt252_execution.cu",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -2434,20 +2420,6 @@
       "references": [
         "src/backends/cuda/aot/native/witness_m31_permutation_trace_0ce5a65a150f8601.cu"
       ]
-    },
-    "STWO_M3_CHILD_BLOCKS": {
-      "owner": "src/integrations/riscv_cpu/rv64_om31_m3_fold_test_root.zig",
-      "default": "4",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/rv64_om31_m3_fold_test_root.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_om31_m3_fold_test_root.zig",
-        "text": "    const text = std.process.getEnvVarOwned(fba.allocator(), \"STWO_M3_CHILD_BLOCKS\") catch return 4;\n    return std.fmt.parseInt(usize, text, 10) catch 4;\n}\n\ntest \"M3 fold census: profile x arity verifier circuit sizes\" {\n    const a = std.heap.smp_allocator;\n    const before = Outer.protocol.active();"
-      },
-      "expires": "2026-12-13"
     },
     "STWO_METAL_CORE_AOT_BUNDLE": {
       "owner": "scripts/tests/test_focused_ci_contract.py",
@@ -2802,20 +2774,6 @@
       "references": [
         "src/backends/cuda/authority/active/cuda_mem_pool.cuh"
       ]
-    },
-    "STWO_OM31_OUTER_GRAPH_ONLY": {
-      "owner": "src/integrations/riscv_cpu/rv64_om31_outer_test_root.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/rv64_om31_outer_test_root.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_om31_outer_test_root.zig",
-        "text": "    const graph_only = std.process.hasEnvVarConstant(\"STWO_OM31_OUTER_GRAPH_ONLY\");\n    if (graph_only) return;\n    const Q = Outer.protocol.Q;\n    try circuit.common.finalize.padToTargets(Q, &graph.ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&graph.ctx.circuit)));\n    var root_pp = try circuit.common.preprocessed.PreprocessedCircuit.fromBuilderCircuit(a, &graph.ctx.circuit);\n    defer root_pp.deinit(a);\n    var root_key = try Outer.prove.Authority.init(a, &root_pp);"
-      },
-      "expires": "2026-12-13"
     },
     "STWO_P2_FAST_REDUCTION": {
       "owner": "tests/cuda/rv64/poseidon2_m31_smoke.cu",
