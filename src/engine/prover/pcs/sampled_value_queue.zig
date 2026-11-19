@@ -67,5 +67,4 @@ pub fn run(pool: *pools.WorkPool, count: usize, first: usize, context: *anyopaqu
     drive.run();
     group.wait();
     if (lease) |*held| held.completeWave();
-    if (std.process.hasEnvVarConstant("STWO_ZIG_PROFILE_SAMPLED_QUEUE")) std.debug.print("SAMPLED_QUEUE threads={d} trees={d} batches={d} tasks={d}\n", .{ threads, count, queue.batches_published, queue.batch_tasks_run });
 }
