@@ -277,19 +277,10 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
             executed_relations += 1;
         }
         if (executed_relations != relations.operations.len) return error.RelationGraphNotExecuted;
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_RELATION_DIAGNOSTICS"))
-            try bindings.logRelationDiagnostics(resident_arena, relations);
         try bindings.publishInteractionClaim(resident_arena, schedule, plan);
         if (transcript_reference) |fixture|
             try transcript.expectInputWords(22, fixture.input_22);
         try bindings.populateCommitmentTwiddles(allocator, resident_arena, plan, 2);
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_INTERACTION_COEFF_DIGESTS"))
-            try arena_binding_mod.logInteractionCoefficientDigests(
-                resident_arena,
-                schedule,
-                plan,
-                "before_commit",
-            );
         const committed = try bindings.executeCommitment(
             metal,
             resident_arena,

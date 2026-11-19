@@ -238,16 +238,6 @@ fn verifyWithGeometry(
     initialized = 0;
 
     proof_moved = true;
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_VERIFIER_DECOMMIT")) {
-        std.debug.print("verifier_bundle_raw_queries={any}\n", .{input.bundle.decommitment.raw_queries});
-        std.debug.print("verifier_bundle_unique_queries={any}\n", .{input.bundle.decommitment.unique_queries});
-        for (input.bundle.decommitment.trees, 0..) |tree, index| {
-            std.debug.print(
-                "verifier_bundle_tree index={} role={} query_count={} value_count={} hash_count={} leaf_log={}\n",
-                .{ index, tree.role, tree.query_count, tree.values_count, tree.hash_witness_count, tree.leaf_log_size },
-            );
-        }
-    }
     if (capture) |out| {
         try core_verifier.verifyExWithProofCapture(
             Hasher,

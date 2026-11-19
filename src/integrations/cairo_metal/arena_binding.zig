@@ -21,7 +21,7 @@ const preprocessed_coefficients_mod = @import("resident/preprocessed/coefficient
 const preprocessed_storage = @import("resident/preprocessed/storage.zig");
 const relation_claims = @import("resident/relations/claims.zig");
 const relation_components = @import("resident/relations/components.zig");
-const interaction_diagnostics = @import("resident/interaction/diagnostics.zig");
+
 const interaction_execute = @import("resident/interaction/execute.zig");
 const resident_binding = @import("resident/binding.zig");
 const resident_errors = @import("resident/errors.zig");
@@ -188,7 +188,6 @@ pub const executeNativeEcConsumer = witness_execute.executeNativeEcConsumer;
 pub const executeScheduledWitnessGraph = witness_execute.executeScheduledWitnessGraph;
 pub const InteractionExecutionTelemetry = interaction_execute.InteractionExecutionTelemetry;
 pub const executeScheduledInteractionGraph = interaction_execute.executeScheduledInteractionGraph;
-pub const logInteractionCoefficientDigests = interaction_diagnostics.logInteractionCoefficientDigests;
 
 pub const gatherWitnessInput = witness_execute.gatherWitnessInput;
 

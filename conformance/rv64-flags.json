@@ -7616,34 +7616,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_LOG_INTERACTION_COEFF_DIGESTS": {
-      "owner": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/interaction_execution.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_INTERACTION_COEFF_DIGESTS\"))\n            try arena_binding_mod.logInteractionCoefficientDigests(\n                resident_arena,\n                schedule,\n                plan,\n                \"before_commit\",\n            );"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_RELATION_DIAGNOSTICS": {
-      "owner": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/interaction_execution.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_RELATION_DIAGNOSTICS\"))\n            try bindings.logRelationDiagnostics(resident_arena, relations);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_LOG_STAGE_TIMINGS": {
       "owner": "src/backends/metal/recipes/fri.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -7666,22 +7638,6 @@
       "default_evidence": {
         "path": "src/backends/metal/recipes/fri.zig",
         "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\"))\n            try self.validateInverseTwiddles();\n        self.accumulated_gpu_ms += try self.metal.quotientCombinePrepared(self.arena.buffer, self.combine);\n        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\")) {\n            try self.validateCombineSamples();\n            self.logDigest(\"combine\", self.subdomain_values) catch {};\n        }"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_VERIFIER_DECOMMIT": {
-      "owner": "src/frontends/cairo/witness/resident_verifier.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/cairo/witness/resident_verifier.zig",
-        "src/waist/core/pcs/verifier_family.zig",
-        "src/waist/core/vcs_lifted/verifier.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/cairo/witness/resident_verifier.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_VERIFIER_DECOMMIT\")) {\n        std.debug.print(\"verifier_bundle_raw_queries={any}\\n\", .{input.bundle.decommitment.raw_queries});\n        std.debug.print(\"verifier_bundle_unique_queries={any}\\n\", .{input.bundle.decommitment.unique_queries});\n        for (input.bundle.decommitment.trees, 0..) |tree, index| {\n            std.debug.print(\n                \"verifier_bundle_tree index={} role={} query_count={} value_count={} hash_count={} leaf_log={}\\n\",\n                .{ index, tree.role, tree.query_count, tree.values_count, tree.hash_witness_count, tree.leaf_log_size },"
       },
       "expires": "2026-12-13"
     },
