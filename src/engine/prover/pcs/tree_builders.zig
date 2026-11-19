@@ -428,11 +428,8 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
 
             // Retain preparation layout through openings. Explicit retained
             // storage still relocates independent LDE allocations.
-            const preserve_lde = self.compact_committer == null and self.retained_column_allocator == null and
-                !std.process.hasEnvVarConstant("STWO_ZIG_DETACH_STREAMING_LDE");
-            if (arena == null and !borrow_backings and std.process.hasEnvVarConstant("STWO_ZIG_DETACH_STREAMING_COEFFICIENTS"))
-                try prepared.detachBacking(self.allocator)
-            else if (!preserve_lde)
+            const preserve_lde = self.compact_committer == null and self.retained_column_allocator == null;
+            if (!preserve_lde)
                 try prepared.detachColumnBacking(self.allocator);
 
             if (self.retained_column_allocator != null and
@@ -585,8 +582,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 } else null;
                 const legacy_merkle = loaded orelse device_tree orelse if (supports_sparse_tail)
                     try self.streaming_committer.commitColumnsWithSparseTail(sorted)
-                else if (self.commitment_scheme.reuse_bounded_merkle_tail and
-                    !std.process.hasEnvVarConstant("STWO_ZIG_REPLAY_BOUNDED_MERKLE_TAIL"))
+                else if (self.commitment_scheme.reuse_bounded_merkle_tail)
                     try self.streaming_committer.commitColumnsWithReusedBoundedPrefix(
                         sorted,
                         bounded_prefix_state_budget_bytes,

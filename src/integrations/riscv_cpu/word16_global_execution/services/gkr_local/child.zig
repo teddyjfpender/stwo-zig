@@ -79,14 +79,6 @@ pub fn treeCheckpoints(a: std.mem.Allocator) !?bool {
     defer a.free(value);
     return parseTreeCheckpoints(value);
 }
-fn treeMetrics(a: std.mem.Allocator) !bool {
-    const value = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_TREE_METRICS") catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return false,
-        else => return err,
-    };
-    defer a.free(value);
-    return std.mem.eql(u8, value, "1");
-}
 
 pub const TreePolicy = struct { checkpointed: bool = false, tight_admission: bool = false, stream_bottom: bool = false };
 pub fn parseTightAdmission(value: ?[]const u8) !bool {
@@ -227,7 +219,6 @@ pub const Unbound = struct {
         };
         const checkpointed = policy.checkpointed;
         if (policy.stream_bottom and !policy.tight_admission) return error.InvalidGkrStreamBottomPolicy;
-        const metrics = try treeMetrics(a);
         const original_plan = if (policy.stream_bottom) try Resource.Plan.forInstancesWithSourceStorage(instances, limit, checkpointed) else try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
         const plan = if (deferred) try original_plan.withDeferredBinding(instances.len, limit) else original_plan;
         // Owner address remains stable for every proof/result allocation.
@@ -295,7 +286,6 @@ pub const Unbound = struct {
             value.admitted_gkr_peak_bytes = plan.peak_bytes;
             value.gkr_allocator_limit_bytes = self.budget.limit;
         }
-        if (metrics) std.debug.print("GKR_TREE_POLICY stride={d} numerical_requested_peak={d} including_binding_peak={d} raw_input_bytes={d} tight_admission={any} admitted_peak_bytes={d} allocator_limit_bytes={d} streamed_bottom={any} planned_input_reserve_bytes={d}\n", .{ @as(u8, if (checkpointed) 2 else 1), numerical_peak_bytes, self.peak_gkr_owned_bytes, @as(usize, if (policy.stream_bottom) 0 else plan.input_bytes), policy.tight_admission, plan.peak_bytes, self.budget.limit, policy.stream_bottom, plan.input_bytes });
         successful = true;
         return self;
     }

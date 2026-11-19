@@ -15,12 +15,11 @@ pub fn decommit(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: 
     return decommitForBackend(void, H, a, tree, queries);
 }
 
-/// Host openings default to coefficient-sized pruned windows with per-worker
-/// scratch reuse and a column work queue. STWO_ZIG_FULL_SCRATCH_OPENING=1
-/// restores the previous full-scratch wave schedule for A/B comparison.
+/// Host openings use coefficient-sized pruned windows with per-worker scratch
+/// reuse. Native expansion accepts bounded waves of complete column buffers.
 pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
     const native_expansion = comptime B != void and @hasDecl(B, "evaluateCircleBuffers");
-    if (native_expansion or std.process.hasEnvVarConstant("STWO_ZIG_FULL_SCRATCH_OPENING"))
+    if (native_expansion)
         return decommitWaves(B, H, a, tree, queries, false);
     return decommitQueued(H, a, tree, queries, true);
 }
@@ -232,8 +231,7 @@ fn Queue(comptime Columns: type) type {
     };
 }
 
-/// Previous schedule: bounded waves with a fresh scratch per column. Kept for
-/// native (GPU) expansion and as the STWO_ZIG_FULL_SCRATCH_OPENING A/B path.
+/// Bounded waves for native expansion and the test-only reference schedules.
 fn decommitWaves(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize, half_requested: bool) !traversal.DecommitmentResult(H) {
     const native_expansion = comptime B != void and @hasDecl(B, "evaluateCircleBuffers");
     const use_half = !native_expansion and half_requested;
@@ -512,7 +510,7 @@ const PositionPlan = struct {
     }
 };
 pub const testing = if (@import("builtin").is_test) struct {
-    /// Previous default: full-scratch waves (STWO_ZIG_FULL_SCRATCH_OPENING).
+    /// Full-scratch wave reference for byte comparisons.
     pub fn decommitFull(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
         return decommitWaves(void, H, a, tree, queries, false);
     }

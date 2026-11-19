@@ -3398,20 +3398,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_RISCV_SMALL_COMMIT_BATCH": {
-      "owner": "src/frontends/riscv/rv32/prover/blake3_coefficient_retention.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv32/prover/blake3_coefficient_retention.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv32/prover/blake3_coefficient_retention.zig",
-        "text": "    return if (std.process.hasEnvVarConstant(\"STWO_RISCV_SMALL_COMMIT_BATCH\")) 8 else 0;\n}"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ROW_PARITY_FIXTURES": {
       "owner": "tests/cuda/cumetal/row_chunks_execution.cu",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -6029,34 +6015,6 @@
         "src/backends/metal/shaders/manifest_test.zig"
       ]
     },
-    "STWO_ZIG_DETACH_STREAMING_COEFFICIENTS": {
-      "owner": "src/engine/prover/pcs/tree_builders.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/tree_builders.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/tree_builders.zig",
-        "text": "            if (arena == null and !borrow_backings and std.process.hasEnvVarConstant(\"STWO_ZIG_DETACH_STREAMING_COEFFICIENTS\"))\n                try prepared.detachBacking(self.allocator)\n            else if (!preserve_lde)\n                try prepared.detachColumnBacking(self.allocator);\n\n            if (self.retained_column_allocator != null and\n                (prepared.column_backing_buffers != null or prepared.coefficients != null))"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_DETACH_STREAMING_LDE": {
-      "owner": "src/engine/prover/pcs/tree_builders.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/tree_builders.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/tree_builders.zig",
-        "text": "                !std.process.hasEnvVarConstant(\"STWO_ZIG_DETACH_STREAMING_LDE\");\n            if (arena == null and !borrow_backings and std.process.hasEnvVarConstant(\"STWO_ZIG_DETACH_STREAMING_COEFFICIENTS\"))\n                try prepared.detachBacking(self.allocator)\n            else if (!preserve_lde)\n                try prepared.detachColumnBacking(self.allocator);\n\n            if (self.retained_column_allocator != null and"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_EC_METAL": {
       "owner": "src/backends/metal/shaders/include/ec.metal",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -6160,20 +6118,6 @@
         "src/backends/metal/shaders/include/felt252.metal"
       ]
     },
-    "STWO_ZIG_FULL_SCRATCH_OPENING": {
-      "owner": "src/engine/prover/pcs/coefficient_opening.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/coefficient_opening.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/coefficient_opening.zig",
-        "text": "    if (native_expansion or std.process.hasEnvVarConstant(\"STWO_ZIG_FULL_SCRATCH_OPENING\"))\n        return decommitWaves(B, H, a, tree, queries, false);\n    return decommitQueued(H, a, tree, queries, true);\n}\n\nfn validateQueries(max_log: u32, queries: []const usize) !void {\n    const size = @as(usize, 1) << @intCast(max_log);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_GKR_STREAM_BOTTOM": {
       "owner": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig",
       "default": "null",
@@ -6213,20 +6157,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig",
         "text": "    const value = std.process.getEnvVarOwned(a, \"STWO_ZIG_GKR_TREE_CHECKPOINTS\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return null,\n        else => return err,\n    };\n    defer a.free(value);\n    return parseTreeCheckpoints(value);\n}"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_GKR_TREE_METRICS": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig",
-        "text": "    const value = std.process.getEnvVarOwned(a, \"STWO_ZIG_GKR_TREE_METRICS\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return false,\n        else => return err,\n    };\n    defer a.free(value);\n    return std.mem.eql(u8, value, \"1\");\n}"
       },
       "expires": "2026-12-13"
     },
@@ -6645,20 +6575,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_PROFILE_SAMPLED_PLAN_OVERLAP": {
-      "owner": "src/engine/prover/pcs/sampled_values.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/sampled_values.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/sampled_values.zig",
-        "text": "        \"STWO_ZIG_PROFILE_SAMPLED_PLAN_OVERLAP\",\n    )) {\n        var overlap_timer = try std.time.Timer.start();\n        var overlap = try plan_overlap.derive(\n            allocator,\n            trees,\n            sampled_points.items,"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_REGENERATE_RISCV_POLYNOMIAL_AOT": {
       "owner": "src/products/riscv/cpu/tests/metal_backend_test.zig",
       "default": "null at environment lookup; enclosing presence predicate is pinned",
@@ -6671,20 +6587,6 @@
       "default_evidence": {
         "path": "src/products/riscv/cpu/tests/metal_backend_test.zig",
         "text": "    if (std.posix.getenv(\"STWO_ZIG_REGENERATE_RISCV_POLYNOMIAL_AOT\") != null) {\n        try std.fs.cwd().writeFile(.{\n            .sub_path = \".zig-cache/riscv_polynomials.generated.metal\",\n            .data = source,\n        });\n        return;\n    }"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_REPLAY_BOUNDED_MERKLE_TAIL": {
-      "owner": "src/engine/prover/pcs/tree_builders.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/tree_builders.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/tree_builders.zig",
-        "text": "                    !std.process.hasEnvVarConstant(\"STWO_ZIG_REPLAY_BOUNDED_MERKLE_TAIL\"))\n                    try self.streaming_committer.commitColumnsWithReusedBoundedPrefix(\n                        sorted,\n                        bounded_prefix_state_budget_bytes,\n                        null,\n                    )\n                else"
       },
       "expires": "2026-12-13"
     },
@@ -6874,20 +6776,6 @@
             "text": "        const v = std.process.getEnvVarOwned(a, IDENTITY_ONLY_ENV) catch break :blk true;\n        defer a.free(v);\n        break :blk !std.mem.eql(u8, v, \"0\");\n    };\n    const threads = blk: {\n        const v = std.process.getEnvVarOwned(a, \"STWO_ZIG_RV64_SETUP_BUILD_THREADS\") catch break :blk @as(usize, 8);\n        defer a.free(v);"
           }
         ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SCALAR_TAIL_UPDATES": {
-      "owner": "src/engine/prover/vcs_lifted/streaming_committer.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/vcs_lifted/streaming_committer.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/vcs_lifted/streaming_committer.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SCALAR_TAIL_UPDATES\")) {\n                return finalizeBoundedTailRangeReusingImpl(range, false);\n            }\n            if (@import(\"bounded_blake2_tail.zig\").finalize(H, range)) |absorptions| {\n                range.absorptions = absorptions;\n                return;\n            }"
       },
       "expires": "2026-12-13"
     },
