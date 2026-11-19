@@ -138,20 +138,6 @@ pub fn evaluateAndReleaseWithWorkRecorder(
     const coefficient_work_audit = if (capture_work) &coefficient_work else null;
     const barycentric_work_audit = if (capture_work) &barycentric_work else null;
 
-    if (std.process.hasEnvVarConstant("STWO_ZIG_PROFILE_SAMPLED_DISPATCH")) {
-        std.debug.print("SAMPLED_DISPATCH backend={s} coefficient={} barycentric={} mixed={}\n", .{
-            @typeName(B),                                @hasDecl(B, "evaluateCoefficientPlans"),
-            @hasDecl(B, "evaluateBarycentricTreePlans"), @hasDecl(B, "supportsMixedSampledEvaluation"),
-        });
-        for (trees, 0..) |tree, i| {
-            var log: u32 = 0;
-            for (tree.columns) |column| log = @max(log, column.log_size);
-            std.debug.print("SAMPLED_TREE index={d} coefficients={} columns={d} max_log={d}\n", .{
-                i, tree.coefficients != null, tree.columns.len, log,
-            });
-        }
-    }
-
     if (comptime @hasDecl(B, "evaluateCoefficientPlans")) {
         if (try evaluateCoefficientTreesWithBackend(
             B,
@@ -300,7 +286,7 @@ pub fn evaluateAndReleaseWithWorkRecorder(
             all_coefficients = false;
             break;
         };
-        if (all_coefficients and !std.process.hasEnvVarConstant("STWO_ZIG_LEGACY_SAMPLED_TREE_SCHEDULE")) {
+        if (all_coefficients) {
             const Callback = struct {
                 fn run(raw: *anyopaque, index: usize) void {
                     const workers: [*]SampledValueWorkerCtx(B, H) = @ptrCast(@alignCast(raw));
@@ -309,7 +295,7 @@ pub fn evaluateAndReleaseWithWorkRecorder(
             };
             for (worker_contexts) |*context| context.parallel_coefficient_plans = true;
             @import("sampled_value_queue.zig").run(pool, trees.len, largestTreeIndex(trees, sampled_points.items), worker_contexts.ptr, Callback.run);
-        } else if (preferBarycentricWaves(trees, sampled_points.items) or std.process.hasEnvVarConstant("STWO_ZIG_EXPERIMENTAL_PARALLEL_BARYCENTRIC_WEIGHTS")) {
+        } else if (preferBarycentricWaves(trees, sampled_points.items)) {
             // Large evaluation-form trees benefit from inner parallelism.
             // Drain one tree at a time so its bounded weight/dot lease does not
             // compete with unrelated tree workers or nested waits. The
@@ -450,7 +436,7 @@ fn largestTreeIndex(
     trees: anytype,
     sampled_points: [][][]CirclePointQM31,
 ) usize {
-    return largestTreeIndexForStorage(trees, sampled_points, !std.process.hasEnvVarConstant("STWO_ZIG_LEGACY_SAMPLED_TREE_SCHEDULE"));
+    return largestTreeIndexForStorage(trees, sampled_points, true);
 }
 
 fn largestTreeIndexForStorage(trees: anytype, sampled_points: [][][]CirclePointQM31, retained_coefficients: bool) usize {
