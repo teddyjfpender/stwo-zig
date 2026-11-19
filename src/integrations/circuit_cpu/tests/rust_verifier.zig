@@ -2,7 +2,7 @@
 //! https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230) on Zig circuit proofs.
 //!
-//! With `STWO_CIRCUIT_R7_EMIT_DIR` set, the R7 tests write each proof's
+//! With `-Dtest-r7-emit-dir` set, the R7 tests write each proof's
 //! CircuitSerialize bytes and a `verify-circuit` request; the oracle's
 //! verdicts on those files are committed as `vectors/circuit/r7/verify/`,
 //! and the tests require their own bytes to be the ones the Rust verifier
@@ -26,7 +26,7 @@ fn expectHex(expected: Json, actual: []const u8) !void {
 
 /// `vectors/circuit/r7/verify/<label>.json` is upstream `verify_circuit`'s
 /// verdict (oracle `verify-circuit`) on the bytes this test emitted with
-/// `STWO_CIRCUIT_R7_EMIT_DIR`; the Zig bytes must be the ones it accepted.
+/// `-Dtest-r7-emit-dir`; the Zig bytes must be the ones it accepted.
 pub fn expectAccepted(allocator: std.mem.Allocator, comptime label: []const u8, digest: *const [32]u8) !void {
     const bytes = try std.fs.cwd().readFileAlloc(allocator, "vectors/circuit/r7/verify/" ++ label ++ ".json", 1 << 20);
     defer allocator.free(bytes);
@@ -61,20 +61,15 @@ pub fn requestFor(
     };
 }
 
-/// With `env_var` naming a directory, writes `<label>.proof` and the
+/// Writes `<label>.proof` and the
 /// oracle's `verify-circuit` request `<label>.request.json` into it.
 pub fn emitTo(
     allocator: std.mem.Allocator,
-    comptime env_var: []const u8,
+    directory: []const u8,
     label: []const u8,
     encoded: []const u8,
     request: wire.verify_request.VerifyRequest,
 ) !void {
-    const directory = std.process.getEnvVarOwned(allocator, env_var) catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return,
-        else => return err,
-    };
-    defer allocator.free(directory);
     var dir = try std.fs.cwd().openDir(directory, .{});
     defer dir.close();
     const proof_name = try std.fmt.allocPrint(allocator, "{s}.proof", .{label});
@@ -88,7 +83,7 @@ pub fn emitTo(
     try dir.writeFile(.{ .sub_path = request_name, .data = json.written() });
 }
 
-/// With `STWO_CIRCUIT_R7_EMIT_DIR`, writes the CircuitSerialize bytes and the
+/// With `-Dtest-r7-emit-dir`, writes the CircuitSerialize bytes and the
 /// oracle's `verify-circuit` request for them.
 pub fn emit(
     allocator: std.mem.Allocator,
@@ -97,6 +92,7 @@ pub fn emit(
     proof: anytype,
     pp: *const preprocessed.PreprocessedCircuit,
 ) !void {
+    const directory = @import("circuit_test_options").emit_dir orelse return;
     var columns: [preprocessed.N_PREPROCESSED_COLUMNS]wire.verify_request.Column = undefined;
-    try emitTo(allocator, "STWO_CIRCUIT_R7_EMIT_DIR", label, encoded, requestFor(proof, pp, &columns));
+    try emitTo(allocator, directory, label, encoded, requestFor(proof, pp, &columns));
 }

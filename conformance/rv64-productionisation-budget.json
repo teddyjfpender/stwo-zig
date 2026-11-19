@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "typed_circuit_oracle_emission_issue332",
+      "net_code_budget": 15,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 332 moves two proof fixture directories from ambient qualification into the existing R7 and R11 test builds. The shared writer takes an explicit directory and the historical Rust oracle pins remain authoritative. No runtime inputs, schemas, dependencies or scripts are added."
+    },
+    {
       "id": "focused_formal_evidence_deferral_issue436",
       "net_code_budget": 110,
       "flags_added_budget": 0,

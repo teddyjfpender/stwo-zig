@@ -223,13 +223,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--zig-emit-dir",
         type=Path,
-        help="STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps; without it the "
+        help="-Dtest-r7-emit-dir of the Zig circuit-parity-r7 steps; without it the "
         "committed verify-circuit verdicts are kept",
     )
     parser.add_argument(
         "--r11-emit-dir",
         type=Path,
-        help="STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step; without it the "
+        help="-Dtest-r11-emit-dir of the Zig circuit-parity-r11 step; without it the "
         "committed R11 verdicts are kept",
     )
     args = parser.parse_args(argv)

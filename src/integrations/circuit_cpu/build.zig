@@ -137,6 +137,10 @@ pub fn build(b: *std.Build) void {
     r7_root.addImport("stwo_cairo_frontend", cairo);
     r7_root.addImport("stwo_circuit_recursion_wire", wire);
     r7_root.addImport("circuit_testing", circuit_testing);
+    const r7_emit_dir = b.option([]const u8, "test-r7-emit-dir", "Emit R7 proof and Rust-oracle request fixtures");
+    const r7_options = b.addOptions();
+    r7_options.addOption(?[]const u8, "emit_dir", r7_emit_dir);
+    r7_root.addOptions("circuit_test_options", r7_options);
     const cpu_provers = b.createModule(.{
         .root_source_file = b.path("tests/cpu_provers.zig"),
         .target = target,
@@ -161,6 +165,7 @@ pub fn build(b: *std.Build) void {
     const multiverifier_options = b.addOptions();
     multiverifier_options.addOption(?u32, "compact_min_log", if (std.mem.eql(u8, compact, "off")) null else std.fmt.parseInt(u32, compact, 10) catch @panic("test-compact-min-log must be a u32 or off"));
     multiverifier_options.addOption(?[]const u8, "inputs", b.option([]const u8, "test-multiverifier-inputs", "Pinned oracle multiverifier input file"));
+    multiverifier_options.addOption(?[]const u8, "emit_dir", r7_emit_dir);
     multiverifier_root.addOptions("circuit_test_options", multiverifier_options);
     const multiverifier_tests = b.addRunArtifact(b.addTest(.{ .root_module = multiverifier_root, .filters = filters }));
     multiverifier_tests.setCwd(repository_root);
@@ -262,6 +267,9 @@ pub fn build(b: *std.Build) void {
     r11_root.addImport("stwo_circuit_cpu_integration", integration);
     r11_root.addImport("stwo_circuit_recursion_wire", wire);
     r11_root.addImport("circuit_testing", circuit_testing);
+    const r11_options = b.addOptions();
+    r11_options.addOption(?[]const u8, "emit_dir", b.option([]const u8, "test-r11-emit-dir", "Emit R11 proof and Rust-oracle request fixtures"));
+    r11_root.addOptions("circuit_test_options", r11_options);
     const r11_tests = b.addRunArtifact(b.addTest(.{ .root_module = r11_root, .filters = filters }));
     r11_tests.setCwd(repository_root);
     b.step(

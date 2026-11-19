@@ -1307,48 +1307,22 @@
       ]
     },
     "STWO_CIRCUIT_R11_EMIT_DIR": {
-      "owner": "src/integrations/circuit_cpu/tests/r11_verify_test.zig",
-      "default": "disabled: absent directory skips oracle-file emission",
-      "status": "qualification",
+      "owner": "scripts/repo/upstream_pins_lib/circuit_recursion.py",
+      "default": "not applicable: retained literal in historical Rust-oracle pin commands",
+      "status": "reference-only",
       "date": "2026-11-13",
       "references": [
-        "scripts/interop/generate_circuit_oracle_vectors.py",
-        "scripts/repo/upstream_pins_lib/circuit_recursion.py",
-        "src/integrations/circuit_cpu/tests/r11_verify_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/tests/r11_verify_test.zig",
-        "text": "const emit_env = \"STWO_CIRCUIT_R11_EMIT_DIR\";\nconst verdicts_dir = \"vectors/circuit/r11/verify/\";\n\npub const Tamper = enum {\n    none,\n    output_digest,\n    preprocessed_root,",
-        "readers": [
-          {
-            "path": "src/integrations/circuit_cpu/tests/r11_verify_test.zig",
-            "text": "    const emitting = std.process.hasEnvVarConstant(emit_env);\n    for (std.enums.values(Tamper)) |tamper| {\n        const case = try tampered(arena, base, tamper);\n        const label = try std.fmt.allocPrint(arena, \"{s}-{s}\", .{ base.label, @tagName(tamper) });\n        const verdict = try circuit_cpu.verify.verifyProofBytes(gpa, &setup.table, &case.request, case.proof);\n        const want = tamper == .none;\n        switch (verdict) {"
-          }
-        ]
-      },
-      "expires": "2026-12-13"
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py"
+      ]
     },
     "STWO_CIRCUIT_R7_EMIT_DIR": {
-      "owner": "src/integrations/circuit_cpu/tests/rust_verifier.zig",
-      "default": "disabled: emitTo returns without writing when its environment directory is absent",
-      "status": "qualification",
+      "owner": "scripts/repo/upstream_pins_lib/circuit_recursion.py",
+      "default": "not applicable: retained literal in historical Rust-oracle pin commands",
+      "status": "reference-only",
       "date": "2026-11-13",
       "references": [
-        "scripts/interop/generate_circuit_oracle_vectors.py",
-        "scripts/repo/upstream_pins_lib/circuit_recursion.py",
-        "src/integrations/circuit_cpu/tests/rust_verifier.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/circuit_cpu/tests/rust_verifier.zig",
-        "text": "    try emitTo(allocator, \"STWO_CIRCUIT_R7_EMIT_DIR\", label, encoded, requestFor(proof, pp, &columns));\n}",
-        "readers": [
-          {
-            "path": "src/integrations/circuit_cpu/tests/rust_verifier.zig",
-            "text": "    const directory = std.process.getEnvVarOwned(allocator, env_var) catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return,\n        else => return err,\n    };"
-          }
-        ]
-      },
-      "expires": "2026-12-13"
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py"
+      ]
     },
     "STWO_CIRCUIT_STAGE_PROFILE": {
       "owner": "src/integrations/circuit_cpu/prove.zig",
@@ -4271,7 +4245,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-        "text": "//!   STWO_RV64_M8_JOBS_ARENA_BYTES    static arena per GPU (default 8 GiB; \u00a73.7 hook)\n//!   STWO_RV64_M8_JOBS_PINNED_BYTES   pinned bytes per pipeline slot (default 256 MiB)\n//!   STWO_RV64_M8_JOBS_PLAN_OUT       write measured per-class plans (JSON) at stop (\u00a73.7 sweep input)\n//!   STWO_RV64_M8_JOBS_PINNED_LAZY    \"1\": pinned slots allocated on first need, grow-only, capped at\n//!                                    STWO_RV64_M8_JOBS_PINNED_BYTES (default \"0\" = eager; persistent sets default 1)\nconst std = @import(\"std\");\npub const api = @import(\"api.zig\");\npub const worker = @import(\"worker.zig\");"
+        "text": "//!   STWO_RV64_M8_JOBS_ARENA_BYTES    static arena per GPU (default 8 GiB; §3.7 hook)\n//!   STWO_RV64_M8_JOBS_PINNED_BYTES   pinned bytes per pipeline slot (default 256 MiB)\n//!   STWO_RV64_M8_JOBS_PLAN_OUT       write measured per-class plans (JSON) at stop (§3.7 sweep input)\n//!   STWO_RV64_M8_JOBS_PINNED_LAZY    \"1\": pinned slots allocated on first need, grow-only, capped at\n//!                                    STWO_RV64_M8_JOBS_PINNED_BYTES (default \"0\" = eager; persistent sets default 1)\nconst std = @import(\"std\");\npub const api = @import(\"api.zig\");\npub const worker = @import(\"worker.zig\");"
       },
       "expires": "2026-12-09"
     },
@@ -4321,7 +4295,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-        "text": "//!   STWO_RV64_M8_JOBS_PINNED_BYTES   pinned bytes per pipeline slot (default 256 MiB)\n//!   STWO_RV64_M8_JOBS_PLAN_OUT       write measured per-class plans (JSON) at stop (\u00a73.7 sweep input)\n//!   STWO_RV64_M8_JOBS_PINNED_LAZY    \"1\": pinned slots allocated on first need, grow-only, capped at\n//!                                    STWO_RV64_M8_JOBS_PINNED_BYTES (default \"0\" = eager; persistent sets default 1)\nconst std = @import(\"std\");\npub const api = @import(\"api.zig\");\npub const worker = @import(\"worker.zig\");\npub const ops = @import(\"ops.zig\");"
+        "text": "//!   STWO_RV64_M8_JOBS_PINNED_BYTES   pinned bytes per pipeline slot (default 256 MiB)\n//!   STWO_RV64_M8_JOBS_PLAN_OUT       write measured per-class plans (JSON) at stop (§3.7 sweep input)\n//!   STWO_RV64_M8_JOBS_PINNED_LAZY    \"1\": pinned slots allocated on first need, grow-only, capped at\n//!                                    STWO_RV64_M8_JOBS_PINNED_BYTES (default \"0\" = eager; persistent sets default 1)\nconst std = @import(\"std\");\npub const api = @import(\"api.zig\");\npub const worker = @import(\"worker.zig\");\npub const ops = @import(\"ops.zig\");"
       },
       "expires": "2026-12-09"
     },

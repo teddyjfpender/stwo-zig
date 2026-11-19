@@ -68,7 +68,7 @@ log size 21, log blowup 3) is far over that budget. The oracle does not prove it
 `multiverifier-inputs` writes its inputs, and the Zig circuit prover must
 reproduce the committed `proof.bin` from them (1 s, 4.1 GB peak for the
 oracle). `verify-circuit` checks proofs written by the Zig prover
-(`STWO_CIRCUIT_R7_EMIT_DIR`); `scripts/interop/generate_circuit_oracle_vectors.py
+(`-Dtest-r7-emit-dir`); `scripts/interop/generate_circuit_oracle_vectors.py
 --zig-emit-dir DIR` regenerates the committed verdicts from such a directory
 and otherwise keeps them.
 
