@@ -1440,20 +1440,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_CSP_PROFILE": {
-      "owner": "src/products/ethereum/statement/frontend/harnesses/csp_ecdsa_proof_harness.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/products/ethereum/statement/frontend/harnesses/csp_ecdsa_proof_harness.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/ethereum/statement/frontend/harnesses/csp_ecdsa_proof_harness.zig",
-        "text": "    const profile_enabled = std.process.hasEnvVarConstant(\"STWO_CSP_PROFILE\");\n    const stage_profile = @import(\"stwo_prover_engine\").stage_profile;\n    var recorder = stage_profile.Recorder.initWithOptions(allocator, backend_name, \"csp_ecdsa_guest\", .{ .capture_tasks = false });\n    defer recorder.deinit();\n    const result = csp.proveWithRecorder(Engine, allocator, elf, input, frontend.prover_mod.SECURE_PCS_CONFIG, 16, if (profile_enabled) &recorder else null) catch |err| {\n        std.debug.print(\"CSP guest failure: {s}\\n\", .{@errorName(err)});\n        if (err == error.ConstraintsNotSatisfied) {"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_CUDA_AOT_CUBIN_IMPORT_ROOT": {
       "owner": "build_support/backends/cuda.zig",
       "default": "None (no imported cubin directory; normal build path)",
@@ -3010,26 +2996,6 @@
           {
             "path": "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test_support.zig",
             "text": "pub fn environmentFlag(allocator: std.mem.Allocator, name: []const u8) !bool {\n    const value = std.process.getEnvVarOwned(allocator, name) catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return false,\n        else => return err,\n    };\n    defer allocator.free(value);\n    return std.mem.eql(u8, value, \"1\") or"
-          }
-        ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RECURSION_OUTER_SCALAR_CLOSURE_DIAGNOSTIC": {
-      "owner": "src/frontends/riscv/recursion/segment_outer_cohort_contract.zig",
-      "default": "false (presence-only diagnostic through CLOSURE_DIAGNOSTIC_ENV)",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/recursion/segment_outer_cohort_contract.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/recursion/segment_outer_cohort_contract.zig",
-        "text": "    \"STWO_RECURSION_OUTER_SCALAR_CLOSURE_DIAGNOSTIC\";\n\npub const Error = @import(\"segment_public_wire_boundary.zig\").Error;\n\npub const RowAuthority = enum(u8) {\n    transcript_v2 = 1,\n    statement_v2 = 2,",
-        "readers": [
-          {
-            "path": "src/frontends/riscv/recursion/segment_outer_cohort_cohort_plan.zig",
-            "text": "        if (std.process.hasEnvVarConstant(CLOSURE_DIAGNOSTIC_ENV))\n            printClosureDiagnostic("
           }
         ]
       },
@@ -5667,20 +5633,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_COMPOSITION_QUEUE_TIMING": {
-      "owner": "src/engine/prover/air/component_queue.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/air/component_queue.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/air/component_queue.zig",
-        "text": "    const timing = std.process.hasEnvVarConstant(\"STWO_ZIG_COMPOSITION_QUEUE_TIMING\");\n    var clock: ?std.time.Timer = if (timing) std.time.Timer.start() catch null else null;\n\n    const order = try allocator.alloc(usize, workers.len);\n    defer allocator.free(order);\n    const bytes = try allocator.alloc(usize, workers.len);\n    defer allocator.free(bytes);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_COMPOSITION_SCHEDULER": {
       "owner": "src/engine/prover/air/component_queue.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -6641,20 +6593,6 @@
             "text": "        std.process.hasEnvVarConstant(diagnostics.OPCODE_WITNESS_AUDIT_ENV),\n    );"
           }
         ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_RISCV_CPU_COMPOSITION_TIMING": {
-      "owner": "src/backends/cpu_scalar/riscv_composition.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/cpu_scalar/riscv_composition.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cpu_scalar/riscv_composition.zig",
-        "text": "    var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant(\"STWO_ZIG_RISCV_CPU_COMPOSITION_TIMING\"))\n        std.time.Timer.start() catch null\n    else\n        null;\n    var prepare_ns: u64 = 0;\n    var graph_ns: u64 = 0;\n    var graph_started_ns: u64 = 0;"
       },
       "expires": "2026-12-13"
     },
