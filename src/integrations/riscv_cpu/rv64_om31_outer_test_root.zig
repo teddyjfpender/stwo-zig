@@ -58,8 +58,6 @@ test "om31 outer bridge actual child verifies in shared lane" {
         return error.InvalidOuterGraph;
     }
     try std.testing.expectEqual(try Bridge.expectedDigest(&.{ child, child }), graph.output_digest);
-    const graph_only = std.process.hasEnvVarConstant("STWO_OM31_OUTER_GRAPH_ONLY");
-    if (graph_only) return;
     const Q = Outer.protocol.Q;
     try circuit.common.finalize.padToTargets(Q, &graph.ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&graph.ctx.circuit)));
     var root_pp = try circuit.common.preprocessed.PreprocessedCircuit.fromBuilderCircuit(a, &graph.ctx.circuit);

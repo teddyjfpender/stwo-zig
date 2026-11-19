@@ -79,7 +79,7 @@ test "recursive public ingress accepts production-derived self-loop guest" {
     );
     defer plans.recursion.deinit();
     defer plans.vm.deinit();
-    var source = try recursion.segment_public_outer_source.Source.init(
+    var source = try @import("stwo_riscv_recursion").segment_public_outer_source.Source.init(
         allocator,
         &plans.vm,
         &plans.recursion,
@@ -93,7 +93,7 @@ test "recursive public ingress accepts production-derived self-loop guest" {
         &guest.public.data,
         &relations,
     );
-    var prepared = try recursion.segment_public_outer_source.Prepared.init(
+    var prepared = try @import("stwo_riscv_recursion").segment_public_outer_source.Prepared.init(
         allocator,
         &source,
         &leaf_preprocessing,

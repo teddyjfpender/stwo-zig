@@ -171,6 +171,7 @@ pub fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile 
         context.optimize,
         root,
     );
+    root.addImport("stwo_riscv_recursion", root.import_table.get("stwo_riscv_frontend").?.import_table.get("stwo_riscv_recursion").?);
     const test_options = b.addOptions();
     test_options.addOption(bool, "metal_only", false);
     test_options.addOption(bool, "riscv_only", true);
@@ -218,6 +219,12 @@ pub fn addFocusedTestRoot(
         context.optimize,
         root,
     );
+    if (std.mem.eql(u8, root_source_file, "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test.zig") or
+        std.mem.eql(u8, root_source_file, "src/products/riscv/cpu/tests/recursion_ingress_real_guest_test.zig"))
+    {
+        const frontend = root.import_table.get("stwo_riscv_frontend").?;
+        root.addImport("stwo_riscv_recursion", frontend.import_table.get("stwo_riscv_recursion").?);
+    }
     return b.addTest(.{
         .root_module = root,
         .filters = test_filter.apply(b, filters),

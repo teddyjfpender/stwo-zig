@@ -2803,20 +2803,6 @@
         "src/backends/cuda/authority/active/cuda_mem_pool.cuh"
       ]
     },
-    "STWO_OM31_OUTER_GRAPH_ONLY": {
-      "owner": "src/integrations/riscv_cpu/rv64_om31_outer_test_root.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/rv64_om31_outer_test_root.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_om31_outer_test_root.zig",
-        "text": "    const graph_only = std.process.hasEnvVarConstant(\"STWO_OM31_OUTER_GRAPH_ONLY\");\n    if (graph_only) return;\n    const Q = Outer.protocol.Q;\n    try circuit.common.finalize.padToTargets(Q, &graph.ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&graph.ctx.circuit)));\n    var root_pp = try circuit.common.preprocessed.PreprocessedCircuit.fromBuilderCircuit(a, &graph.ctx.circuit);\n    defer root_pp.deinit(a);\n    var root_key = try Outer.prove.Authority.init(a, &root_pp);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_P2_FAST_REDUCTION": {
       "owner": "tests/cuda/rv64/poseidon2_m31_smoke.cu",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -3025,7 +3011,7 @@
       ],
       "default_evidence": {
         "path": "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test_support.zig",
-        "text": "pub const FRONTIER_ENV = \"STWO_RECURSION_FRI_FRONTIER_BLOWUP\";\npub const ACTIVE_OUTER_ENV = \"STWO_RECURSION_ACTIVE_FRI_OUTER\";\npub const TUPLE_FRONTIER_ENV = \"STWO_RECURSION_OUTER_TUPLE_FRONTIER\";\npub const DISABLE_OUTER_MUTATIONS_ENV =\n    \"STWO_RECURSION_OUTER_DISABLE_MUTATION_PROBES\";\n\npub const ProfileSelection = struct {",
+        "text": "pub const FRONTIER_ENV = \"STWO_RECURSION_FRI_FRONTIER_BLOWUP\";\npub const ACTIVE_OUTER_ENV = \"STWO_RECURSION_ACTIVE_FRI_OUTER\";\npub const TUPLE_FRONTIER_ENV = \"STWO_RECURSION_OUTER_TUPLE_FRONTIER\";\n\npub const ProfileSelection = struct {",
         "readers": [
           {
             "path": "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test_support.zig",
@@ -3048,26 +3034,6 @@
       "default_evidence": {
         "path": "src/frontends/riscv/recursion/segment_outer_noncore_audits_contract.zig",
         "text": "                \"STWO_RECURSION_OUTER_CLOSURE_DIAGNOSTIC\",\n            )) {\n                const limbs = value.toM31Array();\n                std.debug.print(\n                    \"V2_NONCORE_PROVIDER_DOMAIN_MISMATCH row={d} domain={d} \" ++\n                        \"value=[{d},{d},{d},{d}]\\n\",\n                    .{"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RECURSION_OUTER_DISABLE_MUTATION_PROBES": {
-      "owner": "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test_support.zig",
-      "default": "false: mutation probes remain enabled unless explicitly disabled",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test_support.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test_support.zig",
-        "text": "    \"STWO_RECURSION_OUTER_DISABLE_MUTATION_PROBES\";\n\npub const ProfileSelection = struct {\n    config: PcsConfig,\n    candidate: recursion.fri_profile_frontier.Candidate,\n    measurement_mode: bool,\n};",
-        "readers": [
-          {
-            "path": "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test_support.zig",
-            "text": "pub fn environmentFlag(allocator: std.mem.Allocator, name: []const u8) !bool {\n    const value = std.process.getEnvVarOwned(allocator, name) catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return false,\n        else => return err,\n    };\n    defer allocator.free(value);\n    return std.mem.eql(u8, value, \"1\") or"
-          }
-        ]
       },
       "expires": "2026-12-13"
     },
@@ -3124,7 +3090,7 @@
       ],
       "default_evidence": {
         "path": "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test_support.zig",
-        "text": "pub const TUPLE_FRONTIER_ENV = \"STWO_RECURSION_OUTER_TUPLE_FRONTIER\";\npub const DISABLE_OUTER_MUTATIONS_ENV =\n    \"STWO_RECURSION_OUTER_DISABLE_MUTATION_PROBES\";\n\npub const ProfileSelection = struct {\n    config: PcsConfig,\n    candidate: recursion.fri_profile_frontier.Candidate,",
+        "text": "pub const TUPLE_FRONTIER_ENV = \"STWO_RECURSION_OUTER_TUPLE_FRONTIER\";\n\npub const ProfileSelection = struct {\n    config: PcsConfig,\n    candidate: recursion.fri_profile_frontier.Candidate,",
         "readers": [
           {
             "path": "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test_support.zig",

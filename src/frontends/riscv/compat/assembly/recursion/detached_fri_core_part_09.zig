@@ -324,11 +324,11 @@ pub fn Namespace(comptime context: type) type {
             wire: QM31,
             verifier_input: QM31,
 
-            fn total(self: PublicBoundaryClaims) QM31 {
+            pub fn total(self: PublicBoundaryClaims) QM31 {
                 return self.wire.add(self.verifier_input);
             }
 
-            fn eql(self: PublicBoundaryClaims, other: PublicBoundaryClaims) bool {
+            pub fn eql(self: PublicBoundaryClaims, other: PublicBoundaryClaims) bool {
                 return self.wire.eql(other.wire) and
                     self.verifier_input.eql(other.verifier_input);
             }
@@ -356,7 +356,7 @@ pub fn Namespace(comptime context: type) type {
             public_boundaries: PublicBoundaryClaims,
             input_wire: QM31,
 
-            fn verifyWireClosure(self: Claims) Error!void {
+            pub fn verifyWireClosure(self: Claims) Error!void {
                 if (!self.input_wire
                     .add(self.multiply)
                     .add(self.inverse)

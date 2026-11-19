@@ -19,7 +19,6 @@ const leaf_support = @import("recursion_poseidon_leaf_test_support.zig");
 const FRONTIER_COLUMN_LOG_DEGREE = leaf_support.FRONTIER_COLUMN_LOG_DEGREE;
 const ACTIVE_OUTER_ENV = leaf_support.ACTIVE_OUTER_ENV;
 const TUPLE_FRONTIER_ENV = leaf_support.TUPLE_FRONTIER_ENV;
-const DISABLE_OUTER_MUTATIONS_ENV = leaf_support.DISABLE_OUTER_MUTATIONS_ENV;
 const LEAF_DIMENSIONS = leaf_support.LEAF_DIMENSIONS;
 const LeafWire = leaf_support.LeafWire;
 const recursionOuterWorkerCount = leaf_support.recursionOuterWorkerCount;
@@ -91,7 +90,7 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
         vm_transcript_plan,
         &leaf_authority,
     );
-    var output = try orchestration.runRiscVWithEngineAndPublicDataUsingChannel(
+    var output = orchestration.runRiscVWithEngineAndPublicDataUsingChannel(
         Engine,
         .prove,
         allocator,
@@ -104,7 +103,12 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
         &proving_channel,
         null,
         null,
-    );
+    ) catch |err| {
+        std.debug.print("leaf proving failed: {s}; scheduled step={any} initial fault={any}\n", .{
+            @errorName(err), if (proving_channel.driver) |driver| driver.next_sequence else null, proving_channel.first_fault,
+        });
+        return err;
+    };
     const prove_ns = prove_timer.read();
     if (selection.measurement_mode) std.debug.print(
         "\n  A1_STAGE blowup_log={d} prove=ok\n",
@@ -391,7 +395,7 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
         &leaf_authority,
     );
     defer statement_rows.deinit();
-    var public_source = recursion.segment_public_outer_source.Source.init(
+    var public_source = @import("stwo_riscv_recursion").segment_public_outer_source.Source.init(
         allocator,
         vm_transcript_plan,
         recursion_transcript_plan,
@@ -402,7 +406,7 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
         return err;
     };
     defer public_source.deinit();
-    var public_rows = recursion.segment_public_outer_source.Prepared.init(
+    var public_rows = @import("stwo_riscv_recursion").segment_public_outer_source.Prepared.init(
         allocator,
         &public_source,
         &leaf_preprocessing,
@@ -427,7 +431,7 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
             .classifyCapturedTupleClosureWithVmAir(
             allocator,
             &captured_fri,
-            &prepared_vm_air,
+            .{ .borrowed = &prepared_vm_air },
             .{
                 .vm = vm_transcript_plan,
                 .recursion = recursion_transcript_plan,
@@ -491,11 +495,6 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
         defer captured_fri.deinit();
         std.debug.print("  active FRI outer stage: capture=ok\n", .{});
         const outer_workers = try recursionOuterWorkerCount(allocator);
-        const mutation_probe_mode: riscv_cpu.recursive_fri_outer.MutationProbeMode =
-            if (try environmentFlag(allocator, DISABLE_OUTER_MUTATIONS_ENV))
-                .disabled
-            else
-                .enabled;
         var verified_outer: riscv_cpu.recursive_fri_outer.VerifiedOuterProofV1 =
             undefined;
         var verified_outer_owned = false;
@@ -503,7 +502,7 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
         const outer = riscv_cpu.recursive_fri_outer.proveAndVerifyCapturedWithVmAirExecutionAndAdmission(
             allocator,
             &captured_fri,
-            &prepared_vm_air,
+            .{ .borrowed = &prepared_vm_air },
             .{
                 .vm = vm_transcript_plan,
                 .recursion = recursion_transcript_plan,
@@ -526,7 +525,7 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
             },
             .{
                 .worker_count = outer_workers,
-                .mutation_probes = mutation_probe_mode,
+                .mutation_probes = .enabled,
             },
             &verified_outer,
         ) catch |err| {
@@ -589,16 +588,8 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
         try std.testing.expectEqual(@as(u8, 36), outer.roster_count);
         try std.testing.expectEqual(@as(u8, 34), outer.active_verifier_rows);
         try std.testing.expectEqual(@as(u8, 2), outer.active_provider_rows);
-        try std.testing.expectEqual(
-            mutation_probe_mode,
-            outer.mutation_probe_mode,
-        );
-        const expected_mutation_rejections: u8 =
-            if (mutation_probe_mode == .enabled) 5 else 0;
-        try std.testing.expectEqual(
-            expected_mutation_rejections,
-            outer.mutation_rejections,
-        );
+        try std.testing.expectEqual(.enabled, outer.mutation_probe_mode);
+        try std.testing.expectEqual(@as(u8, 5), outer.mutation_rejections);
         std.debug.print(
             "  active FRI outer proof: " ++
                 "logs(vm-input/composition-control/bits/map/root/trace/pcs/leaf/node/anchor/control/input/mul/inv/linear/path/poseidon)=" ++

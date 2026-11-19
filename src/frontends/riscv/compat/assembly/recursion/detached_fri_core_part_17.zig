@@ -350,7 +350,7 @@ pub fn Namespace(comptime context: type) type {
             merkle_path: MerklePathAdapter,
             poseidon2: shared_provider.Poseidon2Adapter,
 
-            fn init(
+            pub fn init(
                 authority: *const Authority,
                 relations: *const universal.UniversalRelations,
                 provider_relations: *const shared_provider.SharedProviderRelations,
@@ -540,11 +540,11 @@ pub fn Namespace(comptime context: type) type {
                 };
             }
 
-            fn deinit(self: *Components) void {
+            pub fn deinit(self: *Components) void {
                 self.* = undefined;
             }
 
-            fn append(
+            pub fn append(
                 self: *Components,
                 gate: *manifest_mod.ProofGate,
                 manifest: *const manifest_mod.Manifest,

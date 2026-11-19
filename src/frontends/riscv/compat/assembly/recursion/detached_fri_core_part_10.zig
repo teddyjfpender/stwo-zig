@@ -96,7 +96,7 @@ pub fn Namespace(comptime context: type) type {
             pool_initialized: bool = false,
             binding_initialized: bool = false,
 
-            fn initInPlace(
+            pub fn initInPlace(
                 self: *ProofExecutionPool,
                 allocator: std.mem.Allocator,
                 worker_count: usize,
@@ -124,7 +124,7 @@ pub fn Namespace(comptime context: type) type {
             /// avoids `getGlobalPool`: production resolution may lazily create the
             /// ambient process pool, while this transaction's serial test control must
             /// remain a no-pool execution.
-            fn visibleWorkerCount(self: *ProofExecutionPool) !usize {
+            pub fn visibleWorkerCount(self: *ProofExecutionPool) !usize {
                 if (self.requested_worker_count == 1) {
                     if (self.pool_initialized or self.binding_initialized)
                         return error.WorkerPoolMismatch;
@@ -142,7 +142,7 @@ pub fn Namespace(comptime context: type) type {
                 return visible.workerCount();
             }
 
-            fn deinit(self: *ProofExecutionPool) void {
+            pub fn deinit(self: *ProofExecutionPool) void {
                 if (self.binding_initialized) {
                     self.binding.deinit();
                     self.binding_initialized = false;
@@ -631,7 +631,7 @@ pub fn Namespace(comptime context: type) type {
                 self.* = undefined;
             }
 
-            fn geometry(self: *const Authority) [4]u32 {
+            pub fn geometry(self: *const Authority) [4]u32 {
                 return .{
                     self.manifest.total_preprocessed_columns,
                     self.manifest.total_main_columns,
