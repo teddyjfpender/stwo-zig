@@ -8,5 +8,7 @@ const proof_harness = @import("secp256k1_proof_harness");
 const LegacyEngine = frontend.prover_mod.ProverEngineForBackend(CpuBackend);
 
 test "secp256k1 typed ECDSA bundle proves and independently verifies" {
-    _ = try proof_harness.Harness(LegacyEngine).runSelected(std.heap.smp_allocator);
+    const Harness = proof_harness.Harness(LegacyEngine);
+    const allocator = std.heap.smp_allocator;
+    _ = if (@import("test_options").samples) |samples| try Harness.runSamples(allocator, samples) else try Harness.run(allocator);
 }

@@ -58,8 +58,6 @@ pub fn For(comptime leaf_outer: type, comptime core_mod: type) type {
         const digestWords = support.digestWords;
         const rangeMask = support.rangeMask;
         const allZero = support.allZero;
-        const CIRCUIT_CENSUS_ENV = "STWO_SEGMENT_V2_CIRCUIT_CENSUS";
-        var circuit_census_sequence = std.atomic.Value(u64).init(0);
         pub const Error = contract.Error;
 
         /// The complete cohort accepts one authority and nothing else. In particular,
@@ -483,8 +481,6 @@ pub fn For(comptime leaf_outer: type, comptime core_mod: type) type {
                 errdefer clearTree(destination);
                 try self.noncore.fillPreprocessedInto(manifest_value, destination);
                 try self.core.fillPreprocessedInto(manifest_value, destination);
-                if (std.process.hasEnvVarConstant(CIRCUIT_CENSUS_ENV))
-                    diagnostics.printCircuitCensus(self, destination, &circuit_census_sequence);
             }
 
             pub fn fillMainInto(

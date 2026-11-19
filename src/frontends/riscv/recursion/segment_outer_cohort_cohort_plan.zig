@@ -8,7 +8,6 @@ const AUDIT_ID_DOMAIN = dependency_0.AUDIT_ID_DOMAIN;
 const BOUNDARY_AUDIT_ID_DOMAIN = dependency_0.BOUNDARY_AUDIT_ID_DOMAIN;
 const CAPABILITY_COUNT = dependency_0.CAPABILITY_COUNT;
 const CAPABILITY_ID_DOMAIN = dependency_0.CAPABILITY_ID_DOMAIN;
-const CLOSURE_DIAGNOSTIC_ENV = dependency_0.CLOSURE_DIAGNOSTIC_ENV;
 const COMPONENT_COUNT = dependency_0.COMPONENT_COUNT;
 const Capability = dependency_0.Capability;
 const DOMAIN_COUNT = dependency_0.DOMAIN_COUNT;
@@ -343,18 +342,7 @@ pub fn verifyClosureValues(
         try requireCanonical(total);
         relation_not_closed = relation_not_closed or !total.isZero();
     }
-    relation_not_closed = relation_not_closed or !framework_total.isZero();
-    if (relation_not_closed) {
-        if (std.process.hasEnvVarConstant(CLOSURE_DIAGNOSTIC_ENV))
-            printClosureDiagnostic(
-                audits,
-                claims,
-                public_wire_boundary,
-                &domain_totals,
-                framework_total,
-            );
-        return error.RelationNotClosed;
-    }
+    if (relation_not_closed or !framework_total.isZero()) return error.RelationNotClosed;
 
     return .{
         .domain_totals = domain_totals,
@@ -371,62 +359,6 @@ pub fn verifyClosureValues(
         else
             auditIdentity(audits),
     };
-}
-
-/// Failure-path-only observability for the complete conservation equation.
-/// The diagnostic consumes the already authenticated audits and never changes
-/// a claim, residual, protocol transcript, or proof-path return value.
-pub fn printClosureDiagnostic(
-    audits: *const [COMPONENT_COUNT]relation_interaction.DomainAudit,
-    claims: *const [COMPONENT_COUNT]QM31,
-    public_wire_boundary: ?*const PublicWireBoundaryV2,
-    domain_totals: *const [DOMAIN_COUNT]QM31,
-    framework_total: QM31,
-) void {
-    std.debug.print(
-        "\nSEGMENT_V2_CLOSURE_DIAGNOSTIC components={d} domains={d}\n",
-        .{ COMPONENT_COUNT, DOMAIN_COUNT },
-    );
-    for (domain_totals, 0..) |total, domain| {
-        if (total.isZero()) continue;
-        const domain_name = @tagName(
-            @as(relation.Domain, @enumFromInt(domain)),
-        );
-        std.debug.print(
-            "  domain={d}:{s} residual={any}\n",
-            .{ domain, domain_name, total.toM31Array() },
-        );
-        for (audits, claims, 0..) |audit, claim, row| {
-            const contribution = audit.values[domain];
-            if (contribution.isZero()) continue;
-            std.debug.print(
-                "    row={d} contribution={any} claim={any} " ++
-                    "logical_rows={d} event_terms={d}\n",
-                .{
-                    row,
-                    contribution.toM31Array(),
-                    claim.toM31Array(),
-                    audit.logical_rows,
-                    audit.event_terms,
-                },
-            );
-        }
-        if (public_wire_boundary) |boundary| {
-            if (domain == @intFromEnum(boundary.domain)) std.debug.print(
-                "    public_wire_boundary contribution={any} terms={d} " ++
-                    "authority={x}\n",
-                .{
-                    boundary.claimed_sum.toM31Array(),
-                    boundary.term_count,
-                    boundary.source_authority_id[0..8],
-                },
-            );
-        }
-    }
-    if (!framework_total.isZero()) std.debug.print(
-        "  framework_residual={any}\n",
-        .{framework_total.toM31Array()},
-    );
 }
 
 pub const AuditCustody = enum(u8) {

@@ -19,56 +19,7 @@ const CoefficientRetentionPolicy = column_storage.CoefficientRetentionPolicy;
 const deferred_commit = @import("deferred_commit.zig");
 const cached_tree = @import("merkle_cached_tree.zig");
 
-const PCS_COLUMN_HISTOGRAM_ENV = "STWO_ZIG_PCS_COLUMN_HISTOGRAM";
 const bounded_prefix_state_budget_bytes: usize = 96 * 1024 * 1024;
-var histogram_print_mutex: std.Thread.Mutex = .{};
-
-fn emitColumnHistogram(comptime H: type, sorted: anytype) void {
-    if (!std.process.hasEnvVarConstant(PCS_COLUMN_HISTOGRAM_ENV)) return;
-    histogram_print_mutex.lock();
-    defer histogram_print_mutex.unlock();
-
-    std.debug.print(
-        "pcs_column_histogram hasher={s} columns={d} groups=",
-        .{ @typeName(H), sorted.len },
-    );
-    var group_start: usize = 0;
-    while (group_start < sorted.len) {
-        const log_size = sorted[group_start].log_size;
-        var group_end = group_start + 1;
-        while (group_end < sorted.len and sorted[group_end].log_size == log_size) {
-            group_end += 1;
-        }
-        std.debug.print(
-            "{s}{d}:{d}",
-            .{ if (group_start == 0) "" else ",", log_size, group_end - group_start },
-        );
-        group_start = group_end;
-    }
-    std.debug.print("\n", .{});
-}
-
-fn emitBoundedPrefixStats(stats: anytype) void {
-    if (!std.process.hasEnvVarConstant(PCS_COLUMN_HISTOGRAM_ENV)) return;
-    histogram_print_mutex.lock();
-    defer histogram_print_mutex.unlock();
-    std.debug.print(
-        "pcs_bounded_prefix final_log={d} prefix_log={d} prefix_columns={d} " ++
-            "tail_columns={d} prefix_state_bytes={d} leaf_bytes={d} " ++
-            "leaf_phase_peak_bytes={d} repeated_tail_absorptions={d} tail_cache_bytes={d}\n",
-        .{
-            stats.final_log_size,
-            stats.prefix_log_size,
-            stats.prefix_column_count,
-            stats.tail_column_count,
-            stats.prefix_state_bytes,
-            stats.leaf_layer_bytes,
-            stats.leaf_phase_peak_bytes,
-            stats.repeated_tail_absorptions,
-            stats.tail_cache_bytes,
-        },
-    );
-}
 
 pub fn appendCommittedTree(
     comptime MC: type,
@@ -477,11 +428,8 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
 
             // Retain preparation layout through openings. Explicit retained
             // storage still relocates independent LDE allocations.
-            const preserve_lde = self.compact_committer == null and self.retained_column_allocator == null and
-                !std.process.hasEnvVarConstant("STWO_ZIG_DETACH_STREAMING_LDE");
-            if (arena == null and !borrow_backings and std.process.hasEnvVarConstant("STWO_ZIG_DETACH_STREAMING_COEFFICIENTS"))
-                try prepared.detachBacking(self.allocator)
-            else if (!preserve_lde)
+            const preserve_lde = self.compact_committer == null and self.retained_column_allocator == null;
+            if (!preserve_lde)
                 try prepared.detachColumnBacking(self.allocator);
 
             if (self.retained_column_allocator != null and
@@ -610,7 +558,6 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 }
                 const sorted = try MerkleProver.sortColumnsByLogSizeAsc(self.allocator, col_refs);
                 defer self.allocator.free(sorted);
-                emitColumnHistogram(H, sorted);
 
                 // An armed layer source may supply the tree outright. Its bytes flow
                 // into exactly the pipeline a built tree would, so a wrong load can
@@ -630,28 +577,23 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                     if (!@hasDecl(H, "domainPrefixBytes")) break :blk false;
                     break :blk H.domainPrefixBytes() == 64;
                 };
-                var bounded_stats: MerkleProver.BoundedPrefixStats = .{};
                 const device_tree = if (comptime @hasDecl(B, "tryCommitStreamingMerkle")) blk: {
                     break :blk if (loaded == null) try B.tryCommitStreamingMerkle(H, self.allocator, col_refs) else null;
                 } else null;
                 const legacy_merkle = loaded orelse device_tree orelse if (supports_sparse_tail)
                     try self.streaming_committer.commitColumnsWithSparseTail(sorted)
-                else if (self.commitment_scheme.reuse_bounded_merkle_tail and
-                    !std.process.hasEnvVarConstant("STWO_ZIG_REPLAY_BOUNDED_MERKLE_TAIL"))
+                else if (self.commitment_scheme.reuse_bounded_merkle_tail)
                     try self.streaming_committer.commitColumnsWithReusedBoundedPrefix(
                         sorted,
                         bounded_prefix_state_budget_bytes,
-                        &bounded_stats,
+                        null,
                     )
                 else
                     try self.streaming_committer.commitColumnsWithBoundedPrefix(
                         sorted,
                         bounded_prefix_state_budget_bytes,
-                        &bounded_stats,
+                        null,
                     );
-                if (loaded == null and device_tree == null and !supports_sparse_tail) {
-                    emitBoundedPrefixStats(bounded_stats);
-                }
                 if (loaded == null) self.storeCachedTree(sorted, legacy_merkle);
                 built_complete_tree = loaded == null;
                 break :legacy legacy_merkle;

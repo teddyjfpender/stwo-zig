@@ -6,7 +6,6 @@ const composition_execution = @import("composition_execution.zig");
 const work_pool = @import("../work_pool.zig");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const SecureColumnByCoords = @import("../secure_column.zig").SecureColumnByCoords;
-const PeakCounter = @import("component_queue_metrics.zig").PeakCounter;
 const state = @import("component_worker_state.zig");
 const firstWorkerError = state.firstWorkerError;
 const validatePowerRanges = state.validatePowerRanges;
@@ -113,8 +112,6 @@ pub fn compute(
     options: QueueOptions,
 ) anyerror!SecureColumnByCoords {
     const Worker = @TypeOf(workers[0]);
-    const timing = std.process.hasEnvVarConstant("STWO_ZIG_COMPOSITION_QUEUE_TIMING");
-    var clock: ?std.time.Timer = if (timing) std.time.Timer.start() catch null else null;
 
     const order = try allocator.alloc(usize, workers.len);
     defer allocator.free(order);
@@ -168,12 +165,6 @@ pub fn compute(
         active: usize = 0,
         active_bytes: usize = 0,
         failed: bool = false,
-        peak_active: usize = 0,
-        peak_bytes: usize = 0,
-        /// Optional per-item timeline (timing telemetry only).
-        wave_start: ?std.time.Instant = null,
-        item_start_ns: []u64 = &.{},
-        item_end_ns: []u64 = &.{},
 
         fn take(context: *anyopaque) ?usize {
             const self: *@This() = @ptrCast(@alignCast(context));
@@ -188,21 +179,13 @@ pub fn compute(
                 self.remaining -= 1;
                 self.active += 1;
                 self.active_bytes +|= need;
-                self.peak_active = @max(self.peak_active, self.active);
-                self.peak_bytes = @max(self.peak_bytes, self.active_bytes);
                 return index;
             }
             return null;
         }
         fn run(context: *anyopaque, item: usize) void {
             const self: *@This() = @ptrCast(@alignCast(context));
-            if (self.wave_start) |start| {
-                if (std.time.Instant.now()) |now| self.item_start_ns[item] = now.since(start) else |_| {}
-            }
             Worker.run(&self.workers[item]);
-            if (self.wave_start) |start| {
-                if (std.time.Instant.now()) |now| self.item_end_ns[item] = now.since(start) else |_| {}
-            }
         }
         fn finish(context: *anyopaque, item: usize) void {
             const self: *@This() = @ptrCast(@alignCast(context));
@@ -224,18 +207,6 @@ pub fn compute(
         .budget = admission,
     };
     var queue = work_pool.cooperative.Queue.init(threads);
-    queue.measure = timing;
-    var timeline: []u64 = &.{};
-    defer if (timeline.len != 0) allocator.free(timeline);
-    if (timing) {
-        if (allocator.alloc(u64, 2 * workers.len)) |storage| {
-            timeline = storage;
-            @memset(storage, 0);
-            source.item_start_ns = storage[0..workers.len];
-            source.item_end_ns = storage[workers.len..];
-            source.wave_start = std.time.Instant.now() catch null;
-        } else |_| {}
-    }
     const top = work_pool.cooperative.TopLevel{
         .context = &source,
         .take = Source.take,
@@ -251,22 +222,6 @@ pub fn compute(
         }
     };
     var drive = Drive{ .queue = &queue, .top = top };
-    // Timing telemetry only: per-component peak live bytes allocated through
-    // the component's accumulator allocator (scratch, expansions, buckets).
-    var counters: []PeakCounter = &.{};
-    defer if (counters.len != 0) allocator.free(counters);
-    if (timing) {
-        if (allocator.alloc(PeakCounter, workers.len)) |storage| {
-            counters = storage;
-            for (counters, workers) |*counter, *worker| {
-                counter.* = .{ .parent = worker.accumulator.allocator };
-                worker.accumulator.allocator = counter.allocator();
-            }
-        } else |_| {}
-    }
-    defer for (counters, workers[0..counters.len]) |*counter, *worker| {
-        worker.accumulator.allocator = counter.parent;
-    };
     {
         var group = std.Thread.WaitGroup{};
         if (lease) |*held| {
@@ -280,13 +235,10 @@ pub fn compute(
         held.deinit();
         lease = null;
     }
-    const queue_ns = if (clock) |*c| c.read() else 0;
-    for (counters, workers[0..counters.len]) |*counter, *worker| worker.accumulator.allocator = counter.parent;
     if (firstWorkerError(workers)) |err| return err;
 
     // Exclusive components without a cooperative split: largest first, each
     // with the whole pool, exactly as the established scheduler's tail.
-    var exclusive_count: usize = 0;
     while (true) {
         var selected: ?usize = null;
         var selected_work: u128 = 0;
@@ -301,16 +253,13 @@ pub fn compute(
         const index = selected orelse break;
         Worker.runParallel(&workers[index], pool);
         workers[index].exclusive_done = true;
-        exclusive_count += 1;
         if (workers[index].err != null) return firstWorkerError(workers).?;
     }
-    const exclusive_ns = if (clock) |*c| c.read() else 0;
     try validatePowerRanges(workers);
 
     for (workers[1..]) |*worker|
         workers[0].accumulator.merge(&worker.accumulator);
     workers[0].accumulator.next_power_index = 0;
-    const merge_ns = if (clock) |*c| c.read() else 0;
     const result = finalizeParallel(&workers[0].accumulator, pool) catch |err| {
         prover_api.EvaluationDiagnostic.recordFirst(workers[0].diagnostic, .{
             .stage = .final_length,
@@ -320,25 +269,6 @@ pub fn compute(
         });
         return err;
     };
-    if (clock) |*c| {
-        const total_ns = c.read();
-        const wave_capacity = @as(f64, @floatFromInt(queue_ns)) * @as(f64, @floatFromInt(threads));
-        const busy_fraction = if (wave_capacity == 0) 0 else 1.0 - @as(f64, @floatFromInt(queue.idle_ns)) / wave_capacity;
-        std.log.info("composition queue: components={} queued={} exclusive={} threads={} admission_bytes={} peak_active={} peak_estimated_bytes={} batches={} batch_tasks={} helped={} queue_ms={d:.1} queue_busy_threads={d:.2} exclusive_ms={d:.1} merge_ms={d:.1} finalize_ms={d:.1}", .{
-            workers.len,                                            queued,                                                 exclusive_count,
-            threads,                                                admission,                                              source.peak_active,
-            source.peak_bytes,                                      queue.batches_published,                                queue.batch_tasks_run,
-            queue.helped_tasks,                                     @as(f64, @floatFromInt(queue_ns)) / 1e6,                busy_fraction * @as(f64, @floatFromInt(threads)),
-            @as(f64, @floatFromInt(exclusive_ns - queue_ns)) / 1e6, @as(f64, @floatFromInt(merge_ns - exclusive_ns)) / 1e6, @as(f64, @floatFromInt(total_ns - merge_ns)) / 1e6,
-        });
-        if (source.item_start_ns.len != 0) for (components, 0..) |component, index| {
-            if (!queueEligible(component)) continue;
-            std.log.info("composition queue item: index={} log={} constraints={} estimated_bytes={} peak_allocated_bytes={} start_ms={d:.1} end_ms={d:.1}", .{
-                index,                                                                component.maxConstraintLogDegreeBound(),                    component.nConstraints(),                                 bytes[index],
-                if (counters.len != 0) counters[index].peak.load(.monotonic) else -1, @as(f64, @floatFromInt(source.item_start_ns[index])) / 1e6, @as(f64, @floatFromInt(source.item_end_ns[index])) / 1e6,
-            });
-        };
-    }
     return result;
 }
 

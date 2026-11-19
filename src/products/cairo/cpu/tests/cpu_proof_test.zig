@@ -99,14 +99,7 @@ fn emitProofIfRequested(
     input: *const cairo.adapter.ProverInput,
     result: *const cairo_cpu.prover.transaction.Result,
 ) !void {
-    const output_path = std.process.getEnvVarOwned(
-        std.testing.allocator,
-        "STWO_CAIRO_PROOF_OUTPUT",
-    ) catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return,
-        else => return err,
-    };
-    defer std.testing.allocator.free(output_path);
+    const output_path = @import("cairo_proof_test_options").proof_output orelse return;
     if (!std.fs.path.isAbsolute(output_path)) return error.OutputPathNotAbsolute;
 
     const file = try std.fs.createFileAbsolute(output_path, .{ .truncate = true });

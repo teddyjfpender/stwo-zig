@@ -95,15 +95,6 @@ pub fn trySpawn(
             // unrelated commitments must never discover another source.
             if (layer_source) |source| merkle_layer_cache.arm(source);
             defer if (layer_source != null) merkle_layer_cache.disarm();
-            var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING"))
-                std.time.Timer.start() catch null
-            else
-                null;
-            const column_count = columns.len;
-            var source_payload_bytes: u128 = 0;
-            if (timing != null) for (columns) |column| {
-                source_payload_bytes += @as(u128, column.values.len) * @sizeOf(M31);
-            };
             var prepared = column_preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
                 B,
                 worker_allocator,
@@ -119,15 +110,6 @@ pub fn trySpawn(
                 out.err = err;
                 return;
             };
-            const prepare_ns = if (timing) |*clock| clock.read() else 0;
-            var column_payload_bytes: u128 = 0;
-            var coefficient_payload_bytes: u128 = 0;
-            if (timing != null) {
-                for (prepared.columns) |column| column_payload_bytes += @as(u128, column.values.len) * @sizeOf(M31);
-                if (prepared.coefficients) |coefficients| for (coefficients) |coefficient| {
-                    coefficient_payload_bytes += @as(u128, coefficient.coefficients().len) * @sizeOf(M31);
-                };
-            }
             if (worker_work_recorder) |work|
                 work.expectProducer(.commitment_tree_merkle) catch |err| {
                     prepared.deinit(worker_allocator);
@@ -141,9 +123,6 @@ pub fn trySpawn(
                 return;
             };
             out.tree = tree;
-            if (timing) |*clock| std.log.info("pcs deferred worker: columns={} prepare_ns={} merkle_admit_ns={} source_payload_bytes={} column_payload_bytes={} coefficient_payload_bytes={} payload_is_allocator_live=false worker_span_may_overlap=true", .{
-                column_count, prepare_ns, clock.read() - prepare_ns, source_payload_bytes, column_payload_bytes, coefficient_payload_bytes,
-            });
         }
     };
     const thread = std.Thread.spawn(
@@ -180,9 +159,7 @@ pub fn resolve(
         }
         return;
     }
-    var join_timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING")) std.time.Timer.start() catch null else null;
     pending.thread.?.join();
-    if (join_timer) |*clock| std.log.info("pcs deferred join: consumer=channel wait_ns={}", .{clock.read()});
     const slot = pending.slot;
     defer allocator.destroy(slot);
     if (slot.err) |err| return err;
@@ -199,9 +176,7 @@ pub fn resolve(
 pub fn resolveObserved(scheme: anytype, allocator: std.mem.Allocator) anyerror!void {
     var pending = scheme.pending_commit orelse return;
     if (pending.appended_unmixed) return;
-    var join_timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING")) std.time.Timer.start() catch null else null;
     pending.thread.?.join();
-    if (join_timer) |*clock| std.log.info("pcs deferred join: consumer=observer wait_ns={}", .{clock.read()});
     pending.thread = null;
     const slot = pending.slot;
     if (slot.err) |err| {

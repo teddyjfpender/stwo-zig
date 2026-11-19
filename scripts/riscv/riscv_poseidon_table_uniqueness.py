@@ -92,7 +92,7 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/frontends/riscv/air_lang/shared/air/relation_challenges.zig":
         "4b9d027cb18013c8a5434fc7c5f4b6f4fe870db547db52432d991894f2303dd3",
     "src/frontends/riscv/rv32/prover/preprocessed.zig":
-        "aac2bf3179c41ebb5d878385d2f964ebea3773d861c52b4ceb09aa4f4c69f1cb",
+        "e35b278c43b843ea466b54d8e87e7ad703202826ff3b487e6230912edd1b7ae3",
     "src/frontends/riscv/rv32/prover/opcode_trace.zig":
         "4dd9f44099f6606ed2daf5d1556168563d83ca06e3332ed01ad59e2fcb0fc0b3",
     "src/frontends/riscv/air_lang/shared/infra_trace/permutation.zig":

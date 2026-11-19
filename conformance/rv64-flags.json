@@ -308,20 +308,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_CAIRO_CUDA_CONTINUOUS_INPUT_DIR": {
-      "owner": "src/integrations/cairo_cuda/canonical_input.zig",
-      "default": "error.SkipZigTest",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_cuda/canonical_input.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_cuda/canonical_input.zig",
-        "text": "    const directory = std.process.getEnvVarOwned(std.testing.allocator, \"STWO_CAIRO_CUDA_CONTINUOUS_INPUT_DIR\") catch return error.SkipZigTest;\n    defer std.testing.allocator.free(directory);\n    for ([_][]const u8{ \"15627902-15627904\", \"15627905-15627907\" }) |name| {\n        const json_path = try std.fmt.allocPrint(std.testing.allocator, \"{s}/{s}.prover_input.json\", .{ directory, name });\n        defer std.testing.allocator.free(json_path);\n        const compact_path = try std.fmt.allocPrint(std.testing.allocator, \"{s}/{s}.prover_input.cpi\", .{ directory, name });\n        defer std.testing.allocator.free(compact_path);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_CAIRO_CUDA_FAILURE_TRANSPORT": {
       "owner": "src/integrations/cairo_cuda/executor/terminal_controller.zig",
       "default": "disabled: failure transport returns without writing when path is absent",
@@ -334,34 +320,6 @@
       "default_evidence": {
         "path": "src/integrations/cairo_cuda/executor/terminal_controller.zig",
         "text": "    const path = std.process.getEnvVarOwned(allocator, \"STWO_CAIRO_CUDA_FAILURE_TRANSPORT\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return,\n        else => return err,\n    };\n    defer allocator.free(path);\n    if (!std.fs.path.isAbsolute(path)) return error.InvalidDiagnosticPath;\n    const file = try std.fs.createFileAbsolute(path, .{ .exclusive = true });"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_CAIRO_CUDA_LARGE_INPUT": {
-      "owner": "src/integrations/cairo_cuda/canonical_input.zig",
-      "default": "error.SkipZigTest",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_cuda/canonical_input.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_cuda/canonical_input.zig",
-        "text": "    const path = std.process.getEnvVarOwned(allocator, \"STWO_CAIRO_CUDA_LARGE_INPUT\") catch return error.SkipZigTest;\n    defer allocator.free(path);\n    var legacy = try read(allocator, path);\n    const expected = legacy.file_sha256;\n    const encoded = legacy.encoded_sha256;\n    std.debug.print(\"cairo-cuda capture legacy_ns={} identity_check_ns={}\\n\", .{\n        legacy.timings.read_ns + legacy.timings.parse_and_encode_ns + legacy.timings.digest_wait_ns + legacy.timings.identity_check_ns,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_CAIRO_CUDA_LOCAL_INPUT_DIR": {
-      "owner": "src/integrations/cairo_cuda/canonical_source.zig",
-      "default": "error.SkipZigTest",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_cuda/canonical_source.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_cuda/canonical_source.zig",
-        "text": "    const directory = std.process.getEnvVarOwned(std.testing.allocator, \"STWO_CAIRO_CUDA_LOCAL_INPUT_DIR\") catch return error.SkipZigTest;\n    defer std.testing.allocator.free(directory);\n    for (1..5) |number| {\n        const path = try std.fmt.allocPrint(std.testing.allocator, \"{s}/sn-pie-{}.cpi\", .{ directory, number });\n        defer std.testing.allocator.free(path);\n        const started = try std.time.Instant.now();\n        var prepared = try prepare(std.testing.allocator, .{ .input = path }, @import(\"request_compiler/sn2_test_support.zig\").target());"
       },
       "expires": "2026-12-13"
     },
@@ -876,20 +834,6 @@
       "default_evidence": {
         "path": "src/frontends/cairo/proving/transaction.zig",
         "text": "            if (std.posix.getenv(\"STWO_CAIRO_PROFILE_ARENAS\") != null)\n                std.debug.print(\"cairo_interaction_arena admitted=true bytes={} columns={}\\n\", .{\n                    layout.base_words * @sizeOf(core.fields.m31.M31), layout.offsets.len,\n                });\n            interaction_arena = try trace_arena.allocateUninitialized(allocator, layout);\n        } else |err| {\n            if (std.posix.getenv(\"STWO_CAIRO_PROFILE_ARENAS\") != null)"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_CAIRO_PROOF_OUTPUT": {
-      "owner": "src/products/cairo/cpu/tests/cpu_proof_test.zig",
-      "default": "disabled: no proof output directory",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/products/cairo/cpu/tests/cpu_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/cairo/cpu/tests/cpu_proof_test.zig",
-        "text": "        \"STWO_CAIRO_PROOF_OUTPUT\",\n    ) catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return,\n        else => return err,\n    };\n    defer std.testing.allocator.free(output_path);\n    if (!std.fs.path.isAbsolute(output_path)) return error.OutputPathNotAbsolute;"
       },
       "expires": "2026-12-13"
     },
@@ -1437,20 +1381,6 @@
       "default_evidence": {
         "path": "src/products/ethereum/statement/build.zig",
         "text": "        if (std.mem.eql(u8, spec.step, \"test-csp-ecdsa-proof\") and b.graph.env_map.get(\"STWO_CSP_FIXTURE_ROOT\") == null) run.setEnvironmentVariable(\"STWO_CSP_FIXTURE_ROOT\", b.pathFromRoot(\"../../../../vectors/riscv_csp\"));\n        if (std.mem.eql(u8, spec.step, \"test-ethereum-composition-program\")) retained_vm_run = run;\n        if (std.mem.eql(u8, spec.step, \"test-ethereum-runner\")) ethereum_runner = run;\n        // Shared names compose independent images, each with its own floor.\n        const step = if (b.top_level_steps.get(spec.step)) |existing| &existing.step else b.step(spec.step, spec.description);\n        step.dependOn(&run.step);\n        step.dependOn(@import(\"stwo_riscv_frontend\").TestCountFloor.addMany(b, &.{run}, spec.minimum));"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_CSP_PROFILE": {
-      "owner": "src/products/ethereum/statement/frontend/harnesses/csp_ecdsa_proof_harness.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/products/ethereum/statement/frontend/harnesses/csp_ecdsa_proof_harness.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/ethereum/statement/frontend/harnesses/csp_ecdsa_proof_harness.zig",
-        "text": "    const profile_enabled = std.process.hasEnvVarConstant(\"STWO_CSP_PROFILE\");\n    const stage_profile = @import(\"stwo_prover_engine\").stage_profile;\n    var recorder = stage_profile.Recorder.initWithOptions(allocator, backend_name, \"csp_ecdsa_guest\", .{ .capture_tasks = false });\n    defer recorder.deinit();\n    const result = csp.proveWithRecorder(Engine, allocator, elf, input, frontend.prover_mod.SECURE_PCS_CONFIG, 16, if (profile_enabled) &recorder else null) catch |err| {\n        std.debug.print(\"CSP guest failure: {s}\\n\", .{@errorName(err)});\n        if (err == error.ConstraintsNotSatisfied) {"
       },
       "expires": "2026-12-13"
     },
@@ -2201,20 +2131,6 @@
       "references": [
         "src/backends/cuda/aot/native/witness_blake_exact_trace_b475750894301a14.cu"
       ]
-    },
-    "STWO_DIET_OUT": {
-      "owner": "src/integrations/riscv_cpu/logup_gkr/outer_gkr_diet_test.zig",
-      "default": "disabled: no diet artifact output directory",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/logup_gkr/outer_gkr_diet_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/logup_gkr/outer_gkr_diet_test.zig",
-        "text": "    const path = std.posix.getenv(\"STWO_DIET_OUT\") orelse return;\n    const file = std.fs.cwd().createFile(path, .{ .truncate = false }) catch return;\n    defer file.close();\n    file.seekFromEnd(0) catch return;\n    file.writeAll(line) catch {};\n}\n"
-      },
-      "expires": "2026-12-13"
     },
     "STWO_DUMP_INPUT": {
       "owner": "scripts/cairo/cairo_four_pie_source_coverage_lib/shape.py",
@@ -3029,26 +2945,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_RECURSION_OUTER_SCALAR_CLOSURE_DIAGNOSTIC": {
-      "owner": "src/frontends/riscv/recursion/segment_outer_cohort_contract.zig",
-      "default": "false (presence-only diagnostic through CLOSURE_DIAGNOSTIC_ENV)",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/recursion/segment_outer_cohort_contract.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/recursion/segment_outer_cohort_contract.zig",
-        "text": "    \"STWO_RECURSION_OUTER_SCALAR_CLOSURE_DIAGNOSTIC\";\n\npub const Error = @import(\"segment_public_wire_boundary.zig\").Error;\n\npub const RowAuthority = enum(u8) {\n    transcript_v2 = 1,\n    statement_v2 = 2,",
-        "readers": [
-          {
-            "path": "src/frontends/riscv/recursion/segment_outer_cohort_cohort_plan.zig",
-            "text": "        if (std.process.hasEnvVarConstant(CLOSURE_DIAGNOSTIC_ENV))\n            printClosureDiagnostic("
-          }
-        ]
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_RECURSION_OUTER_STAGE_TELEMETRY": {
       "owner": "src/frontends/riscv/recursion/captured_fri_contract.zig",
       "default": "false (presence-only stage telemetry)",
@@ -3328,35 +3224,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_RISCV_NATIVE_PROFILE": {
-      "owner": "src/frontends/riscv/rv32/prover/interaction_trace_generation.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv32/prover/interaction_trace_generation.zig",
-        "src/frontends/riscv/rv32/prover/preprocessed.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv32/prover/interaction_trace_generation.zig",
-        "text": "                var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant(\"STWO_RISCV_NATIVE_PROFILE\"))\n                    std.time.Timer.start() catch null\n                else\n                    null;\n                var generated = if (capable and device)\n                    try @import(\"../air/lookups/tables/device_interaction.zig\").generate(Backend, allocator, try main_source.lookupCounter(kind), relations)\n                else"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_PARENT_CLAIM_DIAGNOSTIC": {
-      "owner": "src/frontends/riscv/recursion/blake3_native_parent_artifact.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/recursion/blake3_native_parent_artifact.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/recursion/blake3_native_parent_artifact.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_RISCV_PARENT_CLAIM_DIAGNOSTIC\")) {\n            for (claims, 0..) |claim, i| std.debug.print(\"BLAKE3_PARENT_CLAIM index={d} coordinates={any}\\n\", .{ i, claim.toM31Array() });\n            std.debug.print(\"BLAKE3_PARENT_CLAIM_SUM coordinates={any}\\n\", .{total.toM31Array()});\n        }\n        return error.InvalidBlake3ParentClaims;\n    }\n}"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_RISCV_PARENT_MONOLITHIC_MAIN": {
       "owner": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -3368,35 +3235,6 @@
       "default_evidence": {
         "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
         "text": "            if (std.process.hasEnvVarConstant(\"STWO_RISCV_PARENT_MONOLITHIC_MAIN\")) {\n                try scheme.commit(a, main.items, &channel);\n            } else {\n                try scheme.commitBorrowedStreamingWithRecorder(a, main.items, @import(\"stwo_riscv_rv32\").prover.blake3_coefficient_retention.streamingBatchColumns(), diagnostic, &channel);\n            }\n            phase.end();\n            phase = try stage_profile.StageScope.begin(diagnostic, \"parent.interaction_generation\", \"Interaction generation\");"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_PARENT_PREPARATION_PROFILE": {
-      "owner": "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-      "default": "null at environment lookup; enclosing presence predicate is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-        "src/frontends/riscv/rv32/recursion/air/blake3_native_transcript.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-        "text": "    if (std.posix.getenv(\"STWO_RISCV_PARENT_PREPARATION_PROFILE\") != null) b.profile_timer = std.time.Timer.start() catch null;\n    errdefer if (b.fixed_metadata) |m| m.free(backing);\n    if (columns) |out| {\n        try out.validate(out.g_rows.metadata.len, out.xor_rows.metadata.len);\n        b.fixed_metadata = try @import(\"stwo_riscv_air_lang\").framework.blake3_hash_metadata.Rows.allocate(backing, out.g_rows.metadata.len, out.xor_rows.metadata.len);\n    }\n    defer b.live.deinit(backing);"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_PATH_SHARING_CENSUS": {
-      "owner": "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-      "default": "null at environment lookup; enclosing presence predicate is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/recursion/air/blake3_stark_paths.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-        "text": "    if (std.posix.getenv(\"STWO_RISCV_PATH_SHARING_CENSUS\") != null) try @import(\"stwo_riscv_recursion_air\").blake3.path_sharing_census.report(backing, capture, b.g_used, b.shared_path_g_rows);\n    if (columns) |out| if (b.g_used != out.g_rows.metadata.len or b.xor_used != out.xor_rows.metadata.len) return error.InvalidBlake3WitnessDestination;\n    var linked = try links.?.finish();\n    errdefer linked.deinitColumns();\n    if (!direct) {\n        try b.live.route_rows.appendSlice(backing, linked.projection.routed);\n        try b.fixed.route_rows.appendSlice(backing, linked.projection.fixed_routed);"
       },
       "expires": "2026-12-13"
     },
@@ -3467,34 +3305,6 @@
             "text": "    env_bin = environ.get(ENV_SAIL_BIN)\n    if env_bin:\n        return Path(env_bin), f\"${ENV_SAIL_BIN}\"\n    env_workspace = environ.get(ENV_WORKSPACE)\n    if env_workspace:\n        return (\n            Path(env_workspace) / SAIL_BINARY_IN_WORKSPACE,"
           }
         ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_SMALL_COMMIT_BATCH": {
-      "owner": "src/frontends/riscv/rv32/prover/blake3_coefficient_retention.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv32/prover/blake3_coefficient_retention.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv32/prover/blake3_coefficient_retention.zig",
-        "text": "    return if (std.process.hasEnvVarConstant(\"STWO_RISCV_SMALL_COMMIT_BATCH\")) 8 else 0;\n}"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_SYSTEM_BENCH_WORKERS": {
-      "owner": "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig",
-      "default": "16",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig",
-        "text": "        const raw = std.process.getEnvVarOwned(std.heap.page_allocator, \"STWO_RISCV_SYSTEM_BENCH_WORKERS\") catch break :blk @as(usize, 16);\n        defer std.heap.page_allocator.free(raw);\n        break :blk try std.fmt.parseInt(usize, raw, 10);\n    };\n    var pool: pools.WorkPool = undefined;\n    try pool.initInPlaceWithOptions(.{ .worker_count = workers, .backing_allocator = std.heap.smp_allocator });\n    defer pool.deinit();"
       },
       "expires": "2026-12-13"
     },
@@ -4271,7 +4081,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-        "text": "//!   STWO_RV64_M8_JOBS_ARENA_BYTES    static arena per GPU (default 8 GiB; \u00a73.7 hook)\n//!   STWO_RV64_M8_JOBS_PINNED_BYTES   pinned bytes per pipeline slot (default 256 MiB)\n//!   STWO_RV64_M8_JOBS_PLAN_OUT       write measured per-class plans (JSON) at stop (\u00a73.7 sweep input)\n//!   STWO_RV64_M8_JOBS_PINNED_LAZY    \"1\": pinned slots allocated on first need, grow-only, capped at\n//!                                    STWO_RV64_M8_JOBS_PINNED_BYTES (default \"0\" = eager; persistent sets default 1)\nconst std = @import(\"std\");\npub const api = @import(\"api.zig\");\npub const worker = @import(\"worker.zig\");"
+        "text": "//!   STWO_RV64_M8_JOBS_ARENA_BYTES    static arena per GPU (default 8 GiB; §3.7 hook)\n//!   STWO_RV64_M8_JOBS_PINNED_BYTES   pinned bytes per pipeline slot (default 256 MiB)\n//!   STWO_RV64_M8_JOBS_PLAN_OUT       write measured per-class plans (JSON) at stop (§3.7 sweep input)\n//!   STWO_RV64_M8_JOBS_PINNED_LAZY    \"1\": pinned slots allocated on first need, grow-only, capped at\n//!                                    STWO_RV64_M8_JOBS_PINNED_BYTES (default \"0\" = eager; persistent sets default 1)\nconst std = @import(\"std\");\npub const api = @import(\"api.zig\");\npub const worker = @import(\"worker.zig\");"
       },
       "expires": "2026-12-09"
     },
@@ -4321,7 +4131,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-        "text": "//!   STWO_RV64_M8_JOBS_PINNED_BYTES   pinned bytes per pipeline slot (default 256 MiB)\n//!   STWO_RV64_M8_JOBS_PLAN_OUT       write measured per-class plans (JSON) at stop (\u00a73.7 sweep input)\n//!   STWO_RV64_M8_JOBS_PINNED_LAZY    \"1\": pinned slots allocated on first need, grow-only, capped at\n//!                                    STWO_RV64_M8_JOBS_PINNED_BYTES (default \"0\" = eager; persistent sets default 1)\nconst std = @import(\"std\");\npub const api = @import(\"api.zig\");\npub const worker = @import(\"worker.zig\");\npub const ops = @import(\"ops.zig\");"
+        "text": "//!   STWO_RV64_M8_JOBS_PINNED_BYTES   pinned bytes per pipeline slot (default 256 MiB)\n//!   STWO_RV64_M8_JOBS_PLAN_OUT       write measured per-class plans (JSON) at stop (§3.7 sweep input)\n//!   STWO_RV64_M8_JOBS_PINNED_LAZY    \"1\": pinned slots allocated on first need, grow-only, capped at\n//!                                    STWO_RV64_M8_JOBS_PINNED_BYTES (default \"0\" = eager; persistent sets default 1)\nconst std = @import(\"std\");\npub const api = @import(\"api.zig\");\npub const worker = @import(\"worker.zig\");\npub const ops = @import(\"ops.zig\");"
       },
       "expires": "2026-12-09"
     },
@@ -4989,20 +4799,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_SECP256K1_CSP_SAMPLES": {
-      "owner": "src/frontends/riscv/compat/harnesses/secp256k1_proof_harness.zig",
-      "default": "canonical run(allocator) CSP suite rather than selected sample indices",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/compat/harnesses/secp256k1_proof_harness.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/compat/harnesses/secp256k1_proof_harness.zig",
-        "text": "            const encoded = std.process.getEnvVarOwned(allocator, \"STWO_SECP256K1_CSP_SAMPLES\") catch |err| switch (err) {\n                error.EnvironmentVariableNotFound => return run(allocator),\n                else => return err,\n            };\n            defer allocator.free(encoded);\n            const samples = try std.fmt.parseInt(u32, encoded, 10);\n            if (samples == 0 or samples > 1000) return error.InvalidSampleCount;"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_SEGMENT_V2_CHILD_BUNDLE": {
       "owner": "src/frontends/riscv/compat/assembly/recursion/detached_child_capture.zig",
       "default": "error.EnvironmentVariableNotFound (required value)",
@@ -5060,26 +4856,6 @@
       "default_evidence": {
         "path": "src/frontends/riscv/compat/assembly/recursion/detached_child_capture.zig",
         "text": "    const other_expected_path = try std.process.getEnvVarOwned(allocator, \"STWO_SEGMENT_V2_CHILD_OTHER_EXPECTED_WIRE\");\n    defer allocator.free(other_expected_path);\n    const other_expected_json = try std.fs.cwd().readFileAlloc(allocator, other_expected_path, command.MAX_INPUT_BYTES);\n    defer allocator.free(other_expected_json);\n    var other_expected = try command.OwnedExpectedV1.decode(allocator, other_expected_json);\n    defer other_expected.deinit();\n    try std.testing.expectEqual(expected.words.len, other_expected.words.len);"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_SEGMENT_V2_CIRCUIT_CENSUS": {
-      "owner": "src/frontends/riscv/compat/assembly/recursion/detached_leaf_cohort.zig",
-      "default": "false (presence-only circuit census)",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/compat/assembly/recursion/detached_leaf_cohort.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/compat/assembly/recursion/detached_leaf_cohort.zig",
-        "text": "        const CIRCUIT_CENSUS_ENV = \"STWO_SEGMENT_V2_CIRCUIT_CENSUS\";\n        var circuit_census_sequence = std.atomic.Value(u64).init(0);\n        pub const Error = contract.Error;\n\n        /// The complete cohort accepts one authority and nothing else. In particular,\n        /// detached source manifests, log sizes, claims, audits, or provider calls can\n        /// never be supplied by the prover.",
-        "readers": [
-          {
-            "path": "src/frontends/riscv/compat/assembly/recursion/detached_leaf_cohort.zig",
-            "text": "                if (std.process.hasEnvVarConstant(CIRCUIT_CENSUS_ENV))\n                    diagnostics.printCircuitCensus(self, destination, &circuit_census_sequence);\n            }\n\n            pub fn fillMainInto(\n                self: *Self,\n                manifest_value: *const manifest_mod.Manifest,"
-          }
-        ]
       },
       "expires": "2026-12-13"
     },
@@ -5614,20 +5390,6 @@
         "src/backends/metal/shaders/include/base.metal"
       ]
     },
-    "STWO_ZIG_BENCH_CLASSIC_WITNESS": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/classic_witness_test.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/classic_witness_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/classic_witness_test.zig",
-        "text": "    if (!std.process.hasEnvVarConstant(\"STWO_ZIG_BENCH_CLASSIC_WITNESS\")) return;\n    var metadata = [_]M{ M.zero(), M.one(), M.one().neg(), M.fromCanonical(19) };\n    const provider = Provider{ .metadata = &metadata };\n    const groups = [_]C.Group{.{ .inverses = 640 }};\n    var timer = try std.time.Timer.start();\n    var reference = try C.Witness.initTruth(a, 12, &groups, Serial{ .value = provider }, 1 << 30);\n    defer reference.deinit();"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_BLAKE2S_METAL": {
       "owner": "src/backends/metal/shaders/include/blake2s.metal",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -5812,20 +5574,6 @@
       "default_evidence": {
         "path": "src/engine/prover/air/composition_execution.zig",
         "text": "    if (std.posix.getenv(\"STWO_ZIG_COMPOSITION_QUEUE_BYTES\")) |text| {\n        if (std.fmt.parseInt(usize, text, 10)) |value| return value else |_| {}\n    }\n    if (max_log_size >= @bitSizeOf(usize) - 8) return std.math.maxInt(usize);\n    const rows = @as(usize, 1) << @intCast(max_log_size);\n    return std.math.mul(usize, @max(threads, 1), rows * 64) catch std.math.maxInt(usize);\n}"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_COMPOSITION_QUEUE_TIMING": {
-      "owner": "src/engine/prover/air/component_queue.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/air/component_queue.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/air/component_queue.zig",
-        "text": "    const timing = std.process.hasEnvVarConstant(\"STWO_ZIG_COMPOSITION_QUEUE_TIMING\");\n    var clock: ?std.time.Timer = if (timing) std.time.Timer.start() catch null else null;\n\n    const order = try allocator.alloc(usize, workers.len);\n    defer allocator.free(order);\n    const bytes = try allocator.alloc(usize, workers.len);\n    defer allocator.free(bytes);"
       },
       "expires": "2026-12-13"
     },
@@ -6163,34 +5911,6 @@
         "src/backends/metal/shaders/manifest_test.zig"
       ]
     },
-    "STWO_ZIG_DETACH_STREAMING_COEFFICIENTS": {
-      "owner": "src/engine/prover/pcs/tree_builders.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/tree_builders.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/tree_builders.zig",
-        "text": "            if (arena == null and !borrow_backings and std.process.hasEnvVarConstant(\"STWO_ZIG_DETACH_STREAMING_COEFFICIENTS\"))\n                try prepared.detachBacking(self.allocator)\n            else if (!preserve_lde)\n                try prepared.detachColumnBacking(self.allocator);\n\n            if (self.retained_column_allocator != null and\n                (prepared.column_backing_buffers != null or prepared.coefficients != null))"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_DETACH_STREAMING_LDE": {
-      "owner": "src/engine/prover/pcs/tree_builders.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/tree_builders.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/tree_builders.zig",
-        "text": "                !std.process.hasEnvVarConstant(\"STWO_ZIG_DETACH_STREAMING_LDE\");\n            if (arena == null and !borrow_backings and std.process.hasEnvVarConstant(\"STWO_ZIG_DETACH_STREAMING_COEFFICIENTS\"))\n                try prepared.detachBacking(self.allocator)\n            else if (!preserve_lde)\n                try prepared.detachColumnBacking(self.allocator);\n\n            if (self.retained_column_allocator != null and"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_EC_METAL": {
       "owner": "src/backends/metal/shaders/include/ec.metal",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -6294,20 +6014,6 @@
         "src/backends/metal/shaders/include/felt252.metal"
       ]
     },
-    "STWO_ZIG_FULL_SCRATCH_OPENING": {
-      "owner": "src/engine/prover/pcs/coefficient_opening.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/coefficient_opening.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/coefficient_opening.zig",
-        "text": "    if (native_expansion or std.process.hasEnvVarConstant(\"STWO_ZIG_FULL_SCRATCH_OPENING\"))\n        return decommitWaves(B, H, a, tree, queries, false);\n    return decommitQueued(H, a, tree, queries, true);\n}\n\nfn validateQueries(max_log: u32, queries: []const usize) !void {\n    const size = @as(usize, 1) << @intCast(max_log);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_GKR_STREAM_BOTTOM": {
       "owner": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig",
       "default": "null",
@@ -6347,20 +6053,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig",
         "text": "    const value = std.process.getEnvVarOwned(a, \"STWO_ZIG_GKR_TREE_CHECKPOINTS\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return null,\n        else => return err,\n    };\n    defer a.free(value);\n    return parseTreeCheckpoints(value);\n}"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_GKR_TREE_METRICS": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig",
-        "text": "    const value = std.process.getEnvVarOwned(a, \"STWO_ZIG_GKR_TREE_METRICS\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return false,\n        else => return err,\n    };\n    defer a.free(value);\n    return std.mem.eql(u8, value, \"1\");\n}"
       },
       "expires": "2026-12-13"
     },
@@ -6748,57 +6440,6 @@
         "src/backends/metal/runtime/object_model.h"
       ]
     },
-    "STWO_ZIG_PCS_COLUMN_HISTOGRAM": {
-      "owner": "src/engine/prover/pcs/tree_builders.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/tree_builders.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/tree_builders.zig",
-        "text": "const PCS_COLUMN_HISTOGRAM_ENV = \"STWO_ZIG_PCS_COLUMN_HISTOGRAM\";\nconst bounded_prefix_state_budget_bytes: usize = 96 * 1024 * 1024;\nvar histogram_print_mutex: std.Thread.Mutex = .{};\n\nfn emitColumnHistogram(comptime H: type, sorted: anytype) void {\n    if (!std.process.hasEnvVarConstant(PCS_COLUMN_HISTOGRAM_ENV)) return;\n    histogram_print_mutex.lock();",
-        "readers": [
-          {
-            "path": "src/engine/prover/pcs/tree_builders.zig",
-            "text": "    if (!std.process.hasEnvVarConstant(PCS_COLUMN_HISTOGRAM_ENV)) return;\n    histogram_print_mutex.lock();\n    defer histogram_print_mutex.unlock();\n\n    std.debug.print(\n        \"pcs_column_histogram hasher={s} columns={d} groups=\",\n        .{ @typeName(H), sorted.len },"
-          }
-        ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_PCS_KERNEL_TIMING": {
-      "owner": "src/backends/cpu_scalar/mod.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/cpu_scalar/mod.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cpu_scalar/mod.zig",
-        "text": "            const timing_enabled = std.process.hasEnvVarConstant(\"STWO_ZIG_PCS_KERNEL_TIMING\");\n            var joined_timer: ?std.time.Timer = if (timing_enabled) std.time.Timer.start() catch null else null;\n            const Job = struct {\n                base: []M31,\n                extended: []M31,\n                base_domain: BaseDomain,\n                base_twiddles: BaseTwiddles,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_PCS_TIMING": {
-      "owner": "src/engine/prover/pcs/columns/preparation.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/columns/preparation.zig",
-        "src/engine/prover/pcs/commit_polys.zig",
-        "src/engine/prover/pcs/deferred_commit.zig",
-        "src/integrations/riscv_cpu/word16_execution/fixed_setup.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/columns/preparation.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_PCS_TIMING\")) {\n        var census_timer: ?std.time.Timer = std.time.Timer.start() catch null;\n        const Group = struct {\n            columns: usize = 0,\n            constant_columns: usize = 0,\n            source_values: u128 = 0,\n            constant_values: u128 = 0,"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_POSEIDON2_M31_METAL": {
       "owner": "src/backends/metal/shaders/include/poseidon2_m31.metal",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -6830,63 +6471,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_PROFILE_OM_DOMAIN": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_domain.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_domain.zig",
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_role_domain.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_domain.zig",
-        "text": "    const profile = std.process.hasEnvVarConstant(\"STWO_ZIG_PROFILE_OM_DOMAIN\");\n    var timer: ?std.time.Timer = if (profile) try std.time.Timer.start() else null;\n    var fft_ns: u64 = 0;\n    var row_ns: u64 = 0;\n    const shape = self.mainShape();\n    if (shape.fixed > Component.MAX_FIXED or shape.main > Component.MAX_MAIN) return error.InvalidLocalGkrTrace;\n    const log = Geo.logSize(self);"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_PROFILE_OM_FRI": {
-      "owner": "src/engine/prover/fri_om_cpu.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/fri_om_cpu.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/fri_om_cpu.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_PROFILE_OM_FRI\")) std.debug.print(\"OM_FRI_LINE rows={d} folds={d} scratch_bytes={d} cap_bytes={d} packed={any}\\n\", .{ values.len, n, scratch_bytes, limit, scratch_bytes <= limit });\n    if (scratch_bytes > limit) return F.foldLineInPlaceNWithWorkspace(a, values, domain, alpha, workspace, n);\n    // All growth before writes. Actual allocator OOM is propagated; only an\n    // explicit geometry/cap refusal takes the original scalar path.\n    try workspace.ensureCapacity(a, values.len / 2);\n    const scratch = try a.alloc(O, values.len / 2);\n    var owns_scratch = true;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_PROFILE_SAMPLED_PLAN_OVERLAP": {
-      "owner": "src/engine/prover/pcs/sampled_values.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/sampled_values.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/sampled_values.zig",
-        "text": "        \"STWO_ZIG_PROFILE_SAMPLED_PLAN_OVERLAP\",\n    )) {\n        var overlap_timer = try std.time.Timer.start();\n        var overlap = try plan_overlap.derive(\n            allocator,\n            trees,\n            sampled_points.items,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_PROFILE_WIDE_QUOTIENT": {
-      "owner": "src/engine/prover/pcs/wide_phase_profile.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/wide_phase_profile.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/wide_phase_profile.zig",
-        "text": "        return .{ .label = label, .count = count, .timer = if (S == core.fields.om31.OM31 and std.process.hasEnvVarConstant(\"STWO_ZIG_PROFILE_WIDE_QUOTIENT\")) std.time.Timer.start() catch null else null };\n    }\n    pub fn readNs(self: *Scope) u64 {\n        return if (self.timer) |*timer| timer.read() else 0;\n    }\n    pub fn endRows(self: *Scope, points_ns: u64, inverse_ns: u64, finalize_ns: u64) void {\n        if (self.timer != null) {"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_REGENERATE_RISCV_POLYNOMIAL_AOT": {
       "owner": "src/products/riscv/cpu/tests/metal_backend_test.zig",
       "default": "null at environment lookup; enclosing presence predicate is pinned",
@@ -6899,20 +6483,6 @@
       "default_evidence": {
         "path": "src/products/riscv/cpu/tests/metal_backend_test.zig",
         "text": "    if (std.posix.getenv(\"STWO_ZIG_REGENERATE_RISCV_POLYNOMIAL_AOT\") != null) {\n        try std.fs.cwd().writeFile(.{\n            .sub_path = \".zig-cache/riscv_polynomials.generated.metal\",\n            .data = source,\n        });\n        return;\n    }"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_REPLAY_BOUNDED_MERKLE_TAIL": {
-      "owner": "src/engine/prover/pcs/tree_builders.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/tree_builders.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/tree_builders.zig",
-        "text": "                    !std.process.hasEnvVarConstant(\"STWO_ZIG_REPLAY_BOUNDED_MERKLE_TAIL\"))\n                    try self.streaming_committer.commitColumnsWithReusedBoundedPrefix(\n                        sorted,\n                        bounded_prefix_state_budget_bytes,\n                        &bounded_stats,\n                    )\n                else"
       },
       "expires": "2026-12-13"
     },
@@ -6967,20 +6537,6 @@
             "text": "        std.process.hasEnvVarConstant(diagnostics.OPCODE_WITNESS_AUDIT_ENV),\n    );"
           }
         ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_RISCV_CPU_COMPOSITION_TIMING": {
-      "owner": "src/backends/cpu_scalar/riscv_composition.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/cpu_scalar/riscv_composition.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cpu_scalar/riscv_composition.zig",
-        "text": "    var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant(\"STWO_ZIG_RISCV_CPU_COMPOSITION_TIMING\"))\n        std.time.Timer.start() catch null\n    else\n        null;\n    var prepare_ns: u64 = 0;\n    var graph_ns: u64 = 0;\n    var graph_started_ns: u64 = 0;"
       },
       "expires": "2026-12-13"
     },
@@ -7045,20 +6601,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_RV64_DOMAIN_TIMING": {
-      "owner": "src/frontends/riscv/rv64/air/providers/domain_timing.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv64/air/providers/domain_timing.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv64/air/providers/domain_timing.zig",
-        "text": "            .origin = if (std.process.hasEnvVarConstant(\"STWO_ZIG_RV64_DOMAIN_TIMING\")) std.time.Instant.now() catch null else null,\n        };\n    }\n\n    pub fn end(self: *Span) void {\n        const origin = self.origin orelse return;\n        self.origin = null;"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_RV64_SETUP_BUILD_THREADS": {
       "owner": "src/products/ethereum/statement/cpu/word16_global_execution/ethereum/gkr_resources.zig",
       "default": "@as(usize, 8)",
@@ -7116,20 +6658,6 @@
             "text": "        const v = std.process.getEnvVarOwned(a, IDENTITY_ONLY_ENV) catch break :blk true;\n        defer a.free(v);\n        break :blk !std.mem.eql(u8, v, \"0\");\n    };\n    const threads = blk: {\n        const v = std.process.getEnvVarOwned(a, \"STWO_ZIG_RV64_SETUP_BUILD_THREADS\") catch break :blk @as(usize, 8);\n        defer a.free(v);"
           }
         ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SCALAR_TAIL_UPDATES": {
-      "owner": "src/engine/prover/vcs_lifted/streaming_committer.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/vcs_lifted/streaming_committer.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/vcs_lifted/streaming_committer.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SCALAR_TAIL_UPDATES\")) {\n                return finalizeBoundedTailRangeReusingImpl(range, false);\n            }\n            if (@import(\"bounded_blake2_tail.zig\").finalize(H, range)) |absorptions| {\n                range.absorptions = absorptions;\n                return;\n            }"
       },
       "expires": "2026-12-13"
     },

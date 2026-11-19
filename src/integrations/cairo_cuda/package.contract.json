@@ -15,7 +15,9 @@
     "stwo_native_cuda_integration": "../native_cuda",
     "stwo_prover_engine": "../../engine/prover"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "cairo_host_test_options"
+  ],
   "api_surface": [
     "base_writer_plan",
     "canonical_eval_aot",

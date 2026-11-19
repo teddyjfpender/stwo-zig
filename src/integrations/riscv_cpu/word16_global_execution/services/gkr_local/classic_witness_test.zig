@@ -162,7 +162,7 @@ test "packed classic inverse contributions and dots match scalar with tails and 
 }
 
 test "optional classic640 inverse kernel A B" {
-    if (!std.process.hasEnvVarConstant("STWO_ZIG_BENCH_CLASSIC_WITNESS")) return;
+    if (!@import("classic_witness_test_options").benchmark) return;
     var metadata = [_]M{ M.zero(), M.one(), M.one().neg(), M.fromCanonical(19) };
     const provider = Provider{ .metadata = &metadata };
     const groups = [_]C.Group{.{ .inverses = 640 }};

@@ -32,7 +32,7 @@ pub const Budget = struct {
 };
 
 /// Zero selects the PCS default column cap; PCS also bounds each batch by
-/// source-plus-LDE bytes. The small-batch switch is a research control only.
+/// source-plus-LDE bytes.
 pub fn streamingBatchColumns() u32 {
-    return if (std.process.hasEnvVarConstant("STWO_RISCV_SMALL_COMMIT_BATCH")) 8 else 0;
+    return 0;
 }

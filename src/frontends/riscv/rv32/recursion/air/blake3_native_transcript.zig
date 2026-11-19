@@ -130,13 +130,6 @@ fn finishInternal(backing: std.mem.Allocator, arena: *std.heap.ArenaAllocator, r
     };
     var plan = try plan_mod.Plan.initCompact(backing, .{ .namespace = 1_000_000, .attempt_capacity = capacity }, r.operations.items);
     errdefer plan.deinit();
-    if (std.posix.getenv("STWO_RISCV_PARENT_PREPARATION_PROFILE") != null) {
-        const counts = plan.fixed.hashCounts();
-        const metadata = @import("stwo_riscv_air_lang").framework.blake3_hash_metadata;
-        const full_bytes = try std.math.add(usize, try std.math.mul(usize, counts.g, @sizeOf(t.g.Row)), try std.math.mul(usize, counts.xor, @sizeOf(t.xor.Row)));
-        const compact_bytes = try std.math.add(usize, try std.math.mul(usize, counts.g, @sizeOf(metadata.Row(t.g))), try std.math.mul(usize, counts.xor, @sizeOf(metadata.Row(t.xor))));
-        std.debug.print("BLAKE3_TRUSTED_TRANSCRIPT_STORAGE g_rows={d} xor_rows={d} prior_full_bytes={d} compact_bytes={d} removed_bytes={d}\n", .{ counts.g, counts.xor, full_bytes, compact_bytes, full_bytes - compact_bytes });
-    }
     const operations = try r.operations.toOwnedSlice(a);
     const claim_payloads = try r.payloads.toOwnedSlice(a);
     return .{ .arena = arena.*, .operations = operations, .claim_payloads = claim_payloads, .plan = plan, .end = r.native };
