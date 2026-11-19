@@ -2202,20 +2202,6 @@
         "src/backends/cuda/aot/native/witness_blake_exact_trace_b475750894301a14.cu"
       ]
     },
-    "STWO_DIET_OUT": {
-      "owner": "src/integrations/riscv_cpu/logup_gkr/outer_gkr_diet_test.zig",
-      "default": "disabled: no diet artifact output directory",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/logup_gkr/outer_gkr_diet_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/logup_gkr/outer_gkr_diet_test.zig",
-        "text": "    const path = std.posix.getenv(\"STWO_DIET_OUT\") orelse return;\n    const file = std.fs.cwd().createFile(path, .{ .truncate = false }) catch return;\n    defer file.close();\n    file.seekFromEnd(0) catch return;\n    file.writeAll(line) catch {};\n}\n"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_DUMP_INPUT": {
       "owner": "scripts/cairo/cairo_four_pie_source_coverage_lib/shape.py",
       "default": "not supplied unless source-coverage harness explicitly selects an adapted-input destination",
@@ -3481,20 +3467,6 @@
       "default_evidence": {
         "path": "src/frontends/riscv/rv32/prover/blake3_coefficient_retention.zig",
         "text": "    return if (std.process.hasEnvVarConstant(\"STWO_RISCV_SMALL_COMMIT_BATCH\")) 8 else 0;\n}"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_SYSTEM_BENCH_WORKERS": {
-      "owner": "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig",
-      "default": "16",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig",
-        "text": "        const raw = std.process.getEnvVarOwned(std.heap.page_allocator, \"STWO_RISCV_SYSTEM_BENCH_WORKERS\") catch break :blk @as(usize, 16);\n        defer std.heap.page_allocator.free(raw);\n        break :blk try std.fmt.parseInt(usize, raw, 10);\n    };\n    var pool: pools.WorkPool = undefined;\n    try pool.initInPlaceWithOptions(.{ .worker_count = workers, .backing_allocator = std.heap.smp_allocator });\n    defer pool.deinit();"
       },
       "expires": "2026-12-13"
     },
@@ -4989,20 +4961,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_SECP256K1_CSP_SAMPLES": {
-      "owner": "src/frontends/riscv/compat/harnesses/secp256k1_proof_harness.zig",
-      "default": "canonical run(allocator) CSP suite rather than selected sample indices",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/compat/harnesses/secp256k1_proof_harness.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/compat/harnesses/secp256k1_proof_harness.zig",
-        "text": "            const encoded = std.process.getEnvVarOwned(allocator, \"STWO_SECP256K1_CSP_SAMPLES\") catch |err| switch (err) {\n                error.EnvironmentVariableNotFound => return run(allocator),\n                else => return err,\n            };\n            defer allocator.free(encoded);\n            const samples = try std.fmt.parseInt(u32, encoded, 10);\n            if (samples == 0 or samples > 1000) return error.InvalidSampleCount;"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_SEGMENT_V2_CHILD_BUNDLE": {
       "owner": "src/frontends/riscv/compat/assembly/recursion/detached_child_capture.zig",
       "default": "error.EnvironmentVariableNotFound (required value)",
@@ -5613,20 +5571,6 @@
       "references": [
         "src/backends/metal/shaders/include/base.metal"
       ]
-    },
-    "STWO_ZIG_BENCH_CLASSIC_WITNESS": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/classic_witness_test.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/classic_witness_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/classic_witness_test.zig",
-        "text": "    if (!std.process.hasEnvVarConstant(\"STWO_ZIG_BENCH_CLASSIC_WITNESS\")) return;\n    var metadata = [_]M{ M.zero(), M.one(), M.one().neg(), M.fromCanonical(19) };\n    const provider = Provider{ .metadata = &metadata };\n    const groups = [_]C.Group{.{ .inverses = 640 }};\n    var timer = try std.time.Timer.start();\n    var reference = try C.Witness.initTruth(a, 12, &groups, Serial{ .value = provider }, 1 << 30);\n    defer reference.deinit();"
-      },
-      "expires": "2026-12-13"
     },
     "STWO_ZIG_BLAKE2S_METAL": {
       "owner": "src/backends/metal/shaders/include/blake2s.metal",

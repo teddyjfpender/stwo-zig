@@ -35,7 +35,11 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
     const gkr_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_gkr_circuit_test_root.zig") });
     context.b.step("test-riscv64-gkr-circuit", "Qualify shared numerical GKR verifier on real circuit wires").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = gkr_tests, .minimum = 9 }}));
     // M4 diet stream (measurement-only prototype).
-    const diet_gkr_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_outer_gkr_diet_test_root.zig"), .filters = &.{"outer LogUp-GKR"} });
+    const diet_root = createRoot(context, product, "src/integrations/riscv_cpu/rv64_outer_gkr_diet_test_root.zig");
+    const diet_options = context.b.addOptions();
+    diet_options.addOption(?[]const u8, "receipt_path", context.b.option([]const u8, "outer-gkr-diet-out", "Append outer GKR measurement receipts to this path"));
+    diet_root.addOptions("outer_gkr_diet_options", diet_options);
+    const diet_gkr_tests = context.b.addTest(.{ .root_module = diet_root, .filters = &.{"outer LogUp-GKR"} });
     context.b.step("test-riscv64-outer-gkr-diet", "Measure the outer LogUp-GKR in-circuit verifier cost (M7 diet prototype)").dependOn(&context.b.addRunArtifact(diet_gkr_tests).step);
     // M5 stream outer-gkr (profile outer_gkr_om31_strict_v1; off by default, new files only).
     const outer_gkr_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_outer_gkr_test_root.zig"), .filters = &.{"outer GKR"} });

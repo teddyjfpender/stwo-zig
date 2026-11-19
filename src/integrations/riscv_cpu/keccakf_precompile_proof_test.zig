@@ -21,11 +21,7 @@ test "Keccak-f BLAKE3 canonical system benchmark" {
         suite.Channel,
     );
     const pools = @import("stwo_prover_engine").work_pool;
-    const workers = blk: {
-        const raw = std.process.getEnvVarOwned(std.heap.page_allocator, "STWO_RISCV_SYSTEM_BENCH_WORKERS") catch break :blk @as(usize, 16);
-        defer std.heap.page_allocator.free(raw);
-        break :blk try std.fmt.parseInt(usize, raw, 10);
-    };
+    const workers = @import("test_options").workers;
     var pool: pools.WorkPool = undefined;
     try pool.initInPlaceWithOptions(.{ .worker_count = workers, .backing_allocator = std.heap.smp_allocator });
     defer pool.deinit();
