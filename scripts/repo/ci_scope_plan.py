@@ -250,9 +250,11 @@ def select_lanes(
     reasons: dict[str, list[str]] = {lane: ["always"] for lane in selected}
     all_lanes = set(policy["lanes"])
     for path in paths:
-        path_lanes = catalog_lanes(path, catalog, policy)
-        path_lanes.update(graph_lanes(path, packages, bindings))
-        path_lanes.update(rule_lanes(path, policy))
+        readme = PurePosixPath(path).name == "README.md"
+        path_lanes = rule_lanes(path, policy, documentation_only=readme)
+        if not readme:
+            path_lanes.update(catalog_lanes(path, catalog, policy))
+            path_lanes.update(graph_lanes(path, packages, bindings))
         if (
             not path_lanes
             and not is_documentation(path, policy)
