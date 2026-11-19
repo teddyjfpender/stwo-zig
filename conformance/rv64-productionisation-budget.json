@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "report_versioned_source_basenames_issue370",
+      "net_code_budget": 55,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 370: publish a source-owned Zig basename census from the existing package measurement. Preserve the historical all-file cap, CB-2 snapshots and current ceilings. Keep ownership and the report in a single collector."
+    },
+    {
       "id": "focused_formal_evidence_deferral_issue436",
       "net_code_budget": 110,
       "flags_added_budget": 0,

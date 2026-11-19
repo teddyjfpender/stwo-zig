@@ -56,11 +56,13 @@ jobs:
           import sys
 
           with open(sys.argv[1]) as report:
-              counts = json.load(report)["environment_controls"]
+              budget = json.load(report)
           print("| Environment controls | Count |")
           print("| --- | ---: |")
-          for status, count in counts.items():
+          for status, count in budget["environment_controls"].items():
               print(f"| {status} | {count} |")
+          versioned = budget["measurement"]["versioned_zig_filenames"]
+          print(f"\nVersioned Zig basenames under `src/`: {sum(map(len, versioned.values()))}")
           PY
 
   focused-plan:
