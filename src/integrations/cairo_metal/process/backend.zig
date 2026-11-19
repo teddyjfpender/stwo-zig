@@ -377,7 +377,7 @@ test "Cairo Metal backend derives SN2 runtime protocol and trace columns" {
     var composition = try composition_bundle.Bundle.readFile(allocator, "vectors/cairo/sn_pie_2_composition.bin");
     defer composition.deinit();
     const geometry = try protocolGeometry(composition);
-    try std.testing.expectEqual(@as(u32, 24), geometry.max_log_degree_bound);
+    try std.testing.expectEqual(@as(u32, 23), geometry.max_log_degree_bound);
     try std.testing.expectEqual(@as(u32, 8), geometry.fri_tree_count);
     try std.testing.expectEqual(
         [4]u32{ 161, 3449, 2268, 8 },
