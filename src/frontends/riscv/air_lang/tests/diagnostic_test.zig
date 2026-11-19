@@ -1,10 +1,10 @@
 const std = @import("std");
-const degree = @import("../degree.zig");
-const diagnostic = @import("../diagnostic.zig");
-const ir = @import("../ir.zig");
-const source = @import("../source.zig");
+const degree = @import("../ir/degree.zig");
+const diagnostic = @import("../ir/diagnostic.zig");
+const ir = @import("../ir/ir.zig");
+const source = @import("../ir/source.zig");
 const test_support = @import("../test_support.zig");
-const types = @import("../types.zig");
+const types = @import("../ir/types.zig");
 
 test "diagnostic renderer pins component, source, path, type, and degree" {
     var fixture = try test_support.Fixture.init(std.testing.allocator);

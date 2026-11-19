@@ -1,12 +1,12 @@
 //! Allocation-failure transactions for multi-pool authoring finalizers.
 
 const std = @import("std");
-const functions = @import("../functions.zig");
-const hints = @import("../hints.zig");
-const ir = @import("../ir.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
-const validate = @import("../validate.zig");
+const functions = @import("../functions/functions.zig");
+const hints = @import("../functions/hints.zig");
+const ir = @import("../ir/ir.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
+const validate = @import("../ir/validate.zig");
 
 const Outcome = enum { failed, succeeded };
 const max_failure_index = 256;
@@ -207,7 +207,7 @@ test "hint binding finalization rolls paths and records back together" {
                 try std.testing.expectEqual(@as(usize, 0), arena.hint_bindings.items.len);
                 try std.testing.expectEqual(@as(usize, 0), arena.hint_binding_values.items.len);
                 try std.testing.expectEqual(
-                    @as(?@import("../program.zig").RefRange, null),
+                    @as(?@import("../ir/program.zig").RefRange, null),
                     arena.hints.items[0].bindings,
                 );
                 break :blk .failed;

@@ -1,13 +1,13 @@
 //! Defensive mutations and allocation adversaries for native typed ADDI.
 
 const std = @import("std");
-const instruction_effects = @import("../instruction_effects.zig");
-const ir = @import("../ir.zig");
-const relation = @import("../relation.zig");
-const source = @import("../source.zig");
-const typed_addi = @import("../typed_addi.zig");
-const types = @import("../types.zig");
-const validate = @import("../validate.zig");
+const instruction_effects = @import("../lowering/instruction_effects.zig");
+const ir = @import("../ir/ir.zig");
+const relation = @import("../ir/relation.zig");
+const source = @import("../ir/source.zig");
+const typed_addi = @import("../opcodes/arithmetic/typed_addi.zig");
+const types = @import("../ir/types.zig");
+const validate = @import("../ir/validate.zig");
 
 test "typed ADDI rejects relation role schema liveness ordinal and read binding drift" {
     {

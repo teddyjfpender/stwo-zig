@@ -2,7 +2,7 @@
 //! its public root, not by a claim that the sibling has a known preimage.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../definition.zig");
+const lang = @import("../ir/definition.zig");
 const effects = @import("relation_effect.zig");
 const M31 = core.fields.m31.M31;
 const Id = lang.types.ValueId;

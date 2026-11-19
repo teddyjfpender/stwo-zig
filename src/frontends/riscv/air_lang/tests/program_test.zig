@@ -1,11 +1,11 @@
 const std = @import("std");
-const functions = @import("../functions.zig");
-const hints = @import("../hints.zig");
-const ir = @import("../ir.zig");
-const source = @import("../source.zig");
+const functions = @import("../functions/functions.zig");
+const hints = @import("../functions/hints.zig");
+const ir = @import("../ir/ir.zig");
+const source = @import("../ir/source.zig");
 const test_support = @import("../test_support.zig");
-const types = @import("../types.zig");
-const validate = @import("../validate.zig");
+const types = @import("../ir/types.zig");
+const validate = @import("../ir/validate.zig");
 
 test "whole logical program owns ordered records and passes validation" {
     var fixture = try test_support.Fixture.init(std.testing.allocator);

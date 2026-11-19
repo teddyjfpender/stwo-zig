@@ -7,12 +7,12 @@
 //! a complete recursive-verifier component.
 
 const std = @import("std");
-const digest = @import("../digest.zig");
-const ir = @import("../ir.zig");
-const program = @import("../program.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
-const validate_mod = @import("../validate.zig");
+const digest = @import("../ir/digest.zig");
+const ir = @import("../ir/ir.zig");
+const program = @import("../ir/program.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
+const validate_mod = @import("../ir/validate.zig");
 
 pub const PHYSICAL_COLUMN_COUNT: usize = 12;
 pub const CONSTRAINT_COUNT: usize = 4;

@@ -1,7 +1,7 @@
 //! Repack four scalar recursion wires into one QM31 wire without host-only joins.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../definition.zig");
+const lang = @import("../ir/definition.zig");
 const effects = @import("relation_effect.zig");
 const M31 = core.fields.m31.M31;
 pub const PHYSICAL_MAIN_COLUMN_COUNT = 4;

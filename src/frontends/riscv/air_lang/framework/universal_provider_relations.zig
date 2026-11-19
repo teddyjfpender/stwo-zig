@@ -3,7 +3,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const base_relations = @import("../shared/air/relation_challenges.zig");
-const relation = @import("../relation.zig");
+const relation = @import("../ir/relation.zig");
 const universal = @import("universal_challenges.zig");
 pub const Error = universal.Error || relation.Error || error{ChallengeBindingMismatch};
 

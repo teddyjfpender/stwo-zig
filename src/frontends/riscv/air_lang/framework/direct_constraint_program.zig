@@ -9,11 +9,11 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const digest = @import("../digest.zig");
-const expr = @import("../expr.zig");
-const ir = @import("../ir.zig");
-const types = @import("../types.zig");
-const validate = @import("../validate.zig");
+const digest = @import("../ir/digest.zig");
+const expr = @import("../ir/expr.zig");
+const ir = @import("../ir/ir.zig");
+const types = @import("../ir/types.zig");
+const validate = @import("../ir/validate.zig");
 
 pub const MAX_NODES: usize = 640;
 pub const MAX_CONSTRAINTS: usize = 192;
@@ -363,7 +363,7 @@ test "R-012 direct compiler evaluates control roots identically over M31 and QM3
 }
 
 test "R-012 direct execution pruning retains gates and the complete arena seal" {
-    const source = @import("../source.zig").SourceSpan.generated();
+    const source = @import("../ir/source.zig").SourceSpan.generated();
     var arena = ir.Arena.init(std.testing.allocator);
     defer arena.deinit();
     const input = try arena.input("value", .felt, source);

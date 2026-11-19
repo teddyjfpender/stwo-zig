@@ -60,7 +60,7 @@ class RecursionOwnershipTest(unittest.TestCase):
             self.assertNotIn("typed_admission", Path(path).name)
         self.assertNotIn("src/frontends/riscv/memory/air/poseidon2_air.zig", sources)
         self.assertNotIn("src/frontends/riscv/air_lang/shared/air/logup.zig", sources)
-        self.assertIn("src/frontends/riscv/air_lang/degree3_materializer.zig", sources)
+        self.assertIn("src/frontends/riscv/air_lang/materialization/degree3_materializer.zig", sources)
         self.assertIn("src/frontends/riscv/memory/typed/typed_poseidon2_bound_program.zig", sources)
         self.assertIn("src/frontends/riscv/memory/typed/typed_poseidon2_relation_contract.zig", sources)
         profile = self.native_profile_authority(root)
@@ -75,7 +75,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         manifest = Manifest(
             product="typed-native-boundary-definition",
-            entry_roots=("src/frontends/riscv/air_lang/typed_native_boundary.zig",),
+            entry_roots=("src/frontends/riscv/air_lang/opcodes/memory/typed_native_boundary.zig",),
             named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
@@ -220,12 +220,12 @@ class RecursionOwnershipTest(unittest.TestCase):
             self.assertIn("tracked_smp_allocator.TrackedSmpAllocator", text)
 
     DEFINITION_FILES = (
-        "access_schedule", "bounded_arithmetic", "capabilities",
-        "conditional_access_evidence", "conditional_access_plan", "definition",
-        "digest", "effects", "expr", "functions", "hint_recipe", "hints", "ir",
-        "ir_type_rules", "machine_derived_validation", "memory_access_validation",
-        "program", "range_refinement", "range_refinement_runtime", "relation",
-        "source", "types", "validate", "validate_support", "window_ir",
+        "lowering/access_schedule", "ir/bounded_arithmetic", "metadata/capabilities",
+        "lowering/conditional_access_evidence", "lowering/conditional_access_plan", "ir/definition",
+        "ir/digest", "lowering/effects", "ir/expr", "functions/functions", "functions/hint_recipe", "functions/hints", "ir/ir",
+        "ir/ir_type_rules", "lowering/machine_derived_validation", "lowering/memory_access_validation",
+        "ir/program", "lowering/range_refinement", "lowering/range_refinement_runtime", "ir/relation",
+        "ir/source", "ir/types", "ir/validate", "ir/validate_support", "ir/window_ir",
     )
 
     def test_typed_verifier_component_excludes_prover_and_witness_sources(self) -> None:
@@ -372,8 +372,8 @@ class RecursionOwnershipTest(unittest.TestCase):
     def test_shared_provider_admission_has_only_equations_and_metadata(self) -> None:
         root = Path(__file__).resolve().parents[2]
         files = (
-            "air_lang/static_collections.zig", "memory/typed/typed_poseidon2.zig",
-            "memory/typed/typed_poseidon2_compact.zig", "air_lang/polynomial_replay.zig",
+            "air_lang/ir/static_collections.zig", "memory/typed/typed_poseidon2.zig",
+            "memory/typed/typed_poseidon2_compact.zig", "air_lang/polynomial/polynomial_replay.zig",
             "air_lang/shared/air/extract/symbolic_relations.zig", "air_lang/shared/air/extract/provider_equivalence.zig",
             "isa/access_clock.zig", "air_lang/shared/air/extract/canonical_digest.zig", "air_lang/shared/air/extract/symbolic.zig",
             "air_lang/shared/air/logup_equations.zig", "air_lang/shared/air/lookups/entry.zig",
@@ -448,8 +448,8 @@ class RecursionOwnershipTest(unittest.TestCase):
     def test_canonical_poseidon_identity_has_only_typed_equation_and_core_dependencies(self) -> None:
         root = Path(__file__).resolve().parents[2]
         files = (
-            "air_lang/static_collections.zig", "memory/typed/typed_poseidon2.zig",
-            "memory/typed/typed_poseidon2_compact.zig", "air_lang/polynomial_replay.zig",
+            "air_lang/ir/static_collections.zig", "memory/typed/typed_poseidon2.zig",
+            "memory/typed/typed_poseidon2_compact.zig", "air_lang/polynomial/polynomial_replay.zig",
             "air_lang/shared/air/extract/symbolic_relations.zig", "air_lang/shared/air/extract/provider_equivalence.zig",
             "isa/access_clock.zig", "air_lang/shared/air/extract/canonical_digest.zig",
             "air_lang/shared/air/extract/symbolic.zig", "air_lang/shared/air/logup_equations.zig",
@@ -516,7 +516,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         manifest = Manifest(
             product="air-definition",
             entry_roots=(
-                "src/frontends/riscv/air_lang/definition.zig",
+                "src/frontends/riscv/air_lang/ir/definition.zig",
                 "src/frontends/riscv/recursion_air/wire/fixed_wire.zig",
             ),
             named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),

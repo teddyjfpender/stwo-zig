@@ -1,8 +1,8 @@
 //! Shared compiler helpers for the three recursion arithmetic components.
 
-const ir = @import("../ir.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
+const ir = @import("../ir/ir.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
 
 pub fn selectSchedule(
     comptime field_count: usize,

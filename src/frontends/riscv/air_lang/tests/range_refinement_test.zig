@@ -1,13 +1,13 @@
 const std = @import("std");
-const digest = @import("../digest.zig");
-const effects = @import("../effects.zig");
-const ir = @import("../ir.zig");
-const manifest = @import("../manifest.zig");
-const range_refinement = @import("../range_refinement.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
-const validate = @import("../validate.zig");
-const range_test_support = @import("../range_refinement_test_support.zig");
+const digest = @import("../ir/digest.zig");
+const effects = @import("../lowering/effects.zig");
+const ir = @import("../ir/ir.zig");
+const manifest = @import("../metadata/manifest.zig");
+const range_refinement = @import("../lowering/range_refinement.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
+const validate = @import("../ir/validate.zig");
+const range_test_support = @import("../lowering/range_refinement_test_support.zig");
 
 const Fixture = range_test_support.Fixture;
 

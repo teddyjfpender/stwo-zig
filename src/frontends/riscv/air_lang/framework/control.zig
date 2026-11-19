@@ -6,12 +6,12 @@
 //! the same tuple so downstream gadgets must discharge the full schedule.
 
 const std = @import("std");
-const digest = @import("../digest.zig");
-const ir = @import("../ir.zig");
-const relation = @import("../relation.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
-const validate_mod = @import("../validate.zig");
+const digest = @import("../ir/digest.zig");
+const ir = @import("../ir/ir.zig");
+const relation = @import("../ir/relation.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
+const validate_mod = @import("../ir/validate.zig");
 const relation_effect = @import("relation_effect.zig");
 
 pub const STABLE_NAME = "recursion.control.v1";

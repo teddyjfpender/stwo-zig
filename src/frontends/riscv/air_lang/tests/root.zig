@@ -14,7 +14,7 @@ test {
     _ = @import("../framework/relation_interaction_tuple_ledger.zig");
     _ = @import("../framework/universal_challenges.zig");
     _ = @import("../framework/universal_roster.zig");
-    _ = @import("../physical_profile.zig");
+    _ = @import("../metadata/physical_profile.zig");
     _ = @import("../shared/air/composition_work_support.zig");
     _ = @import("../shared/air/extract/symbolic.zig");
     _ = @import("../shared/air/logup.zig");

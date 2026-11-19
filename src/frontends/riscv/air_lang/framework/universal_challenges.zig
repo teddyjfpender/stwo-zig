@@ -10,7 +10,7 @@ const stwo_core = @import("stwo_core");
 const m31 = stwo_core.fields.m31;
 const M31 = m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const relation = @import("../relation.zig");
+const relation = @import("../ir/relation.zig");
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const RELATION_COUNT: usize = relation.UNIVERSAL_RELATION_COUNT;
@@ -260,7 +260,7 @@ test "R-012 universal challenge combine uses exact alpha-power convention" {
 }
 
 comptime {
-    if (MAX_ARITY != @import("../effects.zig").MAX_ARITY)
+    if (MAX_ARITY != @import("../lowering/effects.zig").MAX_ARITY)
         @compileError("universal challenge storage must track typed effect arity");
 }
 

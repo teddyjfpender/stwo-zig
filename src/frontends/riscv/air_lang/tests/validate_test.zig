@@ -1,12 +1,12 @@
 const std = @import("std");
-const effects = @import("../effects.zig");
-const ir = @import("../ir.zig");
-const program = @import("../program.zig");
-const relation = @import("../relation.zig");
-const source = @import("../source.zig");
+const effects = @import("../lowering/effects.zig");
+const ir = @import("../ir/ir.zig");
+const program = @import("../ir/program.zig");
+const relation = @import("../ir/relation.zig");
+const source = @import("../ir/source.zig");
 const test_support = @import("../test_support.zig");
-const types = @import("../types.zig");
-const validate = @import("../validate.zig");
+const types = @import("../ir/types.zig");
+const validate = @import("../ir/validate.zig");
 
 test "validator rejects InvalidName" {
     var fixture = try test_support.Fixture.init(std.testing.allocator);

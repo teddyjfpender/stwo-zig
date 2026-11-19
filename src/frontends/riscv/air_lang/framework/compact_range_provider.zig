@@ -3,7 +3,7 @@
 //! proves membership independently of its signed original-table multiplicity.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../definition.zig");
+const lang = @import("../ir/definition.zig");
 const effects = @import("relation_effect.zig");
 const schema = @import("../shared/air/lookups/tables/schema.zig");
 const M = core.fields.m31.M31;
@@ -86,7 +86,7 @@ pub fn Provider(comptime kind: schema.Kind) type {
             else
                 high;
             _ = try arena.assertZero("tuple_reconstruction", try arena.sub(ids[if (kind == .range_check_20) 0 else if (kind == .range_check_8_11) 1 else 2], reconstructed, span), null, .semantic, span);
-            const domain: @import("../relation.zig").Domain = switch (kind) {
+            const domain: @import("../ir/relation.zig").Domain = switch (kind) {
                 .range_check_20 => .range_check_20,
                 .range_check_8_11 => .range_check_8_11,
                 .range_check_8_8_4 => .range_check_8_8_4,

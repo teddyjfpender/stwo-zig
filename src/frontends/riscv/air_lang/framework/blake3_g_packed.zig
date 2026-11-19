@@ -2,8 +2,8 @@
 //! admission are separate from these arithmetic and lookup obligations.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../definition.zig");
-const relation = @import("../relation.zig");
+const lang = @import("../ir/definition.zig");
+const relation = @import("../ir/relation.zig");
 const effects = @import("relation_effect.zig");
 const Id = lang.types.ValueId;
 const span = lang.source.SourceSpan.generated();

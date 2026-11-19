@@ -1,7 +1,7 @@
 const std = @import("std");
 const production = @import("../shared/air/lookups/entry.zig");
-const relation = @import("../relation.zig");
-const types = @import("../types.zig");
+const relation = @import("../ir/relation.zig");
+const types = @import("../ir/types.zig");
 
 test "relation domain and role wire tags are pinned to production" {
     const logical_domains = std.meta.tags(relation.Domain);

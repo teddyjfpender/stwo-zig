@@ -1,9 +1,9 @@
 const std = @import("std");
-const functions = @import("functions.zig");
-const hints = @import("hints.zig");
-const ir = @import("ir.zig");
-const source = @import("source.zig");
-const types = @import("types.zig");
+const functions = @import("functions/functions.zig");
+const hints = @import("functions/hints.zig");
+const ir = @import("ir/ir.zig");
+const source = @import("ir/source.zig");
+const types = @import("ir/types.zig");
 
 pub const Fixture = struct {
     arena: ir.Arena,

@@ -1,8 +1,8 @@
 //! Shared lowering/evaluation of the validated, closed machine-expression set.
 //! This is not a cast API: language validation owns every permitted use.
-const expr = @import("../expr.zig");
-const types = @import("../types.zig");
-const digest = @import("../digest.zig");
+const expr = @import("../ir/expr.zig");
+const types = @import("../ir/types.zig");
+const digest = @import("../ir/digest.zig");
 const M = @import("stwo_core").fields.m31.M31;
 pub fn supportedFormat(version: u16) bool {
     return version == digest.typed_effect_format_version or version == digest.register_group_format_version or

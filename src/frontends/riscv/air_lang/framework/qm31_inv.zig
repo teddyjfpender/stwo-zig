@@ -1,13 +1,13 @@
 //! Exact typed logical AIR for Stark-V's recursion QM31 inversion row.
 
 const std = @import("std");
-const digest = @import("../digest.zig");
-const ir = @import("../ir.zig");
-const program = @import("../program.zig");
-const relation = @import("../relation.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
-const validate_mod = @import("../validate.zig");
+const digest = @import("../ir/digest.zig");
+const ir = @import("../ir/ir.zig");
+const program = @import("../ir/program.zig");
+const relation = @import("../ir/relation.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
+const validate_mod = @import("../ir/validate.zig");
 const arithmetic = @import("qm31_mul.zig");
 const component_support = @import("component_support.zig");
 const wire = @import("wire_relation.zig");
@@ -482,7 +482,7 @@ fn binaryOp(
     arena: *const ir.Arena,
     value: types.ValueId,
     tag: BinaryTag,
-) ?@import("../expr.zig").Binary {
+) ?@import("../ir/expr.zig").Binary {
     const node = arena.node(value) orelse return null;
     return switch (tag) {
         .sub => switch (node.key.op) {
@@ -497,7 +497,7 @@ fn binaryOp(
 }
 
 fn unorderedPairEquals(
-    actual: @import("../expr.zig").Binary,
+    actual: @import("../ir/expr.zig").Binary,
     lhs: types.ValueId,
     rhs: types.ValueId,
 ) bool {

@@ -6,11 +6,11 @@
 //! allowed to write a relation binding by hand.
 
 const std = @import("std");
-const ir = @import("../ir.zig");
-const program = @import("../program.zig");
-const relation = @import("../relation.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
+const ir = @import("../ir/ir.zig");
+const program = @import("../ir/program.zig");
+const relation = @import("../ir/relation.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
 
 pub const Error = ir.Error || relation.Error || error{
     EmptyRelationGroup,
@@ -51,7 +51,7 @@ pub fn appendGroup(
         const weight = arena.node(event.weight) orelse return error.UnknownValue;
         if (!weight.key.ty.isFieldScalar()) return error.InvalidComponentWeight;
 
-        var field_types: [@import("../effects.zig").MAX_ARITY]types.Type =
+        var field_types: [@import("../lowering/effects.zig").MAX_ARITY]types.Type =
             undefined;
         if (event.values.len > field_types.len)
             return error.InvalidArity;
@@ -105,7 +105,7 @@ pub fn binding(
 }
 
 test "R-012 universal relation group authors multiple schemas atomically" {
-    const validate = @import("../validate.zig");
+    const validate = @import("../ir/validate.zig");
     var arena = ir.Arena.init(std.testing.allocator);
     defer arena.deinit();
     const span = source.SourceSpan.generated();

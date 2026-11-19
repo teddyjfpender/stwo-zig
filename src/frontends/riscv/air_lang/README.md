@@ -11,13 +11,30 @@ Public module `stwo_riscv_air_lang`.
 
 ## Purpose and architecture
 
-Canonical air lang source ownership under RFC #344; public module aliases point to one implementation each.
+This package defines the RISC-V AIR language and lowers instruction effects
+to constraints and witnesses. Its public facade is [`mod.zig`](mod.zig).
 
 ```mermaid
 graph LR
-  Consumer --> air_lang
-  air_lang --> DeclaredProviders
+  Opcodes[Typed opcode definitions] --> Model[AIR IR]
+  Model --> Lowering[Effects and access lowering]
+  Lowering --> Polynomial[Polynomial programs and witnesses]
+  Polynomial --> Framework[Component and relation framework]
 ```
+
+| Directory | Responsibility |
+| --- | --- |
+| [`ir/`](ir/) | Typed expressions, relations, program and source definitions, and validation |
+| [`lowering/`](lowering/) | Instruction effects, access schedules, range refinement, and row windows |
+| [`opcodes/`](opcodes/) | Arithmetic, control-flow, and memory opcode definitions |
+| [`polynomial/`](polynomial/) | Direct and fixed polynomial programs, encoding, replay, and witness execution |
+| [`materialization/`](materialization/) | Materialization policies, cost models, and frontier formats |
+| [`functions/`](functions/) | Function activation, frames, and hint recipes |
+| [`metadata/`](metadata/) | Capabilities, manifests, profiles, and shadow imports |
+| [`framework/`](framework/) and [`shared/`](shared/) | Component construction and shared AIR primitives |
+
+The package-level [`circuit_layout.zig`](circuit_layout.zig) is the source
+anchor for the retained CSP shape audit.
 
 ## Public API
 

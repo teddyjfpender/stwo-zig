@@ -4,7 +4,7 @@ const core = @import("stwo_core");
 const core_components = core.air.components;
 const QM31 = core.fields.qm31.QM31;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
-const digest = @import("../digest.zig");
+const digest = @import("../ir/digest.zig");
 const contract = @import("universal_manifest_contract.zig");
 
 pub const ComponentKey = contract.ComponentKey;

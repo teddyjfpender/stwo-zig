@@ -1,5 +1,5 @@
 const std = @import("std");
-const subject = @import("../direct_witness_executor.zig");
+const subject = @import("../polynomial/direct_witness_executor.zig");
 
 const column_count = 2;
 const bad_row: u32 = 0xffff_ffff;
