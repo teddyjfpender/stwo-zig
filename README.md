@@ -4,11 +4,10 @@
 
 **A high-performance Zig implementation of the Stwo prover and verifier.**
 
-Protocol parity with Rust. Portable CPU execution. Resident GPU proving on Metal.
+Protocol parity with Rust, portable CPU execution, and Metal and CUDA proving paths.
 
 [![CI](https://github.com/teddyjfpender/stwo-zig/actions/workflows/ci.yml/badge.svg)](https://github.com/teddyjfpender/stwo-zig/actions/workflows/ci.yml)
-[![Zig 0.15.x](https://img.shields.io/badge/Zig-0.15.x-F7A41D?logo=zig&logoColor=white)](https://ziglang.org/)
-![Backends: CPU and Metal](https://img.shields.io/badge/backends-CPU_%7C_Metal-2563EB)
+[![Zig 0.15.2](https://img.shields.io/badge/Zig-0.15.2-F7A41D?logo=zig&logoColor=white)](toolchain.json)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-0F766E)](LICENSE)
 
 </div>
@@ -34,7 +33,7 @@ an official-oracle-gated Cairo CPU frontend, and independently owned GPU product
 | :--- | :--- | :--- |
 | **Zig CPU / SIMD** | Portable scalar backend with hardware-native SIMD hot paths | Predictable execution and broad compatibility |
 | **Metal** | Persistent resident runtime for Apple GPUs | Device-only production proofs with exact runtime identity |
-| **CUDA** | Functional source retained; products distribution-deferred | No implicit selection; generated payloads stay preserved until current NVIDIA hardware requalification |
+| **CUDA** | Resident device implementations and product integration | Explicit GPU selection. Distribution and default promotion have separate qualification gates. |
 
 ## Frontends
 
@@ -42,13 +41,12 @@ an official-oracle-gated Cairo CPU frontend, and independently owned GPU product
 | :--- | :--- |
 | **Native Stwo** | Blake, Poseidon, Plonk, state-machine, wide-Fibonacci, and XOR AIRs |
 | **Cairo** | Official Stwo-Cairo `1.2.2` CPU/SIMD and authenticated Metal proofs, compiled JSON and Cairo 2.20 executable execution |
-| **RISC-V** | Release-gated Sail RV32IM zkVM frontend with sharded AIR components, CPU/SIMD and Metal proving, independent verification, and pinned formal evidence |
+| **RISC-V** | RV32IM zkVM and CSP paths, plus RV64 execution and AIR for the Ethereum and OP Stack products |
 | **SM83** | Development frontend whose runner and direct AIR evaluation cover all 500 executable flat-ISA encodings plus interrupt service; representative CPU/SIMD and Metal proofs cover every family selector. All 500,000 pinned transitions, Blargg 11/11 (25,298,812 instructions), and focused Mooneye 25/25 (535,337 instructions / 535,411 machine steps) pass. The RTC-free MBC3 proof binds execution-bus accesses to mapper endpoints, the 1 MiB ROM, and ordered system/SRAM memory. Its v7 reduced-DMG-B machine transaction additionally composes actions, joypad/timer endpoints and MMIO, scheduler/HALT behavior, interrupt service, PPU timing/MMIO including scroll/window latch endpoints, DMA, IF updates, selected final RAM, and canonical intermediate RAM observations through CPU/SIMD and Metal. The ROM gates remain emulator evidence rather than claims that those complete ROM runs have been proved, and the [hardware-fidelity contract](src/frontends/sm83/README.md#hardware-fidelity-and-graduation) names the remaining target-execution gaps. |
 
 ## Quick Start
 
-Core packages require **Zig 0.15.x**. Repository policy and release tooling use
-**Python 3.10 or newer**; optional Rust parity/oracle tooling uses `nightly-2025-07-14`.
+Use **Zig 0.15.2** and the repository CI pin **Python 3.13.17** for repeatable checks. Rust pins vary by guest and oracle. See the [toolchain ledger](toolchain.json).
 
 ```sh
 zig build test-stwo-core -Doptimize=ReleaseFast
@@ -57,7 +55,7 @@ zig build test-native-cpu-product -Doptimize=ReleaseFast
 zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 ```
 
-For large RISC-V builds on a laptop, use the serialized build wrapper:
+Use the serialized build wrapper for bounded local compilation. Run large builds and complete-block qualification on a qualified host.
 
 ```sh
 python3 scripts/repo/zig_serial_build.py stwo-zig-riscv-cpu -Doptimize=ReleaseFast
@@ -82,7 +80,8 @@ These build settings do not change prover worker policy or proof identities.
 | `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Released CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
 | `stwo-cairo-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance across the release corpus |
 | `stwo-circuit-recursion-cpu` | Zig-supported hosts | Parity-gated recursive tree (`fold-tree`) and registry generation (`circuit-params`) CLI; byte-identical to StarkWare's `proving@5a7c5ed` binaries on the canonical_small test registries |
-| CUDA products | Current NVIDIA qualification host pending | Working source retained, distribution deferred, and no fallback or placeholder execution |
+| [Ethereum RV64 statement](src/products/ethereum/statement/README.md) | CPU and explicit CUDA paths | Ethereum request, proof, receiver and recursion tooling. Device promotion has separate gates. |
+| [OP Stack RV64 statement](src/products/opstack/statement/README.md) | CPU | Native production and fresh reception, with an end-to-end golden probe and rejection tests |
 
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes
 select decoding and component coverage only, never component semantics or
@@ -230,9 +229,17 @@ executable. Focused product tests additionally require deterministic
 missing-device failure, repeated authenticated sessions, allocation rollback,
 and resident-buffer-safe teardown.
 
-## RISC-V frontend
+## Ethereum and OP Stack block proving
 
-The release-gated frontend accepts an `rv32im-zkvm-v1` ELF, executes it, builds
+Both products use RV64. Start with the product guide for the commands, inputs, and qualification scope.
+
+- [Ethereum statement](src/products/ethereum/statement/README.md) owns the Ethereum request, receiver and recursion routes. [Ethereum guest sources](guests/ethereum/README.md) document the supported guest profiles.
+- [OP Stack statement](src/products/opstack/statement/README.md) owns the OP guest ABI and native proof CLI. The [OP runbook](tools/opstack/README.md) covers guest builds, fixture acquisition and benchmarks.
+- The [shared RV64 pipeline](src/integrations/riscv_cpu/rv64_pipeline/README.md) owns product-neutral block orchestration. The [GPU delivery contract](design/riscv/rv64-gpu-hygiene.md) defines the remaining device promotion gates.
+
+## RV32IM zkVM and CSP
+
+The release-gated RV32 frontend accepts an `rv32im-zkvm-v1` ELF, executes it, builds
 the sharded witness, proves it through the same PCS/FRI core, self-verifies
 before publication, and emits a bounded schema-v4 artifact. A separate process
 must verify that artifact against the original ELF and a caller-supplied
@@ -282,7 +289,7 @@ python3 scripts/riscv/riscv_trace_vectors.py \
   --spike-bin /tmp/stwo-riscv-formal/install/spike/bin/spike
 ```
 
-Run the same standard gate used by hosted CI:
+Run the standard local gate. The [CI scope planner](scripts/README.md) selects focused lanes for hosted changes.
 
 ```sh
 python3 scripts/ci.py
@@ -309,11 +316,11 @@ python3 scripts/repo/install_hooks.py
 | **[Benchmark dashboard](bench/README.md)** | Formal CPU/SIMD and Metal results with commit, machine, capture time, and oracle provenance |
 | **[Benchmark history](bench/history/index.json)** | Immutable judged runs, deltas, and bundles under human-readable run ids |
 | **[Performance tooling](tools/perf/stwo-prof)** | `stwo-prof` Zig/Metal/CUDA isolation and profiling CLI plus frozen paired statistics; not installed in production CI |
-| **Design archive** | Prose architecture and history live in the sibling `stwo-zig-og-docs` directory |
+| **[Design and archive index](design/README.md)** | Current design records and links to retained research and benchmark history |
 | **[Engineering collaboration and standards](ENGINEERING_STANDARDS.md)** | Binding contracts, invariant ownership, compatibility, complexity budgets, evidence and human/agent collaboration rules |
 | **[Contributing](CONTRIBUTING.md)** | Zig, SIMD, Metal, correctness, and engineering standards |
 | **[Security](SECURITY.md)** | Private reporting scope and supported product surfaces |
-| **[Guest programs](guests/README.md)** | RISC-V Ethereum guests, the guest ABI, and how guests are built and pinned |
+| **[Guest programs](guests/README.md)** | Ethereum and OP Stack guest sources, ABIs, build commands and identity pins |
 | **[Acknowledgements](ACKNOWLEDGEMENTS.md)** | The upstream projects this repository builds on, where each is used, and their licences |
 
 The compatibility target is pinned to upstream commit

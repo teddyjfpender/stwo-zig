@@ -5,7 +5,7 @@ installed workflow, correctness or soundness contract, release process, hook,
 or production owner guide. Retained profiling helpers live under `tools/perf/`;
 one-off benchmark exploration, peer comparison, and diagnostics are not kept in
 the repository (the retired research tree is preserved on the
-`archive/pre-restructure-20261108` branch).
+[`archive/pre-restructure-20261108`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108) tag).
 
 ## Layout
 
@@ -13,7 +13,7 @@ The top level holds only the developer entry points:
 
 | Entry point | Purpose |
 |---|---|
-| `dev_test.py` | local developer test runner |
+| [`dev_test.py`](dev_test.py) | Local path-based developer test runner |
 | `ci.py` | CI driver (`--fast` is static; `--check-toolchains` checks declarations; `--installed-toolchains cpu\|oracles\|formal` executes and fingerprints the selected installed tools) |
 | `rv64_gate.sh` | RV64 / CUDA gate on the pod (implementation in `rv64/rv64_gate.py`) |
 | `rv64_m8_bench15.py` | 15-block RV64 benchmark |
@@ -38,7 +38,9 @@ Everything else lives in one area package, each a Python package
 | `typed_air/` | typed-AIR performance protocol, captures and Zig lane |
 | `tests/` | the Python test suite (`python3 -m pytest -q scripts/tests`) |
 
-Toolchain declarations and artifact fingerprints live in `toolchain.json`.
+The [CI scope planner](repo/ci_scope_plan.py) derives focused lanes from changed paths and package ownership. The [package workspace checker](repo/check_package_workspace.py) reports environment-control counts and versioned Zig basenames. OP fixture and benchmark tooling lives in [`tools/opstack/`](../tools/opstack/README.md).
+
+Toolchain declarations and artifact fingerprints live in [`toolchain.json`](../toolchain.json).
 Run `python3 scripts/ci.py --check-toolchains` to check all declarations, then
 invoke `scripts/ci.py --installed-toolchains cpu` with the exact declared Python
 to execute and fingerprint the installed Python and Zig. The `oracles` profile

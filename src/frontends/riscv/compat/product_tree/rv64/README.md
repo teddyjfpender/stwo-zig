@@ -1,18 +1,16 @@
-# Experimental RV64IM frontend and bounded AIR
+# RV64IM foundation and bounded AIR
 
 `rv64im-execution-v0` is a separate 64-bit execution machine within the RISC-V
 frontend package. It is exported as `riscv.rv64`. Existing RV32 machine types,
 opcode IDs, proof statements and release capabilities retain their meanings.
 
-The execution milestone supplies semantics and diagnostic records. A separate
-[`riscv.rv64_air`](air/mod.zig) now proves bounded partial execution with independently
-expected program, register and memory state. The [AIR contract](../../../../design/riscv/rv64-air.md)
+This guide records the original bounded execution and AIR milestone. The current [RV64 package](../../../rv64/README.md) owns machine semantics. [Ethereum](../../../../../products/ethereum/statement/README.md) and [OP Stack](../../../../../products/opstack/statement/README.md) own the block workflows. A separate
+[`riscv.rv64_air`](../../assembly/rv64/air.zig) now proves bounded partial execution with independently
+expected program, register and memory state. The [AIR contract](../../../../../../design/riscv/rv64-air.md)
 defines its 256-step/128-memory-word limits, authenticated state relations,
 verifier-derived physical layout and reusable immutable setup. Native CPU proof
-and verification live in [`riscv_cpu.rv64`](../../../integrations/riscv_cpu/rv64.zig).
-The execution/ELF route is not automatically a proof route:
-`profile.proof_supported` and `profile.sp1_abi_supported` remain false.
-There is no RV64 continuation, recursive composition or SP1 runtime yet.
+and verification live in [`riscv_cpu.rv64`](../../../../../integrations/riscv_cpu/rv64.zig).
+ELF admission, bounded AIR verification and product-level recursive verification have separate acceptance gates.
 Unicorn comparisons establish agreement with that emulator on the tested
 cases; they do not establish Sail conformance or cryptographic soundness.
 
@@ -138,7 +136,7 @@ value diagnostic also builds witnesses and committed trees; its wall time must
 not be divided by RV64's execution-only time to claim a speedup. Small bounded
 AIR proofs now verify; paired CSP proving remains open. [Retained comparison and measurements](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-foundations-20261030/README.md).
 
-## Next milestones
+## Original milestone roadmap
 
 1. Add the pinned RV64 Sail reference and architectural conformance corpus,
    including rejection/trap comparisons and larger compiler-generated guests.
@@ -155,7 +153,7 @@ AIR proofs now verify; paired CSP proving remains open. [Retained comparison and
 5. Execute the upstream real-block witness first, then the port; compare
    public outputs before measuring witness generation, execution and proving.
 
-The current upstream target is OP Succinct v4.9.3 commit
+The original upstream target was OP Succinct v4.9.3 commit
 `b9c24330ad21228cacc310e043c7f504fd388b2a`, Ethereum range ELF SHA256
 `223b0bb832ba485325d811a5a6e6e0e3a77dc10eb44377119e6cf0535a069bc4`.
 The diagnostic inspector accepts its three load segments. That is an ELF
