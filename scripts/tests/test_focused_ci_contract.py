@@ -108,6 +108,25 @@ class PlannerContractTests(unittest.TestCase):
     def test_documentation_only_change_runs_only_always_lanes(self) -> None:
         self.assertEqual({"static"}, self.lanes_for("docs/focused-ci.md"))
 
+    def test_package_readmes_reach_the_static_floor_without_prover_lanes(self) -> None:
+        self.assertEqual({"static"}, self.lanes_for(
+            "src/waist/core/README.md", "src/products/ethereum/statement/README.md",
+            "src/products/opstack/statement/README.md", "scripts/README.md",
+        ))
+
+    def test_readme_in_mixed_change_keeps_source_lane_selection(self) -> None:
+        source = "src/products/opstack/statement/statement.zig"
+        source_lanes = self.lanes_for(source)
+        self.assertIn("opstack_statement", source_lanes)
+        self.assertEqual(source_lanes, self.lanes_for(source, "src/waist/core/README.md"))
+
+    def test_readme_preserves_explicit_documentation_rules(self) -> None:
+        self.assertEqual(
+            self.lanes_for("vectors/riscv/README.md"),
+            {"static", "script_contracts", "riscv_frontend", "riscv_witness_benchmarks",
+             "riscv_frontend_acceptance", "riscv_frontend_releasefast", "riscv_cuda_integration"},
+        )
+
     def test_unknown_non_documentation_path_fails_closed_to_every_lane(self) -> None:
         self.assertEqual(
             set(self.policy["lanes"]),
