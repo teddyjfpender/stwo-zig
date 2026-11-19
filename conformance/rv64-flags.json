@@ -3328,35 +3328,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_RISCV_NATIVE_PROFILE": {
-      "owner": "src/frontends/riscv/rv32/prover/interaction_trace_generation.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv32/prover/interaction_trace_generation.zig",
-        "src/frontends/riscv/rv32/prover/preprocessed.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv32/prover/interaction_trace_generation.zig",
-        "text": "                var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant(\"STWO_RISCV_NATIVE_PROFILE\"))\n                    std.time.Timer.start() catch null\n                else\n                    null;\n                var generated = if (capable and device)\n                    try @import(\"../air/lookups/tables/device_interaction.zig\").generate(Backend, allocator, try main_source.lookupCounter(kind), relations)\n                else"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_PARENT_CLAIM_DIAGNOSTIC": {
-      "owner": "src/frontends/riscv/recursion/blake3_native_parent_artifact.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/recursion/blake3_native_parent_artifact.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/recursion/blake3_native_parent_artifact.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_RISCV_PARENT_CLAIM_DIAGNOSTIC\")) {\n            for (claims, 0..) |claim, i| std.debug.print(\"BLAKE3_PARENT_CLAIM index={d} coordinates={any}\\n\", .{ i, claim.toM31Array() });\n            std.debug.print(\"BLAKE3_PARENT_CLAIM_SUM coordinates={any}\\n\", .{total.toM31Array()});\n        }\n        return error.InvalidBlake3ParentClaims;\n    }\n}"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_RISCV_PARENT_MONOLITHIC_MAIN": {
       "owner": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -3368,35 +3339,6 @@
       "default_evidence": {
         "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
         "text": "            if (std.process.hasEnvVarConstant(\"STWO_RISCV_PARENT_MONOLITHIC_MAIN\")) {\n                try scheme.commit(a, main.items, &channel);\n            } else {\n                try scheme.commitBorrowedStreamingWithRecorder(a, main.items, @import(\"stwo_riscv_rv32\").prover.blake3_coefficient_retention.streamingBatchColumns(), diagnostic, &channel);\n            }\n            phase.end();\n            phase = try stage_profile.StageScope.begin(diagnostic, \"parent.interaction_generation\", \"Interaction generation\");"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_PARENT_PREPARATION_PROFILE": {
-      "owner": "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-      "default": "null at environment lookup; enclosing presence predicate is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-        "src/frontends/riscv/rv32/recursion/air/blake3_native_transcript.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-        "text": "    if (std.posix.getenv(\"STWO_RISCV_PARENT_PREPARATION_PROFILE\") != null) b.profile_timer = std.time.Timer.start() catch null;\n    errdefer if (b.fixed_metadata) |m| m.free(backing);\n    if (columns) |out| {\n        try out.validate(out.g_rows.metadata.len, out.xor_rows.metadata.len);\n        b.fixed_metadata = try @import(\"stwo_riscv_air_lang\").framework.blake3_hash_metadata.Rows.allocate(backing, out.g_rows.metadata.len, out.xor_rows.metadata.len);\n    }\n    defer b.live.deinit(backing);"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_PATH_SHARING_CENSUS": {
-      "owner": "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-      "default": "null at environment lookup; enclosing presence predicate is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/recursion/air/blake3_stark_paths.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-        "text": "    if (std.posix.getenv(\"STWO_RISCV_PATH_SHARING_CENSUS\") != null) try @import(\"stwo_riscv_recursion_air\").blake3.path_sharing_census.report(backing, capture, b.g_used, b.shared_path_g_rows);\n    if (columns) |out| if (b.g_used != out.g_rows.metadata.len or b.xor_used != out.xor_rows.metadata.len) return error.InvalidBlake3WitnessDestination;\n    var linked = try links.?.finish();\n    errdefer linked.deinitColumns();\n    if (!direct) {\n        try b.live.route_rows.appendSlice(backing, linked.projection.routed);\n        try b.fixed.route_rows.appendSlice(backing, linked.projection.fixed_routed);"
       },
       "expires": "2026-12-13"
     },
@@ -5060,26 +5002,6 @@
       "default_evidence": {
         "path": "src/frontends/riscv/compat/assembly/recursion/detached_child_capture.zig",
         "text": "    const other_expected_path = try std.process.getEnvVarOwned(allocator, \"STWO_SEGMENT_V2_CHILD_OTHER_EXPECTED_WIRE\");\n    defer allocator.free(other_expected_path);\n    const other_expected_json = try std.fs.cwd().readFileAlloc(allocator, other_expected_path, command.MAX_INPUT_BYTES);\n    defer allocator.free(other_expected_json);\n    var other_expected = try command.OwnedExpectedV1.decode(allocator, other_expected_json);\n    defer other_expected.deinit();\n    try std.testing.expectEqual(expected.words.len, other_expected.words.len);"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_SEGMENT_V2_CIRCUIT_CENSUS": {
-      "owner": "src/frontends/riscv/compat/assembly/recursion/detached_leaf_cohort.zig",
-      "default": "false (presence-only circuit census)",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/compat/assembly/recursion/detached_leaf_cohort.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/compat/assembly/recursion/detached_leaf_cohort.zig",
-        "text": "        const CIRCUIT_CENSUS_ENV = \"STWO_SEGMENT_V2_CIRCUIT_CENSUS\";\n        var circuit_census_sequence = std.atomic.Value(u64).init(0);\n        pub const Error = contract.Error;\n\n        /// The complete cohort accepts one authority and nothing else. In particular,\n        /// detached source manifests, log sizes, claims, audits, or provider calls can\n        /// never be supplied by the prover.",
-        "readers": [
-          {
-            "path": "src/frontends/riscv/compat/assembly/recursion/detached_leaf_cohort.zig",
-            "text": "                if (std.process.hasEnvVarConstant(CIRCUIT_CENSUS_ENV))\n                    diagnostics.printCircuitCensus(self, destination, &circuit_census_sequence);\n            }\n\n            pub fn fillMainInto(\n                self: *Self,\n                manifest_value: *const manifest_mod.Manifest,"
-          }
-        ]
       },
       "expires": "2026-12-13"
     },
@@ -6827,21 +6749,6 @@
       "default_evidence": {
         "path": "src/engine/prover/pcs/proof_of_work.zig",
         "text": "        if (!std.process.hasEnvVarConstant(\"STWO_ZIG_POW_WORKERS\")) {\n            if (work_pool_mod.getGlobalPool()) |pool| {\n                if (pool.workerCount() == 1) return channel.grindWithWorkerCount(pow_bits, 1);\n                return grindBlake2sInPool(channel.*, pow_bits, pool);\n            }\n        }\n    }"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_PROFILE_OM_DOMAIN": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_domain.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_domain.zig",
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_role_domain.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_domain.zig",
-        "text": "    const profile = std.process.hasEnvVarConstant(\"STWO_ZIG_PROFILE_OM_DOMAIN\");\n    var timer: ?std.time.Timer = if (profile) try std.time.Timer.start() else null;\n    var fft_ns: u64 = 0;\n    var row_ns: u64 = 0;\n    const shape = self.mainShape();\n    if (shape.fixed > Component.MAX_FIXED or shape.main > Component.MAX_MAIN) return error.InvalidLocalGkrTrace;\n    const log = Geo.logSize(self);"
       },
       "expires": "2026-12-13"
     },

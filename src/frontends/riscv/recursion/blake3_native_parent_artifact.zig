@@ -50,11 +50,5 @@ pub fn validateClaims(claims: Claims) !void {
         for (claim.toM31Array()) |value| if (value.v >= core.fields.m31.Modulus) return error.InvalidBlake3ParentClaims;
         total = total.add(claim);
     }
-    if (!total.isZero()) {
-        if (std.process.hasEnvVarConstant("STWO_RISCV_PARENT_CLAIM_DIAGNOSTIC")) {
-            for (claims, 0..) |claim, i| std.debug.print("BLAKE3_PARENT_CLAIM index={d} coordinates={any}\n", .{ i, claim.toM31Array() });
-            std.debug.print("BLAKE3_PARENT_CLAIM_SUM coordinates={any}\n", .{total.toM31Array()});
-        }
-        return error.InvalidBlake3ParentClaims;
-    }
+    if (!total.isZero()) return error.InvalidBlake3ParentClaims;
 }
