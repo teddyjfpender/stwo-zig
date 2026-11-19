@@ -137,6 +137,20 @@ class ReceiptFixture(unittest.TestCase):
 
 
 class ReceiptTest(ReceiptFixture):
+    def test_archived_receipt_keeps_its_exact_source_roster(self):
+        archived = (
+            equivalence.REPOSITORY_ROOT
+            / "formal/riscv-refinement/team-b-air-semantic-equivalence-v1.json"
+        )
+        records = equivalence._checked_records(archived)
+        self.assertEqual(tuple(row["family"] for row in records), equivalence.TEAM_B_FAMILIES)
+
+        changed = json.loads(archived.read_text())
+        changed["source_transition"]["files"][0]["path"] = "unknown.zig"
+        changed["canonical_digest"] = equivalence.canonical_digest(changed)
+        with self.assertRaisesRegex(equivalence.EquivalenceError, "source inventory drifted"):
+            equivalence._checked_records(self._receipt_path(changed))
+
     def test_receipt_binds_all_six_families_and_current_candidate(self):
         receipt = self._receipt()
         report = equivalence.check_receipt(

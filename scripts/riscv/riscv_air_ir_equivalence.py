@@ -51,6 +51,20 @@ SOURCE_PATHS = (
     "src/frontends/riscv/rv32/air/lang/typed_mulh_authority.zig",
     "src/frontends/riscv/rv32/air/lang/typed_div_authority.zig",
 )
+# The reviewed LoadStore revision binds this exact archived predecessor. Its
+# source names predate the RV32 package move and are part of its identity.
+ARCHIVED_RECEIPT_DIGEST = "ae7729c5159857be371087da6efc8d412bc1bf3f486ad3bf567fbb43a9ae3ee3"
+ARCHIVED_SOURCE_PATHS = tuple("src/frontends/riscv/air/" + name for name in (
+    "constraint_program.zig",
+    "extract/program.zig",
+    "extract/model.zig",
+    "lang/typed_shifts_reg_authority.zig",
+    "lang/typed_shifts_imm_authority.zig",
+    "lang/typed_load_store_authority.zig",
+    "lang/typed_mul_authority.zig",
+    "lang/typed_mulh_authority.zig",
+    "lang/typed_div_authority.zig",
+))
 
 Monomial = tuple[tuple[int, int], ...]
 Polynomial = dict[Monomial, int]
@@ -383,7 +397,8 @@ def _checked_records(receipt_path: Path) -> list[dict[str, Any]]:
     receipt = _load(receipt_path)
     if receipt.get("schema_version") != RECEIPT_SCHEMA_VERSION or receipt.get("kind") != RECEIPT_KIND:
         raise EquivalenceError("semantic-equivalence receipt identity drifted")
-    if receipt.get("canonical_digest") != canonical_digest(receipt):
+    digest = canonical_digest(receipt)
+    if receipt.get("canonical_digest") != digest:
         raise EquivalenceError("semantic-equivalence receipt digest mismatch")
     boundary = receipt.get("claim_boundary")
     required_true = {
@@ -408,11 +423,12 @@ def _checked_records(receipt_path: Path) -> list[dict[str, Any]]:
     if not isinstance(transition, dict) or transition.get("reason") != SOURCE_REASON:
         raise EquivalenceError("semantic-equivalence source reason drifted")
     source_records = transition.get("files")
+    expected_paths = ARCHIVED_SOURCE_PATHS if digest == ARCHIVED_RECEIPT_DIGEST else SOURCE_PATHS
     if (
         not isinstance(source_records, list)
         or any(not isinstance(item, dict) for item in source_records)
         or [item.get("path") for item in source_records if isinstance(item, dict)]
-        != list(SOURCE_PATHS)
+        != list(expected_paths)
         or any(
             not isinstance(item.get("sha256"), str)
             or len(item["sha256"]) != 64

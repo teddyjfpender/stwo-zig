@@ -71,13 +71,13 @@ test {
     _ = @import("tests/focused/keccakf_precompile.zig");
     _ = @import("tests/focused/keccakf_row.zig");
     _ = @import("tests/focused/minimal_trace_parallel_replay.zig");
-    _ = @import("tests/focused/recursion_segment_publication_provider_v2_1.zig");
+    _ = @import("tests/focused/segment_publication_provider_compat.zig");
     _ = @import("tests/focused/recursion_temporal_pair.zig");
     _ = @import("tests/focused/releasefast_acceptance.zig");
     _ = @import("tests/focused/retained_transcript_contracts.zig");
     _ = @import("tests/focused/retained_typed_components_upper.zig");
     _ = @import("tests/focused/runner.zig");
-    _ = @import("tests/focused/segment_statement_v2.zig");
+    _ = @import("tests/focused/segment_statement_boundaries.zig");
     _ = @import("opcode_coverage_test.zig");
     _ = @import("runner/guest_precompile/mod.zig");
     _ = @import("runner/mod.zig");
