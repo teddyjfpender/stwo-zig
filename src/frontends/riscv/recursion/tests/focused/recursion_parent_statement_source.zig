@@ -1,6 +1,6 @@
 //! Owner-local focused collection; selected by the maintained catalog.
 
 test {
-    _ = @import("../../outer_parent_statement_source.zig");
+    _ = @import("../../parent/statement/outer_parent_statement_source.zig");
     _ = @import("../outer_parent_statement_source_test.zig");
 }

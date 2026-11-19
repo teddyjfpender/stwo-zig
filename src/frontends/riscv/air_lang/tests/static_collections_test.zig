@@ -1,9 +1,9 @@
 const std = @import("std");
-const collections = @import("../static_collections.zig");
-const expr = @import("../expr.zig");
-const ir = @import("../ir.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
+const collections = @import("../ir/static_collections.zig");
+const expr = @import("../ir/expr.zig");
+const ir = @import("../ir/ir.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
 
 const Felt3 = collections.StaticArray(.felt, 3);
 const Byte3 = collections.StaticArray(.byte, 3);

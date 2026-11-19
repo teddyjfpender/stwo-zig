@@ -18,7 +18,7 @@ const public_data_v2 = @import("stwo_riscv_rv32").air.public_data_v2;
 const statement_v1 = @import("stwo_riscv_rv32").air.statement;
 const channel_mod = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
-const transcript = @import("../variable_boundary_transcript_program.zig");
+const transcript = @import("../segment/transcript/variable_boundary_transcript_program.zig");
 
 pub const Error = transcript.Error || error{
     ChannelNotInitialized,

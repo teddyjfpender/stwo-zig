@@ -3,7 +3,7 @@
 //! geometry, transcript domains, or proof-dependent circuit structure.
 const std = @import("std");
 const core = @import("stwo_core");
-const digest = @import("../digest.zig");
+const digest = @import("../ir/digest.zig");
 const QM31 = core.fields.qm31.QM31;
 
 pub fn Types(comptime contract: type) type {

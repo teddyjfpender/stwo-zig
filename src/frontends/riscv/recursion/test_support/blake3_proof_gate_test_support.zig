@@ -127,7 +127,7 @@ pub fn ForBackendWithTables(comptime Backend: type, comptime kinds: anytype) typ
             if (@hasDecl(@TypeOf(protocol), "mixExtraClaims")) try protocol.mixExtraClaims(&channel);
             try scheme.commit(a, interaction.items, &channel);
             const manifest = F.Manifest{ .log_sizes = logs };
-            const component_owner = try @import("../universal_component_owner.zig").ForRoster(F).initPrepared(a, &manifest, &definitions, &plans, parameters, relations, claims[0..F.Airs.len].*);
+            const component_owner = try @import("../composition/universal_component_owner.zig").ForRoster(F).initPrepared(a, &manifest, &definitions, &plans, parameters, relations, claims[0..F.Airs.len].*);
             defer component_owner.deinit();
             var tables: [kinds.len]f.Table = undefined;
             for (&tables, kinds, table_pp, 0..) |*table, kind, offset, i| {

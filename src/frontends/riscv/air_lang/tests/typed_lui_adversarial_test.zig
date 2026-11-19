@@ -1,14 +1,14 @@
 //! Defensive mutation and allocation adversaries for native typed LUI.
 
 const std = @import("std");
-const effects = @import("../effects.zig");
-const instruction_effects = @import("../instruction_effects.zig");
-const ir = @import("../ir.zig");
-const relation = @import("../relation.zig");
-const source = @import("../source.zig");
-const typed_lui = @import("../typed_lui.zig");
-const types = @import("../types.zig");
-const validate = @import("../validate.zig");
+const effects = @import("../lowering/effects.zig");
+const instruction_effects = @import("../lowering/instruction_effects.zig");
+const ir = @import("../ir/ir.zig");
+const relation = @import("../ir/relation.zig");
+const source = @import("../ir/source.zig");
+const typed_lui = @import("../opcodes/arithmetic/typed_lui.zig");
+const types = @import("../ir/types.zig");
+const validate = @import("../ir/validate.zig");
 
 test "typed LUI rejects substituted state range and destination IR" {
     comptime {

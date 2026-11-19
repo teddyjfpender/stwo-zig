@@ -1,7 +1,7 @@
 //! Exact, non-promotional gates for the recursion FRI cost frontier.
 
 const std = @import("std");
-const frontier_mod = @import("../fri_profile_frontier.zig");
+const frontier_mod = @import("../pcs/fri/fri_profile_frontier.zig");
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 
 const V1_COMPARISON_DIGEST_HEX =

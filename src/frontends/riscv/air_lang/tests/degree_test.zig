@@ -1,7 +1,7 @@
 const std = @import("std");
-const degree = @import("../degree.zig");
-const ir = @import("../ir.zig");
-const source = @import("../source.zig");
+const degree = @import("../ir/degree.zig");
+const ir = @import("../ir/ir.zig");
+const source = @import("../ir/source.zig");
 const test_support = @import("../test_support.zig");
 
 test "logical degree analysis follows the typed topological graph" {

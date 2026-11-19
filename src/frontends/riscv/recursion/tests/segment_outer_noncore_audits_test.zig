@@ -1,6 +1,6 @@
-const shard_0 = @import("../segment_outer_noncore_audits_test_owned_boundary_traces.zig");
-const shard_1 = @import("../segment_outer_noncore_audits_test_fixture.zig");
-const shard_2 = @import("../segment_outer_noncore_audits_test_suite_3.zig");
+const shard_0 = @import("../segment/outer/segment_outer_noncore_audits_test_owned_boundary_traces.zig");
+const shard_1 = @import("../segment/outer/segment_outer_noncore_audits_test_fixture.zig");
+const shard_2 = @import("../segment/outer/segment_outer_noncore_audits_test_suite_3.zig");
 
 test "non-core custody suite imports every shard" {
     _ = shard_0;

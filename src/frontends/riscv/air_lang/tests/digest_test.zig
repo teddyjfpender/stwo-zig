@@ -1,9 +1,9 @@
 const std = @import("std");
-const digest = @import("../digest.zig");
-const ir = @import("../ir.zig");
-const source = @import("../source.zig");
+const digest = @import("../ir/digest.zig");
+const ir = @import("../ir/ir.zig");
+const source = @import("../ir/source.zig");
 const test_support = @import("../test_support.zig");
-const types = @import("../types.zig");
+const types = @import("../ir/types.zig");
 
 test "semantic digest has a pinned empty-program identity" {
     var arena = ir.Arena.init(std.testing.allocator);

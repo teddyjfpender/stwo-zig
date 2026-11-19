@@ -3,7 +3,7 @@
 
 const std = @import("std");
 const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
-const frontier = @import("../fri_profile_frontier.zig");
+const frontier = @import("../pcs/fri/fri_profile_frontier.zig");
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 
 const COLUMN_LOG_DEGREE: u32 = 20;

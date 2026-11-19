@@ -3,7 +3,7 @@
 //! A surrounding transcript scheduler must authenticate draw order and retries.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../definition.zig");
+const lang = @import("../ir/definition.zig");
 const effects = @import("relation_effect.zig");
 const Id = lang.types.ValueId;
 const M31 = core.fields.m31.M31;

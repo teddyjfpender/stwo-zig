@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const public_data_mod = @import("stwo_riscv_rv32").air.public_data;
-const owner = @import("../segment_leaf_authority.zig");
+const owner = @import("../segment/leaf/segment_leaf_authority.zig");
 const claim = @import("stwo_riscv_rv32").recursion.vm_public_claim;
 
 test "R-012 segment authority derives rows 10 and 12 through 14 once" {

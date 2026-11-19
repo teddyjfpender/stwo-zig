@@ -8,7 +8,7 @@
 //! batching rule: all four are compiled from the authenticated typed arena.
 
 const compiler = @import("relation_interaction.zig");
-const types = @import("../types.zig");
+const types = @import("../ir/types.zig");
 
 pub fn Binding(comptime Air: type) type {
     return struct {

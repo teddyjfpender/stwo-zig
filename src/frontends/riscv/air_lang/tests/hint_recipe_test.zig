@@ -1,7 +1,7 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const hint_recipe = @import("../hint_recipe.zig");
-const types = @import("../types.zig");
+const hint_recipe = @import("../functions/hint_recipe.zig");
+const types = @import("../ir/types.zig");
 
 test "hint recipe registry has stable typed identities and signatures" {
     try std.testing.expectEqual(@as(usize, 3), hint_recipe.recipes.len);

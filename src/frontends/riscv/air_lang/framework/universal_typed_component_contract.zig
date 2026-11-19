@@ -20,7 +20,7 @@ pub const prover_task_graph = @import("stwo_prover_engine").task_graph;
 pub const prover_work_pool = @import("stwo_prover_engine").work_pool;
 pub const direct_program = @import("direct_constraint_program.zig");
 pub const logup = @import("../shared/air/logup.zig");
-pub const types = @import("../types.zig");
+pub const types = @import("../ir/types.zig");
 pub const default_manifest = @import("universal_adapter_manifest.zig");
 pub const universal = @import("universal_challenges.zig");
 

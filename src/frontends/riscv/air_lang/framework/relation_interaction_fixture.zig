@@ -274,7 +274,7 @@ pub const Fixture = struct {
         const relation_effect = @import("relation_effect.zig");
         var arena = ir.Arena.init(allocator);
         errdefer arena.deinit();
-        const span = @import("../source.zig").SourceSpan.generated();
+        const span = @import("../ir/source.zig").SourceSpan.generated();
         const scope = try arena.input("scope", .felt, span);
         const index = try arena.input("index", .felt, span);
         const value = try arena.input("value", .felt, span);
@@ -332,6 +332,6 @@ pub fn interactionFailureCase(
 }
 
 comptime {
-    if (MAX_ARITY != @import("../effects.zig").MAX_ARITY)
+    if (MAX_ARITY != @import("../lowering/effects.zig").MAX_ARITY)
         @compileError("multi-schema interaction arity must track typed effects");
 }

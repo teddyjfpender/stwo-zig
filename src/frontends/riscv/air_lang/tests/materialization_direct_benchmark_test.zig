@@ -1,9 +1,9 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const benchmark = @import("../materialization_direct_benchmark.zig");
-const direct_program = @import("../direct_polynomial_program.zig");
-const ir = @import("../ir.zig");
-const source = @import("../source.zig");
+const benchmark = @import("../materialization/materialization_direct_benchmark.zig");
+const direct_program = @import("../polynomial/direct_polynomial_program.zig");
+const ir = @import("../ir/ir.zig");
+const source = @import("../ir/source.zig");
 
 test "retained direct evaluator binds columns and names the first failed root" {
     var arena = ir.Arena.init(std.testing.allocator);

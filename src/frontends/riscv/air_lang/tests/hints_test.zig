@@ -1,9 +1,9 @@
 const std = @import("std");
-const hints = @import("../hints.zig");
-const ir = @import("../ir.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
-const validate = @import("../validate.zig");
+const hints = @import("../functions/hints.zig");
+const ir = @import("../ir/ir.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
+const validate = @import("../ir/validate.zig");
 
 test "hint builder seals declarations and bindings in canonical order" {
     var arena = ir.Arena.init(std.testing.allocator);

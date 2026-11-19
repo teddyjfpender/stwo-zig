@@ -6,8 +6,8 @@ const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fix
 const fixed_wire = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_wire;
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
-const transcript = @import("../transcript_program.zig");
-const owner = @import("../segment_transcript_witness.zig");
+const transcript = @import("../transcript/transcript_program.zig");
+const owner = @import("../segment/transcript/segment_transcript_witness.zig");
 const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 
 const M31 = stwo_core.fields.m31.M31;

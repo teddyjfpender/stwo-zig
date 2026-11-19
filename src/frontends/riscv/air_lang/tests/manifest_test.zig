@@ -1,7 +1,7 @@
 const std = @import("std");
-const ir = @import("../ir.zig");
-const manifest = @import("../manifest.zig");
-const source = @import("../source.zig");
+const ir = @import("../ir/ir.zig");
+const manifest = @import("../metadata/manifest.zig");
+const source = @import("../ir/source.zig");
 const test_support = @import("../test_support.zig");
 
 test "logical manifest has a pinned empty-program encoding" {

@@ -7,12 +7,12 @@ const m31 = stwo_core.fields.m31;
 const M31 = m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const relation = @import("stwo_riscv_air_lang").relation;
-const source_v2 = @import("../variable_boundary_leaf_authority.zig");
-const subject = @import("../variable_boundary_outer_source.zig");
-const fixture_support = @import("../segment_public_outer_test_support.zig");
+const source_v2 = @import("../segment/variable_boundary_leaf_authority.zig");
+const subject = @import("../segment/public/variable_boundary_outer_source.zig");
+const fixture_support = @import("../segment/public/segment_public_outer_test_support.zig");
 const control_air_v2 = @import("stwo_riscv_recursion_air").vm_public_logup_control_v2;
 const control_witness_v2 = @import("stwo_riscv_recursion_air").vm_public_logup_control_witness;
-const register_bytes = @import("../segment_register_byte_layout.zig");
+const register_bytes = @import("../segment/segment_register_byte_layout.zig");
 
 const Fixture = fixture_support.Fixture;
 

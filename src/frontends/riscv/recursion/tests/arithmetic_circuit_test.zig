@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const circuit_mod = @import("../arithmetic_circuit.zig");
+const circuit_mod = @import("../composition/arithmetic_circuit.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;

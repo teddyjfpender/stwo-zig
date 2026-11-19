@@ -19,7 +19,7 @@ const embedded_assets = [_]struct { name: []const u8, path: []const u8 }{
 };
 
 const source_closure = product_policy.SourceClosure{
-    .entry_roots = &.{"src/products/cairo/recursion/cpu/main.zig"},
+    .entry_roots = &.{"src/products/cairo/recursion/circuit_cpu/main.zig"},
     .named_imports = &.{
         .{ .name = "postcard_error_codes", .source = "src/waist/recursion_wire/postcard_error_codes.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
@@ -56,7 +56,7 @@ const source_closure = product_policy.SourceClosure{
         "src/integrations/cairo_cpu",
         "src/integrations/circuit_cpu",
         "src/waist/recursion_wire",
-        "src/products/cairo/recursion/cpu",
+        "src/products/cairo/recursion/circuit_cpu",
         "src/engine/prover",
         "src/waist/prover_api",
     },
@@ -125,15 +125,15 @@ pub fn addProduct(context: Context) void {
     // R8 and R8b: large (a 2^23-row circuit proof, about 11 GB, and for R8b
     // a four-leaf tree after it); not part of the product test step. The
     // tests read `vectors/` from the repository root.
-    const app = createProductModuleAt(context, product(.@"test"), "src/products/cairo/recursion/cpu/app.zig");
+    const app = createProductModuleAt(context, product(.@"test"), "src/products/cairo/recursion/circuit_cpu/app.zig");
     context.b.step(
         "circuit-parity-r8",
         "Rung R8: leaf-wrap of the leaf prover's test program equals leaf-prover's expected_output.json",
-    ).dependOn(addAppTest(context, app, "src/products/cairo/recursion/cpu/tests/r8_leaf_wrap_test.zig"));
+    ).dependOn(addAppTest(context, app, "src/products/cairo/recursion/circuit_cpu/tests/r8_leaf_wrap_test.zig"));
     context.b.step(
         "circuit-parity-r8b",
         "Rung R8b: the Zig leaf of the leaf simple bootloader equals four_leaves/leaf.json, and four of them fold to the root goldens",
-    ).dependOn(addAppTest(context, app, "src/products/cairo/recursion/cpu/tests/r8b_leaf_chain_test.zig"));
+    ).dependOn(addAppTest(context, app, "src/products/cairo/recursion/circuit_cpu/tests/r8b_leaf_chain_test.zig"));
     addParityLanes(context.b);
 }
 
@@ -238,7 +238,7 @@ fn addAppTest(context: Context, app: *std.Build.Module, root_source_file: []cons
 }
 
 fn createProductModule(context: Context, product_descriptor: graph.Product) *std.Build.Module {
-    return createProductModuleAt(context, product_descriptor, "src/products/cairo/recursion/cpu/main.zig");
+    return createProductModuleAt(context, product_descriptor, "src/products/cairo/recursion/circuit_cpu/main.zig");
 }
 
 fn createProductModuleAt(context: Context, product_descriptor: graph.Product, root_source_file: []const u8) *std.Build.Module {

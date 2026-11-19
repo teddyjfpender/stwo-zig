@@ -1,5 +1,5 @@
 const std = @import("std");
-const direct = @import("../direct_polynomial_graph.zig");
+const direct = @import("../polynomial/direct_polynomial_graph.zig");
 
 test "late root folds extend an already-interned node lifetime" {
     var arena = direct.Arena.init(std.testing.allocator);

@@ -7,11 +7,11 @@
 //! typed effects rather than transcribing relation entries independently.
 
 const std = @import("std");
-const ir = @import("../ir.zig");
-const program = @import("../program.zig");
-const relation = @import("../relation.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
+const ir = @import("../ir/ir.zig");
+const program = @import("../ir/program.zig");
+const relation = @import("../ir/relation.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
 
 pub const ARITY: usize = 6;
 pub const EVENT_COUNT: usize = 3;

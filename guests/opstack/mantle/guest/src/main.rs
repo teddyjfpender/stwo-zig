@@ -3,7 +3,7 @@
 #![no_main]
 extern crate alloc;
 extern crate stwo_rv64_mem;
-#[path = "../../../runtime/exact_layout_allocator_v2.rs"]
+#[path = "../../../runtime/exact_layout_allocator.rs"]
 mod allocator;
 #[path = "../../../../ethereum/rv64/src/single_thread_atomics.rs"]
 mod single_thread_atomics;

@@ -1,6 +1,6 @@
 //! Publication-provider shape derived only from admitted claim count.
 const std = @import("std");
-const leaf_source = @import("../segment_leaf_layout.zig");
+const leaf_source = @import("../segment/leaf/segment_leaf_layout.zig");
 pub const Error = error{ InvalidInputPair, InvalidPreparedSource };
 pub const FORMAT_VERSION: u16 = 3;
 pub const SCHEMA_VERSION: u16 = 1;

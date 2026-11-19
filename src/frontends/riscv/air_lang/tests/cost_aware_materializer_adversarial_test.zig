@@ -1,11 +1,11 @@
 const std = @import("std");
-const search_policy = @import("../cost_aware_materializer.zig");
-const cost = @import("../materialization_cost.zig");
-const frontier_digest = @import("../materialization_frontier_digest.zig");
-const ir = @import("../ir.zig");
-const materializer = @import("../degree3_materializer.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
+const search_policy = @import("../materialization/cost_aware_materializer.zig");
+const cost = @import("../materialization/materialization_cost.zig");
+const frontier_digest = @import("../materialization/materialization_frontier_digest.zig");
+const ir = @import("../ir/ir.zig");
+const materializer = @import("../materialization/degree3_materializer.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
 
 test "result validation closes the complete search accounting equation" {
     var fixture = try BranchFixture.init(std.testing.allocator, 1);

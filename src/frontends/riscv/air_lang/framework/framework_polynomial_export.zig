@@ -8,7 +8,7 @@ const direct_mod = @import("direct_constraint_program.zig");
 const relation_mod = @import("relation_interaction.zig");
 const binding_mod = @import("universal_relation_binding.zig");
 const universal = @import("universal_challenges.zig");
-const lang = @import("../definition.zig");
+const lang = @import("../ir/definition.zig");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const NO_NODE = std.math.maxInt(u32);
@@ -267,8 +267,8 @@ const Lowerer = struct {
     fn number(self: *Lowerer, value: u32) !u32 {
         return self.append(.{ .op = .constant, .value = value });
     }
-    fn lowerMachine(self: *Lowerer, value: @import("../expr.zig").MachineDerived) !u32 {
-        const types = @import("../types.zig");
+    fn lowerMachine(self: *Lowerer, value: @import("../ir/expr.zig").MachineDerived) !u32 {
+        const types = @import("../ir/types.zig");
         return switch (value) {
             .register_address => |v| self.slot(types.idIndex(v.index)),
             .aligned_word_address => |v| self.append(.{ .op = .mul, .lhs = try self.slot(types.idIndex(v.word_index)), .rhs = try self.number(4) }),

@@ -15,8 +15,8 @@ const m31 = stwo_core.fields.m31;
 const relation = @import("stwo_riscv_air_lang").relation;
 const air = @import("segment_publication_input_provider.zig");
 const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
-const leaf_source = @import("../variable_boundary_leaf_authority.zig");
-const boundary = @import("../segment_leaf_outer_authority.zig");
+const leaf_source = @import("../segment/variable_boundary_leaf_authority.zig");
+const boundary = @import("../segment/leaf/segment_leaf_outer_authority.zig");
 const vm_leaf_context = @import("stwo_riscv_rv32").recursion.vm_leaf_context_v2;
 
 const shape_contract = @import("segment_publication_input_provider_shape.zig");

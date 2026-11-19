@@ -11,13 +11,24 @@ Public module `stwo_riscv_recursion_air`.
 
 ## Purpose and architecture
 
-Canonical recursion air source ownership under RFC #344; public module aliases point to one implementation each.
+This package defines the constraints, relations, and witness layouts used to
+check recursive proofs. The public facade is [`mod.zig`](mod.zig).
 
 ```mermaid
 graph LR
-  Consumer --> recursion_air
-  recursion_air --> DeclaredProviders
+  Wire[Verifier inputs] --> Components[Statement, transcript, and opening AIRs]
+  Witnesses[Witness layouts] --> Components
+  Components --> Composition[Verifier composition and interactions]
 ```
+
+| Directory | Responsibility |
+| --- | --- |
+| [`arithmetic/`](arithmetic/) and [`composition/`](composition/) | Field operation witnesses, verifier control, component catalogs, and interaction generation |
+| [`statement/`](statement/) | Public claims, clocks, statement inputs, and VM public LogUp |
+| [`transcript/`](transcript/) | Challenge draws, proof-of-work checks, transcript rows, and witness binding |
+| [`openings/`](openings/) and [`fri/`](fri/) | PCS opening inputs, query mapping, Merkle relations, and FRI control |
+| [`blake3/`](blake3/) | Blake3 trace layouts, transcript witnesses, and authenticated opening plans |
+| [`protocol/`](protocol/) and [`wire/`](wire/) | Protocol constants, serialized verifier inputs, and wire interaction |
 
 ## Public API
 

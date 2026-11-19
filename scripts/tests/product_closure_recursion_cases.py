@@ -60,7 +60,7 @@ class RecursionOwnershipTest(unittest.TestCase):
             self.assertNotIn("typed_admission", Path(path).name)
         self.assertNotIn("src/frontends/riscv/memory/air/poseidon2_air.zig", sources)
         self.assertNotIn("src/frontends/riscv/air_lang/shared/air/logup.zig", sources)
-        self.assertIn("src/frontends/riscv/air_lang/degree3_materializer.zig", sources)
+        self.assertIn("src/frontends/riscv/air_lang/materialization/degree3_materializer.zig", sources)
         self.assertIn("src/frontends/riscv/memory/typed/typed_poseidon2_bound_program.zig", sources)
         self.assertIn("src/frontends/riscv/memory/typed/typed_poseidon2_relation_contract.zig", sources)
         profile = self.native_profile_authority(root)
@@ -75,7 +75,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         manifest = Manifest(
             product="typed-native-boundary-definition",
-            entry_roots=("src/frontends/riscv/air_lang/typed_native_boundary.zig",),
+            entry_roots=("src/frontends/riscv/air_lang/opcodes/memory/typed_native_boundary.zig",),
             named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
@@ -112,9 +112,12 @@ class RecursionOwnershipTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         manifest = Manifest(
             product="shared-publication-validation",
-            entry_roots=tuple("src/frontends/riscv/" + ("recursion_air/protocol/recursion/engine_protocol" if name == "engine_protocol" else "recursion/" + name) + ".zig" for name in (
-                "segment_verified_publication", "segment_verified_artifact",
-                "canonical_proof_identity", "engine_protocol", "segment_outer_wire_geometry",
+            entry_roots=tuple("src/frontends/riscv/" + path for path in (
+                "recursion/segment/segment_verified_publication.zig",
+                "recursion/segment/segment_verified_artifact.zig",
+                "recursion/publication/canonical_proof_identity.zig",
+                "recursion_air/protocol/recursion/engine_protocol.zig",
+                "recursion/segment/outer/segment_outer_wire_geometry.zig",
             )),
             named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
@@ -127,8 +130,8 @@ class RecursionOwnershipTest(unittest.TestCase):
             self.assertNotIn("/integrations/", source)
             self.assertNotIn("/backends/", source)
             self.assertNotIn("witness", Path(source).name)
-        self.assertNotIn("src/frontends/riscv/recursion/engine.zig", sources)
-        self.assertNotIn("src/frontends/riscv/recursion/segment_outer_cohort.zig", sources)
+        self.assertNotIn("src/frontends/riscv/recursion/engine/engine.zig", sources)
+        self.assertNotIn("src/frontends/riscv/recursion/segment/outer/segment_outer_cohort.zig", sources)
 
     def test_detached_leaf_command_excludes_legacy_harness_entrypoints(self) -> None:
         root = Path(__file__).resolve().parents[2]
@@ -209,7 +212,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         )
         self.assertEqual({source}, set(inspect_sources(root, manifest).relative_sources()))
         for consumer in (
-            "src/frontends/riscv/recursion/segment_outer_transaction.zig",
+            "src/frontends/riscv/recursion/segment/outer/segment_outer_transaction.zig",
             "src/integrations/riscv_cpu/recursive_segment_detached_leaf_producer.zig",
         ):
             text = (root / consumer).read_text()
@@ -217,12 +220,12 @@ class RecursionOwnershipTest(unittest.TestCase):
             self.assertIn("tracked_smp_allocator.TrackedSmpAllocator", text)
 
     DEFINITION_FILES = (
-        "access_schedule", "bounded_arithmetic", "capabilities",
-        "conditional_access_evidence", "conditional_access_plan", "definition",
-        "digest", "effects", "expr", "functions", "hint_recipe", "hints", "ir",
-        "ir_type_rules", "machine_derived_validation", "memory_access_validation",
-        "program", "range_refinement", "range_refinement_runtime", "relation",
-        "source", "types", "validate", "validate_support", "window_ir",
+        "lowering/access_schedule", "ir/bounded_arithmetic", "metadata/capabilities",
+        "lowering/conditional_access_evidence", "lowering/conditional_access_plan", "ir/definition",
+        "ir/digest", "lowering/effects", "ir/expr", "functions/functions", "functions/hint_recipe", "functions/hints", "ir/ir",
+        "ir/ir_type_rules", "lowering/machine_derived_validation", "lowering/memory_access_validation",
+        "ir/program", "lowering/range_refinement", "lowering/range_refinement_runtime", "ir/relation",
+        "ir/source", "ir/types", "ir/validate", "ir/validate_support", "ir/window_ir",
     )
 
     def test_typed_verifier_component_excludes_prover_and_witness_sources(self) -> None:
@@ -231,28 +234,28 @@ class RecursionOwnershipTest(unittest.TestCase):
             product="typed-verifier-component",
             entry_roots=(
                 "src/frontends/riscv/air_lang/framework/universal_typed_verifier_component.zig",
-                "src/frontends/riscv/recursion/detached_parent_definitions.zig",
-                "src/frontends/riscv/recursion_air/query_bits_profile.zig",
-                "src/frontends/riscv/recursion/detached_segment_admission.zig",
-                "src/frontends/riscv/recursion/segment_leaf_statement_contract.zig",
+                "src/frontends/riscv/recursion/detached/parent/detached_parent_definitions.zig",
+                "src/frontends/riscv/recursion_air/openings/query_bits_profile.zig",
+                "src/frontends/riscv/recursion/detached/segment/detached_segment_admission.zig",
+                "src/frontends/riscv/recursion/segment/leaf/segment_leaf_statement_contract.zig",
                 "src/frontends/riscv/rv32/air/statement_geometry.zig",
                 "src/frontends/riscv/memory/air/poseidon2_call.zig",
                 "src/frontends/riscv/rv32/air/statement_authority_preimage.zig",
-                "src/frontends/riscv/recursion/detached_segment_public_inputs.zig",
-                "src/frontends/riscv/recursion/detached_segment_authority_boundary.zig",
-                "src/frontends/riscv/recursion/detached_segment_protocol.zig",
-                "src/frontends/riscv/recursion_air/verifier_wire_claims.zig",
-                "src/frontends/riscv/recursion/detached_segment_verifier_components.zig",
-                "src/frontends/riscv/recursion/segment_leaf_parameters.zig",
+                "src/frontends/riscv/recursion/detached/segment/detached_segment_public_inputs.zig",
+                "src/frontends/riscv/recursion/detached/segment/detached_segment_authority_boundary.zig",
+                "src/frontends/riscv/recursion/detached/segment/detached_segment_protocol.zig",
+                "src/frontends/riscv/recursion_air/wire/verifier_wire_claims.zig",
+                "src/frontends/riscv/recursion/detached/segment/detached_segment_verifier_components.zig",
+                "src/frontends/riscv/recursion/segment/leaf/segment_leaf_parameters.zig",
                 "src/frontends/riscv/recursion/air/segment_leaf_catalog.zig",
-                "src/frontends/riscv/recursion_air/verifier_component_parameters.zig",
+                "src/frontends/riscv/recursion_air/composition/verifier_component_parameters.zig",
                 "src/frontends/riscv/rv32/recursion/air/universal_manifest.zig",
-                "src/frontends/riscv/recursion/segment_statement_outer_geometry.zig",
-                "src/frontends/riscv/recursion/segment_leaf_outer_geometry.zig",
-                "src/frontends/riscv/recursion/segment_publication_input_provider_contract.zig",
+                "src/frontends/riscv/recursion/segment/statement/segment_statement_outer_geometry.zig",
+                "src/frontends/riscv/recursion/segment/leaf/segment_leaf_outer_geometry.zig",
+                "src/frontends/riscv/recursion/segment/public/segment_publication_input_provider_contract.zig",
                 "src/frontends/riscv/recursion/air/segment_outer_typed_catalog.zig",
                 "src/frontends/riscv/recursion/air/segment_outer_manifest_contract.zig",
-                "src/frontends/riscv/recursion/detached_parent_verifier_components.zig",
+                "src/frontends/riscv/recursion/detached/parent/detached_parent_verifier_components.zig",
             ),
             named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
@@ -287,10 +290,10 @@ class RecursionOwnershipTest(unittest.TestCase):
             self.assertNotIn("/runner/", source)
             self.assertNotIn("/prover/", source)
             self.assertNotIn("witness", Path(source).name)
-        self.assertNotIn("src/frontends/riscv/recursion/recording_poseidon_channel.zig", sources)
-        self.assertNotIn("src/frontends/riscv/recursion/engine.zig", sources)
-        self.assertNotIn("src/frontends/riscv/recursion_air/qm31_mul_full.zig", sources)
-        self.assertNotIn("src/frontends/riscv/recursion_air/universal_catalog.zig", sources)
+        self.assertNotIn("src/frontends/riscv/recursion/transcript/recording_poseidon_channel.zig", sources)
+        self.assertNotIn("src/frontends/riscv/recursion/engine/engine.zig", sources)
+        self.assertNotIn("src/frontends/riscv/recursion_air/arithmetic/qm31_mul_full.zig", sources)
+        self.assertNotIn("src/frontends/riscv/recursion_air/composition/universal_catalog.zig", sources)
         self.assertIn("src/frontends/riscv/memory/typed/typed_poseidon2_compact.zig", sources)
         self.assertIn("src/frontends/riscv/memory/typed/typed_poseidon2.zig", sources)
 
@@ -314,8 +317,8 @@ class RecursionOwnershipTest(unittest.TestCase):
             self.assertNotIn("/runner/", source)
             self.assertNotIn("/prover/", source)
             self.assertNotIn("witness", Path(source).name)
-        self.assertNotIn("src/frontends/riscv/recursion/recording_poseidon_channel.zig", sources)
-        self.assertNotIn("src/frontends/riscv/recursion/engine.zig", sources)
+        self.assertNotIn("src/frontends/riscv/recursion/transcript/recording_poseidon_channel.zig", sources)
+        self.assertNotIn("src/frontends/riscv/recursion/engine/engine.zig", sources)
 
     def test_native_table_and_poseidon_verifiers_import_only_core_and_equations(self) -> None:
         root = Path(__file__).resolve().parents[2]
@@ -369,8 +372,8 @@ class RecursionOwnershipTest(unittest.TestCase):
     def test_shared_provider_admission_has_only_equations_and_metadata(self) -> None:
         root = Path(__file__).resolve().parents[2]
         files = (
-            "air_lang/static_collections.zig", "memory/typed/typed_poseidon2.zig",
-            "memory/typed/typed_poseidon2_compact.zig", "air_lang/polynomial_replay.zig",
+            "air_lang/ir/static_collections.zig", "memory/typed/typed_poseidon2.zig",
+            "memory/typed/typed_poseidon2_compact.zig", "air_lang/polynomial/polynomial_replay.zig",
             "air_lang/shared/air/extract/symbolic_relations.zig", "air_lang/shared/air/extract/provider_equivalence.zig",
             "isa/access_clock.zig", "air_lang/shared/air/extract/canonical_digest.zig", "air_lang/shared/air/extract/symbolic.zig",
             "air_lang/shared/air/logup_equations.zig", "air_lang/shared/air/lookups/entry.zig",
@@ -445,8 +448,8 @@ class RecursionOwnershipTest(unittest.TestCase):
     def test_canonical_poseidon_identity_has_only_typed_equation_and_core_dependencies(self) -> None:
         root = Path(__file__).resolve().parents[2]
         files = (
-            "air_lang/static_collections.zig", "memory/typed/typed_poseidon2.zig",
-            "memory/typed/typed_poseidon2_compact.zig", "air_lang/polynomial_replay.zig",
+            "air_lang/ir/static_collections.zig", "memory/typed/typed_poseidon2.zig",
+            "memory/typed/typed_poseidon2_compact.zig", "air_lang/polynomial/polynomial_replay.zig",
             "air_lang/shared/air/extract/symbolic_relations.zig", "air_lang/shared/air/extract/provider_equivalence.zig",
             "isa/access_clock.zig", "air_lang/shared/air/extract/canonical_digest.zig",
             "air_lang/shared/air/extract/symbolic.zig", "air_lang/shared/air/logup_equations.zig",
@@ -513,15 +516,15 @@ class RecursionOwnershipTest(unittest.TestCase):
         manifest = Manifest(
             product="air-definition",
             entry_roots=(
-                "src/frontends/riscv/air_lang/definition.zig",
-                "src/frontends/riscv/recursion_air/fixed_wire.zig",
+                "src/frontends/riscv/air_lang/ir/definition.zig",
+                "src/frontends/riscv/recursion_air/wire/fixed_wire.zig",
             ),
             named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset({
-                "src/frontends/riscv/recursion_air/fixed_wire.zig",
+                "src/frontends/riscv/recursion_air/wire/fixed_wire.zig",
                 "src/frontends/riscv/air_lang/framework/relation_effect.zig",
-                "src/frontends/riscv/recursion_air/verifier_wire_protocol.zig",
+                "src/frontends/riscv/recursion_air/wire/verifier_wire_protocol.zig",
             }) | frozenset(
                 f"src/frontends/riscv/air_lang/{name}.zig" for name in self.DEFINITION_FILES
             ),
@@ -533,7 +536,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         manifest = Manifest(
             product="detached-parent-protocol",
-            entry_roots=("src/frontends/riscv/recursion/detached_parent_protocol.zig",),
+            entry_roots=("src/frontends/riscv/recursion/detached/parent/detached_parent_protocol.zig",),
             named_imports=(
                 NamedImport("stwo_core", "src/waist/core/mod.zig"),
             ),
@@ -544,10 +547,10 @@ class RecursionOwnershipTest(unittest.TestCase):
             ),
         )
         sources = inspect_sources(root, manifest).relative_sources()
-        self.assertNotIn("src/frontends/riscv/recursion/detached_parent_prepared.zig", sources)
-        self.assertNotIn("src/frontends/riscv/recursion/compact_tuple_ledger.zig", sources)
+        self.assertNotIn("src/frontends/riscv/recursion/detached/parent/detached_parent_prepared.zig", sources)
+        self.assertNotIn("src/frontends/riscv/recursion/parent/compact_tuple_ledger.zig", sources)
         for forbidden in (
-            "detached_parent_components.zig", "air/universal_shared_provider.zig",
+            "detached/parent/detached_parent_components.zig", "air/universal_shared_provider.zig",
             "air/universal_typed_component.zig", "air/universal_adapter_manifest.zig",
             "air/manifest_proof_protocol.zig",
         ):
@@ -563,22 +566,22 @@ class RecursionOwnershipTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         manifest = Manifest(
             product="detached-pcs-preparation",
-            entry_roots=("src/frontends/riscv/recursion/detached_pcs_preparation.zig",
-                         "src/frontends/riscv/recursion/pcs_transcript_program.zig",
-                         "src/frontends/riscv/recursion/transcript_frame_rows.zig",
+            entry_roots=("src/frontends/riscv/recursion/detached/pcs/detached_pcs_preparation.zig",
+                         "src/frontends/riscv/recursion/transcript/pcs_transcript_program.zig",
+                         "src/frontends/riscv/recursion/transcript/transcript_frame_rows.zig",
                          "src/frontends/riscv/compat/assembly/recursion/detached_prefix_preparation.zig",
                          "src/frontends/riscv/compat/assembly/recursion/detached_pcs_rows.zig",
-                         "src/frontends/riscv/recursion/detached_child_views.zig",
+                         "src/frontends/riscv/recursion/detached/detached_child_views.zig",
                          "src/frontends/riscv/compat/assembly/recursion/detached_parent_preparation.zig",
-                         "src/frontends/riscv/recursion_air/prepared_interaction_generation.zig",
-                         "src/frontends/riscv/recursion/detached_native_leaf_preparation.zig",
-                         "src/frontends/riscv/recursion/detached_leaf_noncore_owner.zig",
+                         "src/frontends/riscv/recursion_air/composition/prepared_interaction_generation.zig",
+                         "src/frontends/riscv/recursion/detached/leaf/detached_native_leaf_preparation.zig",
+                         "src/frontends/riscv/recursion/detached/leaf/detached_leaf_noncore_owner.zig",
                          "src/frontends/riscv/compat/assembly/recursion/detached_fri_core.zig",
                          "src/frontends/riscv/compat/assembly/recursion/detached_leaf_cohort.zig",
-                         "src/frontends/riscv/recursion/transaction_storage.zig",
-                         "src/frontends/riscv/recursion/leaf_interaction_generator.zig",
-                         "src/frontends/riscv/recursion/segment_outer_transaction.zig",
-                         "src/frontends/riscv/recursion/binary_verified_publication.zig"),
+                         "src/frontends/riscv/recursion/publication/transaction_storage.zig",
+                         "src/frontends/riscv/recursion/segment/leaf/leaf_interaction_generator.zig",
+                         "src/frontends/riscv/recursion/segment/outer/segment_outer_transaction.zig",
+                         "src/frontends/riscv/recursion/binary/publication/binary_verified_publication.zig"),
             named_imports=tuple(NamedImport(name, path) for name, path in (
                 ("stwo_core", "src/waist/core/mod.zig"),
                 ("stwo_prover_engine", "src/engine/prover/mod.zig"),
@@ -606,7 +609,7 @@ class RecursionOwnershipTest(unittest.TestCase):
                               "vectors/riscv_air"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
-        self.assertIn("src/frontends/riscv/recursion/detached_segment_admission.zig", sources)
+        self.assertIn("src/frontends/riscv/recursion/detached/segment/detached_segment_admission.zig", sources)
         self.assertFalse(any(source.startswith("src/frontends/riscv/runner/") for source in sources))
         self.assertIn(manifest.entry_roots[0], sources)
         for source in sources:
@@ -617,7 +620,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         manifest = Manifest(
             product="recursion-compact-tuple-preparation",
-            entry_roots=("src/frontends/riscv/recursion/compact_tuple_ledger.zig",),
+            entry_roots=("src/frontends/riscv/recursion/parent/compact_tuple_ledger.zig",),
             named_imports=(
                 NamedImport("stwo_core", "src/waist/core/mod.zig"),
                 NamedImport("stwo_prover_engine", "src/engine/prover/mod.zig"),
@@ -638,11 +641,11 @@ class RecursionOwnershipTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         manifest = Manifest(
             product="recursion-verifier-tree",
-            entry_roots=("src/frontends/riscv/recursion/verifier_tree.zig",),
+            entry_roots=("src/frontends/riscv/recursion/parent/verifier_tree.zig",),
             named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset({
-                "src/frontends/riscv/recursion/verifier_tree.zig",
+                "src/frontends/riscv/recursion/parent/verifier_tree.zig",
                 "src/frontends/riscv/memory/primitives/recursion/poseidon2_channel.zig",
                 "src/frontends/riscv/memory/primitives/recursion/poseidon2_canonical_word_sponge.zig",
                 "src/frontends/riscv/memory/air/poseidon2.zig",

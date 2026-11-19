@@ -123,7 +123,7 @@ fn destinationCase(a: std.mem.Allocator, check_invalid: bool) !void {
 }
 
 fn groupDestinationAllocationCase(a: std.mem.Allocator, check_invalid: bool) !void {
-    const group = @import("../blake3_merkle_group_witness.zig");
+    const group = @import("../blake3/openings/blake3_merkle_group_witness.zig");
     const directions = [_]group.select.Endpoint{.{ .circuit = 80, .wire = 0 }};
     const statement = group.Statement{ .namespace = 1000, .payload = .{ .circuit = 77, .first_wire = 0 }, .leaf_count = 2, .words_per_leaf = 1, .index = 1, .depth = 1, .root = @splat(0), .root_source = .{ .circuit = 78, .first_wire = 0 }, .directions = &directions };
     const values = [_]core.fields.m31.M31{ .one(), .fromCanonical(19) };
@@ -240,7 +240,7 @@ fn mainBuffer(comptime Air: type, a: std.mem.Allocator, count: usize) !@import("
 }
 
 fn groupMainColumnCase(a: std.mem.Allocator) !void {
-    const group = @import("../blake3_merkle_group_witness.zig");
+    const group = @import("../blake3/openings/blake3_merkle_group_witness.zig");
     const framework = @import("stwo_riscv_air_lang").framework.framework_interaction;
     const binding = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
     const M = core.fields.m31.M31;
@@ -266,8 +266,8 @@ fn groupMainColumnCase(a: std.mem.Allocator) !void {
         {
             var compact = try group.trustedIntoCached(a, statement, .{ .fixed = metadata }, &cache);
             defer compact.deinit();
-            try @import("../blake3_main_column_test_support.zig").expectReceipts(fixed, compact);
-            try @import("../blake3_main_column_test_support.zig").expectFixedMetadata(fixed, metadata);
+            try @import("../blake3/trace/blake3_main_column_test_support.zig").expectReceipts(fixed, compact);
+            try @import("../blake3/trace/blake3_main_column_test_support.zig").expectFixedMetadata(fixed, metadata);
             try std.testing.expectEqual(@as(usize, 0), compact.g_rows.len);
             try std.testing.expectEqual(@as(usize, 0), compact.xor_rows.len);
             var bad_metadata = metadata;
@@ -311,7 +311,7 @@ fn groupMainColumnCase(a: std.mem.Allocator) !void {
 }
 
 fn planCacheCase(a: std.mem.Allocator) !void {
-    const Cache = @import("../blake3_merkle_plan_cache.zig").Cache;
+    const Cache = @import("../blake3/openings/blake3_merkle_plan_cache.zig").Cache;
     const graph = @import("stwo_riscv_air_lang").framework.blake3_hash_plan;
     var failing = std.testing.FailingAllocator.init(a, .{});
     var cache = Cache.init(failing.allocator());
@@ -341,8 +341,8 @@ fn planCacheCase(a: std.mem.Allocator) !void {
     try std.testing.expectEqual(@as(usize, 3), cache.builds);
 }
 
-fn compactTrustedGroupCase(a: std.mem.Allocator, statement: @import("../blake3_merkle_group_witness.zig").Statement) !void {
-    const group = @import("../blake3_merkle_group_witness.zig");
+fn compactTrustedGroupCase(a: std.mem.Allocator, statement: @import("../blake3/openings/blake3_merkle_group_witness.zig").Statement) !void {
+    const group = @import("../blake3/openings/blake3_merkle_group_witness.zig");
     var cache = group.PlanCache.init(a);
     defer cache.deinit();
     const counts = try group.requiredHashRowsCached(a, statement, &cache);

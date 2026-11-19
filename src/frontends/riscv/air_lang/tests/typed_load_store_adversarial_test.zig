@@ -1,10 +1,10 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const program = @import("../program.zig");
-const support = @import("../typed_load_store_test_support.zig");
-const typed_load_store = @import("../typed_load_store.zig");
-const types = @import("../types.zig");
-const validate = @import("../validate.zig");
+const program = @import("../ir/program.zig");
+const support = @import("../opcodes/memory/typed_load_store_test_support.zig");
+const typed_load_store = @import("../opcodes/memory/typed_load_store.zig");
+const types = @import("../ir/types.zig");
+const validate = @import("../ir/validate.zig");
 
 test "typed signed-load named sign mask bound alias x0 and placement mutations reject" {
     var authored = try typed_load_store.build(std.testing.allocator, .generated);
@@ -267,6 +267,6 @@ fn allocationFailureCase(allocator: std.mem.Allocator) !void {
     defer authored.deinit();
 }
 
-fn valueAt(values: []const M31, id: @import("../types.zig").ValueId) u32 {
-    return values[@import("../types.zig").idIndex(id)].toU32();
+fn valueAt(values: []const M31, id: @import("../ir/types.zig").ValueId) u32 {
+    return values[@import("../ir/types.zig").idIndex(id)].toU32();
 }

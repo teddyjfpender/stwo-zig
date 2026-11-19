@@ -13,9 +13,9 @@ const statement_witness = @import("stwo_riscv_rv32").recursion.air.statement_sem
 const claim_air = @import("stwo_riscv_recursion_air").vm_public_claim_input;
 const claim_relation = @import("claim_relation_test_support.zig");
 const claim_witness = @import("stwo_riscv_rv32").recursion.air.vm_public_claim_input_witness;
-const leaf_owner = @import("../segment_leaf_authority.zig");
+const leaf_owner = @import("../segment/leaf/segment_leaf_authority.zig");
 const claim = @import("stwo_riscv_rv32").recursion.vm_public_claim;
-const owner = @import("../segment_range_authority.zig");
+const owner = @import("../segment/segment_range_authority.zig");
 
 const BINDING_COUNT: usize = 6;
 const BINDINGS = [BINDING_COUNT]statement_witness.InputBinding{

@@ -14,14 +14,14 @@ const digest = @import("stwo_riscv_air_lang").digest;
 const base = @import("stwo_riscv_air_lang").framework.universal_manifest_contract;
 const universal_manifest = @import("stwo_riscv_rv32").recursion.air.universal_manifest;
 const universal_roster = @import("stwo_riscv_air_lang").framework.universal_roster;
-const statement_v2 = @import("../segment_statement_outer_geometry.zig");
+const statement_v2 = @import("../segment/statement/segment_statement_outer_geometry.zig");
 const public_air_v2 = @import("stwo_riscv_recursion_air").segment_public_outer_air;
 const row17_air_v2 = @import("stwo_riscv_recursion_air").vm_public_logup_control_v2;
-const boundary_v2 = @import("../segment_leaf_outer_geometry.zig");
-const boundary_air_v2 = @import("../segment_leaf_outer_air.zig");
+const boundary_v2 = @import("../segment/leaf/segment_leaf_outer_geometry.zig");
+const boundary_air_v2 = @import("../segment/leaf/segment_leaf_outer_air.zig");
 const provider_air_v2 = @import("segment_publication_input_provider.zig");
 const provider_authority_v2 =
-    @import("../segment_publication_input_provider_contract.zig");
+    @import("../segment/public/segment_publication_input_provider_contract.zig");
 
 pub const FORMAT_VERSION: u16 = 3;
 pub const COMPONENT_COUNT: usize = universal_roster.COMPONENT_COUNT + 3;

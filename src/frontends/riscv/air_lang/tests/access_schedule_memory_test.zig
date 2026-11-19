@@ -1,15 +1,15 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const production_clock = @import("stwo_riscv_isa").access_clock;
-const digest = @import("../digest.zig");
-const effects = @import("../effects.zig");
-const expr = @import("../expr.zig");
-const ir = @import("../ir.zig");
-const manifest = @import("../manifest.zig");
-const relation = @import("../relation.zig");
-const source = @import("../source.zig");
-const types = @import("../types.zig");
-const validate = @import("../validate.zig");
+const digest = @import("../ir/digest.zig");
+const effects = @import("../lowering/effects.zig");
+const expr = @import("../ir/expr.zig");
+const ir = @import("../ir/ir.zig");
+const manifest = @import("../metadata/manifest.zig");
+const relation = @import("../ir/relation.zig");
+const source = @import("../ir/source.zig");
+const types = @import("../ir/types.zig");
+const validate = @import("../ir/validate.zig");
 
 test "fixed memory plans preserve exact streams and prepared physical order" {
     for ([_]effects.AccessPlanKind{ .load, .store }) |kind| {

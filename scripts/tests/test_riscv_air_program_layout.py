@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
+import re
 import unittest
 from unittest import mock
 
 from scripts.riscv.riscv_refinement_lib import air_program_layout
-from scripts.riscv.riscv_refinement_lib.air_program_contract import OPCODES
+from scripts.riscv.riscv_refinement_lib.air_program_contract import (
+    LUI_SOURCE_PATHS,
+    OPCODES,
+    SOURCE_IDENTITY_BUILDER,
+)
 
 
 REVISION = "1" * 40
@@ -87,6 +93,16 @@ def _reordered(payload: dict) -> dict:
 
 
 class NodeLayoutTest(unittest.TestCase):
+    def test_lean_decoder_uses_the_reviewed_production_source_paths(self):
+        root = Path(__file__).resolve().parents[2]
+        decoder = (root / "formal/riscv-refinement/RiscvRefinement/Air/Decode.lean").read_text()
+        builder = re.search(r'def productionBuilder : String :=\s*"([^"]+)"', decoder)
+        source_paths = re.search(r'def luiSourcePaths : Array String :=\s*#\[([^\]]+)\]', decoder)
+        self.assertIsNotNone(builder)
+        self.assertIsNotNone(source_paths)
+        self.assertEqual(SOURCE_IDENTITY_BUILDER, builder[1])
+        self.assertEqual(LUI_SOURCE_PATHS, tuple(re.findall(r'"([^"]+)"', source_paths[1])))
+
     def setUp(self):
         self.reviewed = _inventory()
         self.receipt = air_program_layout.build_receipt(self.reviewed, REVISION)

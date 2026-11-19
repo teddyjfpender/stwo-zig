@@ -2,7 +2,7 @@ const std = @import("std");
 const M = @import("stwo_core").fields.m31.M31;
 const Column = @import("stwo_prover_engine").pcs.ColumnEvaluation;
 const storage = @import("stwo_riscv_air_lang").framework.blake3_parent_row_storage;
-const source = @import("../blake3_direct_source_columns.zig");
+const source = @import("../blake3/trace/blake3_direct_source_columns.zig");
 fn emptyPrepared(a: std.mem.Allocator) storage.Prepared {
     var value = storage.Prepared{ .allocator = a, .main = @splat(&.{}), .fixed = undefined, .input_count = 0 };
     inline for (0..storage.Airs.len) |i| value.fixed[i] = &.{};
@@ -46,7 +46,7 @@ test "direct PCS public source cohorts match legacy scattered columns and transf
             try @import("stwo_riscv_air_lang").framework.blake3_row_columns.project(Air, a, rows, log, 1, &expected);
             for (expected.items, prepared.main[slot]) |old, new| try std.testing.expectEqualSlices(M, old.values, new.values);
             for (trusted, prepared.fixed[slot]) |fixed, compact| try std.testing.expectEqualDeep(storage.compactFixed(Air, fixed), compact);
-            const borrowed = try @import("../blake3_recursive_column_rows.zig").ForAir(Air).init(prepared.main[slot], prepared.fixed[slot]);
+            const borrowed = try @import("../blake3/trace/blake3_recursive_column_rows.zig").ForAir(Air).init(prepared.main[slot], prepared.fixed[slot]);
             try std.testing.expectEqual(count, borrowed.rowCount());
             for (rows, 0..) |row, i| try std.testing.expectEqualDeep(row, borrowed.rowAt(i));
             // Drop a consumed cohort, then all remaining empty/padded cohorts.

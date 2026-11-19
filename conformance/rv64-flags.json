@@ -1124,15 +1124,15 @@
       "expires": "2026-12-13"
     },
     "STWO_CIRCUIT_FOLD_JOBS": {
-      "owner": "src/products/cairo/recursion/cpu/app.zig",
+      "owner": "src/products/cairo/recursion/circuit_cpu/app.zig",
       "default": "null (no process override; enclosing caller policy is pinned)",
       "status": "runtime",
       "date": "2026-11-13",
       "references": [
-        "src/products/cairo/recursion/cpu/app.zig"
+        "src/products/cairo/recursion/circuit_cpu/app.zig"
       ],
       "default_evidence": {
-        "path": "src/products/cairo/recursion/cpu/app.zig",
+        "path": "src/products/cairo/recursion/circuit_cpu/app.zig",
         "text": "    const override = std.process.getEnvVarOwned(allocator, \"STWO_CIRCUIT_FOLD_JOBS\") catch null;\n    if (override) |value| {\n        defer allocator.free(value);\n        const parsed = std.fmt.parseInt(usize, value, 10) catch return 1;\n        return @min(@max(parsed, 1), 2);\n    }\n    return 1;"
       },
       "expires": "2026-12-13"
@@ -2148,16 +2148,16 @@
       ]
     },
     "STWO_ETHEREUM_COMPOSITION_DIAGNOSTICS": {
-      "owner": "src/frontends/riscv/recursion/vm_composition_graph_support.zig",
+      "owner": "src/frontends/riscv/recursion/composition/vm/vm_composition_graph_support.zig",
       "default": "false",
       "status": "runtime",
       "date": "2026-11-13",
       "references": [
-        "src/frontends/riscv/recursion/vm_composition_graph_support.zig",
+        "src/frontends/riscv/recursion/composition/vm/vm_composition_graph_support.zig",
         "src/products/ethereum/statement/frontend/prover/incremental_ethereum_verifier.zig"
       ],
       "default_evidence": {
-        "path": "src/frontends/riscv/recursion/vm_composition_graph_support.zig",
+        "path": "src/frontends/riscv/recursion/composition/vm/vm_composition_graph_support.zig",
         "text": "            const value = std.process.getEnvVarOwned(std.heap.page_allocator, \"STWO_ETHEREUM_COMPOSITION_DIAGNOSTICS\") catch return false;\n            defer std.heap.page_allocator.free(value);\n            return std.mem.eql(u8, value, \"1\");\n        }\n\n        pub fn diagnosticCheckpoint(section: []const u8, ordinal: usize, count: u32, value: Scalar) void {\n            if (!compositionDiagnosticsEnabled()) return;"
       },
       "expires": "2026-12-13"
@@ -2686,15 +2686,15 @@
       ]
     },
     "STWO_PAIR_NODE_BENCH_ITERATIONS": {
-      "owner": "src/frontends/riscv/recursion/pair_node_test_continuation_1.zig",
+      "owner": "src/frontends/riscv/recursion/parent/pair/pair_node_test_continuation_1.zig",
       "default": "error.SkipZigTest (benchmark not selected)",
       "status": "qualification",
       "date": "2026-11-13",
       "references": [
-        "src/frontends/riscv/recursion/pair_node_test_continuation_1.zig"
+        "src/frontends/riscv/recursion/parent/pair/pair_node_test_continuation_1.zig"
       ],
       "default_evidence": {
-        "path": "src/frontends/riscv/recursion/pair_node_test_continuation_1.zig",
+        "path": "src/frontends/riscv/recursion/parent/pair/pair_node_test_continuation_1.zig",
         "text": "        \"STWO_PAIR_NODE_BENCH_ITERATIONS\",\n    ) catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return error.SkipZigTest,\n        else => return err,\n    };\n    defer allocator.free(raw_iterations);\n    const iterations = try std.fmt.parseUnsigned(usize, raw_iterations, 10);"
       },
       "expires": "2026-12-13"
@@ -2846,7 +2846,7 @@
         "text": "        pub const COMPOSITION_DIAGNOSTIC_ENV = \"STWO_RECURSION_DIAGNOSE_COMPOSITION\";\n        pub const STAGE_TELEMETRY_ENV = \"STWO_RECURSION_OUTER_STAGE_TELEMETRY\";\n        pub const CLOSURE_DIAGNOSTIC_ENV = \"STWO_RECURSION_OUTER_CLOSURE_DIAGNOSTIC\";\n\n        pub const OUTER_CONFIG: stwo_core.pcs.PcsConfig = .{\n            .pow_bits = 0,\n            .fri_config = .{",
         "readers": [
           {
-            "path": "src/frontends/riscv/recursion/segment_outer_engine_transaction.zig",
+            "path": "src/frontends/riscv/recursion/segment/outer/segment_outer_engine_transaction.zig",
             "text": "                    const composition_diagnostic_enabled =\n                        std.process.hasEnvVarConstant(\n                            Diagnostics.COMPOSITION_DIAGNOSTIC_ENV,\n                        );\n                    if (composition_diagnostic_enabled)"
           }
         ]
@@ -2884,17 +2884,17 @@
       "expires": "2026-12-13"
     },
     "STWO_RECURSION_OUTER_CLOSURE_DIAGNOSTIC": {
-      "owner": "src/frontends/riscv/recursion/segment_outer_noncore_audits_contract.zig",
+      "owner": "src/frontends/riscv/recursion/segment/outer/segment_outer_noncore_audits_contract.zig",
       "default": "false",
       "status": "runtime",
       "date": "2026-11-13",
       "references": [
         "src/frontends/riscv/compat/assembly/recursion/detached_fri_core_part_01.zig",
         "src/frontends/riscv/compat/assembly/recursion/detached_leaf_cohort_support.zig",
-        "src/frontends/riscv/recursion/segment_outer_noncore_audits_contract.zig"
+        "src/frontends/riscv/recursion/segment/outer/segment_outer_noncore_audits_contract.zig"
       ],
       "default_evidence": {
-        "path": "src/frontends/riscv/recursion/segment_outer_noncore_audits_contract.zig",
+        "path": "src/frontends/riscv/recursion/segment/outer/segment_outer_noncore_audits_contract.zig",
         "text": "                \"STWO_RECURSION_OUTER_CLOSURE_DIAGNOSTIC\",\n            )) {\n                const limbs = value.toM31Array();\n                std.debug.print(\n                    \"V2_NONCORE_PROVIDER_DOMAIN_MISMATCH row={d} domain={d} \" ++\n                        \"value=[{d},{d},{d},{d}]\\n\",\n                    .{"
       },
       "expires": "2026-12-13"
@@ -2920,7 +2920,7 @@
       "expires": "2026-12-13"
     },
     "STWO_RECURSION_OUTER_STAGE_TELEMETRY": {
-      "owner": "src/frontends/riscv/recursion/captured_fri_contract.zig",
+      "owner": "src/frontends/riscv/recursion/pcs/fri/captured_fri_contract.zig",
       "default": "false (presence-only stage telemetry)",
       "status": "runtime",
       "date": "2026-11-13",
@@ -2928,14 +2928,14 @@
         "scripts/riscv/riscv_recursion_csp_benchmark_lib/active_probe.py",
         "scripts/tests/test_riscv_csp_native_isolation.py",
         "src/frontends/riscv/compat/assembly/recursion/detached_fri_core_part_01.zig",
-        "src/frontends/riscv/recursion/captured_fri_contract.zig"
+        "src/frontends/riscv/recursion/pcs/fri/captured_fri_contract.zig"
       ],
       "default_evidence": {
-        "path": "src/frontends/riscv/recursion/captured_fri_contract.zig",
+        "path": "src/frontends/riscv/recursion/pcs/fri/captured_fri_contract.zig",
         "text": "pub const STAGE_TELEMETRY_ENV = \"STWO_RECURSION_OUTER_STAGE_TELEMETRY\";\n\npub const Error = std.mem.Allocator.Error || circuit_mod.Error || pcs_circuit_mod.Error ||\n    merkle_root.Error || trace_merkle.Error || sample_point_layout.Error || error{\n    ArithmeticOverflow,\n    CaptureShapeMismatch,\n    PositionNotCanonical,",
         "readers": [
           {
-            "path": "src/frontends/riscv/recursion/captured_fri_contract.zig",
+            "path": "src/frontends/riscv/recursion/pcs/fri/captured_fri_contract.zig",
             "text": "    if (!std.process.hasEnvVarConstant(STAGE_TELEMETRY_ENV)) return;\n    std.debug.print(\n        \"  captured-fri stage={s} failed={s}\\n\",\n        .{ stage, @errorName(err) },\n    );\n}\n"
           }
         ]
@@ -2985,7 +2985,7 @@
       "date": "2026-11-13",
       "references": [
         "scripts/riscv/riscv_recursion_csp_benchmark_lib/active_probe.py",
-        "src/frontends/riscv/recursion/vm_public_semantics_circuit_contract.zig",
+        "src/frontends/riscv/recursion/composition/vm/vm_public_semantics_circuit_contract.zig",
         "src/products/riscv/cpu/tests/recursion_ingress_real_guest_test.zig"
       ],
       "default_evidence": {
@@ -3094,15 +3094,15 @@
       "expires": "2026-12-13"
     },
     "STWO_RISCV_CPU_PARENT_INTERACTIONS": {
-      "owner": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+      "owner": "src/frontends/riscv/recursion/parent/blake3/blake3_native_parent_producer.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
       "status": "runtime",
       "date": "2026-11-13",
       "references": [
-        "src/frontends/riscv/recursion/blake3_native_parent_producer.zig"
+        "src/frontends/riscv/recursion/parent/blake3/blake3_native_parent_producer.zig"
       ],
       "default_evidence": {
-        "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+        "path": "src/frontends/riscv/recursion/parent/blake3/blake3_native_parent_producer.zig",
         "text": "                const allow_device = !std.process.hasEnvVarConstant(\"STWO_RISCV_CPU_PARENT_INTERACTIONS\");\n                var scratch_count: usize = 0;\n                inline for (Roster.Airs, 0..) |Air, i| {\n                    const Runtime = framework.Runtime(binding.Binding(Air).Runtime);\n                    if (!allow_device or self.device_programs[i] == null) scratch_count = @max(scratch_count, try Runtime.requiredScratchElementCount(@min(admission.key.log_sizes[i], framework.OWNED_TILE_LOG_SIZE)));\n                }\n                const scratch = try a.alloc(core.fields.qm31.QM31, scratch_count);"
       },
       "expires": "2026-12-13"
@@ -3164,15 +3164,15 @@
       "expires": "2026-12-13"
     },
     "STWO_RISCV_MATERIALIZED_POLYNOMIALS": {
-      "owner": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+      "owner": "src/frontends/riscv/recursion/parent/blake3/blake3_native_parent_producer.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
       "status": "runtime",
       "date": "2026-11-13",
       "references": [
-        "src/frontends/riscv/recursion/blake3_native_parent_producer.zig"
+        "src/frontends/riscv/recursion/parent/blake3/blake3_native_parent_producer.zig"
       ],
       "default_evidence": {
-        "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+        "path": "src/frontends/riscv/recursion/parent/blake3/blake3_native_parent_producer.zig",
         "text": "            if (Backend.MerkleTree(suite.Hasher) == engine.vcs_lifted.prover.MerkleProverLifted(suite.Hasher) and !std.process.hasEnvVarConstant(\"STWO_RISCV_MATERIALIZED_POLYNOMIALS\"))\n                scheme.setCompactPolynomialStorage(20)\n            else\n                scheme.setCoefficientRetentionPolicy(.never);\n            var channel = suite.Channel{};\n            // Transfers projection storage on success and on failure.\n            try scheme.commitOwned(a, try pp.toOwnedSlice(a), &channel);"
       },
       "expires": "2026-12-13"
@@ -3199,15 +3199,15 @@
       "expires": "2026-12-13"
     },
     "STWO_RISCV_PARENT_MONOLITHIC_MAIN": {
-      "owner": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+      "owner": "src/frontends/riscv/recursion/parent/blake3/blake3_native_parent_producer.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
       "status": "runtime",
       "date": "2026-11-13",
       "references": [
-        "src/frontends/riscv/recursion/blake3_native_parent_producer.zig"
+        "src/frontends/riscv/recursion/parent/blake3/blake3_native_parent_producer.zig"
       ],
       "default_evidence": {
-        "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+        "path": "src/frontends/riscv/recursion/parent/blake3/blake3_native_parent_producer.zig",
         "text": "            if (std.process.hasEnvVarConstant(\"STWO_RISCV_PARENT_MONOLITHIC_MAIN\")) {\n                try scheme.commit(a, main.items, &channel);\n            } else {\n                try scheme.commitBorrowedStreamingWithRecorder(a, main.items, @import(\"stwo_riscv_rv32\").prover.blake3_coefficient_retention.streamingBatchColumns(), diagnostic, &channel);\n            }\n            phase.end();\n            phase = try stage_profile.StageScope.begin(diagnostic, \"parent.interaction_generation\", \"Interaction generation\");"
       },
       "expires": "2026-12-13"
@@ -3233,10 +3233,10 @@
       "date": "2026-11-13",
       "references": [
         "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
-        "src/frontends/riscv/recursion/blake3_native_hash_columns.zig",
-        "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
-        "src/frontends/riscv/recursion/detached_parent_prepared.zig",
-        "src/frontends/riscv/recursion/detached_pcs_preparation.zig",
+        "src/frontends/riscv/recursion/detached/parent/detached_parent_prepared.zig",
+        "src/frontends/riscv/recursion/detached/pcs/detached_pcs_preparation.zig",
+        "src/frontends/riscv/recursion/parent/blake3/blake3_native_hash_columns.zig",
+        "src/frontends/riscv/recursion/parent/blake3/blake3_native_parent_producer.zig",
         "src/integrations/riscv_cpu/recursive_segment_detached_parent_proof.zig"
       ],
       "default_evidence": {

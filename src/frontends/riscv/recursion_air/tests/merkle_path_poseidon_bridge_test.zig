@@ -6,10 +6,10 @@ const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const poseidon_authority = @import("stwo_riscv_memory").typed.typed_poseidon2_proof_authority;
 const poseidon_production = @import("stwo_riscv_memory").air.poseidon2_air;
-const component = @import("../merkle_path.zig");
-const path_relation = @import("../merkle_path_relation.zig");
-const path = @import("../merkle_path_witness.zig");
-const bridge = @import("../merkle_path_poseidon_bridge.zig");
+const component = @import("../openings/merkle_path.zig");
+const path_relation = @import("../openings/merkle_path_relation.zig");
+const path = @import("../openings/merkle_path_witness.zig");
+const bridge = @import("../openings/merkle_path_poseidon_bridge.zig");
 
 test "R-012 Merkle path derives the exact shared Poseidon IO call" {
     const invocation = fixtureInvocation(1);

@@ -7,14 +7,14 @@ const QM31 = stwo_core.fields.qm31.QM31;
 
 const digest = @import("stwo_riscv_air_lang").digest;
 const relation = @import("stwo_riscv_air_lang").relation;
-const air = @import("../variable_boundary_vm_public_logup.zig");
-const binding = @import("../vm_public_logup_control_relation.zig");
+const air = @import("../statement/variable_boundary_vm_public_logup.zig");
+const binding = @import("../statement/vm_public_logup_control_relation.zig");
 const direct_program = @import("stwo_riscv_air_lang").framework.direct_constraint_program;
 const fixed_profile = @import("../protocol/recursion/fixed_profile.zig");
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 const protocol = @import("../protocol/recursion/protocol.zig");
-const schedule = @import("../verifier_schedule.zig");
-const witness = @import("../vm_public_logup_control_witness.zig");
+const schedule = @import("../composition/verifier_schedule.zig");
+const witness = @import("../statement/vm_public_logup_control_witness.zig");
 
 test "V2 row17 typed AIR pins exact semantic and performance profiles" {
     try std.testing.expectEqualStrings(

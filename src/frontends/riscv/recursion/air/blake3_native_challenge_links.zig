@@ -1,7 +1,7 @@
 //! Native V2 scalar challenge routing; no fixture universal-relation aliases.
 const std = @import("std");
 const core = @import("stwo_core");
-const vm = @import("../vm_air_composition_circuit.zig");
+const vm = @import("../composition/vm/vm_air_composition_circuit.zig");
 const graph = @import("stwo_riscv_rv32").recursion.air.composition_circuit;
 const relations = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 const t = @import("stwo_riscv_recursion_air").blake3.transcript_witness;

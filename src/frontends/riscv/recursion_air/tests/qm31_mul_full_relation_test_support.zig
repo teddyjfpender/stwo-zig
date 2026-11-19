@@ -17,7 +17,7 @@ const digest = @import("stwo_riscv_air_lang").digest;
 const lower_effects = @import("stwo_riscv_air_lang").lower_effects;
 const relation = @import("stwo_riscv_air_lang").relation;
 const types = @import("stwo_riscv_air_lang").types;
-const full = @import("../qm31_mul_full.zig");
+const full = @import("../arithmetic/qm31_mul_full.zig");
 const wire = @import("stwo_riscv_air_lang").framework.wire_relation;
 
 pub const FORMAT_VERSION: u16 = 1;

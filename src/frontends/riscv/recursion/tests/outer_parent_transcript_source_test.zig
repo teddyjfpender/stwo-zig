@@ -3,15 +3,15 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 
-const admission = @import("../outer_parent_child_admission.zig");
+const admission = @import("../parent/admission/outer_parent_child_admission.zig");
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
-const engine = @import("../engine.zig");
+const engine = @import("../engine/engine.zig");
 const fixed_wire = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_wire;
-const pair_node = @import("../pair_node.zig");
+const pair_node = @import("../parent/pair/pair_node.zig");
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 const span_statement = @import("stwo_riscv_rv32").recursion.span_statement;
 const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
-const source = @import("../outer_parent_transcript_source.zig");
+const source = @import("../parent/transcript/outer_parent_transcript_source.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
@@ -39,7 +39,7 @@ const Wire = admission.FixedOuterProofWireV1(TEST_DIMENSIONS);
 const Bundle = source.ChildBundle(TEST_DIMENSIONS);
 const Prepared = source.Prepared(TEST_DIMENSIONS);
 
-const test_support = @import("../outer_parent_transcript_source_test_support.zig");
+const test_support = @import("../parent/transcript/outer_parent_transcript_source_test_support.zig");
 pub const AdmittedChild = test_support.AdmittedChild;
 const CaptureFixture = test_support.CaptureFixture;
 pub const honestPairInputs = test_support.honestPairInputs;

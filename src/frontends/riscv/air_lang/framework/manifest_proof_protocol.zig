@@ -1,7 +1,7 @@
 //! Ordered adapter handoff to proving and independent verification.
 const std = @import("std");
 const core = @import("stwo_core");
-const digest = @import("../digest.zig");
+const digest = @import("../ir/digest.zig");
 const core_components = core.air.components;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 

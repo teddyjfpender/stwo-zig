@@ -2,7 +2,7 @@
 
 const control = @import("control.zig");
 const compiler = @import("relation_interaction.zig");
-const types = @import("../types.zig");
+const types = @import("../ir/types.zig");
 
 pub const Runtime = compiler.Runtime(
     control.LOGICAL_INPUT_COUNT,

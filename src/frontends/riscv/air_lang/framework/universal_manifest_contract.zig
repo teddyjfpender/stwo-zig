@@ -2,8 +2,8 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
-const digest = @import("../digest.zig");
-const relation = @import("../relation.zig");
+const digest = @import("../ir/digest.zig");
+const relation = @import("../ir/relation.zig");
 const roster = @import("universal_roster.zig");
 
 /// Component key consumed by the generic typed-component adapter. Versioned
