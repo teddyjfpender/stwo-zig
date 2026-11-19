@@ -1502,6 +1502,20 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue 332 comment 6998614561: make the existing Cairo CPU and CUDA-host tests own their four explicit fixture and output options. Preserve standard test discovery, optional fixture skip behavior, source custody, absolute path rejection, proof serialization and verification. Only the existing named test targets receive the configured options."
+    },
+    {
+      "id": "typed_circuit_oracle_emission_issue332",
+      "net_code_budget": 15,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 332 moves two proof fixture directories from ambient qualification into the existing R7 and R11 test builds. The shared writer takes an explicit directory and the historical Rust oracle pins remain authoritative. No runtime inputs, schemas, dependencies or scripts are added."
+    },
+    {
+      "id": "report_versioned_source_basenames_issue370",
+      "net_code_budget": 55,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 370: publish a source-owned Zig basename census from the existing package measurement. Preserve the historical all-file cap, CB-2 snapshots and current ceilings. Keep ownership and the report in a single collector."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",

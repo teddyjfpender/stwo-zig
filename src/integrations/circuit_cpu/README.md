@@ -186,10 +186,10 @@ registry's.
 179 MB multiverifier circuit and value table, is written by
 `stwo-circuit-oracle multiverifier-inputs --proving-root <proving>
 --inputs-output <path>` and pinned by `vectors/circuit/r7/multiverifier_inputs.json`;
-without the environment variable the test is skipped.
+without `-Dtest-multiverifier-inputs` the test is skipped.
 `STWO_CIRCUIT_STAGE_PROFILE=1` prints the stage times and
 `-Dtest-compact-min-log` (default 18, `off` to disable) selects compact
-storage. `STWO_CIRCUIT_R7_EMIT_DIR` makes both steps write the proofs and the
+storage. `-Dtest-r7-emit-dir` makes both steps write the proofs and the
 oracle's `verify-circuit` requests.
 
 `circuit-parity-r9` is rung R9 (labelled large). It folds 1, 2, 3, 4 and 5
@@ -214,7 +214,7 @@ each untouched and after each of eight tamperings (output digest,
 preprocessed root, circuit hash via the layout, a claimed sum, the channel
 salt, both PoW nonces, a FRI witness). The Zig verdicts must be accept,
 then reject; upstream's verdicts on the same bytes are committed under
-`vectors/circuit/r11/verify/` and must agree (`STWO_CIRCUIT_R11_EMIT_DIR`
+`vectors/circuit/r11/verify/` and must agree (`-Dtest-r11-emit-dir`
 writes the cases for `generate_circuit_oracle_vectors.py --r11-emit-dir`).
 About 30 s and under 1 GB in ReleaseSafe.
 

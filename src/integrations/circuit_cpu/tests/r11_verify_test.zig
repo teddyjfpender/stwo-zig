@@ -21,7 +21,7 @@
 //! strings is committed under `vectors/circuit/r11/verify/` (oracle
 //! `verify-circuit`, rejections included); the Zig verdict must agree and
 //! the proof and request must be the ones upstream judged. With
-//! `STWO_CIRCUIT_R11_EMIT_DIR` set, the test writes every proof and request
+//! `-Dtest-r11-emit-dir` set, the test writes every proof and request
 //! for the oracle instead of reading the committed verdicts.
 
 const std = @import("std");
@@ -38,7 +38,6 @@ const preprocessed = circuit.common.preprocessed;
 const verify_request = wire.verify_request;
 const Json = std.json.Value;
 
-const emit_env = "STWO_CIRCUIT_R11_EMIT_DIR";
 const verdicts_dir = "vectors/circuit/r11/verify/";
 
 pub const Tamper = enum {
@@ -213,7 +212,6 @@ fn expectUpstreamVerdict(arena: std.mem.Allocator, label: []const u8, case: Base
 
 fn checkBase(setup: *const Setup, arena: std.mem.Allocator, base: Base) !void {
     const gpa = std.heap.smp_allocator;
-    const emitting = std.process.hasEnvVarConstant(emit_env);
     for (std.enums.values(Tamper)) |tamper| {
         const case = try tampered(arena, base, tamper);
         const label = try std.fmt.allocPrint(arena, "{s}-{s}", .{ base.label, @tagName(tamper) });
@@ -224,8 +222,8 @@ fn checkBase(setup: *const Setup, arena: std.mem.Allocator, base: Base) !void {
             .rejected => |why| std.debug.print("R11 {s}: rejected at {s} ({s})\n", .{ label, @tagName(why.stage), @errorName(why.reason) }),
         }
         if (verdict.isAccepted() != want) return error.ZigVerdictDiffers;
-        if (emitting) {
-            try rust_verifier.emitTo(arena, emit_env, label, case.proof, case.request);
+        if (@import("circuit_test_options").emit_dir) |directory| {
+            try rust_verifier.emitTo(arena, directory, label, case.proof, case.request);
         } else {
             try expectUpstreamVerdict(arena, label, case, want);
         }

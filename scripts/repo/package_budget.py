@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -22,6 +23,7 @@ SOURCE_SUFFIXES = frozenset({
 
 COUNTERS = ("code_files", "code_lines", "generated_code_files", "generated_code_lines",
             "script_files", "api_entries", "dependencies", "rv64_registry_flags", "versioned_files")
+VERSIONED_ZIG_BASENAME = re.compile(r"_(?:v[0-9]+|part_?[0-9]+)(?=[_.])")
 
 
 def empty() -> dict[str, int]:
@@ -47,14 +49,19 @@ def measure(repository: Path, contracts, paths=None) -> dict:
     owners = ci_package_graph._lexical_contract_index(contracts)
     rows = {c.package: empty() for c in contracts}
     unowned = empty()
+    versioned_zig_filenames: dict[str, list[str]] = {}
     for path in sorted(set(paths) - {""}):
         source = repository / path
         if source.is_symlink():
             raise ValueError(f"package budget refuses tracked symlink: {path}")
         if not source.is_file():
             continue
-        row = rows.get(owner_for(repository, path, contracts, owners), unowned)
+        owner = owner_for(repository, path, contracts, owners)
+        row = rows.get(owner, unowned)
+        # Existing CB-2 budgets use this historical key as an all-file cap.
         row["versioned_files"] += 1
+        if path.startswith("src/") and source.suffix == ".zig" and VERSIONED_ZIG_BASENAME.search(source.name):
+            versioned_zig_filenames.setdefault(owner or "unowned", []).append(path)
         if source.suffix in {".py", ".sh"}:
             row["script_files"] += 1
         if source.suffix in SOURCE_SUFFIXES:
@@ -72,7 +79,7 @@ def measure(repository: Path, contracts, paths=None) -> dict:
             if name.startswith("STWO_RV64_") and flag["status"] in LIVE:
                 row = rows.get(owner_for(repository, flag["owner"], contracts, owners), unowned)
                 row["rv64_registry_flags"] += 1
-    return {"packages": rows, "unowned": unowned}
+    return {"packages": rows, "unowned": unowned, "versioned_zig_filenames": versioned_zig_filenames}
 
 
 def check(repository: Path, contracts) -> list[str]:
@@ -159,7 +166,6 @@ def baseline(repository: Path) -> str:
 
 def branch_count(text: str, function: str) -> int:
     """Conservative branch-token proxy on one unambiguous function body."""
-    import re
     from scripts.repo.source_conformance_lib.comments import strip_zig
     clean = strip_zig(text)
     clean = re.sub(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|\\\\[^\n]*', ' ', clean)

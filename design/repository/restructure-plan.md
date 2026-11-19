@@ -645,6 +645,12 @@ and Cairo stay until S1/S5.
 | GPU gate | self-hosted `focused-cuda` job, not required | required for CUDA paths, or a posted pod-gate receipt | 0 | path-filtered required status |
 | Shared build catalog edits per product PR | 1 file for all lines (396 steps) | 0 (per-line catalogs) | 1 | CODEOWNERS + P-1 |
 
+The package contract's historical `versioned_files` key caps all owned regular
+files. The package workspace report now lists versioned Zig basenames under
+`src/` separately, including the detached recursion `_part_N` form. Use that
+census for the filename target. [Issue #370](https://github.com/teddyjfpender/stwo-zig/issues/370)
+tracks aligning the contract and reader ledger with that target.
+
 ---
 
 ## 12. Execution rules for the moves
