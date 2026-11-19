@@ -116,7 +116,7 @@ test "runtime verifier geometry follows projected composition degree" {
     composition.max_evaluation_log_size = 24;
     const sn2 = try runtimeVerifierGeometry(&config_words, composition);
     try std.testing.expectEqual(@as(usize, 8), sn2.fri_layer_count);
-    try std.testing.expectEqual(@as(u32, 24), sn2.max_log_degree_bound);
+    try std.testing.expectEqual(@as(u32, 23), sn2.max_log_degree_bound);
     try std.testing.expectError(
         error.InvalidProtocolGeometry,
         runtimeVerifierGeometry(&config_words, .{

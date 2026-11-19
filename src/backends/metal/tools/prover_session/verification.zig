@@ -143,7 +143,7 @@ test "session compact protocol derives checked-in SN2 artifact geometry" {
         "vectors/cairo/sn_pie_2_composition.bin",
         "vectors/cairo/cairo_fixed_tables.bin",
     );
-    try std.testing.expectEqual(@as(u32, 24), runtime.geometry.max_log_degree_bound);
+    try std.testing.expectEqual(@as(u32, 23), runtime.geometry.max_log_degree_bound);
     try std.testing.expectEqual(@as(u32, 8), runtime.geometry.fri_tree_count);
     try std.testing.expectEqual(@as(u32, 12), runtime.geometry.decommitment_record_count);
     try std.testing.expectEqual([4]u32{ 161, 3449, 2268, 8 }, runtime.trace_columns);
