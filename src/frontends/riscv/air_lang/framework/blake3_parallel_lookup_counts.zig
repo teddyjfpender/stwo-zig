@@ -10,7 +10,7 @@ pub fn register(comptime Air: type, allocator: std.mem.Allocator, plan: *const b
     try view.validate(log);
     const pool = pool_mod.getGlobalPool() orelse return columns.registerColumns(Air, plan, view, log, counters);
     const workers = @min(pool.workerCount(), view.count / 4096);
-    if (workers < 2 or std.process.hasEnvVarConstant("STWO_RISCV_SERIAL_PARENT_LOOKUPS")) return columns.registerColumns(Air, plan, view, log, counters);
+    if (workers < 2) return columns.registerColumns(Air, plan, view, log, counters);
     var lease = pool.acquire(try pool_mod.WorkerBudget.init(workers)) catch |err| switch (err) {
         error.WorkerBudgetUnavailable => return columns.registerColumns(Air, plan, view, log, counters),
         else => return err,

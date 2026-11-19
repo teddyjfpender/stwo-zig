@@ -16,9 +16,7 @@ pub fn writeColumns(comptime Air: type, rows: []const [Air.LOGICAL_INPUT_COUNT]M
 /// Caller admits the chunk range; destination padding is already zeroed.
 pub fn writeColumnsAt(comptime Air: type, rows: []const [Air.LOGICAL_INPUT_COUNT]M31, log: u32, tree: usize, destination: []const []M31, logical_first: usize) void {
     const pool_mod = @import("stwo_prover_engine").work_pool;
-    if (rows.len >= 64 and destination.len >= 64 and
-        !std.process.hasEnvVarConstant("STWO_ZIG_SERIAL_COLUMN_PROJECTION"))
-    {
+    if (rows.len >= 64 and destination.len >= 64) {
         if (pool_mod.getGlobalPool()) |pool| {
             const count = @min(@as(usize, 4), pool.workerCount());
             if (count >= 2) {
@@ -64,13 +62,6 @@ fn writeColumnsAtSerial(comptime Air: type, rows: []const [Air.LOGICAL_INPUT_COU
     // Chunked witness emission must scale with the chunk, not the full trace.
     // Repeated full-domain scans make many small appends quadratic in trace size.
     if (rows.len < size / 2) {
-        if (std.process.hasEnvVarConstant("STWO_ZIG_ROW_MAJOR_WITNESS_COPY")) {
-            for (rows, 0..) |row, offset| {
-                const committed = framework.committedRow(logical_first + offset, log);
-                for (destination, 0..) |column, index| column[committed] = row[start + index];
-            }
-            return;
-        }
         // Keep one destination column active at a time. Row-major scatter
         // cycles through every column allocation and copies full logical rows.
         // Bound index scratch independently of the trace and chunk sizes.

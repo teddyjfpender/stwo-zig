@@ -94,10 +94,9 @@ fn emitMode(a: std.mem.Allocator, inputs: []const Input, namespace: u32, kind: t
         } else try hasher.root(source);
         if (!std.meta.eql(root, observed)) return error.SharedPathRootMismatch;
     }
-    const repeat_openings = !complete_sparse and std.process.hasEnvVarConstant("STWO_RISCV_REPEAT_FRONTIER_OPENINGS");
-    const frontier_digests = try a.alloc(tree.Digest, if (leaves != null and !repeat_openings) graph.frontier.len else 0);
+    const frontier_digests = try a.alloc(tree.Digest, if (leaves != null) graph.frontier.len else 0);
     defer a.free(frontier_digests);
-    if (leaves) |source| if (!repeat_openings) try hasher.subtreeRoots(source, graph.frontier, frontier_digests);
+    if (leaves) |source| try hasher.subtreeRoots(source, graph.frontier, frontier_digests);
     if (complete_sparse and leaves != null) {
         for (graph.frontier, frontier_digests) |coordinate, digest| {
             if (!std.meta.eql(digest, hasher.defaults[tree.DEPTH - coordinate.level])) return error.IncompleteSparseMemoryRoster;
@@ -232,12 +231,8 @@ fn emitMode(a: std.mem.Allocator, inputs: []const Input, namespace: u32, kind: t
                             const fixed_empty = complete_sparse or tree.outsideIndexRange(kind, coordinate.level, coordinate.index);
                             if (fixed_empty) {
                                 values[side] = hasher.defaults[tree.DEPTH - coordinate.level];
-                            } else if (leaves) |source| {
-                                if (repeat_openings) {
-                                    const opposite = (coordinate.index ^ 1) << @as(u5, @intCast(coordinate.level));
-                                    const opening = try hasher.opening(source, opposite);
-                                    values[side] = opening.siblings[coordinate.level];
-                                } else values[side] = frontier_digests[frontier];
+                            } else if (leaves != null) {
+                                values[side] = frontier_digests[frontier];
                             }
                             const sibling_circuit = if (sharing) |shared| shared.namespace + @as(u32, @intCast(frontier)) else namespace + @as(u32, @intCast(graph.nodes.len + frontier));
                             if (sharing == null or sharing.?.produce) for (child_uses[side], 0..) |uses_count, word| {

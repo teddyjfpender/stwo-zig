@@ -3343,20 +3343,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_RISCV_NO_EXECUTION_COEFFICIENT_CACHE": {
-      "owner": "src/frontends/riscv/rv32/prover/blake3_coefficient_retention.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv32/prover/blake3_coefficient_retention.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv32/prover/blake3_coefficient_retention.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_RISCV_NO_EXECUTION_COEFFICIENT_CACHE\")) return;\n        var bytes: usize = 0;\n        for (columns) |column| {\n            const column_bytes = std.math.mul(usize, column.values.len, @sizeOf(M31)) catch return;\n            bytes = std.math.add(usize, bytes, column_bytes) catch return;\n        }\n        self.reserve(scheme, bytes);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_RISCV_PARENT_CLAIM_DIAGNOSTIC": {
       "owner": "src/frontends/riscv/recursion/blake3_native_parent_artifact.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -3461,20 +3447,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_RISCV_REPEAT_FRONTIER_OPENINGS": {
-      "owner": "src/frontends/riscv/rv32/prover/blake3_shared_path_emit.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv32/prover/blake3_shared_path_emit.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv32/prover/blake3_shared_path_emit.zig",
-        "text": "    const repeat_openings = !complete_sparse and std.process.hasEnvVarConstant(\"STWO_RISCV_REPEAT_FRONTIER_OPENINGS\");\n    const frontier_digests = try a.alloc(tree.Digest, if (leaves != null and !repeat_openings) graph.frontier.len else 0);\n    defer a.free(frontier_digests);\n    if (leaves) |source| if (!repeat_openings) try hasher.subtreeRoots(source, graph.frontier, frontier_digests);\n    if (complete_sparse and leaves != null) {\n        for (graph.frontier, frontier_digests) |coordinate, digest| {\n            if (!std.meta.eql(digest, hasher.defaults[tree.DEPTH - coordinate.level])) return error.IncompleteSparseMemoryRoster;"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_RISCV_SAIL_BIN": {
       "owner": "scripts/riscv/riscv_sail_oracle_lib/resolution.py",
       "default": "no environment override; explicit CLI binary wins, otherwise resolve the pinned binary beneath formal workspace",
@@ -3495,34 +3467,6 @@
             "text": "    env_bin = environ.get(ENV_SAIL_BIN)\n    if env_bin:\n        return Path(env_bin), f\"${ENV_SAIL_BIN}\"\n    env_workspace = environ.get(ENV_WORKSPACE)\n    if env_workspace:\n        return (\n            Path(env_workspace) / SAIL_BINARY_IN_WORKSPACE,"
           }
         ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_SERIAL_HASH_INTERACTIONS": {
-      "owner": "src/frontends/riscv/air_lang/framework/framework_parallel_interaction.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/air_lang/framework/framework_parallel_interaction.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/air_lang/framework/framework_parallel_interaction.zig",
-        "text": "    if (workers < 2 or std.process.hasEnvVarConstant(\"STWO_RISCV_SERIAL_HASH_INTERACTIONS\")) return Runtime.generatePreparedOwnedColumnsTiledWithWorkspace(a, workspace, plan, source, log, relations, padding);\n    var lease = pool.acquire(try pool_mod.WorkerBudget.init(workers)) catch return Runtime.generatePreparedOwnedColumnsTiledWithWorkspace(a, workspace, plan, source, log, relations, padding);\n    defer lease.deinit();\n    var owned: [7]Runtime.Workspace = undefined;\n    var pointers: [8]*Runtime.Workspace = undefined;\n    pointers[0] = workspace;\n    var initialized: usize = 0;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_SERIAL_PARENT_LOOKUPS": {
-      "owner": "src/frontends/riscv/air_lang/framework/blake3_parallel_lookup_counts.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/air_lang/framework/blake3_parallel_lookup_counts.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/air_lang/framework/blake3_parallel_lookup_counts.zig",
-        "text": "    if (workers < 2 or std.process.hasEnvVarConstant(\"STWO_RISCV_SERIAL_PARENT_LOOKUPS\")) return columns.registerColumns(Air, plan, view, log, counters);\n    var lease = pool.acquire(try pool_mod.WorkerBudget.init(workers)) catch |err| switch (err) {\n        error.WorkerBudgetUnavailable => return columns.registerColumns(Air, plan, view, log, counters),\n        else => return err,\n    };\n    defer lease.deinit();\n    const Context = struct {"
       },
       "expires": "2026-12-13"
     },
@@ -3551,20 +3495,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig",
         "text": "        const raw = std.process.getEnvVarOwned(std.heap.page_allocator, \"STWO_RISCV_SYSTEM_BENCH_WORKERS\") catch break :blk @as(usize, 16);\n        defer std.heap.page_allocator.free(raw);\n        break :blk try std.fmt.parseInt(usize, raw, 10);\n    };\n    var pool: pools.WorkPool = undefined;\n    try pool.initInPlaceWithOptions(.{ .worker_count = workers, .backing_allocator = std.heap.smp_allocator });\n    defer pool.deinit();"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_RISCV_UNCACHED_PROGRAM_ROOT": {
-      "owner": "src/frontends/riscv/rv32/air/program/blake3_root_cache.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv32/air/program/blake3_root_cache.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv32/air/program/blake3_root_cache.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_RISCV_UNCACHED_PROGRAM_ROOT\"))\n        return tree.TreeHasher.init(.program).root(leaves);\n    return shared.compute(leaves, null);\n}\nconst Cache = struct {\n    mutex: std.Thread.Mutex = .{},\n    entries: [capacity]?struct { key: [32]u8, root: tree.Digest } = @splat(null),"
       },
       "expires": "2026-12-13"
     },
@@ -7115,20 +7045,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_ROW_MAJOR_WITNESS_COPY": {
-      "owner": "src/frontends/riscv/air_lang/framework/framework_device_interaction.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/air_lang/framework/framework_device_interaction.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/air_lang/framework/framework_device_interaction.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_ROW_MAJOR_WITNESS_COPY\")) {\n            for (rows, 0..) |row, offset| {\n                const committed = framework.committedRow(logical_first + offset, log);\n                for (destination, 0..) |column, index| column[committed] = row[start + index];\n            }\n            return;\n        }"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_RV64_DOMAIN_TIMING": {
       "owner": "src/frontends/riscv/rv64/air/providers/domain_timing.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -7214,20 +7130,6 @@
       "default_evidence": {
         "path": "src/engine/prover/vcs_lifted/streaming_committer.zig",
         "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SCALAR_TAIL_UPDATES\")) {\n                return finalizeBoundedTailRangeReusingImpl(range, false);\n            }\n            if (@import(\"bounded_blake2_tail.zig\").finalize(H, range)) |absorptions| {\n                range.absorptions = absorptions;\n                return;\n            }"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SERIAL_COLUMN_PROJECTION": {
-      "owner": "src/frontends/riscv/air_lang/framework/framework_device_interaction.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/air_lang/framework/framework_device_interaction.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/air_lang/framework/framework_device_interaction.zig",
-        "text": "        !std.process.hasEnvVarConstant(\"STWO_ZIG_SERIAL_COLUMN_PROJECTION\"))\n    {\n        if (pool_mod.getGlobalPool()) |pool| {\n            const count = @min(@as(usize, 4), pool.workerCount());\n            if (count >= 2) {\n                var lease = pool.acquire(pool_mod.WorkerBudget.init(count) catch unreachable) catch {\n                    return writeColumnsAtSerial(Air, rows, log, tree, destination, logical_first, 0);"
       },
       "expires": "2026-12-13"
     },

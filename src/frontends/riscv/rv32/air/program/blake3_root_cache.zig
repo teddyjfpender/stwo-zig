@@ -11,10 +11,6 @@ pub fn validate(leaves: []const tree.Leaf, root: tree.Digest) !void {
     return shared.validate(leaves, root);
 }
 pub fn computeRoot(leaves: []const tree.Leaf) !tree.Digest {
-    // Research control for same-binary proof/latency comparison. Validation
-    // remains mandatory and unchanged when computation caching is disabled.
-    if (std.process.hasEnvVarConstant("STWO_RISCV_UNCACHED_PROGRAM_ROOT"))
-        return tree.TreeHasher.init(.program).root(leaves);
     return shared.compute(leaves, null);
 }
 const Cache = struct {
