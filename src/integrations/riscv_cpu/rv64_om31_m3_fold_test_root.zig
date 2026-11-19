@@ -107,38 +107,28 @@ fn census(a: std.mem.Allocator, profile: Outer.protocol.Profile, kids: []const B
     return .{ .profile = profile.name(), .arity = kids.len, .child_blocks = blocks, .child_padded_vars = child.vars, .child_max_log = std.mem.max(u32, &child_logs.toArray()), .fold_vars = vars, .fold_padded_vars = graph.ctx.circuit.n_vars, .fold_max_log = std.mem.max(u32, &fold_logs.toArray()), .tasks = plan.tasks.len, .levels = plan.level_ends.len, .blake_g_gates = blake, .qm31_rows = qm31, .graph_ns = graph_ns, .plan_ns = plan_ns };
 }
 
-fn blocksFromEnv() usize {
-    var buffer: [16]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&buffer);
-    const text = std.process.getEnvVarOwned(fba.allocator(), "STWO_M3_CHILD_BLOCKS") catch return 4;
-    return std.fmt.parseInt(usize, text, 10) catch 4;
-}
-
 test "M3 fold census: profile x arity verifier circuit sizes" {
     const a = std.heap.smp_allocator;
     const before = Outer.protocol.active();
     defer Outer.protocol.selectForTesting(before);
-    var sizes: [2]usize = .{ 4, blocksFromEnv() };
-    const n_sizes: usize = if (sizes[1] == sizes[0]) 1 else 2;
-    for (sizes[0..n_sizes]) |blocks| {
-        for ([_]Outer.protocol.Profile{ .r1_b2_q108_p20_fold4, .m3_b4_q51_p26_fold4, .m3_b8_q34_p26_fold4 }) |profile| {
-            Outer.protocol.selectForTesting(profile);
-            var kids: [4]*Child = undefined;
-            var made: usize = 0;
-            defer for (kids[0..made]) |k| {
-                k.deinit(a);
-                a.destroy(k);
-            };
-            for (&kids, 0..) |*k, i| {
-                k.* = try makeChild(a, blocks, 0x1000 * @as(u32, @intCast(i + 1)));
-                made += 1;
-            }
-            var views: [4]Bridge.Child = undefined;
-            for (&views, kids) |*v, k| v.* = k.view();
-            for ([_]usize{ 2, 4 }) |arity| {
-                const row = try census(a, profile, views[0..arity], blocks, kids[0]);
-                std.debug.print("M3_FOLD_CENSUS {f}\n", .{std.json.fmt(row, .{})});
-            }
+    const blocks: usize = 4;
+    for ([_]Outer.protocol.Profile{ .r1_b2_q108_p20_fold4, .m3_b4_q51_p26_fold4, .m3_b8_q34_p26_fold4 }) |profile| {
+        Outer.protocol.selectForTesting(profile);
+        var kids: [4]*Child = undefined;
+        var made: usize = 0;
+        defer for (kids[0..made]) |k| {
+            k.deinit(a);
+            a.destroy(k);
+        };
+        for (&kids, 0..) |*k, i| {
+            k.* = try makeChild(a, blocks, 0x1000 * @as(u32, @intCast(i + 1)));
+            made += 1;
+        }
+        var views: [4]Bridge.Child = undefined;
+        for (&views, kids) |*v, k| v.* = k.view();
+        for ([_]usize{ 2, 4 }) |arity| {
+            const row = try census(a, profile, views[0..arity], blocks, kids[0]);
+            std.debug.print("M3_FOLD_CENSUS {f}\n", .{std.json.fmt(row, .{})});
         }
     }
 }

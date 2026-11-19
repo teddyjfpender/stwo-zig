@@ -11,13 +11,7 @@ const WordState = @import("stwo_riscv_isa").machine.memory_state.WordState;
 
 test "Ethereum surviving public sums sparse work benchmark" {
     const allocator = std.testing.allocator;
-    const count_text = std.process.getEnvVarOwned(allocator, "STWO_ETHEREUM_PUBLIC_SUMS_BENCH_WORDS") catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => null,
-        else => return err,
-    };
-    defer if (count_text) |text| allocator.free(text);
-    const count = if (count_text) |text| try std.fmt.parseUnsigned(u32, text, 10) else 4096;
-    if (count == 0 or count > (std.math.maxInt(u32) - 0x2000) / 4) return error.InvalidBenchmarkWordCount;
+    const count: u32 = 4096;
     const memory = try allocator.alloc(WordState, count);
     defer allocator.free(memory);
     for (memory, 0..) |*word, index| word.* = .{
