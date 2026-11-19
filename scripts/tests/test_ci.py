@@ -121,7 +121,7 @@ class CiTests(unittest.TestCase):
         code = textwrap.dedent(source.split("<<'PYCDC'\n", 1)[1].split("          PYCDC", 1)[0])
         tests = ("consumer inverse", "consumer refusal")
         consumer = SimpleNamespace(id="package:stwo_cpu_backend", root="src/consumer.zig", tests=tests)
-        provider = SimpleNamespace(metadata=SimpleNamespace(consumers=[consumer]))
+        provider = SimpleNamespace(package="stwo_core", metadata=SimpleNamespace(consumers=[consumer]))
         for fault in (False, True):
             with self.subTest(fault=fault), tempfile.TemporaryDirectory() as raw:
                 root = Path(raw)
@@ -130,7 +130,7 @@ class CiTests(unittest.TestCase):
                 (root / consumer.root).write_text("registered source")
                 (root / "zig-out/bin").mkdir(parents=True)
                 for mode in ("Debug", "ReleaseFast"):
-                    (root / "zig-out/bin" / ("cdc-stwo-core-stwo_cpu_backend-" + mode)).write_bytes(mode.encode())
+                    (root / "zig-out/bin" / ("cdc-stwo_core-stwo_cpu_backend-" + mode)).write_bytes(mode.encode())
                 calls = []
                 def run(command, **kwargs):
                     self.assertEqual(120, kwargs["timeout"])
