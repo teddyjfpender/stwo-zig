@@ -51,7 +51,6 @@ pub fn execute(allocator: std.mem.Allocator, invocation: Invocation) !Report {
         invocation.executable,
         invocation.schedule,
         budget,
-        invocation.artifacts.adapted_input,
         invocation.artifacts.witness_programs,
         invocation.artifacts.multiplicity_feeds,
         invocation.artifacts.relation_templates,
@@ -341,12 +340,18 @@ test "Metal process runner: direct argv reaches a bounded isolated child" {
     const script = try std.fmt.allocPrint(
         allocator,
         "#!/bin/sh\n" ++
-            "test \"$#\" -eq 8 || exit 31\n" ++
+            "test \"$#\" -eq 7 || exit 31\n" ++
             "test \"$1\" = /schedule.json || exit 32\n" ++
             "test \"$2\" = 9 || exit 33\n" ++
             "test -z \"$STWO_ZIG_SN2_TRANSCRIPT_REFERENCE\" || exit 34\n" ++
             "test -z \"$STWO_ZIG_SN2_QUOTIENT_REFERENCE\" || exit 35\n" ++
             "test \"$STWO_ZIG_SN2_EXECUTE_PROOF\" = 1 || exit 36\n" ++
+            "test \"$3\" = /witness.bin || exit 37\n" ++
+            "test \"$4\" = /feeds.bin || exit 38\n" ++
+            "test \"$5\" = /relations.bin || exit 39\n" ++
+            "test \"$6\" = /fixed.bin || exit 40\n" ++
+            "test \"$7\" = /composition.bin || exit 41\n" ++
+            "test \"$STWO_ZIG_SN2_POPULATE_INPUT\" = /input.bin || exit 42\n" ++
             "printf '%s' '{s}'\n",
         .{report},
     );
