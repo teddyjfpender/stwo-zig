@@ -98,7 +98,7 @@ Native proof-byte parity before calling the extraction complete.
 
 ## Related documentation
 
-[RFC #352](https://github.com/teddyjfpender/stwo-zig/issues/352) and
+[RFC #352](https://github.com/starknet-innovation/stwo-zig/issues/352) and
 [extraction ledger](../../../../design/repository/ethereum-product-extraction.md).
 
 The primary domain list is deliberately small; it describes ownership rather than

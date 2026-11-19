@@ -120,7 +120,7 @@ incorrectly typed implementations fail at compile time.
 
 The scalar CPU backend registers checked Native trace geometry and its actual `CpuBackend` conformance witness. The provider contract also registers its Core dependency laws where applicable.
 
-The existing aggregate package graph exposes `zig build test-cdc-stwo-backend-contracts -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
+The existing aggregate package graph exposes `zig build test-cdc-stwo-backend-contracts -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/starknet-innovation/stwo-zig/issues/366).
 
 The typed `error_codes.fromArena` accepts only arena-plan errors and allocator failure from that boundary. Codes `0x2001`–`0x200d` are diagnostic metadata; original errors, plan hashes and proof bytes are unchanged. The Metal arena-plan process emits these only from its typed `arena_plan.build` catch. Foreign and unknown lookup codes return null.
 

@@ -192,7 +192,7 @@ circuit-only writer refuses these unrelated code bands.
 
 The RV64 CPU integration registers circuit-proof roundtrips, truncation/noncanonical refusal, and every allocation-failure cleanup. The provider contract also registers its Core dependency laws where applicable.
 
-The existing aggregate package graph exposes `zig build test-cdc-stwo-circuit-recursion-wire -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
+The existing aggregate package graph exposes `zig build test-cdc-stwo-circuit-recursion-wire -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/starknet-innovation/stwo-zig/issues/366).
 
 
 The rc.4 ledger adds typed registry query codes `0x5301`–`0x5304`, packed-tree

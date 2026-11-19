@@ -5,7 +5,7 @@ installed workflow, correctness or soundness contract, release process, hook,
 or production owner guide. Retained profiling helpers live under `tools/perf/`;
 one-off benchmark exploration, peer comparison, and diagnostics are not kept in
 the repository (the retired research tree is preserved on the
-[`archive/pre-restructure-20261108`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108) tag).
+[`archive/pre-restructure-20261108`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108) tag).
 
 ## Layout
 

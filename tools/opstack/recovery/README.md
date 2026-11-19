@@ -9,7 +9,7 @@ measurements from the interrupted session. Current raw receipts supersede them.
 
 2026-11-06. The execution environment became unavailable after roughly 2½ hours of execution work, cutting short the requested 5–6 hour session. No GPU was available before that interruption.
 
-The applied and validated implementation is commit `56a750b10224ddbc54115e5dc4940ef72167cf29`, rebased onto GPU head `6d0d1e56a9d3c2f58a2cb035343fd3c643acffc5`. The final 16 upstream commits changed 28 paths with no overlap with the OP changes. That final rebase used GitHub Git objects after the environment stopped; no GPU or build rerun on the final base is claimed. The guest, shared Rust runtime and CPU executor paths were unchanged by those upstream commits. The full committed benchmark evidence remains in [the dated report](https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-20261106/README.md).
+The applied and validated implementation is commit `56a750b10224ddbc54115e5dc4940ef72167cf29`, rebased onto GPU head `6d0d1e56a9d3c2f58a2cb035343fd3c643acffc5`. The final 16 upstream commits changed 28 paths with no overlap with the OP changes. That final rebase used GitHub Git objects after the environment stopped; no GPU or build rerun on the final base is claimed. The guest, shared Rust runtime and CPU executor paths were unchanged by those upstream commits. The full committed benchmark evidence remains in [the dated report](https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-20261106/README.md).
 
 ## What is preserved here
 

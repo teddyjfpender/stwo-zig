@@ -13,7 +13,7 @@ do not close OP/Mantle L1 derivation, accumulation or settlement gates.
 
 The archived [CPU tuning record](https://github.com/starknet-innovation/stwo-zig/blob/archive/pre-public-cleanup-20261119/design/opstack/CPU_TUNING.md) links recorded guest-to-root
 measurements, bounded heavy-fragment profiles and their exact qualification
-limits. The experimental [terminal development loop](https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/src/integrations/riscv_cpu/poseidon2_outer/native_group/terminal_blake/DEV_LOOP.md)
+limits. The experimental [terminal development loop](https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/src/integrations/riscv_cpu/poseidon2_outer/native_group/terminal_blake/DEV_LOOP.md)
 provides narrower build/check commands without changing the standard drivers.
 
 ## Layout on main
@@ -36,7 +36,7 @@ The prover is the OP product CLI `stwo-opstack-native`. `cpu.py` and
 variables. The S1 CLI admits only the options documented in the product guide. The historical commands below include experimental options from the PR head. Recursion (`cpu_recursion.py`, `recursive_transition.py`), the GPU
 harness and the BN254 sparse-tower tools wait on RFC-2 to RFC-9 (S2/S3);
 measurements below were taken on the PR head layout
-(`https://github.com/teddyjfpender/stwo-zig/tree/089bc2437`).
+(`https://github.com/starknet-innovation/stwo-zig/tree/089bc2437`).
 
 ## Build and measure
 
@@ -81,7 +81,7 @@ The verified two-lane preset uses `tools/opstack/presets/cpu-8workers-2lanes.jso
 with `--workers 8 --setup-workers 2`. The larger 2,097,151-step geometry on
 block 121057303 uses `tools/opstack/presets/cpu-8workers-single-lane.json` with
 `--batch-steps 2097151 --workers 8 --setup-workers 2`. See the
-[mainnet checkpoint](https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-cpu-20261107/README.md).
+[mainnet checkpoint](https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-cpu-20261107/README.md).
 
 Batch geometry comes from the request unless `--batch-steps` overrides it. The
 benchmark-generated request uses 4,194,303; use the measured 1,048,575-step setting
@@ -242,7 +242,7 @@ there is no OP-specific implementation of the VM or crypto executor.
 
 Run the build, fixture import and execution benchmark above with
 `--profile ethereum_services_v3 --oracle`. On a Linux CUDA host with a matching
-[resident native CUDA runtime](https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/design/riscv/rv64-gpu-handoff-20261104.md),
+[resident native CUDA runtime](https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/design/riscv/rv64-gpu-handoff-20261104.md),
 build the producer and independent CPU receiver from the same checkout:
 
 ```sh
@@ -260,7 +260,7 @@ python3 tools/opstack/gpu.py --block 121057303 \
 ```
 
 Set the runtime path and SHA-256 from the matching native image's build
-receipt. The [image builder](https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/scripts/rv64_cuda_resident_image_build.py)
+receipt. The [image builder](https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/scripts/rv64_cuda_resident_image_build.py)
 links the generated CUDA kernels; the driver loads that image at runtime. The run keeps the exact
 input, program and tool hashes, source-derived CPU scope count, measured CUDA
 launch and event evidence, producer wall and RSS, sampled whole-device memory,
@@ -313,7 +313,7 @@ cache, then copies the exact binary to the fresh artifact directory. Ambient
 selects a common value of 8..1048576 or `off`; defaults remain 16/16/16/8. Values
 below 8 are rejected before the existing wrapper can peel an unaligned head.
 
-The [maintained mainnet report](https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-mainnet-20261106/README.md) separates guest execution, exact source-cell cost,
+The [maintained mainnet report](https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-mainnet-20261106/README.md) separates guest execution, exact source-cell cost,
 CPU proof production, fresh reception and negative controls. A diagnostic
 execution receipt's `proof_supported: false` describes that execution command;
 only the separate CPU receipt establishes physical STARK proof verification.
@@ -462,4 +462,4 @@ A production replacement also needs modern OP Mainnet/Base fixtures and broad
 op-reth differential coverage, physical OP GPU measurements, bounded resident
 job scheduling, final STARK compression and a direct on-chain STARK verifier.
 There is deliberately no success flag or dummy verifier standing in for these
-missing pieces. See the dated report under `https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-20261106`.
+missing pieces. See the dated report under `https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-20261106`.
