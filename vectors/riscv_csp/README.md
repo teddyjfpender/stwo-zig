@@ -722,6 +722,10 @@ comparison, not a new full suite or a recovery of original CSP performance.
 
 ### Memory-bounded commitment batching follow-up (2026-09-23)
 
+The retired batch-width, backing-relocation and scalar-tail comparison
+controls used in these historical runs are preserved at
+[`archive/restructure-20261119/pcs-storage-research-controls`](https://github.com/teddyjfpender/stwo-zig/tree/archive/restructure-20261119/pcs-storage-research-controls).
+
 Shared BLAKE3 proving paths now use the PCS default column cap with a 256 MiB
 source-plus-LDE staging estimate per batch. The estimate is not a total-memory
 limit. This replaces the fixed eight-column batches across base, extension and

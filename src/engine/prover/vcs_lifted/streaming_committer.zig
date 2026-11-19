@@ -454,11 +454,7 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             64 * @sizeOf(@import("stwo_core").fields.m31.M31) +
             @import("bounded_blake2_tail.zig").cacheBytes(H, ColumnRef);
 
-        fn absorbColumnsAt(hasher: *H, columns: []const ColumnRef, index: usize, comptime bulk: bool) void {
-            if (!bulk) {
-                for (columns) |column| hasher.updateLeaf(column.values[index .. index + 1]);
-                return;
-            }
+        fn absorbColumnsAt(hasher: *H, columns: []const ColumnRef, index: usize) void {
             var words: [64]@import("stwo_core").fields.m31.M31 = undefined;
             var start: usize = 0;
             while (start < columns.len) {
@@ -470,17 +466,14 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
         }
 
         fn finalizeBoundedTailRangeReusing(range: *BoundedTailRange) void {
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SCALAR_TAIL_UPDATES")) {
-                return finalizeBoundedTailRangeReusingImpl(range, false);
-            }
             if (@import("bounded_blake2_tail.zig").finalize(H, range)) |absorptions| {
                 range.absorptions = absorptions;
                 return;
             }
-            return finalizeBoundedTailRangeReusingImpl(range, true);
+            return finalizeBoundedTailRangeGrouped(range);
         }
 
-        fn finalizeBoundedTailRangeReusingImpl(range: *BoundedTailRange, comptime bulk: bool) void {
+        fn finalizeBoundedTailRangeGrouped(range: *BoundedTailRange) void {
             // Final-height columns have no repeated source rows. Avoid
             // copying their sponge state into a cache that cannot hit.
             const Group = TailGroup;
@@ -503,7 +496,7 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             var indices = [_][2]usize{.{ std.math.maxInt(usize), std.math.maxInt(usize) }} ** @bitSizeOf(usize);
             const base_shift: std.math.Log2Int(usize) = @intCast(range.final_log_size - range.base_log_size + 1);
             var absorptions: usize = 0;
-            const batch_width = if (comptime bulk and blake2_stream4.supports(H)) 4 else 1;
+            const batch_width = if (comptime blake2_stream4.supports(H)) 4 else 1;
             var position = range.start;
             while (position < range.end) : (position += batch_width) {
                 var batch: [batch_width]H = undefined;
@@ -516,7 +509,7 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                     for (groups[0..group_count], 0..) |group, ordinal| {
                         const index = ((row >> group.shift) << 1) + parity;
                         if (indices[ordinal][parity] != index) {
-                            absorbColumnsAt(hasher, group.columns, index, bulk);
+                            absorbColumnsAt(hasher, group.columns, index);
                             states[ordinal][parity] = hasher.*;
                             indices[ordinal][parity] = index;
                             absorptions += group.columns.len;
@@ -538,7 +531,7 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                     }
                 }
                 for (batch[0..count], 0..) |*hasher, lane| {
-                    absorbColumnsAt(hasher, range.tail_columns[begin..], position + lane, bulk);
+                    absorbColumnsAt(hasher, range.tail_columns[begin..], position + lane);
                     absorptions += range.tail_columns.len - begin;
                     range.leaves[position + lane] = hasher.finalize();
                 }
