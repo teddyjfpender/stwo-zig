@@ -1516,6 +1516,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue 370: publish a source-owned Zig basename census from the existing package measurement. Preserve the historical all-file cap, CB-2 snapshots and current ceilings. Keep ownership and the report in a single collector."
+    },
+    {
+      "id": "versioned_reader_owner_refresh_issue333",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 333 checks exact retained Zig reader coverage and current package ownership after the frontend extraction. Reuse the package ownership index and filename census. No runtime, proof, formal pin or cap change."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
