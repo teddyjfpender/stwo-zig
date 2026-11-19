@@ -1,4 +1,6 @@
-# `stwo_ethereum_statement`
+# Ethereum RV64 block statements
+
+Public module `stwo_ethereum_statement`.
 
 | Fact | Value |
 | --- | --- |

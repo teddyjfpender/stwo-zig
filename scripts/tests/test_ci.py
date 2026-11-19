@@ -693,7 +693,9 @@ class CiTests(unittest.TestCase):
         focused = workflow.split("  focused-plan:", 1)[1].split(
             "  release-gate:", 1
         )[0]
-        self.assertEqual(4, focused.count("use-cache: false"))
+        self.assertEqual(5, focused.count("uses: ./.github/actions/setup-zig"))
+        installer = (ROOT / ".github/actions/setup-zig/action.yml").read_text()
+        self.assertNotIn("actions/cache", installer)
         self.assertEqual(1, focused.count("fetch-depth: 1"))
         self.assertEqual(4, focused.count("fetch-depth: 0"))
         for first, next_job in (("focused-linux", "focused-macos"), ("focused-macos", "focused-cuda")):
@@ -829,9 +831,12 @@ class CiTests(unittest.TestCase):
     def test_all_hosted_actions_are_commit_pinned(self) -> None:
         workflows = sorted((ROOT / ".github/workflows").glob("*.yml"))
         self.assertTrue(workflows)
-        for workflow in workflows:
+        installer = ROOT / ".github/actions/setup-zig/action.yml"
+        for workflow in [*workflows, installer]:
             for line_number, line in enumerate(workflow.read_text(encoding="utf-8").splitlines(), 1):
                 if "uses:" not in line:
+                    continue
+                if line.strip() == "uses: ./.github/actions/setup-zig" and workflow != installer:
                     continue
                 self.assertRegex(
                     line,

@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/teddyjfpender/stwo-zig/security/advisories/new
+    url: https://github.com/starknet-innovation/stwo-zig/security/advisories/new
     about: Do not open a public issue for a suspected vulnerability. See SECURITY.md.

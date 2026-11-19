@@ -1,4 +1,6 @@
-# `stwo_riscv_rv64_pipeline`
+# Shared RV64 block proving pipeline
+
+Public module `stwo_riscv_rv64_pipeline`.
 
 | Fact | Value |
 |---|---|

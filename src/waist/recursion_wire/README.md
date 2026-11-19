@@ -1,4 +1,6 @@
-# `stwo_circuit_recursion_wire`
+# Circuit recursion wire
+
+Public module `stwo_circuit_recursion_wire`.
 
 `stwo_circuit_recursion_wire` reads and writes the files and byte streams of
 StarkWare's circuit recursion stage (leaf wrap, 2-to-1 folds, recursive tree)

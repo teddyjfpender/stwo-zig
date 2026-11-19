@@ -1,6 +1,6 @@
 //! Shared secure DAG instruction lowering; field primitives keep exact QM31 ABI.
 const std = @import("std");
-const ir = @import("secure_polynomial_program_v1.zig");
+const ir = @import("qm31_polynomial_program.zig");
 pub fn fingerprint() [32]u8 {
     var digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(@embedFile("secure_polynomial_emitter.zig"), &digest, .{});

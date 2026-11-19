@@ -2,7 +2,7 @@
 
 This is the delivery contract for the consolidation and productionisation
 phase directed on 2026-11-08. The canonical checkout is
-`/Users/theodorepender/Coding/stwo-zig`, on `codex/rv64-gpu-hygiene`.
+`.`, on `codex/rv64-gpu-hygiene`.
 The initial resource/validation checkpoint is `4a4d01bd5`; it is an input to
 this phase, not its completion. The ordered promotion, deletion and developer
 requirements below extend the original hygiene gates. Proof protocol and

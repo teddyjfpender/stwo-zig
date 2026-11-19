@@ -14,15 +14,15 @@
   "sources": {
     "baseline": {
       "bytes": 354338,
-      "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/benchmark_history/reports/native_proof_cross_backend_matrix_v3/dc9d9db85c436b6eb1712831d46504d250788685fb2424ebcb2d507246d21971.json",
+      "path": "./vectors/reports/benchmark_history/reports/native_proof_cross_backend_matrix_v3/dc9d9db85c436b6eb1712831d46504d250788685fb2424ebcb2d507246d21971.json",
       "report_protocol": "native_proof_cross_backend_matrix_v3",
       "sha256": "dc9d9db85c436b6eb1712831d46504d250788685fb2424ebcb2d507246d21971"
     },
     "current": {
-      "bytes": 532048,
+      "bytes": 530826,
       "path": "/private/tmp/stwo-native-v4-formal-756afa46/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v4",
-      "sha256": "4f7a234ffe2d6fde65a01173d12becbb7b9aa8ab4cfcab3c322ba13a78ff353d"
+      "sha256": "60df566f6d916f2b2c403077671796f57944a662da0a0914f6b6272a08f60263"
     }
   },
   "status": "incomparable"

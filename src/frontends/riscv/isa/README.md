@@ -1,4 +1,6 @@
-# `stwo_riscv_isa`
+# RISC-V ISA
+
+Public module `stwo_riscv_isa`.
 
 | Fact | Value |
 | --- | --- |

@@ -5999,11 +5999,11 @@
     "baseline": {
       "binaries": {
         "cpu": {
-          "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+          "path": "./zig-out/bin/native-proof-bench-cpu",
           "sha256": "46dd925cc4d12a14c95778946f0873900c369d8a32f5b1b790cd75cde03bcc9b"
         },
         "metal": {
-          "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+          "path": "./zig-out/bin/native-proof-bench-metal",
           "sha256": "64c903f27060e684566841fb33d3ae37372e3561263d3480bc676d2fee9b179b"
         }
       },
@@ -6036,16 +6036,16 @@
   "schema_version": 1,
   "sources": {
     "baseline": {
-      "bytes": 1062371,
-      "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/benchmark_history/reports/native_proof_cross_backend_matrix_v4/19cc8a5631e04aa2ea72242ff2ccac4d36320d04afbae05a161606995dd6a71f.json",
+      "bytes": 1060021,
+      "path": "./vectors/reports/benchmark_history/reports/native_proof_cross_backend_matrix_v4/19cc8a5631e04aa2ea72242ff2ccac4d36320d04afbae05a161606995dd6a71f.json",
       "report_protocol": "native_proof_cross_backend_matrix_v4",
-      "sha256": "19cc8a5631e04aa2ea72242ff2ccac4d36320d04afbae05a161606995dd6a71f"
+      "sha256": "4bc9f33fa56ff209d23a6f33ef5990ac33e77db9a70b27bebd43decc732d8b5c"
     },
     "current": {
-      "bytes": 1064138,
+      "bytes": 1063010,
       "path": "/private/tmp/stwo-native-proof-final-44a81457/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v5",
-      "sha256": "3e3cf347fe958b822558e7c614b5f11317187f321d412fbd4a834d551b81d78b"
+      "sha256": "a8cb48a1c80b946544ed635db7cf27b4f6253eea9db6c56886d4a3c1fd66f071"
     }
   },
   "status": "comparable"

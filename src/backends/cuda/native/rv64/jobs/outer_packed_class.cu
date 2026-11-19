@@ -1,7 +1,7 @@
 // Reuse the reviewed cache_pack decoder; only the resident, relocatable
 // single-image header is new. No per-request compressed upload or host unpack.
 #define STWO_RV64_M9_STANDALONE
-#include "../m9_class_unpack.cu"
+#include "../packed_class_unpack.cu"
 #include "rv64/custody.cuh"
 struct StwoRv64PackedClassRun {
   const uint32_t *program; uint64_t program_words;

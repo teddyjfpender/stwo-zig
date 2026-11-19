@@ -1,4 +1,6 @@
-# `stwo_proof_wire`
+# Proof wire
+
+Public module `stwo_proof_wire`.
 
 `stwo_proof_wire` maps the canonical lifted Blake2s STARK proof to a
 cross-language JSON shape and to a compact versioned binary representation. It

@@ -1,4 +1,6 @@
-# `stwo_cairo_cuda_integration`
+# Cairo CUDA integration
+
+Public module `stwo_cairo_cuda_integration`.
 
 `stwo_cairo_cuda_integration` lowers authenticated Cairo proof inputs into the
 generic resident CUDA proof-program model. It owns Cairo-specific request

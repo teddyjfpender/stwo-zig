@@ -1894,12 +1894,12 @@
       ]
     },
     "STWO_CUDA_RV64_M9_CLASS_UNPACK_H": {
-      "owner": "src/backends/cuda/native/rv64/m9_class_unpack.h",
+      "owner": "src/backends/cuda/native/rv64/packed_class_unpack.h",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
       "status": "constant",
       "date": "2026-11-13",
       "references": [
-        "src/backends/cuda/native/rv64/m9_class_unpack.h"
+        "src/backends/cuda/native/rv64/packed_class_unpack.h"
       ]
     },
     "STWO_CUDA_RV64_MEMORY_WITNESS_H": {
@@ -4334,13 +4334,13 @@
       "expires": "2026-12-09"
     },
     "STWO_RV64_M9_BLOCK_WORDS": {
-      "owner": "src/backends/cuda/native/rv64/m9_class_unpack.cu",
+      "owner": "src/backends/cuda/native/rv64/packed_class_unpack.cu",
       "default": "constexpr uint32_t kBlockWords = STWO_RV64_M9_BLOCK_WORDS;",
       "status": "constant",
       "date": "2026-11-08",
       "references": [
-        "src/backends/cuda/native/rv64/m9_class_unpack.cu",
-        "src/backends/cuda/native/rv64/m9_class_unpack.h"
+        "src/backends/cuda/native/rv64/packed_class_unpack.cu",
+        "src/backends/cuda/native/rv64/packed_class_unpack.h"
       ]
     },
     "STWO_RV64_M9_CLASS_PACKED_INGRESS": {
@@ -4368,48 +4368,48 @@
       "date": "2026-11-08",
       "references": [
         "src/backends/cuda/native/rv64/jobs/outer_packed_class.cu",
-        "src/backends/cuda/native/rv64/m9_class_unpack.cu"
+        "src/backends/cuda/native/rv64/packed_class_unpack.cu"
       ]
     },
     "STWO_RV64_M9_UNPACK_LENGTH": {
-      "owner": "src/backends/cuda/native/rv64/m9_class_unpack.h",
+      "owner": "src/backends/cuda/native/rv64/packed_class_unpack.h",
       "default": "#define STWO_RV64_M9_UNPACK_LENGTH 2u",
       "status": "constant",
       "date": "2026-11-08",
       "references": [
-        "src/backends/cuda/native/rv64/m9_class_unpack.cu",
-        "src/backends/cuda/native/rv64/m9_class_unpack.h"
+        "src/backends/cuda/native/rv64/packed_class_unpack.cu",
+        "src/backends/cuda/native/rv64/packed_class_unpack.h"
       ]
     },
     "STWO_RV64_M9_UNPACK_LZ4": {
-      "owner": "src/backends/cuda/native/rv64/m9_class_unpack.h",
+      "owner": "src/backends/cuda/native/rv64/packed_class_unpack.h",
       "default": "#define STWO_RV64_M9_UNPACK_LZ4 4u",
       "status": "constant",
       "date": "2026-11-08",
       "references": [
-        "src/backends/cuda/native/rv64/m9_class_unpack.cu",
-        "src/backends/cuda/native/rv64/m9_class_unpack.h"
+        "src/backends/cuda/native/rv64/packed_class_unpack.cu",
+        "src/backends/cuda/native/rv64/packed_class_unpack.h"
       ]
     },
     "STWO_RV64_M9_UNPACK_OFFSET": {
-      "owner": "src/backends/cuda/native/rv64/m9_class_unpack.h",
+      "owner": "src/backends/cuda/native/rv64/packed_class_unpack.h",
       "default": "#define STWO_RV64_M9_UNPACK_OFFSET 8u",
       "status": "constant",
       "date": "2026-11-08",
       "references": [
-        "src/backends/cuda/native/rv64/m9_class_unpack.cu",
-        "src/backends/cuda/native/rv64/m9_class_unpack.h"
+        "src/backends/cuda/native/rv64/packed_class_unpack.cu",
+        "src/backends/cuda/native/rv64/packed_class_unpack.h"
       ]
     },
     "STWO_RV64_M9_UNPACK_SHAPE": {
-      "owner": "src/backends/cuda/native/rv64/m9_class_unpack.h",
+      "owner": "src/backends/cuda/native/rv64/packed_class_unpack.h",
       "default": "#define STWO_RV64_M9_UNPACK_SHAPE 1u",
       "status": "constant",
       "date": "2026-11-08",
       "references": [
         "src/backends/cuda/native/rv64/jobs/outer_packed_class.cu",
-        "src/backends/cuda/native/rv64/m9_class_unpack.cu",
-        "src/backends/cuda/native/rv64/m9_class_unpack.h"
+        "src/backends/cuda/native/rv64/packed_class_unpack.cu",
+        "src/backends/cuda/native/rv64/packed_class_unpack.h"
       ]
     },
     "STWO_RV64_NATIVE_ROLE_DISPATCH": {

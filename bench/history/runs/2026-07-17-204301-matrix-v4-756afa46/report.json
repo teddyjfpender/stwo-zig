@@ -2,11 +2,11 @@
   "configuration": {
     "binaries": {
       "cpu": {
-        "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+        "path": "./zig-out/bin/native-proof-bench-cpu",
         "sha256": "97e9a5f0cfd423426f8a1d61a62693e69191505c59531c79b9a74b2fc3090962"
       },
       "metal": {
-        "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+        "path": "./zig-out/bin/native-proof-bench-metal",
         "sha256": "002588447e18f3611a1f82499a8760d2c7e8803189589872860bd72ff7504042"
       }
     },
@@ -65,7 +65,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "wide_fibonacci",
             "--log-n-rows",
@@ -912,7 +912,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "wide_fibonacci",
             "--log-n-rows",
@@ -1107,7 +1107,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "wide_fibonacci",
             "--log-n-rows",
@@ -1954,7 +1954,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "wide_fibonacci",
             "--log-n-rows",
@@ -2146,7 +2146,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "xor",
             "--log-size",
@@ -2995,7 +2995,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "xor",
             "--log-size",
@@ -3190,7 +3190,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "xor",
             "--log-size",
@@ -4039,7 +4039,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "xor",
             "--log-size",
@@ -4234,7 +4234,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "plonk",
             "--log-n-rows",
@@ -5079,7 +5079,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "plonk",
             "--log-n-rows",
@@ -5268,7 +5268,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "plonk",
             "--log-n-rows",
@@ -6113,7 +6113,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "plonk",
             "--log-n-rows",
@@ -6302,7 +6302,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "state_machine",
             "--log-n-rows",
@@ -7151,7 +7151,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "state_machine",
             "--log-n-rows",
@@ -7346,7 +7346,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "state_machine",
             "--log-n-rows",
@@ -8195,7 +8195,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "state_machine",
             "--log-n-rows",
@@ -8390,7 +8390,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "blake",
             "--log-n-rows",
@@ -9237,7 +9237,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "blake",
             "--log-n-rows",
@@ -9429,7 +9429,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "blake",
             "--log-n-rows",
@@ -10276,7 +10276,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "blake",
             "--log-n-rows",
@@ -10470,7 +10470,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "poseidon",
             "--log-n-instances",
@@ -11315,7 +11315,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "poseidon",
             "--log-n-instances",
@@ -11506,7 +11506,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "poseidon",
             "--log-n-instances",
@@ -12351,7 +12351,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "poseidon",
             "--log-n-instances",

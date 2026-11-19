@@ -19,6 +19,7 @@ it.
 
 - [StarkWare and the Stwo ecosystem](#starkware-and-the-stwo-ecosystem)
 - [Ethereum execution](#ethereum-execution)
+- [OP Stack execution](#op-stack-execution)
 - [ZisK](#zisk)
 - [Cryptography](#cryptography)
 - [RISC-V correctness authorities](#risc-v-correctness-authorities)
@@ -125,6 +126,31 @@ fetched, not committed.
 exercised the evmone client guest on the host and on RV64. They found two
 witness-dependence bugs that are now fixed (see the client's
 [known gaps](guests/ethereum/client_evmone/README.md#known-gaps)).
+
+## OP Stack execution
+
+**[Optimism and the OP Stack](https://github.com/ethereum-optimism/optimism)**
+provide the rollup protocol and **Kona**, the Rust implementation used by
+the OP Stack guest. The pinned Kona host implementation supplies the
+independent historical execution fixtures. The guest and its build guide
+are under [`guests/opstack/`](guests/opstack/README.md).
+
+**[Mantle](https://github.com/mantle-xyz/mantle-v2)** supplies the chain-specific
+execution and protocol dependencies for the separate Mantle pilot.
+Its guest and provenance are documented in the
+[Mantle guide](guests/opstack/mantle/README.md).
+
+**`op-revm`**, **`kona-mpt`** and **`kona-protocol`** are used for OP
+execution, sparse Merkle Patricia trie operations and rollup protocol and
+derivation types. The local copies retain upstream licence and provenance
+records. See [the vendored dependency guide](guests/opstack/vendor/README.md)
+and [licence inventory](third_party/INVENTORY.json).
+
+**[arkworks](https://github.com/arkworks-rs/algebra)** provides **`ark-ff`**,
+**`ark-bn254`** and **`ark-bls12-381`** for field arithmetic, BN254 pairing
+work and BLS12-381 scalar operations used by the optional blob-derivation
+path. The vendored crates retain their MIT and Apache-2.0 licence notices
+and [upstream pins](guests/opstack/vendor/).
 
 ## ZisK
 

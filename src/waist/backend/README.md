@@ -1,4 +1,6 @@
-# `stwo_backend_contracts`
+# Compute backend contracts
+
+Public module `stwo_backend_contracts`.
 
 `stwo_backend_contracts` defines the compile-time capabilities that prover
 implementations may request from a compute backend. It is the abstraction

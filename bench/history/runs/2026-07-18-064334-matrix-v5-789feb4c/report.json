@@ -2,11 +2,11 @@
   "configuration": {
     "binaries": {
       "cpu": {
-        "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+        "path": "./zig-out/bin/native-proof-bench-cpu",
         "sha256": "023efd5b7c3b45090f618a81565588f1dc1fbcc502abe5f309f5f72fae6e6abf"
       },
       "metal": {
-        "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+        "path": "./zig-out/bin/native-proof-bench-metal",
         "sha256": "9dc26edc3d07ac68d2fa2d71321d33b58674d0e7336e8136870835ae4b2d7476"
       }
     },
@@ -151,7 +151,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "wide_fibonacci",
             "--log-n-rows",
@@ -1903,7 +1903,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "wide_fibonacci",
             "--log-n-rows",
@@ -2036,10 +2036,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-000-wide_fibonacci-log_n_rows-14-sequence_len-32/cpu.proof-artifact.json",
         "artifact_sha256": "d32393fe3b1f9abbc4795d87c3b3316e06111f014ec30f0635f13ec0ff0587f9",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -2101,7 +2101,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "wide_fibonacci",
             "--log-n-rows",
@@ -3853,7 +3853,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "wide_fibonacci",
             "--log-n-rows",
@@ -3986,10 +3986,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-001-wide_fibonacci-log_n_rows-16-sequence_len-64/cpu.proof-artifact.json",
         "artifact_sha256": "fc3252e30633cd912482a8c5eabeb41cc0f500a9ece899e94d90833bf4889a27",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -4049,7 +4049,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "xor",
             "--log-size",
@@ -5803,7 +5803,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "xor",
             "--log-size",
@@ -5938,10 +5938,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-002-xor-log_size-14-log_step-2-offset-3/cpu.proof-artifact.json",
         "artifact_sha256": "d695acf9b279c83a905865d00e9acc1e66de7039a2e762b26504e7b85c38c124",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -6002,7 +6002,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "xor",
             "--log-size",
@@ -7756,7 +7756,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "xor",
             "--log-size",
@@ -7891,10 +7891,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-003-xor-log_size-16-log_step-2-offset-3/cpu.proof-artifact.json",
         "artifact_sha256": "354049f3916634f6941310bea8b354fdf5427c4f64310395cd6a4da384c9e983",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -7955,7 +7955,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "plonk",
             "--log-n-rows",
@@ -9705,7 +9705,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "plonk",
             "--log-n-rows",
@@ -9836,10 +9836,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-004-plonk-log_n_rows-14/cpu.proof-artifact.json",
         "artifact_sha256": "ed64ff803f2e7ec8c5eeb81f520ee3cb228c6811795a53137092a8632f9e5e68",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -9898,7 +9898,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "plonk",
             "--log-n-rows",
@@ -11648,7 +11648,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "plonk",
             "--log-n-rows",
@@ -11779,10 +11779,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-005-plonk-log_n_rows-16/cpu.proof-artifact.json",
         "artifact_sha256": "c58a48bda21b99f937fa63be59d448fd3e0264f82d49e40e332345a36fd3576f",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -11841,7 +11841,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "state_machine",
             "--log-n-rows",
@@ -13595,7 +13595,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "state_machine",
             "--log-n-rows",
@@ -13730,10 +13730,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-006-state_machine-log_n_rows-14-initial_x-9-initial_y-3/cpu.proof-artifact.json",
         "artifact_sha256": "e7e8630688fe219048e447ebaffedec76774be527dc68724ac5ee82c18f57c79",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -13794,7 +13794,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "state_machine",
             "--log-n-rows",
@@ -15548,7 +15548,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "state_machine",
             "--log-n-rows",
@@ -15683,10 +15683,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-007-state_machine-log_n_rows-16-initial_x-9-initial_y-3/cpu.proof-artifact.json",
         "artifact_sha256": "dc52cb5ec618c46599b8acf020c687b26670b9836aed8d33c8f109b27edf72b4",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -15747,7 +15747,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "blake",
             "--log-n-rows",
@@ -17499,7 +17499,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "blake",
             "--log-n-rows",
@@ -17632,10 +17632,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-008-blake-log_n_rows-10-n_rounds-10/cpu.proof-artifact.json",
         "artifact_sha256": "f44a72fcb1bb6cb7fe8adafcabb016b36d0e0499d01a919252b21a4be898eb9b",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -17695,7 +17695,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "blake",
             "--log-n-rows",
@@ -19447,7 +19447,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "blake",
             "--log-n-rows",
@@ -19580,10 +19580,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-009-blake-log_n_rows-12-n_rounds-16/cpu.proof-artifact.json",
         "artifact_sha256": "6a286b74c46a1dcc47cd93604aa0c1860ca1d435de8652961015650a8a68edce",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -19645,7 +19645,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "poseidon",
             "--log-n-instances",
@@ -21395,7 +21395,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "poseidon",
             "--log-n-instances",
@@ -21526,10 +21526,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-010-poseidon-log_n_instances-10/cpu.proof-artifact.json",
         "artifact_sha256": "e54408249704726a4b04c3ac46772b175dbb344deea2f163345b9bc324c79a37",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -21590,7 +21590,7 @@
           "backend": "cpu_native",
           "backend_telemetry": null,
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+            "./zig-out/bin/native-proof-bench-cpu",
             "--example",
             "poseidon",
             "--log-n-instances",
@@ -23340,7 +23340,7 @@
             ]
           },
           "command": [
-            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+            "./zig-out/bin/native-proof-bench-metal",
             "--example",
             "poseidon",
             "--log-n-instances",
@@ -23471,10 +23471,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-native-proof-matrix-789feb4c-20260718/row-011-poseidon-log_n_instances-13/cpu.proof-artifact.json",
         "artifact_sha256": "6bccb92b95c8012c9c8c3de885b9027c4b3ecd480428564201df1645af959d9b",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "b8b8d824fa54db7091d77918f2f72c470b5fa372d65e9d5a9c91638536b57697",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",

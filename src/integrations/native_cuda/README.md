@@ -1,4 +1,6 @@
-# `stwo_native_cuda_integration`
+# Native CUDA integration
+
+Public module `stwo_native_cuda_integration`.
 
 `stwo_native_cuda_integration` maps the Native example AIRs onto the resident
 CUDA proof architecture. It owns application-specific request admission,

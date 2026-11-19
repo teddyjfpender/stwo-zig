@@ -13,16 +13,16 @@
   "schema_version": 1,
   "sources": {
     "baseline": {
-      "bytes": 338064,
+      "bytes": 337030,
       "path": "/private/tmp/stwo-full-native-370f8ef/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v3",
-      "sha256": "79885f1d6388667541832529aec8970e7b30bdb995a109ffc7cc19c5f15d2012"
+      "sha256": "26f85006f97103f1fa0b1ee0f83e9de8e99d7f62cadea5c8e7b722d23dea07bd"
     },
     "current": {
-      "bytes": 354646,
+      "bytes": 353612,
       "path": "/private/tmp/stwo-full-native-e2613ba5/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v3",
-      "sha256": "a9c1b5e189712e9b512d2fcc566b718155938f69e67401604d74882adee5964a"
+      "sha256": "8cad7278c0af63964409d6225f7572899a18a8643e01fbc567a0f529691e9db9"
     }
   },
   "status": "incomparable"

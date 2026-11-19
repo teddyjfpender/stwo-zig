@@ -1,4 +1,6 @@
-# `stwo_cuda_backend`
+# CUDA backend
+
+Public module `stwo_cuda_backend`.
 
 `stwo_cuda_backend` defines the resident NVIDIA CUDA runtime architecture,
 strict-AOT registry, and device ABI. CUDA work is owned by a proof session:

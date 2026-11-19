@@ -1,4 +1,6 @@
-# Starknet proving pipeline: leaves, aggregation, settlement — 2026-09-29 (cost model updated 2026-09-30)
+# Starknet proving pipeline
+
+Design recorded September 29, 2026. Cost model updated September 30, 2026.
 
 What it takes to prove Starknet the way StarkWare does: many Starknet OS
 "leaf" proofs, recursively merged, aggregated into one Starknet state update,

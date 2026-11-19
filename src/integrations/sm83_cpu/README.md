@@ -1,4 +1,6 @@
-# `stwo_sm83_cpu_integration`
+# SM83 CPU integration
+
+Public module `stwo_sm83_cpu_integration`.
 
 | Fact | Value |
 |---|---|

@@ -1,4 +1,6 @@
-# `stwo_riscv_recursion_air`
+# RISC-V recursion AIR
+
+Public module `stwo_riscv_recursion_air`.
 
 | Fact | Value |
 | --- | --- |

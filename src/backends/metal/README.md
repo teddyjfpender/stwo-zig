@@ -1,4 +1,6 @@
-# `stwo_metal_backend`
+# Metal backend
+
+Public module `stwo_metal_backend`.
 
 `stwo_metal_backend` implements the Apple Metal commitment and prover-engine
 path. It owns runtime admission, device trees, arena planning, shader/source

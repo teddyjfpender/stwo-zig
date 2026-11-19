@@ -11,7 +11,7 @@
 //  (2) scan_pass  one CTA per block: load the region into shared memory, gather
 //                 byte planes + per-channel wrapping prefix sum in registers,
 //                 store the exact host-unpack u32 layout back in place.
-#include "m9_class_unpack.h"
+#include "packed_class_unpack.h"
 #include <cuda_runtime.h>
 #ifndef STWO_RV64_M9_STANDALONE
 #include "custody.cuh"

@@ -13,7 +13,7 @@ test {
     _ = @import("function_value/input.zig");
     _ = @import("memcpy_admission/options.zig");
     _ = @import("memcpy_admission/classifier.zig");
-    _ = @import("analyze_legacy_semantics/main.zig");
+    _ = @import("observe_instruction_semantics/main.zig");
 }
 
 test "observation journal: selected prefix owns its segments" {

@@ -1,4 +1,6 @@
-# `stwo_prover_engine`
+# Prover engine
+
+Public module `stwo_prover_engine`.
 
 `stwo_prover_engine` implements backend-generic STARK proving. It owns
 commitment-scheme orchestration, component accumulation, quotient work, FRI,

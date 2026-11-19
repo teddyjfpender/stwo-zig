@@ -62,7 +62,7 @@ pub const MetalCommitBackend = struct {
     pub const RuntimeLifecycleSnapshot = shared_runtime.LifecycleSnapshot;
     pub const RuntimeInitializationPolicy = shared_runtime.InitializationPolicy;
     pub const preferMonolithicCommit = true;
-    // No-copy bind when source == coefficient arena (`circle_legacy.m:227`).
+    // No-copy bind when source == coefficient arena (`circle_transform.m:227`).
     pub const adopts_source_trace_arena = true;
     pub const supports_preprocessed_preparation_cache = true;
     // Resident composition addresses each component as a tightly packed run

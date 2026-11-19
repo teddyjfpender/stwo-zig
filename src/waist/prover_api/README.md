@@ -1,4 +1,6 @@
-# `stwo_prover_api`
+# Prover transaction API
+
+Public module `stwo_prover_api`.
 
 `stwo_prover_api` is the stable transaction boundary shared by frontends,
 integrations, and prover engines. It defines owned/borrowed column requests,

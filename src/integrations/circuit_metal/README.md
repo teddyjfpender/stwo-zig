@@ -1,4 +1,6 @@
-# `stwo_circuit_metal_integration`
+# Circuit Metal integration
+
+Public module `stwo_circuit_metal_integration`.
 
 `stwo_circuit_metal_integration` is the circuit prover of
 `stwo_circuit_cpu_integration` on the Metal backend (milestone M12 of the

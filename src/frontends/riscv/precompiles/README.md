@@ -1,4 +1,6 @@
-# `stwo_riscv_precompiles`
+# RISC-V precompiles
+
+Public module `stwo_riscv_precompiles`.
 
 | Fact | Value |
 | --- | --- |

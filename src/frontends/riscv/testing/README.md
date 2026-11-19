@@ -1,4 +1,6 @@
-# `stwo_riscv_testing`
+# RISC-V testing
+
+Public module `stwo_riscv_testing`.
 
 | Fact | Value |
 | --- | --- |

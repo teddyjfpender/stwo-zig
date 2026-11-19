@@ -1,4 +1,6 @@
-# `stwo_riscv_memory`
+# RISC-V memory
+
+Public module `stwo_riscv_memory`.
 
 | Fact | Value |
 | --- | --- |

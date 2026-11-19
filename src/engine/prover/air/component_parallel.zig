@@ -12,7 +12,7 @@ const task_graph = @import("../task_graph.zig");
 const work_pool = @import("../work_pool.zig");
 const queue = @import("component_queue.zig");
 
-const legacy_schedule = @import("component_legacy_schedule.zig");
+const legacy_schedule = @import("component_domain_schedule.zig");
 const computeSequential = legacy_schedule.computeSequential;
 const computeLegacy = legacy_schedule.computeLegacy;
 const QM31 = qm31.QM31;

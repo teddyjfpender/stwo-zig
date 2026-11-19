@@ -464,10 +464,10 @@
     "this bundle preserves evidence and does not reclassify diagnostic benchmark rows"
   ],
   "report": {
-    "bytes": 1064138,
+    "bytes": 1063010,
     "protocol": "native_proof_cross_backend_matrix_v5",
     "schema_version": 5,
-    "sha256": "3e3cf347fe958b822558e7c614b5f11317187f321d412fbd4a834d551b81d78b"
+    "sha256": "a8cb48a1c80b946544ed635db7cf27b4f6253eea9db6c56886d4a3c1fd66f071"
   },
   "schema": "native_proof_matrix_bundle_v1",
   "totals": {

@@ -167,7 +167,7 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
         rv64/jobs/outer_rc_params.cu rv64/jobs/outer_seed.cu rv64/jobs/pcs_enqueue.cu
         rv64/jobs/peer_ops.cu rv64/jobs/runtime.cu rv64/jobs/truth_oods.cu
         rv64/jobs/truth_ops.cu rv64/keccak_witness.cu rv64/ls_dword_witness.cu
-        rv64/m9_class_unpack.cu rv64/memory_witness.cu rv64/outer_fs_ops.cu
+        rv64/packed_class_unpack.cu rv64/memory_witness.cu rv64/outer_fs_ops.cu
         rv64/outer_gkr_binding.cu rv64/outer_gkr_projected.cu rv64/parameters.cu
         rv64/pcs.cu rv64/pcs_native.cu rv64/rc_sparse_lde.cu
         rv64/round.cu rv64/sample_order.cu rv64/samples.cu

@@ -2,13 +2,13 @@
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_CPU_COMPONENT_ACCEPTANCE_FULL_SUITE_OPEN_GPU_EXCLUDED",
   "updated_utc": "2026-11-09T07:31:39.279196+00:00",
-  "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
+  "canonical_checkout": ".",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv/rv64-gpu-hygiene.md",
   "budgets": "conformance/rv64-productionisation-budget.json",
   "consolidation": {
     "status": "ONE_CANONICAL_WORKTREE_PUBLISHED_ARCHIVE_AND_REMOTE_RETIREMENT_VERIFIED",
-    "canonical": "/Users/theodorepender/Coding/stwo-zig",
+    "canonical": ".",
     "worktrees_before": 163,
     "worktrees_after": 1,
     "retired_working_copies": 162,
@@ -31,7 +31,7 @@
       "total_files_including_manifest": 339
     }
   },
-  "consolidation_inventory_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/retirement-ledger.json",
+  "consolidation_inventory_receipt": "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/retirement-ledger.json",
   "consolidation_inventory_sha256": "337fcbb5b8079e2673bc283a6cddfdf400d91b79a3d6d88dbec11e38c72d371a",
   "code_change_costs": {
     "recursion_custody": {
@@ -155,11 +155,11 @@
       "distinct_paths": 138,
       "diagnostics": 139,
       "baseline_or_ceiling_changes": 0,
-      "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-source-conformance-final.log",
+      "log": "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-source-conformance-final.log",
       "sha256": "a47aa6d4fc8f78a357c77641c0fab94118d1eb019e6d3ef01fee91888182c5e1"
     },
     "full_python_initial_log": {
-      "local": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-full-python-initial.log",
+      "local": "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-full-python-initial.log",
       "sha256": "67b3985e44230b572023d7ed82c07fbcc2ab0a00a7fd151816cb52e0e68cb6d0"
     },
     "service_collision_repair": {
@@ -183,11 +183,11 @@
       "preserved": true
     },
     "focused_python_log": {
-      "local": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-dev-focused-final.log",
+      "local": "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-dev-focused-final.log",
       "sha256": "f2a98a6ef7c0cd86b2135eb84450a3f57ad88835285ec2478006032da72017ef"
     },
     "residual_contract_repro_log": {
-      "local": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-residual-contract-repro.log",
+      "local": "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-residual-contract-repro.log",
       "sha256": "02764951c54bfebda8ecb8b8d36e6273a241882bac87753e8c305a301e80f648"
     },
     "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
@@ -432,8 +432,8 @@
         "code_net": 24,
         "initial_fault": "Scalar emitted byte-shift tuple differs from independent integer polynomial; recorder and interpreter agree with their inputs",
         "independent_oracles": [
-          "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/projection-independent-denominator-oracle.json",
-          "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/projection-sponge-independent-oracle.json"
+          "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/projection-independent-denominator-oracle.json",
+          "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/projection-sponge-independent-oracle.json"
         ],
         "post_repair_hardware": "NOT_YET_RUN"
       },
@@ -483,7 +483,7 @@
           "circuit_om31": 37,
           "circuit_om31_trace": 40
         },
-        "move_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/native-closure-metadata-moves.json"
+        "move_receipt": "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/native-closure-metadata-moves.json"
       },
       "live_validation_fixtures": {
         "status": "BYTE_IDENTICAL_MIGRATION_AND_HOST_AND_OPTIMIZED_RUNTIME_TESTS_PASS",
@@ -543,18 +543,18 @@
     "host_contracts": {
       "status": "PASS",
       "tests": 118,
-      "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch3-host-contracts-final.log",
+      "log": "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch3-host-contracts-final.log",
       "sha256": "ac096924ac114c8fa5613072df0c2d32db154c1b1b61cfa5000831bdcaced417",
       "scope": "No hardware or full proof qualification; distinct focused Python tests, not the complete surviving Python suite"
     },
     "cli_modes_added": 4,
     "cli_modes_removed": 6,
-    "code_cost_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch3-code-costs.json",
+    "code_cost_receipt": "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch3-code-costs.json",
     "intentionally_pending": "The candidate is component-tested. Its exact local commit and subsequent full-proof results will be recorded in the evidence receipt; push remains pending those proof regressions.",
     "complete_optimized_cuda_package": {
       "status": "PASS",
       "log": "/workspace/m3/runs/m8-gn-bind/production-18/full-cuda-fixture-cwd-fast.log",
-      "local_log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/full-cuda-fixture-cwd-fast.log",
+      "local_log": "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/full-cuda-fixture-cwd-fast.log",
       "sha256": "e4a44888f377d306b755afb8dd91ec6d23e1379946e2b2ff0734e726cf7fb619",
       "scope": "Host integration tests; no hardware or speedup qualification"
     },
@@ -757,7 +757,7 @@
       "closure_files": 224,
       "implementation_files": 112,
       "closure_sha256": "9f291ec9c9db1bf0d14f2d5bc90cb66d8fb18d418cbd0424f120a199ff27283c",
-      "move_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/native-closure-metadata-moves.json"
+      "move_receipt": "$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/native-closure-metadata-moves.json"
     },
     "recursion_dag_inner_loop_owner": {
       "status": "PASS_VIA_DEV_TEST_RELEASEFAST_ON_POD",
@@ -1062,7 +1062,7 @@
       "scripts_added": 0,
       "scripts_removed": 0,
       "moves_counted_as_deletions": false,
-      "local_log_directory": "/Users/theodorepender/Coding/stwo-zig-evidence/local/delivery-20261108",
+      "local_log_directory": "$HOME/Coding/stwo-zig-evidence/local/delivery-20261108",
       "gpu_scope": "EXCLUDED_BY_USER; no hardware qualification claimed",
       "runtime_followup": {
         "status": "PASS_RELEASEFAST_RESTORED_CPU_RUNTIME",
@@ -1193,7 +1193,7 @@
       "gpu_scope": "EXCLUDED_BY_USER",
       "phase_complete": false,
       "pushed": false,
-      "evidence_root": "/Users/theodorepender/Coding/stwo-zig-evidence/local/delivery-20261108"
+      "evidence_root": "$HOME/Coding/stwo-zig-evidence/local/delivery-20261108"
     },
     "delivery_proof_wire_existing_family_checks": {
       "baseline_commit": "47307c39c782059bfe13418d0b61c13d6a16aba3",
@@ -1315,7 +1315,7 @@
           }
         ],
         "producer": {
-          "test_binary": "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/22951a1ff0920aab754fd3d504c49dca/test",
+          "test_binary": "./src/integrations/riscv_cpu/.zig-cache/o/22951a1ff0920aab754fd3d504c49dca/test",
           "bytes": 3689032,
           "sha256": "f612a17a0210a12bb1bd29c30c9213d722fd73a74d7c60f1d1d693d85f3a0475",
           "source_commit": "b708fddf7a093060dba05aaf5167bad78206b0b8",
@@ -1324,7 +1324,7 @@
         },
         "corpus": {
           "receiver_binary": {
-            "path": "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+            "path": "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
             "bytes": 1720120,
             "sha256": "39343b77a0d9d470d6f93318feef7bd1f7c6b49c892be42bb99671909420e6ae"
           },
@@ -1362,7 +1362,7 @@
           {
             "label": "valid",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
               "verify",
               "/tmp/stwo-delivery-native-fresh/valid"
             ],
@@ -1374,7 +1374,7 @@
           {
             "label": "queries",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
               "verify",
               "/tmp/stwo-delivery-native-fresh/queries"
             ],
@@ -1386,7 +1386,7 @@
           {
             "label": "ninth-limb",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
               "verify",
               "/tmp/stwo-delivery-native-fresh/ninth-limb"
             ],
@@ -1398,7 +1398,7 @@
           {
             "label": "nonce",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
               "verify",
               "/tmp/stwo-delivery-native-fresh/nonce"
             ],
@@ -1410,7 +1410,7 @@
           {
             "label": "wrong-family",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
               "verify",
               "/tmp/stwo-delivery-native-fresh/wrong-family"
             ],
@@ -1736,12 +1736,12 @@
         "runtime": {
           "sdk_binaries": [
             {
-              "path": "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/8476f9f140455de5a3019689a2bc3774/sdk-consumer-smoke",
+              "path": "./.zig-cache/products/package/o/8476f9f140455de5a3019689a2bc3774/sdk-consumer-smoke",
               "bytes": 115936,
               "sha256": "f16cb6853396bffc34b6d79176d2a9b801fb63e5b27235f09bf83cabda22f00e"
             },
             {
-              "path": "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/9494433fa90052cd1d2a7b965c8eaebc/sdk-consumer-smoke",
+              "path": "./.zig-cache/products/package/o/9494433fa90052cd1d2a7b965c8eaebc/sdk-consumer-smoke",
               "bytes": 1374624,
               "sha256": "9625c277d678cc1f3f8d47a37ab775bbcade943763f7c419947f6f17648b57ce"
             }
@@ -1797,7 +1797,7 @@
           {
             "label": "sdk-binary-f16cb6853396",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/8476f9f140455de5a3019689a2bc3774/sdk-consumer-smoke"
+              "./.zig-cache/products/package/o/8476f9f140455de5a3019689a2bc3774/sdk-consumer-smoke"
             ],
             "exit_code": 0,
             "stopped_for": null,
@@ -1807,7 +1807,7 @@
           {
             "label": "sdk-binary-9625c277d678",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/9494433fa90052cd1d2a7b965c8eaebc/sdk-consumer-smoke"
+              "./.zig-cache/products/package/o/9494433fa90052cd1d2a7b965c8eaebc/sdk-consumer-smoke"
             ],
             "exit_code": 0,
             "stopped_for": null,
@@ -2246,7 +2246,7 @@
           {
             "label": "valid",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
               "verify",
               "/tmp/stwo-delivery-native-fresh/valid"
             ],
@@ -2258,7 +2258,7 @@
           {
             "label": "queries",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
               "verify",
               "/tmp/stwo-delivery-native-fresh/queries"
             ],
@@ -2270,7 +2270,7 @@
           {
             "label": "ninth-limb",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
               "verify",
               "/tmp/stwo-delivery-native-fresh/ninth-limb"
             ],
@@ -2282,7 +2282,7 @@
           {
             "label": "nonce",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
               "verify",
               "/tmp/stwo-delivery-native-fresh/nonce"
             ],
@@ -2294,7 +2294,7 @@
           {
             "label": "wrong-family",
             "argv": [
-              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "./src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
               "verify",
               "/tmp/stwo-delivery-native-fresh/wrong-family"
             ],
@@ -2422,28 +2422,28 @@
           {
             "phase": "before",
             "mode": "Debug",
-            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/a875db3bbc68d2474a20a1a39a8cb607/test",
+            "path": "./src/waist/core/.zig-cache/o/a875db3bbc68d2474a20a1a39a8cb607/test",
             "bytes": 1844728,
             "sha256": "0397ffc8c29013cad2f91b1c9414b5f61dcb5ee485d0b09aaec28ba9b9cd6a68"
           },
           {
             "phase": "before",
             "mode": "ReleaseFast",
-            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/3b676816523bb5511177d98efd5acec2/test",
+            "path": "./src/waist/core/.zig-cache/o/3b676816523bb5511177d98efd5acec2/test",
             "bytes": 413832,
             "sha256": "2de8eafbc74ec93f44d24a3f43f874c941a981357e88870b427a7fc943b59eb4"
           },
           {
             "phase": "after",
             "mode": "Debug",
-            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/a5e15914b823ae7bb7ca7cdf76389e64/test",
+            "path": "./src/waist/core/.zig-cache/o/a5e15914b823ae7bb7ca7cdf76389e64/test",
             "bytes": 1900264,
             "sha256": "ed70d80bf46e2db42bdab55fb7bf9745f9674b3dec92d5ee38330afd6ad84142"
           },
           {
             "phase": "after",
             "mode": "ReleaseFast",
-            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/44ca216e00b0b462207a02d054a2d928/test",
+            "path": "./src/waist/core/.zig-cache/o/44ca216e00b0b462207a02d054a2d928/test",
             "bytes": 414184,
             "sha256": "c53115581b6f697fba98c490cb18b6df9f5ea995b82a5f01ae7bb1baab021ab2"
           }
@@ -2790,7 +2790,7 @@
         "discovery_floor_before": 30,
         "discovery_floor_after": 260,
         "new_required_case": "segment-leaf claim projection keeps shared provider out of prefix",
-        "binary": "/Users/theodorepender/Coding/stwo-zig/src/frontends/riscv/.zig-cache/o/01786b2b58495cc18521134419fdaac7/test",
+        "binary": "./src/frontends/riscv/.zig-cache/o/01786b2b58495cc18521134419fdaac7/test",
         "binary_sha256": "e07e97529171d695f383bdb2267bca30633b006044de4d36e347f32b1ad9fc9f"
       },
       "test_inventory": {
@@ -3160,7 +3160,7 @@
         "plan_mtime": 1794188990.4335468,
         "execution_log_mtime": 1794189034.1431956,
         "image": {
-          "path": "/Users/theodorepender/Coding/stwo-zig/src/frontends/riscv/.zig-cache/o/29738d7b8291162f62148aa30a31ef2f/test",
+          "path": "./src/frontends/riscv/.zig-cache/o/29738d7b8291162f62148aa30a31ef2f/test",
           "mtime": 1794189033.6933432,
           "bytes": 2270168,
           "sha256": "30f4787535b4b21228510d0a567144b159d4a9b861a489b1e4ba219c7253b7a4"
@@ -3795,7 +3795,7 @@
   },
   "post_merge_hygiene": {
     "base_merge_commit": "4e260db9605d16fef5d405cc3c280e3042b22e35",
-    "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
+    "canonical_checkout": ".",
     "worktrees": 7,
     "gpu_native_default": false,
     "experimental_candidate_retained_separately": "origin/codex/rv64-gpu-hygiene-local@4892bffa6f77dce3dda68aea0053dfff71e7f0cd",
@@ -3830,7 +3830,7 @@
         "retirement": "HELD_ACTIVE_EXTERNAL_WORK_NO_REMOVAL"
       },
       {
-        "path": "/Users/theodorepender/Coding/stwo-zig-wt/repo-standards",
+        "path": "$HOME/Coding/stwo-zig-wt/repo-standards",
         "head": "51897dc265593df7580c4abf0b232909fc105e34",
         "worktree_change_records": 17865,
         "dirty": true,
@@ -3845,12 +3845,12 @@
     "source_closure_scope": "targeted15PASS; combined145tests144PASS/1heldCPUfixtureerror",
     "test_support_modules_added": 1,
     "external_registered_worktrees": [
-      "/Users/theodorepender/Coding/stwo-zig-wt/deadcode",
-      "/Users/theodorepender/Coding/stwo-zig-wt/evidence",
-      "/Users/theodorepender/Coding/stwo-zig-wt/legacy-gpu",
-      "/Users/theodorepender/Coding/stwo-zig-wt/repo-standards",
-      "/Users/theodorepender/Coding/stwo-zig-wt/scripts",
-      "/Users/theodorepender/Coding/stwo-zig-wt/src-layout"
+      "$HOME/Coding/stwo-zig-wt/deadcode",
+      "$HOME/Coding/stwo-zig-wt/evidence",
+      "$HOME/Coding/stwo-zig-wt/legacy-gpu",
+      "$HOME/Coding/stwo-zig-wt/repo-standards",
+      "$HOME/Coding/stwo-zig-wt/scripts",
+      "$HOME/Coding/stwo-zig-wt/src-layout"
     ],
     "last_wrap_code_added": 1919,
     "last_wrap_code_removed": 1790,

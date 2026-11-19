@@ -14,16 +14,16 @@
   "sequencing": "sequential-runs (diagnostic only; not paired ABBA - never a timing claim)",
   "sources": {
     "baseline": {
-      "bytes": 1318813,
+      "bytes": 1317591,
       "path": "/private/tmp/stwo-zig-benchmark-correction-20260723/vectors/reports/benchmark_history/runs/2026-07-23-072542-matrix-v6-a01299b4/report.json",
       "report_protocol": "native_proof_cross_backend_matrix_v6",
-      "sha256": "4d021098c0c1450e9875d4b93f3468019f2bf946740b83e32f41be416cf2e120"
+      "sha256": "86145cd24139074428833b9ae83df2ded35b43cfe6b93774bdb8db50e3f11521"
     },
     "current": {
-      "bytes": 2871945,
+      "bytes": 2870723,
       "path": "/private/tmp/stwo-native-matrix-20260723-9ed6df6b-corrected-s21/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v6",
-      "sha256": "621e3290c57272e67e65d87e3565e5d477fe8fbef94e45114a9869feffb92e82"
+      "sha256": "adfd80ab307cbe2470d3998865b39a22aa55152f94db2cd9ebac64758f23ab0e"
     }
   },
   "status": "incomparable"

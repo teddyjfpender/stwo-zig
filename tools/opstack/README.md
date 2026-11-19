@@ -2,7 +2,7 @@
 
 For the current native proof and fresh receiver commands, start with the [OP Stack statement product](../../src/products/opstack/statement/README.md). This runbook covers pinned Kona execution, fixture acquisition and historical CPU and GPU measurements. Historical OP Mainnet and OP Sepolia replays check block hashes against independent upstream fixtures.
 
-The current CPU-first [delivery gates](../../design/opstack/COMPLETION.md) distinguish execution,
+The archived CPU-first [delivery plan](https://github.com/starknet-innovation/stwo-zig/blob/archive/pre-public-cleanup-20261119/design/opstack/COMPLETION.md) distinguishes execution,
 anchored transition proofs, recursive closure and complete settlement. Historical
 replay measurements do not close those later gates.
 
@@ -11,7 +11,7 @@ five complete native execution proofs and one recursive execution root on the
 M5 Max. It retains separate dependencies and ME43 framing. These measurements
 do not close OP/Mantle L1 derivation, accumulation or settlement gates.
 
-The [CPU tuning record](../../design/opstack/CPU_TUNING.md) links current actual guest-to-root
+The archived [CPU tuning record](https://github.com/starknet-innovation/stwo-zig/blob/archive/pre-public-cleanup-20261119/design/opstack/CPU_TUNING.md) links recorded guest-to-root
 measurements, bounded heavy-fragment profiles and their exact qualification
 limits. The experimental [terminal development loop](https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/src/integrations/riscv_cpu/poseidon2_outer/native_group/terminal_blake/DEV_LOOP.md)
 provides narrower build/check commands without changing the standard drivers.
@@ -27,7 +27,7 @@ This runbook moved with PR #372 into its own product line
 | `tools/opstack/` | these harnesses (Python package `opstack`, imported with `tools/` on `sys.path`) |
 | `tests/fixtures/opstack/` | fixtures and golden copies of receipts the code reads (`MANIFEST.json`) |
 | `vectors/opstack/` | ABI-probe ELF, guest identity pins, expected transition outputs |
-| `design/opstack/` | design notes ported from PR #372 |
+| `design/opstack/` | integration design and map, with links to archived research |
 
 The prover is the OP product CLI `stwo-opstack-native`. `cpu.py` and
 `cpu_batch.py` pass every operational choice as a flag
@@ -170,9 +170,9 @@ admitted JUMPDEST scanner and aligned immutable bytecode storage. `canonical`
 uses the optional guest-only canonical Fq/Fp2 adapter. `canonical-glv` additionally
 uses joint-window GLV for G1 multiplication. `canonical-glv-hinted` adds the
 optional checked pairing residue path. All are explicit experimental choices;
-see [precompile boundaries](../../design/opstack/PRECOMPILES.md) for validation and software fallbacks.
+see [precompile boundaries](https://github.com/starknet-innovation/stwo-zig/blob/archive/pre-public-cleanup-20261119/design/opstack/PRECOMPILES.md) for validation and software fallbacks.
 
-The optional [Arkworks Montgomery client](../../design/opstack/MONTGOMERY.md) uses existing v3 field
+The optional [Arkworks Montgomery client](https://github.com/starknet-innovation/stwo-zig/blob/archive/pre-public-cleanup-20261119/design/opstack/MONTGOMERY.md) uses existing v3 field
 services for blob interpolation and KZG arithmetic. Its instruction reductions
 are execution measurements; complete prover savings remain to be measured.
 `blob-eval-services`, `transition-montgomery` and `transition-sha-montgomery`

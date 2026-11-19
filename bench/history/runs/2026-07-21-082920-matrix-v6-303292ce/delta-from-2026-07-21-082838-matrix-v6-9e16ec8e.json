@@ -14,16 +14,16 @@
   "sequencing": "sequential-runs (diagnostic only; not paired ABBA - never a timing claim)",
   "sources": {
     "baseline": {
-      "bytes": 1160510,
+      "bytes": 1159382,
       "path": "/private/tmp/stwo-metal-full-9e16ec8e/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v6",
-      "sha256": "0728d6880e73bc428fd99e30c02238e3a8d8f7d6205195c79a2c1408edaee597"
+      "sha256": "4f8df7d0ca650934e4579cb207d26586cccb7612f0024efdd22f0a8b517634a9"
     },
     "current": {
-      "bytes": 1160615,
+      "bytes": 1159487,
       "path": "/private/tmp/stwo-metal-full-303292ce/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v6",
-      "sha256": "5a65e1381e32c15bc1407eace052dc81cb98d08d8cc5d44db873c103db0b0cfd"
+      "sha256": "82eca58f5f087e5f28aad83fcb4474ca9ed82fb5d798ba190fc8b708f33ae56d"
     }
   },
   "status": "incomparable"

@@ -69,8 +69,16 @@ jobs:
           - stwo_cairo_frontend
           - stwo_sm83_frontend
     steps:
+      - name: Checkout the toolchain installer and pins
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/actions/setup-zig
+            toolchain.json
+          sparse-checkout-cone-mode: false
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
       - name: Download source packages
@@ -96,8 +104,16 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Checkout the toolchain installer and pins
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/actions/setup-zig
+            toolchain.json
+          sparse-checkout-cone-mode: false
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
       - name: Download source packages
