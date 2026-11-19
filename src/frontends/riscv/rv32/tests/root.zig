@@ -19,7 +19,6 @@ test {
     _ = @import("../air/guest_precompile/sha256_memory_rows.zig");
     _ = @import("../air/guest_precompile/sha256_preprocessed.zig");
     _ = @import("../air/guest_precompile/x0_caller_envelope.zig");
-    _ = @import("../air/incremental_public_logup_v3.zig");
     _ = @import("../air/incremental_public_logup_v4.zig");
     _ = @import("../air/interaction.zig");
     _ = @import("../air/interaction_legacy_test_oracle.zig");
