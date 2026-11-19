@@ -6,7 +6,7 @@ const core_proof = @import("stwo_core").proof;
 const prover_engine = @import("stwo_prover_engine").engine;
 const public_data_mod = @import("../air/public_data.zig");
 const statement_mod = @import("../air/statement.zig");
-const statement_v2_mod = @import("../air/statement_v2.zig");
+const statement_v2_mod = @import("../air/variable_boundary_statement.zig");
 const relation_diagnostic = @import("relation_diagnostic.zig");
 
 pub const PublicData = public_data_mod.PublicData;

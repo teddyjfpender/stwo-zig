@@ -109,7 +109,7 @@ def resolve_imports(
             # not every sibling export or its package's test inventory. Unknown
             # syntax or an unqualified use retains the full conservative walk.
             uses = import_projections(text, imported)
-            projected = [projected_export(target, use, facade_cache) for use in uses]
+            projected = [projected_export(target, use, named, facade_cache) for use in uses]
             if export_metadata is not None and uses and all(projected):
                 if any(not item.is_relative_to(repository) for item in projected if item is not None):
                     raise ClosureError(f"{source}: projected import escapes repository: {imported}")
@@ -144,7 +144,9 @@ def import_projections(source: str, imported: str) -> list[tuple[str, ...]]:
     return uses
 
 
-def projected_export(root: Path, selected: tuple[str, ...], cache: dict | None = None) -> Path | None:
+def projected_export(
+    root: Path, selected: tuple[str, ...], named: dict[str, Path], cache: dict | None = None
+) -> Path | None:
     if not selected:
         return None
     if cache is None:
@@ -156,7 +158,10 @@ def projected_export(root: Path, selected: tuple[str, ...], cache: dict | None =
     if exports is not None:
         for size in range(len(selected), 0, -1):
             if selected[:size] in exports:
-                return (root.parent / exports[selected[:size]]).resolve()
+                imported = exports[selected[:size]]
+                if imported.endswith(".zig"):
+                    return (root.parent / imported).resolve()
+                return named.get(imported)
     return None
 
 
@@ -198,8 +203,6 @@ def facade_exports(root: Path) -> dict[tuple[str, ...], str] | None:
             if alias is None:
                 return False
             if alias[1] == 'import':
-                if not alias[2].endswith('.zig'):
-                    return False
                 exports[name] = alias[2]
             index += alias.end()
 

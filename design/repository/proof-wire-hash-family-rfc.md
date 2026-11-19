@@ -1,7 +1,7 @@
 # Approved RFC: explicit hash-family proof-wire contract
 
-Status: approved in [RFC #325](https://github.com/teddyjfpender/stwo-zig/issues/325).
-Owner decision: [approved, recorded by delegate](https://github.com/teddyjfpender/stwo-zig/issues/325#issuecomment-6739260920).
+Status: approved in [RFC #325](https://github.com/starknet-innovation/stwo-zig/issues/325).
+Owner decision: [approved, recorded by delegate](https://github.com/starknet-innovation/stwo-zig/issues/325#issuecomment-6739260920).
 Owner: `proof-wire`. Scope: the existing `stwo_proof_wire` package only.
 
 ## Problem and decision requested

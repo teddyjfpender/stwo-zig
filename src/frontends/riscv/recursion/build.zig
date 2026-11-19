@@ -28,7 +28,7 @@ pub fn build(b: *std.Build) void {
     // analyses only the suite named by the `focused_suite` option.
     const focused_module = b.createModule(.{ .root_source_file = b.path("focused_test_root.zig"), .target = target, .optimize = optimize });
     const focused_module_suite = b.addOptions();
-    focused_module_suite.addOption([]const u8, "name", "recursion_transcript_v2_1");
+    focused_module_suite.addOption([]const u8, "name", "transcript_program_schedule");
     focused_module.addOptions("focused_suite", focused_module_suite);
     var imports = module.import_table.iterator();
     while (imports.next()) |entry| focused_module.addImport(entry.key_ptr.*, entry.value_ptr.*);

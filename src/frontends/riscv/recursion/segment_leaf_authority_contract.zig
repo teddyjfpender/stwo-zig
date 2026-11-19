@@ -1,4 +1,4 @@
-//! Internal segment leaf authority v2 authority shard; use segment_leaf_authority_v2.zig publicly.
+//! Internal segment leaf authority v2 authority shard; use variable_boundary_leaf_authority.zig publicly.
 
 pub const std = @import("std");
 pub const stwo_core = @import("stwo_core");

@@ -26,7 +26,7 @@
 //! The class builder fills those with placeholders; `Fingerprint` digests
 //! every field and masks exactly these words, so the install-built class
 //! can be compared field by field with the class built from the legacy
-//! per-segment inputs (rv64_m8_class_build_parity_main.zig, real blocks).
+//! per-segment inputs (rv64_resident_class_setup_parity_main.zig, real blocks).
 //!
 //! Class key: SHA-256 over every class field digest (`Fingerprint.key`), so
 //! two segments share a class iff their class fields are identical.
@@ -100,7 +100,7 @@ const PcsColumn = @typeInfo(@TypeOf(@as(NP.PcsJob, undefined).prepared.coefficie
 /// CompRoles.Roles.fromItemsWith(context, items, device_claims = true)) and
 /// the composition artifacts' parameter slots. Injected: the implementation
 /// reads the legacy composition context's kernel metadata, which the sync
-/// lint forbids under rv64/jobs/ (rv64/m8_class_build_composition.zig).
+/// lint forbids under rv64/jobs/ (rv64/class_setup_composition.zig).
 pub const RolesOut = struct {
     specs: []const NComp.RoleSpec,
     claim_count: u32,
@@ -123,7 +123,7 @@ pub const Env = struct {
     gmutex: *std.Thread.Mutex,
     /// PCS framing symbols (jobs addon).
     psym: NP.Symbols,
-    /// Composition roles + artifact parameter slots (m8_class_build_composition.zig).
+    /// Composition roles + artifact parameter slots (class_setup_composition.zig).
     composition: Composition,
     /// stwo_rv64_pcs_request_version() >= 3 (the hybrid's `wide`).
     wide: bool,

@@ -2,7 +2,7 @@
 //! patch-table derivation, fingerprint comparison, class resolution by
 //! (block, segment, rows) and the shape-hook routing. Real-block parity (the
 //! classes built from real captures vs the legacy per-segment ones) is
-//! rv64_m8_class_build_parity_main.zig on the pod.
+//! rv64_resident_class_setup_parity_main.zig on the pod.
 const std = @import("std");
 const testing = std.testing;
 const NCB = @import("native_class_build.zig");

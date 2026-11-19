@@ -81,4 +81,4 @@ measurements, not complete settlement costs. The full worker PCS diagnostic
 remains around 1.724 billion gas and requires further architectural work.
 
 The matched measurements and bounds are in
-[the packed-tower receipt](https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-cpu-20261108/solidity-packed-tower.json).
+[the packed-tower receipt](https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-cpu-20261108/solidity-packed-tower.json).

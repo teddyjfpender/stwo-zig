@@ -151,7 +151,7 @@ behavior. Do not silently reinterpret a prior binary version.
 - [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 - [Package release policy](../../../design/repository/zig-package-release-policy.md)
 
-Approved contract transaction: [RFC #325](https://github.com/teddyjfpender/stwo-zig/issues/325).
+Approved contract transaction: [RFC #325](https://github.com/starknet-innovation/stwo-zig/issues/325).
 No production codec implementation, proof bytes or protocol revisions changed.
 
 
@@ -159,7 +159,7 @@ No production codec implementation, proof bytes or protocol revisions changed.
 
 Native examples register malformed binary framing in both supported fields, with a zero-allocation admission budget. The provider contract also registers its Core dependency laws where applicable.
 
-The existing aggregate package graph exposes `zig build test-cdc-stwo-proof-wire -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
+The existing aggregate package graph exposes `zig build test-cdc-stwo-proof-wire -Doptimize=Debug -j2` and the same command with `ReleaseFast`. Both commands are appended to the existing provider lane; the original package commands remain required. Each registered root uses the actual consumer's canonical provider module, executes its named cases, and rejects missing or duplicate discovery. These registrations are a bounded subset of the live consumer graph; they do not establish full [D3 coverage](https://github.com/starknet-innovation/stwo-zig/issues/366).
 
 ## Origin-specific decode diagnostics
 
@@ -192,7 +192,7 @@ bounded best-effort `proof_wire_decode_rejection_v1` stderr line for a mapped
 rejection. It rethrows the original error, preserving stdout and process exit
 behavior; failure to write the optional line cannot replace that error. Existing
 entrypoints remain compatible. Other provider origins and generic reader/writer transports
-remain open under [D2](https://github.com/teddyjfpender/stwo-zig/issues/359).
+remain open under [D2](https://github.com/starknet-innovation/stwo-zig/issues/359).
 
 
 Expanded decoder annotation requires the existing exact QM31/OM31 field

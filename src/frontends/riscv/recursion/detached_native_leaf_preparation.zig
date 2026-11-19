@@ -14,9 +14,9 @@ const recursion = struct {
     const vm_air_composition_prepared_v2 = @import("vm_air_composition_prepared.zig");
 };
 const shared_schedule_v2 = @import("segment_shared_poseidon_schedule.zig");
-const transcript_v2 = @import("transcript_program_v2.zig");
+const transcript_v2 = @import("variable_boundary_transcript_program.zig");
 const authority_v2 = @import("segment_leaf_outer_authority.zig");
-const source_v2 = @import("segment_leaf_authority_v2.zig");
+const source_v2 = @import("variable_boundary_leaf_authority.zig");
 const air_v2 = @import("segment_leaf_outer_air.zig");
 const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;

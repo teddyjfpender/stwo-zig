@@ -33,7 +33,7 @@ or inferred for Metal.
 
 ## Real temporal parent correctness receipt
 
-- [`recursive-temporal-parent-v1/receipt-v1.json`](recursive-temporal-parent-v1/receipt-v1.json)
+- [`recursive-temporal-parent-v1/receipt-v1.json`](../../bench/history/typed-air/recursive-temporal-parent-v1/receipt-v1.json)
   pins the 94,740-byte parent proof plus publication, cohort, interaction-audit,
   and closure identities reproduced by both the ReleaseFast adversarial test
   and lean production runner. It is development correctness evidence, not a
@@ -112,7 +112,7 @@ shadow/profile evidence only. Production activation is explicitly
   degrees.
 - `m3-compat-v1/*.stwairc` are the 17 canonical section-framed binary
   identities described by
-  [ADR-0017](../../../../../design/typed-air/decisions/0017-sectioned-compatibility-manifests.md).
+  [ADR-0017](../../design/typed-air/decisions/0017-sectioned-compatibility-manifests.md).
 
 Each `STWAIRC\0` version-1 binary has seven ordered, length-framed sections:
 identity, physical layout, direct runtime program and roots, lookup runtime
@@ -184,7 +184,7 @@ than inherit those historical absences. It must still set
 
 ## R-006 and native CSP closeout
 
-[`r006-csp-closeout-v1/receipt-v1.json`](r006-csp-closeout-v1/receipt-v1.json)
+[`r006-csp-closeout-v1/receipt-v1.json`](../../bench/history/typed-air/r006-csp-closeout-v1/receipt-v1.json)
 binds the independently validated 1,754-attempt R-006 complete-block prefix and
 the completed 64-launch native CSP old-versus-current cohort. The R-006 result
 is an append-compatible `NO_VERDICT`, not an M7 promotion receipt. The CSP
@@ -250,7 +250,7 @@ candidate execution:
 zig build typed-air-layout-benchmark \
   --build-file src/frontends/riscv/build.zig \
   -Doptimize=ReleaseFast -- \
-  vector-artifacts check src/frontends/riscv/air/lang/artifacts/h010-poseidon-layout-v1
+  vector-artifacts check vectors/riscv_air/h010-poseidon-layout-v1
 ```
 
 Replacing reviewed bytes requires the same command with `update`; writes are

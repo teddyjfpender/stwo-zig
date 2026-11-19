@@ -6,7 +6,7 @@ const air = struct {
     const field_statement_word_v3 = @import("stwo_riscv_recursion_air").field_statement_word;
 };
 const recording = @import("recording_poseidon_channel.zig");
-const rows = @import("segment_transcript_outer_source_v2.zig");
+const rows = @import("variable_boundary_transcript_source.zig");
 
 pub const Step = struct {
     verifier_id: u32,

@@ -1,8 +1,8 @@
 //! Focused compile/test root for the disjoint V2 generic transcript authority.
 
 test {
-    _ = @import("../../transcript_program_v2.zig");
-    _ = @import("../transcript_program_v2_test.zig");
+    _ = @import("../../variable_boundary_transcript_program.zig");
+    _ = @import("../variable_boundary_transcript_program_test.zig");
     const std = @import("std");
     const required = .{
         "recording channel preserves native transcript and rejects corrupt trace coordinates",

@@ -9,11 +9,11 @@ pub const PcsConfig = stwo_core.pcs.PcsConfig;
 
 pub const subject = @import("segment_outer_noncore_audits.zig");
 pub const transcript_components = @import("segment_transcript_outer_components.zig");
-pub const transcript_source = @import("segment_transcript_outer_source_v2.zig");
+pub const transcript_source = @import("variable_boundary_transcript_source.zig");
 pub const statement_components = @import("segment_statement_outer_components.zig");
-pub const statement_source = @import("segment_statement_outer_source_v2.zig");
+pub const statement_source = @import("variable_boundary_statement_source.zig");
 pub const public_components = @import("segment_public_outer_components.zig");
-pub const public_source = @import("segment_public_outer_source_v2.zig");
+pub const public_source = @import("variable_boundary_outer_source.zig");
 pub const public_support = @import("segment_public_outer_test_support.zig");
 pub const boundary_authority = @import("segment_leaf_outer_authority.zig");
 pub const boundary_air = @import("segment_leaf_outer_air.zig");
@@ -23,7 +23,7 @@ pub const input_provider_air =
     @import("air/segment_publication_input_provider.zig");
 pub const input_provider_support =
     @import("segment_publication_input_provider_test_support.zig");
-pub const range_authority = @import("segment_range_authority_v2.zig");
+pub const range_authority = @import("variable_boundary_range_authority.zig");
 pub const shared_provider = @import("stwo_riscv_rv32").recursion.air.universal_shared_provider;
 pub const manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
 pub const catalog_mod = @import("air/segment_outer_typed_catalog.zig");
@@ -35,7 +35,7 @@ pub const relation = @import("stwo_riscv_air_lang").relation;
 pub const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 pub const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
 pub const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
-pub const transcript = @import("transcript_program_v2.zig");
+pub const transcript = @import("variable_boundary_transcript_program.zig");
 pub const native_relations = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 pub const public_data_support = @import("stwo_riscv_rv32").testing.air.public_data_test_support;
 

@@ -11,7 +11,7 @@
 //!     per group) at `Slot.buffer(claims)`; Plan.init checks its groups
 //!     against `Slot.of(origin)`;
 //!   * Stage2 mixes the whole buffer (`Layout.count` claims);
-//!   * the composition roles builder (m8_native_composition_roles.zig) maps a
+//!   * the composition roles builder (native_composition_roles.zig) maps a
 //!     role's claim parameter P.claims + r (r = ram 0 / kio 1 / wire 2) to
 //!     `Slot.index[r]`, the claim index its ClaimSlot patches from.
 const std = @import("std");

@@ -18,11 +18,11 @@ pub const relation_interaction = @import("stwo_riscv_air_lang").framework.relati
 // compile-time contract without treating their current `PRODUCTION_ACTIVATION`
 // flags as stronger evidence than they are.
 pub const transcript_components = @import("segment_transcript_outer_components.zig");
-pub const transcript_source = @import("segment_transcript_outer_source_v2.zig");
-pub const statement_source = @import("segment_statement_outer_source_v2.zig");
+pub const transcript_source = @import("variable_boundary_transcript_source.zig");
+pub const statement_source = @import("variable_boundary_statement_source.zig");
 pub const statement_components = @import("segment_statement_outer_components.zig");
 pub const public_components = @import("segment_public_outer_components.zig");
-pub const range_authority = @import("segment_range_authority_v2.zig");
+pub const range_authority = @import("variable_boundary_range_authority.zig");
 pub const shared_schedule = @import("segment_shared_poseidon_schedule.zig");
 pub const boundary_components = @import("air/segment_boundary_components.zig");
 pub const verifier_input_provider =

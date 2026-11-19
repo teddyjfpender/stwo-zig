@@ -106,7 +106,7 @@ Do not copy a later `current.json` over the merge checkpoint and imply that its 
 
 ## 5. CI and broad-suite truthfulness
 
-[CI run 42494574484](https://github.com/teddyjfpender/stwo-zig/actions/runs/42494574484)
+[CI run 42494574484](https://github.com/starknet-innovation/stwo-zig/actions/runs/42494574484)
 belongs to backup snapshot `e4c4a9da65700da47af40a0b6e9bb7ecc1014571`.
 It was in progress when queried and subsequently completed **FAIL**; exact final job counts were still being collected.
 Hosted CI exposed an AOT name collision; the later backup repairs it with zero net code growth.
@@ -220,7 +220,7 @@ Native request-only reachability is therefore insufficient to prove the old stac
 - [ ] Delete retired code and its retired tests together; retain all live lifecycle tests.
 
 The later installation Owner is backup-only:
-[driver_install.zig at the published backup](https://github.com/teddyjfpender/stwo-zig/blob/0fd4c01b25b38be507165645366ba71a3d3b9b55/src/integrations/riscv_cuda/rv64/jobs/driver_install.zig).
+[driver_install.zig at the published backup](https://github.com/starknet-innovation/stwo-zig/blob/0fd4c01b25b38be507165645366ba71a3d3b9b55/src/integrations/riscv_cuda/rv64/jobs/driver_install.zig).
 Do not add a broken relative link to it or assume the merge prefix contains that file.
 
 ## 9. Apply backup work as coherent, reviewable batches

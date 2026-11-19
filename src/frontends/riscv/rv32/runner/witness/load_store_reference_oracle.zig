@@ -8,7 +8,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const Opcode = @import("stwo_riscv_isa").machine.decode.Opcode;
 const load_store_semantics_module =
-    @import("../../air/semantics/load_store_legacy_test_oracle.zig");
+    @import("../../air/semantics/load_store_reference_oracle.zig");
 const load_store_semantics = load_store_semantics_module.Semantics(QM31);
 const w = @import("writer.zig");
 

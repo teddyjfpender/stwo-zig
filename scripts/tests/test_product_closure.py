@@ -53,6 +53,12 @@ class NativeCpuProductCheckTest(unittest.TestCase):
             facade.write_text(aliases)
             caller.write_text(caller.read_text() + 'const whole = @import("api");\n')
             self.assertIn("src/bad.zig", inspect_sources(root, manifest).relative_sources())
+            facade.write_text(aliases.replace('@import("bad.zig")', '@import("fixture")'))
+            caller.write_text('const T = @import("api").primitives.fixed.Value;\n')
+            self.assertNotIn("src/bad.zig", inspect_sources(root, manifest).relative_sources())
+            caller.write_text('const T = @import("api").unrelated.Value;\n')
+            with self.assertRaisesRegex(ClosureError, "undeclared named import 'fixture'"):
+                inspect_sources(root, manifest)
 
     def test_aggregate_facade_binds_only_existing_support_and_generic_cpu_engine(self):
         import re

@@ -1,4 +1,4 @@
-//! Internal segment public outer source v2 authority shard; use segment_public_outer_source_v2.zig publicly.
+//! Internal segment public outer source v2 authority shard; use variable_boundary_outer_source.zig publicly.
 
 const dependency_0 = @import("segment_public_outer_source_contract.zig");
 const dependency_1 = @import("segment_public_outer_source_arithmetic_graph_binding.zig");

@@ -1,7 +1,7 @@
 # LS joint REG/RAM write induction (LS48 -> LS32 gate)
 
 Status: recovered implementation; qualification of the current MAIN70/schema7
-port is tracked in [rv64-ls32-qualification.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-ls32-qualification.md).
+port is tracked in [rv64-ls32-qualification.md](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-ls32-qualification.md).
 Sections 1–10 preserve the earlier LS32 reasoning and historical measurements.
 This is the design gate for removing the eight LS v2 U16 queries on the RAM
 after-value limbs (logical columns 18-21) and the load result C (40-43). Base
@@ -83,7 +83,7 @@ used inside the value induction without circularity.
 * **P5 FUNCTION writers.** Every consumed FUNCTION fact matches provider
   truth under the closed typed relation. The current source audit is complete
   for all52 architectural writers, explicitly including LUI/AUIPC, in
-  [rv64-ls32-qualification.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-ls32-qualification.md#every-register-writer-and-its-source-authority).
+  [rv64-ls32-qualification.md](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-ls32-qualification.md#every-register-writer-and-its-source-authority).
   ALU sum/difference anchors are `word16_v1/alu.zig:143`; BINARY byte tuple
   anchors `word16_v1/binary.zig:97`; SHIFT tuple/sign anchors
   `word16_v1/shift_word.zig:80,84,109`; MUL RESULT BYTE coverage

@@ -11,7 +11,7 @@ const verifier_types = @import("stwo_core").verifier_types;
 const lookup_physical_v2 =
     @import("../air/lang/lookup_physical_manifest.zig");
 const statement_mod = @import("../air/statement.zig");
-const profile_mod = @import("vm_air_profile_v2.zig");
+const profile_mod = @import("variable_boundary_vm_air_profile.zig");
 const base_assembly = @import("../prover/base_component_assembly.zig");
 const circuit = @import("stwo_riscv_air_lang").physical_profile;
 

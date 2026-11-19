@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
-const statement_v2 = @import("../air/statement_v2.zig");
+const statement_v2 = @import("../air/variable_boundary_statement.zig");
 const types = @import("types.zig");
 const verifier = @import("verifier.zig");
 

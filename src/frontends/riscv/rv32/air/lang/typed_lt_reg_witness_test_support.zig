@@ -3,7 +3,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const opcode_entries = @import("../lookups/opcode_entries.zig");
 const Opcode = @import("stwo_riscv_isa").decode.Opcode;
-const legacy = @import("../../runner/witness/lt_reg_legacy_test_oracle.zig");
+const legacy = @import("../../runner/witness/lt_reg_reference_oracle.zig");
 const witness = @import("typed_lt_reg_witness.zig");
 
 pub const OwnedColumns = struct {

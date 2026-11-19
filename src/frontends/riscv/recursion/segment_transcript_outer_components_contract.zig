@@ -18,8 +18,8 @@ pub const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 pub const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 pub const typed_component = @import("stwo_riscv_air_lang").framework.universal_typed_component;
 pub const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
-pub const source_v2 = @import("segment_transcript_outer_source_v2.zig");
-pub const transcript = @import("transcript_program_v2.zig");
+pub const source_v2 = @import("variable_boundary_transcript_source.zig");
+pub const transcript = @import("variable_boundary_transcript_program.zig");
 
 pub const control_air = @import("stwo_riscv_air_lang").framework.control;
 pub const control_witness = @import("stwo_riscv_recursion_air").control.witness;

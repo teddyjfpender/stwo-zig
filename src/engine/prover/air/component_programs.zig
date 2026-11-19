@@ -6,7 +6,7 @@ const M31 = m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 const node_programs = @import("component_program_nodes.zig");
-const lookup_v2 = @import("component_lookup_program_v2.zig");
+const lookup_v2 = @import("component_partitioned_lookup_program.zig");
 pub const BasePolynomialOp = node_programs.BasePolynomialOp;
 pub const BasePolynomialNode = node_programs.BasePolynomialNode;
 pub const OwnedBasePolynomialProgram = node_programs.OwnedBasePolynomialProgram;

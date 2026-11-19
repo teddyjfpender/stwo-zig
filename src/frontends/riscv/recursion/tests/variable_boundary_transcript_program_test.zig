@@ -17,7 +17,7 @@ const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 const segment_v2 = @import("stwo_riscv_rv32").recursion.segment_statement;
 const scheduled = @import("scheduled_channel_test_support.zig");
-const transcript = @import("../transcript_program_v2.zig");
+const transcript = @import("../variable_boundary_transcript_program.zig");
 
 test "recording channel preserves native transcript and rejects corrupt trace coordinates" {
     const recording = @import("../recording_poseidon_channel.zig");

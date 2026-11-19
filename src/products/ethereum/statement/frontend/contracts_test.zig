@@ -4,7 +4,7 @@ test "api invariant: native and product VM authority bindings preserve canonical
     try @import("std").testing.expect(@import("rv64/ethereum_services/candidate_services.zig").mulAddMod == @import("stwo_riscv_rv64").service_calls.reference_crypto.mulAddMod);
     const std = @import("std");
     const native = recursion.vm_air_profile_v2;
-    const product = @import("recursion/ethereum_vm_air_profile_v2.zig");
+    const product = @import("recursion/ethereum_variable_boundary_air_profile.zig");
     const Selector = @TypeOf(@as(native.ProfileV2, undefined).circuit_profile);
     try std.testing.expect(@typeInfo(Selector).@"enum".tag_type == u16);
     try std.testing.expectEqual(@as(usize, 1), @typeInfo(Selector).@"enum".fields.len);

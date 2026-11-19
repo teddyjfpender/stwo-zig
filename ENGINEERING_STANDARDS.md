@@ -422,8 +422,9 @@ This is an implementation-status ledger, not an exception to the rules above.
 Read the current contracts, workflows and linked issues when claiming closure;
 unmerged branches and draft prototypes are not installed enforcement.
 
-The required workspace gate landed in PR #339; named owner routing is recorded
-in issue #341, and branch archival/deletion landed in PR #337. CODEOWNERS routes
+The required workspace gate landed in [PR #339](https://github.com/starknet-innovation/stwo-zig/pull/339).
+[Issue #341](https://github.com/starknet-innovation/stwo-zig/issues/341) records named owner routing,
+and [PR #337](https://github.com/starknet-innovation/stwo-zig/pull/337) landed branch archival and deletion. CODEOWNERS routes
 the invariant-owner roles to `@teddyjfpender`. It routes review, not approval.
 These results do not establish complete boundary, security or release coverage.
 

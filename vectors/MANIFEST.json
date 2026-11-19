@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-vectors-manifest-v1",
   "description": "Golden vectors and fixtures tracked under vectors/. consumers lists live files that name the group path (git grep), not a proof of reachability. Historical receipts live at archive/pre-restructure-20261108.",
-  "archive": "https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors",
+  "archive": "https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors",
   "groups": {
     "vectors/cairo": {
       "files": 122,
@@ -736,6 +736,29 @@
         "tools/opstack/build.py"
       ],
       "owner": "opstack-statement",
+      "kind": "golden_fixture"
+    },
+    "vectors/riscv_air": {
+      "files": 35,
+      "consumers": [
+        "build_support/products/product_specs.zig",
+        "build_support/products/riscv_shared_shell.zig",
+        "design/README.md",
+        "design/repository/restructure-plan.md",
+        "design/typed-air/README.md",
+        "scripts/tests/product_closure_recursion_cases.py",
+        "scripts/tests/test_typed_air_p003_completion.py",
+        "scripts/tests/test_typed_air_poseidon_benchmark.py",
+        "scripts/tests/test_typed_air_r006_capture.py",
+        "scripts/typed_air/typed_air_poseidon_benchmark_lib/environment.py",
+        "scripts/typed_air/typed_air_v009_receipt.py",
+        "scripts/typed_air/typed_air_work_profile_contract_lib/matrix.py",
+        "src/frontends/riscv/air_lang/build.zig",
+        "src/frontends/riscv/build.zig",
+        "src/frontends/riscv/memory/typed/poseidon_layout_benchmark_artifact.zig",
+        "src/waist/prover_api/build.zig"
+      ],
+      "owner": "riscv-frontend",
       "kind": "golden_fixture"
     }
   },
@@ -2032,8 +2055,8 @@
     },
     {
       "path": "vectors/reports/rv64-productionisation/current.json",
-      "sha256": "88cc57a50574deb9a7efe500eccede4e2930ee9b602e59847e319cb51e39f241",
-      "bytes": 177676,
+      "sha256": "8311d1c7be11349cdfe2d8ce59f1ebd8007ec09119b638c71bedec3385a1f2e1",
+      "bytes": 177585,
       "group": "vectors/reports"
     },
     {
@@ -3429,9 +3452,219 @@
       "group": "vectors/riscv/rv64"
     },
     {
+      "path": "vectors/riscv_air/README.md",
+      "sha256": "d62b347357f586d99df16510b30c10c2d1aa1aa14f1eac6b3a0dae6e18f79b40",
+      "bytes": 13839,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/embedded.zig",
+      "sha256": "2bbdee2652a13256200838e0b700a0d8bf6879684bc99d6a483ec7befb9fd109",
+      "bytes": 1613,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/h009-poseidon2-cost-v1/frontier-v1.md",
+      "sha256": "e0bca4d449a7f2c715ca13fa3bc122d58357b00b24d6c04ba15e624d48f025de",
+      "bytes": 17505,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/h009-poseidon2-cost-v1/frontier-v1.tsv",
+      "sha256": "7bd29a3c85b02fd11d77f5a4c35780fcf5a0787b57ac77652dd3ecf63348bb15",
+      "bytes": 335821,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/h009-poseidon2-cost-v1/frontier.stwairm",
+      "sha256": "5ead00cfcb8cfd396836be9cc3a79ed80bfb0b8bc7913a1c6ab38dbcff879494",
+      "bytes": 275153,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/h009_embedded.zig",
+      "sha256": "a5949cb8278f5df4b7f00a668931308d75ca7beea9e8b30bc1d9d73719366778",
+      "bytes": 372,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/h010-poseidon-layout-v1/index-v1.tsv",
+      "sha256": "1c881a3a944794943f872ea85678a4809db68a96021b06abbc15ef42d878fd19",
+      "bytes": 3155,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/h010-poseidon-layout-v1/vector-log10.stwairb",
+      "sha256": "2d90fa647d55758f1fdf7be46de5232ee006ac3682ab0371ec1108c95c8f14ee",
+      "bytes": 143490,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/h010-poseidon-layout-v1/vector-log14.stwairb",
+      "sha256": "b2f84aa4ecc9f017932a2ca81fd89060d1fccb8bfaf90c9843ac9013cb6f83d8",
+      "bytes": 2293890,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/h010_embedded.zig",
+      "sha256": "c682c8196f4b47e86c093cd845833fa3a50ae2822d89f9e085e90c142c7438bb",
+      "bytes": 383,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m2-production-shadow-report-v1.md",
+      "sha256": "31b87b2dd018190766f7a15fe85e65cc43eff034b11f26b19fcc12d492510433",
+      "bytes": 4381,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m2-production-shadow-report-v1.tsv",
+      "sha256": "9022e3a5fb21f13d376eadedd6699993a744084a7cdb940e3b2e5ef911525e39",
+      "bytes": 1926,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/auipc.stwairc",
+      "sha256": "fdf007abde33c7d5456dab5930370f587347d32e738f1f95962ca21a9754ed40",
+      "bytes": 8398,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/base_alu_imm.stwairc",
+      "sha256": "851a79ae96fa9c83e88f8da0354c631f3294731c792f6d307804babe0c5aafb8",
+      "bytes": 11087,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/base_alu_reg.stwairc",
+      "sha256": "b9f70d1aefd28ba843ea9505ef50a8d2aac02e59bb0b02f38c30163285878299",
+      "bytes": 11866,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/branch_eq.stwairc",
+      "sha256": "bc57915b35d4fc894eaae8618cdf03e1e109d499f6785f9507ed31d888765bf2",
+      "bytes": 8009,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/branch_lt.stwairc",
+      "sha256": "2b96533b11d0c0d3330fa890de43511feec308fbbb8b56810b2db6a1f1202304",
+      "bytes": 11003,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/div.stwairc",
+      "sha256": "cb7974c52d29502b6cb32e64b5fb89e2f041d5a7e6f88150579384de3413610e",
+      "bytes": 24329,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/fence.stwairc",
+      "sha256": "577808e07f07973bdf582c48ce3ca73820dfe1f7ed1e06224b5689be93b830b1",
+      "bytes": 2503,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/index-v1.tsv",
+      "sha256": "6338ce18475e3367e1718657e604ccc0e410a4e122e054b10a9fe7355c6d1f93",
+      "bytes": 9681,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/jal.stwairc",
+      "sha256": "f29ed935ceef21ca9fbd31df90b6b1666ad2ee4cd7188667f83b7d541e27ec9e",
+      "bytes": 5703,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/jalr.stwairc",
+      "sha256": "4dc80d7ef5961d44f2f87c10f77e2c196289752edd2a79f8b2d8d41cd4476900",
+      "bytes": 11808,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/load_store.stwairc",
+      "sha256": "755190b94add0e7bd3b8c681b30fdc80f6cdaad0698391e16582f05921f79bfd",
+      "bytes": 17818,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/lt_imm.stwairc",
+      "sha256": "36d82ff35378f7ff24c4d18feed48f3853843334f54ab771fd9dbabf506ea1e0",
+      "bytes": 10763,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/lt_reg.stwairc",
+      "sha256": "b3b8de6bf0f7f56a6c5d42883eaadf36b3e7d8badd979a865e8e7c83ad48e8d9",
+      "bytes": 12196,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/lui.stwairc",
+      "sha256": "aae28392004ba2e01ffaab5a26c5fdfe28976d410a079f026b770078501906f5",
+      "bytes": 5271,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/mul.stwairc",
+      "sha256": "e61d0065f64fb1972346772f578779c3f53df74bca757a249b3a3350a959e975",
+      "bytes": 11276,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/mulh.stwairc",
+      "sha256": "f3eb3a7e5a3755186ceda42ee1089cd40342bbe54441f3fd5f1ea780b7a3255b",
+      "bytes": 15509,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/shifts_imm.stwairc",
+      "sha256": "1e0bc8863ae8afbd2e695e3544eb1a4cfbcdaebf32b2636db613f0916ce85451",
+      "bytes": 18792,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/m3-compat-v1/shifts_reg.stwairc",
+      "sha256": "e7aa4102ba2ad228b8590b77108122ec3fe6374b5c3c20cbb5a0b09ae02babe7",
+      "bytes": 20879,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/p002-native-family-static-profile-v1/profiles-v1.md",
+      "sha256": "d112808bd5676ab1955302910ee5bc450fc30eff44cf4e1f48bb5e230d98f87c",
+      "bytes": 4791,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/p002-native-family-static-profile-v1/profiles-v1.tsv",
+      "sha256": "e61540ffbb0ebc35379fb1bc2d0c160e4c9f707b584687b53d4486b7f54f0f2a",
+      "bytes": 8960,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/p003-work-profile-closure-v1/matrix-v1.json",
+      "sha256": "8cabf187bde7639a7e66faf04362c986507b49e83f3871e44cbd8c3a3ece48c4",
+      "bytes": 13975,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/p003-work-profile-closure-v1/scaling-blocker-v1.json",
+      "sha256": "05d85ae0364bbbee1dc4f793470b4f600fbda5e6da1054d2484ad63221fcc45c",
+      "bytes": 4399,
+      "group": "vectors/riscv_air"
+    },
+    {
+      "path": "vectors/riscv_air/p003-work-profile-closure-v1/source-relocation-v1.json",
+      "sha256": "2276346ff921cc376fe8092a2cc4bb8b373542b3e9a6ad09bf0129c1cc3fa819",
+      "bytes": 568,
+      "group": "vectors/riscv_air"
+    },
+    {
       "path": "vectors/riscv_csp/README.md",
-      "sha256": "43890904843a7bf65f4488a92e1c92144ecea0bf821cb14cf51b4f6d5c3dc63b",
-      "bytes": 73844,
+      "sha256": "32b6c8b29e4392cf0a784fd951366726ffdcfe6ea9dce06bea3a0157e950b0de",
+      "bytes": 74150,
       "group": "vectors/riscv_csp"
     },
     {

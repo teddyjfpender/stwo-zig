@@ -283,7 +283,7 @@ On Anvil Shanghai with solc 0.8.30, the seven-query fixture uses
 test uses 9,981,690 gas for 30 distinct queries. Both paths reuse sample
 and row workspace and accumulate packed challenge coefficients.
 
-Regenerate the fixture with Zig 0.15.2 from the root of the [archived OP checkout](https://github.com/teddyjfpender/stwo-zig/tree/089bc2437). These source paths belong to that revision.
+Regenerate the fixture with Zig 0.15.2 from the root of the [archived OP checkout](https://github.com/starknet-innovation/stwo-zig/tree/089bc2437). These source paths belong to that revision.
 
 ```sh
 zig run --dep core -Mroot=settlement/tools/export_deep_vector.zig \
@@ -304,7 +304,7 @@ and trace openings. They ran on Shanghai Anvil with an elevated limit.
 | `truth-1.bin` | 0 | 7,444 | 7,453 | 245,668,989 |
 | `truth-0.bin` | 2732 | 3,595 | 10,030 | 303,806,494 |
 
-The [receipt](https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/settlement/fixtures/native-deep-120794432-receipt.json) identifies the
+The [receipt](https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/settlement/fixtures/native-deep-120794432-receipt.json) identifies the
 accepted bundle and workers. Replay the checked-in CPU query from this directory.
 
 ```sh
@@ -347,7 +347,7 @@ native DEEP answers.
 
 The fixtures come from `truth-3.bin` and `truth-4.bin` of the complete
 native Kona proof for OP Mainnet block **121057303**, benchmarked on
-[`2fe577d6e`](https://github.com/teddyjfpender/stwo-zig/commit/2fe577d6e82dd200430912f6ea36d19c35dadea3).
+[`2fe577d6e`](https://github.com/starknet-innovation/stwo-zig/commit/2fe577d6e82dd200430912f6ea36d19c35dadea3).
 The fresh native receiver accepted all three CPU and seven service
 proofs. Its receipt is checked in alongside the openings. Each fixture
 identifies its source worker by SHA-256 and records the root and original

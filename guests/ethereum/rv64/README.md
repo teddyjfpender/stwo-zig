@@ -58,14 +58,14 @@ Building and host validation are preparation evidence. They do not establish
 RV64 block execution or a STARK proof. The CSP-only loader's 4KiB input and
 32-byte output contract does not admit this guest. The separate `ethereum-run` adapter now validates the much larger input and
 43-byte expected output; its completed real-block execution and independent
-oracle receipts are archived in [`rv64-ethereum-20261030`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-ethereum-20261030/README.md).
+oracle receipts are archived in [`rv64-ethereum-20261030`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-ethereum-20261030/README.md).
 
 An optional independent execution linkage is available after native and Unicorn
 execution reports exist: pass `--execution-report` and `--oracle-report` together
 with `--prepare-fixture`. The script checks freshly built ELF/source identity,
 validated input/output, exact instruction count, all registers, PC and the oracle
 report's native-report hash before publishing execution status. Proof status
-always remains false. See the archived [oracle note](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-ethereum-20261030/ORACLE.md).
+always remains false. See the archived [oracle note](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-ethereum-20261030/ORACLE.md).
 
 ## Lean services profile (`ethereum-services-v2-lean`)
 
@@ -80,6 +80,6 @@ signature data only). On block 24,628,607 this executes 104,253,913 instead of
 lean recovery, aligned-only memory functions in `mem/`, variable-time
 inversion, word-wise Keccak absorption, and patched `vendor/` copies of
 revm-interpreter, revm-bytecode and zeth-mpt for the EVM and MPT paths). Receipts and the
-independent services oracle are archived in [`rv64-guest-lean-20261031`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-guest-lean-20261031/README.md).
+independent services oracle are archived in [`rv64-guest-lean-20261031`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-guest-lean-20261031/README.md).
 The `heap_start` ABI symbol differs between the two ELFs; always derive
 execution and proving request symbols from the ELF being run.

@@ -322,7 +322,7 @@ contracts' `ci` blocks.
 |---|---|---|
 | `autoresearch/` | — | retired in this PR. Live parts → `tools/perf/`, `guests/ethereum/`, `tests/fixtures/<product>/`, `bench/<product>/`, `.claude/skills/`; history behind an archive tag |
 | `vectors/` | `vectors/<line>/` golden only | `reports/` (14,772) → evidence store (Phase 3). `fixtures/` (177) → `vectors/<line>/fixtures`. `riscv_guests/` (28 Rust) → `guests/testing/`. `riscv_elfs/`, `riscv_csp/` → `vectors/riscv/`. `cairo/`, `cairo_traces/` → `vectors/cairo/`. `starknet/` (116 MB) → `vectors/starknet/` behind an LFS or artifact pointer. `rv64-m5/`, `rv64-m6/` → evidence. `fields.json`, `constraint_expr.json`, `air_derive.json` → `vectors/waist/`. Add `vectors/MANIFEST.json` (path, sha256, generator, generator pin, consumers) |
-| `design/` | docs only | `typed-air/artifacts/` (36 files, 3.3 MB, `*.zig` embedded by `product_specs.zig:63-65` and `riscv_shared_shell.zig:143-157`) → `src/frontends/riscv/air_lang/artifacts/` as an owned generated-artifact module. `riscv-proving-stack/m7-handoff/` (75 files, read by `rv64_gate.py`, `rv64_m7_integration_stack.py`, `source_conformance_lib/rv64_flags.py`) → `conformance/rv64/presets/`. 404 loose `riscv-proving-stack/*.md` → `design/riscv/{current,decisions}` plus the evidence store for dated receipts. `typed-air/{receipts,performance,notes}` → evidence store |
+| `design/` | docs only | `typed-air/artifacts/` (36 files, 3.3 MB, `*.zig` embedded by `product_specs.zig:63-65` and `riscv_shared_shell.zig:143-157`) → `vectors/riscv_air/` as an owned generated-artifact module. `riscv-proving-stack/m7-handoff/` (75 files, read by `rv64_gate.py`, `rv64_m7_integration_stack.py`, `source_conformance_lib/rv64_flags.py`) → `conformance/rv64/presets/`. 404 loose `riscv-proving-stack/*.md` → `design/riscv/{current,decisions}` plus the evidence store for dated receipts. `typed-air/{receipts,performance,notes}` → evidence store |
 | `conformance/` | JSON policy, pins, schemas, presets | 15 dated `.md` goals and audits → `design/decisions/` or evidence; `evidence/` (32) → evidence store; `circuit_slot_order/` (a package with `build.zig.zon`) → `src/waist/recursion_wire/tests/slot_order/` |
 | `tests/` | `tests/<line>/` system tests | 7 loose `native_cuda_*.zig` → `tests/native/cuda/`; `tests/cuda/rv64` (79) → `tests/ethereum/cuda/`; `tests/scripts/` → `scripts/tests/`; `tests/fixtures/<product>/` stays |
 | `scripts/` | 4 entry points at top + `scripts/<area>/` packages | 207 loose scripts → `scripts/{ci,riscv,cairo,native,cuda,metal,evidence,tensor}/`; prefixes today: `riscv_` 138, `rv64_` 53, `native_` 35, `cuda_` 27, `check_` 21, `metal_` 9, `riscv64_` 9, `cairo_` 8. Unreachable scripts are deleted (reachability test exists) |
@@ -597,7 +597,7 @@ and Cairo stay until S1/S5.
 
 | Hazard | Evidence | Mitigation |
 |---|---|---|
-| `design/` holds build inputs | `product_specs.zig:63-65` and `riscv_shared_shell.zig:143-157` embed `design/typed-air/artifacts/{embedded,h009_embedded,h010_embedded}.zig` (36 files, 3.3 MB) | move to `src/frontends/riscv/air_lang/artifacts/` before any `design/` cleanup |
+| `design/` holds build inputs | `product_specs.zig:63-65` and `riscv_shared_shell.zig:143-157` embed `design/typed-air/artifacts/{embedded,h009_embedded,h010_embedded}.zig` (36 files, 3.3 MB) | move to `vectors/riscv_air/` before any `design/` cleanup |
 | `design/` holds runtime presets | `design/riscv-proving-stack/m7-handoff/` (75 files) read by `rv64_gate.py`, `rv64_m7_integration_stack.py`, `source_conformance_lib/rv64_flags.py`, `test_rv64_flags.py` | move to `conformance/rv64/presets/` in one PR with the readers |
 | Source identity covers docs | `riscv_recursive_product.py:35-36` hashes `build.zig`, `build.zig.zon`, `build_support`, `src`, `scripts`, `design`, `conformance` | a doc move changes product identity; switch to closure hashing (Phase 3) **before** evidence moves, and record the identity break once |
 | `vectors/` mixes goldens and receipts | 14,772 `reports/` files next to 177 fixtures; 36 code files read `vectors/reports`; 181 `src` files reference `vectors/`; `.gitattributes` has per-receipt rules | `vectors/MANIFEST.json` first; move receipts only after readers use `EVIDENCE_DIR` |
@@ -648,7 +648,7 @@ and Cairo stay until S1/S5.
 The package contract's historical `versioned_files` key caps all owned regular
 files. The package workspace report now lists versioned Zig basenames under
 `src/` separately, including the detached recursion `_part_N` form. Use that
-census for the filename target. [Issue #370](https://github.com/teddyjfpender/stwo-zig/issues/370)
+census for the filename target. [Issue #370](https://github.com/starknet-innovation/stwo-zig/issues/370)
 tracks aligning the contract and reader ledger with that target.
 
 ---

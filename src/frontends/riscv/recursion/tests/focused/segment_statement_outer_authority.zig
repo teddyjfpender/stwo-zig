@@ -3,6 +3,6 @@ const std = @import("std");
 const components = @import("../../segment_statement_outer_components.zig");
 
 test {
-    _ = @import("../segment_statement_outer_source_v2_test.zig");
+    _ = @import("../variable_boundary_statement_source_test.zig");
     std.testing.refAllDeclsRecursive(components);
 }

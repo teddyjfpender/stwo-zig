@@ -1,4 +1,4 @@
-//! Internal segment public outer source v2 authority shard; use segment_public_outer_source_v2.zig publicly.
+//! Internal segment public outer source v2 authority shard; use variable_boundary_outer_source.zig publicly.
 
 pub const std = @import("std");
 pub const stwo_core = @import("stwo_core");
@@ -13,7 +13,7 @@ pub const native_relations = @import("stwo_riscv_air_lang").evaluation.relation_
 pub const statement_v1 = @import("stwo_riscv_rv32").air.statement;
 pub const statement_v2 = @import("stwo_riscv_rv32").air.statement_v2;
 pub const relation = @import("stwo_riscv_air_lang").relation;
-pub const source_v2 = @import("segment_leaf_authority_v2.zig");
+pub const source_v2 = @import("variable_boundary_leaf_authority.zig");
 pub const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 pub const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 pub const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;

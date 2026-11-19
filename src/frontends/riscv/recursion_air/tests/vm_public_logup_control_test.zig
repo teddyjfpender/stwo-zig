@@ -7,7 +7,7 @@ const QM31 = stwo_core.fields.qm31.QM31;
 
 const digest = @import("stwo_riscv_air_lang").digest;
 const relation = @import("stwo_riscv_air_lang").relation;
-const air = @import("../vm_public_logup_control_v2.zig");
+const air = @import("../variable_boundary_vm_public_logup.zig");
 const binding = @import("../vm_public_logup_control_relation.zig");
 const direct_program = @import("stwo_riscv_air_lang").framework.direct_constraint_program;
 const fixed_profile = @import("../protocol/recursion/fixed_profile.zig");

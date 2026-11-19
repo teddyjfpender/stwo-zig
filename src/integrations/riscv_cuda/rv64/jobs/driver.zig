@@ -9,7 +9,7 @@
 //!   driver_dag.zig      request DAG + static placement (+ two-phase marks)
 //!   driver_memory.zig   one two-phase memory plan per GPU
 //!   driver_peer.zig     PeerExchange over peer_ops.cu
-//!   ../m8_capture_stream.zig  capture -> CaptureSink -> Stage1 release
+//!   ../capture_stream.zig  capture -> CaptureSink -> Stage1 release
 //! plus a host model of the peer exchange (`HostExchange`) for tests.
 const std = @import("std");
 const api = @import("api.zig");
@@ -31,7 +31,7 @@ pub const request = @import("driver_request.zig");
 pub const dag = @import("driver_dag.zig");
 pub const memory = @import("driver_memory.zig");
 pub const peer = @import("driver_peer.zig");
-pub const capture = @import("../m8_capture_stream.zig");
+pub const capture = @import("../capture_stream.zig");
 pub const Driver = request.Driver;
 
 /// Host model of `PeerExchange` (tests and the fake device): replicas are

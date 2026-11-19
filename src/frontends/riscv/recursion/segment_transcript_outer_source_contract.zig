@@ -1,4 +1,4 @@
-//! Internal segment transcript outer source v2 authority shard; use segment_transcript_outer_source_v2.zig publicly.
+//! Internal segment transcript outer source v2 authority shard; use variable_boundary_transcript_source.zig publicly.
 
 pub const std = @import("std");
 pub const stwo_core = @import("stwo_core");
@@ -11,7 +11,7 @@ pub const public_data_v2 = @import("stwo_riscv_rv32").air.public_data_v2;
 pub const statement_v1 = @import("stwo_riscv_rv32").air.statement;
 pub const relation = @import("stwo_riscv_air_lang").relation;
 pub const provider = @import("stwo_riscv_memory").typed.typed_poseidon2_witness;
-pub const transcript = @import("transcript_program_v2.zig");
+pub const transcript = @import("variable_boundary_transcript_program.zig");
 pub const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 pub const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 pub const roster = @import("stwo_riscv_air_lang").framework.universal_roster;

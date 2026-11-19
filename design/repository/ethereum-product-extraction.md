@@ -1,7 +1,7 @@
 # Ethereum product extraction
 
-Owner: `ethereum-statement`, @teddyjfpender. Delivery issue: [#336](https://github.com/teddyjfpender/stwo-zig/issues/336).
-The contract and its recorded amendments are [RFC #352](https://github.com/teddyjfpender/stwo-zig/issues/352).
+Owner: `ethereum-statement`, @teddyjfpender. Delivery issue: [#336](https://github.com/starknet-innovation/stwo-zig/issues/336).
+The contract and its recorded amendments are [RFC #352](https://github.com/starknet-innovation/stwo-zig/issues/352).
 This note records the current extraction boundary; it does not replace that RFC.
 
 ## Destination and compatibility
@@ -38,7 +38,7 @@ The current prerequisite slice separates these existing shared authorities:
   checkpoint signature transaction now sets this package to `1.0.0`.
 
 The owner approved the two shared public providers and four checkpoint input
-signatures in the [recorded RFC amendment](https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6828863621).
+signatures in the [recorded RFC amendment](https://github.com/starknet-innovation/stwo-zig/issues/352#issuecomment-6828863621).
 They are now installed: RV64 `service_calls` aliases the original call owner,
 and CPU `rv64_proof_artifact_support` aliases the original shared helper owner.
 The CPU package is `0.3.0`; these source-package versions are not release tags or
@@ -150,7 +150,7 @@ negative/reference coverage. It does not authorize extra neutral public APIs.
 
 ## Approved canonical-provider landing
 
-The owner explicitly approved the [bounded follow-up amendment](https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6832806430)
+The owner explicitly approved the [bounded follow-up amendment](https://github.com/starknet-innovation/stwo-zig/issues/352#issuecomment-6832806430)
 on 2026-11-12. It permits the exact four canonical bindings: frontend prover
 `blake3_profile_artifact.ForOwner`, RV64 `service_calls.curves.arithmetic`, and
 CPU `rv64_native_schema` / `rv64_native_rungs`. Existing algorithms and schemas
@@ -255,7 +255,7 @@ configuration/flags/maintained scripts unchanged. No move subtraction credit.
 ## Approved execution-provider amendment
 
 The owner explicitly approved the exact 11-file execution-provider amendment on
-2026-11-12; the [recorded decision](https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6835724702)
+2026-11-12; the [recorded decision](https://github.com/starknet-innovation/stwo-zig/issues/352#issuecomment-6835724702)
 pins the full 17-owner member/hash ledger and patch. CPU now exposes the static
 `rv64_execution` domains; the neutral artifact facade publishes its existing
 Header and validatePcsConfig; expected-image ownership stays in the product.

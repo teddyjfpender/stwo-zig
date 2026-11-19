@@ -2,7 +2,7 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const opcode_entries = @import("../lookups/opcode_entries.zig");
-const legacy_oracle = @import("../../runner/witness/fence_legacy_test_oracle.zig");
+const legacy_oracle = @import("../../runner/witness/fence_reference_oracle.zig");
 const witness = @import("typed_fence_witness.zig");
 
 pub const OwnedColumns = struct {

@@ -513,7 +513,7 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       instead of leaving a hole in it — such a trace loses on the access chain
       (`InvalidRegisterAccessChain`) instead. And the Sail leg of the honest
       obligation skips wherever the pinned oracle is absent.
-      Delivered for [GitHub issue #131](https://github.com/teddyjfpender/stwo-zig/issues/131).
+      Delivered for [GitHub issue #131](https://github.com/starknet-innovation/stwo-zig/issues/131).
 - [ ] Exhaustively check small-limb component domains where enumeration is
       feasible, with Sail transitions as the reference relation.
 - [ ] Maintain serialized-proof bit-flip, truncation, splice, and wrong-statement

@@ -112,9 +112,18 @@ fn addFamily(b: *std.Build, frontend: *std.Build.Module, protocol: ProtocolModul
         for (contract.object.get("injected_modules").?.array.items) |injected| {
             // Bound only on the package's focused_test_root (riscv_focused_suite.bind), never on the library node.
             if (std.mem.eql(u8, injected.string, "focused_suite")) continue;
-            if (!std.mem.eql(u8, injected.string, "interop_postcard"))
-                std.debug.panic("unbound RISC-V injection {s}: {s}", .{ entry.name, injected.string });
-            node.addImport(injected.string, postcard);
+            if (std.mem.eql(u8, injected.string, "interop_postcard")) {
+                node.addImport(injected.string, postcard);
+                continue;
+            }
+            if (std.mem.eql(u8, entry.name, "stwo_riscv_air_lang") and std.mem.startsWith(u8, injected.string, "typed_air_")) {
+                const owned_air = b.dependency("stwo_riscv_air_lang", .{ .target = target, .optimize = optimize }).module(entry.name);
+                if (owned_air.import_table.get(injected.string)) |fixture| {
+                    node.addImport(injected.string, fixture);
+                    continue;
+                }
+            }
+            std.debug.panic("unbound RISC-V injection {s}: {s}", .{ entry.name, injected.string });
         }
         // This checks the actual constructed graph, not a source-name proxy.
         std.debug.assert(node.import_table.get("stwo_core").? == protocol.core);

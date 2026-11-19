@@ -1,6 +1,6 @@
-//! Internal transcript program v2 authority shard; use transcript_program_v2.zig publicly.
+//! Internal transcript program v2 authority shard; use variable_boundary_transcript_program.zig publicly.
 
-const dependency_0 = @import("transcript_program_v2_contract.zig");
+const dependency_0 = @import("variable_boundary_transcript_contract.zig");
 
 const Check = dependency_0.Check;
 const Digest = dependency_0.Digest;

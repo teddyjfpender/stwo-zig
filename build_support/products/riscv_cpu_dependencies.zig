@@ -1,7 +1,13 @@
 //! Exact package roots constructed by the RISC-V CPU scope.
 //! Relocations and owned test partitions preserve the original subject coverage.
 
-pub const roots = &.{
+pub const air_fixture_roots = &[_][]const u8{
+    "dependency:../src/frontends/riscv/air_lang:../../../../vectors/riscv_air/embedded.zig",
+    "dependency:../src/frontends/riscv/air_lang:../../../../vectors/riscv_air/h009_embedded.zig",
+    "dependency:../src/frontends/riscv/air_lang:../../../../vectors/riscv_air/h010_embedded.zig",
+};
+
+pub const roots = &([_][]const u8{
     "dependency:../src/products/ethereum/statement:frontend.zig",
     "dependency:../src/products/ethereum/statement:cpu/rv64_services_gkr_policy_test_root.zig",
     "dependency:../src/products/ethereum/statement:cpu.zig",
@@ -83,9 +89,9 @@ pub const roots = &.{
     "dependency:../src/integrations/riscv_cpu:rv64_logup_gkr_prototype_test_root.zig",
     "dependency:../src/integrations/riscv_cpu:rv64_logup_kernel_bench_main.zig",
     "dependency:../src/integrations/riscv_cpu:rv64_ls_circuit_lanes_test_root.zig",
-    "dependency:../src/integrations/riscv_cpu:rv64_m5_canon_native_test_root.zig",
-    "dependency:../src/integrations/riscv_cpu:rv64_m5_rootverify_test_root.zig",
-    "dependency:../src/integrations/riscv_cpu:rv64_m5_vk_table_test_root.zig",
+    "dependency:../src/integrations/riscv_cpu:rv64_canonical_native_test_root.zig",
+    "dependency:../src/integrations/riscv_cpu:rv64_root_receiver_test_root.zig",
+    "dependency:../src/integrations/riscv_cpu:rv64_verifier_key_table_test_root.zig",
     "dependency:../src/integrations/riscv_cpu:rv64_main_arena_test_root.zig",
     "dependency:../src/integrations/riscv_cpu:rv64_main_merkle_parking_test_root.zig",
     "dependency:../src/integrations/riscv_cpu:rv64_multiplication_degree3_circuit_test_root.zig",
@@ -208,4 +214,4 @@ pub const roots = &.{
     "dependency:../src/waist/recursion_wire:mod.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
     "dependency:../src/waist/recursion_wire:postcard_error_codes.zig",
-};
+} ++ air_fixture_roots.*);

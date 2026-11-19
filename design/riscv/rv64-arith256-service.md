@@ -232,7 +232,7 @@ tape-wire bytes are unchanged (the arith extension exists only on v3 tapes).
 ## Integration into the shared v3 profile (2026-11-01)
 
 Merged with SHA-256 and bulk memory on `codex/rv64-guest-prover-v3-integration`
-([rv64-services-v3-integration.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-services-v3-integration.md)). What changed
+([rv64-services-v3-integration.md](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-services-v3-integration.md)). What changed
 for this family:
 
 - **Tape wire.** The arith records no longer sit between the secp and SHA-256

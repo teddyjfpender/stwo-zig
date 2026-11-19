@@ -18,7 +18,7 @@ preset or a machine-read pin; those live in `src/`, `conformance/` and
 
 | Former path | Current path |
 |---|---|
-| `design/typed-air/artifacts/` | `src/frontends/riscv/air_lang/artifacts/` (embedded by the riscv package) |
+| `design/typed-air/artifacts/` | `vectors/riscv_air/` (embedded by the riscv package) |
 | `design/riscv-proving-stack/m7-handoff/*.json` | `conformance/rv64/presets/` |
 | `design/typed-air/performance/m5-m9-protocol-v1.json` | `conformance/typed-air/m5-m9-protocol-v1.json` |
 | `design/riscv-proving-stack/` | `design/riscv/` |
@@ -31,8 +31,8 @@ Dated receipts, superseded milestone notes (M3–M7 handoffs, gpu-2s research,
 typed-AIR receipts and notes), `vectors/reports/` and `conformance/evidence/metrics-v2`
 were removed from the source tree. They remain available, byte for byte, at
 the archive tag
-[`archive/pre-restructure-20261108`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108)
+[`archive/pre-restructure-20261108`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108)
 — for example
-[`design/riscv-proving-stack/`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack)
+[`design/riscv-proving-stack/`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack)
 and
-[`vectors/reports/`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports).
+[`vectors/reports/`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports).

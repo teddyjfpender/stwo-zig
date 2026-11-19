@@ -1,4 +1,4 @@
-//! Internal transcript program v2 authority shard; use transcript_program_v2.zig publicly.
+//! Internal transcript program v2 authority shard; use variable_boundary_transcript_program.zig publicly.
 
 pub const std = @import("std");
 pub const stwo_core = @import("stwo_core");

@@ -14,7 +14,7 @@
 //! - the session, job, position and boundary/segment lineage identities.
 //!
 //! Boundary events use the transition-facing convention: entry is consumed
-//! and exit is produced.  `public_logup_v2.zig` reverses those signs when it
+//! and exit is produced.  `variable_boundary_public_logup.zig` reverses those signs when it
 //! computes verifier-side public compensation.  Consequently adjacent segment
 //! boundaries cancel directly while a standalone segment still cancels its
 //! native trace against the public compensation.

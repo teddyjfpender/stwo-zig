@@ -1,6 +1,6 @@
 # Mantle execution and CPU proving
 
-Private Mantle execution owner for [issue #377](https://github.com/teddyjfpender/stwo-zig/issues/377).
+Private Mantle execution owner for [issue #377](https://github.com/starknet-innovation/stwo-zig/issues/377).
 Its workspace, lockfile and pinned consensus/EVM dependencies are separate from
 ordinary OP/Ethereum execution. It accepts an execution only when the complete
 computed header matches an independently supplied expected block hash. This
@@ -101,7 +101,7 @@ with `RecursiveReceiverArtifactMismatch` (an artifact-integrity test).
 Changing both the root alias and final-fold proof together also rejects with
 `RootMismatch` at cryptographic verification. Both controls restore exact bytes.
 
-[PR #372](https://github.com/teddyjfpender/stwo-zig/pull/372) records the measured
+[PR #372](https://github.com/starknet-innovation/stwo-zig/pull/372) records the measured
 table, exact source/binary/input identities and external report/receipt manifest.
 The local cohort uses 16 workers, one lane, 1,048,575-step batches, native
 `d2_native_b4_q54_p20_fold4` and outer

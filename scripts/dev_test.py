@@ -133,7 +133,7 @@ FOCUSED_RULES = (
     ("stwo_riscv_frontend", "src/frontends/riscv/compat/tests/testing/cases/recursion/air/tests/universal_typed_component_test_support.zig", "test-native-typed-components"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion_air/tests/qm31_mul_full_relation_test_support.zig", "test-native-typed-components"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/scheduled_channel_test_support.zig", "test-retained-transcript-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/transcript_program_v2_test.zig", "test-retained-transcript-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/variable_boundary_transcript_program_test.zig", "test-retained-transcript-contracts"),
 
     ("stwo_core", "src/waist/core/air_components_test_root.zig", "test-air-components"),
     ("stwo_core", "src/waist/core/tests/borrowed_proof_capture_root.zig", "test-proof-capture"),

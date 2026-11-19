@@ -26,7 +26,7 @@ test {
     _ = @import("compat/qualification/sail_oracle.zig");
     _ = @import("compat/testing.zig");
     _ = @import("compat/tests/recursion/tests/recursion_air_composition_circuit_test.zig");
-    _ = @import("compat/tests/recursion/tests/segment_leaf_authority_v2_test.zig");
+    _ = @import("compat/tests/recursion/tests/variable_boundary_leaf_authority_test.zig");
     _ = @import("compat/tests/rv32/runner/minimal_trace/test.zig");
     _ = @import("compat/tests/rv64/tests/foundations_test.zig");
     _ = @import("compat/tests/rv64/tests/tape_wire_test.zig");

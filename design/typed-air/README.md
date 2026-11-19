@@ -58,9 +58,9 @@ correctness merely because its witness generator agrees with it.
 12. [PERFORMANCE.md](PERFORMANCE.md) — measurement and optimization discipline.
 13. [PROGRESS.md](PROGRESS.md) — current state, next actions, and chronological log.
 14. [decisions/README.md](decisions/README.md) — accepted and proposed decisions.
-15. [notes/README.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/notes/README.md) — dated research and implementation notes.
-16. [artifacts/README.md](../../src/frontends/riscv/air_lang/artifacts/README.md) — reviewed deterministic evidence.
-17. [receipts/README.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/README.md) — clean-snapshot milestone evidence and open gates.
+15. [notes/README.md](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/notes/README.md) — dated research and implementation notes.
+16. [artifacts/README.md](../../vectors/riscv_air/README.md) — reviewed deterministic evidence.
+17. [receipts/README.md](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/README.md) — clean-snapshot milestone evidence and open gates.
 
 ## Working rules
 
@@ -99,7 +99,7 @@ independently computed degree. The complete production program boundary also
 preserves ordered constraints, selectors, lookup metadata, and batching. A
 second pass now models the exact direct and pairs-batched LogUp identities,
 boundary terms, and quotient expansion for all 17 families. The versioned
-[M2 production report](../../src/frontends/riscv/air_lang/artifacts/m2-production-shadow-report-v1.md) pins those
+[M2 production report](../../vectors/riscv_air/m2-production-shadow-report-v1.md) pins those
 counts, dependencies, and final degrees. The `compat-v1` mapping binds every
 logical input to the exact preprocessed/main/interaction tree position while
 keeping logical and physical names distinct. Direct lowering now reproduces
@@ -113,7 +113,7 @@ for every opcode-manifest entry. Seventeen canonical `STWAIRC\0` v1 family
 manifests now bind the source schedule, semantic identity, exact physical
 layout, embedded direct and lookup runtime programs, complete degree records,
 hint identities, and exact-checked formal exports. Their
-[family-ordered index and binary artifacts](../../src/frontends/riscv/air_lang/artifacts/README.md) are regenerated
+[family-ordered index and binary artifacts](../../vectors/riscv_air/README.md) are regenerated
 and byte-compared by the package suite, with an explicit fail-closed check and
 review-only atomic update command. The command now validates both inputs and
 reports the first field-aware divergence with logical/physical names before an
@@ -138,7 +138,7 @@ decision; the completed experiment below selects none. V-006
 also pins one backend-neutral semantic/layout/executor/relation identity and
 co-attests it beside both verified backend paths; it does not change the
 transcript, public statement, proof bytes, or production verifier. The final
-[H-009 and V-006 receipts](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/README.md) name the immutable evidence and
+[H-009 and V-006 receipts](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/README.md) name the immutable evidence and
 its limits. This work continues to strengthen and reify the existing path
 rather than replace the prover or rewrite all opcodes.
 
@@ -155,7 +155,7 @@ interpreter with the differently shaped production static evaluator.
 
 Logs 10 and 14 read checked `STWAIRB\0` vectors and independently recorded
 Poseidon outputs. Their generated
-[readable index](../../src/frontends/riscv/air_lang/artifacts/h010-poseidon-layout-v1/index-v1.tsv) pins complete
+[readable index](../../vectors/riscv_air/h010-poseidon-layout-v1/index-v1.tsv) pins complete
 vector identities and boundary rows. Admission requires every expected output,
 all 430 direct roots on every timing row, and the complete 426-materialization
 and fixed-role mutation matrix to pass. Per-arm trace digests are regression
@@ -183,5 +183,5 @@ repeatable across reports; q0 and q100 log-14 witness directions flip and
 remain within MAD/noise. The result is therefore no meaningful repeatable
 layout regression and no selected layout. Proof, Metal-candidate, production,
 and promotion claims remain false. The
-[H-010 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+[H-010 receipt](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
 records that bounded conclusion without changing authority.

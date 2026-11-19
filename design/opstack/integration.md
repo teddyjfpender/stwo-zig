@@ -11,7 +11,7 @@ file to `design/opstack/integration.md`, and copy its companion
 | Target | `origin/main` @ `e625fd582` or newer |
 | Branch diff [M] | 1,885 files (1,705 added, 180 modified, 0 deleted), +342k lines |
 | Plan of record | `design/repository/restructure-plan.md` §3, §6.2, §6.3; `ENGINEERING_STANDARDS.md` §1, §5–§7 |
-| Archive for anything not ported | `https://github.com/teddyjfpender/stwo-zig/tree/089bc2437` (the PR head; do not delete the branch until the owner archives it) |
+| Archive for anything not ported | `https://github.com/starknet-innovation/stwo-zig/tree/089bc2437` (the PR head; do not delete the branch until the owner archives it) |
 
 Measurements are labelled [M] (measured from git trees), [D] (derived from
 measurements) or [E] (estimated).
@@ -703,7 +703,7 @@ Contract budgets:
 
 | What | Files [M] | Where it remains |
 |---|---:|---|
-| `vectors/reports/rv64-opstack-*` and other evidence | 623 (+169,559) | `https://github.com/teddyjfpender/stwo-zig/tree/089bc2437/vectors/reports` |
+| `vectors/reports/rv64-opstack-*` and other evidence | 623 (+169,559) | `https://github.com/starknet-innovation/stwo-zig/tree/089bc2437/vectors/reports` |
 | `settlement/fixtures/native-deep-120794432-receipt.json` | 1 | PR head; `tools/opstack/settlement/README.md` links it |
 | `opstack/tests/fixtures/transition-159321794/input.opd.gz` (13.9 MB) | 1 | PR blob URL plus sha256 in `tests/fixtures/opstack/transition-159321794/manifest.json`, fetched by `tools/opstack` on demand; the owner may attach it to a release asset |
 | Root-catalog and shared build wiring (`build_support/products/*`, riscv_cpu/riscv_cuda `build.zig*`, `ci.yml`, `dev_test.py`, `ci_scope_plan.py`, `test_opstack_ci_contract.py`, `rv64_resident_basket.py`) | 18 | superseded by package-local steps (§6) |

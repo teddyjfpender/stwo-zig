@@ -313,7 +313,7 @@ milestone M11 work (design §9), not parity issues.
 - [Circuit frontend](../../frontends/circuit/README.md)
 - [Circuit oracle](../../../tools/stwo-circuit-oracle-rs/README.md)
 
-RFC [#324](https://github.com/teddyjfpender/stwo-zig/issues/324) declares the
+RFC [#324](https://github.com/starknet-innovation/stwo-zig/issues/324) declares the
 existing OM31 CPU collaboration boundary. The circuit provider owns program,
 proof, wire and allocation teardown; the RISC-V consumer owns receiver policy,
 tree coverage and publication. Canonical package modules share field and engine
@@ -325,7 +325,7 @@ The CPU domain evaluator packs independent rows and resolves base-field products
 from the validated AIR. It fuses a lookup denominator only when the operands,
 register order and use counts match the full expression. OODS evaluation uses
 the scalar program. The prover engine owns the bounded packed inversion scratch
-for octic LogUp. The [full-block comparison and proof hashes](https://github.com/teddyjfpender/stwo-zig/issues/434#issuecomment-6986076656)
+for octic LogUp. The [full-block comparison and proof hashes](https://github.com/starknet-innovation/stwo-zig/issues/434#issuecomment-6986076656)
 cover an experimental direct OP root and a two-shard Ethereum Keccak configuration.
 
 Binary decode rejections preserve their stage/reason and optionally carry the

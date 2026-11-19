@@ -1,5 +1,5 @@
 const std = @import("std");
-const artifacts = @import("../artifacts/embedded.zig");
+const artifacts = @import("typed_air_artifacts");
 const diff = @import("../compat_manifest_diff.zig");
 
 const fixture = artifacts.m3_compat_v1_manifests[8]; // LUI.

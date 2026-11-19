@@ -2,7 +2,7 @@
 
 **Status:** normative repository-wide wire and interpretation contract for
 production RISC-V AIR binding. It originated in the first Level-2 AIR-binding
-work for [issue #136](https://github.com/teddyjfpender/stwo-zig/issues/136);
+work for [issue #136](https://github.com/starknet-innovation/stwo-zig/issues/136);
 contributor allocation is not part of this contract.
 
 **Machine-readable companion:**
@@ -519,7 +519,7 @@ masked memory write), complete `LocalRowEnv`, final architectural
 row/relation-tuple theorem signatures, and their compatibility with generated
 Sail are deliberately not invented by this Team A document. They are jointly
 versioned Stage A0/B0 work with Team B under
-[issue #137](https://github.com/teddyjfpender/stwo-zig/issues/137).
+[issue #137](https://github.com/starknet-innovation/stwo-zig/issues/137).
 
 Likewise, this file records no fictional approval. Signed review by the Team A
 AIR DRI, Team B Sail/profile DRI, LH representative, DIV representative, and

@@ -13,6 +13,17 @@ pub fn build(b: *std.Build) void {
     module.addImport("stwo_prover_api", dep1);
     module.addImport("stwo_prover_engine", dep2);
     module.addImport("stwo_riscv_isa", dep3);
+
+    const fixture_root = "../../../../vectors/riscv_air/";
+    inline for (.{
+        .{ "typed_air_artifacts", "embedded.zig" },
+        .{ "typed_air_h009_artifacts", "h009_embedded.zig" },
+        .{ "typed_air_h010_artifacts", "h010_embedded.zig" },
+    }) |fixture| module.addAnonymousImport(fixture[0], .{
+        .root_source_file = b.path(fixture_root ++ fixture[1]),
+        .target = target,
+        .optimize = optimize,
+    });
     const focused_tests = b.addTest(.{ .root_module = module, .filters = &.{"R-012 framework"} });
     const focused_run = b.addRunArtifact(focused_tests);
     focused_run.has_side_effects = true;

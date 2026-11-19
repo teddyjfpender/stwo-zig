@@ -10,11 +10,11 @@ const support = @import("stwo_riscv_rv32").testing.air.public_data_test_support;
 const relation_challenges = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 const statement_v1 = @import("stwo_riscv_rv32").air.statement;
 const air_v2 = @import("../segment_leaf_outer_air.zig");
-const source_v2 = @import("../segment_leaf_authority_v2.zig");
+const source_v2 = @import("../variable_boundary_leaf_authority.zig");
 const boundary_v2 = @import("../segment_leaf_outer_authority.zig");
-const range_authority_v2 = @import("../segment_range_authority_v2.zig");
-const transcript_source_v2 = @import("../segment_transcript_outer_source_v2.zig");
-const transcript = @import("../transcript_program_v2.zig");
+const range_authority_v2 = @import("../variable_boundary_range_authority.zig");
+const transcript_source_v2 = @import("../variable_boundary_transcript_source.zig");
+const transcript = @import("../variable_boundary_transcript_program.zig");
 const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
@@ -26,7 +26,7 @@ const manifest_v2 = @import("../air/segment_outer_adapter_manifest.zig");
 const catalog_v2 = @import("../air/segment_outer_typed_catalog.zig");
 const range_bridge = @import("stwo_riscv_rv32").recursion.air.range_check_8_8_bridge;
 const statement_components_v2 = @import("../segment_statement_outer_components.zig");
-const subject = @import("../segment_statement_outer_source_v2.zig");
+const subject = @import("../variable_boundary_statement_source.zig");
 
 const config = PcsConfig{
     .pow_bits = 0,
@@ -52,7 +52,7 @@ const infra_descs = [_]statement_v1.InfraComponentDesc{.{
     .n_columns = 2,
 }};
 
-const test_support = @import("../segment_statement_outer_source_v2_test_support.zig");
+const test_support = @import("../variable_boundary_statement_test_support.zig");
 const Fixture = test_support.Fixture;
 const OwnedDestinations = test_support.OwnedDestinations;
 const OwnedTree = test_support.OwnedTree;
@@ -536,7 +536,7 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
 }
 
 test "V2 row-11 register byte bridge reuses constrained decomposition" {
-    const prepared_rows = @import("../segment_statement_outer_source_v2_prepared_v2.zig");
+    const prepared_rows = @import("../prepared_variable_boundary_statement.zig");
     var fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();
     const view = try fixture.data.authenticatedView();
@@ -560,7 +560,7 @@ test "V2 row-11 register byte bridge reuses constrained decomposition" {
 }
 
 test "V2 row-11 sparse bytes constrain exact nonzero selectors" {
-    const rows = @import("../segment_statement_outer_source_v2_prepared_v2.zig");
+    const rows = @import("../prepared_variable_boundary_statement.zig");
     var fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();
     const view = try fixture.data.authenticatedView();

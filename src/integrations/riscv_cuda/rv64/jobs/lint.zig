@@ -40,7 +40,7 @@ const install_end = "lint:install-end";
 
 pub fn isDriverFile(path: []const u8) bool {
     const base = std.fs.path.basename(path);
-    return (std.mem.startsWith(u8, base, "driver") and std.mem.endsWith(u8, base, ".zig") and !isTestOnly(base)) or std.mem.eql(u8, base, "m8_capture_stream.zig");
+    return (std.mem.startsWith(u8, base, "driver") and std.mem.endsWith(u8, base, ".zig") and !isTestOnly(base)) or std.mem.eql(u8, base, "capture_stream.zig");
 }
 
 /// Request-path allocation lint for driver files (null = clean).
@@ -218,7 +218,7 @@ test "wait ownership: phase extraction admits no added fences or extra wait call
 
 test "D2: driver files allocate and create events only inside install fences" {
     try std.testing.expect(isDriverFile("rv64/jobs/driver_request.zig"));
-    try std.testing.expect(isDriverFile("rv64/m8_capture_stream.zig"));
+    try std.testing.expect(isDriverFile("rv64/capture_stream.zig"));
     try std.testing.expect(!isDriverFile("rv64/jobs/driver_test.zig"));
     try std.testing.expect((try scanInstall("rv64/jobs/driver_request.zig", "fn serve() void {\n    _ = ops.exec.alloc_u32_long(c, n, &p);\n}")) != null);
     try std.testing.expect((try scanInstall("rv64/jobs/driver_request.zig", "// lint:install-begin\n_ = wait.event_create(&e);\n// lint:install-end\n")) == null);

@@ -72,7 +72,7 @@ stage, and can compare the three root files with the pinned Rust reducer.
 their digests. The default driver launches a process per leaf;
 `--cuda-batch` uses one runtime for distinct leaves. The optional
 `--cuda-static-image` retains authenticated fixed Cairo coefficients between
-batch leaves. The [H200 pipeline report](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h200-20261001/README.md)
+batch leaves. The [H200 pipeline report](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h200-20261001/README.md)
 qualifies the combined shared-process canonical path against the pinned Rust
 proof digests. Its runs do not isolate the effect of each option, and most do
 not include sampled whole-device memory.
@@ -157,5 +157,5 @@ terminal-root trial reached 13.363 s process wall (14.143 s adapted input to
 root), but changes the outer circuit: its root proof and packed-root digests
 therefore differ. It requires a versioned registry and external verifier
 acceptance before it can replace the canonical path. The complete
-[H200 report](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h200-20261001/README.md)
+[H200 report](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h200-20261001/README.md)
 records the phases, comparison limits, and proof identities.

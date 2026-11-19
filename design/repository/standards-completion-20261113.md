@@ -186,7 +186,7 @@ native x86 execution. The original small full-OODS proof control passes both
 modes, including fresh verification and real retained/ordinary mismatch
 rejection; it is not canonical q70/P26 CSP qualification.
 
-The bounded [delegated owner decision](https://github.com/teddyjfpender/stwo-zig/issues/359#issuecomment-6931333505)
+The bounded [delegated owner decision](https://github.com/starknet-innovation/stwo-zig/issues/359#issuecomment-6931333505)
 adds value-owned final-comparison evidence to the existing diagnosed transaction.
 The CSP path requests it only under its existing profiling opt-in; ordinary
 engines remain supported and missing evidence is explicitly unavailable. No
@@ -223,7 +223,7 @@ type error; the explicit canonical `ProveOptions` correction is applied. Its
 corrected Debug suite bodies still exceed the cap, so no CSP semantic or
 runtime pass is claimed. All failed/capped receipts remain preserved.
 
-For the two original CSP suites only, the [delegated local resource lease](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6932201167)
+For the two original CSP suites only, the [delegated local resource lease](https://github.com/starknet-innovation/stwo-zig/issues/383#issuecomment-6932201167)
 admits short canonical checks at2GiB aggregate RSS with unchanged120s wall and
 110s CPU limits. All64GiB of host RAM is not a lease: this exception is limited
 to those cases, expires after their qualification, and forbids another increase.
@@ -249,7 +249,7 @@ Both use the default1GiB/120s/110CPU guard; no cap increase or retry was needed.
 
 ## Superseding short CSP compiler admission
 
-The [delegated admission decision](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6933527883)
+The [delegated admission decision](https://github.com/starknet-innovation/stwo-zig/issues/383#issuecomment-6933527883)
 revises only the original CSP compiler/operator lease to4GiB/120s/110CPU on the
 64GiB host, superseding the earlier operator-only no-increase rule. Proof
 settings, canonical providers, assertions and all prior cap receipts remain
@@ -277,7 +277,7 @@ These are internal SDK targets, not public root-dispatch or full-matrix proof.
 
 ## Interrupted local-check evidence
 
-The [bounded measurement repair](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6934648223)
+The [bounded measurement repair](https://github.com/starknet-innovation/stwo-zig/issues/383#issuecomment-6934648223)
 retains native wait status, resource usage and output hashes when the test
 protocol ends early. Cleanup preserves the original exception and incomplete
 classification; missing evidence is explicit. It does not infer the cause of
@@ -291,7 +291,7 @@ is the acceptance path; Linux and formal verification remain outside scope.
 
 ## Discovery interruption evidence
 
-[Discovery and selected-case failures](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6934989497)
+[Discovery and selected-case failures](https://github.com/starknet-innovation/stwo-zig/issues/383#issuecomment-6934989497)
 now share one interruption writer. Watchdog fallback signals directly, preserving
 exclusive wait4 ownership. All32 focused local tests pass, including real query
 exit7, SIGTERM, watchdog and spawn refusal:11.59s/73.2MB. Source+88/-17=+71;
@@ -300,7 +300,7 @@ Packet ReleaseFast emission separately hit120s at4.02GB; no image or proof ran.
 
 ## Workspace owner lookup
 
-The [request-local lexical index](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6935049755)
+The [request-local lexical index](https://github.com/starknet-innovation/stwo-zig/issues/383#issuecomment-6935049755)
 replaces repeated package scans while preserving geometric ingress ownership
 and the separate budget exclusions. All58 local tests pass in10.40s/71.9MB.
 One quiet workspace pair fell33.05s→7.55s with identical output; this is tooling
@@ -317,14 +317,14 @@ Original q70/P26,1,828cycles, fresh receivers and every negative assertion remai
 
 ReleaseFast compile/runtime admission was4GiB; measured runtime637/738MB.
 Debug compilation used4GiB; Blake2s runtime kept maintained1GiB/110CPU/120wall.
-[Blake3's separate full-image admission](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6935671771) used1GiB/180CPU/120wall; actual113.55CPU.
+[Blake3's separate full-image admission](https://github.com/starknet-innovation/stwo-zig/issues/383#issuecomment-6935671771) used1GiB/180CPU/120wall; actual113.55CPU.
 Its original110CPU SIGXCPU interruption stays INCOMPLETE, never relabeled or resumed.
 The4,700 common recorded Zig source identities match; ARM success is not an x86 fix.
 No production code, flags, fixtures, security profile or test body changed.
 
 ## Explicit case CPU admission and current properties
 
-[The case runner](https://github.com/teddyjfpender/stwo-zig/issues/383#issuecomment-6936534747) accepts
+[The case runner](https://github.com/starknet-innovation/stwo-zig/issues/383#issuecomment-6936534747) accepts
 `--case-cpu-seconds`1..1920; default110,1GiB RSS and120wall stay unchanged.
 The selected per-process limit respects inherited hard limits and binds both
 query/case execution and receipt identity. Changed-budget resume refuses before
@@ -332,7 +332,7 @@ spawning; interrupted epochs cannot retry automatically. No proof control change
 All35 focused tests pass locally in5.190s/56.8MB, including real kernel limits.
 Source+86/-10=+76; docs measured below; one toolingCLI, no production/env controls.
 
-[Current property qualification](https://github.com/teddyjfpender/stwo-zig/issues/347#issuecomment-6936580435)
+[Current property qualification](https://github.com/starknet-innovation/stwo-zig/issues/347#issuecomment-6936580435)
 passes canonical Fields71/FRI22/Revision194/Wire24 in each mode (overlap exists).
 All five original properties pass; Debug revision uses194 exact fresh processes.
 The historical cumulative CPU-limit stop remains incomplete; no Linux/CI claim.

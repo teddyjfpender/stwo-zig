@@ -33,7 +33,7 @@ defined here has been captured and validated; the architecture goal does not.
 The historical baseline remains immutable:
 
 ```text
-repository: https://github.com/teddyjfpender/stwo-zig
+repository: https://github.com/starknet-innovation/stwo-zig
 commit:     c1c70db5d8846183e36edcfd9a21c28fafc1c098
 tree:       7bbe343342db578dc5ff8e1d9ed2ebec3d2ed06e
 receipt:    conformance/build-monorepo-baseline-v1.json

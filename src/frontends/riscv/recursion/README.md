@@ -155,7 +155,7 @@ Use the owned package contracts and existing developer entrypoints; do not relax
 
 ## Related documentation
 
-[Restructure plan](../../../../design/repository/restructure-plan.md) and [RFC #344](https://github.com/teddyjfpender/stwo-zig/issues/344).
+[Restructure plan](../../../../design/repository/restructure-plan.md) and [RFC #344](https://github.com/starknet-innovation/stwo-zig/issues/344).
 
 The public aliases in this package are the concrete source interfaces already consumed by other owners. Each alias resolves to one owned implementation module, so shared records and callbacks retain one canonical nominal identity. Internal declarations in those modules retain their existing Zig visibility. New consumers should depend on the named package instead of a relative filesystem path; changes to these aliases or dependencies require the invariant owner's contract decision.
 

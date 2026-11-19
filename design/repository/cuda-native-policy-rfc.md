@@ -1,7 +1,7 @@
 # RFC #329: rejected ABI proposal; approved temporary source exception
 
 Status: ABI proposal rejected by the owner on 2026-11-09. An expiring source
-exception is approved instead in [RFC #329](https://github.com/teddyjfpender/stwo-zig/issues/329).
+exception is approved instead in [RFC #329](https://github.com/starknet-innovation/stwo-zig/issues/329).
 Tracking: A1 issue #327. No ABI or package-version change is authorized.
 
 The product manifest declares exactly the 17 current native ambient-read files,

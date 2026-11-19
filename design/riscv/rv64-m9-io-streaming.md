@@ -247,7 +247,7 @@ airbender re-uploads setup columns and partial Merkle caches from pinned host me
 | native owner geometry (row 7) | H4/H5 replace the owner path; not named as resident | ≤≈1.07 GB (L2 if it survives) |
 | copy stream | M8 §6.2 says "upload on the h2d stream", but d-wire enqueues chunk H2D on the **exec** stream (`native_device_stage1.zig:658`) | still serialized |
 | D2H | one slab D2H per GPU, 1 host wait [M d-wire D3] | ~1–2 ms [E] |
-| streaming capture | d-wire `Feed` + `Stream` with per-segment seal; pinned `cudaHostAlloc` ring (`m8_capture_stream.zig`) written in place. The ring default is 32 × 4 MiB = 128 MiB, documented as sized for one 2^20-row segment (`driver_serve.zig` on d-wire) | the M8 win of −1.6 to −1.9 s exposed capture [E M8 §5]. **At our 2^22-row segments the ring holds ≈32 B/row [D: 128 MiB / 2^22].** |
+| streaming capture | d-wire `Feed` + `Stream` with per-segment seal; pinned `cudaHostAlloc` ring (`capture_stream.zig`) written in place. The ring default is 32 × 4 MiB = 128 MiB, documented as sized for one 2^20-row segment (`driver_serve.zig` on d-wire) | the M8 win of −1.6 to −1.9 s exposed capture [E M8 §5]. **At our 2^22-row segments the ring holds ≈32 B/row [D: 128 MiB / 2^22].** |
 
 **The M8 risk (act now).**
 - The draft `TraceChunk` v1 (`gpu_native.zig:679`; d-wire `native_device_stage1.zig:293`) carries MAIN evaluation runs; the device only scatters them (`stwo_rv64_n1_scatter_v1`).

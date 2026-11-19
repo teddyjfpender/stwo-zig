@@ -98,7 +98,7 @@ families and independently checks the shipped direct and lookup backend bounds.
 **Status:** implementation complete; A-006 through A-012 are green and V-008
 records the clean-snapshot evidence. Release promotion remains blocked by the
 broad witness-rigidity and formal generated-artifact gates named in the
-[M3 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/m3-compatibility-v1.json).
+[M3 receipt](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/m3-compatibility-v1.json).
 
 Lower a logical program back into the current `ConstraintProgram` and runtime
 polynomial formats.
@@ -227,7 +227,7 @@ The identity is deliberately absent from the Fiat-Shamir transcript, public
 statement, proof bytes, and production verifier, so this is co-attestation and
 not a new protocol binding. See
 [ADR-0021](decisions/0021-backend-neutral-poseidon-program-identity.md) and the
-[V-006 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/v006-poseidon-program-identity-v1.json).
+[V-006 receipt](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/v006-poseidon-program-identity-v1.json).
 
 H-009 keeps optimization authority separate. A bounded canonical edit search
 rebuilds every candidate cut, lowers authenticated fixed prefix/equality/suffix
@@ -239,7 +239,7 @@ is reproducible negative evidence and an H-010 benchmark input. See
 [ADR-0020](decisions/0020-cost-frontier-materialization-proposals.md) and the
 [artifact index](../../src/frontends/riscv/air/lang/artifacts/README.md). The immutable search and regression
 evidence is recorded in the
-[H-009 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h009-poseidon2-cost-frontier-v1.json).
+[H-009 receipt](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h009-poseidon2-cost-frontier-v1.json).
 
 The proposal modules are deliberately absent from `air/lang/mod.zig`; only the
 reviewed authoring files, package tests, and dedicated artifact tool import
@@ -286,7 +286,7 @@ valid reports retain all 112 required sample children without failure, retry,
 or drop. Their candidate-versus-seed directions are small, remain within
 MAD/noise, and are not repeatable across runs, so the pilot closes without
 selecting or activating a layout. The
-[H-010 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+[H-010 receipt](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
 records the exact report identities and exclusions.
 
 **Exit gate:**

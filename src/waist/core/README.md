@@ -173,7 +173,7 @@ Run `zig build test-cdc-stwo-core -Doptimize=Debug -j2` and its ReleaseFast
 counterpart. Each root runs through the assembled real consumer's canonical
 Core module. Exact named discovery is checked after execution; all original
 Core commands remain required. These five registrations are a subset of the
-live consumer graph, not full [D3 coverage](https://github.com/teddyjfpender/stwo-zig/issues/366).
+live consumer graph, not full [D3 coverage](https://github.com/starknet-innovation/stwo-zig/issues/366).
 
 ## Decoder diagnostic metadata
 

@@ -11,7 +11,7 @@ const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
 
 const relation = @import("stwo_riscv_air_lang").relation;
-const air = @import("vm_public_logup_control_v2.zig");
+const air = @import("variable_boundary_vm_public_logup.zig");
 const schedule = @import("verifier_schedule.zig");
 const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 

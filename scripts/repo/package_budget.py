@@ -147,7 +147,8 @@ def review_errors(repository: Path, contracts, base: str) -> list[str]:
                        and row["package"] == contract.package and row["base_commit"] == base
                        and row["before"] == before and row["after"] == after
                        and isinstance(row["decision"], str)
-                       and row["decision"].startswith("https://github.com/teddyjfpender/stwo-zig/issues/")
+                       and row["decision"].startswith(("https://github.com/starknet-innovation/stwo-zig/issues/",
+                                                       "https://github.com/teddyjfpender/stwo-zig/issues/"))
                        and "#issuecomment-" in row["decision"] for row in changes)
         if not approved:
             failures.append(f"{contract.package}: budget increase requires exact reviewed CB-2 transaction from {base}")

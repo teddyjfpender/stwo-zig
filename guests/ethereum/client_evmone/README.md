@@ -16,7 +16,7 @@ evmone to a plain RV64IM machine without ZisK's DMA and bit-manipulation
 instructions: aligned-word memory paths, a lazily walked SSZ witness, and the
 admitted Keccak-f and secp256k1 services. Changes to upstream source are
 carried as patches in `patches/` and summarised below. The work started as track A of the archived
-[guest-efficiency program](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/PROGRAM.md).
+[guest-efficiency program](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/PROGRAM.md).
 
 ## Licences and third-party sources
 
@@ -32,7 +32,7 @@ into a cache directory and applies the patches in `patches/`:
 
 ziskethone's own evmone patch stack (02-16, from the fetched tree) is applied
 first; its `ZEG_ZISK`-gated hunks are inactive here. Licence review by legal is
-still required before any of this code is vendored ([PROGRAM.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/PROGRAM.md)).
+still required before any of this code is vendored ([PROGRAM.md](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/PROGRAM.md)).
 
 Everything under `glue/`, `tests/`, `adapter.py`, `build.py`, `patches/` and
 `linker-wide-cxx.ld` is ours.
@@ -56,7 +56,7 @@ Toolchain: `zig c++` 0.15.2 only (bundled libc++ headers and compiler-rt,
 ## Score
 
 The scoring harness behind this README's numbers is archived as
-[`bench.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/bench.py); run it from a checkout of that tag:
+[`bench.py`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/bench.py); run it from a checkout of that tag:
 
 ```sh
 python3 -I autoresearch/guest_efficiency/bench.py run --elf OUT/client-evmone-admitted.elf \
@@ -134,7 +134,7 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   tested on the decremented value and a constant on failed requirements (no
   per-opcode moves); host storage/log calls pass `msg->recipient` in place;
   sentinel JUMPDEST scan over the padded copy, unrolled by four; LT/GT/SLT/SGT
-  join the fused `PUSH2 JUMPI` set. Measurements: [`notes/client-interpreter.md`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/notes/client-interpreter.md) (archived).
+  join the fused `PUSH2 JUMPI` set. Measurements: [`notes/client-interpreter.md`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/notes/client-interpreter.md) (archived).
 - **Client pass 2 (glue, patches 0025-0027).** Memory functions: 32-byte
   funnel copy for misaligned sources, word heads/tails (one aligned RMW each)
   for memset and around the admitted service calls, service only from 64
@@ -144,7 +144,7 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   0026). Hot evmc bytes32/address copies in ziskethone use `zisk_xmemcpy` (patch 0027); the secp glue's 96-byte
   point copies, the SHA-256 block copy and the Keccak first-block absorb are
   forced inline instead of memcpy calls. Measurements:
-  [`notes/client-pass2-20261102.md`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/notes/client-pass2-20261102.md) (archived).
+  [`notes/client-pass2-20261102.md`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/notes/client-pass2-20261102.md) (archived).
 - **JUMPDEST service (patches 0028, 0029).** With `ADMITTED_JUMPDEST` (default
   in `--profile v3`; `--v3-set sha,arith,mem` builds the previous v3 client)
   or `CANDIDATE_JUMPDEST` evmone's analysis is one `jumpdest_bitmap` ECALL
@@ -153,7 +153,7 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   per slot), sentinel scan as the fallback for a misaligned copy. Without the
   defines both patches are inert (v3 per-block instruction counts identical).
   Proposal and measurements:
-  [`proposals/jumpdest-bitmap.md`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/proposals/jumpdest-bitmap.md) (archived).
+  [`proposals/jumpdest-bitmap.md`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/proposals/jumpdest-bitmap.md) (archived).
 
 ## Tests
 
@@ -186,11 +186,11 @@ exact output.
 
 ## Known gaps
 
-- **EEST.** The archived [`eest/`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/eest/README.md) harness runs the `tests@v21.0.2`
+- **EEST.** The archived [`eest/`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/eest/README.md) harness runs the `tests@v21.0.2`
   blockchain tests (Prague, Osaka, BPO1, BPO2 and transitions) on the host and
   RV64 builds of this client's EEST variant (`build.py --eest`: fork and blob
   schedule from the schema id; never deployed). Receipt:
-  [`eest-guests-v1.json`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-ethereum-20261101/eest-guests-v1.json) (archived). The run found
+  [`eest-guests-v1.json`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-ethereum-20261101/eest-guests-v1.json) (archived). The run found
   and fixed two witness-dependence bugs (patch 0005: EIP-7702 delegation code
   registered at authorization; `glue/stwo_client.cpp`: trie inserts before
   deletions). Still open: table pre-sizing from the gas limit fails on synthetic
@@ -207,6 +207,6 @@ exact output.
 - **Heap.** 212 MiB window; ziskethone's JUMPDEST analysis cache reserves
   85 MiB of it (1152 slots, sized for full call depth).
 - **Candidate costs** are the sibling track's nominal estimates
-  (`codex/rv64-guest-candidate-services`, [`proposals/candidate-service-costs.json`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/proposals/candidate-service-costs.json));
-  the archived [`calibration.json`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/calibration.json) has none, so candidate runs used a
+  (`codex/rv64-guest-candidate-services`, [`proposals/candidate-service-costs.json`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/proposals/candidate-service-costs.json));
+  the archived [`calibration.json`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/guest_efficiency/calibration.json) has none, so candidate runs used a
   scratch copy of the harness with those entries.

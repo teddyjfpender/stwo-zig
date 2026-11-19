@@ -31,3 +31,10 @@ keywords = ["/Users/", "/home/"]
 [rules.allowlist]
 description = "Hosted runner and fixture roots used by reproducible tooling"
 regexes = ['''(?i)^(?:runner|ubuntu|user|test|ci|builder|build|app|docker|runneradmin)$''']
+
+[[rules]]
+id = "encoded-local-user-home-path"
+description = "Local home path encoded in a scratch directory name"
+regex = '''(?i)/-Users-([a-z0-9][a-z0-9._-]*)-'''
+secretGroup = 1
+keywords = ["/-Users-"]

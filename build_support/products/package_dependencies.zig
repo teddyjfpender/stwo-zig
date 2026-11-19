@@ -46,7 +46,7 @@ pub const native_protocol_package_roots = &.{
     "dependency:../src/engine/prover:native/runner.zig",
 };
 
-pub const riscv_frontend_package_roots = &[_][]const u8{
+pub const riscv_frontend_package_roots = &([_][]const u8{
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/frontends/riscv/air_lang:mod.zig",
     "dependency:../src/frontends/riscv/isa:mod.zig",
@@ -57,7 +57,7 @@ pub const riscv_frontend_package_roots = &[_][]const u8{
     "dependency:../src/frontends/riscv/rv32:mod.zig",
     "dependency:../src/frontends/riscv/rv64:mod.zig",
     "dependency:../src/frontends/riscv/testing:mod.zig",
-};
+} ++ @import("riscv_cpu_dependencies.zig").air_fixture_roots.*);
 
 pub const cairo_frontend_package_roots = &.{
     "dependency:../src/frontends/cairo:mod.zig",

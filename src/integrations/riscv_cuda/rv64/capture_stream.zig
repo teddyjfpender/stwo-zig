@@ -574,5 +574,5 @@ pub const Feed = struct {
 };
 
 test {
-    _ = @import("m8_capture_stream_test.zig");
+    _ = @import("capture_stream_test.zig");
 }

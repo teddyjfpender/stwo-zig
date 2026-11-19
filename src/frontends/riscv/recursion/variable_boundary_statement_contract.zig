@@ -1,4 +1,4 @@
-//! Internal segment statement outer source v2 authority shard; use segment_statement_outer_source_v2.zig publicly.
+//! Internal segment statement outer source v2 authority shard; use variable_boundary_statement_source.zig publicly.
 
 pub const std = @import("std");
 pub const register_bytes = @import("segment_register_byte_layout.zig");
@@ -17,10 +17,10 @@ pub const universal = @import("stwo_riscv_air_lang").framework.universal_challen
 pub const roster = @import("stwo_riscv_air_lang").framework.universal_roster;
 pub const span_statement = @import("stwo_riscv_rv32").recursion.span_statement;
 pub const segment_statement_v2 = @import("stwo_riscv_rv32").recursion.segment_statement;
-pub const source_v2 = @import("segment_leaf_authority_v2.zig");
+pub const source_v2 = @import("variable_boundary_leaf_authority.zig");
 pub const air_v2 = @import("segment_leaf_outer_air.zig");
-pub const public_source_v2 = @import("segment_public_outer_source_v2.zig");
-pub const transcript_source_v2 = @import("segment_transcript_outer_source_v2.zig");
+pub const public_source_v2 = @import("variable_boundary_outer_source.zig");
+pub const transcript_source_v2 = @import("variable_boundary_transcript_source.zig");
 pub const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 
 pub const Digest = channel.Digest;

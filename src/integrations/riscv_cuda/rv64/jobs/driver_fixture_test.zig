@@ -16,7 +16,7 @@ const W = @import("worker.zig");
 const F = @import("fake.zig");
 const R = @import("driver_request.zig");
 const D = @import("driver_dag.zig");
-const C = @import("../m8_capture_stream.zig");
+const C = @import("../capture_stream.zig");
 const S = @import("driver_serve.zig");
 
 const testing = std.testing;

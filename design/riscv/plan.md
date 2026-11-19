@@ -4,7 +4,7 @@ The separate [bounded RV64 AIR](rv64-air.md) now has genuine native proof and
 fresh-verifier tests, compact physical projection and reusable immutable setup.
 It does not establish full CSP/OP proving or recursive continuation.
 
-The separate [RV64 frontend milestone](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-frontend.md) adds experimental
+The separate [RV64 frontend milestone](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-frontend.md) adds experimental
 execution support without changing the RV32 proof contract or qualifying a
 new proving product.
 
@@ -52,8 +52,8 @@ removed. All16 CSP cases passed CPU/Metal proof and policy checks over two round
 (128 launches,640 timed samples); no repeated latency/memory increase above5%.
 Strict quiet-host admission failed, so normative performance promotion is pending.
 
-See [the evidence index](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/riscv-proving-stack-reset-20260908/native-fixed-cost-v1/README.md)
-and [runnable commands](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/small-recursive-benchmark.md). This accepts one native
+See [the evidence index](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/riscv-proving-stack-reset-20260908/native-fixed-cost-v1/README.md)
+and [runnable commands](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/small-recursive-benchmark.md). This accepts one native
 child and its native-assisted outer proof under unchanged development parameters;
 whole-block production and detached recursive-root milestones remain open.
 Further refactoring should follow the remaining measured cost and ownership

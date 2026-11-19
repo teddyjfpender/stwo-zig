@@ -27,13 +27,13 @@ pub const public_air = @import("stwo_riscv_recursion_air").segment_public_outer_
 pub const row17_air_v2 = @import("stwo_riscv_recursion_air").vm_public_logup_control_v2;
 pub const row17_witness_v2 = @import("stwo_riscv_recursion_air").vm_public_logup_control_witness;
 
-pub const transcript_source = @import("segment_transcript_outer_source_v2.zig");
+pub const transcript_source = @import("variable_boundary_transcript_source.zig");
 pub const transcript_components = @import("segment_transcript_outer_components.zig");
-pub const statement_source = @import("segment_statement_outer_source_v2.zig");
+pub const statement_source = @import("variable_boundary_statement_source.zig");
 pub const statement_components = @import("segment_statement_outer_components.zig");
-pub const public_source = @import("segment_public_outer_source_v2.zig");
+pub const public_source = @import("variable_boundary_outer_source.zig");
 pub const public_components = @import("segment_public_outer_components.zig");
-pub const range_authority = @import("segment_range_authority_v2.zig");
+pub const range_authority = @import("variable_boundary_range_authority.zig");
 pub const boundary_authority = @import("segment_leaf_outer_authority.zig");
 pub const boundary_air = @import("segment_leaf_outer_air.zig");
 pub const input_provider_authority =

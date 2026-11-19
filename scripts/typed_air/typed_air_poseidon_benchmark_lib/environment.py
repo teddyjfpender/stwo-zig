@@ -20,7 +20,7 @@ from .contract import ARTIFACT_DIGEST
 
 
 ARTIFACT_PATH = Path(
-    "src/frontends/riscv/air/lang/artifacts/h009-poseidon2-cost-v1/frontier.stwairm"
+    "vectors/riscv_air/h009-poseidon2-cost-v1/frontier.stwairm"
 )
 SOURCE_MANIFEST = Manifest(
     product="h010-authenticated-poseidon-layout-runner-v1",
@@ -32,17 +32,17 @@ SOURCE_MANIFEST = Manifest(
         NamedImport("stwo_prover_engine", "src/engine/prover/mod.zig"),
         NamedImport(
             "typed_air_h009_artifacts",
-            "src/frontends/riscv/air_lang/artifacts/h009_embedded.zig",
+            "vectors/riscv_air/h009_embedded.zig",
         ),
         NamedImport(
             "typed_air_h010_artifacts",
-            "src/frontends/riscv/air_lang/artifacts/h010_embedded.zig",
+            "vectors/riscv_air/h010_embedded.zig",
         ),
     ),
     generated_imports=frozenset(
         {"std", "builtin", "build_options", "build_identity", "product_identity"}
     ),
-    allowed_prefixes=("src", "src/frontends/riscv/air/lang/artifacts"),
+    allowed_prefixes=("src", "vectors/riscv_air"),
 )
 
 

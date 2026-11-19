@@ -9,7 +9,7 @@ pub const QM31 = stwo_core.fields.qm31.QM31;
 
 pub const program_decode = @import("stwo_riscv_rv32").air.program.decode;
 pub const arithmetic = @import("arithmetic_circuit.zig");
-pub const public_source = @import("segment_public_outer_source_v2.zig");
+pub const public_source = @import("variable_boundary_outer_source.zig");
 pub const span_statement = @import("stwo_riscv_rv32").recursion.span_statement;
 pub const wire_statement = @import("stwo_riscv_rv32").recursion.segment_statement;
 pub const graph_mod = @import("stwo_riscv_rv32").recursion.air.composition_circuit;

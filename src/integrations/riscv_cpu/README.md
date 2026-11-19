@@ -24,7 +24,7 @@ flowchart TD
 
 This package binds the backend-neutral typed RV32IM frontend to the CPU prover engine. The RISC-V runner, witness, AIR, and statement rules remain owned by `src/frontends/riscv`; this package selects the CPU backend and supplies the proof adapter used by the released CPU product and CSP benchmarks.
 
-The public module is [`mod.zig`](mod.zig). It selects `CpuProverEngine` and exposes native proving/verification, service proof adapters, shared artifact helpers and recursion. Ethereum adapters remain compatibility surface pending the approved [product extraction](https://github.com/teddyjfpender/stwo-zig/issues/352); their presence does not make that extraction complete.
+The public module is [`mod.zig`](mod.zig). It selects `CpuProverEngine` and exposes native proving/verification, service proof adapters, shared artifact helpers and recursion. Ethereum adapters remain compatibility surface pending the approved [product extraction](https://github.com/starknet-innovation/stwo-zig/issues/352); their presence does not make that extraction complete.
 
 The existing build also consumes `stwo_circuit_recursion_wire`. Their providers stay explicit in the package manifest; injected aliases do not replace these concrete dependency edges.
 
@@ -76,7 +76,7 @@ Build `rv64-csp-full` and `rv64-full-verify` with
 and `--report`; `--prover` and `--verifier` allow immutable measured binaries.
 `--profile-only` explicitly does not establish a proof. The driver independently
 checks expected ELF/input/output authority and runs the receiver in a new process.
-The [17-case comparison CSV](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-qualification-20261030/csp-full-comparison.csv)
+The [17-case comparison CSV](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-qualification-20261030/csp-full-comparison.csv)
 records serial/parallel measurements; all 17 statement, claim and proof byte
 streams match exactly. Focused tests are `test-riscv64-air`,
 `test-riscv64-program`, `test-riscv64-program-proof`, `test-riscv64-providers`,
@@ -86,13 +86,13 @@ streams match exactly. Focused tests are `test-riscv64-air`,
 
 Whole-prover profiling is enabled with `--profile-stages` in the CSP driver.
 It uses the shared stage recorder without task/work capture and preserves the
-exact transcript and proof. The [performance comparison](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-20261030/comparison.csv)
+exact transcript and proof. The [performance comparison](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-20261030/comparison.csv)
 records all 17 cases, checked against equal input, geometry, security, worker
 count and serialized proof bytes. Full ECDSA now takes approximately 21 seconds
-end to end on the measured host. See the [study](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-20261030/README.md)
+end to end on the measured host. See the [study](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-20261030/README.md)
 for attribution, repeat ranges and the remaining constraint-row cost.
 
-The [second performance round](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-round2-20261030/README.md)
+The [second performance round](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-round2-20261030/README.md)
 retains universal memory-polynomial factoring and an owned main-witness handoff
 to PCS. All 17 statements, claims and proofs remain byte-identical. ECDSA takes
 about 19.6 seconds in the matched suite; composition still sets the 12.78 GiB
@@ -275,7 +275,7 @@ obligations; no complete-block or performance result follows from this guide.
 - [RISC-V frontend owner guide](../../frontends/riscv/README.md)
 - [RV64 delivery contract](../../../design/riscv/rv64-gpu-hygiene.md)
 
-RFC [#324](https://github.com/teddyjfpender/stwo-zig/issues/324) declares the
+RFC [#324](https://github.com/starknet-innovation/stwo-zig/issues/324) declares the
 existing OM31 CPU collaboration boundary. The circuit provider owns program,
 proof, wire and allocation teardown; the RISC-V consumer owns receiver policy,
 tree coverage and publication. Canonical package modules share field and engine

@@ -31,7 +31,7 @@ const secp_config =
 const secp_relations =
     @import("stwo_riscv_precompiles").air.secp256k1_relations;
 const base_statement = @import("stwo_riscv_rv32").air.statement;
-const profile_mod = @import("ethereum_vm_air_profile_v2.zig");
+const profile_mod = @import("ethereum_variable_boundary_air_profile.zig");
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 const Point = circle.CirclePointQM31;

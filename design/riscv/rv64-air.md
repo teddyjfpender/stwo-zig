@@ -147,7 +147,7 @@ worktree are not imported or claimed as qualified RV64 improvements.
 
 ## Second-pass audit
 
-The [2026-10-30 audit evidence](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-air-audit-20261030/README.md)
+The [2026-10-30 audit evidence](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-air-audit-20261030/README.md)
 records a real execution-tool dependency regression found by rerunning the
 independent oracle. `riscv.rv64` now exports only standalone execution;
 `riscv.rv64_air` is a separate full-frontend entry point. The execution gate
@@ -254,8 +254,8 @@ On the local 64 GiB, 18-core Mac, valid ECDSA retires 1,625,938 instructions in
 669,304 bytes. Fresh receiver preprocessing takes 139.3 ms and verification
 8.88 ms. These are single local runs, not throughput distributions or an OP
 block benchmark. All rows and provenance are in
-[the comparison report](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-qualification-20261030/csp-full-comparison.json)
-and [CSV](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-qualification-20261030/csp-full-comparison.csv).
+[the comparison report](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-qualification-20261030/csp-full-comparison.json)
+and [CSV](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-qualification-20261030/csp-full-comparison.csv).
 Compact proofs, statements and the measured binaries are retained under the
 ignored local `vectors/reports/interop_artifacts/rv64-full-20261030` directory;
 wide execution/quotient buffers are released rather than stored on disk.
@@ -286,13 +286,13 @@ the original claims before metadata is released. CPU quotient FFTs reuse the
 same bounded pool, and one shared polynomial authority supports prepared BYTE
 terms, weighted accumulation and reusable logical inflation.
 
-The [performance study](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-20261030/README.md)
+The [performance study](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-20261030/README.md)
 contains the complete before/after table, phase profiles, repeat measurements,
 rejected experiments, memory accounting and remaining bottlenecks. In particular,
 constraint-row arithmetic still accounts for about 10 seconds of full ECDSA;
 this is not a claim that the 519-main/260-interaction representation is optimal.
 
-The [second profiling round](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-round2-20261030/README.md)
+The [second profiling round](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-round2-20261030/README.md)
 shares memory expectation polynomials and transfers the main matrix directly
 to the existing PCS arena owner. All 17 exact-proof parity gates pass; valid
 ECDSA measures 19.59 seconds end to end in that suite. Whole-job caller peak

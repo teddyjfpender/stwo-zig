@@ -108,7 +108,7 @@ pub const specs = [_]Spec{
             "interaction trace epoch: paired scheduler performance sample",
         },
         .minimum = 52,
-        .partition_roots = &.{ "testing/tests/focused/typed_witness_benchmarks.zig", "tests/focused/legacy_benchmarks.zig" },
+        .partition_roots = &.{ "testing/tests/focused/typed_witness_benchmarks.zig", "tests/focused/reference_witness_benchmarks.zig" },
     },
     .{
         .step = "test-retained-fri-frontier",
