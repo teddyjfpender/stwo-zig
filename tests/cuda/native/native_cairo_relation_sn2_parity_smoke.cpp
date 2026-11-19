@@ -1,4 +1,4 @@
-#include "fixtures/cairo_relation_sn2_parity_fixture.h"
+#include "../fixtures/cairo_relation_sn2_parity_fixture.h"
 
 #include <cuda_runtime_api.h>
 

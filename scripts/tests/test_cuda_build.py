@@ -274,7 +274,7 @@ class CudaBuildTests(unittest.TestCase):
     def test_device_smoke_link_is_explicit_and_archive_bound(self) -> None:
         command = compile_command(
             Path("/usr/bin/c++"),
-            Path("/repo/tests/cuda/native_test_smoke.cpp"),
+            Path("/repo/tests/cuda/native/native_test_smoke.cpp"),
             Path("/out/native_test_smoke"),
             Path("/out/libstwo_cuda_kernels.a"),
             Path("/usr/local/cuda"),
@@ -293,9 +293,12 @@ class CudaBuildTests(unittest.TestCase):
             ("native_ec_op_composite_smoke", root / "vectors/cairo/ec_op_parity.bin"),
             ("native_recorded_witness_matrix_smoke", root / "tests/cuda/fixtures/recorded_witness_matrix_fixture.bin"),
         ):
-            source = root / "tests/cuda" / (name + ".cpp")
+            source = root / "tests/cuda/native" / (name + ".cpp")
             self.assertEqual(["/out/test", str(fixture)], run_command(source, Path("/out/test"), root))
-        command = compile_command(Path("c++"), root / "tests/cuda/native_ec_op_composite_smoke.cpp", Path("/out/test"), Path("archive.a"), Path("/cuda"))
+        custom = Path("/custom/native_recorded_witness_matrix_smoke.cpp")
+        self.assertEqual(["/out/test", "/custom/fixtures/recorded_witness_matrix_fixture.bin"],
+                         run_command(custom, Path("/out/test"), root))
+        command = compile_command(Path("c++"), root / "tests/cuda/native/native_ec_op_composite_smoke.cpp", Path("/out/test"), Path("archive.a"), Path("/cuda"))
         self.assertIn("-lcrypto", command)
 
     def test_aot_carrier_is_binary_search_and_exact_arch_only(self) -> None:

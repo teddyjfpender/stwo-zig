@@ -65,11 +65,15 @@ def run_command(source: Path, executable: Path, repository: Path) -> list[str]:
     if source.stem == "native_ec_op_composite_smoke":
         return [str(executable), str(repository / "vectors/cairo/ec_op_parity.bin")]
     if source.stem == "native_recorded_witness_matrix_smoke":
-        return [str(executable), str(source.parent / "fixtures/recorded_witness_matrix_fixture.bin")]
+        fixture_root = source.parent
+        if fixture_root == repository / "tests/cuda/native":
+            fixture_root = fixture_root.parent
+        return [str(executable), str(fixture_root / "fixtures/recorded_witness_matrix_fixture.bin")]
     return [str(executable)]
 
 
 def main() -> int:
+    repository = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser()
     parser.add_argument("--archive", type=Path, required=True)
     parser.add_argument("--cuda-home", type=Path, required=True)
@@ -78,7 +82,7 @@ def main() -> int:
     parser.add_argument(
         "--tests-dir",
         type=Path,
-        default=Path(__file__).resolve().parents[2] / "tests/cuda",
+        default=repository / "tests/cuda/native",
     )
     args = parser.parse_args()
 
@@ -86,6 +90,8 @@ def main() -> int:
     cuda_home = args.cuda_home.resolve()
     compiler = args.compiler.resolve()
     tests_dir = args.tests_dir.resolve()
+    if tests_dir == repository / "tests/cuda":
+        tests_dir /= "native"
     output = args.out_dir.resolve()
     sources = sorted(tests_dir.glob("native_*_smoke.cpp"))
     required = [
@@ -122,11 +128,11 @@ def main() -> int:
         )
         subprocess.run(command, check=True)
         result = subprocess.run(
-            run_command(source, executable, Path(__file__).resolve().parents[2]),
+            run_command(source, executable, repository),
             check=True,
             capture_output=True,
             text=True,
-            cwd=Path(__file__).resolve().parents[2],
+            cwd=repository,
             timeout=180,
         )
         tests.append(

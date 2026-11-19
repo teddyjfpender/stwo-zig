@@ -13,7 +13,7 @@
 #endif
 
 #include "blake2s_reference.h"
-#include "../../src/backends/cuda/native/commitment/blake2s_domain_states.h"
+#include "../../../src/backends/cuda/native/commitment/blake2s_domain_states.h"
 
 #include <cuda_runtime_api.h>
 
@@ -167,8 +167,8 @@ bool expect_hash(
     return false;
 }
 
-#include "../../src/backends/cuda/testing/native_merkle_layers_test.h"
-#include "../../src/backends/cuda/testing/native_assignment_capture_test.h"
+#include "../../../src/backends/cuda/testing/native_merkle_layers_test.h"
+#include "../../../src/backends/cuda/testing/native_assignment_capture_test.h"
 
 bool test_pinned_zig_oracles() {
     const auto expect_domain_state = [](

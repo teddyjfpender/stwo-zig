@@ -1,4 +1,4 @@
-#include "fixtures/add_ap_relation_fixture.h"
+#include "../fixtures/add_ap_relation_fixture.h"
 
 #include <cuda_runtime_api.h>
 
