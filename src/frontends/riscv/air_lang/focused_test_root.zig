@@ -18,8 +18,8 @@ const suites = struct {
     pub const polynomial_compiler = @import("tests/focused/polynomial_compiler.zig");
     pub const recursion_framework_export = @import("tests/focused/recursion_framework_export.zig");
     pub const recursion_framework_interaction = @import("tests/focused/recursion_framework_interaction.zig");
-    pub const recursion_segment_public_components_v2_1 = @import("tests/focused/recursion_segment_public_components_v2_1.zig");
-    pub const recursion_segment_public_components_v2_2 = @import("tests/focused/recursion_segment_public_components_v2_2.zig");
+    pub const universal_roster = @import("tests/focused/universal_roster.zig");
+    pub const universal_challenges = @import("tests/focused/universal_challenges.zig");
     pub const runtime_profile_symbolic = @import("tests/focused/runtime_profile_symbolic.zig");
     pub const air_lang_transcript_support = @import("tests/focused/air_lang_transcript_support.zig");
 };
