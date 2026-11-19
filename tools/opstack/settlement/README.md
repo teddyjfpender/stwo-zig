@@ -283,11 +283,11 @@ On Anvil Shanghai with solc 0.8.30, the seven-query fixture uses
 test uses 9,981,690 gas for 30 distinct queries. Both paths reuse sample
 and row workspace and accumulate packed challenge coefficients.
 
-Regenerate the fixture from the repository root with Zig 0.15.2:
+Regenerate the fixture with Zig 0.15.2 from the root of the [archived OP checkout](https://github.com/teddyjfpender/stwo-zig/tree/089bc2437). These source paths belong to that revision.
 
 ```sh
-zig run --dep core -Mroot=https://github.com/teddyjfpender/stwo-zig/blob/089bc2437/settlement/tools/export_deep_vector.zig \
-  -Mcore=src/core/mod.zig > tests/fixtures/opstack/settlement/native-deep-vector.json
+zig run --dep core -Mroot=settlement/tools/export_deep_vector.zig \
+  -Mcore=src/waist/core/mod.zig > /tmp/native-deep-vector.json
 ```
 
 ### Mainnet block 120794432

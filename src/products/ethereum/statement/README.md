@@ -36,7 +36,9 @@ graph TD
 `@import("stwo_ethereum_statement")` exposes `cpu`, `cuda`, `frontend`, `prover`,
 `runner` and `statement`. `@import("legacy_riscv_frontend")` and
 `@import("legacy_riscv_cpu_integration")` name the exact frontend and CPU component
-instances, with no duplicate implementation or nominal records.
+instances, with no duplicate implementation or nominal records. Use the
+`frontend` component for `proveEthereumWithEngine`,
+`proveEthereumWithEngineUsingExecution` and `verifyEthereumWithEngine`.
 
 ## Dependencies
 
@@ -64,7 +66,19 @@ instances, with no duplicate implementation or nominal records.
 
 ## Build, test, and run
 
-`zig build test --build-file src/products/ethereum/statement/build.zig -Doptimize=Debug -j2 --verbose --summary all`
+Run from the repository root. The full Debug suite is the package contract gate.
+Use a qualified CPU host for proof-heavy commands.
+
+```sh
+zig build test --build-file src/products/ethereum/statement/build.zig -Doptimize=Debug -j2 --verbose --summary all
+zig build test-csp-ecdsa-proof --build-file src/products/ethereum/statement/build.zig -Doptimize=ReleaseFast
+```
+
+The product also owns the CUDA producer and CPU recursive receiver build steps
+`build-rv64-ethereum-gpu-combined` and `build-rv64-ethereum-recursion-receiver`.
+Use the same build file. The [GPU delivery contract](../../../../design/riscv/rv64-gpu-hygiene.md)
+defines device qualification and the [guest guide](../../../../guests/ethereum/README.md)
+describes the ELF identities.
 
 ## Contract and invariants
 

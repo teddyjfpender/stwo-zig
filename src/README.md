@@ -18,7 +18,7 @@ engine/    prover, artifact_store
 backends/  cpu_scalar, metal (+ session, tools, bench), cuda
 frontends/ cairo, circuit, riscv, sm83
 integrations/ <frontend>_<backend>, native, native_cuda
-products/  stwo, cairo, native, riscv              (<line>/<target>/)
+products/  stwo, cairo, ethereum, native, opstack, riscv
 ```
 
 | Layer | Responsibility | Package guides |
@@ -29,10 +29,10 @@ products/  stwo, cairo, native, riscv              (<line>/<target>/)
 | Frontends | Trace semantics, statements, and backend-neutral AIR | [Cairo](frontends/cairo/README.md), [circuit recursion](frontends/circuit/README.md), [RISC-V](frontends/riscv/README.md), [SM83](frontends/sm83/README.md) |
 | Cairo integrations | Backend-specific Cairo proving | [CPU](integrations/cairo_cpu/README.md), [Metal](integrations/cairo_metal/README.md), [CUDA](integrations/cairo_cuda/README.md) |
 | Circuit recursion integrations | Backend-specific circuit proving and aggregation | [CPU](integrations/circuit_cpu/README.md), [Metal](integrations/circuit_metal/README.md), [CUDA](integrations/circuit_cuda/README.md) |
-| RISC-V integrations | Backend-specific RISC-V proving | [CPU](integrations/riscv_cpu/README.md), [Metal](integrations/riscv_metal/README.md), [CUDA](integrations/riscv_cuda/README.md) |
+| RISC-V integrations | Backend-specific RISC-V proving | [CPU](integrations/riscv_cpu/README.md), [Metal](integrations/riscv_metal/README.md), [CUDA](integrations/riscv_cuda/README.md), [shared RV64 block pipeline](integrations/riscv_cpu/rv64_pipeline/README.md) |
 | SM83 integrations | Backend-specific SM83 proving | [CPU](integrations/sm83_cpu/README.md), [Metal](integrations/sm83_metal/README.md) |
 | Native | Native examples and Native CUDA adaptation | [Examples](products/native/examples/README.md), [Native CUDA](integrations/native_cuda/README.md) |
-| Products | User-facing CLIs and facades per product line and target | [Cairo recursion CPU](products/cairo/recursion/cpu/README.md), [Cairo recursion Metal](products/cairo/recursion/metal/README.md) |
+| Products | User-facing CLIs and facades per product line and target | [Ethereum statement](products/ethereum/statement/README.md), [OP Stack statement](products/opstack/statement/README.md), [Cairo recursion CPU](products/cairo/recursion/cpu/README.md), [Cairo recursion Metal](products/cairo/recursion/metal/README.md) |
 
 Run documented commands from the repository root unless a guide says
 otherwise. For an owner-local test, use the exact `ci.command` in that

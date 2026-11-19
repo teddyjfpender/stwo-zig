@@ -12,7 +12,7 @@ under `src/` compiles code from this directory. A build script produces an ELF
 and a report that binds the ELF's SHA-256 to every source, linker script,
 target specification and lockfile that produced it.
 
-This directory holds the Ethereum block guests. The small conformance and
+This directory holds the Ethereum and OP Stack block guests. The small conformance and
 benchmark guests (ECDSA, Poseidon2, SHA-256, Keccak) still live under
 [`vectors/riscv_guests/`](../vectors/riscv_guests/). The
 [restructure plan](../design/repository/restructure-plan.md) records their move
@@ -22,14 +22,15 @@ to `guests/testing/`.
 
 ```text
 guests/
-└── ethereum/                  Ethereum stateless block validation
-    ├── abi/                   service ABI contracts and the guest cost model
-    ├── runtime/               shared no_std runtime modules for the Rust guests
-    ├── rv32/                  RV32IM Rust guest (custom-instruction profile)
-    ├── rv64/                  RV64IM Rust guest (software and ECALL-service profiles)
-    ├── client_evmone/         RV64IM C++ guest: ZisK's ziskethone with evmone
-    ├── tools/                 host tools: input projection and independent validation
-    └── tests/                 host tests for the shared runtime
+├── ethereum/                  Ethereum stateless block validation
+│   ├── abi/                   service ABI contracts and the guest cost model
+│   ├── runtime/               shared no_std runtime modules for the Rust guests
+│   ├── rv32/                  RV32IM Rust guest (custom-instruction profile)
+│   ├── rv64/                  RV64IM Rust guest (software and ECALL-service profiles)
+│   ├── client_evmone/         RV64IM C++ guest: ZisK's ziskethone with evmone
+│   ├── tools/                 host tools: input projection and independent validation
+│   └── tests/                 host tests for the shared runtime
+└── opstack/                   Kona, Mantle, the ABI probe and OP guest runtime
 ```
 
 | Guest | ISA | Language and engine | Build entry |
@@ -37,6 +38,8 @@ guests/
 | [RV32IM Ethereum guest](ethereum/rv32/README.md) | RV32IM, ILP32 | Rust, [`stateless-validator-reth`](https://github.com/paradigmxyz/stateless) | `cargo build` in `ethereum/rv32` |
 | [RV64IM Ethereum guest](ethereum/rv64/README.md) | RV64IM, LP64 | Rust, `stateless-validator-reth` | [`ethereum/rv64/build.py`](ethereum/rv64/build.py) |
 | [evmone Ethereum client guest](ethereum/client_evmone/README.md) | RV64IM, LP64 | C++, [ziskethone](https://github.com/0xPolygonHermez/ziskethone) and [evmone](https://github.com/ethereum/evmone) | [`ethereum/client_evmone/build.py`](ethereum/client_evmone/build.py) |
+
+The [OP Stack guest guide](opstack/README.md) covers Kona and Mantle build and identity pins. The Ethereum ABI and commands below describe the Ethereum guest family.
 
 See the [Ethereum guest overview](ethereum/README.md) for how the three relate.
 

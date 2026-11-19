@@ -1,9 +1,6 @@
 # Kona on the RV64 proving stack
 
-This is a runnable OP execution guest, not a completed OP validity prover. It
-executes historical OP Mainnet and OP Sepolia blocks with pinned Kona, checks every resulting block
-hash against an independent upstream fixture, and emits requests for the existing
-native/recursive GPU pipeline. It uses no SP1 SDK or SNARK wrapper.
+For the current native proof and fresh receiver commands, start with the [OP Stack statement product](../../src/products/opstack/statement/README.md). This runbook covers pinned Kona execution, fixture acquisition and historical CPU and GPU measurements. Historical OP Mainnet and OP Sepolia replays check block hashes against independent upstream fixtures.
 
 The current CPU-first [delivery gates](../../design/opstack/COMPLETION.md) distinguish execution,
 anchored transition proofs, recursive closure and complete settlement. Historical
@@ -36,7 +33,7 @@ The prover is the OP product CLI `stwo-opstack-native`. `cpu.py` and
 `cpu_batch.py` pass every operational choice as a flag
 (`--setup-build-threads`, `--gkr-storage`, `--setup-cache ephemeral`,
 `--receiver-setup`, `--receiver-setup-workers`) and refuse ambient `STWO_*`
-variables. Recursion (`cpu_recursion.py`, `recursive_transition.py`), the GPU
+variables. The S1 CLI admits only the options documented in the product guide. The historical commands below include experimental options from the PR head. Recursion (`cpu_recursion.py`, `recursive_transition.py`), the GPU
 harness and the BN254 sparse-tower tools wait on RFC-2 to RFC-9 (S2/S3);
 measurements below were taken on the PR head layout
 (`https://github.com/teddyjfpender/stwo-zig/tree/089bc2437`).

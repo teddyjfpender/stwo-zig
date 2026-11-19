@@ -1,9 +1,6 @@
 # `stwo_riscv_frontend`
 
-`stwo_riscv_frontend` is the backend-neutral, Sail-authoritative RV32IM zkVM
-frontend. It loads and executes supported ELF programs, constructs sharded
-execution witnesses, defines the RISC-V AIR and claims, and drives any engine
-that satisfies the stable prover transaction contract.
+`stwo_riscv_frontend` is the backend-neutral facade for the RV32IM zkVM and RV64 execution and AIR. The [RV64 package](rv64/README.md) owns the RV64 machine. [Ethereum](../../products/ethereum/statement/README.md) and [OP Stack](../../products/opstack/statement/README.md) own their block statement workflows. The release contract and public APIs described below focus on RV32IM.
 
 | Property | Value |
 | :--- | :--- |
@@ -76,10 +73,9 @@ const Claim = riscv.RiscVClaim;
 | AIR, recursion, and witness | `air`, `recursion`, `access_clock`, `infra_trace`, `witness_layout`, `opcode_manifest`, `statement_shape_inspection` |
 | ISA and diagnostics | `isa`, `diagnostics`, `testing` |
 | Bounded RV64 AIR | `rv64_air` — [statement, soundness and qualification boundary](../../../design/riscv/rv64-air.md) |
-| Experimental RV64IM execution | `rv64` — [scope, validation and remaining proof work](rv64/README.md) |
+| RV64 execution | `rv64` — [machine, profiles and canonical interfaces](rv64/README.md) |
 | Statement ownership | `RiscVClaim`, `owned_statement` |
 | Engine-generic proving | `prover_mod`, `proveRiscVWithEngineAndPublicData`, `proveRiscVWithEngineAndPublicDataWithExecution`, `verifyRiscVWithEngine`, `provePoseidon2WithEngineAndPublicData`, `verifyPoseidon2WithEngine`, `proveAndVerifyElfWithEngine` |
-| Ethereum-profile proving | `proveEthereumWithEngine`, `proveEthereumWithEngineUsingExecution`, `verifyEthereumWithEngine` |
 | Segment proving and verified capture | `proveRiscVSegmentV2WithEngine`, `verifyRiscVSegmentV2WithEngine`, `verifyRiscVSegmentV2WithEngineUsingChannelAndCapture`, `verifyRiscVWithEngineUsingChannelAndProofCapture`, `verifyRiscVWithEngineUsingChannelAndQueryCapture` |
 | Proving instrumentation | `process_usage`, `provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter` |
 | Execution geometry | `MAX_EXECUTION_STEPS` — the canonical one-shot AIR clock bound shared by execution admission and guest-profile routing |

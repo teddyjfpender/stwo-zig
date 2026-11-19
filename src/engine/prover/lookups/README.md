@@ -64,9 +64,8 @@ adapters and OM31 circuit-wire tests are separate integration gates.
 
 Ownership regressions, including exhaustive allocation failures and caller input
 immutability, run with `owner_memory_test.zig` using the same focused command
-above. The bounded standalone `src/engine/prover/gkr_memory_probe_root.zig` reports
-requested allocator-live bytes, proof/transcript hashes and fresh terminal
-binding; it does not measure RSS or a complete production batch.
+above. Use the admission derivation below for the scope of the allocator-live
+byte bound. Production batch residency and process RSS are measured separately.
 
 `resource.ForField(S).Plan` bounds requested numerical live bytes from typed
 shapes before allocation. The services planner separately includes the binding

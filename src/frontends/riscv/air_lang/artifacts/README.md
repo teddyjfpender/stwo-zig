@@ -112,7 +112,7 @@ shadow/profile evidence only. Production activation is explicitly
   degrees.
 - `m3-compat-v1/*.stwairc` are the 17 canonical section-framed binary
   identities described by
-  [ADR-0017](../../../../../../design/typed-air/decisions/0017-sectioned-compatibility-manifests.md).
+  [ADR-0017](../../../../../design/typed-air/decisions/0017-sectioned-compatibility-manifests.md).
 
 Each `STWAIRC\0` version-1 binary has seven ordered, length-framed sections:
 identity, physical layout, direct runtime program and roots, lookup runtime
