@@ -410,7 +410,7 @@ pub fn combineProduct(
     relation: anytype,
     tuple: ProductTuple(S),
 ) InteractionScalar(S) {
-    return combine(S, product_arity, relation, tuple);
+    return combineAny(S, relation, tuple);
 }
 
 pub fn combineLinear(
@@ -418,7 +418,7 @@ pub fn combineLinear(
     relation: anytype,
     tuple: LinearTuple(S),
 ) InteractionScalar(S) {
-    return combine(S, linear_arity, relation, tuple);
+    return combineAny(S, relation, tuple);
 }
 
 pub fn combinePoint(
@@ -426,7 +426,7 @@ pub fn combinePoint(
     relation: anytype,
     tuple: PointTuple(S),
 ) InteractionScalar(S) {
-    return combine(S, point_arity, relation, tuple);
+    return combineAny(S, relation, tuple);
 }
 
 pub fn combineSplit(
@@ -434,7 +434,7 @@ pub fn combineSplit(
     relation: anytype,
     tuple: SplitTuple(S),
 ) InteractionScalar(S) {
-    return combine(S, split_arity, relation, tuple);
+    return combineAny(S, relation, tuple);
 }
 
 pub fn combineTable(
@@ -442,7 +442,7 @@ pub fn combineTable(
     relation: anytype,
     tuple: TableTuple(S),
 ) InteractionScalar(S) {
-    return combine(S, table_arity, relation, tuple);
+    return combineAny(S, relation, tuple);
 }
 
 pub fn combineProgram(
@@ -450,7 +450,7 @@ pub fn combineProgram(
     relation: anytype,
     tuple: ProgramTuple(S),
 ) InteractionScalar(S) {
-    return combine(S, program_arity, relation, tuple);
+    return combineAny(S, relation, tuple);
 }
 
 pub fn combineTableRoot(
@@ -458,7 +458,7 @@ pub fn combineTableRoot(
     relation: anytype,
     tuple: TableRootTuple(S),
 ) InteractionScalar(S) {
-    return combine(S, table_root_arity, relation, tuple);
+    return combineAny(S, relation, tuple);
 }
 
 pub fn combineEcdsa(
@@ -466,7 +466,7 @@ pub fn combineEcdsa(
     relation: anytype,
     tuple: EcdsaTuple(S),
 ) InteractionScalar(S) {
-    return combine(S, ecdsa_arity, relation, tuple);
+    return combineAny(S, relation, tuple);
 }
 
 pub fn combineByte(
@@ -474,22 +474,13 @@ pub fn combineByte(
     relation: anytype,
     tuple: ByteTuple(S),
 ) InteractionScalar(S) {
-    return combine(S, byte_arity, relation, tuple);
+    return combineAny(S, relation, tuple);
 }
 
 pub fn combineRecovery(
     comptime S: type,
     relation: anytype,
     tuple: RecoveryTuple(S),
-) InteractionScalar(S) {
-    return combine(S, recovery_arity, relation, tuple);
-}
-
-fn combine(
-    comptime S: type,
-    comptime arity: usize,
-    relation: anytype,
-    tuple: [arity]S,
 ) InteractionScalar(S) {
     return combineAny(S, relation, tuple);
 }
