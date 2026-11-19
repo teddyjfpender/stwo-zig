@@ -6,7 +6,7 @@ const prover_pcs = @import("stwo_prover_engine").pcs;
 const statement_mod = @import("../../air/statement.zig");
 const infra = @import("../../infra_trace.zig");
 const trace = @import("../../runner/trace.zig");
-const legacy_lui = @import("../../runner/witness/lui_legacy_test_oracle.zig");
+const legacy_lui = @import("../../runner/witness/lui_reference_oracle.zig");
 const opcode_interaction = @import("../../air/lookups/opcode_interaction.zig");
 const owner = @import("../test_witness_hook_core.zig");
 

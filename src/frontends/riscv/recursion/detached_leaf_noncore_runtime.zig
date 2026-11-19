@@ -10,10 +10,10 @@ pub fn For(comptime leaf_outer: type) type {
         const manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
         const transcript_components = @import("segment_transcript_outer_components.zig");
         const statement_components = @import("segment_statement_outer_components.zig");
-        const statement_source = @import("segment_statement_outer_source_v2.zig");
+        const statement_source = @import("variable_boundary_statement_source.zig");
         const public_components = @import("segment_public_outer_components.zig");
         const public_native_sum = @import("segment_public_native_sum_authority.zig");
-        const range_authority = @import("segment_range_authority_v2.zig");
+        const range_authority = @import("variable_boundary_range_authority.zig");
         const boundary_authority = @import("segment_leaf_outer_authority.zig");
         const input_provider_authority = @import("segment_publication_input_provider_authority.zig");
         const input_provider_component = @import("air/segment_publication_input_provider_component.zig");

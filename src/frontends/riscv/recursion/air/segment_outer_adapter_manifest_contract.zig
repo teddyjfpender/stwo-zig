@@ -56,9 +56,9 @@ pub const boundary_v2 = @import("../segment_leaf_outer_authority.zig");
 pub const provider_authority_v2 =
     @import("../segment_publication_input_provider_authority.zig");
 pub const prover_component = @import("stwo_prover_engine").air.component_prover;
-pub const transcript_v2 = @import("../segment_transcript_outer_source_v2.zig");
-pub const statement_v2 = @import("../segment_statement_outer_source_v2.zig");
-pub const public_v2 = @import("../segment_public_outer_source_v2.zig");
+pub const transcript_v2 = @import("../variable_boundary_transcript_source.zig");
+pub const statement_v2 = @import("../variable_boundary_statement_source.zig");
+pub const public_v2 = @import("../variable_boundary_outer_source.zig");
 pub const AdapterBinding = base.AdapterBinding;
 
 pub fn validateAgainstSources(

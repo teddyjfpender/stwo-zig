@@ -17,7 +17,7 @@ class RetiredInteractionTests(unittest.TestCase):
         consumers = set()
         for source in (ROOT / "src").rglob("*.zig"):
             for imported in literal_imports(source.read_text()):
-                if imported.endswith("interaction_legacy_test_oracle.zig"):
+                if imported.endswith("interaction_reference_oracle.zig"):
                     consumers.add(str(source.relative_to(ROOT)))
         self.assertEqual(allowed, consumers)
 

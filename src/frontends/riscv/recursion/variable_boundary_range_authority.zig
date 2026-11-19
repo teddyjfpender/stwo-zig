@@ -20,7 +20,7 @@ const range_bridge = @import("stwo_riscv_rv32").recursion.air.range_check_8_8_br
 const shared_provider = @import("stwo_riscv_rv32").recursion.air.universal_shared_provider;
 const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 const manifest_v2 = @import("air/segment_outer_adapter_manifest.zig");
-const statement = @import("segment_statement_outer_source_v2.zig");
+const statement = @import("variable_boundary_statement_source.zig");
 
 pub const Digest = statement.Digest;
 pub const Sha256Digest = [32]u8;

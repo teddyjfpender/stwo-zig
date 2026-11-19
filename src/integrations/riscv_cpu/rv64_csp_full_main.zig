@@ -9,7 +9,7 @@ const Capture = native.Capture;
 const Trace = native.Trace;
 const wire = @import("stwo_proof_wire");
 const Metrics = @import("word16_qualification/proof_metrics.zig");
-const LegacyMetrics = @import("word16_qualification/legacy_source_metrics.zig");
+const LegacyMetrics = @import("word16_qualification/full_trace_metrics.zig");
 const base = std.heap.smp_allocator;
 const Config = struct {
     artifact_dir: []const u8,

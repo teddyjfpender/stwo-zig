@@ -1,4 +1,4 @@
-//! Internal segment leaf authority v2 authority shard; use segment_leaf_authority_v2.zig publicly.
+//! Internal segment leaf authority v2 authority shard; use variable_boundary_leaf_authority.zig publicly.
 
 const dependency_0 = @import("segment_leaf_authority_contract.zig");
 

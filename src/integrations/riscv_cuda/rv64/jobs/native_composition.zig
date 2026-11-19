@@ -24,7 +24,7 @@
 //! because every source is a device coefficient view here.
 //!
 //! Role descriptions (`RoleSpec`) are built outside jobs/ from the frontend
-//! authorities (rv64/m8_native_composition_roles.zig), because that mapping
+//! authorities (rv64/native_composition_roles.zig), because that mapping
 //! reads legacy owner-path metadata the sync lint forbids under jobs/.
 const std = @import("std");
 const core = @import("stwo_core");

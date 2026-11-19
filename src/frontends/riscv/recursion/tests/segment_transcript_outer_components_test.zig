@@ -23,9 +23,9 @@ const row17_witness_v2 =
 const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
 const universal_manifest = @import("stwo_riscv_rv32").recursion.air.universal_manifest;
 const universal_roster = @import("stwo_riscv_air_lang").framework.universal_roster;
-const source_v2 = @import("../segment_transcript_outer_source_v2.zig");
+const source_v2 = @import("../variable_boundary_transcript_source.zig");
 const subject = @import("../segment_transcript_outer_components.zig");
-const transcript = @import("../transcript_program_v2.zig");
+const transcript = @import("../variable_boundary_transcript_program.zig");
 const provider_authority =
     @import("../segment_publication_input_provider_authority.zig");
 

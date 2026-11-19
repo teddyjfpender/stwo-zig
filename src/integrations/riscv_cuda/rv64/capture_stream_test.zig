@@ -1,5 +1,5 @@
 //! Capture-stream/feed lifecycle tests: shared-ring custody, ordering and terminal failure.
-const Owner = @import("m8_capture_stream.zig");
+const Owner = @import("capture_stream.zig");
 const std = @import("std");
 const G = @import("jobs/gpu_native.zig");
 const testing = std.testing;

@@ -206,7 +206,7 @@ Branches are cut from the contract commit on `codex/rv64-m8-gpu`. Each worktree 
 
 | stream | owns (edit) | creates (new) | reads only |
 |---|---|---|---|
-| **driver** | `rv64/jobs/{gpu_native,driver,api,worker,channel,channel_parity,slab,scheduler,request,provider,mod,plan,retained,ops,fake,lint}.zig` and their `*_test.zig`; `rv64_jobs_test_root.zig`, `rv64_jobs_sched_test_root.zig`, `rv64_jobs_parity_main.zig`; `rv64/m8_feeder.zig`; `rv64/resident_batch.zig`, `rv64_combined_ethereum_main.zig` (the request switch only); `NAT/rv64/jobs/{runtime,channel_ops,slab_ops}.cu`; `build.zig` (riscv_cuda); `scripts/{rv64_gate.py,rv64_m8_jobs_addon_build.py,rv64_m8_plan_sweep.py}` | `rv64/jobs/driver_*.zig` (DAG, placement, seal barrier, memory plan install, publication), `rv64/m8_capture_stream.zig` (capture → `CaptureSink`), `NAT/rv64/jobs/peer_ops.cu` | legacy admission files (frozen: not instantiated under GPU-native), GE capture sources |
+| **driver** | `rv64/jobs/{gpu_native,driver,api,worker,channel,channel_parity,slab,scheduler,request,provider,mod,plan,retained,ops,fake,lint}.zig` and their `*_test.zig`; `rv64_jobs_test_root.zig`, `rv64_jobs_sched_test_root.zig`, `rv64_jobs_parity_main.zig`; `rv64/m8_feeder.zig`; `rv64/resident_batch.zig`, `rv64_combined_ethereum_main.zig` (the request switch only); `NAT/rv64/jobs/{runtime,channel_ops,slab_ops}.cu`; `build.zig` (riscv_cuda); `scripts/{rv64_gate.py,rv64_m8_jobs_addon_build.py,rv64_m8_plan_sweep.py}` | `rv64/jobs/driver_*.zig` (DAG, placement, seal barrier, memory plan install, publication), `rv64/capture_stream.zig` (capture → `CaptureSink`), `NAT/rv64/jobs/peer_ops.cu` | legacy admission files (frozen: not instantiated under GPU-native), GE capture sources |
 | **native** | `rv64/jobs/native_*.zig` (incl. `native_hybrid_jobs.zig`, `native_device.zig`) and tests; `rv64_jobs_native_test_root.zig`; `rv64/native_hybrid.zig` (retired at the end); `NAT/rv64/jobs/{pcs_enqueue.cu,pcs_enqueue.h,oods_points.cu,native_*.cu}`; `tests/cuda/rv64/jobs/pcs_enqueue_parity.cu` | `rv64/jobs/native_{witness,framing_cache,checks,encode,seal}.zig`, `NAT/rv64/jobs/native_{witness,checks,encode,seal}.cu` | legacy native witness/commit/global kernels, `composition_codegen.zig` |
 | **recursion** | `rv64/jobs/outer_*.zig` (incl. `outer_device.zig`) and `rv64/jobs/truth_*.zig` and tests; `rv64_jobs_outer_test_root.zig`; `rv64/outer_job_factory.zig`, `rv64/outer_job_prestage.zig`; `NAT/rv64/jobs/outer_*.cu` | `rv64/jobs/{outer_seed,outer_checks,outer_encode,truth_*}.zig`, `rv64/outer_seed_program.zig` (warm-time generator from `fold_tape`/leaf tape), `NAT/rv64/jobs/{outer_seed,outer_checks,outer_encode,truth_*}.cu` | `om31_native/{fold_tape,execution_wrap}.zig`, `outer_assignment.zig`, `outer_source.zig`, legacy truth kernels |
 
@@ -215,7 +215,7 @@ Shared rules: `pcs_enqueue.*` is native's file and recursion calls it. A recursi
 ### 6.2 Briefs
 
 **driver.** Make `jobs.serve` / `request.Provider` the JOBS=1 request driver and retire the feeder's legacy orchestration:
-- capture streaming (`m8_capture_stream.zig` → `CaptureSink`) with upload on the h2d stream;
+- capture streaming (`capture_stream.zig` → `CaptureSink`) with upload on the h2d stream;
 - the DAG and placement (§3.8);
 - the per-GPU `MemoryPlan` installed once, two-phase (§3.7), with no outside-region allocation;
 - `PeerExchange` over `peer_ops.cu`;

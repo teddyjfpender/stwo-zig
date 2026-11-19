@@ -1,4 +1,4 @@
-//! Internal segment transcript outer source v2 authority shard; use segment_transcript_outer_source_v2.zig publicly.
+//! Internal segment transcript outer source v2 authority shard; use variable_boundary_transcript_source.zig publicly.
 
 const dependency_0 = @import("segment_transcript_outer_source_contract.zig");
 

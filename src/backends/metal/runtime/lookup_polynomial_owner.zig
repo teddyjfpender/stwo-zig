@@ -7,7 +7,7 @@
 
 const std = @import("std");
 const prover_component = @import("stwo_prover_engine").air.component_prover;
-const codegen = @import("lookup_polynomial_v2_codegen.zig");
+const codegen = @import("partitioned_lookup_codegen.zig");
 
 const Authority = prover_component.LookupPolynomialAuthorityV2;
 const Capability = prover_component.LookupPolynomialCapabilityV2;

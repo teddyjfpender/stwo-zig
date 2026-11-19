@@ -341,7 +341,7 @@ const default_ring_bytes: u64 = 4 << 20;
 /// Batch pinned pool per GPU for Stage1 GKR metadata (n-stage1: small per job).
 const default_batch_pinned_bytes: u64 = 1 << 20;
 
-/// `Host`: rv64/m8_class_build_composition.zig, handed in by the combined
+/// `Host`: rv64/class_setup_composition.zig, handed in by the combined
 /// entry (it reads the legacy composition Context, which the sync lint keeps
 /// out of rv64/jobs/ imports).
 pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8, comptime Host: type) !void {

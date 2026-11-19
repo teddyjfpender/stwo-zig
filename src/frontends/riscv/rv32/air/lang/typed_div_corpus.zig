@@ -10,7 +10,7 @@ const hint_recipe = @import("stwo_riscv_air_lang").hint_recipe;
 const typed_div = @import("stwo_riscv_air_lang").typed_div;
 const Opcode = @import("stwo_riscv_isa").machine.decode.Opcode;
 const TraceRow = @import("stwo_riscv_isa").machine.trace_row.TraceRow;
-const div_writer = @import("../../runner/witness/div_legacy_test_oracle.zig").writeRow;
+const div_writer = @import("../../runner/witness/div_reference_oracle.zig").writeRow;
 
 pub const ROW_WIDTH: usize = typed_div.MAIN_COLUMN_COUNT + 1;
 

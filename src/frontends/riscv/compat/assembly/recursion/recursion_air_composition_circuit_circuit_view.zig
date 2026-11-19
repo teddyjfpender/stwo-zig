@@ -1,4 +1,4 @@
-//! Internal shard of recursion_air_composition_circuit_v3.zig; use the public facade.
+//! Internal shard of variable_boundary_air_composition_circuit.zig; use the public facade.
 
 const dependency_0 = @import("recursion_air_composition_circuit_canonical_empty_program.zig");
 const dependency_1 = @import("recursion_air_composition_circuit_program_roster.zig");

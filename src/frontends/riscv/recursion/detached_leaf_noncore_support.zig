@@ -8,11 +8,11 @@ pub fn For(comptime leaf_outer: type) type {
         const M31 = stwo_core.fields.m31.M31;
         const QM31 = stwo_core.fields.qm31.QM31;
         const manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
-        const transcript_source = @import("segment_transcript_outer_source_v2.zig");
+        const transcript_source = @import("variable_boundary_transcript_source.zig");
         const transcript_components = @import("segment_transcript_outer_components.zig");
-        const statement_source = @import("segment_statement_outer_source_v2.zig");
-        const public_source = @import("segment_public_outer_source_v2.zig");
-        const range_authority = @import("segment_range_authority_v2.zig");
+        const statement_source = @import("variable_boundary_statement_source.zig");
+        const public_source = @import("variable_boundary_outer_source.zig");
+        const range_authority = @import("variable_boundary_range_authority.zig");
         const boundary_authority = @import("segment_leaf_outer_authority.zig");
         const input_provider_authority = @import("segment_publication_input_provider_authority.zig");
         const input_provider_air = @import("air/segment_publication_input_provider.zig");

@@ -1,7 +1,7 @@
-//! Internal segment statement outer source v2 authority shard; use segment_statement_outer_source_v2.zig publicly.
+//! Internal segment statement outer source v2 authority shard; use variable_boundary_statement_source.zig publicly.
 
-const dependency_0 = @import("segment_statement_outer_source_v2_contract.zig");
-const dependency_1 = @import("segment_statement_outer_source_v2_prepared_v2.zig");
+const dependency_0 = @import("variable_boundary_statement_contract.zig");
+const dependency_1 = @import("prepared_variable_boundary_statement.zig");
 
 const Air = dependency_0.Air;
 const AuthorityV2 = dependency_0.AuthorityV2;

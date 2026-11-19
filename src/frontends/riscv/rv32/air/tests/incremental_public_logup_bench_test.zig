@@ -2,9 +2,9 @@
 //! No native proof or wrapper is generated. Admission/setup is outside timings.
 const std = @import("std");
 const public_data = @import("../public_data.zig");
-const public_data_v2 = @import("../public_data_v2.zig");
-const statement_v2 = @import("../statement_v2.zig");
-const subject = @import("../incremental_public_logup_v4.zig");
+const public_data_v2 = @import("../variable_boundary_public_data.zig");
+const statement_v2 = @import("../variable_boundary_statement.zig");
+const subject = @import("../role_aware_public_logup.zig");
 const relations_mod = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 const support = @import("../public_data_test_support.zig");
 const WordState = @import("stwo_riscv_isa").machine.memory_state.WordState;

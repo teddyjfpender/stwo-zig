@@ -44,7 +44,7 @@ test {
     _ = @import("segment_public_outer_source_test.zig");
     _ = @import("segment_range_authority_test.zig");
     _ = @import("segment_statement_outer_source_test.zig");
-    _ = @import("segment_statement_outer_source_v2_test.zig");
+    _ = @import("variable_boundary_statement_source_test.zig");
     _ = @import("segment_transcript_outer_components_test.zig");
     _ = @import("segment_transcript_outer_source_test.zig");
     _ = @import("segment_transcript_witness_test.zig");
@@ -53,7 +53,7 @@ test {
     _ = @import("statement_semantics_circuit_test.zig");
     _ = @import("temporal_pair_node_test.zig");
     _ = @import("transcript_program_test.zig");
-    _ = @import("transcript_program_v2_test.zig");
+    _ = @import("variable_boundary_transcript_program_test.zig");
     _ = @import("vm_air_profile_test.zig");
     _ = @import("vm_leaf_context_test.zig");
     _ = @import("vm_public_claim_test.zig");

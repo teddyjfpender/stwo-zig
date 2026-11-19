@@ -9,12 +9,12 @@ const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const execution_profile = @import("stwo_riscv_isa").execution_profile;
 const public_data = @import("public_data.zig");
-const public_data_v2 = @import("public_data_v2.zig");
+const public_data_v2 = @import("variable_boundary_public_data.zig");
 const public_logup = @import("public_logup.zig");
-const public_logup_v2 = @import("public_logup_v2.zig");
+const public_logup_v2 = @import("variable_boundary_public_logup.zig");
 const relation_challenges = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 const CircuitProfile = @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1;
-const statement_v2 = @import("statement_v2.zig");
+const statement_v2 = @import("variable_boundary_statement.zig");
 
 pub const PRODUCTION_ACTIVE = false;
 pub const FORMAT_VERSION: u16 = 4;

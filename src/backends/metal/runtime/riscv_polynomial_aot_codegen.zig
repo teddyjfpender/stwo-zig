@@ -3,7 +3,7 @@
 const std = @import("std");
 const base_codegen = @import("base_polynomial_codegen.zig");
 const lookup_codegen = @import("lookup_polynomial_codegen.zig");
-const lookup_v2_codegen = @import("lookup_polynomial_v2_codegen.zig");
+const lookup_v2_codegen = @import("partitioned_lookup_codegen.zig");
 
 pub fn generateLibrary(
     allocator: std.mem.Allocator,

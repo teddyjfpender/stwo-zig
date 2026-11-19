@@ -12,7 +12,7 @@
 //! identities are defensive custody seals; recursive soundness comes from
 //! constraining the exposed calls and payload-source relations in the outer
 //! AIR, never from trusting an identity as a MAC.
-const shard_0 = @import("transcript_program_v2_contract.zig");
+const shard_0 = @import("variable_boundary_transcript_contract.zig");
 const shard_1 = @import("transcript_program_program.zig");
 const shard_2 = @import("transcript_program_execute.zig");
 

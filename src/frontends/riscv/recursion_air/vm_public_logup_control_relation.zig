@@ -1,6 +1,6 @@
 //! Universal-relation binding for the V2 VM public-LogUp control row.
 
-const air = @import("vm_public_logup_control_v2.zig");
+const air = @import("variable_boundary_vm_public_logup.zig");
 const factory = @import("stwo_riscv_air_lang").framework.universal_relation_binding;
 
 pub const Binding = factory.Binding(air);

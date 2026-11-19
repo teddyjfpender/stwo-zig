@@ -30,7 +30,7 @@ pub const proof_ingress = @import("stwo_riscv_recursion").proof_ingress;
 pub const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 pub const recording_poseidon_channel_v4 =
     @import("stwo_riscv_recursion").recording_poseidon_channel;
-pub const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
+pub const recursion_air_composition_circuit_v3 = @import("variable_boundary_air_composition_circuit.zig");
 /// Shared fixtures consumed by integration tests through the frontend owner.
 pub const segment_leaf_authority = @import("stwo_riscv_recursion").segment_leaf_authority;
 pub const segment_leaf_authority_v2 = @import("stwo_riscv_recursion").segment_leaf_authority_v2;

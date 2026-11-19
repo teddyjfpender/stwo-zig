@@ -3430,8 +3430,8 @@
     },
     {
       "path": "vectors/riscv_csp/README.md",
-      "sha256": "43890904843a7bf65f4488a92e1c92144ecea0bf821cb14cf51b4f6d5c3dc63b",
-      "bytes": 73844,
+      "sha256": "32b6c8b29e4392cf0a784fd951366726ffdcfe6ea9dce06bea3a0157e950b0de",
+      "bytes": 74150,
       "group": "vectors/riscv_csp"
     },
     {

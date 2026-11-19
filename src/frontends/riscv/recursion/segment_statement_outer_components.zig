@@ -26,7 +26,7 @@ const manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
 const relation_interaction = @import("stwo_riscv_air_lang").framework.relation_interaction;
 const typed_component = @import("stwo_riscv_air_lang").framework.universal_typed_component;
 const universal = @import("stwo_riscv_air_lang").framework.universal_challenges;
-const statement = @import("segment_statement_outer_source_v2.zig");
+const statement = @import("variable_boundary_statement_source.zig");
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;

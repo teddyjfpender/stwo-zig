@@ -56,28 +56,28 @@ const prover_pcs = @import("stwo_prover_engine").pcs;
 const statement_mod = @import("../air/statement.zig");
 const infra = @import("../infra_trace.zig");
 const trace = @import("../runner/trace.zig");
-const legacy_lui = @import("../runner/witness/lui_legacy_test_oracle.zig");
+const legacy_lui = @import("../runner/witness/lui_reference_oracle.zig");
 const legacy_base_alu_imm =
-    @import("../runner/witness/base_alu_imm_legacy_test_oracle.zig");
+    @import("../runner/witness/base_alu_imm_reference_oracle.zig");
 const legacy_base_alu_reg =
-    @import("../runner/witness/base_alu_reg_legacy_test_oracle.zig");
-const legacy_auipc = @import("../runner/witness/auipc_legacy_test_oracle.zig");
-const legacy_branch_eq = @import("../runner/witness/branch_eq_legacy_test_oracle.zig");
-const legacy_branch_lt = @import("../runner/witness/branch_lt_legacy_test_oracle.zig");
-const legacy_jalr = @import("../runner/witness/jalr_legacy_test_oracle.zig");
-const legacy_jal = @import("../runner/witness/jal_legacy_test_oracle.zig");
-const legacy_fence = @import("../runner/witness/fence_legacy_test_oracle.zig");
-const legacy_div = @import("../runner/witness/div_legacy_test_oracle.zig");
+    @import("../runner/witness/base_alu_reg_reference_oracle.zig");
+const legacy_auipc = @import("../runner/witness/auipc_reference_oracle.zig");
+const legacy_branch_eq = @import("../runner/witness/branch_eq_reference_oracle.zig");
+const legacy_branch_lt = @import("../runner/witness/branch_lt_reference_oracle.zig");
+const legacy_jalr = @import("../runner/witness/jalr_reference_oracle.zig");
+const legacy_jal = @import("../runner/witness/jal_reference_oracle.zig");
+const legacy_fence = @import("../runner/witness/fence_reference_oracle.zig");
+const legacy_div = @import("../runner/witness/div_reference_oracle.zig");
 const legacy_load_store =
-    @import("../runner/witness/load_store_legacy_test_oracle.zig");
-const legacy_lt_imm = @import("../runner/witness/lt_imm_legacy_test_oracle.zig");
-const legacy_lt_reg = @import("../runner/witness/lt_reg_legacy_test_oracle.zig");
-const legacy_mul = @import("../runner/witness/mul_legacy_test_oracle.zig");
-const legacy_mulh = @import("../runner/witness/mulh_legacy_test_oracle.zig");
+    @import("../runner/witness/load_store_reference_oracle.zig");
+const legacy_lt_imm = @import("../runner/witness/lt_imm_reference_oracle.zig");
+const legacy_lt_reg = @import("../runner/witness/lt_reg_reference_oracle.zig");
+const legacy_mul = @import("../runner/witness/mul_reference_oracle.zig");
+const legacy_mulh = @import("../runner/witness/mulh_reference_oracle.zig");
 const legacy_shifts_imm =
-    @import("../runner/witness/shifts_imm_legacy_test_oracle.zig");
+    @import("../runner/witness/shifts_imm_reference_oracle.zig");
 const legacy_shifts_reg =
-    @import("../runner/witness/shifts_reg_legacy_test_oracle.zig");
+    @import("../runner/witness/shifts_reg_reference_oracle.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 
 pub const Target = union(enum) {

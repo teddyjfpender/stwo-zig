@@ -3,7 +3,7 @@ const std = @import("std");
 const lookup_physical_v2 =
     @import("stwo_riscv_rv32").air.lang.lookup_physical_manifest;
 const support = @import("../ethereum_leaf_context_test_support.zig");
-const subject = @import("../ethereum_vm_air_profile_v2.zig");
+const subject = @import("../ethereum_variable_boundary_air_profile.zig");
 
 const SAMPLED_VALUE_COUNT: u32 = 317;
 const MUL_LOOKUP_INDEX: usize = 19;

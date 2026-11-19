@@ -58,7 +58,7 @@ pub const jobs = struct {
     pub const driver_serve = @import("jobs/driver_serve.zig");
 };
 pub const composition = struct {
-    pub const roles = @import("m8_native_composition_roles.zig");
+    pub const roles = @import("native_composition_roles.zig");
     pub const joined_codegen = @import("joined_codegen.zig");
     pub const sources = @import("joined_fixture_support.zig");
     pub const real_composition = @import("real_composition.zig");
@@ -73,5 +73,5 @@ pub const source = struct {
     pub const bulk_sponge = @import("bulk_sponge.zig");
     pub const gkr_sources = @import("gkr_sources.zig");
     pub const cpu_replay = @import("cpu_replay.zig");
-    pub const m8_capture_stream = @import("m8_capture_stream.zig");
+    pub const m8_capture_stream = @import("capture_stream.zig");
 };

@@ -7,7 +7,7 @@ const ir = @import("stwo_riscv_air_lang").ir;
 const relation = @import("stwo_riscv_air_lang").relation;
 const typed_jalr = @import("stwo_riscv_air_lang").typed_jalr;
 const types = @import("stwo_riscv_air_lang").types;
-const jalr_writer = @import("../../runner/witness/jalr_legacy_test_oracle.zig").writeRow;
+const jalr_writer = @import("../../runner/witness/jalr_reference_oracle.zig").writeRow;
 
 pub const ROW_WIDTH: usize = typed_jalr.MAIN_COLUMN_COUNT + 1;
 pub const AUTHORED_BINDING_COUNT: usize = typed_jalr.MAIN_COLUMN_COUNT + 2;

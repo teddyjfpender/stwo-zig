@@ -72,7 +72,7 @@ test "outer GKR affine OODS lookup authority equals every original lookup on arb
 const HC = @import("hybrid_component.zig");
 const S = @import("section.zig");
 const Legacy = @import("binding.zig");
-const Binding = @import("binding_v2.zig");
+const Binding = @import("folded_row_binding.zig");
 fn maskValue(comp: *const HC.Component, mask: *const core.air.components.ForField(O).MaskValues, tree: u8, column: usize, offset: i8) !O {
     const global = if (tree == 0) comp.source.preprocessed_indices[column] else if (tree == 1) (try CPU.om31.geometry.span(comp.source.*, 1)).start + column else H.interactionStart(comp.artifact.component) + column;
     var shifts: [8]i8 = undefined;

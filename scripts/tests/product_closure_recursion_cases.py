@@ -25,13 +25,13 @@ def inspect_sources(root: Path, manifest: Manifest):
 class RecursionOwnershipTest(unittest.TestCase):
     def native_profile_authority(self, root: Path) -> str:
         base = root / "src/frontends/riscv/rv32/recursion"
-        facade = (base / "vm_air_profile_v2.zig").read_text()
-        self.assertIn('const shared = @import("vm_air_profile_v2_authority.zig");', facade)
+        facade = (base / "variable_boundary_vm_air_profile.zig").read_text()
+        self.assertIn('const shared = @import("variable_boundary_vm_profile_authority.zig");', facade)
         self.assertIn("const Native = shared.ForOwner(NativeOwner);", facade)
         self.assertNotIn("fn deriveFromSource(", facade)
         for name in ("ProfileV2", "derive", "deriveAuthority"):
             self.assertIn(f"pub const {name} = Native.{name};", facade)
-        return (base / "vm_air_profile_v2_authority.zig").read_text()
+        return (base / "variable_boundary_vm_profile_authority.zig").read_text()
 
     def test_wide_poseidon_typed_plan_is_independent_and_verifier_safe(self) -> None:
         root = Path(__file__).resolve().parents[2]

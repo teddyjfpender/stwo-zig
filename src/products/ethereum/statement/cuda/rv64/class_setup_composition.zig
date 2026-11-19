@@ -1,8 +1,8 @@
 //! The composition half of the M8 GPU-native install-time class builder
 //! (stream gn-shape; jobs/native_class_build.zig `Composition`): the hybrid's
-//! composition roles (m8_native_composition_roles.zig fromItemsWith with
+//! composition roles (native_composition_roles.zig fromItemsWith with
 //! device claims) and the composition artifacts' parameter slots. Lives
-//! outside rv64/jobs/ for the same reason m8_native_composition_roles.zig
+//! outside rv64/jobs/ for the same reason native_composition_roles.zig
 //! does: it reads the legacy composition Context's kernel metadata (owner-
 //! path imports are forbidden under jobs/ by the sync lint). Pure host.
 //!

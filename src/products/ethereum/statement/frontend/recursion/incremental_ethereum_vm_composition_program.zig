@@ -20,7 +20,7 @@ const extension_graph =
     @import("ethereum_vm_composition_graph_extension.zig");
 const bridge = @import("stwo_riscv_memory").air.incremental_bridge;
 const bridge_external = @import("../prover/incremental_bridge_external.zig");
-const profile_mod = @import("ethereum_vm_air_profile_v2.zig");
+const profile_mod = @import("ethereum_variable_boundary_air_profile.zig");
 const protocol = @import("stwo_riscv_recursion_air").protocol.recursion.protocol;
 const relations_mod = @import("ethereum_composition_relations.zig");
 const selected_lookup = @import("stwo_riscv_recursion").vm_selected_lookup_compiler;

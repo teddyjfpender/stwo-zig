@@ -17,10 +17,10 @@ const lookup_physical_v2 =
     @import("../air/lang/lookup_physical_manifest.zig");
 const relation_challenges = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 const statement = @import("../air/statement.zig");
-const statement_v2 = @import("../air/statement_v2.zig");
+const statement_v2 = @import("../air/variable_boundary_statement.zig");
 const transcript_claims = @import("../air/transcript/claims.zig");
 const proof_capture_sha256 = @import("../prover/proof_capture_sha256.zig");
-const profile_v2 = @import("vm_air_profile_v2.zig");
+const profile_v2 = @import("variable_boundary_vm_air_profile.zig");
 const base_geometry_v2 = @import("vm_composition_base_geometry.zig");
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
@@ -312,7 +312,7 @@ pub const ContextV2 = struct {
 
     pub fn reconstructStatement(
         self: *const ContextV2,
-        public_data: *const @import("../air/public_data_v2.zig").PublicDataV2,
+        public_data: *const @import("../air/variable_boundary_public_data.zig").PublicDataV2,
     ) !statement_v2.RiscVStatementV2 {
         try self.validate();
         const projected = try statement_v2.canonicalCorePublicData(public_data);

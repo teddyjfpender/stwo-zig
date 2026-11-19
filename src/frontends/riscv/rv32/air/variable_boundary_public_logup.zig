@@ -17,7 +17,7 @@
 
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const public_data_v2 = @import("public_data_v2.zig");
+const public_data_v2 = @import("variable_boundary_public_data.zig");
 const program_decode = @import("program/decode.zig");
 const relation_challenges = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 

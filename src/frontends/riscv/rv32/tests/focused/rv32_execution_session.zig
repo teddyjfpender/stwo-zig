@@ -43,5 +43,5 @@ test {
     _ = @import("../../runner/trace.zig");
     _ = @import("../../runner/tests/trace_test.zig");
     _ = @import("../../runner/tests/trace_clock_authority_test.zig");
-    _ = @import("../../runner/witness/load_store_legacy_test_oracle.zig");
+    _ = @import("../../runner/witness/load_store_reference_oracle.zig");
 }

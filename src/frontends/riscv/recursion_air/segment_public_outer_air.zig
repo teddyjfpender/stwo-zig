@@ -172,7 +172,7 @@ pub const NativeChallenges = Relay(.{
     .semantic_digest = challenge_relay_digest,
 });
 
-pub const ControlRelay = @import("vm_public_logup_control_v2.zig");
+pub const ControlRelay = @import("variable_boundary_vm_public_logup.zig");
 
 pub const OverrideActivationV2 = enum(u8) {
     active_v2_override = 1,

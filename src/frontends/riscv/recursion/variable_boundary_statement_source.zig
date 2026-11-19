@@ -13,8 +13,8 @@
 //! to the partial V2 row-35 range ledger. Full wire-hash, authority-hash, and
 //! rows-12--17 closure remain explicit false capabilities; no partial receipt
 //! can be published as a recursive proof.
-const shard_0 = @import("segment_statement_outer_source_v2_contract.zig");
-const shard_1 = @import("segment_statement_outer_source_v2_prepared_v2.zig");
+const shard_0 = @import("variable_boundary_statement_contract.zig");
+const shard_1 = @import("prepared_variable_boundary_statement.zig");
 const shard_2 = @import("segment_statement_outer_source_prepare_into.zig");
 
 pub const Digest = shard_0.Digest;

@@ -15,8 +15,8 @@ const statement_v2 = @import("stwo_riscv_rv32").air.statement_v2;
 const fixed_profile = @import("stwo_riscv_recursion_air").protocol.recursion.fixed_profile;
 const channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
 const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
-const subject = @import("segment_transcript_outer_source_v2.zig");
-const transcript = @import("transcript_program_v2.zig");
+const subject = @import("variable_boundary_transcript_source.zig");
+const transcript = @import("variable_boundary_transcript_program.zig");
 
 const config = PcsConfig{
     .pow_bits = 0,

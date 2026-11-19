@@ -13,27 +13,27 @@ const proofOpcodeFamily = trace_mod.proofOpcodeFamily;
 const opcodeFamily = trace_mod.opcodeFamily;
 const fillFamilyColumns = trace_mod.fillFamilyColumns;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const base_alu_imm_test_oracle = @import("../../air/semantics/base_alu_imm_legacy_test_oracle.zig").Semantics(QM31);
+const base_alu_imm_test_oracle = @import("../../air/semantics/base_alu_imm_reference_oracle.zig").Semantics(QM31);
 const base_alu_reg_test_oracle =
-    @import("../../air/semantics/base_alu_reg_legacy_test_oracle.zig").Semantics(QM31);
+    @import("../../air/semantics/base_alu_reg_reference_oracle.zig").Semantics(QM31);
 const jal_test_oracle =
-    @import("../../air/semantics/jal_legacy_test_oracle.zig").Semantics(QM31);
+    @import("../../air/semantics/jal_reference_oracle.zig").Semantics(QM31);
 const jalr_test_oracle =
-    @import("../../air/semantics/jalr_legacy_test_oracle.zig").Semantics(QM31);
+    @import("../../air/semantics/jalr_reference_oracle.zig").Semantics(QM31);
 const branch_eq_test_oracle =
-    @import("../../air/semantics/branch_eq_legacy_test_oracle.zig").Semantics(QM31);
+    @import("../../air/semantics/branch_eq_reference_oracle.zig").Semantics(QM31);
 const branch_lt_test_oracle =
-    @import("../../air/semantics/branch_lt_legacy_test_oracle.zig").Semantics(QM31);
+    @import("../../air/semantics/branch_lt_reference_oracle.zig").Semantics(QM31);
 const lt_imm_test_oracle =
-    @import("../../air/semantics/lt_imm_legacy_test_oracle.zig").Semantics(QM31);
+    @import("../../air/semantics/lt_imm_reference_oracle.zig").Semantics(QM31);
 const lt_reg_test_oracle =
-    @import("../../air/semantics/lt_reg_legacy_test_oracle.zig").Semantics(QM31);
+    @import("../../air/semantics/lt_reg_reference_oracle.zig").Semantics(QM31);
 const shifts_imm_test_oracle =
-    @import("../../air/semantics/shifts_imm_legacy_test_oracle.zig").Semantics(QM31);
+    @import("../../air/semantics/shifts_imm_reference_oracle.zig").Semantics(QM31);
 const shifts_reg_test_oracle =
-    @import("../../air/semantics/shifts_reg_legacy_test_oracle.zig").Semantics(QM31);
+    @import("../../air/semantics/shifts_reg_reference_oracle.zig").Semantics(QM31);
 const load_store_test_oracle =
-    @import("../../air/semantics/load_store_legacy_test_oracle.zig").Semantics(QM31);
+    @import("../../air/semantics/load_store_reference_oracle.zig").Semantics(QM31);
 
 test "trace groups opcode families" {
     try std.testing.expectEqual(OpcodeFamily.base_alu_reg, try proofOpcodeFamily(.ADD));
@@ -225,9 +225,9 @@ test "witness rows satisfy comparison and branch semantic evaluators" {
 }
 
 test "witness rows satisfy upper jump and memory semantic evaluators" {
-    const legacy_lui = @import("../../air/semantics/lui_legacy_test_oracle.zig")
+    const legacy_lui = @import("../../air/semantics/lui_reference_oracle.zig")
         .Semantics(QM31);
-    const legacy_auipc = @import("../../air/semantics/auipc_legacy_test_oracle.zig")
+    const legacy_auipc = @import("../../air/semantics/auipc_reference_oracle.zig")
         .Semantics(QM31);
     var row = testRow(.LUI);
     row.imm = @bitCast(@as(u32, 0x12345000));

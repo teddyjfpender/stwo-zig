@@ -41,9 +41,9 @@ test {
     _ = @import("recursion/initial_wrapper_admission.zig");
     _ = @import("recursion/tests/ethereum_leaf_context_policy_test.zig");
     _ = @import("recursion/tests/ethereum_retained_publication_authority_test.zig");
-    _ = @import("recursion/tests/ethereum_vm_air_profile_v2_test.zig");
+    _ = @import("recursion/tests/ethereum_variable_boundary_air_profile_test.zig");
     _ = @import("recursion/tests/ethereum_vm_composition_program_test.zig");
-    _ = @import("recursion/tests/ethereum_vm_leaf_context_v2_test.zig");
+    _ = @import("recursion/tests/ethereum_variable_boundary_leaf_context_test.zig");
     _ = @import("recursion/vm_composition_preparation.zig");
     _ = @import("runner/guest_precompile/ethereum_candidate_combined_dispatch.zig");
     _ = @import("runner/guest_precompile/ethereum_candidate_execution_capability.zig");

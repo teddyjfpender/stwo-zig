@@ -4,7 +4,7 @@
 const statement_mod = @import("stwo_riscv_rv32").air.statement;
 const ethereum_statement = @import("../air/guest_precompile/ethereum_statement.zig");
 const lookup_manifest = @import("stwo_riscv_rv32").air.lang.lookup_physical_manifest;
-const profile_mod = @import("ethereum_vm_air_profile_v2.zig");
+const profile_mod = @import("ethereum_variable_boundary_air_profile.zig");
 const bridge_external = @import("../prover/incremental_bridge_external.zig");
 
 pub const BridgeInputV4 = struct {

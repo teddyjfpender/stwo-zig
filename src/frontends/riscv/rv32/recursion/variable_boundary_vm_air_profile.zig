@@ -1,5 +1,5 @@
 //! Native legacy SegmentV2 authority; shared derivation is source-bound below.
-const shared = @import("vm_air_profile_v2_authority.zig");
+const shared = @import("variable_boundary_vm_profile_authority.zig");
 const NativeOwner = struct {
     pub const Selector = enum(u16) { legacy_v4 = 0 };
     pub const DEFAULT_SELECTOR: Selector = .legacy_v4;

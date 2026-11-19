@@ -449,7 +449,7 @@ pub fn build(b: *std.Build) void {
     outer.linkLibC();
     b.step("build-rv64-ethereum-gpu-recursion", "Build explicit CUDA native-OM31 outer recursion, no CPU fallback").dependOn(&b.addInstallArtifact(outer, .{}).step);
     // M8 outer-job parity fixture (pod): legacy controller vs OuterNodeJob prefix.
-    const outer_job_root = b.createModule(.{ .root_source_file = b.path("rv64_m8_outer_job_main.zig"), .target = target, .optimize = optimize });
+    const outer_job_root = b.createModule(.{ .root_source_file = b.path("rv64_outer_recursion_job_main.zig"), .target = target, .optimize = optimize });
     for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_riscv_frontend", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| outer_job_root.addImport(name, outer_root.import_table.get(name) orelse @panic("missing outer job fixture dependency"));
     const outer_job = b.addExecutable(.{ .name = "rv64-m8-outer-job-fixture", .root_module = outer_job_root });
     outer_job.linkLibC();
@@ -488,25 +488,25 @@ pub fn build(b: *std.Build) void {
     combined_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
     // M8 native-producers real-block parity harness (pod): legacy native pipeline with a
     // wrapped local-GKR stage that re-proves every segment as a job and compares.
-    const native_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_m8_native_parity_main.zig"), .target = target, .optimize = optimize });
+    const native_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_native_producer_parity_main.zig"), .target = target, .optimize = optimize });
     for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_riscv_frontend", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| native_parity_root.addImport(name, combined_root.import_table.get(name) orelse @panic("missing native parity dependency"));
     const native_parity = b.addExecutable(.{ .name = "rv64-m8-native-parity", .root_module = native_parity_root });
     native_parity.linkLibC();
     b.step("build-rv64-m8-native-parity", "Build the M8 native-producers real-block parity harness (legacy native + job local GKR)").dependOn(&b.addInstallArtifact(native_parity, .{}).step);
     // r-truth (recursion): GPU-native TruthJob real-block parity harness.
-    const truth_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_m8_truth_parity_main.zig"), .target = target, .optimize = optimize });
+    const truth_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_truth_provider_parity_main.zig"), .target = target, .optimize = optimize });
     for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_riscv_frontend", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| truth_parity_root.addImport(name, combined_root.import_table.get(name) orelse @panic("missing truth parity dependency"));
     const truth_parity = b.addExecutable(.{ .name = "rv64-m8-truth-parity", .root_module = truth_parity_root });
     truth_parity.linkLibC();
     b.step("build-rv64-m8-truth-parity", "Build the M8 GPU-native TruthJob real-block parity harness (legacy truths recorded, TruthJob proves post hoc)").dependOn(&b.addInstallArtifact(truth_parity, .{}).step);
     // gn-shape (native): GPU-native install-time class builder real-block parity harness.
-    const class_build_root = b.createModule(.{ .root_source_file = b.path("rv64_m8_class_build_parity_main.zig"), .target = target, .optimize = optimize });
+    const class_build_root = b.createModule(.{ .root_source_file = b.path("rv64_resident_class_setup_parity_main.zig"), .target = target, .optimize = optimize });
     for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_riscv_frontend", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| class_build_root.addImport(name, combined_root.import_table.get(name) orelse @panic("missing class build parity dependency"));
     const class_build = b.addExecutable(.{ .name = "rv64-m8-class-build-parity", .root_module = class_build_root });
     class_build.linkLibC();
     b.step("build-rv64-m8-class-build-parity", "Build the M8 GPU-native install-time class builder real-block parity harness (legacy classes recorded, install-built classes compared field by field, device warm)").dependOn(&b.addInstallArtifact(class_build, .{}).step);
     // gn-s2 (native): Stage-2 tail (seal, oods_constraint, encoder) real-block parity harness.
-    const gn_s2_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_m8_gn_s2_parity_main.zig"), .target = target, .optimize = optimize });
+    const gn_s2_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_resident_stage_two_parity_main.zig"), .target = target, .optimize = optimize });
     for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_riscv_frontend", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| gn_s2_parity_root.addImport(name, combined_root.import_table.get(name) orelse @panic("missing gn-s2 parity dependency"));
     const gn_s2_parity = b.addExecutable(.{ .name = "rv64-m8-gn-s2-parity", .root_module = gn_s2_parity_root });
     gn_s2_parity.linkLibC();

@@ -6,7 +6,7 @@ const pcs_core = @import("stwo_core").pcs;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const public_logup = @import("../air/public_logup.zig");
 const relation_challenges = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
-const statement_v2 = @import("../air/statement_v2.zig");
+const statement_v2 = @import("../air/variable_boundary_statement.zig");
 const statement_validation = @import("statement_validation.zig");
 const types = @import("types.zig");
 

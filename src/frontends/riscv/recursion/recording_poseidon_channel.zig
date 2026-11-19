@@ -35,7 +35,7 @@ const m31 = stwo_core.fields.m31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const permutation = @import("stwo_riscv_memory").air.poseidon2;
 const native_channel = @import("stwo_riscv_memory").recursion.poseidon2_channel;
-const transcript = @import("transcript_program_v2.zig");
+const transcript = @import("variable_boundary_transcript_program.zig");
 
 pub const FORMAT_VERSION: u16 = 4;
 pub const SCHEMA_VERSION: u16 = 1;

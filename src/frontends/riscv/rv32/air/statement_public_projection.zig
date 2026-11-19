@@ -1,6 +1,6 @@
 //! Canonical native public-data projection of an authenticated segment wire.
 const public_data_v1 = @import("public_data.zig");
-const public_data_v2 = @import("public_data_v2.zig");
+const public_data_v2 = @import("variable_boundary_public_data.zig");
 pub const Error = public_data_v2.Error || error{NonScalarProgramRoot};
 
 pub fn canonicalCorePublicData(

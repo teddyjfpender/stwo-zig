@@ -43,7 +43,7 @@ const O = @import("ops.zig");
 const D = @import("driver_dag.zig");
 const Memory = @import("memory_plan.zig");
 const Install = @import("driver_install.zig");
-const C = @import("../m8_capture_stream.zig");
+const C = @import("../capture_stream.zig");
 
 pub const Config = Install.Config;
 

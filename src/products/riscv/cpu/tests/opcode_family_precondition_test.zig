@@ -40,7 +40,7 @@
 //!
 //! 3. **Fail-closed behaviour at the two prove entrypoints.** This used to be
 //!    what stood in for a proof of the precondition at the *remaining*
-//!    unchecked call sites (`air/interaction_legacy_test_oracle.zig`,
+//!    unchecked call sites (`air/interaction_reference_oracle.zig`,
 //!    `prover/opcode_trace.zig`): those sites live in
 //!    `main_trace`/`interaction_trace`, which `prover/orchestration.zig` runs
 //!    only after `derive`, so a trace carrying an unsupported opcode had to be

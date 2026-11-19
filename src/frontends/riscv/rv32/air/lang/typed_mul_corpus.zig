@@ -9,7 +9,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const typed_mul = @import("stwo_riscv_air_lang").typed_mul;
 const Opcode = @import("stwo_riscv_isa").machine.decode.Opcode;
 const TraceRow = @import("stwo_riscv_isa").machine.trace_row.TraceRow;
-const legacy = @import("../../runner/witness/mul_legacy_test_oracle.zig");
+const legacy = @import("../../runner/witness/mul_reference_oracle.zig");
 
 pub const ROW_WIDTH: usize = typed_mul.MAIN_COLUMN_COUNT + 1;
 

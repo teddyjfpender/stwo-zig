@@ -34,7 +34,7 @@ const W = @import("worker.zig");
 const O = @import("ops.zig");
 const R = @import("driver_request.zig");
 const D = @import("driver_dag.zig");
-const C = @import("../m8_capture_stream.zig");
+const C = @import("../capture_stream.zig");
 
 /// Where captures come from (GE direct capture in the service, a model in tests).
 pub const CaptureSource = struct {

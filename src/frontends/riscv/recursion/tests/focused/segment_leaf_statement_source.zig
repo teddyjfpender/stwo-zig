@@ -1,4 +1,4 @@
 //! Owner-local focused collection; selected by the maintained catalog.
 test {
-    _ = @import("../segment_statement_outer_source_v2_test.zig");
+    _ = @import("../variable_boundary_statement_source_test.zig");
 }
