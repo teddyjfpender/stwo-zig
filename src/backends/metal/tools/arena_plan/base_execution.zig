@@ -62,9 +62,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
         );
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
             std.debug.print("prepare stage=ec_op_base done\n", .{});
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_WITNESS")) {
-            if (!std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION"))
-                return error.MissingBaseInterpolation;
+        {
             if (!base_inverse_twiddles_prepared)
                 try bindings.populateCommitmentInverseTwiddles(allocator, resident_arena, plan, 1);
             const recorded_base_interpolation_started_ns = runner_wall_timer.read();
@@ -205,8 +203,6 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
                     recorded.executed_programs,
                 },
             );
-            if (!std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_PREPROCESSED"))
-                return error.MissingPreprocessedEvaluations;
             const trace = if (memory_trace) |value| value else return error.MissingMemoryTrace;
             try trace.populateRc99Lut(resident_arena);
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
@@ -233,7 +229,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
                 std.debug.print("base stage=fixed_ifft done\n", .{});
         }
     }
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION")) {
+    {
         if (execution_metrics.executed_witness_programs != witness_bundle.?.entries.len) return error.WitnessGraphNotExecuted;
         if (execution_metrics.base_interpolation_gpu_ms == 0) return error.MissingBaseInterpolation;
     }
