@@ -412,59 +412,6 @@ fn bindRelationComponent(
             else
                 rows;
             if (real_rows > rows) return Error.InvalidBindingSize;
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_DIFF_ADD_OPCODE_INTERACTION") and
-                (std.mem.eql(u8, component.name, "add_ap_opcode") or
-                    std.mem.eql(u8, component.name, "add_opcode") or
-                    std.mem.eql(u8, component.name, "add_opcode_small")))
-            {
-                std.debug.print(
-                    "relation_binding component={s} rows={} real_rows={} sources={} columns={} source_offset_rows={}\n",
-                    .{ component.name, rows, real_rows, sources.len, trace.output_columns, if (trace.part == .each_memory_big) big_source_offset else 0 },
-                );
-                for (sources, 0..) |binding, source_index| std.debug.print(
-                    "relation_range component={s} kind=source ordinal={} words=[{}, {})\n",
-                    .{ component.name, source_index, binding.offset_bytes / 4, (binding.offset_bytes + binding.size_bytes) / 4 },
-                );
-                for (outputs, 0..) |binding, output_index| std.debug.print(
-                    "relation_range component={s} kind=output ordinal={} words=[{}, {})\n",
-                    .{ component.name, output_index, binding.offset_bytes / 4, (binding.offset_bytes + binding.size_bytes) / 4 },
-                );
-                const debug_scratch = try one(schedule, plan, "RelationScanEvalScratch");
-                std.debug.print(
-                    "relation_range component={s} kind=scratch ordinal=0 words=[{}, {})\n",
-                    .{ component.name, debug_scratch.offset_bytes / 4, (debug_scratch.offset_bytes + debug_scratch.size_bytes) / 4 },
-                );
-                std.debug.print(
-                    "relation_range component={s} kind=claimed ordinal=0 words=[{}, {})\n",
-                    .{ component.name, claimed_sums[claimed_index].offset_bytes / 4, (claimed_sums[claimed_index].offset_bytes + claimed_sums[claimed_index].size_bytes) / 4 },
-                );
-                var debug_descriptor_index: usize = 0;
-                while (debug_descriptor_index < trace.descriptors.len) : (debug_descriptor_index += 16) {
-                    const descriptor = trace.descriptors[debug_descriptor_index..][0..16];
-                    std.debug.print(
-                        "relation_descriptor component={s} column={} uses={} a={},{},{},{},{},{},{} b={},{},{},{},{},{},{}\n",
-                        .{
-                            component.name,
-                            debug_descriptor_index / 16,
-                            descriptor[0],
-                            descriptor[1],
-                            descriptor[2],
-                            descriptor[3],
-                            descriptor[4],
-                            descriptor[5],
-                            descriptor[6],
-                            descriptor[7],
-                            descriptor[8],
-                            descriptor[9],
-                            descriptor[10],
-                            descriptor[11],
-                            descriptor[12],
-                            descriptor[13],
-                            descriptor[14],
-                        },
-                    );
-                }
-            }
             try instances.append(allocator, .{
                 .rows = rows,
                 .real_rows = real_rows,

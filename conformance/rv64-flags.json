@@ -7329,20 +7329,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_COMMIT_FULL_LOG_LEAVES": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "    const use_compact_leaf_state = !std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_COMMIT_FULL_LOG_LEAVES\") and\n        !std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_STEPS\");\n    if (use_compact_leaf_state and scratch_items.len != 1) return Error.InvalidCardinality;\n    const requires_intermediate_visibility = std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_LDE_DIGESTS\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_STEPS\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPEAT_COMMIT_LDE\") or"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_COMMIT_TREE_COUNT": {
       "owner": "src/backends/metal/tools/arena_plan/runner.zig",
       "default": "1 when commitment execution is selected; otherwise0",
@@ -7439,49 +7425,6 @@
             "text": "        const source_artifact_present = std.process.hasEnvVarConstant(source_env);\n        try validateFusionSource(fusion_requested, source_artifact_present);\n\n        const encoded_mode = std.process.getEnvVarOwned(\n            allocator,\n            fusion_mode_env,\n        ) catch |err| switch (err) {"
           }
         ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_DIFF_ADD_OPCODE_INTERACTION": {
-      "owner": "src/integrations/cairo_metal/resident/interaction/execute.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/resident/interaction/execute.zig",
-        "src/integrations/cairo_metal/resident/relations/components.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/resident/interaction/execute.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_DIFF_ADD_OPCODE_INTERACTION\") and\n                std.mem.eql(u8, component, \"add_opcode\"))\n                try logInteractionWriterCpuSample(\n                    self.allocator,\n                    self.resident_arena,\n                    self.schedule,\n                    self.arena,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_DUMP_BASE_EVAL_LOGICAL_ID": {
-      "owner": "src/integrations/cairo_metal/resident/trace/diagnostics.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/resident/trace/diagnostics.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/resident/trace/diagnostics.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_DUMP_BASE_EVAL_LOGICAL_ID\")) {\n            const wanted_text = try std.process.getEnvVarOwned(\n                std.heap.page_allocator,\n                \"STWO_ZIG_SN2_DUMP_BASE_EVAL_LOGICAL_ID\",\n            );\n            defer std.heap.page_allocator.free(wanted_text);\n            const wanted = std.fmt.parseInt(u32, wanted_text, 10) catch return Error.InvalidSchedule;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_DUMP_BASE_EVAL_PATH": {
-      "owner": "src/integrations/cairo_metal/resident/trace/diagnostics.zig",
-      "default": "disabled: no base evaluation dump path",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/resident/trace/diagnostics.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/resident/trace/diagnostics.zig",
-        "text": "                    \"STWO_ZIG_SN2_DUMP_BASE_EVAL_PATH\",\n                );\n                defer std.heap.page_allocator.free(path);\n                const file = try std.fs.createFileAbsolute(path, .{});\n                defer file.close();\n                try file.writeAll(bytes);\n                std.debug.print("
       },
       "expires": "2026-12-13"
     },
@@ -7642,107 +7585,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_INPUT_SHA256": {
-      "owner": "src/backends/metal/tools/arena_plan/runner.zig",
-      "default": "error.EnvironmentVariableNotFound (required value)",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/runner.zig",
-        "text": "        const prover_input_sha256 = try std.process.getEnvVarOwned(allocator, \"STWO_ZIG_SN2_INPUT_SHA256\");\n        defer allocator.free(prover_input_sha256);\n        if (prover_input_sha256.len != 64) return error.InvalidInputDigest;\n        std.debug.print(\"base_eval_digest_input sha256={s}\\n\", .{prover_input_sha256});\n    }\n    const reference_read_started_ns = runner_wall_timer.read();\n    const transcript_reference_path = std.process.getEnvVarOwned("
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS": {
-      "owner": "src/backends/metal/tools/arena_plan/base_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/integrations/cairo_metal/resident/trace/interpolation.zig",
-        "src/integrations/cairo_metal/resident/witness/execute.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS\"))\n                try arena_binding_mod.logComponentBaseEvalDigests(\n                    resident_arena,\n                    schedule,\n                    plan,\n                    \"memory_address_to_id\",\n                );"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_COMMIT_DIGESTS": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_DIGESTS\"))\n        try commitment_telemetry.logBindingDigest(resident_arena, \"commit_leaf\", 0, leaf_state);\n    const bottom_hashes = retained[0].size_bytes / 32;\n    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\")) {\n        std.debug.print(\"commit_merkle tree={d} scratch_count={d} retained_count={d} bottom_hashes={d}\\n\", .{\n            tree_index, scratch_items.len, retained.len, bottom_hashes,\n        });"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_COMMIT_LDE_DIGESTS": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_LDE_DIGESTS\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_STEPS\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPEAT_COMMIT_LDE\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE\");\n    var command_epoch: ?metal_runtime.CommandEpoch = if (mode == .automatic and use_compact_leaf_state and !requires_intermediate_visibility)\n        try metal.beginCommandEpoch(resident_arena.buffer)\n    else"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_COMMIT_SOURCE_DIGESTS": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_SOURCE_DIGESTS\"))\n            try commitment_telemetry.logCommitSourceDigests(resident_arena, coefficient_cursor, group);\n        if (tree_index == 2 and\n            std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE\") and\n            coefficient_cursor <= 2241 and 2241 < coefficient_cursor + width)\n        {\n            const local_index = 2241 - coefficient_cursor;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_COMMIT_SOURCE_INDEX": {
-      "owner": "src/integrations/cairo_metal/resident/commitment/telemetry.zig",
-      "default": "null (no source index diagnostic)",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/resident/commitment/telemetry.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/resident/commitment/telemetry.zig",
-        "text": "    const target_index = if (std.posix.getenv(\"STWO_ZIG_SN2_LOG_COMMIT_SOURCE_INDEX\")) |encoded|\n        try std.fmt.parseUnsigned(usize, encoded, 10)\n    else\n        2241;\n    for (sources, 0..) |source, group_index| {\n        const sorted_index = coefficient_cursor + group_index;\n        if (sorted_index != target_index) continue;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_LOG_COMMIT_STEPS": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "        !std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_STEPS\");\n    if (use_compact_leaf_state and scratch_items.len != 1) return Error.InvalidCardinality;\n    const requires_intermediate_visibility = std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_LDE_DIGESTS\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_COMMIT_STEPS\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPEAT_COMMIT_LDE\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE\");"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_LOG_COMPOSITION_DIGESTS": {
       "owner": "src/backends/metal/runtime/composition.m",
       "default": "null at environment lookup; enclosing presence predicate is pinned",
@@ -7788,22 +7630,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_LOG_INTERACTION_EVAL_DIGESTS": {
-      "owner": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "src/integrations/cairo_metal/resident/commitment/ordering.zig",
-        "src/integrations/cairo_metal/resident/interaction/execute.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_INTERACTION_EVAL_DIGESTS\"))\n                try arena_binding_mod.logComponentInteractionDigests(\n                    allocator,\n                    resident_arena,\n                    schedule,\n                    plan,\n                    operation.component,"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_LOG_RELATION_DIAGNOSTICS": {
       "owner": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -7814,7 +7640,7 @@
       ],
       "default_evidence": {
         "path": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_RELATION_DIAGNOSTICS\"))\n            try bindings.logRelationDiagnostics(resident_arena, relations);\n        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE\")) {\n            const file = try std.fs.createFileAbsolute(\"/tmp/sn2-column613-before-publish.u32le\", .{});\n            defer file.close();\n            try file.writeAll(try resident_arena.bytes(plan.binding(1737) catch return error.MissingBinding));\n        }"
+        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_RELATION_DIAGNOSTICS\"))\n            try bindings.logRelationDiagnostics(resident_arena, relations);"
       },
       "expires": "2026-12-13"
     },
@@ -7969,35 +7795,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE": {
-      "owner": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE\")) {\n            const file = try std.fs.createFileAbsolute(\"/tmp/sn2-column613-before-publish.u32le\", .{});\n            defer file.close();\n            try file.writeAll(try resident_arena.bytes(plan.binding(1737) catch return error.MissingBinding));\n        }\n        try bindings.publishInteractionClaim(resident_arena, schedule, plan);\n        if (transcript_reference) |fixture|"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_REPEAT_COMMIT_LDE": {
-      "owner": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_metal/arena_binding/streaming_commitment.zig",
-        "text": "        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPEAT_COMMIT_LDE\") or\n        std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE\");\n    var command_epoch: ?metal_runtime.CommandEpoch = if (mode == .automatic and use_compact_leaf_state and !requires_intermediate_visibility)\n        try metal.beginCommandEpoch(resident_arena.buffer)\n    else\n        null;\n    defer if (command_epoch) |*epoch| epoch.deinit();"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_REPLAY_TRANSCRIPT_AFTER_TREE2": {
       "owner": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -8042,21 +7839,6 @@
       "default_evidence": {
         "path": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
         "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_RESTORE_REFERENCE_RELATION_CHALLENGES\"))\n            try bindings.restoreRelationChallenges(\n                resident_arena,\n                .{ 23353985, 545987341, 122919781, 2037762338 },\n                .{ 738082848, 31333331, 241479621, 1778656766 },\n            );\n        const recorded = try arena_binding_mod.executeScheduledInteractionGraph("
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_TRACE_COLUMN_613": {
-      "owner": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "src/integrations/cairo_metal/resident/interaction/execute.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_TRACE_COLUMN_613\"))\n            try arena_binding_mod.logLogicalBindingDigest(\n                resident_arena,\n                plan,\n                1737,\n                \"after_all_relations\",\n            );"
       },
       "expires": "2026-12-13"
     },

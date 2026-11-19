@@ -13,7 +13,6 @@ const witness_bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
 const eval_codegen = @import("eval_codegen.zig");
 const cairo_proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const commitment_ordering = @import("resident/commitment/ordering.zig");
-const commitment_telemetry = @import("resident/commitment/telemetry.zig");
 const composition_config = @import("resident/composition/config.zig");
 const fixed_tables = @import("resident/lookups/fixed_tables.zig");
 const multiplicity_feeds = @import("resident/lookups/multiplicity_feeds.zig");
@@ -26,7 +25,6 @@ const interaction_diagnostics = @import("resident/interaction/diagnostics.zig");
 const interaction_execute = @import("resident/interaction/execute.zig");
 const resident_binding = @import("resident/binding.zig");
 const resident_errors = @import("resident/errors.zig");
-const trace_diagnostics = @import("resident/trace/diagnostics.zig");
 const trace_interpolation = @import("resident/trace/interpolation.zig");
 const transcript_operations = @import("resident/transcript/operations.zig");
 const resident_twiddles = @import("resident/twiddles.zig");
@@ -190,10 +188,7 @@ pub const executeNativeEcConsumer = witness_execute.executeNativeEcConsumer;
 pub const executeScheduledWitnessGraph = witness_execute.executeScheduledWitnessGraph;
 pub const InteractionExecutionTelemetry = interaction_execute.InteractionExecutionTelemetry;
 pub const executeScheduledInteractionGraph = interaction_execute.executeScheduledInteractionGraph;
-pub const logComponentInteractionDigests = interaction_diagnostics.logComponentInteractionDigests;
-pub const logComponentBaseEvalDigests = trace_diagnostics.logComponentBaseEvalDigests;
 pub const logInteractionCoefficientDigests = interaction_diagnostics.logInteractionCoefficientDigests;
-pub const logLogicalBindingDigest = interaction_diagnostics.logLogicalBindingDigest;
 
 pub const gatherWitnessInput = witness_execute.gatherWitnessInput;
 

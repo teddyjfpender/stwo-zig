@@ -11,7 +11,6 @@ const witness_scheduler = @import("stwo_cairo_frontend").witness_scheduler;
 const schedule_bindings = @import("../../schedule_bindings.zig");
 const multiplicity_feeds = @import("../lookups/multiplicity_feeds.zig");
 const resident_binding = @import("../binding.zig");
-const trace_diagnostics = @import("../trace/diagnostics.zig");
 const trace_interpolation = @import("../trace/interpolation.zig");
 const witness_prepare = @import("prepare.zig");
 const Error = @import("../errors.zig").Error;
@@ -25,7 +24,6 @@ const MultiplicityFeedBatch = multiplicity_feeds.MultiplicityFeedBatch;
 const RecordedBaseInterpolationBatch = trace_interpolation.RecordedBaseInterpolationBatch;
 const WitnessRecipeRequirements = witness_prepare.WitnessRecipeRequirements;
 const WitnessRecipes = witness_prepare.WitnessRecipes;
-const logComponentBaseEvalDigests = trace_diagnostics.logComponentBaseEvalDigests;
 
 pub const WitnessEdge = cairo_proof_plan.ProducerEdge;
 
@@ -263,13 +261,6 @@ pub fn executeScheduledWitnessGraph(
                 .interpolate => try self.interpolation.executeIndex(component_index),
                 .feed => try self.executeFeed(component),
             };
-            if (stage == .writer and std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS"))
-                try logComponentBaseEvalDigests(
-                    self.resident_arena,
-                    self.schedule,
-                    self.arena,
-                    component,
-                );
             switch (stage) {
                 .seed, .gather, .compact => self.input_gpu_ms += gpu_ms,
                 .writer => {},
@@ -303,13 +294,6 @@ pub fn executeScheduledWitnessGraph(
                 const ec_initial = ec_op.accumulated_gpu_ms;
                 try ec_op.execute();
                 writer_gpu_ms += ec_op.accumulated_gpu_ms - ec_initial;
-                if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS"))
-                    try logComponentBaseEvalDigests(
-                        self.resident_arena,
-                        self.schedule,
-                        self.arena,
-                        "ec_op_builtin",
-                    );
                 interpolation_gpu_ms = try self.interpolation.interpolateEcOp(component_index);
                 self.interpolation_gpu_ms += interpolation_gpu_ms;
             }

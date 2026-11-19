@@ -272,47 +272,17 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
                     execution_metrics.interaction_witness_gpu_ms += try interaction_native.materializeFixed(fixed_entry.component);
             }
             const native = try relations.executeComponent(operation.component);
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_INTERACTION_EVAL_DIGESTS"))
-                try arena_binding_mod.logComponentInteractionDigests(
-                    allocator,
-                    resident_arena,
-                    schedule,
-                    plan,
-                    operation.component,
-                );
             execution_metrics.relation_gpu_ms += native.relation_gpu_ms;
             execution_metrics.interaction_interpolation_gpu_ms += native.interpolation_gpu_ms;
             executed_relations += 1;
         }
         if (executed_relations != relations.operations.len) return error.RelationGraphNotExecuted;
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_TRACE_COLUMN_613"))
-            try arena_binding_mod.logLogicalBindingDigest(
-                resident_arena,
-                plan,
-                1737,
-                "after_all_relations",
-            );
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_RELATION_DIAGNOSTICS"))
             try bindings.logRelationDiagnostics(resident_arena, relations);
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE")) {
-            const file = try std.fs.createFileAbsolute("/tmp/sn2-column613-before-publish.u32le", .{});
-            defer file.close();
-            try file.writeAll(try resident_arena.bytes(plan.binding(1737) catch return error.MissingBinding));
-        }
         try bindings.publishInteractionClaim(resident_arena, schedule, plan);
         if (transcript_reference) |fixture|
             try transcript.expectInputWords(22, fixture.input_22);
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE")) {
-            const file = try std.fs.createFileAbsolute("/tmp/sn2-column613-after-publish.u32le", .{});
-            defer file.close();
-            try file.writeAll(try resident_arena.bytes(plan.binding(1737) catch return error.MissingBinding));
-        }
         try bindings.populateCommitmentTwiddles(allocator, resident_arena, plan, 2);
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE")) {
-            const file = try std.fs.createFileAbsolute("/tmp/sn2-column613-pre-commit-source.u32le", .{});
-            defer file.close();
-            try file.writeAll(try resident_arena.bytes(plan.binding(1737) catch return error.MissingBinding));
-        }
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_INTERACTION_COEFF_DIGESTS"))
             try arena_binding_mod.logInteractionCoefficientDigests(
                 resident_arena,

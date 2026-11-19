@@ -217,13 +217,6 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
             execution_metrics.memory_trace_gpu_ms = try trace.executeAddress(metal, resident_arena, adapted);
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=memory_address done\n", .{});
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS"))
-                try arena_binding_mod.logComponentBaseEvalDigests(
-                    resident_arena,
-                    schedule,
-                    plan,
-                    "memory_address_to_id",
-                );
             execution_metrics.base_interpolation_gpu_ms += try native_interpolation.interpolateMemoryAddress();
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=memory_address_ifft done\n", .{});
@@ -232,17 +225,10 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
                 std.debug.print("base stage=memory_values done\n", .{});
             execution_metrics.memory_trace_gpu_ms += memory_values.trace_gpu_ms;
             execution_metrics.memory_rc99_gpu_ms = memory_values.rc99_gpu_ms;
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS"))
-                try arena_binding_mod.logComponentBaseEvalDigests(
-                    resident_arena,
-                    schedule,
-                    plan,
-                    "memory_id_to_big",
-                );
             execution_metrics.base_interpolation_gpu_ms += try native_interpolation.interpolateMemoryValues();
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=memory_values_ifft done\n", .{});
-            execution_metrics.base_interpolation_gpu_ms += try native_interpolation.executeFixed(schedule, plan);
+            execution_metrics.base_interpolation_gpu_ms += try native_interpolation.executeFixed();
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                 std.debug.print("base stage=fixed_ifft done\n", .{});
         }
