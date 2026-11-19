@@ -6346,20 +6346,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_EXPERIMENTAL_PARALLEL_BARYCENTRIC_WEIGHTS": {
-      "owner": "src/engine/prover/pcs/sampled_values.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/sampled_values.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/sampled_values.zig",
-        "text": "        } else if (preferBarycentricWaves(trees, sampled_points.items) or std.process.hasEnvVarConstant(\"STWO_ZIG_EXPERIMENTAL_PARALLEL_BARYCENTRIC_WEIGHTS\")) {\n            // Large evaluation-form trees benefit from inner parallelism.\n            // Drain one tree at a time so its bounded weight/dot lease does not\n            // compete with unrelated tree workers or nested waits. The\n            // evaluation-form trees are drained together, one weight vector\n            // per distinct (domain, point) across all of them.\n            var shared_trees = std.ArrayList(coefficient_plan_ops.SharedPointTree).empty;"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_EXTENSION_FIELDS_METAL": {
       "owner": "src/backends/metal/shaders/include/extension_fields.metal",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -6460,20 +6446,6 @@
       "default_evidence": {
         "path": "src/engine/prover/vcs_lifted/parameters.zig",
         "text": "    return positiveIntegerEnv(allocator, \"STWO_ZIG_LEAF_BATCH_SIZE\", true);\n}\n\npub fn merklePoolReuseEnabled(allocator: std.mem.Allocator) bool {\n    const raw = std.process.getEnvVarOwned(allocator, \"STWO_ZIG_MERKLE_POOL_REUSE\") catch return false;\n    defer allocator.free(raw);\n    return parseBoolean(raw) orelse false;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_LEGACY_SAMPLED_TREE_SCHEDULE": {
-      "owner": "src/engine/prover/pcs/sampled_values.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/sampled_values.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/sampled_values.zig",
-        "text": "        if (all_coefficients and !std.process.hasEnvVarConstant(\"STWO_ZIG_LEGACY_SAMPLED_TREE_SCHEDULE\")) {\n            const Callback = struct {\n                fn run(raw: *anyopaque, index: usize) void {\n                    const workers: [*]SampledValueWorkerCtx(B, H) = @ptrCast(@alignCast(raw));\n                    workers[index].run();\n                }\n            };"
       },
       "expires": "2026-12-13"
     },
@@ -6957,20 +6929,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_PROFILE_SAMPLED_DISPATCH": {
-      "owner": "src/engine/prover/pcs/sampled_values.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/sampled_values.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/sampled_values.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_PROFILE_SAMPLED_DISPATCH\")) {\n        std.debug.print(\"SAMPLED_DISPATCH backend={s} coefficient={} barycentric={} mixed={}\\n\", .{\n            @typeName(B),                                @hasDecl(B, \"evaluateCoefficientPlans\"),\n            @hasDecl(B, \"evaluateBarycentricTreePlans\"), @hasDecl(B, \"supportsMixedSampledEvaluation\"),\n        });\n        for (trees, 0..) |tree, i| {\n            var log: u32 = 0;"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_PROFILE_SAMPLED_PLAN_OVERLAP": {
       "owner": "src/engine/prover/pcs/sampled_values.zig",
       "default": "false",
@@ -6982,20 +6940,6 @@
       "default_evidence": {
         "path": "src/engine/prover/pcs/sampled_values.zig",
         "text": "        \"STWO_ZIG_PROFILE_SAMPLED_PLAN_OVERLAP\",\n    )) {\n        var overlap_timer = try std.time.Timer.start();\n        var overlap = try plan_overlap.derive(\n            allocator,\n            trees,\n            sampled_points.items,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_PROFILE_SAMPLED_QUEUE": {
-      "owner": "src/engine/prover/pcs/sampled_value_queue.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/sampled_value_queue.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/sampled_value_queue.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_PROFILE_SAMPLED_QUEUE\")) std.debug.print(\"SAMPLED_QUEUE threads={d} trees={d} batches={d} tasks={d}\\n\", .{ threads, count, queue.batches_published, queue.batch_tasks_run });\n}"
       },
       "expires": "2026-12-13"
     },
