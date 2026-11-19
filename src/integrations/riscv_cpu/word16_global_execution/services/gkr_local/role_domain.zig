@@ -59,10 +59,6 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
     const aux_count = comptime if (local_binding) 10 else 0;
     const Scratch = ScratchFor(Component);
     const active_pool = pool orelse engine.work_pool.currentScopedPool();
-    const profile = std.process.hasEnvVarConstant("STWO_ZIG_PROFILE_OM_DOMAIN");
-    var timer: ?std.time.Timer = if (profile) try std.time.Timer.start() else null;
-    var fft_ns: u64 = 0;
-    var row_ns: u64 = 0;
     const shape = self.mainShape();
     if (shape.fixed > Component.MAX_FIXED or shape.main > Component.MAX_MAIN) return error.InvalidLocalGkrTrace;
     const log = Geo.logSize(self);
@@ -198,13 +194,10 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
             }
         }
     };
-    const prep_ns = if (timer) |*clock| clock.lap() else 0;
     var actual_jobs: usize = 1;
     for (0..(@as(usize, 1) << @intCast(split))) |part| {
-        if (timer) |*clock| clock.reset();
         try evaluation.evaluatePartWithPool(part, active_pool);
         const inverse = F.fromBase(try evaluation.denominatorInverse(part));
-        if (timer) |*clock| fft_ns += clock.lap();
         const start = evaluation.globalRow(part, 0);
         const fresh = if (output.next_fresh_index) |next| next == start else false;
         var work = Work{ .component = self, .evaluation = &evaluation, .output = output, .scratch = scratches, .part = part, .rows = rows, .log = log, .shape = shape, .main_at = main_at, .inter_at = inter_at, .aux_at = aux_at, .inter_width = inter_width, .inverse = inverse, .fresh = fresh, .prepared = if (prepared) |*owned| owned else null };
@@ -216,7 +209,5 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
         };
         // One caller owns the freshness cursor. Callback writes are disjoint.
         output.next_fresh_index = if (fresh) start + rows else null;
-        if (timer) |*clock| row_ns += clock.read();
     }
-    if (profile) std.debug.print("OM_DOMAIN_STAGE log={d} main={d} inter={d} constraints={d} jobs={d} scratch_bytes={d} prepared_bytes={d} prep_ns={d} fft_ns={d} rows_ns={d}\n", .{ log, shape.main, inter_width, self.nConstraints(), actual_jobs, scratch_plan.total_bytes, if (prepared) |*owned| owned.bytes() else @as(usize, 0), prep_ns, fft_ns, row_ns });
 }

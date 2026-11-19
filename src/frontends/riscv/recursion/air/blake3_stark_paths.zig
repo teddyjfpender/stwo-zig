@@ -108,12 +108,6 @@ const Builder = struct {
     next: u32 = 2_000_000,
     payload: u32 = 0,
     count: usize = 0,
-    shared_path_g_rows: usize = 0,
-    profile_timer: ?std.time.Timer = null,
-    profile_ns: [4]u64 = @splat(0),
-    fn profileLap(self: *Builder, phase: usize) void {
-        if (self.profile_timer) |*timer| self.profile_ns[phase] += timer.lap();
-    }
     fn beginFrontier(self: *Builder, openings: []const discovery.Opening, root_index: usize, root: [32]u8) !?frontier.Context {
         if (openings.len < 2 or openings[0].siblings.len < 2) return null;
         const plan = frontier.Plan{ .namespace = self.next, .queries = @intCast(openings.len), .root_source = try @import("stwo_riscv_recursion_air").blake3.root_sources.caller(root_index) };
@@ -146,7 +140,6 @@ const Builder = struct {
         try self.fixed.append(self.backing, fixed);
         self.g_used += counts.g;
         self.xor_used += counts.xor;
-        self.shared_path_g_rows += (2 * openings.len - 3) * plans.node.g.len;
         return context;
     }
     fn opening(self: *Builder, leaves: u32, words: u32, index: u32, depth: u32, root_index: usize, root: [32]u8, directions: []const group.select.Endpoint, values: []const M31, siblings: []const [32]u8, sharing: ?@import("stwo_riscv_recursion_air").blake3.shared_root_plan.Sharing, frontier_use: ?frontier.Use) ![]const u32 {
@@ -155,9 +148,6 @@ const Builder = struct {
         if (end >= 3_000_000 or depth > 31) return error.InvalidStarkPathNamespace;
         const statement = group.Statement{ .namespace = self.next, .payload = .{ .circuit = 3_000_000, .first_wire = self.payload }, .leaf_count = leaves, .words_per_leaf = words, .index = index, .depth = @intCast(depth), .root = root, .root_source = try @import("stwo_riscv_recursion_air").blake3.root_sources.caller(root_index), .directions = directions, .shared_root = sharing, .frontier = frontier_use };
         const counts = try group.requiredHashRowsCached(self.backing, statement, self.cache);
-        if (sharing) |plan| {
-            if (plan.query_index > 0) self.shared_path_g_rows += self.cache.node.?.g.len;
-        }
         if (self.count_only) {
             const metadata = if (self.fixed_metadata) |m| try m.slice(self.g_used, counts.g, self.xor_used, counts.xor) else try @import("stwo_riscv_air_lang").framework.blake3_hash_metadata.Rows.allocate(self.backing, counts.g, counts.xor);
             defer if (self.fixed_metadata == null) metadata.free(self.backing);
@@ -172,20 +162,16 @@ const Builder = struct {
         }
         const live_destination = if (self.columns == null) try self.live.reserveHash(self.backing, counts) else group.HashDestination{ .g_rows = &.{}, .xor_rows = &.{} };
         const fixed_destination = if (self.fixed_metadata) |m| group.HashDestination{ .fixed = try m.slice(self.g_used, counts.g, self.xor_used, counts.xor) } else try self.fixed.reserveHash(self.backing, counts);
-        self.profileLap(0);
         var live = if (self.live_sink) |sink| try group.prepareEmittingCached(self.backing, statement, values, siblings, if (self.columns != null) null else live_destination, if (self.columns) |out| try out.slice(self.g_used, counts.g, self.xor_used, counts.xor) else null, self.cache, sink) else if (self.columns) |out| try group.prepareMainColumnsCached(self.backing, statement, values, siblings, try out.slice(self.g_used, counts.g, self.xor_used, counts.xor), self.cache) else try group.prepareIntoCached(self.backing, statement, values, siblings, live_destination, self.cache);
         defer live.deinit();
         if (!std.mem.eql(u8, &root, &live.computed_root.?)) return error.InvalidStarkPathRoot;
-        self.profileLap(1);
         var fixed = if (self.fixed_sink) |sink| try group.prepareEmittingCached(self.backing, statement, null, null, fixed_destination, null, self.cache, sink) else try group.trustedIntoCached(self.backing, statement, fixed_destination, self.cache);
         defer fixed.deinit();
         if (!std.mem.eql(u32, fixed.payload_uses, live.payload_uses)) return error.InvalidStarkPathReads;
-        self.profileLap(2);
         try self.live.append(self.backing, live);
         self.g_used += counts.g;
         self.xor_used += counts.xor;
         try self.fixed.append(self.backing, fixed);
-        self.profileLap(3);
         self.next = end;
         self.payload = try std.math.add(u32, self.payload, @intCast(values.len));
         self.count += 1;
@@ -367,7 +353,6 @@ fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const 
     var cache = group.PlanCache.init(backing);
     defer cache.deinit();
     var b = Builder{ .a = a, .backing = backing, .columns = columns, .cache = &cache, .count_only = count_only, .live_sink = live_sink, .fixed_sink = fixed_sink };
-    if (std.posix.getenv("STWO_RISCV_PARENT_PREPARATION_PROFILE") != null) b.profile_timer = std.time.Timer.start() catch null;
     errdefer if (b.fixed_metadata) |m| m.free(backing);
     if (columns) |out| {
         try out.validate(out.g_rows.metadata.len, out.xor_rows.metadata.len);
@@ -434,7 +419,6 @@ fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const 
         arena.deinit();
         return null;
     }
-    if (std.posix.getenv("STWO_RISCV_PATH_SHARING_CENSUS") != null) try @import("stwo_riscv_recursion_air").blake3.path_sharing_census.report(backing, capture, b.g_used, b.shared_path_g_rows);
     if (columns) |out| if (b.g_used != out.g_rows.metadata.len or b.xor_used != out.xor_rows.metadata.len) return error.InvalidBlake3WitnessDestination;
     var linked = try links.?.finish();
     errdefer linked.deinitColumns();
@@ -454,7 +438,5 @@ fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const 
     const live_rows = try b.live.finish(backing);
     errdefer freeRows(backing, live_rows);
     const fixed_rows = try b.fixed.finish(backing);
-    b.profileLap(0);
-    if (b.profile_timer != null) std.debug.print("PARENT_PATH_PREPARATION openings={d} other_ns={d} live_ns={d} trusted_ns={d} append_ns={d} thread={d}\n", .{ b.count, b.profile_ns[0], b.profile_ns[1], b.profile_ns[2], b.profile_ns[3], std.Thread.getCurrentId() });
     return .{ .fixed_hash_metadata = b.fixed_metadata, .hash_metadata = if (columns) |out| out.metadata() else null, .arena = arena, .row_allocator = backing, .inputs = linked, .live = live_rows, .fixed = fixed_rows };
 }
