@@ -408,8 +408,7 @@ test "canonical CUDA circuit leaf prepares lifted M31 source geometry" {
 }
 
 test "canonical CUDA SN PIE suite host admission" {
-    const directory = std.process.getEnvVarOwned(std.testing.allocator, "STWO_CAIRO_CUDA_LOCAL_INPUT_DIR") catch return error.SkipZigTest;
-    defer std.testing.allocator.free(directory);
+    const directory = @import("cairo_host_test_options").sn_suite_dir orelse return error.SkipZigTest;
     for (1..5) |number| {
         const path = try std.fmt.allocPrint(std.testing.allocator, "{s}/sn-pie-{}.cpi", .{ directory, number });
         defer std.testing.allocator.free(path);

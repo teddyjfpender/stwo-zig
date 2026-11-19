@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "typed_cairo_fixture_test_options_issue332",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 332 comment 6998614561: make the existing Cairo CPU and CUDA-host tests own their four explicit fixture and output options. Preserve standard test discovery, optional fixture skip behavior, source custody, absolute path rejection, proof serialization and verification. Only the existing named test targets receive the configured options."
+    },
+    {
       "id": "focused_formal_evidence_deferral_issue436",
       "net_code_budget": 110,
       "flags_added_budget": 0,

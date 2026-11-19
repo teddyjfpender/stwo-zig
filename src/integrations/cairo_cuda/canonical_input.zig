@@ -171,8 +171,7 @@ test "authenticated capture checks owned bytes without rereading the path" {
 
 test "large compact capture keeps identical authority with expected digest" {
     const allocator = std.testing.allocator;
-    const path = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_LARGE_INPUT") catch return error.SkipZigTest;
-    defer allocator.free(path);
+    const path = @import("cairo_host_test_options").compact_input orelse return error.SkipZigTest;
     var legacy = try read(allocator, path);
     const expected = legacy.file_sha256;
     const encoded = legacy.encoded_sha256;
@@ -194,8 +193,7 @@ test "large compact capture keeps identical authority with expected digest" {
 }
 
 test "Rust oracle compact inputs match normalized JSON for continuous PIEs" {
-    const directory = std.process.getEnvVarOwned(std.testing.allocator, "STWO_CAIRO_CUDA_CONTINUOUS_INPUT_DIR") catch return error.SkipZigTest;
-    defer std.testing.allocator.free(directory);
+    const directory = @import("cairo_host_test_options").continuous_dir orelse return error.SkipZigTest;
     for ([_][]const u8{ "15627902-15627904", "15627905-15627907" }) |name| {
         const json_path = try std.fmt.allocPrint(std.testing.allocator, "{s}/{s}.prover_input.json", .{ directory, name });
         defer std.testing.allocator.free(json_path);

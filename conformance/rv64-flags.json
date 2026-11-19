@@ -308,20 +308,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_CAIRO_CUDA_CONTINUOUS_INPUT_DIR": {
-      "owner": "src/integrations/cairo_cuda/canonical_input.zig",
-      "default": "error.SkipZigTest",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_cuda/canonical_input.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_cuda/canonical_input.zig",
-        "text": "    const directory = std.process.getEnvVarOwned(std.testing.allocator, \"STWO_CAIRO_CUDA_CONTINUOUS_INPUT_DIR\") catch return error.SkipZigTest;\n    defer std.testing.allocator.free(directory);\n    for ([_][]const u8{ \"15627902-15627904\", \"15627905-15627907\" }) |name| {\n        const json_path = try std.fmt.allocPrint(std.testing.allocator, \"{s}/{s}.prover_input.json\", .{ directory, name });\n        defer std.testing.allocator.free(json_path);\n        const compact_path = try std.fmt.allocPrint(std.testing.allocator, \"{s}/{s}.prover_input.cpi\", .{ directory, name });\n        defer std.testing.allocator.free(compact_path);"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_CAIRO_CUDA_FAILURE_TRANSPORT": {
       "owner": "src/integrations/cairo_cuda/executor/terminal_controller.zig",
       "default": "disabled: failure transport returns without writing when path is absent",
@@ -334,34 +320,6 @@
       "default_evidence": {
         "path": "src/integrations/cairo_cuda/executor/terminal_controller.zig",
         "text": "    const path = std.process.getEnvVarOwned(allocator, \"STWO_CAIRO_CUDA_FAILURE_TRANSPORT\") catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return,\n        else => return err,\n    };\n    defer allocator.free(path);\n    if (!std.fs.path.isAbsolute(path)) return error.InvalidDiagnosticPath;\n    const file = try std.fs.createFileAbsolute(path, .{ .exclusive = true });"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_CAIRO_CUDA_LARGE_INPUT": {
-      "owner": "src/integrations/cairo_cuda/canonical_input.zig",
-      "default": "error.SkipZigTest",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_cuda/canonical_input.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_cuda/canonical_input.zig",
-        "text": "    const path = std.process.getEnvVarOwned(allocator, \"STWO_CAIRO_CUDA_LARGE_INPUT\") catch return error.SkipZigTest;\n    defer allocator.free(path);\n    var legacy = try read(allocator, path);\n    const expected = legacy.file_sha256;\n    const encoded = legacy.encoded_sha256;\n    std.debug.print(\"cairo-cuda capture legacy_ns={} identity_check_ns={}\\n\", .{\n        legacy.timings.read_ns + legacy.timings.parse_and_encode_ns + legacy.timings.digest_wait_ns + legacy.timings.identity_check_ns,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_CAIRO_CUDA_LOCAL_INPUT_DIR": {
-      "owner": "src/integrations/cairo_cuda/canonical_source.zig",
-      "default": "error.SkipZigTest",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/integrations/cairo_cuda/canonical_source.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/cairo_cuda/canonical_source.zig",
-        "text": "    const directory = std.process.getEnvVarOwned(std.testing.allocator, \"STWO_CAIRO_CUDA_LOCAL_INPUT_DIR\") catch return error.SkipZigTest;\n    defer std.testing.allocator.free(directory);\n    for (1..5) |number| {\n        const path = try std.fmt.allocPrint(std.testing.allocator, \"{s}/sn-pie-{}.cpi\", .{ directory, number });\n        defer std.testing.allocator.free(path);\n        const started = try std.time.Instant.now();\n        var prepared = try prepare(std.testing.allocator, .{ .input = path }, @import(\"request_compiler/sn2_test_support.zig\").target());"
       },
       "expires": "2026-12-13"
     },
@@ -876,20 +834,6 @@
       "default_evidence": {
         "path": "src/frontends/cairo/proving/transaction.zig",
         "text": "            if (std.posix.getenv(\"STWO_CAIRO_PROFILE_ARENAS\") != null)\n                std.debug.print(\"cairo_interaction_arena admitted=true bytes={} columns={}\\n\", .{\n                    layout.base_words * @sizeOf(core.fields.m31.M31), layout.offsets.len,\n                });\n            interaction_arena = try trace_arena.allocateUninitialized(allocator, layout);\n        } else |err| {\n            if (std.posix.getenv(\"STWO_CAIRO_PROFILE_ARENAS\") != null)"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_CAIRO_PROOF_OUTPUT": {
-      "owner": "src/products/cairo/cpu/tests/cpu_proof_test.zig",
-      "default": "disabled: no proof output directory",
-      "status": "qualification",
-      "date": "2026-11-13",
-      "references": [
-        "src/products/cairo/cpu/tests/cpu_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/products/cairo/cpu/tests/cpu_proof_test.zig",
-        "text": "        \"STWO_CAIRO_PROOF_OUTPUT\",\n    ) catch |err| switch (err) {\n        error.EnvironmentVariableNotFound => return,\n        else => return err,\n    };\n    defer std.testing.allocator.free(output_path);\n    if (!std.fs.path.isAbsolute(output_path)) return error.OutputPathNotAbsolute;"
       },
       "expires": "2026-12-13"
     },

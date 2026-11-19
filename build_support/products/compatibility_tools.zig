@@ -239,6 +239,9 @@ pub fn addProducts(context: Context) void {
         "src/products/cairo/cpu/tests/cpu_proof_test.zig",
     );
     cairo_cpu_proof_test_root.addImport("stwo", stwo);
+    const cairo_proof_test_options = context.b.addOptions();
+    cairo_proof_test_options.addOption(?[]const u8, "proof_output", context.b.option([]const u8, "cairo-test-proof-out", "Absolute path for the official Cairo CPU test proof"));
+    cairo_cpu_proof_test_root.addOptions("cairo_proof_test_options", cairo_proof_test_options);
     const cairo_cpu_proof_tests = context.b.addTest(.{
         .root_module = cairo_cpu_proof_test_root,
     });
