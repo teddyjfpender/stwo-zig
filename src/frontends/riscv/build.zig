@@ -172,7 +172,7 @@ pub fn build(b: *std.Build) void {
     run_manifest_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     run_manifest_tool.addArgs(&.{
         manifest_mode,
-        "src/frontends/riscv/air_lang/artifacts/m3-compat-v1",
+        "vectors/riscv_air/m3-compat-v1",
     });
     b.step(
         "typed-air-manifest",
@@ -194,7 +194,7 @@ pub fn build(b: *std.Build) void {
     run_frontier_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     run_frontier_tool.addArgs(&.{
         frontier_mode,
-        "src/frontends/riscv/air_lang/artifacts/h009-poseidon2-cost-v1",
+        "vectors/riscv_air/h009-poseidon2-cost-v1",
     });
     b.step(
         "typed-air-frontier",
@@ -218,7 +218,7 @@ pub fn build(b: *std.Build) void {
     run_static_profile_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     run_static_profile_tool.addArgs(&.{
         static_profile_mode,
-        "src/frontends/riscv/air_lang/artifacts/p002-native-family-static-profile-v1",
+        "vectors/riscv_air/p002-native-family-static-profile-v1",
     });
     b.step(
         "typed-air-static-profile",

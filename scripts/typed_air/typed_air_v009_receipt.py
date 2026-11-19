@@ -46,11 +46,19 @@ REQUIRED_WORKFLOWS = {
     "RISC-V Sail differential",
     "RISC-V Sail formal provisioning",
 }
+# Legacy logical paths remain part of the receipt schema and digest.
+RELOCATED_ARTIFACTS = {
+    "src/frontends/riscv/air/lang/artifacts/m3-compat-v1/index-v1.tsv":
+        "vectors/riscv_air/m3-compat-v1/index-v1.tsv",
+    "src/frontends/riscv/air_lang/artifacts/p003-work-profile-closure-v1/matrix-v1.json":
+        "vectors/riscv_air/p003-work-profile-closure-v1/matrix-v1.json",
+    "src/frontends/riscv/air_lang/artifacts/r006-csp-closeout-v1/receipt-v1.json":
+        "bench/history/typed-air/r006-csp-closeout-v1/receipt-v1.json",
+    "src/frontends/riscv/air_lang/artifacts/recursive-temporal-parent-v1/receipt-v1.json":
+        "bench/history/typed-air/recursive-temporal-parent-v1/receipt-v1.json",
+}
 REQUIRED_ARTIFACTS = (
-    "src/frontends/riscv/air/lang/artifacts/m3-compat-v1/index-v1.tsv",
-    "src/frontends/riscv/air_lang/artifacts/p003-work-profile-closure-v1/matrix-v1.json",
-    "src/frontends/riscv/air_lang/artifacts/r006-csp-closeout-v1/receipt-v1.json",
-    "src/frontends/riscv/air_lang/artifacts/recursive-temporal-parent-v1/receipt-v1.json",
+    *RELOCATED_ARTIFACTS,
     "formal/riscv-refinement/generated-manifest.json",
     "formal/riscv-refinement/refinement-receipt.json",
 )
@@ -163,6 +171,8 @@ def _relative_artifact(root: Path, value: Any) -> Path:
     if type(value) is not str or not value or value.startswith("/"):
         raise ReceiptError("artifact path must be repository-relative")
     candidate = root / value
+    if value in RELOCATED_ARTIFACTS and not candidate.exists() and not candidate.is_symlink():
+        candidate = root / RELOCATED_ARTIFACTS[value]
     try:
         resolved = candidate.resolve(strict=True)
         resolved.relative_to(root.resolve(strict=True))

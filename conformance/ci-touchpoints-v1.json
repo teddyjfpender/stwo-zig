@@ -2505,6 +2505,19 @@
     },
     {
       "prefixes": [
+        "vectors/riscv_air",
+        "bench/history/typed-air"
+      ],
+      "lanes": [
+        "riscv_air_lang_package",
+        "riscv_frontend",
+        "script_contracts",
+        "static"
+      ],
+      "validate_documentation": true
+    },
+    {
+      "prefixes": [
         "vectors/reports"
       ],
       "lanes": [

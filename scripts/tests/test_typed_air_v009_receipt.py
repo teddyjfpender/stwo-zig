@@ -9,6 +9,7 @@ from unittest import mock
 
 from scripts.typed_air.typed_air_r006_capture_lib.codec import canonical_bytes, content_digest
 from scripts.typed_air.typed_air_v009_receipt import (
+    RELOCATED_ARTIFACTS,
     REQUIRED_ARTIFACTS,
     ReceiptError,
     mint_receipt,
@@ -138,6 +139,19 @@ class V009ReceiptTests(unittest.TestCase):
             "scripts.typed_air.typed_air_v009_receipt._git", return_value=TREE
         ), self.assertRaisesRegex(ReceiptError, "canonical JSON"):
             validate_receipt(self.root, pretty)
+
+    def test_relocated_artifacts_keep_the_original_path_and_digest_binding(self) -> None:
+        receipt = self._receipt()
+        for original, relocated in RELOCATED_ARTIFACTS.items():
+            destination = self.root / relocated
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            (self.root / original).rename(destination)
+        with mock.patch("scripts.typed_air.typed_air_v009_receipt._git", return_value=TREE):
+            path = self._write(receipt)
+            self.assertEqual(receipt, validate_receipt(self.root, path))
+            destination.write_bytes(b"changed")
+            with self.assertRaisesRegex(ReceiptError, "artifact identity changed"):
+                validate_receipt(self.root, path)
 
     def test_mint_rejects_dirty_source_incomplete_runs_and_ambiguous_log(self) -> None:
         with mock.patch(

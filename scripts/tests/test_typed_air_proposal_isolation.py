@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 
 from scripts.repo.source_conformance_lib import typed_air_proposals
-from scripts.repo.product_closure.graph import inspect_sources
 from scripts.repo.product_closure.model import Manifest, NamedImport
+from scripts.tests.product_closure_recursion_cases import inspect_sources
 
 
 class TypedAirProposalIsolationTests(unittest.TestCase):
@@ -56,7 +56,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                     'pub const materialization_cost = @import("materialization_cost.zig");\n'
                 ),
                 "src/frontends/riscv/compat/assembly/rv32/materialization_frontier_tool.zig": (
-                    'const command = @import("air/lang/materialization_frontier_command.zig");\n'
+                    'const artifact = @import("stwo_riscv_memory").testing.proposals.typed_poseidon2_frontier_artifact;\n'
                 ),
                 "src/frontends/riscv/compat/assembly/rv32/poseidon_layout_benchmark_tool.zig": (
                     'const benchmark = @import("air/lang/materialization_direct_benchmark.zig");\n'

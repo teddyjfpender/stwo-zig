@@ -18,7 +18,7 @@ preset or a machine-read pin; those live in `src/`, `conformance/` and
 
 | Former path | Current path |
 |---|---|
-| `design/typed-air/artifacts/` | `src/frontends/riscv/air_lang/artifacts/` (embedded by the riscv package) |
+| `design/typed-air/artifacts/` | `vectors/riscv_air/` (embedded by the riscv package) |
 | `design/riscv-proving-stack/m7-handoff/*.json` | `conformance/rv64/presets/` |
 | `design/typed-air/performance/m5-m9-protocol-v1.json` | `conformance/typed-air/m5-m9-protocol-v1.json` |
 | `design/riscv-proving-stack/` | `design/riscv/` |

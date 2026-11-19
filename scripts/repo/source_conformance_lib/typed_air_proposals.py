@@ -33,7 +33,6 @@ PROPOSAL_REFERENCE_RE = re.compile(
 )
 
 AUTHORING_PATHS = frozenset({
-    Path("frontends/riscv/air/lang/materialization_frontier_command.zig"),
     Path("frontends/riscv/air_lang/cost_aware_materializer.zig"),
     Path("frontends/riscv/air_lang/materialization_cost.zig"),
     Path("frontends/riscv/air_lang/materialization_cut_set.zig"),
@@ -94,6 +93,10 @@ BENCHMARK_PROTOCOL = Path("frontends/riscv/memory/typed/poseidon_layout_benchmar
 BENCHMARK_PROTOCOL_TEST = Path("frontends/riscv/memory/typed/tests/poseidon_layout_benchmark_protocol_test.zig")
 BENCHMARK_ARTIFACT_TEST = Path("frontends/riscv/memory/typed/tests/poseidon_layout_benchmark_artifact_test.zig")
 BENCHMARK_TOOL = Path("frontends/riscv/compat/assembly/rv32/poseidon_layout_benchmark_tool.zig")
+ARTIFACT_MODULE_BINDINGS = frozenset({
+    Path("frontends/riscv/build.zig"),
+    Path("frontends/riscv/air_lang/build.zig"),
+})
 ARTIFACT_DATA_CONSUMERS = frozenset({
     ARTIFACT_TEST,
     LAYOUT_EXECUTOR_TEST,
@@ -103,11 +106,11 @@ ARTIFACT_DATA_CONSUMERS = frozenset({
     BENCHMARK_TOOL,
 })
 ARTIFACT_MODULE_CONSUMERS = frozenset({
-    Path("frontends/riscv/build.zig"),
+    *ARTIFACT_MODULE_BINDINGS,
     *ARTIFACT_DATA_CONSUMERS,
 })
 H010_ARTIFACT_MODULE_CONSUMERS = frozenset({
-    Path("frontends/riscv/build.zig"),
+    *ARTIFACT_MODULE_BINDINGS,
     BENCHMARK_COMMAND,
     BENCHMARK_PROTOCOL_TEST,
     BENCHMARK_ARTIFACT_TEST,
@@ -175,17 +178,9 @@ def scan(repo: Path) -> list[Finding]:
     return findings
 
 
-# The test-only embed bridges that define the artifact names live with the
-# artifacts themselves (moved from design/typed-air/artifacts).
-ARTIFACT_BRIDGES = frozenset({
-    Path("frontends/riscv/air_lang/artifacts/h009_embedded.zig"),
-    Path("frontends/riscv/air_lang/artifacts/h010_embedded.zig"),
-})
-
-
 def _reference_is_allowed(relative: Path, reference: str) -> bool:
-    if relative in ARTIFACT_BRIDGES:
-        return True
+    if reference == "h010_embedded":
+        return relative in ARTIFACT_MODULE_BINDINGS
     if reference == "typed_air_h009_artifacts":
         return relative in ARTIFACT_MODULE_CONSUMERS
     if reference == "typed_air_h010_artifacts":

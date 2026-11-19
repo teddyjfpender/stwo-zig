@@ -14,7 +14,10 @@
     "stwo_riscv_isa": "../isa"
   },
   "injected_modules": [
-    "focused_suite"
+    "focused_suite",
+    "typed_air_artifacts",
+    "typed_air_h009_artifacts",
+    "typed_air_h010_artifacts"
   ],
   "api_surface": [
     "access_transaction_support",

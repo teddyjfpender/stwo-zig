@@ -9,6 +9,13 @@ from scripts.repo.product_closure.graph import ClosureError, inspect_sources as 
 from scripts.repo.product_closure.model import Manifest, NamedImport
 
 
+AIR_FIXTURE_MODULES = (
+    NamedImport("typed_air_artifacts", "vectors/riscv_air/embedded.zig"),
+    NamedImport("typed_air_h009_artifacts", "vectors/riscv_air/h009_embedded.zig"),
+    NamedImport("typed_air_h010_artifacts", "vectors/riscv_air/h010_embedded.zig"),
+)
+
+
 def inspect_sources(root: Path, manifest: Manifest):
     """Bind the actual child module roots, without admitting any backend/engine."""
     contracts = sorted((root / "src/frontends/riscv").glob("*/package.contract.json"))
@@ -17,6 +24,7 @@ def inspect_sources(root: Path, manifest: Manifest):
         modules = tuple(NamedImport(name, str((path.parent / source).relative_to(root)))
                         for path in contracts for name, source in json.loads(path.read_text())["public_modules"].items()
                         if name not in declared)
+        modules += tuple(module for module in AIR_FIXTURE_MODULES if module.name not in declared)
         manifest = replace(manifest, named_imports=manifest.named_imports + modules,
                            allowed_files=manifest.allowed_files | frozenset(item.source for item in modules))
     return raw_inspect_sources(root, manifest)
@@ -578,9 +586,9 @@ class RecursionOwnershipTest(unittest.TestCase):
                 ("stwo_backend_contracts", "src/waist/backend/mod.zig"),
                 ("interop_postcard", "src/waist/recursion_wire/postcard/mod.zig"),
                 ("stwo_proof_wire", "src/waist/proof_wire/mod.zig"),
-                ("typed_air_artifacts", "src/frontends/riscv/air_lang/artifacts/embedded.zig"),
-                ("typed_air_h009_artifacts", "src/frontends/riscv/air_lang/artifacts/h009_embedded.zig"),
-                ("typed_air_h010_artifacts", "src/frontends/riscv/air_lang/artifacts/h010_embedded.zig"),
+                ("typed_air_artifacts", "vectors/riscv_air/embedded.zig"),
+                ("typed_air_h009_artifacts", "vectors/riscv_air/h009_embedded.zig"),
+                ("typed_air_h010_artifacts", "vectors/riscv_air/h010_embedded.zig"),
             )),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset({
@@ -595,7 +603,7 @@ class RecursionOwnershipTest(unittest.TestCase):
             # Concrete backend and integration directories are deliberately absent.
             allowed_prefixes=("src/waist/core", "src/frontends/riscv", "src/engine/prover",
                               "src/waist/prover_api", "src/waist/backend", "src/waist/recursion_wire",
-                              "src/frontends/riscv/air_lang/artifacts"),
+                              "vectors/riscv_air"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         self.assertIn("src/frontends/riscv/recursion/detached_segment_admission.zig", sources)
