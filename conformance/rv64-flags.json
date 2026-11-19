@@ -6748,57 +6748,6 @@
         "src/backends/metal/runtime/object_model.h"
       ]
     },
-    "STWO_ZIG_PCS_COLUMN_HISTOGRAM": {
-      "owner": "src/engine/prover/pcs/tree_builders.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/tree_builders.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/tree_builders.zig",
-        "text": "const PCS_COLUMN_HISTOGRAM_ENV = \"STWO_ZIG_PCS_COLUMN_HISTOGRAM\";\nconst bounded_prefix_state_budget_bytes: usize = 96 * 1024 * 1024;\nvar histogram_print_mutex: std.Thread.Mutex = .{};\n\nfn emitColumnHistogram(comptime H: type, sorted: anytype) void {\n    if (!std.process.hasEnvVarConstant(PCS_COLUMN_HISTOGRAM_ENV)) return;\n    histogram_print_mutex.lock();",
-        "readers": [
-          {
-            "path": "src/engine/prover/pcs/tree_builders.zig",
-            "text": "    if (!std.process.hasEnvVarConstant(PCS_COLUMN_HISTOGRAM_ENV)) return;\n    histogram_print_mutex.lock();\n    defer histogram_print_mutex.unlock();\n\n    std.debug.print(\n        \"pcs_column_histogram hasher={s} columns={d} groups=\",\n        .{ @typeName(H), sorted.len },"
-          }
-        ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_PCS_KERNEL_TIMING": {
-      "owner": "src/backends/cpu_scalar/mod.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/cpu_scalar/mod.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cpu_scalar/mod.zig",
-        "text": "            const timing_enabled = std.process.hasEnvVarConstant(\"STWO_ZIG_PCS_KERNEL_TIMING\");\n            var joined_timer: ?std.time.Timer = if (timing_enabled) std.time.Timer.start() catch null else null;\n            const Job = struct {\n                base: []M31,\n                extended: []M31,\n                base_domain: BaseDomain,\n                base_twiddles: BaseTwiddles,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_PCS_TIMING": {
-      "owner": "src/engine/prover/pcs/columns/preparation.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/columns/preparation.zig",
-        "src/engine/prover/pcs/commit_polys.zig",
-        "src/engine/prover/pcs/deferred_commit.zig",
-        "src/integrations/riscv_cpu/word16_execution/fixed_setup.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/columns/preparation.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_PCS_TIMING\")) {\n        var census_timer: ?std.time.Timer = std.time.Timer.start() catch null;\n        const Group = struct {\n            columns: usize = 0,\n            constant_columns: usize = 0,\n            source_values: u128 = 0,\n            constant_values: u128 = 0,"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_POSEIDON2_M31_METAL": {
       "owner": "src/backends/metal/shaders/include/poseidon2_m31.metal",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
@@ -6845,20 +6794,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_PROFILE_OM_FRI": {
-      "owner": "src/engine/prover/fri_om_cpu.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/fri_om_cpu.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/fri_om_cpu.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_PROFILE_OM_FRI\")) std.debug.print(\"OM_FRI_LINE rows={d} folds={d} scratch_bytes={d} cap_bytes={d} packed={any}\\n\", .{ values.len, n, scratch_bytes, limit, scratch_bytes <= limit });\n    if (scratch_bytes > limit) return F.foldLineInPlaceNWithWorkspace(a, values, domain, alpha, workspace, n);\n    // All growth before writes. Actual allocator OOM is propagated; only an\n    // explicit geometry/cap refusal takes the original scalar path.\n    try workspace.ensureCapacity(a, values.len / 2);\n    const scratch = try a.alloc(O, values.len / 2);\n    var owns_scratch = true;"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_PROFILE_SAMPLED_PLAN_OVERLAP": {
       "owner": "src/engine/prover/pcs/sampled_values.zig",
       "default": "false",
@@ -6870,20 +6805,6 @@
       "default_evidence": {
         "path": "src/engine/prover/pcs/sampled_values.zig",
         "text": "        \"STWO_ZIG_PROFILE_SAMPLED_PLAN_OVERLAP\",\n    )) {\n        var overlap_timer = try std.time.Timer.start();\n        var overlap = try plan_overlap.derive(\n            allocator,\n            trees,\n            sampled_points.items,"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_PROFILE_WIDE_QUOTIENT": {
-      "owner": "src/engine/prover/pcs/wide_phase_profile.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/engine/prover/pcs/wide_phase_profile.zig"
-      ],
-      "default_evidence": {
-        "path": "src/engine/prover/pcs/wide_phase_profile.zig",
-        "text": "        return .{ .label = label, .count = count, .timer = if (S == core.fields.om31.OM31 and std.process.hasEnvVarConstant(\"STWO_ZIG_PROFILE_WIDE_QUOTIENT\")) std.time.Timer.start() catch null else null };\n    }\n    pub fn readNs(self: *Scope) u64 {\n        return if (self.timer) |*timer| timer.read() else 0;\n    }\n    pub fn endRows(self: *Scope, points_ns: u64, inverse_ns: u64, finalize_ns: u64) void {\n        if (self.timer != null) {"
       },
       "expires": "2026-12-13"
     },
@@ -6912,7 +6833,7 @@
       ],
       "default_evidence": {
         "path": "src/engine/prover/pcs/tree_builders.zig",
-        "text": "                    !std.process.hasEnvVarConstant(\"STWO_ZIG_REPLAY_BOUNDED_MERKLE_TAIL\"))\n                    try self.streaming_committer.commitColumnsWithReusedBoundedPrefix(\n                        sorted,\n                        bounded_prefix_state_budget_bytes,\n                        &bounded_stats,\n                    )\n                else"
+        "text": "                    !std.process.hasEnvVarConstant(\"STWO_ZIG_REPLAY_BOUNDED_MERKLE_TAIL\"))\n                    try self.streaming_committer.commitColumnsWithReusedBoundedPrefix(\n                        sorted,\n                        bounded_prefix_state_budget_bytes,\n                        null,\n                    )\n                else"
       },
       "expires": "2026-12-13"
     },
@@ -7042,20 +6963,6 @@
             "text": "    if (std.posix.getenv(disable_env)) |value| {\n        if (std.mem.eql(u8, value, \"0\")) return declineResidentPolynomial();\n    }\n    if (trace.polys.items.len == 0 or residency_handles.len == 0)\n        return declineResidentPolynomial();\n    // Cold program admission precedes bulk scratch allocation. In particular,\n    // core-only bundles may lack newly exported provider kernels; decline that"
           }
         ]
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_RV64_DOMAIN_TIMING": {
-      "owner": "src/frontends/riscv/rv64/air/providers/domain_timing.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/frontends/riscv/rv64/air/providers/domain_timing.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv64/air/providers/domain_timing.zig",
-        "text": "            .origin = if (std.process.hasEnvVarConstant(\"STWO_ZIG_RV64_DOMAIN_TIMING\")) std.time.Instant.now() catch null else null,\n        };\n    }\n\n    pub fn end(self: *Span) void {\n        const origin = self.origin orelse return;\n        self.origin = null;"
       },
       "expires": "2026-12-13"
     },
