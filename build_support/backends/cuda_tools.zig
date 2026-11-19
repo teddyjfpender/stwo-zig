@@ -252,7 +252,7 @@ pub fn addProducts(
         "Emit the canonical Zig SIMD receipt for the native EC consumer",
     ).dependOn(&b.addRunArtifact(ec_oracle).step);
     const plonk_logup_root = b.createModule(.{
-        .root_source_file = b.path("tests/native_cuda_plonk_logup.zig"),
+        .root_source_file = b.path("tests/cuda/native/contracts/native_cuda_plonk_logup.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -266,7 +266,7 @@ pub fn addProducts(
     ).dependOn(&b.addRunArtifact(plonk_logup_tests).step);
 
     const xor_logup_root = b.createModule(.{
-        .root_source_file = b.path("tests/native_cuda_xor_logup.zig"),
+        .root_source_file = b.path("tests/cuda/native/contracts/native_cuda_xor_logup.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -280,7 +280,7 @@ pub fn addProducts(
     ).dependOn(&b.addRunArtifact(xor_logup_tests).step);
 
     const state_machine_root = b.createModule(.{
-        .root_source_file = b.path("tests/native_cuda_state_machine.zig"),
+        .root_source_file = b.path("tests/cuda/native/contracts/native_cuda_state_machine.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -295,7 +295,7 @@ pub fn addProducts(
 
     const poseidon_arena_root = b.createModule(.{
         .root_source_file = b.path(
-            "tests/native_cuda_poseidon_arena.zig",
+            "tests/cuda/native/contracts/native_cuda_poseidon_arena.zig",
         ),
         .target = target,
         .optimize = optimize,
@@ -311,7 +311,7 @@ pub fn addProducts(
 
     const blake_exact_root = b.createModule(.{
         .root_source_file = b.path(
-            "tests/native_cuda_blake_exact_structure.zig",
+            "tests/cuda/native/contracts/native_cuda_blake_exact_structure.zig",
         ),
         .target = target,
         .optimize = optimize,

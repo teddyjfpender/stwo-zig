@@ -5,7 +5,7 @@
 #define __host__
 #define __device__
 #define __forceinline__ inline
-#include "../../src/backends/cuda/native/common/m31.cuh"
+#include "../../../src/backends/cuda/native/common/m31.cuh"
 
 int main() {
     using namespace stwo::cuda;

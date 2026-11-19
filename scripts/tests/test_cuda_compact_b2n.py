@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 NATIVE = ROOT / "src/backends/cuda/native/transform/b2n_retained.cu"
 ABI = ROOT / "src/backends/cuda/abi/stages/transform.zig"
-SMOKE = ROOT / "tests/cuda/native_transform_smoke.cpp"
+SMOKE = ROOT / "tests/cuda/native/native_transform_smoke.cpp"
 
 
 class CudaCompactB2nTests(unittest.TestCase):

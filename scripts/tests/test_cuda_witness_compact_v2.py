@@ -11,7 +11,7 @@ AUTHORITY = (
 )
 ABI = ROOT / "src/backends/cuda/abi/stages/cairo_witness.zig"
 OVERLAY = ROOT / "src/backends/cuda/native/cairo/witness_compact_v2.cu"
-SMOKE = ROOT / "tests/cuda/native_witness_compact_v2_smoke.cpp"
+SMOKE = ROOT / "tests/cuda/native/native_witness_compact_v2_smoke.cpp"
 
 
 class CudaWitnessCompactV2Tests(unittest.TestCase):
