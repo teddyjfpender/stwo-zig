@@ -12,7 +12,6 @@ const public_data = @import("public_data.zig");
 const public_data_v2 = @import("public_data_v2.zig");
 const public_logup = @import("public_logup.zig");
 const public_logup_v2 = @import("public_logup_v2.zig");
-const incremental_v3 = @import("incremental_public_logup_v3.zig");
 const relation_challenges = @import("stwo_riscv_air_lang").evaluation.relation_challenges;
 const CircuitProfile = @import("stwo_riscv_air_lang").physical_profile.CircuitProfileV1;
 const statement_v2 = @import("statement_v2.zig");
@@ -217,7 +216,7 @@ pub fn publicBoundaryIdentity(
     hashInt(&hash, u16, SCHEMA_VERSION);
     hashInt(&hash, u16, @intFromEnum(PROFILE));
     for (native.wireId()) |word| hashInt(&hash, u32, word);
-    hash.update(&incremental_v3.publicIoIdentity(value));
+    hash.update(&publicIoIdentity(value.io_entries));
     if (value.completion) |completion| {
         hashInt(&hash, u8, 1);
         hashInt(&hash, u32, @intFromEnum(completion.kind));
@@ -226,6 +225,28 @@ pub fn publicBoundaryIdentity(
         hashInt(&hash, u32, completion.clock);
     } else {
         hashInt(&hash, u8, 0);
+    }
+    return hash.finalResult();
+}
+
+// The enclosing boundary identity retains the original public-I/O preimage.
+fn publicIoIdentity(io: public_data.IoEntries) Digest {
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo.riscv.incremental-public-io.v3\x00");
+    hashInt(&hash, u16, 3);
+    hashInt(&hash, u16, 1);
+    hashInt(&hash, u32, io.input_start);
+    hashInt(&hash, u32, io.input_len);
+    hashInt(&hash, u64, io.input_words.len);
+    for (io.input_words) |word| hashInt(&hash, u32, word);
+    hashInt(&hash, u32, io.output_len);
+    hashInt(&hash, u32, io.output_len_addr);
+    hashInt(&hash, u32, io.output_data_addr);
+    hashInt(&hash, u64, io.output_words.len);
+    for (io.output_words) |word| {
+        hashInt(&hash, u32, word.addr);
+        hashInt(&hash, u32, word.value);
+        hashInt(&hash, u32, word.clock);
     }
     return hash.finalResult();
 }
@@ -342,6 +363,30 @@ fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
 
 fn hashQm31(hash: anytype, value: QM31) void {
     for (value.toM31Array()) |limb| hashInt(hash, u32, limb.toU32());
+}
+
+test "incremental public V4 preserves the public IO preimage" {
+    const input = [_]u32{ 0x0102_0304, 0x0a0b_0c00 };
+    const output = [_]public_data.OutputWord{
+        .{ .addr = 0x3300, .value = 4, .clock = 7 },
+        .{ .addr = 0x4400, .value = 0x0e0d_0c0b, .clock = 9 },
+    };
+    const actual = publicIoIdentity(.{
+        .input_start = 0x1122_3344,
+        .input_len = 7,
+        .input_words = &input,
+        .output_len = 4,
+        .output_len_addr = 0x3300,
+        .output_data_addr = 0x4400,
+        .output_words = &output,
+    });
+    // SHA-256 of the independently encoded little-endian 108-byte preimage.
+    var expected: Digest = undefined;
+    _ = try std.fmt.hexToBytes(
+        &expected,
+        "03c02c0faa832f0562c54727b00c1d571abd1967cd30717d500859bcfb111b4d",
+    );
+    try std.testing.expectEqualSlices(u8, &expected, &actual);
 }
 
 test "incremental public V4 adds one actual nonfinal program fetch" {
