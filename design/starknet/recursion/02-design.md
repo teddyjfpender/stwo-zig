@@ -457,7 +457,7 @@ built; the ExtendedBinary round-trip criterion of M3 remains open.
   binds the frontend to the cpu_scalar/SIMD backends and the AOT composition
   kernels, and owns the topology and preprocessed caches. It contains no
   protocol logic. `circuit_metal/` and `circuit_cuda/` follow later.
-- `src/products/cairo/recursion/cpu/{main,app,identity,capabilities}.zig`,
+- `src/products/cairo/recursion/circuit_cpu/{main,app,identity,capabilities}.zig`,
   modelled on `src/products/cairo_cpu`. Subcommands (§7.4): `leaf-wrap`,
   `fold-tree`, `circuit-params`, `verify`.
 - `build_support/products/circuit_recursion_cpu.zig` and a `circuit_cpu` Scope in

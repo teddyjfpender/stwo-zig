@@ -5,7 +5,7 @@ This line owns the Cairo command-line applications and recursion products.
 Cairo frontend. The canonical user commands and backend qualification scope
 are in the [Cairo quick start](../../../README.md#cairo-frontend).
 
-- [CPU circuit recursion](recursion/cpu/README.md) documents the fold-tree
+- [CPU circuit recursion](recursion/circuit_cpu/README.md) documents the fold-tree
   and circuit-parameter CLI.
 - [Metal circuit recursion](recursion/metal/README.md) documents the equivalent
   Metal product and its device requirements.

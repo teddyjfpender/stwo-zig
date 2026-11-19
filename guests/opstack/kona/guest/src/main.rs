@@ -21,7 +21,7 @@ compile_error!("pairing diagnostics are distinct programs");
 ))]
 compile_error!("diagnostic and transition guest modes are mutually exclusive");
 #[rustfmt::skip]
-#[path = "../../../runtime/exact_layout_allocator_v2.rs"]
+#[path = "../../../runtime/exact_layout_allocator.rs"]
 mod allocator;
 #[rustfmt::skip]
 #[path = "../../../../ethereum/rv64/src/single_thread_atomics.rs"]

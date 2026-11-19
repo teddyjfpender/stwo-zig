@@ -3,7 +3,7 @@
 -- Source: generated/air/lb.air-ir-v2.json
 import RiscvRefinement.Air.Bridge.MulhProgram
 namespace RiscvRefinement.Air.Bridge
-def loadStoreProgramIrDigest : String := "492a2db13150924c9cdf8593cf9902c88e7f9334215020e9ad970c603041af7e"
+def loadStoreProgramIrDigest : String := "2b62f6e98622ab98614fab7a40cd744e688f9e9fbe8f11997fbdb6ceacd31d1b"
 def loadStoreCircuit : MulhCircuit where
   family := "load_store"
   modulus := 2147483647

@@ -2160,7 +2160,7 @@
     {
       "prefixes": [
         "build_support/products/circuit_recursion_cpu.zig",
-        "src/products/cairo/recursion/cpu"
+        "src/products/cairo/recursion/circuit_cpu"
       ],
       "lanes": [
         "circuit_recursion_cpu"

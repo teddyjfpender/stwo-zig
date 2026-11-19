@@ -34,7 +34,7 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
     .{ .path = "testing/cases/air/lang/tests/typed_base_alu_reg_witness_performance_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
     .{ .path = "testing/cases/air/lang/tests/typed_mulh_witness_performance_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
     .{ .path = "testing/cases/air/lang/tests/typed_shifts_reg_witness_performance_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
-    .{ .path = "compat/benchmarks/typed_legacy_benchmark_registration_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
+    .{ .path = "compat/benchmarks/typed_reference_benchmark_registration_test.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
     .{ .path = "tests/focused/reference_witness_benchmarks.zig", .why = "unchanged comparative timing contract, collected by non-blocking test-typed-witness-benchmarks (#330/#346)" },
     .{ .path = "testing/tests/focused/typed_witness_benchmarks.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
     .{ .path = "testing/cases/air/lang/tests/typed_branch_eq_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },

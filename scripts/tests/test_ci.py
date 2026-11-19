@@ -61,7 +61,7 @@ class CiTests(unittest.TestCase):
         self.assertNotIn("zig build", step)
         code = "\n".join(line[10:] for line in step.split("<<'PYD2'\n", 1)[1].split("          PYD2", 1)[0].splitlines())
         fixture = json.loads((ROOT / "vectors/circuit/r7/verify/multiverifier.json").read_text())["body"]
-        usage_source = (ROOT / "src/products/cairo/recursion/cpu/cli.zig").read_text()
+        usage_source = (ROOT / "src/products/cairo/recursion/circuit_cpu/cli.zig").read_text()
         usage = "\n".join(line.lstrip()[2:] for line in usage_source.split("pub const usage =\n", 1)[1].split("\n;", 1)[0].splitlines()).encode()
         outputs = {
             "success": (0, b"accepted: output digest c196ecb3c253ca01b483b6ac9c725aa83555423ea253ec7af8a5a05bb43cb836\n", b""),

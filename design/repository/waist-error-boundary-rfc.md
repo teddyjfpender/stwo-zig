@@ -114,7 +114,7 @@ Do not populate it in the generic `reject(stage, reason)` helper. The subsequent
 different origin and must remain unmapped. Config/shape/layout/build/circuit
 rejections remain unchanged and explicitly outside these two code entries.
 
-`src/products/cairo/recursion/cpu/app.zig:764` is the existing process consumer.
+`src/products/cairo/recursion/circuit_cpu/app.zig:764` is the existing process consumer.
 Keep its current accepted/rejected stdout bytes and return verdict. Add one
 bounded stderr JSON line only when the verdict carries the owned mapping:
 
