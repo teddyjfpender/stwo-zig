@@ -28,6 +28,8 @@ pub const Options = struct {
     metal_core_aot_bundle: ?[]const u8,
     cairo_test_filter: ?[]const u8,
     riscv_test_filter: ?[]const u8,
+    classic_witness_benchmark: ?bool = null,
+    outer_gkr_diet_out: ?[]const u8 = null,
     qualification_debug_info: ?bool = null,
     identity: ?build_identity.Identity,
 
@@ -126,6 +128,8 @@ pub const Options = struct {
                 "Run RISC-V tests whose names contain this text",
             ),
             .qualification_debug_info = b.option(bool, "qualification-debug-info", "Emit debug symbols for BLAKE3 qualification tests"),
+            .classic_witness_benchmark = b.option(bool, "classic-witness-benchmark", "Run the classic witness A/B case"),
+            .outer_gkr_diet_out = b.option([]const u8, "outer-gkr-diet-out", "Append outer GKR measurement receipts to this path"),
             .identity = resolveIdentity(b, .{
                 .commit = implementation_commit,
                 .dirty = implementation_dirty,
@@ -282,6 +286,12 @@ fn commandFor(
             "-Driscv-test-filter={s}",
             .{filter},
         ));
+    }
+    if (std.mem.eql(u8, step_name, "test-riscv64-classic-witness")) {
+        if (options.classic_witness_benchmark) |enabled| command.addArg(b.fmt("-Dclassic-witness-benchmark={}", .{enabled}));
+    }
+    if (std.mem.eql(u8, step_name, "test-riscv64-outer-gkr-diet")) {
+        if (options.outer_gkr_diet_out) |path| command.addArg(b.fmt("-Douter-gkr-diet-out={s}", .{path}));
     }
     if (b.user_input_options.get("target") != null or b.user_input_options.get("cpu") != null)
         command.addArg(b.fmt("-Dtarget={s}", .{triple}));

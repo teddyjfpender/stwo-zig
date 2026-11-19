@@ -159,6 +159,9 @@ pub fn build(b: *std.Build) void {
     secp_root.addImport("stwo_core", core);
     secp_root.addImport("stwo_prover_engine", prover);
     secp_root.addImport("secp256k1_proof_harness", frontend_dependency.module("secp256k1_proof_harness"));
+    const secp_options = b.addOptions();
+    secp_options.addOption(?u32, "samples", b.option(u32, "secp-test-samples", "Run this many measured q70/P26 secp precompile proofs after one warmup"));
+    secp_root.addOptions("test_options", secp_options);
     const secp_tests = b.addTest(.{ .root_module = secp_root });
     b.step("test-secp256k1-precompile-proof", "Prove and independently verify typed ECDSA on CPU")
         .dependOn(testDependency(b, secp_tests, check_only, 0));
@@ -173,9 +176,14 @@ pub fn build(b: *std.Build) void {
     keccak_root.addImport("stwo_core", core);
     keccak_root.addImport("stwo_prover_engine", prover);
     keccak_root.addImport("keccakf_proof_harness", frontend_dependency.module("keccakf_proof_harness"));
+    const keccak_bench_workers = b.option(usize, "keccak-bench-workers", "Also run the Keccak BLAKE3 system proof with this many workers");
+    const keccak_options = b.addOptions();
+    keccak_options.addOption(usize, "workers", keccak_bench_workers orelse 16);
+    keccak_root.addOptions("test_options", keccak_options);
+    const keccak_proof_filter = "Keccak-f typed shard and lookup tables prove and independently verify";
     const keccak_tests = b.addTest(.{
         .root_module = keccak_root,
-        .filters = &.{"Keccak-f typed shard and lookup tables prove and independently verify"},
+        .filters = if (keccak_bench_workers == null) &.{keccak_proof_filter} else &.{ keccak_proof_filter, "Keccak-f BLAKE3 canonical system benchmark" },
     });
     b.step("test-keccakf-precompile-proof", "Prove and independently verify typed Keccak-f on CPU")
         .dependOn(testDependency(b, keccak_tests, check_only, 0));

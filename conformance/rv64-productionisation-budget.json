@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "typed_riscv_fixture_test_options_issue332",
+      "net_code_budget": 24,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 332 comments 6998129620 and 6998248555: give four existing CPU proof and measurement targets typed test-only options, forwarded by the public dispatcher only to the owning targets. Preserve the default test selection, configured challenge parameters, sample-count rejection and receipt shape. Only an explicit worker count adds the existing Keccak measurement to the default Keccak proof gate. No production runtime option, dependency or launcher."
+    },
+    {
       "id": "focused_formal_evidence_deferral_issue436",
       "net_code_budget": 110,
       "flags_added_budget": 0,

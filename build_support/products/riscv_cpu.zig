@@ -38,8 +38,14 @@ pub const descriptor = product_policy.Descriptor{
 };
 pub fn addProduct(context: Context) void {
     inline for (@import("riscv_cpu_provider_suites.zig").suites) |suite| {
+        const tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), suite[1], &.{});
+        if (comptime std.mem.eql(u8, suite[0], "classic-witness")) {
+            const options = context.b.addOptions();
+            options.addOption(bool, "benchmark", context.b.option(bool, "classic-witness-benchmark", "Run the classic witness A/B case") orelse false);
+            tests.root_module.addOptions("classic_witness_test_options", options);
+        }
         context.b.step("test-riscv64-" ++ suite[0], "Test RV64 independent provider architecture").dependOn(test_filter.addSuites(context.b, &.{.{
-            .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), suite[1], &.{}),
+            .tests = tests,
             .minimum = suite[2],
         }}));
     }

@@ -80,13 +80,7 @@ pub fn Harness(comptime Engine: type) type {
 
         /// Explicit research mode; ordinary proof gates retain their small config.
         /// Measures the provider statement, not RISC-V caller/memory composition.
-        pub fn runSelected(allocator: std.mem.Allocator) !Timings {
-            const encoded = std.process.getEnvVarOwned(allocator, "STWO_SECP256K1_CSP_SAMPLES") catch |err| switch (err) {
-                error.EnvironmentVariableNotFound => return run(allocator),
-                else => return err,
-            };
-            defer allocator.free(encoded);
-            const samples = try std.fmt.parseInt(u32, encoded, 10);
+        pub fn runSamples(allocator: std.mem.Allocator, samples: u32) !Timings {
             if (samples == 0 or samples > 1000) return error.InvalidSampleCount;
             const pcs_config = pcs_core.PcsConfig{
                 .pow_bits = 26,
