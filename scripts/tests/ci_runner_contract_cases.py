@@ -371,18 +371,25 @@ class RunnerReceiptTests(unittest.TestCase):
 
 
 class CommandResourceReceiptTests(unittest.TestCase):
+    lane_launcher = ("from pathlib import Path; import json,sys; "
+                     "from scripts.repo.ci_scope_run import run_lane; "
+                     "run_lane(root=Path.cwd(),policy=json.loads(sys.argv[2]),lane='focused',"
+                     "output=Path(sys.argv[1]),cache_mode='inherit',cache_root=None)")
+
     def test_real_high_then_low_commands_have_independent_kernel_resources(self):
         high = [sys.executable, "-c", "import os,time; x=bytearray(96<<20); "
                 "x[::4096]=b'x'*len(x[::4096]); end=time.process_time()+0.03; "
                 "exec('while time.process_time()<end: pass'); os.write(1,b'large\\n')"]
         low = [sys.executable, "-c", "import os,signal; os.write(2,b'small\\n'); "
                "os.kill(os.getpid(),signal.SIGTERM)"]
-        with tempfile.TemporaryDirectory() as raw, mock.patch.object(
-            ci_scope_run.sys, "stdout", SimpleNamespace(buffer=io.BytesIO())
-        ), mock.patch.object(ci_scope_run.sys, "stderr", SimpleNamespace(buffer=io.BytesIO())):
+        with tempfile.TemporaryDirectory() as raw:
             output = Path(raw) / "lane.json"
-            receipt = ci_scope_run.run_lane(root=ROOT, policy=runner_policy([high, low]),
-                lane="focused", output=output, cache_mode="inherit", cache_root=None)
+            # A fresh runner bounds the Linux wait4 peak inherited at fork.
+            subprocess.run(
+                [sys.executable, "-c", self.lane_launcher, str(output), json.dumps(runner_policy([high, low]))],
+                cwd=ROOT, capture_output=True, check=True, timeout=10,
+            )
+            receipt = json.loads(output.read_text())
             self.assertEqual("FAIL", receipt["status"])
             self.assertEqual([0, -signal.SIGTERM], [c["exit_code"] for c in receipt["commands"]])
             resources = [c["resources"] for c in receipt["commands"]]
@@ -399,10 +406,6 @@ class CommandResourceReceiptTests(unittest.TestCase):
 
     def test_cancellation_keeps_completed_resources_and_reaps_interrupted_child(self):
         first = [sys.executable, "-c", "print('completed')"]
-        launcher = ("from pathlib import Path; import json,sys; "
-                    "from scripts.repo.ci_scope_run import run_lane; "
-                    "run_lane(root=Path.cwd(),policy=json.loads(sys.argv[2]),lane='focused',"
-                    "output=Path(sys.argv[1]),cache_mode='inherit',cache_root=None)")
         for cancellation in (signal.SIGTERM, signal.SIGINT):
             with self.subTest(signal=cancellation), tempfile.TemporaryDirectory() as raw:
                 second = [sys.executable, "-c", "import os,signal,time; "
@@ -410,7 +413,7 @@ class CommandResourceReceiptTests(unittest.TestCase):
                     f"os.kill(os.getppid(),{cancellation}); "
                     + ("time.sleep(10)" if cancellation == signal.SIGINT else "pass")]
                 output = Path(raw) / "lane.json"
-                child = subprocess.run([sys.executable, "-c", launcher, str(output),
+                child = subprocess.run([sys.executable, "-c", self.lane_launcher, str(output),
                     json.dumps(runner_policy([first, second]))], cwd=ROOT, capture_output=True, timeout=10)
                 self.assertIn(child.returncode, {-cancellation, 128 + cancellation})
                 progress = json.loads(output.read_text())
