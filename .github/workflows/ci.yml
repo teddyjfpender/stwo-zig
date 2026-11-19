@@ -80,6 +80,7 @@ jobs:
       macos_matrix: ${{ steps.scope.outputs.macos_matrix }}
       macos_count: ${{ steps.scope.outputs.macos_count }}
       cuda_required: ${{ steps.scope.outputs.cuda_required }}
+      witness_benchmark_advisory: ${{ steps.scope.outputs.witness_benchmark_advisory }}
     steps:
       - name: Checkout complete comparison history
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
@@ -174,8 +175,8 @@ jobs:
     runs-on: ubuntu-latest
     # Bounded full-suite host allowance; commands, floors and audits stay unchanged.
     timeout-minutes: ${{ (matrix.lane == 'ethereum_statement' || matrix.lane == 'ethereum_statement_releasefast') && 150 || (matrix.lane == 'riscv_frontend' || matrix.lane == 'riscv_frontend_releasefast' || matrix.lane == 'riscv_retained_contracts_releasefast' || matrix.lane == 'riscv_profile_partition') && 90 || 30 }}
-    # Owner-directed performance diagnostics never determine PR acceptance.
-    continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' }}
+    # The planner reports the current UTC advisory period in the run summary.
+    continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' && needs.focused-plan.outputs.witness_benchmark_advisory == 'true' }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.focused-plan.outputs.linux_matrix) }}

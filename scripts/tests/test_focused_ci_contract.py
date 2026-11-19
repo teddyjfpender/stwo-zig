@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -259,7 +260,7 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("timeout-minutes: 90", baseline)
         self.assertIn("absent tests are not passing evidence", baseline)
 
-    def test_timing_benchmarks_are_separate_and_nonblocking(self):
+    def test_timing_benchmarks_are_separate_with_an_expiring_advisory(self):
         package = ROOT / "src/frontends/riscv"
         catalog = (package / "build_focused_tests.zig").read_text()
         spec = catalog.split('.step = "test-typed-witness-benchmarks",', 1)[1].split('\n    },', 1)[0]
@@ -283,7 +284,17 @@ class PlannerContractTests(unittest.TestCase):
             self.assertIn('.path = "' + relative.as_posix() + '"', (package / "test_inventory_test.zig").read_text())
         commands = self.policy["lanes"]["riscv_witness_benchmarks"]["commands"]
         self.assertEqual([["zig", "build", "test-typed-witness-benchmarks", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=" + mode, "-j2", "--verbose", "--summary", "all"] for mode in ("ReleaseFast", "Debug")], commands)
-        self.assertIn("continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' }}", (ROOT / ".github/workflows/ci.yml").read_text())
+        self.assertIn("continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' && needs.focused-plan.outputs.witness_benchmark_advisory == 'true' }}", (ROOT / ".github/workflows/ci.yml").read_text())
+
+    def test_witness_benchmark_advisory_expires_at_utc_boundary(self):
+        plan = {"lanes": ["riscv_witness_benchmarks"]}
+        for day, allowed in ((1, "true"), (2, "false"), (3, "false")):
+            with self.subTest(day=day), tempfile.TemporaryDirectory() as raw:
+                output = Path(raw) / "github-output"
+                ci_scope_plan.emit_github_output(output, plan, self.policy, utc_date=date(2026, 12, day))
+                lines = output.read_text(encoding="utf-8").splitlines()
+                self.assertIn('linux_matrix={"lane":["riscv_witness_benchmarks"]}', lines)
+                self.assertIn(f"witness_benchmark_advisory={allowed}", lines)
 
     def test_benchmark_admission_is_exact_and_never_applies_to_correctness_lanes(self):
         arguments = dict(root=ROOT, output=Path("unused"), cache_mode="unreached", cache_root=None, local_compatible=True)

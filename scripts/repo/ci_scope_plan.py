@@ -9,6 +9,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from datetime import date, datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Mapping
 
@@ -21,6 +22,8 @@ ROOT = Path(__file__).resolve().parents[2]
 POLICY = ROOT / "conformance/ci-touchpoints-v1.json"
 CATALOG = ROOT / "zig-out/identity/product-matrix.json"
 ALL_HOSTS = ("linux", "macos")
+WITNESS_BENCHMARK_LANE = "riscv_witness_benchmarks"
+WITNESS_BENCHMARK_ADVISORY_EXPIRES = date(2026, 12, 2)
 
 
 class PlanError(ValueError):
@@ -312,7 +315,9 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def emit_github_output(path: Path, plan: dict[str, Any], policy: dict[str, Any]) -> None:
+def emit_github_output(
+    path: Path, plan: dict[str, Any], policy: dict[str, Any], *, utc_date: date | None = None,
+) -> None:
     with path.open("a", encoding="utf-8") as stream:
         for host in ALL_HOSTS:
             # Capability partition: lanes marked hosted=false (they need
@@ -330,6 +335,10 @@ def emit_github_output(path: Path, plan: dict[str, Any], policy: dict[str, Any])
             "cuda_required="
             f"{'true' if 'native_cuda_device' in plan['lanes'] else 'false'}\n"
         )
+        if WITNESS_BENCHMARK_LANE in plan["lanes"]:
+            today = utc_date if utc_date is not None else datetime.now(timezone.utc).date()
+            advisory = today < WITNESS_BENCHMARK_ADVISORY_EXPIRES
+            stream.write(f"witness_benchmark_advisory={'true' if advisory else 'false'}\n")
 
 
 def emit_github_summary(path: Path, plan: dict[str, Any], policy: dict[str, Any]) -> None:
@@ -350,6 +359,9 @@ def emit_github_summary(path: Path, plan: dict[str, Any], policy: dict[str, Any]
             else:
                 stream.write(f"| `{lane}` | {host} | skipped | no changed path reaches it |\n")
         stream.write("\n")
+        if WITNESS_BENCHMARK_LANE in selected:
+            stream.write(f"Witness timing failures are advisory before {WITNESS_BENCHMARK_ADVISORY_EXPIRES} "
+                         "00:00 UTC. [Issue #436](https://github.com/teddyjfpender/stwo-zig/issues/436)\n")
 
 
 # Explicit diagnostics use the same maintained lane commands; they prove only
@@ -363,7 +375,7 @@ MANUAL_CPU_LANES = frozenset({
     "riscv_native_graph",
     "native_cuda_static",
     "riscv_frontend", "riscv_frontend_releasefast", "riscv_cpu_integration", "riscv_cpu",
-    "riscv_frontend_acceptance", "riscv_witness_benchmarks",
+    "riscv_frontend_acceptance", WITNESS_BENCHMARK_LANE,
     "circuit_frontend", "circuit_cpu_integration", "circuit_recursion_wire", "circuit_recursion_cpu",
     "native_cpu", "native_oracle", "aggregate_cpu", "script_contracts", "build_graph", "package", "static",
 })
