@@ -12,8 +12,6 @@ pub const MAX_LINE_SCRATCH_BYTES: usize = 128 << 20;
 /// This hook overwrites a freshly allocated first-line destination. It is NOT
 /// the core accumulation API and never assumes arbitrary dst values are zero.
 pub fn foldCircleFreshIntoLine(a: std.mem.Allocator, dst: []O, src: [8][]const M, domain: core.poly.circle.domain.CircleDomain, alpha: O, workspace: *F.FoldCircleWorkspace) !void {
-    var phase = @import("pcs/wide_phase_profile.zig").Scope.begin(O, "fri_circle_fold", dst.len);
-    defer phase.end();
     if (src[0].len / 2 != dst.len or src[0].len % 2 != 0 or dst.len == 0 or !std.math.isPowerOfTwo(dst.len) or domain.size() != src[0].len) return error.ShapeMismatch;
     for (src) |c| if (c.len != src[0].len) return error.ShapeMismatch;
     try workspace.ensureCapacity(a, dst.len);
@@ -65,12 +63,9 @@ pub fn foldLineN(a: std.mem.Allocator, values: []O, domain: core.poly.line.LineD
     return foldLineNWithLimit(a, values, domain, alpha, workspace, n, MAX_LINE_SCRATCH_BYTES);
 }
 pub fn foldLineNWithLimit(a: std.mem.Allocator, values: []O, domain: core.poly.line.LineDomain, alpha: O, workspace: *F.FoldLineWorkspace, n: u32, limit: usize) !F.FoldLineResult {
-    var phase = @import("pcs/wide_phase_profile.zig").Scope.begin(O, "fri_line_folds", values.len);
-    defer phase.end();
     if (n == 0) return .{ .domain = domain, .values = values };
     if (values.len < 2 or !std.math.isPowerOfTwo(values.len) or domain.size() != values.len or n > std.math.log2_int(usize, values.len)) return error.InvalidEvaluationLength;
     const scratch_bytes = try std.math.mul(usize, values.len / 2, @sizeOf(O));
-    if (std.process.hasEnvVarConstant("STWO_ZIG_PROFILE_OM_FRI")) std.debug.print("OM_FRI_LINE rows={d} folds={d} scratch_bytes={d} cap_bytes={d} packed={any}\n", .{ values.len, n, scratch_bytes, limit, scratch_bytes <= limit });
     if (scratch_bytes > limit) return F.foldLineInPlaceNWithWorkspace(a, values, domain, alpha, workspace, n);
     // All growth before writes. Actual allocator OOM is propagated; only an
     // explicit geometry/cap refusal takes the original scalar path.
