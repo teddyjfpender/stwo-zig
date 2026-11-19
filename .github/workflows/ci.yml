@@ -302,7 +302,7 @@ jobs:
               receipt['provider_contract_sha256'] = digest(root / 'src/waist/core/package.contract.json')
               for consumer in provider.metadata.consumers:
                   for mode in ('Debug', 'ReleaseFast'):
-                      name = 'cdc-stwo-core-' + consumer.id.removeprefix('package:') + '-' + mode
+                      name = f"cdc-{provider.package}-{consumer.id.split(':', 1)[1]}-{mode}"
                       binary = root / 'zig-out/bin' / name
                       row = {'consumer': consumer.id, 'mode': mode, 'binary_sha256': digest(binary), 'root_sha256': digest(root / consumer.root), 'command_timeout_seconds': 120}
                       shutil.copy2(binary, out / name)
