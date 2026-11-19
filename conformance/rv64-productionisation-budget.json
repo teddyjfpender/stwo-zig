@@ -1523,6 +1523,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue 333 checks exact retained Zig reader coverage and current package ownership after the frontend extraction. Reuse the package ownership index and filename census. No runtime, proof, formal pin or cap change."
+    },
+    {
+      "id": "expire_existing_witness_timing_advisory_issue436",
+      "net_code_budget": 36,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 436 gives the existing isolated RISC-V timing lane a UTC advisory expiry in the focused planner and verifies the boundary. Keep the benchmark roster, commands and thresholds intact. No proof or runtime change."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
