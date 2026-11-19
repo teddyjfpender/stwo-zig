@@ -110,7 +110,7 @@ guests/opstack/                              [S0] Rust guests (no package contra
   README.md  rust-toolchain.toml (nightly-2026-08-08 + rust-src)
   kona/{Cargo.toml,Cargo.lock,src/,guest/,lean/,tests/}   Kona execution crate, RV64 guest, "lean" variant
   mantle/{Cargo.toml,Cargo.lock,src/,guest/,tests/}       Mantle pilot (OP-Stack chain)
-  runtime/exact_layout_allocator_v2.rs                     fork with the volatile-store fix (E-3)
+  runtime/exact_layout_allocator.rs                     fork with the volatile-store fix (E-3)
   vendor/{ark-ff,ark-bn254,ark-bls12-381,kona-mpt,kona-protocol,op-revm,revm-bytecode}/  + LICENSE/UPSTREAM.json
   abi_probe/                                 NEW tiny no_std guest on the OP ABI for hosted end-to-end tests
 tools/opstack/                               [S0] tooling root `opstack` in conformance/tooling-surface-v1.json

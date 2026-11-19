@@ -1124,15 +1124,15 @@
       "expires": "2026-12-13"
     },
     "STWO_CIRCUIT_FOLD_JOBS": {
-      "owner": "src/products/cairo/recursion/cpu/app.zig",
+      "owner": "src/products/cairo/recursion/circuit_cpu/app.zig",
       "default": "null (no process override; enclosing caller policy is pinned)",
       "status": "runtime",
       "date": "2026-11-13",
       "references": [
-        "src/products/cairo/recursion/cpu/app.zig"
+        "src/products/cairo/recursion/circuit_cpu/app.zig"
       ],
       "default_evidence": {
-        "path": "src/products/cairo/recursion/cpu/app.zig",
+        "path": "src/products/cairo/recursion/circuit_cpu/app.zig",
         "text": "    const override = std.process.getEnvVarOwned(allocator, \"STWO_CIRCUIT_FOLD_JOBS\") catch null;\n    if (override) |value| {\n        defer allocator.free(value);\n        const parsed = std.fmt.parseInt(usize, value, 10) catch return 1;\n        return @min(@max(parsed, 1), 2);\n    }\n    return 1;"
       },
       "expires": "2026-12-13"

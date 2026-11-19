@@ -11,7 +11,7 @@ beyond path updates.
 | `kona/` | Kona execution crate (`stwo-kona-execution`), the RV64 guest (`guest/`) and the separate-policy "lean" guest variants (`lean/`) |
 | `mantle/` | Mantle pilot: an OP-Stack chain with its own dependency family and ME43 framing |
 | `abi_probe/` | Tiny `no_std` guest on the OP guest ABI. No services, 43-byte OP framing. Prebuilt as `vectors/opstack/abi-probe.elf` for hosted end-to-end proof tests |
-| `runtime/exact_layout_allocator_v2.rs` | Fork of `guests/exact_layout_allocator_v2.rs` with volatile free-list stores (size-oriented LTO dropped them) |
+| `runtime/exact_layout_allocator.rs` | Fork of `guests/exact_layout_allocator_v2.rs` with volatile free-list stores (size-oriented LTO dropped them) |
 | `vendor/` | Vendored crate deltas; each has `UPSTREAM.json` and an entry in `third_party/INVENTORY.json` |
 
 `kona/guest/src/keccak_sponge_service.rs` and `vendor/revm-bytecode` are forks of

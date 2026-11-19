@@ -331,7 +331,7 @@ fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cair
         circuit_cpu,
     );
     const circuit_app = b.createModule(.{
-        .root_source_file = b.path("src/products/cairo/recursion/cpu/app.zig"),
+        .root_source_file = b.path("src/products/cairo/recursion/circuit_cpu/app.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });

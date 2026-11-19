@@ -2160,7 +2160,7 @@
     {
       "prefixes": [
         "build_support/products/circuit_recursion_cpu.zig",
-        "src/products/cairo/recursion/cpu"
+        "src/products/cairo/recursion/circuit_cpu"
       ],
       "lanes": [
         "circuit_recursion_cpu"
@@ -2511,6 +2511,7 @@
       "lanes": [
         "riscv_air_lang_package",
         "riscv_frontend",
+        "riscv_frontend_releasefast",
         "script_contracts",
         "static"
       ],

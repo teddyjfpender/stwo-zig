@@ -56,7 +56,7 @@ guests/ethereum/rv64/vendor/revm-bytecode/src/legacy.rs	C	M	2	0	guests/ethereum/
 guests/ethereum/rv64/vendor/revm-bytecode/src/legacy/analysis.rs	C	M	4	0	guests/ethereum/rv64/vendor/revm-bytecode/src/legacy/analysis.rs	guests/opstack/vendor/revm-bytecode/src/legacy/analysis.rs	fork	S0	ASSETS	E-3	C1
 guests/ethereum/rv64/vendor/revm-bytecode/src/legacy/jump_map.rs	C	M	1	1	guests/ethereum/rv64/vendor/revm-bytecode/src/legacy/jump_map.rs	guests/opstack/vendor/revm-bytecode/src/legacy/jump_map.rs	fork	S0	ASSETS	E-3	C1
 guests/ethereum/rv64/vendor/revm-bytecode/src/legacy/jumpdest_service.rs	C	A	122	0	guests/ethereum/rv64/vendor/revm-bytecode/src/legacy/jumpdest_service.rs	guests/opstack/vendor/revm-bytecode/src/legacy/jumpdest_service.rs	fork	S0	ASSETS	E-3	C1
-guests/exact_layout_allocator_v2.rs	other	M	9	3	guests/exact_layout_allocator_v2.rs	guests/opstack/runtime/exact_layout_allocator_v2.rs	fork	S0	ASSETS	E-3	O1
+guests/exact_layout_allocator_v2.rs	other	M	9	3	guests/exact_layout_allocator_v2.rs	guests/opstack/runtime/exact_layout_allocator.rs	fork	S0	ASSETS	E-3	O1
 opstack/.gitignore	F	A	2	0	opstack/.gitignore	tools/opstack/.gitignore	adapt	S0	ASSETS		F10
 opstack/BLOB_EVALUATION.md	F	A	65	0	opstack/BLOB_EVALUATION.md	design/opstack/BLOB_EVALUATION.md	adapt	S0	ASSETS		F9
 opstack/COMPLETION.md	F	A	393	0	opstack/COMPLETION.md	design/opstack/COMPLETION.md	adapt	S0	ASSETS		F9

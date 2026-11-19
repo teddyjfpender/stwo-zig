@@ -117,7 +117,7 @@ reduced to its value table (`Context.intoValues`), and the prover frees the
 base columns once the interaction trace is written.
 
 The product `stwo-circuit-recursion-cpu leaf-wrap`
-([README](../../products/cairo/recursion/cpu/README.md)) drives it; its
+([README](../../products/cairo/recursion/circuit_cpu/README.md)) drives it; its
 `circuit-parity-r8` rung requires the output file to equal upstream
 `leaf-prover`'s `expected_output.json` byte for byte.
 
@@ -225,7 +225,7 @@ their upstream definitions (`vectors/circuit/official/registry_definitions`)
 with `recursion.circuit_params.generate` and compares them with the committed
 registries byte for byte, trailing newline included.
 
-The product `stwo-circuit-recursion-cpu` (`src/products/cairo/recursion/cpu`,
+The product `stwo-circuit-recursion-cpu` (`src/products/cairo/recursion/circuit_cpu`,
 `zig build stwo-circuit-recursion-cpu`) runs the leaf wrap and both of these
 from the command line, the last two with upstream's flags
 (`fold-tree --program_input ... --circuit_registry_json ...`,
