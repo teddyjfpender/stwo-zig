@@ -16,7 +16,6 @@ const point_evaluation = @import("../poly/circle/point_evaluation.zig");
 const work_pool_mod = @import("../work_pool.zig");
 const commitment_tree = @import("commitment_tree.zig");
 const sampled_work = @import("sampled_value_work.zig");
-const plan_overlap = @import("sampled_value_plan_overlap.zig");
 const coefficient_plan_ops = @import("sampled_coefficient_plans.zig");
 const CoefficientEvalPlan = coefficient_plan_ops.CoefficientEvalPlan;
 const CoefficientEvalTreePlan = coefficient_plan_ops.CoefficientEvalTreePlan;
@@ -233,20 +232,6 @@ pub fn evaluateAndReleaseWithWorkRecorder(
                     audit.observeBarycentricContext(column.log_size);
             }
         }
-    }
-
-    if (std.process.hasEnvVarConstant(
-        "STWO_ZIG_PROFILE_SAMPLED_PLAN_OVERLAP",
-    )) {
-        var overlap_timer = try std.time.Timer.start();
-        var overlap = try plan_overlap.derive(
-            allocator,
-            trees,
-            sampled_points.items,
-            lifting_log_size,
-        );
-        defer overlap.deinit();
-        plan_overlap.print(overlap.value, overlap_timer.read());
     }
 
     // Tests must never create the process-global pool implicitly, but an

@@ -341,6 +341,12 @@ fn selectorValue(
     offset: usize,
     count: usize,
 ) S {
+    if (comptime S == M31) {
+        // The table layout bounds the weighted sum before one field reduction.
+        var sum: u64 = 0;
+        for (main[offset..][0..count], 0..) |value, index| sum += @as(u64, value.v) * index;
+        return M31.fromU64(sum);
+    }
     var result = S.zero();
     for (0..count) |index| {
         result = result.add(main[offset + index].mul(scalar(S, index)));

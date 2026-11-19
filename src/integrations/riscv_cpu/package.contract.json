@@ -22,11 +22,13 @@
     "build_identity",
     "circuit_air_programs",
     "circuit_air_projection",
+    "classic_witness_test_options",
     "delegation_entry",
     "ethereum_tree0_probe_backend",
     "interop_postcard",
     "keccakf_proof_harness",
     "lookup_v2_test_backend",
+    "outer_gkr_diet_options",
     "postcard_error_codes",
     "riscv_cpu_capabilities",
     "secp256k1_proof_harness",
@@ -34,7 +36,8 @@
     "stwo_leaf_verifier",
     "stwo_parent_verifier",
     "stwo_proof_wire",
-    "stwo_riscv_detached_parent_producer"
+    "stwo_riscv_detached_parent_producer",
+    "test_options"
   ],
   "api_surface": [
     "Blake3Execution",

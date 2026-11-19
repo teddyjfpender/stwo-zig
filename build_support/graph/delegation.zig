@@ -27,7 +27,13 @@ pub const Options = struct {
     cuda_air_validate: ?[]const u8,
     metal_core_aot_bundle: ?[]const u8,
     cairo_test_filter: ?[]const u8,
+    cairo_test_compact_input: ?[]const u8 = null,
+    cairo_test_continuous_dir: ?[]const u8 = null,
+    cairo_test_sn_suite_dir: ?[]const u8 = null,
+    cairo_test_proof_out: ?[]const u8 = null,
     riscv_test_filter: ?[]const u8,
+    classic_witness_benchmark: ?bool = null,
+    outer_gkr_diet_out: ?[]const u8 = null,
     qualification_debug_info: ?bool = null,
     identity: ?build_identity.Identity,
 
@@ -120,12 +126,18 @@ pub const Options = struct {
                 "cairo-test-filter",
                 "Compile and run Cairo tests whose names contain this text",
             ),
+            .cairo_test_compact_input = b.option([]const u8, "cairo-test-compact-input", "Compact capture for the Cairo host reader comparison"),
+            .cairo_test_continuous_dir = b.option([]const u8, "cairo-test-continuous-dir", "Directory containing continuous Cairo PIE input pairs"),
+            .cairo_test_sn_suite_dir = b.option([]const u8, "cairo-test-sn-suite-dir", "Directory containing the optional SN PIE host admission fixtures"),
+            .cairo_test_proof_out = b.option([]const u8, "cairo-test-proof-out", "Absolute path for the official Cairo CPU test proof"),
             .riscv_test_filter = b.option(
                 []const u8,
                 "riscv-test-filter",
                 "Run RISC-V tests whose names contain this text",
             ),
             .qualification_debug_info = b.option(bool, "qualification-debug-info", "Emit debug symbols for BLAKE3 qualification tests"),
+            .classic_witness_benchmark = b.option(bool, "classic-witness-benchmark", "Run the classic witness A/B case"),
+            .outer_gkr_diet_out = b.option([]const u8, "outer-gkr-diet-out", "Append outer GKR measurement receipts to this path"),
             .identity = resolveIdentity(b, .{
                 .commit = implementation_commit,
                 .dirty = implementation_dirty,
@@ -273,6 +285,14 @@ fn commandFor(
             .{filter},
         ));
     }
+    if (std.mem.eql(u8, step_name, "test-cairo-cuda-local")) {
+        if (options.cairo_test_compact_input) |path| command.addArg(b.fmt("-Dcairo-test-compact-input={s}", .{path}));
+        if (options.cairo_test_continuous_dir) |path| command.addArg(b.fmt("-Dcairo-test-continuous-dir={s}", .{path}));
+        if (options.cairo_test_sn_suite_dir) |path| command.addArg(b.fmt("-Dcairo-test-sn-suite-dir={s}", .{path}));
+    }
+    if (std.mem.eql(u8, step_name, "test-cairo-cpu-proof")) {
+        if (options.cairo_test_proof_out) |path| command.addArg(b.fmt("-Dcairo-test-proof-out={s}", .{path}));
+    }
     if (std.mem.eql(u8, scope, "riscv_cpu") or std.mem.eql(u8, scope, "riscv_cpu_compat")) {
         if (options.qualification_debug_info) |enabled| command.addArg(b.fmt(
             "-Dqualification-debug-info={}",
@@ -282,6 +302,12 @@ fn commandFor(
             "-Driscv-test-filter={s}",
             .{filter},
         ));
+    }
+    if (std.mem.eql(u8, step_name, "test-riscv64-classic-witness")) {
+        if (options.classic_witness_benchmark) |enabled| command.addArg(b.fmt("-Dclassic-witness-benchmark={}", .{enabled}));
+    }
+    if (std.mem.eql(u8, step_name, "test-riscv64-outer-gkr-diet")) {
+        if (options.outer_gkr_diet_out) |path| command.addArg(b.fmt("-Douter-gkr-diet-out={s}", .{path}));
     }
     if (b.user_input_options.get("target") != null or b.user_input_options.get("cpu") != null)
         command.addArg(b.fmt("-Dtarget={s}", .{triple}));

@@ -94,10 +94,6 @@ const Samples = struct {
 };
 pub fn evaluate(self: *const Component, trace: *const P.Trace, acc: *D.DomainEvaluationAccumulator) !void {
     try self.validate();
-    const profile = std.process.hasEnvVarConstant("STWO_ZIG_PROFILE_OM_DOMAIN");
-    var timer: ?std.time.Timer = if (profile) try std.time.Timer.start() else null;
-    var fft_ns: u64 = 0;
-    var rows_ns: u64 = 0;
     const a = acc.allocator;
     const widths = self.widths();
     const native_total = widths[0] + widths[1] + widths[2];
@@ -133,10 +129,8 @@ pub fn evaluate(self: *const Component, trace: *const P.Trace, acc: *D.DomainEva
     const outputs = try acc.columns(a, &.{.{ .log_size = self.log_size + self.compositionLogSplit(), .n_cols = self.nConstraints() }});
     defer a.free(outputs);
     var output = outputs[0];
-    const prep_ns = if (timer) |*clock| clock.lap() else 0;
     for (0..@as(usize, 1) << @intCast(self.compositionLogSplit())) |part| {
         try evaluation.evaluatePartWithPool(part, pool);
-        if (timer) |*clock| fft_ns += clock.lap();
         const inverse = F.fromBase(try evaluation.denominatorInverse(part));
         const first = evaluation.globalRow(part, 0);
         const fresh = if (output.next_fresh_index) |next| next == first else false;
@@ -150,9 +144,7 @@ pub fn evaluate(self: *const Component, trace: *const P.Trace, acc: *D.DomainEva
             return err;
         };
         output.next_fresh_index = if (fresh) first + evaluation.size else null;
-        if (timer) |*clock| rows_ns += clock.lap();
     }
-    if (profile) std.debug.print("OM_TRUTH_DOMAIN_STAGE kind={s} log={d} main={d} inter={d} constraints={d} jobs={d} prep_ns={d} fft_ns={d} rows_ns={d}\n", .{ @tagName(self.kind), self.log_size, widths[1], widths[2], self.nConstraints(), plan.jobs, prep_ns, fft_ns, rows_ns });
 }
 const Rows = struct {
     owner: *const Component,

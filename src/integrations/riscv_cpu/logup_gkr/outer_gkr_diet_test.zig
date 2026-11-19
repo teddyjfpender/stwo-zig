@@ -37,13 +37,13 @@ const MleBase = L.mle.MleFor(Q, M31);
 const MleSecure = L.mle.MleFor(Q, Q);
 const a = std.heap.smp_allocator;
 
-/// Prints a receipt line to stderr and, when STWO_DIET_OUT names a file,
+/// Prints a receipt line to stderr and, when the test option names a file,
 /// appends it there (zig build hides passing tests' stderr).
 fn emit(comptime tag: []const u8, value: anytype) void {
     const line = std.fmt.allocPrint(a, tag ++ " {f}\n", .{std.json.fmt(value, .{})}) catch return;
     defer a.free(line);
     std.debug.print("\n{s}", .{line});
-    const path = std.posix.getenv("STWO_DIET_OUT") orelse return;
+    const path = @import("outer_gkr_diet_options").receipt_path orelse return;
     const file = std.fs.cwd().createFile(path, .{ .truncate = false }) catch return;
     defer file.close();
     file.seekFromEnd(0) catch return;

@@ -12,11 +12,11 @@
   },
   "entries": [
     {
-      "id": "typed_circuit_oracle_emission_issue332",
-      "net_code_budget": 15,
+      "id": "typed_riscv_fixture_test_options_issue332",
+      "net_code_budget": 24,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Issue 332 moves two proof fixture directories from ambient qualification into the existing R7 and R11 test builds. The shared writer takes an explicit directory and the historical Rust oracle pins remain authoritative. No runtime inputs, schemas, dependencies or scripts are added."
+      "positive_growth_justification": "Issue 332 comments 6998129620 and 6998248555: give four existing CPU proof and measurement targets typed test-only options, forwarded by the public dispatcher only to the owning targets. Preserve the default test selection, configured challenge parameters, sample-count rejection and receipt shape. Only an explicit worker count adds the existing Keccak measurement to the default Keccak proof gate. No production runtime option, dependency or launcher."
     },
     {
       "id": "focused_formal_evidence_deferral_issue436",
@@ -1495,6 +1495,20 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "OP Stack product statement package: guest ABI (4..32 MiB window), 43-byte statement codec, pipeline hooks, stwo-opstack-native CLI root with its subcommand translation onto the pipeline argv, tests, and the test-e2e-probe driver that proves the golden probe, receives it in a fresh process and rejects three corruptions; owner opstack-statement; no flags, scripts or dependencies beyond the neutral pipeline."
+    },
+    {
+      "id": "typed_cairo_fixture_test_options_issue332",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 332 comment 6998614561: make the existing Cairo CPU and CUDA-host tests own their four explicit fixture and output options. Preserve standard test discovery, optional fixture skip behavior, source custody, absolute path rejection, proof serialization and verification. Only the existing named test targets receive the configured options."
+    },
+    {
+      "id": "typed_circuit_oracle_emission_issue332",
+      "net_code_budget": 15,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 332 moves two proof fixture directories from ambient qualification into the existing R7 and R11 test builds. The shared writer takes an explicit directory and the historical Rust oracle pins remain authoritative. No runtime inputs, schemas, dependencies or scripts are added."
     },
     {
       "id": "report_versioned_source_basenames_issue370",
