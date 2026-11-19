@@ -376,22 +376,11 @@ pub fn configureEnvironment(
 
     const values = [_]struct { []const u8, []const u8 }{
         .{ "STWO_ZIG_SN2_POPULATE_INPUT", canonical_adapted_input },
-        .{ "STWO_ZIG_SN2_PREPARE_METAL", "1" },
         .{ "STWO_ZIG_SN2_RESTORE_PREPROCESSED_EVALUATIONS", request.artifacts.preprocessed_evaluations },
         .{ "STWO_ZIG_SN2_TREE0_ROOT_HEX", request.tree0_root_hex },
-        .{ "STWO_ZIG_SN2_EXECUTE_PREPROCESSED", "1" },
-        .{ "STWO_ZIG_SN2_EXECUTE_WITNESS", "1" },
-        .{ "STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION", "1" },
-        .{ "STWO_ZIG_SN2_EXECUTE_COMMITMENTS", "1" },
-        .{ "STWO_ZIG_SN2_COMMIT_TREE_COUNT", "4" },
-        .{ "STWO_ZIG_SN2_EXECUTE_RELATIONS", "1" },
         .{ "STWO_ZIG_SN2_PREPROCESSED_COEFFS", request.artifacts.preprocessed_coefficients },
-        .{ "STWO_ZIG_SN2_EXECUTE_COMPOSITION", "1" },
         .{ "STWO_ZIG_SN2_PROOF_OUTPUT", proof_temporary },
         .{ "STWO_ZIG_SN2_COMPACT_STATEMENT_OUTPUT", statement_temporary },
-        .{ "STWO_ZIG_SN2_EXECUTE_OODS", "1" },
-        .{ "STWO_ZIG_SN2_EXECUTE_PROOF", "1" },
-        .{ "STWO_ZIG_SN2_VERIFY_PROOF", "1" },
         .{ "STWO_ZIG_METAL_REPLAY_RETAINED_LOOKUPS", "1" },
     };
     for (values) |entry| {

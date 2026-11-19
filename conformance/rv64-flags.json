@@ -7133,22 +7133,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_COMMIT_TREE_COUNT": {
-      "owner": "src/backends/metal/tools/arena_plan/runner.zig",
-      "default": "1 when commitment execution is selected; otherwise0",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
-        "src/integrations/cairo_metal/process/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/runner.zig",
-        "text": "        const tree_count = if (std.process.getEnvVarOwned(allocator, \"STWO_ZIG_SN2_COMMIT_TREE_COUNT\")) |value| value_blk: {\n            defer allocator.free(value);\n            break :value_blk try std.fmt.parseInt(usize, value, 10);\n        } else |err| switch (err) {\n            error.EnvironmentVariableNotFound => 1,\n            else => return err,\n        };"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_COMPACT_STATEMENT_OUTPUT": {
       "owner": "src/backends/metal/tools/arena_plan/runner.zig",
       "default": "disabled: no compact statement file emitted",
@@ -7254,138 +7238,18 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION": {
-      "owner": "src/backends/metal/tools/arena_plan/base_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
-        "src/integrations/cairo_metal/process/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "text": "            if (!std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION\"))\n                return error.MissingBaseInterpolation;\n            if (!base_inverse_twiddles_prepared)\n                try bindings.populateCommitmentInverseTwiddles(allocator, resident_arena, plan, 1);\n            const recorded_base_interpolation_started_ns = runner_wall_timer.read();\n            var local_recorded_interpolation: ?arena_binding_mod.RecordedBaseInterpolationBatch = null;\n            defer if (local_recorded_interpolation) |*recipe| recipe.deinit();"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_EXECUTE_COMMITMENTS": {
-      "owner": "src/backends/metal/tools/arena_plan/runner.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
-        "src/integrations/cairo_metal/process/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/runner.zig",
-        "text": "        .execute_commitments = std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_COMMITMENTS\"),\n        .execute_relations = std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_RELATIONS\"),\n        .execute_oods = std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_OODS\"),\n        .verify_proof = std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_VERIFY_PROOF\"),\n    }).eligible();\n    const logical_plan_hash = logicalPlanHash(logical);\n    const cached_full_plan: ?PreparedGeometryHandle = if (canonical_full_proof_plan)"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_EXECUTE_COMPOSITION": {
-      "owner": "src/backends/metal/tools/arena_plan/runner.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
-        "src/integrations/cairo_metal/process/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/runner.zig",
-        "text": "    const execute_composition = std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_COMPOSITION\") or execute_proof;\n    const projection_tick: ?u16 = if (!std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_PREPARE_METAL\") or execute_composition)\n        null\n    else if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_RELATIONS\"))\n        4 * 65\n    else\n        2 * 65;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_EXECUTE_OODS": {
-      "owner": "src/backends/metal/tools/arena_plan/protocol_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/protocol_execution.zig",
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
-        "src/integrations/cairo_metal/process/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/protocol_execution.zig",
-        "text": "                (execute_proof or std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_OODS\")))\n                return error.PartialCompositionCannotContinue;\n            try composition.execute();\n            execution_metrics.composition_gpu_ms = composition.accumulated_gpu_ms;\n            if (composition.isComplete()) {\n                try bindings.populateCommitmentTwiddles(allocator, resident_arena, plan, 3);\n                const committed = try bindings.executeCommitment("
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_EXECUTE_PREPROCESSED": {
-      "owner": "src/backends/metal/tools/arena_plan/base_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "src/backends/metal/tools/arena_plan/metal_execution.zig",
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
-        "src/integrations/cairo_metal/process/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "text": "            if (!std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_PREPROCESSED\"))\n                return error.MissingPreprocessedEvaluations;\n            const trace = if (memory_trace) |value| value else return error.MissingMemoryTrace;\n            try trace.populateRc99Lut(resident_arena);\n            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\"))"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_EXECUTE_PROOF": {
-      "owner": "src/backends/metal/tools/arena_plan/runner.zig",
+      "owner": "src/backends/metal/tools/arena_plan/main.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
       "status": "runtime",
       "date": "2026-11-13",
       "references": [
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
+        "src/backends/metal/tools/arena_plan/main.zig",
         "src/integrations/cairo_metal/process/runner.zig"
       ],
       "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/runner.zig",
-        "text": "    const execute_proof = std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_PROOF\");\n    const execute_composition = std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_COMPOSITION\") or execute_proof;\n    const projection_tick: ?u16 = if (!std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_PREPARE_METAL\") or execute_composition)\n        null"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_EXECUTE_RELATIONS": {
-      "owner": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
-        "src/integrations/cairo_metal/process/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/interaction_execution.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_RELATIONS\")) {\n        if (requested_commit_tree_count < 3 or execution_metrics.commitment_roots[0] == null or execution_metrics.commitment_roots[1] == null)\n            return error.CommitmentInputsNotExecuted;\n        const adapted = if (prover_input) |value| value else return error.MissingAdaptedInput;\n        try bindings.populateCommitmentInverseTwiddles(allocator, resident_arena, plan, 2);\n        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\"))\n            std.debug.print(\"interaction_prepare stage=witness begin\\n\", .{});"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_EXECUTE_WITNESS": {
-      "owner": "src/backends/metal/tools/arena_plan/base_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "src/backends/metal/tools/arena_plan/protocol_execution.zig",
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
-        "src/integrations/cairo_metal/process/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/base_execution.zig",
-        "text": "        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_WITNESS\")) {\n            if (!std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION\"))\n                return error.MissingBaseInterpolation;\n            if (!base_inverse_twiddles_prepared)\n                try bindings.populateCommitmentInverseTwiddles(allocator, resident_arena, plan, 1);\n            const recorded_base_interpolation_started_ns = runner_wall_timer.read();\n            var local_recorded_interpolation: ?arena_binding_mod.RecordedBaseInterpolationBatch = null;"
+        "path": "src/backends/metal/tools/arena_plan/main.zig",
+        "text": "    const mode: @import(\"runner.zig\").Mode = if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_EXECUTE_PROOF\")) .prove else .plan;"
       },
       "expires": "2026-12-13"
     },
@@ -7475,23 +7339,6 @@
       },
       "expires": "2026-12-13"
     },
-    "STWO_ZIG_SN2_PREPARE_METAL": {
-      "owner": "src/backends/metal/tools/arena_plan/metal_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/metal_execution.zig",
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
-        "src/integrations/cairo_metal/process/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/metal_execution.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_PREPARE_METAL\")) {\n        const bindings = if (proof_bindings) |value| value else return error.MissingPreparedProofBindings;\n        if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_LOG_STAGE_TIMINGS\"))\n            std.debug.print(\"resident_plan bytes={} peak_live_bytes={}\\n\", .{ plan.total_bytes, plan.peak_live_bytes });\n        var owned_metal: ?metal_runtime.Runtime = if (external_runtime == null)\n            try metal_runtime.Runtime.initFull()\n        else"
-      },
-      "expires": "2026-12-13"
-    },
     "STWO_ZIG_SN2_PREPROCESSED_COEFFS": {
       "owner": "src/backends/metal/tools/arena_plan/metal_execution.zig",
       "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
@@ -7504,7 +7351,7 @@
       ],
       "default_evidence": {
         "path": "src/backends/metal/tools/arena_plan/metal_execution.zig",
-        "text": "            std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_PREPROCESSED_COEFFS\");\n        const preprocessed_spill_path = restored_preprocessed_path orelse\n            staged_preprocessed_path orelse\n            \"/tmp/stwo-zig-sn2-preprocessed-evaluations.spill\";\n        const tree0_merkle_path = try std.fmt.allocPrint(allocator, \"{s}.tree0-merkle\", .{preprocessed_spill_path});\n        defer allocator.free(tree0_merkle_path);\n        if (staged_tree0) {"
+        "text": "        const staged_tree0 = !restoring_tree0 and std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_PREPROCESSED_COEFFS\");"
       },
       "expires": "2026-12-13"
     },
@@ -7647,23 +7494,6 @@
       "default_evidence": {
         "path": "src/backends/metal/tools/arena_plan/metal_execution.zig",
         "text": "            const root_hex = try std.process.getEnvVarOwned(allocator, \"STWO_ZIG_SN2_TREE0_ROOT_HEX\");\n            defer allocator.free(root_hex);\n            if (root_hex.len != 64) return error.InvalidCommitmentRoot;\n            var root: [32]u8 = undefined;\n            _ = std.fmt.hexToBytes(&root, root_hex) catch return error.InvalidCommitmentRoot;\n            staged_tree0_root = root;\n            execution_metrics.commitment_roots[0] = root;"
-      },
-      "expires": "2026-12-13"
-    },
-    "STWO_ZIG_SN2_VERIFY_PROOF": {
-      "owner": "src/backends/metal/tools/arena_plan/protocol_execution.zig",
-      "default": "false at the absent-selector presence check; enclosing caller policy is pinned",
-      "status": "runtime",
-      "date": "2026-11-13",
-      "references": [
-        "src/backends/metal/tools/arena_plan/protocol_execution.zig",
-        "src/backends/metal/tools/arena_plan/runner.zig",
-        "src/backends/metal/tools/prover_session/preparation.zig",
-        "src/integrations/cairo_metal/process/runner.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/metal/tools/arena_plan/protocol_execution.zig",
-        "text": "            if (std.process.hasEnvVarConstant(\"STWO_ZIG_SN2_VERIFY_PROOF\")) {\n                const verify_ordinals = [_]u32{ 1, 2, 3, 10, 11, 12, 13, 14, 15, 16, 20 };\n                var verify_inputs: [verify_ordinals.len]resident_verifier.TranscriptInput = undefined;\n                var verifier_config_words: ?[]const u32 = null;\n                for (verify_ordinals, &verify_inputs) |ordinal, *verify_input| {\n                    const binding = try transcriptInputBinding(bindings, ordinal);\n                    const bytes: []align(4) u8 = @alignCast(try resident_arena.bytes(binding));"
       },
       "expires": "2026-12-13"
     },

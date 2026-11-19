@@ -105,22 +105,12 @@ fn runnerEnvironment(allocator: std.mem.Allocator, invocation: Invocation) !std.
     const artifacts = invocation.artifacts;
     const values = [_]struct { name: []const u8, value: []const u8 }{
         .{ .name = "STWO_ZIG_SN2_POPULATE_INPUT", .value = artifacts.adapted_input },
-        .{ .name = "STWO_ZIG_SN2_PREPARE_METAL", .value = "1" },
         .{ .name = "STWO_ZIG_SN2_RESTORE_PREPROCESSED_EVALUATIONS", .value = artifacts.preprocessed_evaluations },
         .{ .name = "STWO_ZIG_SN2_TREE0_ROOT_HEX", .value = artifacts.tree0_root_hex },
-        .{ .name = "STWO_ZIG_SN2_EXECUTE_PREPROCESSED", .value = "1" },
-        .{ .name = "STWO_ZIG_SN2_EXECUTE_WITNESS", .value = "1" },
-        .{ .name = "STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION", .value = "1" },
-        .{ .name = "STWO_ZIG_SN2_EXECUTE_COMMITMENTS", .value = "1" },
-        .{ .name = "STWO_ZIG_SN2_COMMIT_TREE_COUNT", .value = "4" },
-        .{ .name = "STWO_ZIG_SN2_EXECUTE_RELATIONS", .value = "1" },
         .{ .name = "STWO_ZIG_SN2_PREPROCESSED_COEFFS", .value = artifacts.preprocessed_coefficients },
-        .{ .name = "STWO_ZIG_SN2_EXECUTE_COMPOSITION", .value = "1" },
         .{ .name = "STWO_ZIG_SN2_PROOF_OUTPUT", .value = invocation.proof_output },
         .{ .name = "STWO_ZIG_SN2_COMPACT_STATEMENT_OUTPUT", .value = invocation.statement_output },
-        .{ .name = "STWO_ZIG_SN2_EXECUTE_OODS", .value = "1" },
         .{ .name = "STWO_ZIG_SN2_EXECUTE_PROOF", .value = "1" },
-        .{ .name = "STWO_ZIG_SN2_VERIFY_PROOF", .value = "1" },
         .{ .name = "STWO_ZIG_METAL_REPLAY_RETAINED_LOOKUPS", .value = "1" },
     };
     for (values) |entry| try environment.put(entry.name, entry.value);
@@ -352,6 +342,7 @@ test "Metal process runner: direct argv reaches a bounded isolated child" {
             "test \"$6\" = /fixed.bin || exit 40\n" ++
             "test \"$7\" = /composition.bin || exit 41\n" ++
             "test \"$STWO_ZIG_SN2_POPULATE_INPUT\" = /input.bin || exit 42\n" ++
+            "test \"$(env | grep -c '^STWO_ZIG_SN2_')\" -eq 9 || exit 43\n" ++
             "printf '%s' '{s}'\n",
         .{report},
     );
