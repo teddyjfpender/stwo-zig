@@ -1,6 +1,6 @@
 # rv64/jobs — M8 job runtime (as built)
 
-Work in the single canonical checkout, `/Users/theodorepender/Coding/stwo-zig`.
+Work in the single canonical checkout, `.`.
 These are the three developer entrypoints:
 
 | Purpose | Command |

@@ -2537,7 +2537,7 @@
         "src/products/riscv/tools/memcpy_admission",
         "src/products/riscv/tools/observations",
         "src/products/riscv/tools/observation_contracts.zig",
-        "src/products/riscv/tools/analyze_legacy_semantics"
+        "src/products/riscv/tools/observe_instruction_semantics"
       ],
       "lanes": [
         "riscv_cpu"

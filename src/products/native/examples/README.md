@@ -1,4 +1,6 @@
-# `stwo_native_examples`
+# Native examples
+
+Public module `stwo_native_examples`.
 
 `stwo_native_examples` contains seven small, auditable AIR applications used to
 exercise the complete proving stack: Blake, Plonk, Plonk with LogUp, Poseidon,

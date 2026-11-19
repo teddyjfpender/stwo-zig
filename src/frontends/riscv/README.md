@@ -1,4 +1,6 @@
-# `stwo_riscv_frontend`
+# RISC-V frontend
+
+Public module `stwo_riscv_frontend`.
 
 `stwo_riscv_frontend` is the backend-neutral facade for the RV32IM zkVM and RV64 execution and AIR. The [RV64 package](rv64/README.md) owns the RV64 machine. [Ethereum](../../products/ethereum/statement/README.md) and [OP Stack](../../products/opstack/statement/README.md) own their block statement workflows. The release contract and public APIs described below focus on RV32IM.
 

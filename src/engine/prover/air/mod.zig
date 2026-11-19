@@ -21,10 +21,10 @@ test {
     _ = logup_columns;
     _ = @import("component_prepared_test.zig");
 }
-pub const secure_polynomial_program_v1 = @import("secure_polynomial_program_v1.zig");
+pub const secure_polynomial_program_v1 = @import("qm31_polynomial_program.zig");
 pub const secure_polynomial_capability_v1 = @import("secure_polynomial_capability.zig");
 pub const secure_polynomial_emitter_v1 = @import("secure_polynomial_emitter.zig");
-pub const secure_polynomial_program_v2 = @import("secure_polynomial_program_v2.zig");
+pub const secure_polynomial_program_v2 = @import("field_polynomial_program.zig");
 test {
     _ = secure_polynomial_program_v2;
 }

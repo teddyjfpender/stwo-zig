@@ -6,7 +6,7 @@
 
 Protocol parity with Rust, portable CPU execution, and Metal and CUDA proving paths.
 
-[![CI](https://github.com/teddyjfpender/stwo-zig/actions/workflows/ci.yml/badge.svg)](https://github.com/teddyjfpender/stwo-zig/actions/workflows/ci.yml)
+[![CI](https://github.com/starknet-innovation/stwo-zig/actions/workflows/ci.yml/badge.svg)](https://github.com/starknet-innovation/stwo-zig/actions/workflows/ci.yml)
 [![Zig 0.15.2](https://img.shields.io/badge/Zig-0.15.2-F7A41D?logo=zig&logoColor=white)](toolchain.json)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-0F766E)](LICENSE)
 

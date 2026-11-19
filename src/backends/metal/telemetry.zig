@@ -70,19 +70,19 @@ pub const Event = enum {
     /// One base-trace commit whose source columns already were the backend's
     /// contiguous base arena AND whose arena was page-aligned, so the
     /// coefficient buffer was a `newBufferWithBytesNoCopy` alias of host memory
-    /// and nothing was copied (`circle_legacy.m:229-236`). This is the whole
+    /// and nothing was copied (`circle_transform.m:229-236`). This is the whole
     /// point of the trace arena and until now nothing observed it.
     metal_commit_source_arena_alias,
     /// One base-trace commit whose source columns were the base arena but whose
     /// arena missed the page-alignment or page-multiple requirement, so the
     /// commit paid exactly one `memcpy` per column into a fresh device buffer
-    /// (`circle_legacy.m:324-329`). Still byte-correct, still device-accelerated
+    /// (`circle_transform.m:324-329`). Still byte-correct, still device-accelerated
     /// — this is NOT a fallback and is deliberately excluded from
     /// `cpuFallbackTotal`.
     metal_commit_source_arena_memcpy,
     /// One base-trace commit whose source columns were NOT the base arena, i.e.
     /// the arena was not adopted and the fused-upload/blit encoder ran
-    /// (`circle_legacy.m:267-323`). The pre-arena behaviour.
+    /// (`circle_transform.m:267-323`). The pre-arena behaviour.
     metal_commit_source_upload,
     /// One mixed-log backed-tree commit completed in one caller-owned epoch.
     metal_heterogeneous_commit_epoch,

@@ -30,8 +30,8 @@ cairo-compile src/frontends/cairo/applicative/main.cairo \
 shasum -a 256 /tmp/circuit_applicative_compiled.json
 ```
 
-The expected compiled SHA-256 is
-`7abe1d0f6ac73996d29ae07fc4f4938b1d43e6f028f10c6ae73f842cbf44fca6`.
+The SHA-256 of the tracked program with repository-relative debug filenames is
+`e36b8dbd4c128e48d53f494b250ee7a9b20bef5066caa78c48c7013e938e80dd`.
 The compiled program and a two-leaf proof are in
 [`vectors/starknet/mainnet/pipeline/15627902-15627907_x2`](../../../../vectors/starknet/mainnet/pipeline/15627902-15627907_x2).
 The two leaves are contiguous PIEs `15627902-15627904` and

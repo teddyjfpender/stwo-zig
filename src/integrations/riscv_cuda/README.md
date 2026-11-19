@@ -1,4 +1,6 @@
-# `stwo_riscv_cuda_integration`
+# RISC-V CUDA integration
+
+Public module `stwo_riscv_cuda_integration`.
 
 `stwo_riscv_cuda_integration` is the typed, fail-closed boundary between the
 backend-neutral RV32IM frontend and the resident CUDA architecture. It binds a

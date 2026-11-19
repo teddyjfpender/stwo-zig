@@ -6004,11 +6004,11 @@
     "baseline": {
       "binaries": {
         "cpu": {
-          "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+          "path": "./zig-out/bin/native-proof-bench-cpu",
           "sha256": "97e9a5f0cfd423426f8a1d61a62693e69191505c59531c79b9a74b2fc3090962"
         },
         "metal": {
-          "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+          "path": "./zig-out/bin/native-proof-bench-metal",
           "sha256": "002588447e18f3611a1f82499a8760d2c7e8803189589872860bd72ff7504042"
         }
       },
@@ -6022,11 +6022,11 @@
     "current": {
       "binaries": {
         "cpu": {
-          "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+          "path": "./zig-out/bin/native-proof-bench-cpu",
           "sha256": "46dd925cc4d12a14c95778946f0873900c369d8a32f5b1b790cd75cde03bcc9b"
         },
         "metal": {
-          "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+          "path": "./zig-out/bin/native-proof-bench-metal",
           "sha256": "64c903f27060e684566841fb33d3ae37372e3561263d3480bc676d2fee9b179b"
         }
       },
@@ -6041,16 +6041,16 @@
   "schema_version": 1,
   "sources": {
     "baseline": {
-      "bytes": 532048,
-      "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/benchmark_history/reports/native_proof_cross_backend_matrix_v4/4f7a234ffe2d6fde65a01173d12becbb7b9aa8ab4cfcab3c322ba13a78ff353d.json",
+      "bytes": 530826,
+      "path": "./vectors/reports/benchmark_history/reports/native_proof_cross_backend_matrix_v4/4f7a234ffe2d6fde65a01173d12becbb7b9aa8ab4cfcab3c322ba13a78ff353d.json",
       "report_protocol": "native_proof_cross_backend_matrix_v4",
-      "sha256": "4f7a234ffe2d6fde65a01173d12becbb7b9aa8ab4cfcab3c322ba13a78ff353d"
+      "sha256": "60df566f6d916f2b2c403077671796f57944a662da0a0914f6b6272a08f60263"
     },
     "current": {
-      "bytes": 1062371,
+      "bytes": 1060021,
       "path": "/private/tmp/stwo-native-proof-broad-formal-v6-b0cfbc62/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v4",
-      "sha256": "19cc8a5631e04aa2ea72242ff2ccac4d36320d04afbae05a161606995dd6a71f"
+      "sha256": "4bc9f33fa56ff209d23a6f33ef5990ac33e77db9a70b27bebd43decc732d8b5c"
     }
   },
   "status": "comparable"

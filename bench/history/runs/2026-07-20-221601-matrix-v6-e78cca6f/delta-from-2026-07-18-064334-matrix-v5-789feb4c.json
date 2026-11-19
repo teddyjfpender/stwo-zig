@@ -6022,11 +6022,11 @@
     "baseline": {
       "binaries": {
         "cpu": {
-          "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-cpu",
+          "path": "./zig-out/bin/native-proof-bench-cpu",
           "sha256": "023efd5b7c3b45090f618a81565588f1dc1fbcc502abe5f309f5f72fae6e6abf"
         },
         "metal": {
-          "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+          "path": "./zig-out/bin/native-proof-bench-metal",
           "sha256": "9dc26edc3d07ac68d2fa2d71321d33b58674d0e7336e8136870835ae4b2d7476"
         }
       },
@@ -6041,11 +6041,11 @@
     "current": {
       "binaries": {
         "cpu": {
-          "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-native-cpu-bench",
+          "path": "./zig-out/bin/stwo-zig-native-cpu-bench",
           "sha256": "d744f71a70f0660b8a89fed47ab08d145bd3e8a2a1a19b3e8359ef2e6cc5d7c7"
         },
         "metal": {
-          "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/native-proof-bench-metal",
+          "path": "./zig-out/bin/native-proof-bench-metal",
           "sha256": "bd1d66033fa6575748ba69e092176258636a00fed3932fc9a512aef9fcf42446"
         }
       },
@@ -6073,16 +6073,16 @@
   "sequencing": "sequential-runs (diagnostic only; not paired ABBA - never a timing claim)",
   "sources": {
     "baseline": {
-      "bytes": 1065111,
-      "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/benchmark_history/runs/2026-07-18-064334-matrix-v5-789feb4c/report.json",
+      "bytes": 1062761,
+      "path": "./vectors/reports/benchmark_history/runs/2026-07-18-064334-matrix-v5-789feb4c/report.json",
       "report_protocol": "native_proof_cross_backend_matrix_v5",
-      "sha256": "8da5fae41d077ae897b44b024a4b3d2956a57daff2c0678a0441b26ec6643768"
+      "sha256": "b777f7167f6c223c25e5fdafaba84d3eafdbd622f9c73e38477adaba5c060b9f"
     },
     "current": {
-      "bytes": 1161642,
+      "bytes": 1159292,
       "path": "/private/tmp/stwo-native-proof-matrix-m5-20260720-full/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v6",
-      "sha256": "facd106c0afb0f14e12263a420d5bbe6dca2dcf6b09d603f3bf3e99950385d6f"
+      "sha256": "0dad8fcb12bd3fa0074589b8a65ac9862eef1a6fbd58d8db81fc81205344b945"
     }
   },
   "status": "comparable"

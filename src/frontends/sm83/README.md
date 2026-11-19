@@ -1,4 +1,6 @@
-# `stwo_sm83_frontend`
+# SM83 frontend
+
+Public module `stwo_sm83_frontend`.
 
 The Sharp SM83 frontend is the ROM-agnostic machine boundary for proving Game
 Boy programs. Pokémon Red and Blue are useful first fixtures, but no game,

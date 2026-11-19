@@ -1,0 +1,40 @@
+name: Install pinned Zig
+description: Verify and install the host distribution from toolchain.json
+inputs:
+  version:
+    description: Zig version required by the calling workflow
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        REQUESTED_ZIG: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        archive_pin="$(python3 - <<'PY'
+        import json
+        import os
+        import platform
+        from pathlib import Path
+
+        pin = json.loads((Path(os.environ["GITHUB_WORKSPACE"]) / "toolchain.json").read_text())["zig"]
+        if pin["version"] != os.environ["REQUESTED_ZIG"]:
+            raise SystemExit("Requested Zig differs from toolchain.json")
+        arch = platform.machine()
+        if arch == "arm64":
+            arch = "aarch64"
+        system = platform.system().lower()
+        if system == "darwin":
+            system = "macos"
+        distribution = pin["distributions"][arch + "-" + system]
+        print(distribution["url"], distribution["sha256"])
+        PY
+        )"
+        read -r url digest <<< "$archive_pin"
+        root="$(mktemp -d "$RUNNER_TEMP/stwo-zig.XXXXXX")"
+        curl --fail --silent --show-error --location --retry 3 "$url" -o "$root/zig.tar.xz"
+        printf '%s  %s\n' "$digest" "$root/zig.tar.xz" | shasum -a 256 --check
+        tar -xJf "$root/zig.tar.xz" -C "$root" --strip-components 1
+        test "$("$root/zig" version)" = "$REQUESTED_ZIG"
+        printf '%s\n' "$root" >> "$GITHUB_PATH"

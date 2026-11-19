@@ -7,7 +7,7 @@
     "consumers": [
       "build.zig.zon",
       "**/build.zig.zon",
-      ".github/workflows/*.yml (mlugg/setup-zig version)"
+      ".github/workflows/*.yml (repository setup-zig version)"
     ],
     "distributions": {
       "aarch64-macos": {

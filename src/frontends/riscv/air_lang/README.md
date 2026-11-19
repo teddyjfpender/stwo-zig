@@ -1,4 +1,6 @@
-# `stwo_riscv_air_lang`
+# RISC-V AIR language
+
+Public module `stwo_riscv_air_lang`.
 
 | Fact | Value |
 | --- | --- |

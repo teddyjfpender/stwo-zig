@@ -1,4 +1,6 @@
-# `stwo_riscv_cpu_integration`
+# RISC-V CPU integration
+
+Public module `stwo_riscv_cpu_integration`.
 
 | Fact | Value |
 | --- | --- |

@@ -1,4 +1,6 @@
-# `stwo_riscv_recursion`
+# RISC-V recursion
+
+Public module `stwo_riscv_recursion`.
 
 | Fact | Value |
 | --- | --- |

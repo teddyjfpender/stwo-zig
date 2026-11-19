@@ -1,4 +1,6 @@
-# `stwo_circuit_frontend`
+# Circuit frontend
+
+Public module `stwo_circuit_frontend`.
 
 The circuit recursion frontend: a call-order-exact Zig port of StarkWare's
 circuit recursion stage (the `circuits`, `circuit_common`, `stark_verifier`,

@@ -54,8 +54,8 @@
     },
     {
       "path": "pairing-schedule/g2-exact-subgroup-physical-v1.json",
-      "bytes": 2670,
-      "sha256": "7278d738277d39cac0ec6fb87eff10b5971eefadfe6d0b09980a546d0416ab27",
+      "bytes": 2654,
+      "sha256": "c3e300476aa6ce202a354379392c698f7460ab138cc8a938e9ad76fc1da860fe",
       "source": "089bc2437:vectors/reports/rv64-opstack-cpu-20261110/g2-exact-subgroup-physical-v1.json",
       "rule": "G4",
       "kind": "golden"

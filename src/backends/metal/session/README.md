@@ -1,4 +1,6 @@
-# `stwo_metal_session`
+# Metal session
+
+Public module `stwo_metal_session`.
 
 `stwo_metal_session` defines the host-neutral protocol and content-addressed
 artifact services used by persistent Metal proving processes. Despite its

@@ -308,7 +308,7 @@ class DevTestPlanTests(unittest.TestCase):
         paths = [
             "src/products/riscv/tools/observations/journal.zig",
             "src/products/riscv/tools/observation_contracts.zig",
-            "src/products/riscv/tools/analyze_legacy_semantics/main.zig",
+            "src/products/riscv/tools/observe_instruction_semantics/main.zig",
             *["src/products/riscv/tools/" + name + "/app.zig" for name in
               ("pc_hotspot", "memcpy_hotspot", "function_value", "memcpy_admission")],
         ]

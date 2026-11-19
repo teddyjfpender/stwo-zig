@@ -1,4 +1,6 @@
-# `stwo_artifact_store`
+# Artifact store
+
+Public module `stwo_artifact_store`.
 
 `stwo_artifact_store` is the host-neutral persistent artifact substrate for
 long-running, restartable proving pipelines. It stores immutable raw bytes once,

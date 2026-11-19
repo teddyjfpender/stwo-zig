@@ -5,7 +5,7 @@ const shared_shell = @import("riscv_shared_shell.zig");
 
 pub const source_closure = product_policy.SourceClosure{
     .entry_roots = &.{
-        "src/products/riscv/tools/analyze_legacy_semantics/main.zig",
+        "src/products/riscv/tools/observe_instruction_semantics/main.zig",
         "src/products/riscv/tools/function_value/main.zig",
         "src/products/riscv/tools/memcpy_admission/main.zig",
         "src/products/riscv/tools/memcpy_hotspot/main.zig",
@@ -79,7 +79,7 @@ pub const source_closure = product_policy.SourceClosure{
         "src/waist/recursion_wire/postcard",
         "src/products/riscv/artifact",
         "src/products/riscv/cpu/trace",
-        "src/products/riscv/tools/analyze_legacy_semantics",
+        "src/products/riscv/tools/observe_instruction_semantics",
         "src/products/riscv/tools/function_value",
         "src/products/riscv/tools/memcpy_admission",
         "src/products/riscv/tools/memcpy_hotspot",

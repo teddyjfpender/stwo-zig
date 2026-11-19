@@ -22,7 +22,7 @@
 //! proof wire and never replaces the native evaluator in proving.
 const std = @import("std");
 const core = @import("stwo_core");
-const v1 = @import("secure_polynomial_program_v1.zig");
+const v1 = @import("qm31_polynomial_program.zig");
 const M = core.fields.m31.M31;
 
 pub const VERSION: u16 = 2;

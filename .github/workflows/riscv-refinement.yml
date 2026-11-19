@@ -98,7 +98,7 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
 
@@ -567,10 +567,9 @@ jobs:
       # No setup-zig cache restore and no Lake cache: the whole point is that
       # nothing derived survives from a previous run.
       - name: Setup Zig without a restored cache
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
-          use-cache: false
 
       - name: Empty every derived cache
         run: |

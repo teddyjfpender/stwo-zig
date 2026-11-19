@@ -1,16 +1,12 @@
-# OP Stack design records
+# OP Stack design
 
-- [`integration.md`](integration.md) is the design of record for bringing PR #372
-  onto `main` as its own product line.
-- [`integration-map.tsv`](integration-map.tsv) maps every branch file to its
-  target, action, stage and RFC.
+- [Integration design](integration.md) describes the product boundary,
+  shared RV64 pipeline, and remaining migration obligations.
+- [Integration map](integration-map.tsv) records the placement decision for
+  each path imported from PR #372.
+- [Product guide](../../src/products/opstack/statement/README.md) documents
+  the live native producer and receiver.
 
-The other notes in this directory are the OP research records of PR #372, kept
-as written apart from path updates. They describe the branch at
-`https://github.com/teddyjfpender/stwo-zig/tree/089bc2437`:
-
-- `zig build` steps, `STWO_OP_*`/`STWO_RV64_*` switches and roots named in them
-  exist only on that branch. On `main` they arrive with S2/S3 (RFC-2 to RFC-9)
-  as package steps and explicit options.
-- Receipt links point at the PR head. `main` keeps no `vectors/reports` evidence.
-- Measurements are the branch's own, taken on its hosts.
+The research notes, tuning records and reviews from PR #372 are preserved in
+the [pre-cleanup archive](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-public-cleanup-20261119/design/opstack).
+Their commands and measurements belong to their recorded revisions.

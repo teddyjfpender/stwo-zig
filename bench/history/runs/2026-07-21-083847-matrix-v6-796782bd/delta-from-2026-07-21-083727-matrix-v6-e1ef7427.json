@@ -6154,16 +6154,16 @@
   "sequencing": "sequential-runs (diagnostic only; not paired ABBA - never a timing claim)",
   "sources": {
     "baseline": {
-      "bytes": 1160379,
+      "bytes": 1159251,
       "path": "/private/tmp/stwo-metal-full-e1ef7427/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v6",
-      "sha256": "93b37d0a8d41bb1aac431d82437b3a754389db369ea6e44ac73615f3348ec139"
+      "sha256": "d4442c63de8980533f9feca1d62afbb4ddb65f9b99b3aaa92d878babb228a8b5"
     },
     "current": {
-      "bytes": 1160461,
+      "bytes": 1159333,
       "path": "/private/tmp/stwo-metal-full-796782bd/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v6",
-      "sha256": "3a470b72783829d88ed2339716f8cda62d88f3dfb80ec7237ed118647ea029a6"
+      "sha256": "07d114f768ae4e797dda58f4efa2e4c575261b92bcd7913915a1453f8a051524"
     }
   },
   "status": "comparable"

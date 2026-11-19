@@ -1,4 +1,6 @@
-# `stwo_cairo_cpu_integration`
+# Cairo CPU integration
+
+Public module `stwo_cairo_cpu_integration`.
 
 `stwo_cairo_cpu_integration` binds the backend-neutral Cairo frontend to the
 portable CPU backend and the official plain-Blake2s proving transaction. It is

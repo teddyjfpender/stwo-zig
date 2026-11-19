@@ -6656,10 +6656,10 @@
   "sequencing": "sequential-runs (diagnostic only; not paired ABBA - never a timing claim)",
   "sources": {
     "baseline": {
-      "bytes": 2871560,
+      "bytes": 2870338,
       "path": "/private/tmp/stwo-zig-current-official-matrix-20260723/vectors/reports/benchmark_history/runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json",
       "report_protocol": "native_proof_cross_backend_matrix_v6",
-      "sha256": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
+      "sha256": "c5dae6f1cea80440bb051d8b8b0a9362932297f85fa8499f266438ad65650164"
     },
     "current": {
       "bytes": 2871284,

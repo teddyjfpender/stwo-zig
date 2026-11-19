@@ -411,9 +411,10 @@ def _validate_readme(
         return
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
-    if not lines or lines[0] != f"# `{contract.package}`":
+    heading = lines[0].removeprefix("# ") if lines and lines[0].startswith("# ") else ""
+    if not heading or heading.startswith("`") or lines[1:3] != ["", f"Public module `{contract.package}`."]:
         failures.append(
-            f"{contract.package}: README must start with '# `{contract.package}`'"
+            f"{contract.package}: README needs a descriptive title followed by the public module"
         )
     expected_facts = (
         f"| Version | `{contract.version}` |",

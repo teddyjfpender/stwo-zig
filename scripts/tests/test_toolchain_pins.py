@@ -33,10 +33,10 @@ class ToolchainPinTests(unittest.TestCase):
             self.assertRegex(channel, r"^(nightly-\d{4}-\d{2}-\d{2}|\d+\.\d+\.\d+)$")
 
     def assert_installer_pins(self, text: str, action: str, key: str, want: str, name: str) -> None:
-        action = re.escape(action)
-        installs = re.findall(rf"(?m)^\s*(?:-\s+)?uses:\s+{action}@[^\n]+", text)
+        action = re.escape(action) + (r"[ \t]*(?:#[^\n]*)?" if action.startswith("./") else r"@[^\n]+")
+        installs = re.findall(rf"(?m)^\s*(?:-\s+)?uses:\s+{action}", text)
         versions = re.findall(
-            rf"(?m)uses:\s+{action}@[^\n]+\n\s+with:\s*\n\s+{key}:\s*['\"]?([0-9.]+)['\"]?[ \t]*(?:#[^\n]*)?$",
+            rf"(?m)uses:\s+{action}\n\s+with:\s*\n\s+{key}:\s*['\"]?([0-9.]+)['\"]?[ \t]*(?:#[^\n]*)?$",
             text,
         )
         self.assertEqual([want] * len(installs), versions, name)
@@ -53,14 +53,15 @@ class ToolchainPinTests(unittest.TestCase):
             text = workflow.read_text(encoding="utf-8")
             name = workflow.relative_to(ROOT).as_posix()
             self.assert_installer_pins(text, "actions/setup-python", "python-version", PINS["python"]["version"], name)
-            self.assert_installer_pins(text, "mlugg/setup-zig", "version", PINS["zig"]["version"], name)
+            self.assertNotIn("mlugg/setup-zig@", text, name)
+            self.assert_installer_pins(text, "./.github/actions/setup-zig", "version", PINS["zig"]["version"], name)
 
     def test_installer_comments_cannot_hide_wrong_or_missing_versions(self) -> None:
-        fixture = '        uses: mlugg/setup-zig@pinned # v2\n        with:\n          version: "0.15.2"\n'
-        self.assert_installer_pins(fixture, "mlugg/setup-zig", "version", "0.15.2", "fixture")
+        fixture = '        uses: ./.github/actions/setup-zig # local\n        with:\n          version: "0.15.2"\n'
+        self.assert_installer_pins(fixture, "./.github/actions/setup-zig", "version", "0.15.2", "fixture")
         for invalid in (fixture.replace("0.15.2", "0.15.1"), fixture.replace('          version: "0.15.2"\n', "")):
             with self.subTest(invalid=invalid), self.assertRaises(AssertionError):
-                self.assert_installer_pins(invalid, "mlugg/setup-zig", "version", "0.15.2", "fixture")
+                self.assert_installer_pins(invalid, "./.github/actions/setup-zig", "version", "0.15.2", "fixture")
 
     def test_every_tool_crate_pins_its_rust_toolchain(self) -> None:
         crates = PINS["rust"]["crates"]

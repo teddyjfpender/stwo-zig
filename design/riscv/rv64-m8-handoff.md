@@ -15,7 +15,7 @@ estimates do not establish a qualified speedup.
 
 The [current receipt](../../vectors/reports/rv64-productionisation/current.json)
 is the status authority. There is one canonical checkout at
-`/Users/theodorepender/Coding/stwo-zig`; the
+`.`; the
 [archive index](rv64-archive-index.md) records published historical refs,
 off-laptop recovery and the completed literal-list branch retirement.
 

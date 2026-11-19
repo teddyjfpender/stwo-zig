@@ -14,16 +14,16 @@
   "sequencing": "sequential-runs (diagnostic only; not paired ABBA - never a timing claim)",
   "sources": {
     "baseline": {
-      "bytes": 1176793,
+      "bytes": 1175665,
       "path": "/private/tmp/stwo-zig-latest-matrix/zig-out/native-proof-holistic-m5-20260721-v2/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v6",
-      "sha256": "53eee11540ad7976beb9c4e95773afd55a0da69676f7c58e469f670a26ac9466"
+      "sha256": "8b0446f0e963f8cc8ca5a8562447706a81c68f101f9b80c4a803d50297a02479"
     },
     "current": {
-      "bytes": 497844,
+      "bytes": 497374,
       "path": "/private/tmp/stwo-zig-latest-matrix/zig-out/native-proof-scale-m5-20260721-v2/summary.json",
       "report_protocol": "native_proof_cross_backend_matrix_v6",
-      "sha256": "b4d77a3c994c86d79abdf2c214d6b63f608da115e3938ba5ed7cc919c34ca6c0"
+      "sha256": "2afd674a17dec629cae30e2a2d765ba82ed5a426195c4401e2873c46960a350a"
     }
   },
   "status": "incomparable"

@@ -75,7 +75,7 @@ jobs:
           python-version: "3.13.17"
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
 

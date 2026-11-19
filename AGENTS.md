@@ -13,7 +13,7 @@ gates. Do not declare this phase complete from component tests or warm timings.
   compatibility, public-surface or dependency changes need an invariant-owner
   RFC decision first, tests before implementation and a consumer migration plan.
   Do not infer approval from silence or a green implementation test.
-- Use the canonical checkout `/Users/theodorepender/code/cryptography/stwo-zig`.
+- Use the current canonical checkout. Resolve its root with `git rev-parse --show-toplevel`.
   Do not create component worktrees. Inspect historical work through its
   archive refs; preserve unique work before retiring a working copy.
 - Give each change a subtraction budget before editing. Report code lines

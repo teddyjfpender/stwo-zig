@@ -1,7 +1,7 @@
 //! Trusted frontend export seam. The callback owns bounded DAG metadata only;
 //! it never receives a proof wire, opens a device, or changes CPU OODS checks.
 const std = @import("std");
-pub const ir = @import("secure_polynomial_program_v1.zig");
+pub const ir = @import("qm31_polynomial_program.zig");
 pub const Capability = struct {
     context: *const anyopaque,
     kind: ir.Kind,

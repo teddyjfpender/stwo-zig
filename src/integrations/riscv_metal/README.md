@@ -1,4 +1,6 @@
-# `stwo_riscv_metal_integration`
+# RISC-V Metal integration
+
+Public module `stwo_riscv_metal_integration`.
 
 | Property | Value |
 | :--- | :--- |

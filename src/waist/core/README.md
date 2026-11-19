@@ -1,4 +1,6 @@
-# `stwo_core`
+# Stwo protocol core
+
+Public module `stwo_core`.
 
 `stwo_core` is the backend-independent protocol and verifier foundation of
 stwo-zig. It owns field arithmetic, circle domains, commitments, FRI/PCS proof

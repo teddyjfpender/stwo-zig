@@ -1,4 +1,6 @@
-# `stwo_cairo_frontend`
+# Cairo frontend
+
+Public module `stwo_cairo_frontend`.
 
 `stwo_cairo_frontend` turns authenticated Cairo executions and
 program-specific semantic artifacts into the statements, witnesses, claims,

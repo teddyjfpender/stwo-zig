@@ -93,7 +93,7 @@ jobs:
           python-version: "3.13.17"
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
 
@@ -195,10 +195,9 @@ jobs:
           python-version: "3.13.17"
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
-          use-cache: false
 
       - name: Install pinned Rust oracle toolchain
         if: matrix.lane == 'native_oracle' || matrix.lane == 'native_cuda_static'
@@ -701,10 +700,9 @@ jobs:
           ref: 4e260db9605d16fef5d405cc3c280e3042b22e35
           fetch-depth: 0
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
-          use-cache: false
       - name: Run identical full frontend ReleaseFast command
         shell: bash
         run: |
@@ -762,10 +760,9 @@ jobs:
           python-version: "3.13.17"
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
-          use-cache: false
 
       - name: Require full Xcode for AOT-owned changes
         if: matrix.lane == 'metal_aot'
@@ -821,10 +818,9 @@ jobs:
           python-version: "3.13.17"
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
-          use-cache: false
 
       - name: Install pinned Rust oracle toolchain
         run: rustup toolchain install nightly-2025-07-14 --profile minimal
@@ -924,7 +920,7 @@ jobs:
           python-version: "3.13.17"
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
 
@@ -973,7 +969,7 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
 
@@ -1083,7 +1079,7 @@ jobs:
 
       - name: Setup pinned Zig for shape inspection
         if: inputs.gate == 'regenerate-recursion-shapes'
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        uses: ./.github/actions/setup-zig
         with:
           version: 0.15.2
 

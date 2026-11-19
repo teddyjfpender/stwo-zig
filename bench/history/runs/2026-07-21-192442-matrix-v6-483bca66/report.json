@@ -2908,10 +2908,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-zig-latest-matrix/zig-out/native-proof-scale-m5-20260721-v2/row-000-wide_fibonacci-log_n_rows-10-sequence_len-8/cpu.proof-artifact.json",
         "artifact_sha256": "6a2250b56d5e10b6385e3a0f617ef4cee001b5279fd3bbef404a5ccb58ccd7ce",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "bca74321517d41e6c2128ab20567756ab498ef18cee3fba422a51eea74b92b2b",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -4942,10 +4942,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-zig-latest-matrix/zig-out/native-proof-scale-m5-20260721-v2/row-001-wide_fibonacci-log_n_rows-14-sequence_len-32/cpu.proof-artifact.json",
         "artifact_sha256": "d32393fe3b1f9abbc4795d87c3b3316e06111f014ec30f0635f13ec0ff0587f9",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "bca74321517d41e6c2128ab20567756ab498ef18cee3fba422a51eea74b92b2b",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -6972,10 +6972,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-zig-latest-matrix/zig-out/native-proof-scale-m5-20260721-v2/row-002-plonk-log_n_rows-14/cpu.proof-artifact.json",
         "artifact_sha256": "ed64ff803f2e7ec8c5eeb81f520ee3cb228c6811795a53137092a8632f9e5e68",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "bca74321517d41e6c2128ab20567756ab498ef18cee3fba422a51eea74b92b2b",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -9003,10 +9003,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-zig-latest-matrix/zig-out/native-proof-scale-m5-20260721-v2/row-003-wide_fibonacci-log_n_rows-18-sequence_len-100/cpu.proof-artifact.json",
         "artifact_sha256": "49f9555c8a3d6d1f47045a7a22caf961745d503174d840b8e21a414aaf74cfb4",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "bca74321517d41e6c2128ab20567756ab498ef18cee3fba422a51eea74b92b2b",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",
@@ -11035,10 +11035,10 @@
       "rust_oracle": {
         "artifact_path": "/private/tmp/stwo-zig-latest-matrix/zig-out/native-proof-scale-m5-20260721-v2/row-004-wide_fibonacci-log_n_rows-20-sequence_len-100/cpu.proof-artifact.json",
         "artifact_sha256": "8a66bd21ec4076cde6d887ec1a10f034b34a8597e28643f57aae14dbd9cbf00e",
-        "binary_path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "binary_path": "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
         "binary_sha256": "bca74321517d41e6c2128ab20567756ab498ef18cee3fba422a51eea74b92b2b",
         "command": [
-          "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+          "./tools/stwo-interop-rs/target/release/stwo-interop-rs",
           "--mode",
           "verify",
           "--artifact",

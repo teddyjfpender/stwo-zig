@@ -39,7 +39,7 @@
       "label": "primary-Debug",
       "returncode": 0,
       "seconds": 3.021357125006034,
-      "log": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-primary-Debug.txt",
+      "log": "$HOME/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-primary-Debug.txt",
       "log_sha256": "f8a2934c130529c78e0bc9745c035b6987967e52cd09dd3e53f84cbc61a33f6f",
       "status": "PASS"
     },
@@ -47,7 +47,7 @@
       "label": "primary-ReleaseFast",
       "returncode": 0,
       "seconds": 5.433502625004621,
-      "log": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-primary-ReleaseFast.txt",
+      "log": "$HOME/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-primary-ReleaseFast.txt",
       "log_sha256": "a82b24215599dc8024028c59cdb4f9051e0c476818a43ff643f3606be081ff9c",
       "status": "PASS"
     },
@@ -55,7 +55,7 @@
       "label": "bulk-circuit-Debug",
       "returncode": 0,
       "seconds": 2.311761375007336,
-      "log": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-pass2-bulk-circuit-Debug.txt",
+      "log": "$HOME/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-pass2-bulk-circuit-Debug.txt",
       "log_sha256": "196c17787c9cf468bb18de214b7ff9a66e95058d32bb673d25f7815f2139a4cb",
       "status": "PASS"
     },
@@ -63,7 +63,7 @@
       "label": "bulk-circuit-ReleaseFast",
       "returncode": 0,
       "seconds": 6.433163499998045,
-      "log": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-pass2-bulk-circuit-ReleaseFast.txt",
+      "log": "$HOME/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-pass2-bulk-circuit-ReleaseFast.txt",
       "log_sha256": "1fdc2e4549b12a4f2ad9be2d9842a89200173f81620f3fb7b5c44fab24513189",
       "status": "PASS"
     },
@@ -71,7 +71,7 @@
       "label": "cuda-linux-host-link",
       "returncode": 0,
       "seconds": 2.1506413750030333,
-      "log": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-pass2-cuda-linux-host-link.txt",
+      "log": "$HOME/code/cryptography/rv64-proof-artifacts/20261112/c4-full-move/hosted-repair-pass2-cuda-linux-host-link.txt",
       "log_sha256": "9a64c8031df6923fa9d9c14710193ea91586bd3a27a27722ad5a8cc697821e9e",
       "status": "PASS"
     }

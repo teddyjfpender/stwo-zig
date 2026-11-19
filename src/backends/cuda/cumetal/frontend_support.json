@@ -131,7 +131,7 @@
         "rv64/jobs/truth_ops.cu",
         "rv64/keccak_witness.cu",
         "rv64/ls_dword_witness.cu",
-        "rv64/m9_class_unpack.cu",
+        "rv64/packed_class_unpack.cu",
         "rv64/memory_witness.cu",
         "rv64/outer_fs_ops.cu",
         "rv64/outer_gkr_binding.cu",

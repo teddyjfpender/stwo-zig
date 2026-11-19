@@ -1,4 +1,6 @@
-# `stwo_circuit_cpu_integration`
+# Circuit CPU integration
+
+Public module `stwo_circuit_cpu_integration`.
 
 `stwo_circuit_cpu_integration` is the circuit prover of the circuit recursion
 stage on the CPU backend: the Zig port of `crates/circuit_prover` of

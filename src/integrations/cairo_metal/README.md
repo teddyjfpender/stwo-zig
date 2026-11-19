@@ -1,4 +1,6 @@
-# `stwo_cairo_metal_integration`
+# Cairo Metal integration
+
+Public module `stwo_cairo_metal_integration`.
 
 `stwo_cairo_metal_integration` composes the backend-neutral Cairo proof plan
 with the resident Metal engine, authenticated AOT witness/evaluation programs,

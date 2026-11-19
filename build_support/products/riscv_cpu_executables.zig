@@ -64,7 +64,7 @@ pub const Observer = enum {
         return switch (self) {
             .pc_hotspot => .{ .source = "src/products/riscv/tools/pc_hotspot/main.zig", .binary = "riscv-pc-hotspot-observer" },
             .function_value => .{ .source = "src/products/riscv/tools/function_value/main.zig", .binary = "riscv-function-value-observer" },
-            .legacy_semantics => .{ .source = "src/products/riscv/tools/analyze_legacy_semantics/main.zig", .binary = "riscv-analyze-legacy-semantic-observer" },
+            .legacy_semantics => .{ .source = "src/products/riscv/tools/observe_instruction_semantics/main.zig", .binary = "riscv-analyze-legacy-semantic-observer" },
             .memcpy_hotspot => .{ .source = "src/products/riscv/tools/memcpy_hotspot/main.zig", .binary = "riscv-memcpy-hotspot-observer" },
             .memcpy_admission => .{ .source = "src/products/riscv/tools/memcpy_admission/main.zig", .binary = "riscv-memcpy-admission-observer" },
         };

@@ -1,4 +1,6 @@
-# `stwo_riscv_rv64`
+# RV64 execution and AIR
+
+Public module `stwo_riscv_rv64`.
 
 | Fact | Value |
 | --- | --- |

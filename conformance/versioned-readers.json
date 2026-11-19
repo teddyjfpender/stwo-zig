@@ -20,18 +20,6 @@
       "reason": "Historical P-003 matrix source path forwards all existing exports to canonical lookup_polynomial.zig; retain until an owner-reviewed source-binding refresh. No duplicate implementation."
     },
     {
-      "package": "stwo_prover_engine",
-      "owner": "prover-engine",
-      "path": "src/engine/prover/air/secure_polynomial_program_v1.zig",
-      "reason": "Both fixed-kind v1 and field-generic v2 are live; v2 imports v1 encodings and fromV1 compatibility."
-    },
-    {
-      "package": "stwo_prover_engine",
-      "owner": "prover-engine",
-      "path": "src/engine/prover/air/secure_polynomial_program_v2.zig",
-      "reason": "Both fixed-kind v1 and field-generic v2 are live; v2 imports v1 encodings and fromV1 compatibility."
-    },
-    {
       "package": "stwo_riscv_rv32",
       "owner": "riscv-frontend",
       "path": "src/frontends/riscv/rv32/air/incremental_public_logup_v4.zig",

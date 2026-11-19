@@ -1,6 +1,6 @@
 # RV64 consolidation archive index
 
-The canonical checkout is `/Users/theodorepender/Coding/stwo-zig`, branch
+The canonical checkout is `.`, branch
 `codex/rv64-gpu-hygiene`. All 162 retired working copies were preserved before
 removal. Archived code remains historical and unqualified.
 
@@ -44,7 +44,7 @@ the first deletion batch. See the current productionisation receipt for their
 subsequent validation and delivery status.
 
 The local original is under
-`/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/`.
+`$HOME/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/`.
 Its retirement ledger records each historical HEAD, archive ref and local
 data hash. Verify the manifest and archive hashes before recovery. Inspect
 committed code with `git show <archive-tag>:<path>`; extract working-data

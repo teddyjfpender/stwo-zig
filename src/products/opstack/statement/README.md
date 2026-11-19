@@ -1,4 +1,6 @@
-# `stwo_opstack_statement`
+# OP Stack RV64 block statements
+
+Public module `stwo_opstack_statement`.
 
 | Fact | Value |
 |---|---|

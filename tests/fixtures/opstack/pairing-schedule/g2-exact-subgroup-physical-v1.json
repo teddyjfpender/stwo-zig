@@ -65,7 +65,7 @@
     "canonical_hint_source_tests": true,
     "arithmetic_group1_guard": true
   },
-  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/g2-subgroup-physical-v1/generator",
+  "artifacts": "$HOME/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/g2-subgroup-physical-v1/generator",
   "files": {
     "chain.proof.bin": {
       "bytes": 108568,

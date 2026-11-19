@@ -1,4 +1,6 @@
-# `stwo_sm83_metal_integration`
+# SM83 Metal integration
+
+Public module `stwo_sm83_metal_integration`.
 
 | Property | Value |
 | :--- | :--- |

@@ -1,4 +1,6 @@
-# `stwo_cpu_backend`
+# CPU backend
+
+Public module `stwo_cpu_backend`.
 
 `stwo_cpu_backend` is the portable host-memory implementation of the generic
 prover backend contract. Its zero-sized `CpuBackend` type selects scalar and

@@ -7,7 +7,7 @@
       "reasons": [
         "publication status is superseded: Superseded by a current-main capture after PR #97 merged a CPU wide-recurrence optimization during publication; this run remains the compatible baseline for the recorded delta."
       ],
-      "source_sha256": "621e3290c57272e67e65d87e3565e5d477fe8fbef94e45114a9869feffb92e82",
+      "source_sha256": "adfd80ab307cbe2470d3998865b39a22aa55152f94db2cd9ebac64758f23ab0e",
       "status": "superseded",
       "superseded_by": "2026-07-23-110359-matrix-v6-e58b4d1e"
     },
@@ -18,7 +18,7 @@
       "reasons": [
         "publication status is superseded: Controlled exact-binary reproduction found the Metal log16 rows on a stable but contended or underclocked plateau; the capture also omitted circle_transform_wide.metal from its advertised shader source digest."
       ],
-      "source_sha256": "4d021098c0c1450e9875d4b93f3468019f2bf946740b83e32f41be416cf2e120",
+      "source_sha256": "86145cd24139074428833b9ae83df2ded35b43cfe6b93774bdb8db50e3f11521",
       "status": "superseded",
       "superseded_by": "2026-07-23-110359-matrix-v6-e58b4d1e"
     },
@@ -29,7 +29,7 @@
       "reasons": [
         "machine provenance is incomplete"
       ],
-      "source_sha256": "19cc8a5631e04aa2ea72242ff2ccac4d36320d04afbae05a161606995dd6a71f",
+      "source_sha256": "4bc9f33fa56ff209d23a6f33ef5990ac33e77db9a70b27bebd43decc732d8b5c",
       "status": "active",
       "superseded_by": null
     },
@@ -40,7 +40,7 @@
       "reasons": [
         "machine provenance is incomplete"
       ],
-      "source_sha256": "4f7a234ffe2d6fde65a01173d12becbb7b9aa8ab4cfcab3c322ba13a78ff353d",
+      "source_sha256": "60df566f6d916f2b2c403077671796f57944a662da0a0914f6b6272a08f60263",
       "status": "active",
       "superseded_by": null
     },
@@ -73,7 +73,7 @@
       "reasons": [
         "machine provenance is incomplete"
       ],
-      "source_sha256": "a9c1b5e189712e9b512d2fcc566b718155938f69e67401604d74882adee5964a",
+      "source_sha256": "8cad7278c0af63964409d6225f7572899a18a8643e01fbc567a0f529691e9db9",
       "status": "active",
       "superseded_by": null
     },
@@ -84,7 +84,7 @@
       "reasons": [
         "machine provenance is incomplete"
       ],
-      "source_sha256": "79885f1d6388667541832529aec8970e7b30bdb995a109ffc7cc19c5f15d2012",
+      "source_sha256": "26f85006f97103f1fa0b1ee0f83e9de8e99d7f62cadea5c8e7b722d23dea07bd",
       "status": "active",
       "superseded_by": null
     }
@@ -5054,11 +5054,11 @@
         "warmups_per_lane": 30
       },
       "source": {
-        "bytes": 2871560,
+        "bytes": 2870338,
         "path": "runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
+        "sha256": "c5dae6f1cea80440bb051d8b8b0a9362932297f85fa8499f266438ad65650164"
       },
       "summary": {
         "diagnostic_rows": 0,
@@ -7378,11 +7378,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1176793,
+        "bytes": 1175665,
         "path": "runs/2026-07-21-192812-matrix-v6-483bca66/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "53eee11540ad7976beb9c4e95773afd55a0da69676f7c58e469f670a26ac9466"
+        "sha256": "8b0446f0e963f8cc8ca5a8562447706a81c68f101f9b80c4a803d50297a02479"
       },
       "summary": {
         "diagnostic_rows": 9,
@@ -8386,11 +8386,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 497844,
+        "bytes": 497374,
         "path": "runs/2026-07-21-192442-matrix-v6-483bca66/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "b4d77a3c994c86d79abdf2c214d6b63f608da115e3938ba5ed7cc919c34ca6c0"
+        "sha256": "2afd674a17dec629cae30e2a2d765ba82ed5a426195c4401e2873c46960a350a"
       },
       "summary": {
         "diagnostic_rows": 3,
@@ -10416,11 +10416,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160603,
+        "bytes": 1159475,
         "path": "runs/2026-07-21-085853-matrix-v6-6448467f/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "770830ab765311cf46afa7fd10d3dab3868001e40e9f60115f573e788bcaa4bc"
+        "sha256": "dc9389c86abeb689c479ce471b064467ef3ae0c2bd0c5fb79ce587d189eda417"
       },
       "summary": {
         "diagnostic_rows": 7,
@@ -12444,11 +12444,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160524,
+        "bytes": 1159396,
         "path": "runs/2026-07-21-084128-matrix-v6-ffbcefca/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "4b1b8a4b52f3a11d53bf3044391e52f5fada7b2a38d6fcad45dbb883cbf6ac2c"
+        "sha256": "2eb3129b498bd085c0e248fab4b51d3f714c4c2f8091f6941fab3d5070b5f877"
       },
       "summary": {
         "diagnostic_rows": 6,
@@ -14476,11 +14476,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160590,
+        "bytes": 1159462,
         "path": "runs/2026-07-21-084006-matrix-v6-8d09fdf3/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "c57f5fec62fa447df750f9ea914ee2ce9167171dccc3497d6840604120faf362"
+        "sha256": "3035ad90a2e58739df490557fda21832c540a0662f306b3285aed0b829f1962d"
       },
       "summary": {
         "diagnostic_rows": 8,
@@ -16502,11 +16502,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160461,
+        "bytes": 1159333,
         "path": "runs/2026-07-21-083847-matrix-v6-796782bd/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "3a470b72783829d88ed2339716f8cda62d88f3dfb80ec7237ed118647ea029a6"
+        "sha256": "07d114f768ae4e797dda58f4efa2e4c575261b92bcd7913915a1453f8a051524"
       },
       "summary": {
         "diagnostic_rows": 5,
@@ -18526,11 +18526,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160379,
+        "bytes": 1159251,
         "path": "runs/2026-07-21-083727-matrix-v6-e1ef7427/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "93b37d0a8d41bb1aac431d82437b3a754389db369ea6e44ac73615f3348ec139"
+        "sha256": "d4442c63de8980533f9feca1d62afbb4ddb65f9b99b3aaa92d878babb228a8b5"
       },
       "summary": {
         "diagnostic_rows": 4,
@@ -20552,11 +20552,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160426,
+        "bytes": 1159298,
         "path": "runs/2026-07-21-083606-matrix-v6-c93c87b6/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "0f269ef1379189b94c99c18c0411380caf91ebe372d30a41510a3a8dd6bbb10e"
+        "sha256": "e852ff7683667f17326f808418f0588b50344822422b7bb88ad11b8b39097c9a"
       },
       "summary": {
         "diagnostic_rows": 5,
@@ -22582,11 +22582,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160488,
+        "bytes": 1159360,
         "path": "runs/2026-07-21-083443-matrix-v6-f7b9d33d/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "db7fafeb2e418ebf1abf69c2f6516c37a5835c1ab63de85187ce2d36deb3345f"
+        "sha256": "ffe91dfc742a0c00cd819aa39aad3125e58856a10f261118bf7d28550235329a"
       },
       "summary": {
         "diagnostic_rows": 7,
@@ -24611,11 +24611,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160676,
+        "bytes": 1159548,
         "path": "runs/2026-07-21-083318-matrix-v6-81a216fc/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "f538306d46403e016a5f8354dba24d8b4aa1b6bf9e086a4aa69c9d95e5f1e411"
+        "sha256": "4dc34d12c6b230e3c9f586742f16ef69572c02f587441a5b7c3bb5e23ffbea0e"
       },
       "summary": {
         "diagnostic_rows": 6,
@@ -26637,11 +26637,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160443,
+        "bytes": 1159315,
         "path": "runs/2026-07-21-083158-matrix-v6-949d24d4/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "cfdb5d2e264441226961bdf4abfe8cb04e1d1a516e01b77bb95161f309083d56"
+        "sha256": "f9d7370eab11683f0ec800b410b17087bc51fb65bc8d17b06a7f6d4b6536b1ae"
       },
       "summary": {
         "diagnostic_rows": 5,
@@ -28666,11 +28666,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160541,
+        "bytes": 1159413,
         "path": "runs/2026-07-21-083039-matrix-v6-51f07230/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "eb669a6d66ed4b556a4df3fe9b8381ecd7f990d26e4fdb5153131bbfbdb9028c"
+        "sha256": "c2018ab358b33d94019843ab7e48f22718f3379193d1e2c97d5043d8740b1394"
       },
       "summary": {
         "diagnostic_rows": 6,
@@ -30694,11 +30694,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160615,
+        "bytes": 1159487,
         "path": "runs/2026-07-21-082920-matrix-v6-303292ce/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "5a65e1381e32c15bc1407eace052dc81cb98d08d8cc5d44db873c103db0b0cfd"
+        "sha256": "82eca58f5f087e5f28aad83fcb4474ca9ed82fb5d798ba190fc8b708f33ae56d"
       },
       "summary": {
         "diagnostic_rows": 6,
@@ -32714,11 +32714,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1160510,
+        "bytes": 1159382,
         "path": "runs/2026-07-21-082838-matrix-v6-9e16ec8e/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "0728d6880e73bc428fd99e30c02238e3a8d8f7d6205195c79a2c1408edaee597"
+        "sha256": "4f8df7d0ca650934e4579cb207d26586cccb7612f0024efdd22f0a8b517634a9"
       },
       "summary": {
         "diagnostic_rows": 2,
@@ -34734,11 +34734,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1161642,
+        "bytes": 1159292,
         "path": "runs/2026-07-20-221601-matrix-v6-e78cca6f/report.json",
         "protocol": "native_proof_cross_backend_matrix_v6",
         "schema_version": 6,
-        "sha256": "facd106c0afb0f14e12263a420d5bbe6dca2dcf6b09d603f3bf3e99950385d6f"
+        "sha256": "0dad8fcb12bd3fa0074589b8a65ac9862eef1a6fbd58d8db81fc81205344b945"
       },
       "summary": {
         "diagnostic_rows": 2,
@@ -36756,11 +36756,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1065111,
+        "bytes": 1062761,
         "path": "runs/2026-07-18-064334-matrix-v5-789feb4c/report.json",
         "protocol": "native_proof_cross_backend_matrix_v5",
         "schema_version": 5,
-        "sha256": "8da5fae41d077ae897b44b024a4b3d2956a57daff2c0678a0441b26ec6643768"
+        "sha256": "b777f7167f6c223c25e5fdafaba84d3eafdbd622f9c73e38477adaba5c060b9f"
       },
       "summary": {
         "diagnostic_rows": 3,
@@ -38774,11 +38774,11 @@
         "warmups_per_lane": 10
       },
       "source": {
-        "bytes": 1064138,
+        "bytes": 1063010,
         "path": "runs/2026-07-18-004844-matrix-v5-44a81457/report.json",
         "protocol": "native_proof_cross_backend_matrix_v5",
         "schema_version": 5,
-        "sha256": "3e3cf347fe958b822558e7c614b5f11317187f321d412fbd4a834d551b81d78b"
+        "sha256": "a8cb48a1c80b946544ed635db7cf27b4f6253eea9db6c56886d4a3c1fd66f071"
       },
       "summary": {
         "diagnostic_rows": 1,
@@ -38809,6 +38809,6 @@
   "source": {
     "index_path": "bench/history/index.json",
     "index_schema_version": 2,
-    "index_sha256": "f8ef3c4aff34a2bedc21899c017521695d28f2fbb327b5fb2d09fb1dc5acd7b2"
+    "index_sha256": "79b9e3c85484633b6784566ab9edc1500ba382ed82b551c6a950e490977c6485"
   }
 }
