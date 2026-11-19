@@ -220,23 +220,4 @@ pub fn nanosecondsToSeconds(value: u64) f64 {
     return @as(f64, @floatFromInt(value)) / @as(f64, @floatFromInt(std.time.ns_per_s));
 }
 
-pub const CanonicalFullProofPlanMode = struct {
-    execute_proof: bool,
-    no_projection: bool,
-    prepare_metal: bool,
-    execute_preprocessed: bool,
-    execute_witness: bool,
-    execute_base_interpolation: bool,
-    execute_commitments: bool,
-    execute_relations: bool,
-    execute_oods: bool,
-    verify_proof: bool,
-
-    pub fn eligible(self: CanonicalFullProofPlanMode) bool {
-        return self.execute_proof and self.no_projection and self.prepare_metal and
-            self.execute_preprocessed and self.execute_witness and
-            self.execute_base_interpolation and self.execute_commitments and
-            self.execute_relations and self.execute_oods and self.verify_proof;
-    }
-};
 const std = @import("std");

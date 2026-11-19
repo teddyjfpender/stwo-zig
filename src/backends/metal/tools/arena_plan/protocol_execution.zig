@@ -29,7 +29,6 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
     const plan = ctx.plan;
     const bindings = ctx.bindings;
     const composition_bundle = ctx.composition_bundle;
-    const execute_composition = ctx.execute_composition;
     const execute_proof = ctx.execute_proof;
     const requested_commit_tree_count = ctx.requested_commit_tree_count;
     const transcript = ctx.transcript;
@@ -38,8 +37,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
     const recipe_preparation_timing = ctx.recipe_preparation_timing;
     const prover_input = ctx.prover_input;
 
-    const prepare_full_protocol = !std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_WITNESS");
-    if (prepare_full_protocol or execute_composition) {
+    if (execute_proof) {
         const composition_path = args[7];
         if (!std.mem.endsWith(u8, composition_path, ".bin")) return error.InvalidCompositionPath;
         try arena_binding_mod.populateNamedInverseTwiddles(
@@ -73,11 +71,10 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
         );
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
             std.debug.print("composition_prepare done\n", .{});
-        if (execute_composition) {
+        {
             if (requested_commit_tree_count < 4 or execution_metrics.commitment_roots[2] == null)
                 return error.CommitmentInputsNotExecuted;
-            if (!composition.isComplete() and
-                (execute_proof or std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_OODS")))
+            if (!composition.isComplete())
                 return error.PartialCompositionCannotContinue;
             try composition.execute();
             execution_metrics.composition_gpu_ms = composition.accumulated_gpu_ms;
@@ -108,10 +105,8 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
                     try transcript.expectOutputWords(3, &fixture.expected_output_3);
                 if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
                     std.debug.print("composition stage=transcript done\n", .{});
-            } else if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS")) {
-                std.debug.print("composition stage=partial_front done\n", .{});
             }
-            if (composition.isComplete() and std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_OODS")) {
+            {
                 var oods_input: ?arena.Binding = null;
                 for (bindings.transcript_inputs) |transcript_input| if (transcript_input.ordinal == 25) {
                     oods_input = transcript_input.binding;
@@ -145,18 +140,8 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
                             if (transcript_reference != null) "exact" else "unchecked",
                         },
                     );
-            } else if (composition.isComplete() and execute_proof) {
-                const fixture = transcript_reference orelse return error.MissingTranscriptReference;
-                try transcript.loadInputWords(25, fixture.input_25);
-                try transcript.oodsAndQuotient();
-                try transcript.expectOutputWords(4, &fixture.expected_output_4);
-                if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
-                    std.debug.print(
-                        "oods stage=reference_transcript samples={} parity=exact fixture_only=true\n",
-                        .{fixture.input_25.len / 4},
-                    );
             }
-            if (composition.isComplete()) execution_metrics.transcript_gpu_ms = transcript.accumulated_gpu_ms;
+            execution_metrics.transcript_gpu_ms = transcript.accumulated_gpu_ms;
         }
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
             std.debug.print("quotient_prepare begin\n", .{});
@@ -428,7 +413,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
             try proof_file.writeAll(std.mem.sliceAsBytes(proof_words));
             execution_metrics.proof_output_bytes = proof_words.len * 4;
             execution_metrics.proof_assembled = true;
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_VERIFY_PROOF")) {
+            {
                 const verify_ordinals = [_]u32{ 1, 2, 3, 10, 11, 12, 13, 14, 15, 16, 20 };
                 var verify_inputs: [verify_ordinals.len]resident_verifier.TranscriptInput = undefined;
                 var verifier_config_words: ?[]const u32 = null;

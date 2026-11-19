@@ -34,7 +34,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
     const memory_trace = ctx.memory_trace;
     const fixed_tables = ctx.fixed_tables;
 
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_RELATIONS")) {
+    {
         if (requested_commit_tree_count < 3 or execution_metrics.commitment_roots[0] == null or execution_metrics.commitment_roots[1] == null)
             return error.CommitmentInputsNotExecuted;
         const adapted = if (prover_input) |value| value else return error.MissingAdaptedInput;
