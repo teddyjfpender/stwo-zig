@@ -101,7 +101,7 @@ test {
     _ = @import("focused/rv32_execution_session.zig");
     _ = @import("focused/rv32_minimal_trace_parallel_replay.zig");
     _ = @import("focused/rv32_runner.zig");
-    _ = @import("focused/rv32_segment_statement_v2.zig");
+    _ = @import("focused/segment_identity_preimages.zig");
     _ = @import("../host/hint_oracle.zig");
     _ = @import("../host/runtime.zig");
     _ = @import("../infra_trace.zig");

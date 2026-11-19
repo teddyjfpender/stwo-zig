@@ -17,7 +17,7 @@ const suites = struct {
     pub const lookup_table_interaction = @import("tests/focused/lookup_table_interaction.zig");
     pub const minimal_trace_parallel_replay = @import("tests/focused/minimal_trace_parallel_replay.zig");
     pub const minimal_trace_parallel_replay_benchmark = @import("tests/focused/minimal_trace_parallel_replay_benchmark.zig");
-    pub const recursion_segment_publication_provider_v2_1 = @import("tests/focused/recursion_segment_publication_provider_v2_1.zig");
+    pub const segment_publication_provider_compat = @import("tests/focused/segment_publication_provider_compat.zig");
     pub const recursion_temporal_pair = @import("tests/focused/recursion_temporal_pair.zig");
     pub const releasefast_acceptance = @import("tests/focused/releasefast_acceptance.zig");
     pub const retained_authority_contracts = @import("tests/focused/retained_authority_contracts.zig");
@@ -27,7 +27,7 @@ const suites = struct {
     pub const rv64_execution = @import("tests/focused/rv64_execution.zig");
     pub const sail_oracle = @import("tests/focused/sail_oracle.zig");
     pub const segment_publication_input_provider_authority = @import("tests/focused/segment_publication_input_provider_authority.zig");
-    pub const segment_statement_v2 = @import("tests/focused/segment_statement_v2.zig");
+    pub const segment_statement_boundaries = @import("tests/focused/segment_statement_boundaries.zig");
     pub const statement_wire = @import("tests/focused/statement_wire.zig");
     pub const transcript_support = @import("tests/focused/transcript_support.zig");
 };

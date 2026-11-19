@@ -18,7 +18,7 @@ const suites = struct {
     pub const isa_runner = @import("tests/focused/isa_runner.zig");
     pub const runtime_profile_decode = @import("tests/focused/runtime_profile_decode.zig");
     pub const rv64_execution = @import("tests/focused/rv64_execution.zig");
-    pub const isa_segment_statement_v2 = @import("tests/focused/isa_segment_statement_v2.zig");
+    pub const segment_access_clock = @import("tests/focused/segment_access_clock.zig");
     pub const isa_transcript_support = @import("tests/focused/isa_transcript_support.zig");
 };
 

@@ -8,9 +8,9 @@ test {
     _ = @import("../engine.zig");
     _ = @import("focused/recursion_parent_statement_source.zig");
     _ = @import("focused/recursion_parent_transcript_source.zig");
-    _ = @import("focused/recursion_segment_native_sum_v2.zig");
-    _ = @import("focused/recursion_segment_statement_source_v2.zig");
-    _ = @import("focused/recursion_transcript_v2_1.zig");
+    _ = @import("focused/segment_native_public_sums.zig");
+    _ = @import("focused/segment_statement_outer_authority.zig");
+    _ = @import("focused/transcript_program_schedule.zig");
     _ = @import("../leaf_profile.zig");
     _ = @import("../owned_handoff.zig");
     _ = @import("../pair_node_test_continuation_1.zig");
