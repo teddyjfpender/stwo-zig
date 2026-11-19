@@ -1,7 +1,13 @@
 //! Exact package roots constructed by the RISC-V CPU scope.
 //! Relocations and owned test partitions preserve the original subject coverage.
 
-pub const roots = &.{
+pub const air_fixture_roots = &[_][]const u8{
+    "dependency:../src/frontends/riscv/air_lang:../../../../vectors/riscv_air/embedded.zig",
+    "dependency:../src/frontends/riscv/air_lang:../../../../vectors/riscv_air/h009_embedded.zig",
+    "dependency:../src/frontends/riscv/air_lang:../../../../vectors/riscv_air/h010_embedded.zig",
+};
+
+pub const roots = &([_][]const u8{
     "dependency:../src/products/ethereum/statement:frontend.zig",
     "dependency:../src/products/ethereum/statement:cpu/rv64_services_gkr_policy_test_root.zig",
     "dependency:../src/products/ethereum/statement:cpu.zig",
@@ -208,4 +214,4 @@ pub const roots = &.{
     "dependency:../src/waist/recursion_wire:mod.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
     "dependency:../src/waist/recursion_wire:postcard_error_codes.zig",
-};
+} ++ air_fixture_roots.*);

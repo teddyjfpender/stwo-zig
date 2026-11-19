@@ -157,9 +157,9 @@ fn sourceClosure(comptime metal: bool) policy.SourceClosure {
             "src/engine/prover/native/runner.zig",
         },
         .named_imports = if (metal) &metal_named_imports else &cpu_named_imports,
-        // Lexical closure reaches the RISC-V package's compatibility and
-        // proposal tests. These fixtures are injected only on the fresh test
-        // module; neither aggregate executable constructs or consumes them.
+        // The lexical closure reaches RISC-V compatibility and proposal tests.
+        // Fixture bindings live under the AIR testing namespace; aggregate
+        // executables never evaluate those embeds.
         .generated_imports = &.{
             "aggregate_capabilities",
             "build_identity",
