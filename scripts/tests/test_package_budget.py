@@ -51,6 +51,22 @@ class PackageBudgetTests(unittest.TestCase):
         self.assertEqual(measured["packages"]["child"]["code_lines"], 1)
         self.assertEqual(measured["unowned"]["code_lines"], 2)
 
+    def test_versioned_zig_filenames_use_existing_owners_without_redefining_the_all_file_cap(self):
+        parent = self.contract("src/a", excluded=("consumer",))
+        child = self.contract("src/a/child", "child")
+        paths = [self.write(p, "line\n") for p in (
+            "src/a/core_v2.zig", "src/a/core_v2alpha.zig", "src/a/README_v2.md", "src/a/main.zig",
+            "src/a/child/fri_part_03.zig", "src/a/child/cpu_part4_test.zig",
+            "src/a/consumer/wire_v3_test.zig", "other_v4.zig",
+        )]
+        measured = budget.measure(self.root, [parent, child], paths)
+        self.assertEqual(measured["packages"]["owner"]["versioned_files"], 4)
+        self.assertEqual(measured["versioned_zig_filenames"], {
+            "owner": ["src/a/core_v2.zig"],
+            "child": ["src/a/child/cpu_part4_test.zig", "src/a/child/fri_part_03.zig"],
+            "unowned": ["src/a/consumer/wire_v3_test.zig"],
+        })
+
     def test_lexical_owner_index_matches_original_geometric_oracle(self):
         from scripts.repo import check_package_workspace as workspace, ci_package_graph as graph
         parent = self.contract("src/a", "parent", ("consumer",))
