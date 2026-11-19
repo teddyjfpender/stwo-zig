@@ -1,4 +1,5 @@
 import os
+from datetime import date
 import re
 import json
 import signal
@@ -11,7 +12,7 @@ from types import SimpleNamespace
 from unittest import mock
 from pathlib import Path
 
-from scripts.ci import FAST_PLAN, TOOLCHAIN_PLAN, command_plan, main
+from scripts.ci import FAST_PLAN, TOOLCHAIN_PLAN, command_plan, main, partition_script_contracts, script_contract_status
 from scripts.repo.check_build_configure_closure import validate_actual_construction
 from scripts.release.release_evidence import gate_steps
 from scripts.tests.test_focused_ci_contract import COMMIT, TREE, runner_policy
@@ -21,6 +22,34 @@ PINNED_ACTION_RE = re.compile(r"^\s*uses:\s*[^@\s]+@[0-9a-f]{40}(?:\s+#.*)?$")
 
 
 class CiTests(unittest.TestCase):
+    def test_formal_deferral_partitions_the_exact_cases(self):
+        def ordinary():
+            pass
+
+        def held():
+            pass
+
+        ordinary_case = unittest.FunctionTestCase(ordinary)
+        held_case = unittest.FunctionTestCase(held)
+        acquired = unittest.TestSuite([ordinary_case, unittest.TestSuite([held_case])])
+        ordinary_suite, held_suite = partition_script_contracts(acquired, [held_case.id()])
+        self.assertEqual([ordinary_case], list(ordinary_suite))
+        self.assertEqual([held_case], list(held_suite))
+        with self.assertRaisesRegex(ValueError, "exactly once"):
+            partition_script_contracts(acquired, ["missing"])
+        with self.assertRaisesRegex(ValueError, "exactly once"):
+            partition_script_contracts(unittest.TestSuite([held_case, held_case]), [held_case.id()])
+        with self.assertRaisesRegex(ValueError, "exactly once"):
+            partition_script_contracts(acquired, [held_case.id(), held_case.id()])
+
+    def test_formal_deferral_expires_without_masking_other_failures(self):
+        expiry = date(2026, 12, 2)
+        previous = date(2026, 12, 1)
+        self.assertEqual(0, script_contract_status(True, False, previous, expiry))
+        self.assertEqual(1, script_contract_status(False, True, previous, expiry))
+        self.assertEqual(1, script_contract_status(True, False, expiry, expiry))
+        self.assertEqual(0, script_contract_status(True, True, expiry, expiry))
+
     def test_circuit_decoder_process_matrix_checks_exact_outputs_and_keeps_failures(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         start = workflow.index("      - name: Check circuit decoder process boundary")

@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "focused_formal_evidence_deferral_issue436",
+      "net_code_budget": 110,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issues 436 and 328: run every test in the existing CI entrypoint, report the 19 named formal evidence cases separately, and fail closed on changed discovery or after 2026-12-01 UTC. Keep ordinary and strict checks authoritative. Remove this report partition and manifest together to restore flat reporting."
+    },
+    {
       "id": "rtx_kernel_attribution_issue425",
       "net_code_budget": 150,
       "flags_added_budget": 0,

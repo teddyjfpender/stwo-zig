@@ -77,10 +77,64 @@ def run_plan(plan: list[list[str]]) -> int:
     return 0
 
 
+def partition_script_contracts(suite, deferred_ids):
+    import unittest
+
+    def cases(group):
+        for member in group:
+            if isinstance(member, unittest.TestSuite):
+                yield from cases(member)
+            else:
+                yield member
+
+    expected = set(deferred_ids)
+    if len(expected) != len(deferred_ids):
+        raise ValueError("formal deferral must match each named case exactly once")
+    ordinary, deferred = [], []
+    for case in cases(suite):
+        (deferred if case.id() in expected else ordinary).append(case)
+    if sorted(case.id() for case in deferred) != sorted(deferred_ids):
+        raise ValueError("formal deferral must match each named case exactly once")
+    return unittest.TestSuite(ordinary), unittest.TestSuite(deferred)
+
+
+def script_contract_status(ordinary_ok, formal_ok, today, expiry):
+    return int(not ordinary_ok or (not formal_ok and today >= expiry))
+
+
+def run_focused_script_contracts():
+    from datetime import date, datetime, timezone
+    import unittest
+
+    policy = json.loads((ROOT / "conformance/formal-script-deferral.json").read_text())
+    if policy["schema"] != "stwo-formal-script-deferral-v1":
+        raise ValueError("unsupported formal deferral policy")
+    expiry = date.fromisoformat(policy["expires"])
+    today = datetime.now(timezone.utc).date()
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    discovered = unittest.defaultTestLoader.discover(str(ROOT / "scripts/tests"), pattern="test_*.py")
+    ordinary, deferred = partition_script_contracts(discovered, policy["case_ids"])
+    print(f"Ordinary script contracts: {ordinary.countTestCases()} cases", flush=True)
+    ordinary_result = unittest.TextTestRunner().run(ordinary)
+    authority = "ADVISORY" if today < expiry else "REQUIRED"
+    print(
+        f"Formal evidence: {deferred.countTestCases()} cases, {authority}, "
+        f"owner {policy['owner']}, issue #{policy['issue']}, expires {expiry} UTC",
+        flush=True,
+    )
+    formal_result = unittest.TextTestRunner().run(deferred)
+    return script_contract_status(ordinary_result.wasSuccessful(), formal_result.wasSuccessful(), today, expiry)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     tier = parser.add_mutually_exclusive_group()
     tier.add_argument("--strict", action="store_true", help="run the strict release gate")
+    tier.add_argument(
+        "--focused-script-contracts", action="store_true",
+        help="run all Python checks and report the time-bounded formal evidence separately",
+    )
     tier.add_argument(
         "--fast",
         action="store_true",
@@ -100,6 +154,9 @@ def main(argv: list[str] | None = None) -> int:
         default="ReleaseFast",
     )
     args = parser.parse_args(argv)
+
+    if args.focused_script_contracts:
+        return run_focused_script_contracts()
 
     if args.installed_toolchains:
         if str(ROOT) not in sys.path:
