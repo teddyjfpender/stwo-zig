@@ -28,7 +28,7 @@ pub fn generate(comptime Runtime: type, a: std.mem.Allocator, workspace: *Runtim
     const tile_log = @min(log, workspace.capacity_log_size);
     const scratch_bytes = try std.math.mul(usize, try Runtime.requiredScratchElementCount(tile_log), @sizeOf(Q));
     const workers = @min(pool.workerCount(), 8, @as(usize, 1) << @intCast(log - tile_log), @max(1, (128 * 1024 * 1024) / scratch_bytes));
-    if (workers < 2 or std.process.hasEnvVarConstant("STWO_RISCV_SERIAL_HASH_INTERACTIONS")) return Runtime.generatePreparedOwnedColumnsTiledWithWorkspace(a, workspace, plan, source, log, relations, padding);
+    if (workers < 2) return Runtime.generatePreparedOwnedColumnsTiledWithWorkspace(a, workspace, plan, source, log, relations, padding);
     var lease = pool.acquire(try pool_mod.WorkerBudget.init(workers)) catch return Runtime.generatePreparedOwnedColumnsTiledWithWorkspace(a, workspace, plan, source, log, relations, padding);
     defer lease.deinit();
     var owned: [7]Runtime.Workspace = undefined;

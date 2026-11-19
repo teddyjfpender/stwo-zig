@@ -6,7 +6,6 @@ pub const Budget = struct {
     remaining: usize = 1024 * 1024 * 1024,
     pub fn configure(self: *Budget, scheme: anytype, columns: anytype) void {
         scheme.setCoefficientRetentionPolicy(.never);
-        if (std.process.hasEnvVarConstant("STWO_RISCV_NO_EXECUTION_COEFFICIENT_CACHE")) return;
         var bytes: usize = 0;
         for (columns) |column| {
             const column_bytes = std.math.mul(usize, column.values.len, @sizeOf(M31)) catch return;
@@ -18,7 +17,6 @@ pub const Budget = struct {
     /// their total coefficient count; use the same AIR bound as core proving.
     pub fn configureComposition(self: *Budget, scheme: anytype, components: anytype) void {
         scheme.setCoefficientRetentionPolicy(.never);
-        if (std.process.hasEnvVarConstant("STWO_RISCV_NO_EXECUTION_COEFFICIENT_CACHE")) return;
         var log: u32 = 0;
         for (components) |component| log = @max(log, component.maxConstraintLogDegreeBound());
         if (log >= @bitSizeOf(usize)) return;
