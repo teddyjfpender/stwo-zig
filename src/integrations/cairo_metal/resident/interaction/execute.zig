@@ -9,7 +9,6 @@ const cairo_proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const witness_bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
 const witness_scheduler = @import("stwo_cairo_frontend").witness_scheduler;
 const schedule_bindings = @import("../../schedule_bindings.zig");
-const interaction_diagnostics = @import("diagnostics.zig");
 const preprocessed_coefficients = @import("../preprocessed/coefficients.zig");
 const relation_components = @import("../relations/components.zig");
 const witness_execute = @import("../witness/execute.zig");
@@ -26,12 +25,6 @@ const gatherWitnessInput = witness_execute.gatherWitnessInput;
 const witnessIndex = witness_execute.witnessIndex;
 const populateDirectWitnessInput = witness_inputs.populateDirectWitnessInput;
 const populateExecutionTables = preprocessed_coefficients.populateExecutionTables;
-const logComponentInteractionDigests = interaction_diagnostics.logComponentInteractionDigests;
-const logCpuColumnLdeDigest = interaction_diagnostics.logCpuColumnLdeDigest;
-const logInteractionWriterCpuSample = interaction_diagnostics.logInteractionWriterCpuSample;
-const logLogicalBindingDigest = interaction_diagnostics.logLogicalBindingDigest;
-const logLookupRelationCpuClaim = interaction_diagnostics.logLookupRelationCpuClaim;
-
 pub const InteractionExecutionTelemetry = struct {
     executed_programs: usize,
     executed_relations: usize,
@@ -169,16 +162,6 @@ pub fn executeScheduledInteractionGraph(
             const initial = self.batch.accumulated_gpu_ms;
             try self.batch.executeIndex(index);
             const writer_gpu_ms = self.batch.accumulated_gpu_ms - initial;
-            if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_DIFF_ADD_OPCODE_INTERACTION") and
-                std.mem.eql(u8, component, "add_opcode"))
-                try logInteractionWriterCpuSample(
-                    self.allocator,
-                    self.resident_arena,
-                    self.schedule,
-                    self.arena,
-                    self.witness_bundle,
-                    component,
-                );
             self.writer_gpu_ms += writer_gpu_ms;
             self.executed_writers += 1;
             return gpu_ms + writer_gpu_ms;
@@ -186,83 +169,6 @@ pub fn executeScheduledInteractionGraph(
 
         fn executeRelation(self: *@This(), component: []const u8) !f64 {
             const index = try self.relations.componentIndex(component) orelse return Error.MissingBinding;
-            const diff_add_opcode = std.process.hasEnvVarConstant("STWO_ZIG_SN2_DIFF_ADD_OPCODE_INTERACTION") and
-                std.mem.eql(u8, component, "add_opcode");
-            const log_interaction_evals = std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_INTERACTION_EVAL_DIGESTS");
-            const trace_column_613 = std.process.hasEnvVarConstant("STWO_ZIG_SN2_TRACE_COLUMN_613");
-            if (diff_add_opcode or log_interaction_evals or trace_column_613) {
-                const operation = &self.relations.operations[index];
-                const relation_before = operation.relation.accumulated_gpu_ms;
-                try operation.relation.execute();
-                const relation_gpu_ms = operation.relation.accumulated_gpu_ms - relation_before;
-                if (log_interaction_evals) try logComponentInteractionDigests(
-                    self.allocator,
-                    self.resident_arena,
-                    self.schedule,
-                    self.arena,
-                    component,
-                );
-                if (diff_add_opcode) {
-                    const source = try oneComponent(self.schedule, self.arena, "LookupInputs", component);
-                    const outputs = try collectComponent(
-                        self.allocator,
-                        self.schedule,
-                        self.arena,
-                        "InteractionTrace",
-                        component,
-                    );
-                    defer self.allocator.free(outputs);
-                    try logLookupRelationCpuClaim(
-                        self.allocator,
-                        self.resident_arena,
-                        self.schedule,
-                        self.arena,
-                        component,
-                        source,
-                        @intCast(source.size_bytes / 4 / self.witness_bundle.find(component).?.program.n_lookup_words),
-                        outputs,
-                    );
-                }
-                if (trace_column_613 and std.mem.eql(u8, component, "blake_g"))
-                    try logCpuColumnLdeDigest(
-                        self.allocator,
-                        self.resident_arena,
-                        self.arena,
-                        1701,
-                        23,
-                    );
-                var interpolation_gpu_ms: f64 = 0;
-                for (operation.interpolations) |*interpolation| {
-                    const before = interpolation.accumulated_gpu_ms;
-                    try interpolation.execute();
-                    interpolation_gpu_ms += interpolation.accumulated_gpu_ms - before;
-                }
-                if (trace_column_613 and std.mem.eql(u8, component, "blake_g")) {
-                    try logLogicalBindingDigest(
-                        self.resident_arena,
-                        self.arena,
-                        1737,
-                        "after_blake_g_batch_ifft",
-                    );
-                    {
-                        const file = try std.fs.createFileAbsolute("/tmp/sn2-column613-metal-coeff.u32le", .{});
-                        defer file.close();
-                        try file.writeAll(try self.resident_arena.bytes(self.arena.binding(1737) catch return Error.MissingBinding));
-                    }
-                    if (operation.interpolations.len != 1) return Error.InvalidCardinality;
-                    interpolation_gpu_ms += try operation.interpolations[0].executeColumn(13);
-                    try logLogicalBindingDigest(
-                        self.resident_arena,
-                        self.arena,
-                        1737,
-                        "after_blake_g_single_ifft",
-                    );
-                }
-                self.relation_gpu_ms += relation_gpu_ms;
-                self.interpolation_gpu_ms += interpolation_gpu_ms;
-                self.executed_relations += 1;
-                return relation_gpu_ms + interpolation_gpu_ms;
-            }
             const telemetry = try self.relations.executeIndex(index);
             self.relation_gpu_ms += telemetry.relation_gpu_ms;
             self.interpolation_gpu_ms += telemetry.interpolation_gpu_ms;

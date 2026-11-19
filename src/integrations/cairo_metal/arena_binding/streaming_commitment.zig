@@ -3,13 +3,10 @@ const arena_plan = @import("stwo_metal_backend").arena_plan;
 const metal_runtime = @import("stwo_metal_backend").runtime;
 const schedule_bindings = @import("../schedule_bindings.zig");
 const commitment_ordering = @import("../resident/commitment/ordering.zig");
-const commitment_telemetry = @import("../resident/commitment/telemetry.zig");
 const resident_binding = @import("../resident/binding.zig");
 const resident_twiddles = @import("../resident/twiddles.zig");
 const Error = @import("../resident/errors.zig").Error;
 const M31 = @import("stwo_core").fields.m31.M31;
-const circle_poly_mod = @import("stwo_prover_engine").poly.circle.poly;
-const canonic_circle_mod = @import("stwo_core").poly.circle.canonic;
 const CairoMerkleHasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher;
 
 const collectTreePurpose = commitment_ordering.collectTreePurpose;
@@ -124,15 +121,9 @@ fn executeWithMode(
     var lde_gpu_ms: f64 = 0;
     var leaf_gpu_ms: f64 = 0;
     var parent_gpu_ms: f64 = 0;
-    const use_compact_leaf_state = !std.process.hasEnvVarConstant("STWO_ZIG_SN2_COMMIT_FULL_LOG_LEAVES") and
-        !std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_STEPS");
-    if (use_compact_leaf_state and scratch_items.len != 1) return Error.InvalidCardinality;
-    const requires_intermediate_visibility = std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS") or
-        std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_LDE_DIGESTS") or
-        std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_STEPS") or
-        std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPEAT_COMMIT_LDE") or
-        std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE");
-    var command_epoch: ?metal_runtime.CommandEpoch = if (mode == .automatic and use_compact_leaf_state and !requires_intermediate_visibility)
+    if (scratch_items.len != 1) return Error.InvalidCardinality;
+    const needs_stage_readback = std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS");
+    var command_epoch: ?metal_runtime.CommandEpoch = if (mode == .automatic and !needs_stage_readback)
         try metal.beginCommandEpoch(resident_arena.buffer)
     else
         null;
@@ -181,17 +172,6 @@ fn executeWithMode(
             output_logs[index] = evaluation_log;
             tile_cursor += evaluation_words;
         }
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_SOURCE_DIGESTS"))
-            try commitment_telemetry.logCommitSourceDigests(resident_arena, coefficient_cursor, group);
-        if (tree_index == 2 and
-            std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE") and
-            coefficient_cursor <= 2241 and 2241 < coefficient_cursor + width)
-        {
-            const local_index = 2241 - coefficient_cursor;
-            const file = try std.fs.createFileAbsolute("/tmp/sn2-column613-pre-group-source.u32le", .{});
-            defer file.close();
-            try file.writeAll(try resident_arena.bytes(group[local_index]));
-        }
         for (4..lifting_log + 1) |evaluation_log_usize| {
             const evaluation_log: u32 = @intCast(evaluation_log_usize);
             var sources = std.ArrayList(u64).empty;
@@ -222,92 +202,13 @@ fn executeWithMode(
             } else try metal.compositionLdePrepared(resident_arena.buffer, lde);
             gpu_ms += elapsed_gpu_ms;
             lde_gpu_ms += elapsed_gpu_ms;
-            if (group_index == 48 and std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPEAT_COMMIT_LDE")) {
-                const first_digest = commitment_telemetry.sampleCommitOutputs(resident_arena, outputs.items, evaluation_log);
-                const repeated_gpu_ms = try metal.compositionLdePrepared(resident_arena.buffer, lde);
-                gpu_ms += repeated_gpu_ms;
-                lde_gpu_ms += repeated_gpu_ms;
-                const second_digest = commitment_telemetry.sampleCommitOutputs(resident_arena, outputs.items, evaluation_log);
-                std.debug.print(
-                    "commit_lde_repeat evaluation_log={} first={x:0>16} second={x:0>16}\n",
-                    .{ evaluation_log, first_digest, second_digest },
-                );
-            }
         }
-        if (tree_index == 2 and
-            std.process.hasEnvVarConstant("STWO_ZIG_SN2_REPAIR_COLUMN_613_LDE") and
-            coefficient_cursor <= 2241 and 2241 < coefficient_cursor + width)
-        {
-            const local_index = 2241 - coefficient_cursor;
-            const source = group[local_index];
-            const diagnostic_source = group[local_index - 1];
-            @memcpy(
-                try resident_arena.bytes(diagnostic_source),
-                try resident_arena.bytes(source),
-            );
-            const evaluation_log = output_logs[local_index];
-            const evaluation_twiddles = twiddleBankBinding(twiddles, evaluation_log);
-            const sources = [_]u64{diagnostic_source.offset_bytes / 4};
-            const logs = [_]u32{std.math.log2_int(u64, diagnostic_source.size_bytes / 4)};
-            const outputs = [_]u32{output_offsets[local_index]};
-            var repair = try metal.prepareCompositionLde(
-                &sources,
-                &logs,
-                &outputs,
-                evaluation_log,
-                try twiddleOffsetForLog(evaluation_twiddles, evaluation_log),
-            );
-            defer repair.deinit();
-            const repair_gpu_ms = try metal.compositionLdePrepared(resident_arena.buffer, repair);
-            gpu_ms += repair_gpu_ms;
-            lde_gpu_ms += repair_gpu_ms;
-            const lde_words = @as(usize, 1) << @intCast(evaluation_log);
-            const arena_bytes: [*]const u8 = @ptrCast(resident_arena.buffer.contents);
-            const lde_bytes = arena_bytes[@as(usize, outputs[0]) * 4 ..][0 .. lde_words * 4];
-            const file = try std.fs.createFileAbsolute("/tmp/sn2-column613-metal-lde.u32le", .{});
-            defer file.close();
-            try file.writeAll(lde_bytes);
-
-            const source_bytes = try resident_arena.bytes(source);
-            const source_file = try std.fs.createFileAbsolute("/tmp/sn2-column613-commit-source.u32le", .{});
-            defer source_file.close();
-            try source_file.writeAll(source_bytes);
-            const source_words: []align(1) const u32 = std.mem.bytesAsSlice(u32, source_bytes);
-            const coefficient_values = try allocator.alloc(M31, source_words.len);
-            for (source_words, coefficient_values) |word, *value|
-                value.* = M31.fromCanonical(word % 0x7fffffff);
-            var cpu_coefficients = try circle_poly_mod.CircleCoefficients.initOwned(coefficient_values);
-            defer cpu_coefficients.deinit(allocator);
-            const cpu_lde = try cpu_coefficients.evaluate(
-                allocator,
-                canonic_circle_mod.CanonicCoset.new(evaluation_log).circleDomain(),
-            );
-            defer allocator.free(@constCast(cpu_lde.values));
-            const cpu_file = try std.fs.createFileAbsolute("/tmp/sn2-column613-repair-cpu-lde.u32le", .{});
-            defer cpu_file.close();
-            try cpu_file.writeAll(std.mem.sliceAsBytes(cpu_lde.values));
-            @memcpy(
-                @constCast(lde_bytes),
-                std.mem.sliceAsBytes(cpu_lde.values),
-            );
-            const repaired_file = try std.fs.createFileAbsolute("/tmp/sn2-column613-repaired-lde.u32le", .{});
-            defer repaired_file.close();
-            try repaired_file.writeAll(lde_bytes);
-        }
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_LDE_DIGESTS"))
-            commitment_telemetry.logCommitLdeDigests(
-                resident_arena,
-                coefficient_cursor,
-                group,
-                output_offsets[0..width],
-                output_logs[0..width],
-            );
         var group_log: u32 = 0;
         for (output_logs[0..width]) |output_log| group_log = @max(group_log, output_log);
         if (group_log > lifting_log or (previous_group_log != null and group_log < previous_group_log.?))
             return Error.InvalidBindingSize;
         const is_final = group_index + 1 == group_descriptors.len;
-        const elapsed_leaf_gpu_ms = if (use_compact_leaf_state) compact: {
+        const elapsed_leaf_gpu_ms = compact: {
             const destination_log = if (is_final) lifting_log else group_log;
             var source_state_offset = try wordOffset(leaf_state);
             var source_state_log = leaf_state_log orelse destination_log;
@@ -364,27 +265,9 @@ fn executeWithMode(
             );
             leaf_state_log = destination_log;
             break :compact elapsed;
-        } else try metal.leafAbsorb(
-            resident_arena.buffer,
-            output_offsets[0..width],
-            output_logs[0..width],
-            try wordOffset(leaf_state),
-            lifting_log,
-            @intCast(coefficient_cursor),
-            is_final,
-            0,
-            leaf_seed,
-        );
+        };
         gpu_ms += elapsed_leaf_gpu_ms;
         leaf_gpu_ms += elapsed_leaf_gpu_ms;
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_STEPS"))
-            try commitment_telemetry.logCommitStepSamples(
-                resident_arena,
-                group_index,
-                output_offsets[0..width],
-                output_logs[0..width],
-                leaf_state,
-            );
         previous_group_log = group_log;
         coefficient_cursor += width;
     }
@@ -393,9 +276,7 @@ fn executeWithMode(
             tree_index, group_descriptors.len, coefficient_cursor, gpu_ms,
         });
     if (coefficient_cursor != coefficients.len) return Error.InvalidCardinality;
-    if (use_compact_leaf_state and leaf_state_log != lifting_log) return Error.InvalidBindingSize;
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_DIGESTS"))
-        try commitment_telemetry.logBindingDigest(resident_arena, "commit_leaf", 0, leaf_state);
+    if (leaf_state_log != lifting_log) return Error.InvalidBindingSize;
     const bottom_hashes = retained[0].size_bytes / 32;
     if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS")) {
         std.debug.print("commit_merkle tree={d} scratch_count={d} retained_count={d} bottom_hashes={d}\n", .{
@@ -530,10 +411,6 @@ fn executeWithMode(
     }
     if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
         std.debug.print("commit_merkle tree={d} parents_done={d} gpu_ms={d:.3}\n", .{ tree_index, parent_counts.items.len, gpu_ms });
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_COMMIT_DIGESTS")) {
-        for (retained, 0..) |layer, layer_index|
-            try commitment_telemetry.logBindingDigest(resident_arena, "commit_retained", layer_index, layer);
-    }
     const root = retained[retained.len - 1];
     const transcript_ordinals = [_]u32{ 3, 20, 23, 24 };
     const transcript_root = try oneOrdinal(schedule, plan, "TranscriptInput", transcript_ordinals[tree_index]);

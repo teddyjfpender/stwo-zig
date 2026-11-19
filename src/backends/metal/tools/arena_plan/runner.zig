@@ -151,12 +151,6 @@ pub fn runOne(
         &runner_wall_timer,
         adapted_input_started_ns,
     );
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_BASE_EVAL_DIGESTS")) {
-        const prover_input_sha256 = try std.process.getEnvVarOwned(allocator, "STWO_ZIG_SN2_INPUT_SHA256");
-        defer allocator.free(prover_input_sha256);
-        if (prover_input_sha256.len != 64) return error.InvalidInputDigest;
-        std.debug.print("base_eval_digest_input sha256={s}\n", .{prover_input_sha256});
-    }
     const reference_read_started_ns = runner_wall_timer.read();
     const transcript_reference_path = std.process.getEnvVarOwned(
         allocator,

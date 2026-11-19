@@ -189,11 +189,6 @@ pub fn canonicalTraceTree(
             if (destination >= result.len or assigned[destination]) return Error.DuplicateBinding;
             result[destination] = item.binding;
             assigned[destination] = true;
-            if (tree_index == 2 and std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_INTERACTION_EVAL_DIGESTS"))
-                std.debug.print(
-                    "interaction_canonical_map index={} component={s} instance={} captured_component={s} captured_index={} logical_id={}\n",
-                    .{ destination, component.label, component.instance, captured_label, skipped + copied, item.binding.logical_id },
-                );
             copied += 1;
             seen += 1;
         }
