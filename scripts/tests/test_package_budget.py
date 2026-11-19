@@ -1,5 +1,6 @@
 """Behavioral negative coverage for source-owned package complexity accounting."""
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path, PureWindowsPath
@@ -245,6 +246,36 @@ class PackageBudgetTests(unittest.TestCase):
             self.write("conformance/rv64-productionisation-budget.json", json.dumps({"hot_path_budgets": entries}))
             with self.subTest(entries=entries):
                 self.assertEqual(fails, bool(HOT_ERRORS(self.root, [owner])))
+
+
+class VersionedReaderLedgerTests(unittest.TestCase):
+    def test_retained_readers_are_tracked_under_their_actual_owners(self):
+        from scripts.repo.check_package_workspace import load_contract
+
+        root = Path(__file__).resolve().parents[2]
+        contracts = [load_contract(path) for path in sorted(root.glob("src/**/package.contract.json"))]
+        owners = {contract.package: contract.owner for contract in contracts}
+        paths = set(subprocess.check_output(["git", "ls-files", "-z", "src"], cwd=root, text=True).split("\0"))
+        ledger = json.loads((root / "conformance/versioned-readers.json").read_text())
+        self.assertEqual("stwo-versioned-readers-v1", ledger["schema"])
+        entries = ledger["entries"]
+        declared = {entry["path"] for entry in entries}
+        self.assertEqual(len(declared), len(entries))
+        required = set()
+        for path in paths:
+            marker = budget.VERSIONED_ZIG_BASENAME.search(Path(path).name)
+            if path.endswith(".zig") and marker and marker[0].startswith("_v"):
+                required.add(path)
+        self.assertEqual(set(), required - declared, "versioned readers missing from ledger")
+        for entry in entries:
+            path = entry["path"]
+            with self.subTest(reader=path):
+                self.assertIn(path, paths)
+                self.assertTrue((root / path).is_file())
+                package = budget.owner_for(root, path, contracts)
+                self.assertEqual(entry["package"], package)
+                self.assertEqual(entry["owner"], owners[package])
+                self.assertTrue(entry["reason"].strip())
 
 
 class FailedBudgetReceiptTests(unittest.TestCase):

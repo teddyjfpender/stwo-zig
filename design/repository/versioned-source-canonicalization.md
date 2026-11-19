@@ -29,3 +29,10 @@ accepted by this mechanical change.
 
 Acceptance uses the hosted affected CPU suites and the frozen Native CPU proof
 byte-identity gate. No GPU execution or qualified timing result is claimed.
+
+The current reader ledger covers all 36 Zig basenames with a version suffix,
+the nine finite-image load/store sources and the retained focused collector.
+The workspace census also counts 28 numbered files that partition the single
+detached FRI implementation. Their paths remain bound by the formal manifest.
+The package-budget test checks every ledger path against Git and its actual
+package owner.
