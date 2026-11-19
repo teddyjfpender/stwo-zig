@@ -30,7 +30,8 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
     var output_buffer: [4096]u8 = undefined;
     var output = std.fs.File.stdout().writer(&output_buffer);
-    try runOne(allocator, args, null, null, null, &output.interface);
+    const mode: @import("runner.zig").Mode = if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_PROOF")) .prove else .plan;
+    try runOne(allocator, args, mode, null, null, null, &output.interface);
     try output.interface.flush();
 }
 
@@ -42,7 +43,7 @@ pub fn proveOne(
     runtime: *metal_runtime.Runtime,
     report_writer: *std.Io.Writer,
 ) !void {
-    try runOne(allocator, args, runtime, null, null, report_writer);
+    try runOne(allocator, args, .prove, runtime, null, null, report_writer);
 }
 
 pub fn proveOnePrepared(
@@ -56,6 +57,7 @@ pub fn proveOnePrepared(
     try runOne(
         allocator,
         args,
+        .prove,
         runtime,
         .{ .cache = prepared_state, .key = prepared_state_key },
         null,
@@ -75,6 +77,7 @@ pub fn proveOnePreparedGeometry(
     try runOne(
         allocator,
         args,
+        .prove,
         runtime,
         .{ .cache = prepared_state, .key = prepared_state_key },
         prepared_geometry,

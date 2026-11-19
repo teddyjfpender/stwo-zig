@@ -19,7 +19,6 @@ const PreparedStateCache = prepared_state.PreparedStateCache;
 const buildPreparedStateRanges = prepared_state.buildPreparedStateRanges;
 const RunnerPhaseTiming = timing_mod.RunnerPhaseTiming;
 const RecipePreparationTiming = timing_mod.RecipePreparationTiming;
-const CanonicalFullProofPlanMode = timing_mod.CanonicalFullProofPlanMode;
 
 test "prepared state admission is transactional and fail closed" {
     const first = PreparedStateIdentity{
@@ -336,22 +335,6 @@ test "prepared geometry requires exact key and logical hash" {
 }
 
 test "prepared geometry never reuses a noncanonical request" {
-    var mode = CanonicalFullProofPlanMode{
-        .execute_proof = true,
-        .no_projection = true,
-        .prepare_metal = true,
-        .execute_preprocessed = true,
-        .execute_witness = true,
-        .execute_base_interpolation = true,
-        .execute_commitments = true,
-        .execute_relations = true,
-        .execute_oods = true,
-        .verify_proof = true,
-    };
-    try std.testing.expect(mode.eligible());
-    mode.no_projection = false;
-    try std.testing.expect(!mode.eligible());
-
     var cache = PreparedStateCache.init(std.testing.allocator);
     defer cache.deinit();
     const key = [_]u8{0x33} ** 32;

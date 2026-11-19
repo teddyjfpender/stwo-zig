@@ -48,7 +48,6 @@ const logicalPlanHash = prepared_geometry_mod.logicalPlanHash;
 const PreparedGeometryHandle = prepared_geometry_mod.PreparedGeometryHandle;
 const RunnerPhaseTiming = timing_mod.RunnerPhaseTiming;
 const RecipePreparationTiming = timing_mod.RecipePreparationTiming;
-const CanonicalFullProofPlanMode = timing_mod.CanonicalFullProofPlanMode;
 const ExecutionMetrics = execution_metrics_mod.ExecutionMetrics;
 
 const PreparedStateRequest = struct { cache: *PreparedStateCache, key: PreparedStateKey };
@@ -65,9 +64,12 @@ fn writeFailure(
     try writer.writeByte('\n');
 }
 
+pub const Mode = enum { plan, prove };
+
 pub fn runOne(
     allocator: std.mem.Allocator,
     args: []const []const u8,
+    mode: Mode,
     external_runtime: ?*metal_runtime.Runtime,
     prepared_state_request: ?PreparedStateRequest,
     prepared_host_geometry: ?*const PreparedHostGeometry,
@@ -269,26 +271,8 @@ pub fn runOne(
         schedule_liveness_started_ns,
     );
     const arena_plan_started_ns = runner_wall_timer.read();
-    const execute_proof = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_PROOF");
-    const execute_composition = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_COMPOSITION") or execute_proof;
-    const projection_tick: ?u16 = if (!std.process.hasEnvVarConstant("STWO_ZIG_SN2_PREPARE_METAL") or execute_composition)
-        null
-    else if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_RELATIONS"))
-        4 * 65
-    else
-        2 * 65;
-    const canonical_full_proof_plan = prepared_state_request != null and (CanonicalFullProofPlanMode{
-        .execute_proof = execute_proof,
-        .no_projection = projection_tick == null,
-        .prepare_metal = std.process.hasEnvVarConstant("STWO_ZIG_SN2_PREPARE_METAL"),
-        .execute_preprocessed = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_PREPROCESSED"),
-        .execute_witness = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_WITNESS"),
-        .execute_base_interpolation = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_BASE_INTERPOLATION"),
-        .execute_commitments = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_COMMITMENTS"),
-        .execute_relations = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_RELATIONS"),
-        .execute_oods = std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_OODS"),
-        .verify_proof = std.process.hasEnvVarConstant("STWO_ZIG_SN2_VERIFY_PROOF"),
-    }).eligible();
+    const execute_proof = mode == .prove;
+    const canonical_full_proof_plan = execute_proof and prepared_state_request != null;
     const logical_plan_hash = logicalPlanHash(logical);
     const cached_full_plan: ?PreparedGeometryHandle = if (canonical_full_proof_plan)
         try prepared_state_request.?.cache.findCanonicalPlan(
@@ -310,14 +294,8 @@ pub fn runOne(
             return;
         };
     }
-    const full_plan = if (cached_full_plan) |cached| cached.plan.* else owned_full_plan.?;
-    if (full_plan.bindings.len != logical.len) return error.PreparedStatePlanIdentityMismatch;
-    var projected_plan: ?arena.Plan = if (projection_tick) |last_tick|
-        try arena.projectThroughTick(allocator, logical, full_plan, last_tick, budget_bytes)
-    else
-        null;
-    defer if (projected_plan) |*projected| projected.deinit();
-    const plan = if (projected_plan) |projected| projected else full_plan;
+    const plan = if (cached_full_plan) |cached| cached.plan.* else owned_full_plan.?;
+    if (plan.bindings.len != logical.len) return error.PreparedStatePlanIdentityMismatch;
     try validateNarrowAddressedBindings(schedule, plan);
     var decommit_geometry: ?runtime_decommit_geometry.OwnedProofDecommitGeometry = if (composition_bundle) |bundle|
         try runtime_decommit_geometry.OwnedProofDecommitGeometry.init(
@@ -353,17 +331,6 @@ pub fn runOne(
         transcript_reference != null,
     );
     defer execution_metrics.deinit(allocator);
-    const requested_commit_tree_count = if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_COMMITMENTS")) blk: {
-        const tree_count = if (std.process.getEnvVarOwned(allocator, "STWO_ZIG_SN2_COMMIT_TREE_COUNT")) |value| value_blk: {
-            defer allocator.free(value);
-            break :value_blk try std.fmt.parseInt(usize, value, 10);
-        } else |err| switch (err) {
-            error.EnvironmentVariableNotFound => 1,
-            else => return err,
-        };
-        if (tree_count == 0 or tree_count > 4) return error.InvalidCommitmentTreeCount;
-        break :blk tree_count;
-    } else 0;
     try metal_execution.execute(.{
         .allocator = allocator,
         .args = args,
@@ -388,13 +355,11 @@ pub fn runOne(
         .runner_wall_timer = &runner_wall_timer,
         .runner_phase_timing = &runner_phase_timing,
         .recipe_preparation_timing = &recipe_preparation_timing,
-        .execute_composition = execute_composition,
         .execute_proof = execute_proof,
         .proof_plan = if (proof_plan) |*value| value else null,
         .statement_bootstrap = if (statement_bootstrap) |*value| value else null,
         .transcript_reference_path = transcript_reference_path,
         .transcript_reference = transcript_reference,
-        .requested_commit_tree_count = requested_commit_tree_count,
     }, &execution_metrics);
     try report.write(.{
         .allocator = allocator,

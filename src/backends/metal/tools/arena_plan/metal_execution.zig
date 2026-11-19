@@ -43,15 +43,14 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
     const runner_wall_timer = ctx.runner_wall_timer;
     const runner_phase_timing = ctx.runner_phase_timing;
     const recipe_preparation_timing = ctx.recipe_preparation_timing;
-    const execute_composition = ctx.execute_composition;
     const execute_proof = ctx.execute_proof;
     const proof_plan = ctx.proof_plan;
     const statement_bootstrap = ctx.statement_bootstrap;
     const transcript_reference_path = ctx.transcript_reference_path;
     const transcript_reference = ctx.transcript_reference;
-    const requested_commit_tree_count = ctx.requested_commit_tree_count;
+    const requested_commit_tree_count: usize = 4;
 
-    if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_PREPARE_METAL")) {
+    if (execute_proof) {
         const bindings = if (proof_bindings) |value| value else return error.MissingPreparedProofBindings;
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
             std.debug.print("resident_plan bytes={} peak_live_bytes={}\n", .{ plan.total_bytes, plan.peak_live_bytes });
@@ -80,9 +79,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
         if (restored_preprocessed_path != null and staged_preprocessed_path != null)
             return error.ConflictingPreprocessedPaths;
         const restoring_tree0 = restored_preprocessed_path != null;
-        const staged_tree0 = !restoring_tree0 and requested_commit_tree_count > 0 and
-            std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_PREPROCESSED") and
-            std.process.hasEnvVarConstant("STWO_ZIG_SN2_PREPROCESSED_COEFFS");
+        const staged_tree0 = !restoring_tree0 and std.process.hasEnvVarConstant("STWO_ZIG_SN2_PREPROCESSED_COEFFS");
         const preprocessed_spill_path = restored_preprocessed_path orelse
             staged_preprocessed_path orelse
             "/tmp/stwo-zig-sn2-preprocessed-evaluations.spill";
@@ -255,7 +252,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
             runner_wall_timer,
             coefficient_restore_started_ns,
         );
-        try requireResidentPreprocessedCoefficients(execute_composition, execution_metrics.resident_preprocessed_coefficients);
+        try requireResidentPreprocessedCoefficients(true, execution_metrics.resident_preprocessed_coefficients);
         if (requested_commit_tree_count > 0 and !staged_tree0 and !restoring_tree0) {
             if (execution_metrics.populated_preprocessed_coefficients == 0) return error.CommitmentInputsNotExecuted;
             try bindings.populateCommitmentTwiddles(allocator, resident_arena, plan, 0);
@@ -413,7 +410,7 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
         if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_STAGE_TIMINGS"))
             std.debug.print("prepare stage=multiplicity_feeds done\n", .{});
         const immutable_restore_started_ns = runner_wall_timer.read();
-        if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_EXECUTE_PREPROCESSED")) {
+        {
             if (execution_metrics.populated_preprocessed_coefficients == 0) return error.MissingPreprocessedCoefficients;
             if (execution_metrics.prepared_state_cache_hit) {
                 // The arena was zeroed and the validated immutable snapshot was
@@ -768,7 +765,6 @@ pub fn execute(ctx: anytype, execution_metrics: *ExecutionMetrics) !void {
             .plan = plan,
             .bindings = bindings,
             .composition_bundle = composition_bundle,
-            .execute_composition = execute_composition,
             .execute_proof = execute_proof,
             .requested_commit_tree_count = requested_commit_tree_count,
             .transcript = &transcript,
