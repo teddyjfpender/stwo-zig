@@ -61,16 +61,13 @@ pub fn build(b: *std.Build) void {
         r9_step.dependOn(&unsupported.step);
         return;
     }
-    // Fixture tests read `vectors/circuit` from the repository root.
     const repository_root: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../..") };
-
     const unit_tests = b.addTest(.{ .root_module = integration, .filters = filters });
     linkMetal(unit_tests);
     const run_unit = b.addRunArtifact(unit_tests);
     run_unit.setCwd(repository_root);
     test_step.dependOn(&run_unit.step);
 
-    // R7 on the device: the CPU rung's test, proving with the Metal provers.
     const metal_provers = b.createModule(.{
         .root_source_file = b.path("tests/metal_provers.zig"),
         .target = target,
@@ -90,6 +87,9 @@ pub fn build(b: *std.Build) void {
     r7_root.addImport("stwo_circuit_recursion_wire", wire);
     r7_root.addImport("circuit_testing", circuit_testing);
     r7_root.addImport("circuit_provers_under_test", metal_provers);
+    const r7_options = b.addOptions();
+    r7_options.addOption(?[]const u8, "emit_dir", b.option([]const u8, "test-r7-emit-dir", "Emit R7 proof and Rust-oracle request fixtures"));
+    r7_root.addOptions("circuit_test_options", r7_options);
     const r7_tests = b.addTest(.{ .root_module = r7_root, .filters = filters });
     linkMetal(r7_tests);
     const run_r7 = b.addRunArtifact(r7_tests);
