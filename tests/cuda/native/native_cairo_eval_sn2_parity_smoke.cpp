@@ -1,5 +1,5 @@
-#include "../../src/backends/cuda/native/aot_loader.h"
-#include "fixtures/cairo_eval_sn2_parity_fixture.h"
+#include "../../../src/backends/cuda/native/aot_loader.h"
+#include "../fixtures/cairo_eval_sn2_parity_fixture.h"
 
 #include <cuda_runtime_api.h>
 

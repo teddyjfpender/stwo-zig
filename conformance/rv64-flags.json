@@ -36,7 +36,7 @@
       "date": "2026-11-13",
       "references": [
         "tests/cuda/cumetal/parametric_air_execution.cu",
-        "tests/cuda/native_cairo_field_smoke.cu"
+        "tests/cuda/native/native_cairo_field_smoke.cu"
       ]
     },
     "STWO_ARCHITECTURE_AUTHORITY_COMMIT": {
@@ -183,13 +183,13 @@
       ]
     },
     "STWO_BLAKE2S_TEST_PLAIN": {
-      "owner": "tests/cuda/blake2s_reference.h",
+      "owner": "tests/cuda/native/blake2s_reference.h",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
       "status": "constant",
       "date": "2026-11-13",
       "references": [
-        "tests/cuda/blake2s_reference.h",
-        "tests/cuda/native_blake2s_commitment_smoke.cpp"
+        "tests/cuda/native/blake2s_reference.h",
+        "tests/cuda/native/native_blake2s_commitment_smoke.cpp"
       ]
     },
     "STWO_BLAKE3_CSP_RUNTIME": {
@@ -2544,15 +2544,15 @@
       "references": [
         "src/backends/cuda/native/aot_loader.cpp",
         "src/backends/cuda/native/aot_loader.h",
-        "tests/cuda/native_aot_constraint_smoke.cpp",
-        "tests/cuda/native_cairo_eval_sn2_parity_smoke.cpp",
-        "tests/cuda/native_circle_affine_state_trace_smoke.cpp",
-        "tests/cuda/native_constant_qm31_constraint_smoke.cpp",
-        "tests/cuda/native_indexed_recurrence_trace_smoke.cpp",
-        "tests/cuda/native_m31_permutation_trace_smoke.cpp",
-        "tests/cuda/native_plonk_logup_constraint_smoke.cpp",
-        "tests/cuda/native_recorded_witness_matrix_smoke.cpp",
-        "tests/cuda/native_seeded_xorshift_trace_smoke.cpp"
+        "tests/cuda/native/native_aot_constraint_smoke.cpp",
+        "tests/cuda/native/native_cairo_eval_sn2_parity_smoke.cpp",
+        "tests/cuda/native/native_circle_affine_state_trace_smoke.cpp",
+        "tests/cuda/native/native_constant_qm31_constraint_smoke.cpp",
+        "tests/cuda/native/native_indexed_recurrence_trace_smoke.cpp",
+        "tests/cuda/native/native_m31_permutation_trace_smoke.cpp",
+        "tests/cuda/native/native_plonk_logup_constraint_smoke.cpp",
+        "tests/cuda/native/native_recorded_witness_matrix_smoke.cpp",
+        "tests/cuda/native/native_seeded_xorshift_trace_smoke.cpp"
       ]
     },
     "STWO_NATIVE_AOT_MODULE_GLOBALS_NONE": {
@@ -2565,8 +2565,8 @@
         "scripts/tests/test_cuda_cairo_eval_aot.py",
         "src/backends/cuda/native/aot_loader.cpp",
         "src/backends/cuda/native/aot_loader.h",
-        "tests/cuda/native_cairo_eval_sn2_parity_smoke.cpp",
-        "tests/cuda/native_recorded_witness_matrix_smoke.cpp"
+        "tests/cuda/native/native_cairo_eval_sn2_parity_smoke.cpp",
+        "tests/cuda/native/native_recorded_witness_matrix_smoke.cpp"
       ]
     },
     "STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1": {
@@ -2578,8 +2578,8 @@
         "scripts/tests/test_cuda_aot_authentication.py",
         "src/backends/cuda/native/aot_loader.cpp",
         "src/backends/cuda/native/aot_loader.h",
-        "tests/cuda/native_pedersen_module_globals_smoke.cpp",
-        "tests/cuda/native_recorded_witness_matrix_smoke.cpp"
+        "tests/cuda/native/native_pedersen_module_globals_smoke.cpp",
+        "tests/cuda/native/native_recorded_witness_matrix_smoke.cpp"
       ]
     },
     "STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W9_COLUMNS_ROWS_V1": {
@@ -2629,8 +2629,8 @@
         "scripts/tests/test_cuda_aot_authentication.py",
         "src/backends/cuda/native/aot_loader.cpp",
         "src/backends/cuda/native/aot_loader.h",
-        "tests/cuda/native_pedersen_module_globals_smoke.cpp",
-        "tests/cuda/native_recorded_witness_matrix_smoke.cpp"
+        "tests/cuda/native/native_pedersen_module_globals_smoke.cpp",
+        "tests/cuda/native/native_recorded_witness_matrix_smoke.cpp"
       ]
     },
     "STWO_NATIVE_PEDERSEN_W18_ROW_COUNT": {
@@ -2642,8 +2642,8 @@
         "scripts/tests/test_cuda_aot_authentication.py",
         "src/backends/cuda/native/aot_loader.cpp",
         "src/backends/cuda/native/aot_loader.h",
-        "tests/cuda/native_pedersen_module_globals_smoke.cpp",
-        "tests/cuda/native_recorded_witness_matrix_smoke.cpp"
+        "tests/cuda/native/native_pedersen_module_globals_smoke.cpp",
+        "tests/cuda/native/native_recorded_witness_matrix_smoke.cpp"
       ]
     },
     "STWO_NATIVE_PEDERSEN_W9_ROW_COUNT": {
@@ -7028,12 +7028,12 @@
       "expires": "2026-12-13"
     },
     "STWO_ZIG_TEST_BLAKE2S_REFERENCE_H": {
-      "owner": "tests/cuda/blake2s_reference.h",
+      "owner": "tests/cuda/native/blake2s_reference.h",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
       "status": "constant",
       "date": "2026-11-13",
       "references": [
-        "tests/cuda/blake2s_reference.h"
+        "tests/cuda/native/blake2s_reference.h"
       ]
     },
     "STWO_ZIG_TEST_SN2_ADAPTED_INPUT": {
@@ -7084,12 +7084,12 @@
       "expires": "2026-12-13"
     },
     "STWO_ZIG_TEST_TRANSCRIPT_REFERENCE_H": {
-      "owner": "tests/cuda/transcript_reference.h",
+      "owner": "tests/cuda/native/transcript_reference.h",
       "default": "not applicable: compile-time constant, macro, ABI/domain tag or generated source marker; not an environment reader",
       "status": "constant",
       "date": "2026-11-13",
       "references": [
-        "tests/cuda/transcript_reference.h"
+        "tests/cuda/native/transcript_reference.h"
       ]
     },
     "STWO_ZIG_WITNESS_ABI_METAL": {

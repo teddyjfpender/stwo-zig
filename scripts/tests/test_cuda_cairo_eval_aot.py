@@ -16,7 +16,7 @@ CAIRO_EVAL_AOT = (
 PARITY_FIXTURE = (
     ROOT / "tests/cuda/fixtures/cairo_eval_sn2_parity_fixture.h"
 )
-PARITY_SMOKE = ROOT / "tests/cuda/native_cairo_eval_sn2_parity_smoke.cpp"
+PARITY_SMOKE = ROOT / "tests/cuda/native/native_cairo_eval_sn2_parity_smoke.cpp"
 
 
 class CudaCairoEvalAotTests(unittest.TestCase):
