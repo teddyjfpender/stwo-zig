@@ -2,6 +2,7 @@
 //! audited V1 logical79 row; INTER28 = RAM inverse+prefix, four strict local
 //! pair inverses and one local prefix. Design: rv64-ls-dword-fast-row.md.
 const std = @import("std");
+const M31 = @import("stwo_core").fields.m31.M31;
 const E = @import("../../evaluation.zig");
 const Specs = @import("../../memory_constraints.zig");
 const V = @import("../load_store_v1/layout.zig");
@@ -84,22 +85,27 @@ pub fn expandFor(comptime F: type, physical: []const F) [LOGICAL_MAIN]F {
     const active = m[0];
     const store = m[1];
     // Owner tick = after clock; word address limb 0 = 8 * quotient.
-    m[3] = m[12].add(m[13].mul(q(F, 65536)));
-    m[4] = m[V.quotient].mul(q(F, 8));
+    m[3] = m[12].add(m[13].mul(E.qFor(F, 65536)));
+    m[4] = m[V.quotient].mul(E.qFor(F, 8));
     // Natural alignment: EA = word address (offset 0 only).
     for (0..4) |c| m[V.effective + c] = m[4 + c];
     // Immediate limbs are the exact field residue of the committed addition;
     // OWNER binds them to the CPU's canonical ROM immediate.
     for (0..4) |c| {
         const carry_in = if (c == 0) F.zero() else m[V.address_carries + c - 1];
-        m[V.immediate + c] = m[V.effective + c].add(m[V.address_carries + c].mul(q(F, 65536))).sub(m[V.a + c]).sub(carry_in);
+        m[V.immediate + c] = m[V.effective + c].add(m[V.address_carries + c].mul(E.qFor(F, 65536))).sub(m[V.a + c]).sub(carry_in);
     }
     // LD reads C = before = after (B = 0); SD writes after = B with C = 0.
     for (0..4) |c| m[V.c + c] = m[18 + c].sub(m[V.b + c]);
     const load = active.sub(store);
     m[V.flags + LD_FLAG] = load;
     m[V.flags + Specs.load_specs.len + SD_FLAG] = store;
-    m[V.opcode] = load.mul(q(F, LD_OPCODE)).add(store.mul(q(F, SD_OPCODE)));
+    // In the base field, accumulate the two affine terms before reduction.
+    // Both opcode coefficients are nonnegative and the sum fits in u64.
+    m[V.opcode] = if (comptime F == M31)
+        M31.fromU64(@as(u64, active.v) * LD_OPCODE + @as(u64, store.v) * (SD_OPCODE - LD_OPCODE))
+    else
+        load.mul(E.qFor(F, LD_OPCODE)).add(store.mul(E.qFor(F, SD_OPCODE)));
     m[V.offsets] = active;
     // Width-8 selected limb is before[3]; byte/sign facts are unread by LD/SD.
     m[V.selected_limb] = m[17];
@@ -107,10 +113,6 @@ pub fn expandFor(comptime F: type, physical: []const F) [LOGICAL_MAIN]F {
     return m;
 }
 
-fn q(comptime F: type, value: u32) F {
-    if (F == @import("stwo_core").fields.m31.M31) return F.fromCanonical(value);
-    return E.qFor(F, value);
-}
 fn flagIndex(comptime opcode: @import("../../../decode.zig").Opcode) usize {
     for (Specs.load_specs, 0..) |s, i| if (s.opcode == opcode) return i;
     for (Specs.store_specs, 0..) |s, i| if (s.opcode == opcode) return i;
@@ -118,11 +120,8 @@ fn flagIndex(comptime opcode: @import("../../../decode.zig").Opcode) usize {
 }
 fn cacheIndices(comptime queries: []const usize, comptime cached: []const usize) [queries.len]usize {
     var result: [queries.len]usize = undefined;
-    for (queries, 0..) |c, at| {
-        result[at] = for (cached, 0..) |x, i| {
-            if (x == c) break i;
-        } else @compileError("missing retained LS relation coordinate");
-    }
+    for (queries, &result) |logical, *at|
+        at.* = std.mem.indexOfScalar(usize, cached, logical) orelse @compileError("missing retained LS relation coordinate");
     return result;
 }
 
