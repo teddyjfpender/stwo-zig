@@ -18,11 +18,7 @@ pub fn cspProof(comptime Engine: type, backend_name: []const u8) !void {
     defer allocator.free(elf_path);
     const elf = try std.fs.cwd().readFileAlloc(allocator, elf_path, 1024 * 1024);
     defer allocator.free(elf);
-    const profile_enabled = std.process.hasEnvVarConstant("STWO_CSP_PROFILE");
-    const stage_profile = @import("stwo_prover_engine").stage_profile;
-    var recorder = stage_profile.Recorder.initWithOptions(allocator, backend_name, "csp_ecdsa_guest", .{ .capture_tasks = false });
-    defer recorder.deinit();
-    const result = csp.proveWithRecorder(Engine, allocator, elf, input, frontend.prover_mod.SECURE_PCS_CONFIG, 16, if (profile_enabled) &recorder else null) catch |err| {
+    const result = csp.prove(Engine, allocator, elf, input, frontend.prover_mod.SECURE_PCS_CONFIG, 16) catch |err| {
         std.debug.print("CSP guest failure: {s}\n", .{@errorName(err)});
         if (err == error.ConstraintsNotSatisfied) {
             var elf_hash: [32]u8 = undefined;
@@ -53,13 +49,6 @@ pub fn cspProof(comptime Engine: type, backend_name: []const u8) !void {
     std.debug.print("CSP_ECDSA_GUEST backend={s} suite={s} queries=70 pow_bits=26 execution_ns={d} proving_ns={d} verify_ns={d} cycles={d} proof_bytes={d}\n", .{
         backend_name, if (Engine.Hasher == @import("stwo_core").proof_suites.Blake3.Hasher) "blake3" else "blake2s", result.execution_ns, result.proving_ns, result.verification_ns, result.cycles, result.proof_bytes,
     });
-    if (profile_enabled) {
-        var profile = try recorder.snapshot(allocator);
-        defer profile.deinit(allocator);
-        const json = try std.json.Stringify.valueAlloc(allocator, profile, .{});
-        defer allocator.free(json);
-        std.debug.print("CSP_ECDSA_PROFILE suite={s} {s}\n", .{ @tagName(result.transcript_receipt.suite), json });
-    }
     input[0] ^= 1;
     try std.testing.expectError(error.CspInputMismatch, csp.verify(Engine, allocator, elf, input, frontend.prover_mod.SECURE_PCS_CONFIG, result.encoded));
     input[0] ^= 1;

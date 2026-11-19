@@ -89,9 +89,6 @@ pub const BOUNDARY_AUDIT_ID_DOMAIN =
     "stwo-zig/typed-air/segment-v2-boundary-audits/v1\x00";
 pub const READINESS_RECEIPT_ID_DOMAIN =
     "stwo-zig/typed-air/segment-v2-cohort-readiness/v1\x00";
-pub const CLOSURE_DIAGNOSTIC_ENV =
-    "STWO_RECURSION_OUTER_SCALAR_CLOSURE_DIAGNOSTIC";
-
 pub const Error = @import("segment_public_wire_boundary.zig").Error;
 
 pub const RowAuthority = enum(u8) {
