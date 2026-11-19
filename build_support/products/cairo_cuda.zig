@@ -132,6 +132,7 @@ pub fn addProduct(context: Context) void {
     const integration_module = local_stwo.import_table.get("stwo_cairo_cuda_integration").?;
     var imports = integration_module.import_table.iterator();
     while (imports.next()) |item| host_test_root.addImport(item.key_ptr.*, item.value_ptr.*);
+    @import("stwo_cairo_cuda_integration").addHostTestOptions(context.b, host_test_root);
     const host_test_filter = context.b.option([]const u8, "cairo-test-filter", "Run focused Cairo tests containing this text");
     const host_tests = context.b.addTest(.{
         .root_module = host_test_root,

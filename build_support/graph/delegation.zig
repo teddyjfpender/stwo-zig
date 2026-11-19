@@ -27,6 +27,10 @@ pub const Options = struct {
     cuda_air_validate: ?[]const u8,
     metal_core_aot_bundle: ?[]const u8,
     cairo_test_filter: ?[]const u8,
+    cairo_test_compact_input: ?[]const u8 = null,
+    cairo_test_continuous_dir: ?[]const u8 = null,
+    cairo_test_sn_suite_dir: ?[]const u8 = null,
+    cairo_test_proof_out: ?[]const u8 = null,
     riscv_test_filter: ?[]const u8,
     classic_witness_benchmark: ?bool = null,
     outer_gkr_diet_out: ?[]const u8 = null,
@@ -122,6 +126,10 @@ pub const Options = struct {
                 "cairo-test-filter",
                 "Compile and run Cairo tests whose names contain this text",
             ),
+            .cairo_test_compact_input = b.option([]const u8, "cairo-test-compact-input", "Compact capture for the Cairo host reader comparison"),
+            .cairo_test_continuous_dir = b.option([]const u8, "cairo-test-continuous-dir", "Directory containing continuous Cairo PIE input pairs"),
+            .cairo_test_sn_suite_dir = b.option([]const u8, "cairo-test-sn-suite-dir", "Directory containing the optional SN PIE host admission fixtures"),
+            .cairo_test_proof_out = b.option([]const u8, "cairo-test-proof-out", "Absolute path for the official Cairo CPU test proof"),
             .riscv_test_filter = b.option(
                 []const u8,
                 "riscv-test-filter",
@@ -276,6 +284,14 @@ fn commandFor(
             "-Dcairo-test-filter={s}",
             .{filter},
         ));
+    }
+    if (std.mem.eql(u8, step_name, "test-cairo-cuda-local")) {
+        if (options.cairo_test_compact_input) |path| command.addArg(b.fmt("-Dcairo-test-compact-input={s}", .{path}));
+        if (options.cairo_test_continuous_dir) |path| command.addArg(b.fmt("-Dcairo-test-continuous-dir={s}", .{path}));
+        if (options.cairo_test_sn_suite_dir) |path| command.addArg(b.fmt("-Dcairo-test-sn-suite-dir={s}", .{path}));
+    }
+    if (std.mem.eql(u8, step_name, "test-cairo-cpu-proof")) {
+        if (options.cairo_test_proof_out) |path| command.addArg(b.fmt("-Dcairo-test-proof-out={s}", .{path}));
     }
     if (std.mem.eql(u8, scope, "riscv_cpu") or std.mem.eql(u8, scope, "riscv_cpu_compat")) {
         if (options.qualification_debug_info) |enabled| command.addArg(b.fmt(

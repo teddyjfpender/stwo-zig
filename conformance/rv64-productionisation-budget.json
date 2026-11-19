@@ -665,7 +665,7 @@
       "net_code_budget": 5,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Correct the full circuit generation allocation preflight from topology-only memory to a 32 GiB minimum accounting for fold-tree\u2019s documented roughly 22 GB per reduction. The first hosted attempt terminated at that owner; refuse another undersized host rather than weaken or omit the full parity workload. No laptop build, larger paid runner or GPU is started."
+      "positive_growth_justification": "Correct the full circuit generation allocation preflight from topology-only memory to a 32 GiB minimum accounting for fold-tree’s documented roughly 22 GB per reduction. The first hosted attempt terminated at that owner; refuse another undersized host rather than weaken or omit the full parity workload. No laptop build, larger paid runner or GPU is started."
     },
     {
       "id": "delivery_independent_manual_cpu_cancellation",
@@ -679,7 +679,7 @@
       "net_code_budget": 50,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Repair the FRI regression\u2019s duplicate relative module import by using the existing named circuit frontend export. Bind the aggregate lexical closure to the exact support modules already injected by its real compiler graph, retaining leaf ownership and all rejection checks. Make the exhaustive Merkle allocation-fault sequence deterministic by refusing backing resizes, retaining all failure/leak checks. Compose the aggregate legacy CPU engine through its existing generic frontend constructor instead of importing unrelated RV64 recursion services. No dependency/API ledger, directory prefix, proof bytes or compiler assertion is widened."
+      "positive_growth_justification": "Repair the FRI regression’s duplicate relative module import by using the existing named circuit frontend export. Bind the aggregate lexical closure to the exact support modules already injected by its real compiler graph, retaining leaf ownership and all rejection checks. Make the exhaustive Merkle allocation-fault sequence deterministic by refusing backing resizes, retaining all failure/leak checks. Compose the aggregate legacy CPU engine through its existing generic frontend constructor instead of importing unrelated RV64 recursion services. No dependency/API ledger, directory prefix, proof bytes or compiler assertion is widened."
     },
     {
       "id": "delivery_fri_independent_integer_reference",
@@ -1495,6 +1495,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "OP Stack product statement package: guest ABI (4..32 MiB window), 43-byte statement codec, pipeline hooks, stwo-opstack-native CLI root with its subcommand translation onto the pipeline argv, tests, and the test-e2e-probe driver that proves the golden probe, receives it in a fresh process and rejects three corruptions; owner opstack-statement; no flags, scripts or dependencies beyond the neutral pipeline."
+    },
+    {
+      "id": "typed_cairo_fixture_test_options_issue332",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 332 comment 6998614561: make the existing Cairo CPU and CUDA-host tests own their four explicit fixture and output options. Preserve standard test discovery, optional fixture skip behavior, source custody, absolute path rejection, proof serialization and verification. Only the existing named test targets receive the configured options."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",

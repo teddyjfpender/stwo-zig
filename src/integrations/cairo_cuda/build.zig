@@ -1,5 +1,13 @@
 const std = @import("std");
 
+pub fn addHostTestOptions(b: *std.Build, root: *std.Build.Module) void {
+    const options = b.addOptions();
+    options.addOption(?[]const u8, "compact_input", b.option([]const u8, "cairo-test-compact-input", "Compact capture for the Cairo host reader comparison"));
+    options.addOption(?[]const u8, "continuous_dir", b.option([]const u8, "cairo-test-continuous-dir", "Directory containing continuous Cairo PIE input pairs"));
+    options.addOption(?[]const u8, "sn_suite_dir", b.option([]const u8, "cairo-test-sn-suite-dir", "Directory containing the optional SN PIE host admission fixtures"));
+    root.addOptions("cairo_host_test_options", options);
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -61,6 +69,7 @@ pub fn build(b: *std.Build) void {
     test_root.addImport("stwo_cuda_backend", cuda_backend);
     test_root.addImport("stwo_cairo_frontend", cairo_frontend);
     test_root.addImport("stwo_native_cuda_integration", native_cuda);
+    addHostTestOptions(b, test_root);
     const tests = b.addTest(.{
         .root_module = test_root,
         .filters = filters,
