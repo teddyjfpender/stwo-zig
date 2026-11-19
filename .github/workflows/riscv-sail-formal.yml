@@ -251,12 +251,23 @@ jobs:
             --air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air" \
             --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
             --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/generation.log"
-          python3 scripts/riscv/riscv_refinement.py check-generated --no-export-air \
-            --air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air" \
-            --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
-            --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/check-generated.log"
 
-      - name: Refresh Team B with the exact live candidate inputs
+      - name: Refresh exact opcode coverage from the rebuilt theorems
+        if: inputs.regenerate_bindings == true
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          (
+            cd formal/riscv-refinement
+            lake build
+            lake env lean RiscvRefinement/AxiomAudit.lean
+          ) > "$OUT/axiom-audit.log" 2>&1
+          python3 scripts/riscv/riscv_team_a.py write --audit-output "$OUT/axiom-audit.log"
+          python3 scripts/riscv/riscv_team_a.py check --air-program-ir-dir "$OUT/opcode-air"
+          python3 scripts/riscv/riscv_opcode_coverage.py write
+          python3 scripts/riscv/riscv_opcode_coverage.py check
+
+      - name: Refresh Team B and byte-check the final candidate with live inputs
         if: inputs.regenerate_bindings == true
         shell: bash
         run: |

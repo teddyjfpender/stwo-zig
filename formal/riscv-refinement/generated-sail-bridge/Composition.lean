@@ -2852,7 +2852,7 @@ def FenceAcceptedGeneratedComposition
   AcceptedGeneratedOpcodeComposition
     .fence
     Programs.fence
-    "2eee10f293bacfcbe514b21ab4d79220693734651785294bbfebcd067d1f80b6"
+    "86f9fa3730c41a418c9283b92b4ff82800cbdd4aefdee51c108ce9e9aa561031"
     (Programs.fence.evalSymbolic
       (Air.Bridge.Fence.columns row))
     relationHolds
@@ -3147,7 +3147,7 @@ structure LuiPublicationResult
       Programs.lui.source.opcodeSelector.manifestId = 35 ∧
       Programs.lui.source.opcodeSelector.mnemonic = "lui" ∧
       Programs.lui.source.contentDigest =
-        "07c2d45b5082aaeb1d9c77f63a1cc21eb2aae3c5a635b7e77b8535e7288ed85c"
+        "811217d457f0481ea9fc1bdf46c0c84f1751c30ca80cecdbe6fc2493a95e8ac8"
   orderedLookups : LuiOrderedLookups row witness
   semanticRefinement :
     Opcodes.LuiRefinement

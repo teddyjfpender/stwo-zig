@@ -105,27 +105,27 @@ private def strictlySortedFiles : List SourceFileIdentity → Bool
       decide (first.path < second.path) && strictlySortedFiles (second :: rest)
 
 def productionBuilder : String :=
-  "src/frontends/riscv/air/constraint_program.zig"
+  "src/frontends/riscv/rv32/air/constraint_program.zig"
 
 def luiSourcePaths : Array String :=
   #[
-    "src/frontends/riscv/access_clock.zig",
-    "src/frontends/riscv/air/constraint_program.zig",
-    "src/frontends/riscv/air/extract/model.zig",
-    "src/frontends/riscv/air/extract/program.zig",
-    "src/frontends/riscv/air/extract/program_json.zig",
-    "src/frontends/riscv/air/extract/symbolic.zig",
-    "src/frontends/riscv/air/lang/typed_lui.zig",
-    "src/frontends/riscv/air/lang/typed_lui_authority.zig",
-    "src/frontends/riscv/air/lookups/entry.zig",
-    "src/frontends/riscv/air/lookups/opcode_entries.zig",
-    "src/frontends/riscv/air/lookups/tables/schema.zig",
-    "src/frontends/riscv/air/program/opcode.zig",
-    "src/frontends/riscv/air/semantic_eval.zig",
-    "src/frontends/riscv/air/semantics/common.zig",
-    "src/frontends/riscv/air/semantics/mod.zig",
-    "src/frontends/riscv/opcode_manifest.zig",
-    "src/frontends/riscv/runner/trace.zig",
+    "src/frontends/riscv/air_lang/shared/air/extract/symbolic.zig",
+    "src/frontends/riscv/air_lang/shared/air/lookups/entry.zig",
+    "src/frontends/riscv/air_lang/shared/air/lookups/tables/schema.zig",
+    "src/frontends/riscv/air_lang/shared/air/semantics/common.zig",
+    "src/frontends/riscv/air_lang/typed_lui.zig",
+    "src/frontends/riscv/isa/access_clock.zig",
+    "src/frontends/riscv/isa/opcode_manifest.zig",
+    "src/frontends/riscv/rv32/air/constraint_program.zig",
+    "src/frontends/riscv/rv32/air/extract/model.zig",
+    "src/frontends/riscv/rv32/air/extract/program.zig",
+    "src/frontends/riscv/rv32/air/extract/program_json.zig",
+    "src/frontends/riscv/rv32/air/lang/typed_lui_authority.zig",
+    "src/frontends/riscv/rv32/air/lookups/opcode_entries.zig",
+    "src/frontends/riscv/rv32/air/program/opcode.zig",
+    "src/frontends/riscv/rv32/air/semantic_eval.zig",
+    "src/frontends/riscv/rv32/air/semantics/mod.zig",
+    "src/frontends/riscv/rv32/runner/trace.zig",
     "src/waist/core/fields/cm31.zig",
     "src/waist/core/fields/m31.zig",
     "src/waist/core/fields/qm31.zig",

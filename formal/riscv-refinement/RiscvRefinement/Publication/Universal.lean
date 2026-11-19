@@ -39,97 +39,97 @@ private def identity
 
 def expectedProgramIdentities : List ProgramIdentity := [
   identity 0 "add" .baseAluReg
-    "9b1752b1cdb7ff9a8758fe7c5396a4a621ac245dcf7911990f5a2e9df944c080",
+    "96098540ca6f58e5b0bde94cbf5727acbd3db3d9868898766c7474d988bfdb23",
   identity 1 "sub" .baseAluReg
-    "e785f779ade7380a45393efd8e9bf99bf61fe828e3868b04758c5a8c23e49ff9",
+    "1f146a64681264a724d3568c7abfd73889c5765cf03352087d0d22fedc99e8cc",
   identity 2 "sll" .shiftsReg
-    "52022ad041db36a5dd07b3da5dfca6ff4203f60d6199562deef32347af17aae5",
+    "b4793de9f34ce707ecaa5d7bb49993fd5d347778f64a39e01a6dcbb34052711a",
   identity 3 "slt" .ltReg
-    "766c4ce605d755858a43dee135d40b8d8f3544a89fb0af60d81e629199aa46bb",
+    "277e6f4c17e2f2857992069c411fffdb02e922a737ed5340c80c40756f05119b",
   identity 4 "sltu" .ltReg
-    "3d719f08be85bcdb88582d6e121a888aed49e7a35255f6c3cdb1b1b38c12cefe",
+    "1c57fe3bdcaa606aeb3db1a5a22ea0d4b09ae3cb1e52f32053678dccba9527a6",
   identity 5 "xor" .baseAluReg
-    "1a87fd20eebcd2480189353ceb7d3c130a6769d00f717d6807989e318166b9c6",
+    "c453d30d36e2fa637cc9a0c65e47aab5bb38e882848bd540ca08ea1a153f45b4",
   identity 6 "srl" .shiftsReg
-    "5c8ac19403807ea6c4b657d7b4a47473184c6423d8a8c7acb133c8e431791dd2",
+    "d259d153008f4ab6c7a50f1fe1a9db394369c368c09716092367def234018822",
   identity 7 "sra" .shiftsReg
-    "04f196d6512eb3bcaa8a97a7f54becfc195a3dcead9f29940f713b9c76762450",
+    "84e225009501f1514a034949f3e30b8cddc78dd443d8540b2b3110b3c8cc92e6",
   identity 8 "or" .baseAluReg
-    "175616456da991f296ebce3370dbe33c8a04aa75bb2ea4b1f0f2fc7716c7e8f0",
+    "40ea0b0b3e5d419f83115a57d6e506c52f27857a160fd9caa6dfd171905812b9",
   identity 9 "and" .baseAluReg
-    "fabe154a8ed7f8b69f646af3cddf5b2493d6cb55284f95afc8b631a5050fc780",
+    "462b1cef92a836b1feef53e3429a2b33da2308edaf297ce26ae05ecc9e4bacf2",
   identity 10 "addi" .baseAluImm
-    "c5362d89c2f48d70f3788f93a4b5890e23ca926d892f02dcf909b8df611d2262",
+    "b03c7e28c5155bae5c14686048582edb4e6b00da445203c776f49e8dd6b52560",
   identity 11 "slti" .ltImm
-    "3f13a56fdda720dec95e0d1021478e37f4829fb85c2de838ed832f7f7f5d2401",
+    "f33446efd7b209edef5c0b15898b555f557abf7ee3ae42d1a8d2f2b83d14479e",
   identity 12 "sltiu" .ltImm
-    "c1b3083b57ac57da0f4c4e5a5b55a4cc89b53d578e0bf6523bd273f106b22aac",
+    "22fb3f5a75eda3f1e9f2727179219264089e0289b6702f0bdc2e22fee6c00e4e",
   identity 13 "xori" .baseAluImm
-    "0948c3f406cea783469bcc99564c0b6258fc12ce57eb13ac195c12599c21138d",
+    "e76fe6e0b939993cbc374cacbad91b25747b616091d292561a1aea0cc5197235",
   identity 14 "ori" .baseAluImm
-    "7ed57a62d53042be87aaae76b8fdcdfa0c37b7f543f08c834dff56735fc093ba",
+    "ad51e77669d8c40d4f2e50e98f74fe58e5aa5d828498bc7c97d51f5bfba6fff2",
   identity 15 "andi" .baseAluImm
-    "1dd0c3365a1c32a26f96e3d31bdde6aa7ae6dc8f99105db187199c076f6b4305",
+    "16cc2bf9ed9b958f1b866151f76f0adefb66e8e1c3b51ee923c5fe577bab39c5",
   identity 16 "slli" .shiftsImm
-    "4c495eb6176d76116b74c946f9dae386bfb9928f2f3e191aa4d581f35d079db4",
+    "94ced944900552f84bf9397cd29b0ce95b63693954e0d536b98f5c68228eee3d",
   identity 17 "srli" .shiftsImm
-    "eab44f64ec4d7ebe1f1f9ef1ec170e34bd2054760e4a1b19fb091d6b0ab33d38",
+    "4fb3e788193bb912abc29ef87d0ef59170225b73c05dd5ac9df2999190580545",
   identity 18 "srai" .shiftsImm
-    "b77fc84e0d48c224f819f15a0616f299c31df40d697d2486fe61e5c188f41e12",
+    "abb8d4c192a7437357ec3244841237aef090653d68a1e1410ccbbfea778f47cb",
   identity 19 "lb" .loadStore
-    "492a2db13150924c9cdf8593cf9902c88e7f9334215020e9ad970c603041af7e",
+    "2b62f6e98622ab98614fab7a40cd744e688f9e9fbe8f11997fbdb6ceacd31d1b",
   identity 20 "lh" .loadStore
-    "0a0c6470c844a35b7a38c8e6571ecef7274a3338fc1e9cebaaf95ab748a14a94",
+    "bf5a6a84a5cc4eb91681a908d851203254de6a7dae2342761fdc5a6468923dfc",
   identity 21 "lw" .loadStore
-    "a89be3eb641bd481f1b6e0a31b43ef1140bd48b610adea1501870fbb6e16b159",
+    "a6b4e0e59b374e3bd74f4298745526dad77d3789b8888612246f6a8e4177c9c7",
   identity 22 "lbu" .loadStore
-    "2e8c648dfd7f4c04892e84dcc46fa1d7fa8a59bf4b182b1f1016efbe5ac2886f",
+    "721de692ab100a2332c7a8ef2b2bbaaf838ff88fcb8619d3fadddc133f09e954",
   identity 23 "lhu" .loadStore
-    "aa9ee277b9ea3fe7ba1becbd8a94a2b1be0e8caa4290312dbc9892163b0d1a76",
+    "b67b5feaaef8a489e006502289f8c1ecc661befca6fc42f009177744cac65b65",
   identity 24 "sb" .loadStore
-    "1b8cc030b71c69c17c75b9f00a73a14cf184c545d77a75f11343eddcd5dd6282",
+    "04b10279e3b05f6207de920e71dc65a5e5c527c8a2508281a27cffe6b0c39070",
   identity 25 "sh" .loadStore
-    "da3c7e6302256f55233af8d7dfc246447f1922c362f6d20c7ca280445c8f8ec6",
+    "d3df3e27ff3da0a78a5f8c91231ed1e744a646d0c8cee40c533c454c3570be10",
   identity 26 "sw" .loadStore
-    "d124acad69a53fd7525441bb73efaba34555fc4b84b0a8080b10590bb5cb8ef8",
+    "8d218f16f31f272b35df8fea3da5226749e6f0a3e7a38c524fb051ffd0c781ee",
   identity 27 "beq" .branchEq
-    "ddf4c4a0002601c6a1b5f824d5926494e983f3b1a52cf95cd495b3971795e9fc",
+    "eb46a0a28f25cb319af4de39cd1dc6e63626d62f548c173340db1fa217aeb77a",
   identity 28 "bne" .branchEq
-    "59f964af02d827005c7507ac6a8d2ace33f19cd8d49ab89d391bb2bf39d8f58a",
+    "53fc4699d9a90e1df6f416ee3fc322865b482cf8235d5d2f4902a60c25f4ba44",
   identity 29 "blt" .branchLt
-    "8e95a46f53998f887b6e5ace225c2ebdca91f13a61a64eb3d8e20ca8aa046aef",
+    "2aa14f15b7189dcdf41dfb26b27dd15f127cae960cc10f1b37f3612d9749831d",
   identity 30 "bge" .branchLt
-    "0023ecf42505c4a76e3f51a1bb84735c6ac4cdb5284f64f8c66e6399177224c5",
+    "ee9e04ac6064b48ae9578733c94d87d655f1d63aff262fa0db0a17b96b6ccd66",
   identity 31 "bltu" .branchLt
-    "b2d29fc948adc820f5b67562e748c5501f64082019a49735a76d96197b5a732a",
+    "0dbf140113049925b26e75f4e9c4eca9a29843398c74107f34e6647f818caa3e",
   identity 32 "bgeu" .branchLt
-    "dcec35bdf0074d4bf0f649c0ec0b46b1ba89f62518bda4df6da6a8fbbb0c6dae",
+    "f5e3d4d380570e7d2f20ba4518424b3a62d9530defa6b7cb1338a1da7f5af0f1",
   identity 33 "jal" .jal
-    "d11075abd9988a417490fb4288b4aa0fc4a77516055ae0a1b2928e3465b111e6",
+    "06f242801de268e482ca96da01a46aa046c7d6367d6161ec202c4aa1b6b62d79",
   identity 34 "jalr" .jalr
-    "0c3a2bf5a23142b6c43128bceb3ea53c95a63f05adfef666e57d879a126b383f",
+    "48e9021497bf34b8c42d49b34f341bec2bf0ab89ef6e1a63f0a4329b0bfb1138",
   identity 35 "lui" .lui
-    "81f5de5e8e36076ceaed181fe5fe590a662c8391d2d6ea518549486917ba00ed",
+    "811217d457f0481ea9fc1bdf46c0c84f1751c30ca80cecdbe6fc2493a95e8ac8",
   identity 36 "auipc" .auipc
-    "5bbed20c3f7fff8327b403d98cd4ef179fbb42f4d008ff534b6a32a88d53f632",
+    "3efe5711b33f35136ff318744bbb43ec90667c7b6371b7a176752a6f5aa75b33",
   identity 37 "mul" .mul
-    "209cbb505b4d93b8b3650644f1aa9dd373696dda09a52d2ac969a24adee1dce3",
+    "c367dddeb57f94f1204d5c579460c496c3b46bb76a3288ff0ebb76f05e2e36b7",
   identity 38 "mulh" .mulh
-    "47bfea2f6a1f8dc3a74c07c35b2cb2a37b43b5ae940c2e1f1aa0c1d20f574799",
+    "3a55f1536af7086cbedef8ed8a0e783404b1b39132325e82f1343a4dede2706b",
   identity 39 "mulhsu" .mulh
-    "a9b6f4b196463541ef7703d1a978391f9de23233d7b607edb8a6b6dce15bcb2d",
+    "112dd22f3a76343d75088f6cdec08aa6c23a1bd2f8174c2e98cdb13747afb267",
   identity 40 "mulhu" .mulh
-    "c42c7fd6548a68e6775f9b7078246d4505338e3839b78d42daa7e2cb7619a4b6",
+    "f44f9b0393e8d931a92d3606da8be06c93bda14a465c56ca280e9560ff438d3a",
   identity 41 "div" .div
-    "2fffce12c6ed3a8132fc509872e220d562ed8e8a5ac1e5cd7fb6fc4529748bf3",
+    "51ccf0bcb0a0ecd704fa24a78a27fc899a9082e2fedc70f14b659ec9f9fcc5e0",
   identity 42 "divu" .div
-    "87431aac75e9ea7f587d99c2bdf273566e4eca4710db376843c543bc9cea85b5",
+    "b4474df84c1169ca57aa0308c75322c9a3928a38a292fb3948e0b0171805f408",
   identity 43 "rem" .div
-    "4f6f5924b2249ca1bfc89876376825fa6c3f4e834327dc39a57ddb4cb02f99be",
+    "343633e4ea71a4f1f7805cba9ae79852e3a9a3a39bb2e4e47f9f30a1f4ac1e0f",
   identity 44 "remu" .div
-    "8fdf18112fc2ef406ed3441312d2c4aa260aef09b5b5ad4a9f7d6cff5253cb37",
+    "b8bc11479443f9679682386ebbca323ccbc28883f0fa75667fefae09f89d256a",
   identity 45 "fence" .fence
-    "04d344daf5ae260f35a49bfd58ed455c60bd5bc39229fa8fb527132eaf5c56bb"
+    "86f9fa3730c41a418c9283b92b4ff82800cbdd4aefdee51c108ce9e9aa561031"
 ]
 
 def actualProgramIdentities : List ProgramIdentity :=

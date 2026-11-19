@@ -32,7 +32,7 @@ products/  stwo, cairo, ethereum, native, opstack, riscv
 | RISC-V integrations | Backend-specific RISC-V proving | [CPU](integrations/riscv_cpu/README.md), [Metal](integrations/riscv_metal/README.md), [CUDA](integrations/riscv_cuda/README.md), [shared RV64 block pipeline](integrations/riscv_cpu/rv64_pipeline/README.md) |
 | SM83 integrations | Backend-specific SM83 proving | [CPU](integrations/sm83_cpu/README.md), [Metal](integrations/sm83_metal/README.md) |
 | Native | Native examples and Native CUDA adaptation | [Examples](products/native/examples/README.md), [Native CUDA](integrations/native_cuda/README.md) |
-| [Products](products/README.md) | User-facing CLIs and facades per product line and target | [Ethereum statement](products/ethereum/statement/README.md), [OP Stack statement](products/opstack/statement/README.md), [Cairo recursion CPU](products/cairo/recursion/cpu/README.md), [Cairo recursion Metal](products/cairo/recursion/metal/README.md) |
+| [Products](products/README.md) | User-facing CLIs and facades per product line and target | [Ethereum statement](products/ethereum/statement/README.md), [OP Stack statement](products/opstack/statement/README.md), [Cairo recursion CPU](products/cairo/recursion/circuit_cpu/README.md), [Cairo recursion Metal](products/cairo/recursion/metal/README.md) |
 
 See [support](support/README.md) for shared I/O, shim and tracing helpers and
 [integrations](integrations/README.md) for backend-specific assembly.

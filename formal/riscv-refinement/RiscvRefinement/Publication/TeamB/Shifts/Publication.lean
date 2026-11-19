@@ -22,42 +22,42 @@ def sllProgramIdentity : ProgramIdentity where
   mnemonic := "sll"
   family := .shiftsReg
   contentDigest :=
-    "52022ad041db36a5dd07b3da5dfca6ff4203f60d6199562deef32347af17aae5"
+    "b4793de9f34ce707ecaa5d7bb49993fd5d347778f64a39e01a6dcbb34052711a"
 
 def srlProgramIdentity : ProgramIdentity where
   manifestId := 6
   mnemonic := "srl"
   family := .shiftsReg
   contentDigest :=
-    "5c8ac19403807ea6c4b657d7b4a47473184c6423d8a8c7acb133c8e431791dd2"
+    "d259d153008f4ab6c7a50f1fe1a9db394369c368c09716092367def234018822"
 
 def sraProgramIdentity : ProgramIdentity where
   manifestId := 7
   mnemonic := "sra"
   family := .shiftsReg
   contentDigest :=
-    "04f196d6512eb3bcaa8a97a7f54becfc195a3dcead9f29940f713b9c76762450"
+    "84e225009501f1514a034949f3e30b8cddc78dd443d8540b2b3110b3c8cc92e6"
 
 def slliProgramIdentity : ProgramIdentity where
   manifestId := 16
   mnemonic := "slli"
   family := .shiftsImm
   contentDigest :=
-    "4c495eb6176d76116b74c946f9dae386bfb9928f2f3e191aa4d581f35d079db4"
+    "94ced944900552f84bf9397cd29b0ce95b63693954e0d536b98f5c68228eee3d"
 
 def srliProgramIdentity : ProgramIdentity where
   manifestId := 17
   mnemonic := "srli"
   family := .shiftsImm
   contentDigest :=
-    "eab44f64ec4d7ebe1f1f9ef1ec170e34bd2054760e4a1b19fb091d6b0ab33d38"
+    "4fb3e788193bb912abc29ef87d0ef59170225b73c05dd5ac9df2999190580545"
 
 def sraiProgramIdentity : ProgramIdentity where
   manifestId := 18
   mnemonic := "srai"
   family := .shiftsImm
   contentDigest :=
-    "b77fc84e0d48c224f819f15a0616f299c31df40d697d2486fe61e5c188f41e12"
+    "abb8d4c192a7437357ec3244841237aef090653d68a1e1410ccbbfea778f47cb"
 
 structure ExactSelectorIdentity
     (program : LocalProgram)

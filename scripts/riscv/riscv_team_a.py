@@ -494,7 +494,7 @@ def check_air_programs(
             program = air_program.load_canonical(path)
         except RefinementError as exc:
             raise TeamAError(
-                f"{mnemonic} production AIR program is invalid"
+                f"{mnemonic} production AIR program is invalid: {exc}"
             ) from exc
         selector = program.get("opcode_selector")
         certificate = certificates[mnemonic]
@@ -726,7 +726,7 @@ def build_index(
             air_payload = air_program.load_canonical(air_path)
         except RefinementError as exc:
             raise TeamAError(
-                f"{mnemonic} production AIR program is invalid"
+                f"{mnemonic} production AIR program is invalid: {exc}"
             ) from exc
         air_digest = air_payload.get("content_digest")
         if (
