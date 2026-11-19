@@ -310,12 +310,10 @@ class PlanIntegrationTest(unittest.TestCase):
         self.assertIn(["python3", "scripts/ci.py", "--fast"], static)
         self.assertFalse(any("discover" in command for command in static))
         self.assertEqual(
-            [[
-                "python3", "-m", "unittest", "discover", "-s",
-                "scripts/tests", "-p", "test_*.py",
-            ]],
+            [["python3", "scripts/ci.py", "--focused-script-contracts"]],
             scripts,
         )
+        self.assertIn("script_contracts", self.select("conformance/formal-script-deferral.json"))
 
     def test_new_script_and_build_helper_paths_use_bounded_owner_contracts(self) -> None:
         self.assertEqual(

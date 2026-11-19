@@ -36,17 +36,12 @@
     },
     "script_contracts": {
       "host": "linux",
-      "description": "Complete Python orchestration and policy contract suite",
+      "description": "All Python orchestration tests with dated formal evidence reported separately",
       "commands": [
         [
           "python3",
-          "-m",
-          "unittest",
-          "discover",
-          "-s",
-          "scripts/tests",
-          "-p",
-          "test_*.py"
+          "scripts/ci.py",
+          "--focused-script-contracts"
         ]
       ]
     },
@@ -2484,7 +2479,9 @@
         "scripts/repo/ci_scope_plan.py",
         "scripts/repo/ci_scope_run.py",
         "scripts/repo/ci_scope_push.py",
-        "conformance/ci-touchpoints-v1.json"
+        "scripts/ci.py",
+        "conformance/ci-touchpoints-v1.json",
+        "conformance/formal-script-deferral.json"
       ],
       "lanes": [
         "script_contracts",

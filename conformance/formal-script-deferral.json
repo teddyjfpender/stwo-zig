@@ -1,0 +1,27 @@
+{
+  "schema": "stwo-formal-script-deferral-v1",
+  "owner": "riscv-formal",
+  "issue": 328,
+  "expires": "2026-12-02",
+  "case_ids": [
+    "test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest",
+    "test_riscv_refinement.RefinementAirTest.test_committed_lui_air_ir_v2_is_source_bound_production_program",
+    "test_riscv_refinement.RefinementAirTest.test_committed_pilot_air_has_the_exact_reviewed_shape",
+    "test_riscv_refinement.RefinementAirTest.test_same_family_artifacts_share_one_production_program",
+    "test_riscv_refinement_publication.PublicationEvidenceTests.test_current_carried_receipt_is_publication_evidence",
+    "test_riscv_refinement_publication.PublicationEvidenceTests.test_exact_publication_evidence",
+    "test_riscv_refinement_sail.RefinementSailTest.test_carried_monad_bridge_rejects_a_resigned_axiom_escape",
+    "test_riscv_refinement_sail.RefinementSailTest.test_carried_sail_evidence_cannot_mint_new_sail_artifacts",
+    "test_riscv_refinement_sail.RefinementSailTest.test_carried_sail_evidence_reproduces_the_committed_provenance",
+    "test_riscv_team_a.TeamAGateTest.test_aggregate_index_fails_when_a_production_source_identity_drifts",
+    "test_riscv_team_a.TeamAGateTest.test_aggregate_index_is_exact_and_current",
+    "test_riscv_team_a.TeamAGateTest.test_air_digest_tampering_fails_exact_program_binding",
+    "test_riscv_team_a.TeamAGateTest.test_committed_index_passes_all_team_a_gates",
+    "test_riscv_team_a.TeamAGateTest.test_committed_index_rebuilds_from_its_bound_diagnostics",
+    "test_riscv_team_a.TeamAGateTest.test_fresh_unsigned_export_binds_all_team_a_programs",
+    "test_riscv_team_a.TeamAGateTest.test_fresh_unsigned_export_rejects_missing_and_extra_files",
+    "test_riscv_team_a.TeamAGateTest.test_fresh_unsigned_export_rejects_semantic_mutation",
+    "test_riscv_team_a.TeamAGateTest.test_fresh_unsigned_export_rejects_stale_source_payload",
+    "test_riscv_team_a.TeamAGateTest.test_fresh_unsigned_export_rejects_wrong_selector_payload"
+  ]
+}

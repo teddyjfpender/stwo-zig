@@ -686,7 +686,7 @@ class TeamBAirBindingTest(unittest.TestCase):
             team_b.check_ir_digests(Path("/nonexistent/team-b-ir"))
 
     def test_committed_typed_rebind_receipt_matches_fresh_exports(self):
-        export_dir = team_b.REPOSITORY_ROOT / "zig-out/uniqueness-ir"
+        export_dir = team_b.REPOSITORY_ROOT / "zig-out/fresh-family-air"
         if not export_dir.is_dir():
             self.skipTest("fresh symbolic AIR export is not present")
         self.assertIn(
