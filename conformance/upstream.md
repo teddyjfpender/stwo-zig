@@ -199,7 +199,7 @@ when generated from the fork Stwo-Cairo and prover-Stwo pair, without path
 dependencies or dirty source.
 
 The corresponding historical generated claim registry is archived at
-[`archive/cairo/legacy_claim_registry.zig`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/archive/cairo/legacy_claim_registry.zig). Production code must not import it;
+[`archive/cairo/legacy_claim_registry.zig`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/archive/cairo/legacy_claim_registry.zig). Production code must not import it;
 the active registry is the official generated registry under
 `src/frontends/cairo/air/`.
 

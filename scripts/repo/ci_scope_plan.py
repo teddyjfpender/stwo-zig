@@ -363,7 +363,7 @@ def emit_github_summary(path: Path, plan: dict[str, Any], policy: dict[str, Any]
         stream.write("\n")
         if WITNESS_BENCHMARK_LANE in selected:
             stream.write(f"Witness timing failures are advisory before {WITNESS_BENCHMARK_ADVISORY_EXPIRES} "
-                         "00:00 UTC. [Issue #436](https://github.com/teddyjfpender/stwo-zig/issues/436)\n")
+                         "00:00 UTC. [Issue #436](https://github.com/starknet-innovation/stwo-zig/issues/436)\n")
 
 
 # Explicit diagnostics use the same maintained lane commands; they prove only

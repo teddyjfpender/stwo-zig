@@ -1,10 +1,10 @@
 # RFC draft: five waist packages at 1.0.0-rc.1
 
 Status: exact transaction approved by the coordinating implementation delegate
-under the user-directed D1 target: [decision](https://github.com/teddyjfpender/stwo-zig/issues/355#issuecomment-6750334735).
+under the user-directed D1 target: [decision](https://github.com/starknet-innovation/stwo-zig/issues/355#issuecomment-6750334735).
 This records the delegate decision, not a new user signature. Final 1.0.0 and
-Phase 1 exit remain unapproved and incomplete. Slice: [#354](https://github.com/teddyjfpender/stwo-zig/issues/354).
-RFC: [#355](https://github.com/teddyjfpender/stwo-zig/issues/355).
+Phase 1 exit remain unapproved and incomplete. Slice: [#354](https://github.com/starknet-innovation/stwo-zig/issues/354).
+RFC: [#355](https://github.com/starknet-innovation/stwo-zig/issues/355).
 Owner roles: `protocol-core`, `backend-contracts`, `prover-api`, `proof-wire`,
 `circuit-recursion`; named accountable owner for every role: `@teddyjfpender`.
 Census source: `27ed1d34894c554fcdaf91af3c4eae331ea242ac`.

@@ -58,9 +58,9 @@ correctness merely because its witness generator agrees with it.
 12. [PERFORMANCE.md](PERFORMANCE.md) — measurement and optimization discipline.
 13. [PROGRESS.md](PROGRESS.md) — current state, next actions, and chronological log.
 14. [decisions/README.md](decisions/README.md) — accepted and proposed decisions.
-15. [notes/README.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/notes/README.md) — dated research and implementation notes.
+15. [notes/README.md](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/notes/README.md) — dated research and implementation notes.
 16. [artifacts/README.md](../../src/frontends/riscv/air_lang/artifacts/README.md) — reviewed deterministic evidence.
-17. [receipts/README.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/README.md) — clean-snapshot milestone evidence and open gates.
+17. [receipts/README.md](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/README.md) — clean-snapshot milestone evidence and open gates.
 
 ## Working rules
 
@@ -138,7 +138,7 @@ decision; the completed experiment below selects none. V-006
 also pins one backend-neutral semantic/layout/executor/relation identity and
 co-attests it beside both verified backend paths; it does not change the
 transcript, public statement, proof bytes, or production verifier. The final
-[H-009 and V-006 receipts](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/README.md) name the immutable evidence and
+[H-009 and V-006 receipts](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/README.md) name the immutable evidence and
 its limits. This work continues to strengthen and reify the existing path
 rather than replace the prover or rewrite all opcodes.
 
@@ -183,5 +183,5 @@ repeatable across reports; q0 and q100 log-14 witness directions flip and
 remain within MAD/noise. The result is therefore no meaningful repeatable
 layout regression and no selected layout. Proof, Metal-candidate, production,
 and promotion claims remain false. The
-[H-010 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+[H-010 receipt](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
 records that bounded conclusion without changing authority.

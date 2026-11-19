@@ -1,7 +1,7 @@
 # Approved RFC: explicit CPU circuit collaboration boundary
 
-Status: approved in [RFC #324](https://github.com/teddyjfpender/stwo-zig/issues/324).
-Owner decision: [approved, recorded by delegate](https://github.com/teddyjfpender/stwo-zig/issues/324#issuecomment-6739250749).
+Status: approved in [RFC #324](https://github.com/starknet-innovation/stwo-zig/issues/324).
+Owner decision: [approved, recorded by delegate](https://github.com/starknet-innovation/stwo-zig/issues/324#issuecomment-6739250749).
 Owners: `riscv-cpu-integration`, `circuit-cpu-integration`; consult `proof-wire`.
 
 ## Problem and exact decision requested

@@ -648,7 +648,7 @@ and Cairo stay until S1/S5.
 The package contract's historical `versioned_files` key caps all owned regular
 files. The package workspace report now lists versioned Zig basenames under
 `src/` separately, including the detached recursion `_part_N` form. Use that
-census for the filename target. [Issue #370](https://github.com/teddyjfpender/stwo-zig/issues/370)
+census for the filename target. [Issue #370](https://github.com/starknet-innovation/stwo-zig/issues/370)
 tracks aligning the contract and reader ledger with that target.
 
 ---

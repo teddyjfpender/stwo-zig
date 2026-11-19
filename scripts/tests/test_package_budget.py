@@ -219,11 +219,13 @@ class PackageBudgetTests(unittest.TestCase):
                        "after": owner.budget, "decision": "https://github.com/teddyjfpender/stwo-zig/issues/370#issuecomment-123"}
         with patch.object(budget.subprocess, "run", return_value=old):
             self.assertIn("exact reviewed CB-2", REVIEW_ERRORS(self.root, [owner], "base")[0])
-            for row in (transaction, transaction | {"base_commit": "stale"},
+            transferred = transaction | {"decision": transaction["decision"].replace("teddyjfpender", "starknet-innovation")}
+            unrelated = transaction | {"decision": transaction["decision"].replace("teddyjfpender", "unrelated")}
+            for row in (transaction, transferred, unrelated, transaction | {"base_commit": "stale"},
                         transaction | {"decision": "approved"}, transaction | {"after": before}):
                 self.write(path, json.dumps({"package_budget_changes": [row]}))
                 errors = REVIEW_ERRORS(self.root, [owner], "base")
-                self.assertEqual(row != transaction, bool(errors))
+                self.assertEqual(row not in (transaction, transferred), bool(errors))
             owner.budget = before
             self.assertEqual([], REVIEW_ERRORS(self.root, [owner], "base"))
 

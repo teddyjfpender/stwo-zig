@@ -457,7 +457,7 @@ ordinary instructions. Entered as measured tiers in
 ## 10. Integration into the shared v3 profile (2026-11-01)
 
 Merged with SHA-256 and arith256_mod on `codex/rv64-guest-prover-v3-integration`
-([rv64-services-v3-integration.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-services-v3-integration.md)):
+([rv64-services-v3-integration.md](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-services-v3-integration.md)):
 
 - The bulk block stays after all families (`T.Family` keccak..arith256_mod) in
   roster sources, fixed columns, components, claims, `beginCpu` and wire

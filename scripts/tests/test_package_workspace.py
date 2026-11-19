@@ -465,7 +465,7 @@ const owned = @import(
             payload = {
                 'schema': 'stwo-zig-frontend-package-families-v1',
                 'families': {'riscv': {
-                    'owner': 'riscv-frontend', 'decision': 'https://github.com/teddyjfpender/stwo-zig/issues/344',
+                    'owner': 'riscv-frontend', 'decision': 'https://github.com/starknet-innovation/stwo-zig/issues/344',
                     'root': 'src/frontends/riscv',
                     'packages': [{'name': 'stwo_riscv_' + name, 'path': directory}
                                  for name, directory in members],

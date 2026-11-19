@@ -1407,7 +1407,7 @@ For the RISC-V lane, `scripts/riscv/riscv_formal_tools.py`,
 `scripts/riscv/riscv_trace_vectors.py`, and `scripts/riscv/riscv_arch_tests.py` own formal
 correctness evidence. They fail closed on the exact Sail compiler/model, Spike,
 and architectural-test revisions.
-The retired [`riscv_stark_v_benchmark.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/riscv_stark_v_benchmark.py) (archived)
+The retired [`riscv_stark_v_benchmark.py`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/riscv_stark_v_benchmark.py) (archived)
 was only a legacy performance/layout comparison; it is not an ISA correctness
 authority or release substitute.
 
@@ -1419,11 +1419,11 @@ reference historical comparison harnesses measured against; see that directory's
 README for the anchor-freeze linkage. The native board's tracked history is
 `vectors/reports/benchmark_history/`.
 
-The archived [`build_crypto_guests.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/build_crypto_guests.py) vendored the compiled cryptographic guests
+The archived [`build_crypto_guests.py`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/build_crypto_guests.py) vendored the compiled cryptographic guests
 (SHA-256, Keccak, ECDSA from Stark-V's guest-lib as source provenance, plus the repo-owned
 `vectors/riscv_guests/poseidon2_m31` guest) into `vectors/riscv_elfs/crypto/`
 with a provenance record, and
-the archived [`riscv_crypto_benchmark.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/riscv_crypto_benchmark.py) benched them
+the archived [`riscv_crypto_benchmark.py`](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/riscv_crypto_benchmark.py) benched them
 on both lanes. Rows are either `proof` (SHA-256 all sizes, single-block Keccak)
 or `execution` (ECDSA, Poseidon2-M31, multi-block Keccak — neither lane proves
 these at the pinned config, so both only execute them). The legacy matched

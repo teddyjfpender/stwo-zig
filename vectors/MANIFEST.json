@@ -2032,8 +2032,8 @@
     },
     {
       "path": "vectors/reports/rv64-productionisation/current.json",
-      "sha256": "88cc57a50574deb9a7efe500eccede4e2930ee9b602e59847e319cb51e39f241",
-      "bytes": 177676,
+      "sha256": "8311d1c7be11349cdfe2d8ce59f1ebd8007ec09119b638c71bedec3385a1f2e1",
+      "bytes": 177585,
       "group": "vectors/reports"
     },
     {

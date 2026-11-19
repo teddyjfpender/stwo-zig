@@ -1,6 +1,8 @@
-# `stwo-circuit-recursion-cpu`
+# Cairo recursion on CPU
 
-`stwo-circuit-recursion-cpu` implements the circuit-recursion stage of
+Executable `stwo-circuit-recursion-cpu`.
+
+The Cairo recursion product implements the circuit-recursion stage of
 StarkWare's proving pipeline
 ([starkware-libs/proving](https://github.com/starkware-libs/proving) at
 commit `5a7c5ede4299c91a61df19a07cba4f7502c14230`) on the CPU, design §7.4

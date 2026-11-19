@@ -276,7 +276,7 @@ material and are not counted):
 
 Merged with arith256_mod and bulk memory on
 `codex/rv64-guest-prover-v3-integration`
-([rv64-services-v3-integration.md](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-services-v3-integration.md)). SHA-256 keeps
+([rv64-services-v3-integration.md](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/rv64-services-v3-integration.md)). SHA-256 keeps
 family 3, Wire35 kind 3, its tape section and its transcript block. The
 SHA-only v3 fixture (`rv64-word16-combined-services-fixture produce-v3 sha256`)
 is byte-identical to this branch's output and verifies both ways; the header

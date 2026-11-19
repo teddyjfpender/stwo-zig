@@ -1,7 +1,7 @@
 # Approved RFC: runtime-profile source digest fixture
 
-Status: approved in [RFC #326](https://github.com/teddyjfpender/stwo-zig/issues/326).
-Owner decision: [approved by the repository owner, recorded by delegate](https://github.com/teddyjfpender/stwo-zig/issues/326#issuecomment-6739261335).
+Status: approved in [RFC #326](https://github.com/starknet-innovation/stwo-zig/issues/326).
+Owner decision: [approved by the repository owner, recorded by delegate](https://github.com/starknet-innovation/stwo-zig/issues/326#issuecomment-6739261335).
 Owners: `riscv-frontend`, with `prover-api` consulted for the source schema.
 
 ## Affected contract and decision requested

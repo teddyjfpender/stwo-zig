@@ -20,7 +20,7 @@ is the status authority. There is one canonical checkout at
 off-laptop recovery and the completed literal-list branch retirement.
 
 The candidate is `codex/rv64-gpu-hygiene`. Initial four-gate evidence is in
-[checkpoint-7.json](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-7.json)
+[checkpoint-7.json](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-7.json)
 and the linked pod receipts. All four bounded gates now pass: default and
 native paths on 24628607 and 26235156, each with frozen cold/warm parity, two
 fresh isolated CPU accepts and complete semantic coverage of the selected
@@ -37,11 +37,11 @@ The broader productionisation goal remains incomplete: the static tier is not
 green. The 150 unreachable scripts and their exclusively historical consumers
 are deleted in the pending first subtraction batch; its validation status is
 in the current receipt. Inherited oversized owners remain explicit work.
-The [delivery audit](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-gpu-hygiene-20261108/delivery-audit.md)
+The [delivery audit](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-gpu-hygiene-20261108/delivery-audit.md)
 records the open completion gates.
 
 The historical host-only owner-boundary follow-up is in
-[checkpoint-8.json](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-8.json).
+[checkpoint-8.json](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-8.json).
 It separates the installed recursion registry from request-job custody and fixes
 pin teardown order and failed-registration state. The regressions failed before
 the fixes and pass afterwards: 105 focused tests and 305 broader host tests
@@ -74,7 +74,7 @@ historical performance/production objective described there.
   The rejection harness reports 19/19, with an explicit limitation:
   `V04-cross-block-root` rejects with resource `FileTooBig`, not a semantic
   proof rejection. Source and receipt hashes are in
-  [checkpoint-0130.json](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0130.json).
+  [checkpoint-0130.json](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0130.json).
 - **[M] Current default gates pass on both development blocks.** Gates 26
   and 27 preserve frozen parity (32 and 39 artifacts respectively, twice
   each) and two fresh receiver checks each. Gate 26 has the same V04
@@ -98,7 +98,7 @@ historical performance/production objective described there.
   SHA-256 `72cf8b9cd3435c20ce812d231fac8de049ec91523f736528b3b82b9f7e95efd3`.
   Default gates 37/38 also passed. Host run 21 passes 744
   tests, with 16 skipped [M].
-  [Checkpoint 0235](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0235.json)
+  [Checkpoint 0235](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0235.json)
   records receipts and source freezes.
 - **Benchmark hygiene [M]:** 42 Python tests pass on Python 3.12. Offline
   replay of the completed native run discards its nested legacy install
@@ -112,7 +112,7 @@ historical performance/production objective described there.
   memcheck run with zero errors. Both allocation-side high-waters are
   identical between arms. The prototype is set aside as a saved patch;
   P1 and end-to-end performance remain open. See
-  [the negative receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-m8-20261107/gn-finish/pcs-retire-1/result.json).
+  [the negative receipt](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-m8-20261107/gn-finish/pcs-retire-1/result.json).
 - **No new performance qualification.** Core checkpoint `0941244f0` is
   pushed and default-off. The retained native profile has two fresh CPU
   accepts [M]. The guarded canonical comparison failed during class
@@ -123,7 +123,7 @@ historical performance/production objective described there.
   new-block latency. The user replaced that campaign with the
   [GPU hygiene and developer contract](rv64-gpu-hygiene.md); do not resume
   the previous performance scope automatically. Keep the full scope in
-  [progress.json](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-m8-20261107/gn-finish/progress.json).
+  [progress.json](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-m8-20261107/gn-finish/progress.json).
 
 **Labels:** [M] measured, [D] derived from measured numbers, [E] estimate.
 **Hardware:** one RunPod pod `rv64-resident-2x5090` (id `cps13bvat3xhdo`; 2× RTX 5090 32 GB, sm_120, PCIe Gen5 **x8** ≈ 24.6 GB/s per GPU; 48 vCPU; 80 GB disk).

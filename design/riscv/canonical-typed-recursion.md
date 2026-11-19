@@ -57,7 +57,7 @@ Run the complete-proof command after a coherent integration batch. A release
 checkpoint must identify the exact qualified source and include authenticated
 continuation and standalone root verification at 1/2/4/8 segments.
 
-The [typed recursion cleanup checkpoint](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260921/typed-recursion-closure-qualified-v1/README.md)
+The [typed recursion cleanup checkpoint](https://github.com/starknet-innovation/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260921/typed-recursion-closure-qualified-v1/README.md)
 records complete-proof and continuation evidence, including legacy executor/opcode AIR retirement, test-oracle isolation,
 shared commitment/session ownership and the narrow execution/host boundary.
 Its frozen source passed all CPU/Metal/AOT and 1/2/4/8 gates; subsequent source

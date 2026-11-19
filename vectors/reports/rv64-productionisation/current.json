@@ -3822,7 +3822,7 @@
     "task_worktrees_created": 0,
     "external_active_worktrees": [
       {
-        "path": "/private/tmp/claude-501/-Users-theodorepender-Coding-stwo-zig/3268cd4b-cf9c-479c-a67f-1c72486c40d2/scratchpad/autoresearch-retire-base",
+        "path": "<external-scratch>/autoresearch-retire-base",
         "head": "51897dc265593df7580c4abf0b232909fc105e34",
         "worktree_change_records": 0,
         "dirty": false,
