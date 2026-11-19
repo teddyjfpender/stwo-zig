@@ -15,7 +15,7 @@ const stagedRole = schedule_addressing.stagedRole;
 const zeroMultiplicityComponent = schedule_addressing.zeroMultiplicityComponent;
 
 const Prepared = struct {
-    ranges: [3]arena.LiveRange = undefined,
+    ranges: [@typeInfo(@FieldType(arena_lifetime.PhaseList, "items")).array.len]arena.LiveRange = undefined,
     range_count: usize = 0,
 };
 
@@ -253,14 +253,13 @@ pub fn build(ctx: anytype) !LogicalPlan {
         }
         if (!staged) {
             const phases = arena_lifetime.inferredUsePhases(purpose, first, last);
-            for (phases.slice()) |phase| {
-                const range: arena.LiveRange = if (component) |id|
+            for (phases.slice(), prepared[index].ranges[0..phases.len]) |phase, *range| {
+                range.* = if (component) |id|
                     .{ .first = localTick(phase, id), .last = localTick(phase, id) }
                 else
                     .{ .first = globalTick(phase), .last = globalTick(phase) + 64 };
-                prepared[index].ranges[prepared[index].range_count] = range;
-                prepared[index].range_count += 1;
             }
+            prepared[index].range_count = phases.len;
         }
         const words: u64 = @intCast(object.get("len_words").?.integer);
         const bytes = std.math.mul(u64, words, 4) catch return error.SizeOverflow;
