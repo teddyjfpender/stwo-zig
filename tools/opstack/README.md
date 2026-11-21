@@ -88,7 +88,11 @@ For a CPU host with 64 GiB, the bounded execution-root study used
 `--batch-steps 4194303 --workers 16`. It used an external RSS and free-disk
 watchdog alongside the component budgets. The measured recursion route and
 separate producer and receiver times are in the
-[CPU proof latency study](../../design/opstack/cpu-end-to-end.md).
+[CPU proof latency study](../../design/opstack/cpu-end-to-end.md). Use
+`verified_timing.native_start_to_verified_root_seconds` from the CPU
+recursion harness when selecting configurations. It includes cold setup,
+proof production and independent root admission. Artifact hashing and
+corruption diagnostics run afterward.
 
 Batch geometry comes from the request unless `--batch-steps` overrides it. The
 benchmark-generated request uses 4,194,303; use the measured 1,048,575-step setting

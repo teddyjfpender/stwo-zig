@@ -1,8 +1,4 @@
-"""CPU execution-root production and strict fresh admission for the CPU harness.
-
-The native and recursive producers are timed together, before any independent
-receiver or corruption trials. A native-only result cannot satisfy this path.
-"""
+"""CPU execution-root production and strict fresh admission for the CPU harness."""
 
 import json
 import time
@@ -100,6 +96,7 @@ def run(args, config, root, fixed_bytes, env, measure, record_stage):
         "receiver": report,
         "admitted": admitted,
         "root_ready_monotonic_ns": root_ready_ns,
+        "root_received_monotonic_ns": time.monotonic_ns(),
         "workers": recursive_config["workers"],
         "producer_requested_live_bytes": args.recursive_live_bytes,
         "receiver_requested_live_bytes": args.recursive_receiver_bytes,

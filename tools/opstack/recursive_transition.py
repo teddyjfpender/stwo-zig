@@ -109,6 +109,14 @@ def wire_bytes(value, length):
     return value
 
 
+def completed_block(report):
+    """Read the neutral completion field and archived execution receipts."""
+    archived = report.get("completed_ethereum_block", True)
+    return archived is True and report.get(
+        "completed_block", report.get("completed_ethereum_block")
+    ) is True
+
+
 def admit_receipt(
     report,
     expected_output,
@@ -119,7 +127,6 @@ def admit_receipt(
         raise ValueError("unsupported receiver native profile")
     for flag in (
         "accepted",
-        "completed_ethereum_block",
         "shared_fresh_native_authority",
         "native_verified_before_recursion",
         "existing_recursive_proofs_only",
@@ -133,8 +140,9 @@ def admit_receipt(
     domain = OUTER_DOMAINS[expected_outer_profile]
     if (
         report.get("security_qualified") is not False
+        or not completed_block(report)
         or native.get("accepted") is not True
-        or native.get("completed_ethereum_block") is not True
+        or not completed_block(native)
         or native.get("security_profile") != expected_native_profile
         or outer_profile != f"stwo/circuit/native-om31/{domain}/lens-v1"
         or wire_bytes(report["output"], 43) != expected_output
