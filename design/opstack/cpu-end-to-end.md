@@ -182,7 +182,11 @@ gates missed the same boundary by 57,856. The four-child parent stayed at
 220.05 s on OP 121,135,704 and 88.14 s on Mantle 103,133,433. Both roots
 passed fresh verification under the separate experimental outer profile.
 The later terminal-degree trial stopped at the first four-child parent with
-`MerkleCapMismatch`. It produced no accepted root or latency result.
+`MerkleCapMismatch`. Repairing the coset encoding in the host cap constructor
+and circuit brought that arm through fresh verification at 224.13 s on the
+same native proofs. The three-child field count rose from 4.14M to 4.38M and
+crossed the 2²² padding boundary. The earlier 220.05 s observation remains
+the faster of the two flat-coset runs.
 
 Overlapping leaf wraps with two pools of eight preserved all eleven recursive
 proof files byte for byte. On the large OP control's native bytes, recursive
@@ -319,8 +323,123 @@ A bounded engine fixture produced one shared Circle FRI proof for two synthetic
 same-height sources with separate OODS transcripts and authenticated openings.
 The verifier rejected a reordered member, an altered OODS sample and a corrupted
 source opening. All 139 polynomial tests passed including this fixture. The
-fixture uses smaller parameters. The real-shard protocol and its composed
-security argument are the next experimental gates.
+fixture uses smaller parameters than the real-shard experiment below.
+
+### Real-shard proof work
+
+The two adjacent OP 121,135,704 CPU workers cover 4,194,303 steps each
+and share a 2²⁴ FRI domain. The guarded diagnostic reproduced the original
+proofs byte for byte and also checked one combined Circle FRI suffix at 54
+new query positions against both sets of original source commitments.
+The original pair spent 7.42 s of summed worker time on quotient, FRI and
+openings. The shared diagnostic spent 7.39 s on these steps, including a
+0.70 s array mix and both new source-opening checks. Replacing the scalar
+mix with packed OM31 and the existing worker pool took 0.039 s for that
+stage in the next run. In that run summed work was 6.93 s for the packed
+shared suffix and 7.63 s for the unchanged original pair. Both numbers sum
+two overlapping quotient workers. A fresh process accepted the serialized
+shared suffix and rejected a changed source opening. It independently
+verified the original native bundle before admitting the prefixes. The
+experiment still produces the original native proofs. Sharing one FRI
+tail would save about 5% of the pair's wire bytes before group framing.
+The next gate is removing one
+recursive FRI verifier while still binding both sets of source openings.
+
+The earlier paired CPU leaf on the same block used 9.22M field operations
+and padded to 2²⁴ rows. Counting the real pair's FRI suffix estimates
+435,600 fewer Blake G gates and about 303,000 field operations removed before
+group framing and uncounted query work. The two source leaves still cost
+2.89M Blake G gates and their OODS absorption costs 0.49M. The field cut
+falls short of the 834,754 operations needed by the earlier pair to reach
+2²³. Measure the actual paired graph and its full padded inventory before
+running another whole-block arm. Joint FRI needs an additional DEEP or
+other field-side cut if the measured pair lands in the same padding bin.
+
+Reusing the weighted DEEP contribution across exact shift groups cut field
+work in both retained CPU leaf graphs. The native proofs and public digests
+are the same inputs in each comparison.
+
+| OP worker | DEEP field ops before / after | Total field ops before / after |
+|---|---:|---:|
+| 0 | 1,718,887 / 1,364,647 | 4,944,753 / 4,590,513 |
+| 1 | 1,601,586 / 1,280,826 | 4,634,408 / 4,313,648 |
+
+Both graphs remain at 2²³ field rows each. The combined estimate after
+also removing one FRI suffix is 8.60M field operations before uncounted
+query work and new group framing. It exceeds the 2²³ row boundary by
+about 213,000. The focused circuit tests agreed with independently
+evaluated native DEEP answers and rejected an altered opened word.
+On the retained two-worker OP 120,794,432 request, the same grouping
+saved 426,492 field operations across leaves and the parent. Both
+recursive roots passed fresh verification with identical expected outputs
+and public frames. Recursive production and reception took 22.72 s for
+the control and 24.17 s for grouping in this single matched observation.
+The graph savings did not translate into a wall-time gain on this case.
+
+The complete 319-call Ethereum arithmetic leaf provides the first physical
+two-tree packing comparison. All three arms use the same outer profile,
+three rotated measurements, and fresh acceptance for each final proof. The
+canonical native proof reproduced byte for byte.
+
+| Arithmetic leaf | Median wrap s | Wrap peak GiB | Blake G | QM31 operations |
+|---|---:|---:|---:|---:|
+| Canonical | 2.624 | 4.029 | 648,080 | 731,050 |
+| Packed INTER | 2.231 | 2.973 | 515,440 | 670,050 |
+| Packed MAIN and INTER, both Circle signs | 2.135 | 2.996 | 446,400 | 769,310 |
+
+The two-tree leaf saved 18.6% of wrap wall time. Its native fixture replay
+and openings required additional work. The receiver rejected changed source
+pair order, stale packed MAIN authority, a changed INTER commitment, and a
+changed outer proof. Production needs the packed MAIN root in the execution
+manifest, receiver-owned layout authority, and explicit low-degree checks
+for each packed height. The research q54/P20 setting supplies comparison
+timings. The extra correlated-agreement, local-degree and grinding terms
+need separate accounting before adopting a security profile for either
+experiment. [S-two whitepaper](https://eprint.iacr.org/2026/532).
+
+The retained OP secp ADD worker covers 3,951 calls from an earlier guest
+run of the same large block. A fresh native check authenticated the original
+proof, MAIN and Wire claim against recaptured inputs. Its width-four packed
+PCS and recursive constraint graph checked, and reversing the source pair
+failed. The graph uses 1.67M Blake G gates and 5.51M field operations. Its
+outer producer hit the 12 GiB experiment cap after 4.01 s. Sharing the pair
+orientation and fusing weighted DEEP projections cut the graph to 3.97M
+field operations. That crosses from 2²³ to 2²² rows with 221,520 operations
+of headroom. On the same native witness and 12 GiB limit, the outer proof
+took 7.50 s and peaked at 8.92 GiB. A fresh receiver accepted in 0.55 s.
+Pair reversal still failed. The original packed arm and fused arm share
+the 1.67M Blake G count. The canonical graph uses 2.51M Blake G and 2.86M
+field operations. Both canonical and fused graphs pad to 2²² field rows.
+The fused graph halves the padded Blake component to 2²¹. The canonical
+wrap reached the same 12 GiB cap at 3.70 s. This establishes a memory-fit
+gain. Native packed openings took 4.14 s in the separated fixture, so the
+integrated native quotient and commitment costs still need measurement.
+
+On the largest OP case, three six-worker native lanes with 29 GiB estimated
+admission took 57.64 s versus 63.53 s for two eight-worker lanes with 21 GiB
+estimated admission. Both used the 24 GiB sampled RSS cutoff. Peak observed
+RSS was 21.40 GiB versus 16.35 GiB. Native authority and proof files matched
+byte for byte and a fresh native receiver accepted. Substituting the new
+native timing into the measured unchanged recursion and root verification
+gives a stitched 173.39 s versus 179.29 s. Longer runs and different inputs
+can select different lane settings.
+
+On complete OP 120,794,432, a CPU-only handoff reused live native authority
+and the in-memory bundle. The same binary produced identical native and
+recursive proofs through both routes. End to end, the separate producers
+took 28.23 s and the in-process route took 28.70 s, including fresh root
+reception in both arms. The in-process route saved setup recreation and
+overlapped native verification. Its recursive work took 18.45 s versus
+18.28 s for the entire separate recursion process. The difference leaves
+no measured wall saving on this input. Peak producer RSS was 15.44 GiB
+in-process and 18.56 GiB across the separate producers.
+
+Using the best earlier complete observation per block as the reference,
+the cohort's 10× targets range from 3.25 to 17.93 s. Removing all recursive
+production would give at most 2.30–3.39× because native production and the
+fresh receiver remain. On the largest OP input those two phases already
+take 76.95 s. A 10× improvement needs native work reduction and cheaper
+independent admission in addition to less work in wraps and folds.
 
 The fresh receiver continues to derive the exact worker and circuit authorities
 from the pinned request. Root acceptance checks the complete ordered spans,
