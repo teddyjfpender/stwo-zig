@@ -729,9 +729,43 @@ coefficient with a slot power. Recomputing that basis would add an estimated
 checks matched 64 oriented queries with three shifts, including an independent
 scalar implementation of the M31 extension tower through OM31. The checks rejected
 alterations to the opposite opening, orientation, shift, reused coefficient
-and slot power. The packed circuit still needs a physical graph count of
-the removed and replacement operations, followed by proof and receiver
-qualification.
+and slot power. The complete packed circuit still needs a joined graph and
+proof-and-receiver qualification.
+
+The existing native Circle fixture now proves a width-eight layout with two
+mask points and independent direct columns. It authenticates both siblings
+and rejects changes to a sibling, a direct column, an OODS sample and the
+FRI witness. The exact four packed MAIN/INTER layouts for the retained OP
+workers have 491/254 and 461/241 packed columns.
+
+| MAIN/INTER DEEP graph on the retained geometry | Raw QM31 rows | Change |
+|---|---:|---:|
+| Ordinary grouped DEEP | 2,539,538 | — |
+| Width eight with two per-group weight families | 4,947,861 | +2,408,323 |
+| Width eight with shared weights and independent parity mix | 3,315,524 | +775,986 |
+| Width eight with shared weights, lines and domain ladders | 2,458,826 | −80,712 |
+
+These trace-only graph counts include coefficient preparation and 54 queries
+per worker. The last variant reuses weights and denominators across compatible
+source cohorts while preserving the two folded parity contributions and the
+original periodic sample. The comparison excludes packed root admission,
+Merkle paths, transcript framing and the shared FRI suffix.
+
+| MAIN/INTER Merkle circuit, 54 queries per worker | Ordinary | Width eight | Change |
+|---|---:|---:|---:|
+| Blake G gates | 3,119,520 | 1,145,280 | −1,974,240 |
+| QM31 rows | 267,578 | 262,068 | −5,510 |
+| M31-to-U32 rows | 552,420 | 156,276 | −396,144 |
+
+The separate Merkle count uses exact packed widths and sparse cap geometry.
+A smaller witness-bearing circuit checked the same opening logic with both
+signs and rejected a changed odd row, reversed sign order and a stale root.
+The measured source-stage deltas sum to −86,222 field rows, leaving
+160,696 QM31 rows and 550,144 Blake gates in the paired-domain budgets before
+framing. The producer must derive packed MAIN before the local GKR receipt,
+build packed INTER from the same logical coefficients used by composition,
+and bind both to the shared-FRI transcript. The exact-stage counts do not
+qualify that new proof carrier or establish its end-to-end wall time.
 
 Start with independently pinned OP and Mantle inputs from this cohort. Keep
 the security profile and expected execution output fixed. Measure changes

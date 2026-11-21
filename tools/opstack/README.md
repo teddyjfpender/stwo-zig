@@ -47,7 +47,8 @@ used only to import the upstream host fixtures, never in the guest.
 ```sh
 rustup toolchain install nightly-2026-08-08 --profile minimal --component rust-src
 python3 -m pip install -r tools/opstack/requirements-host.txt
-python3 tools/opstack/build.py --artifacts /workspace/kona
+python3 tools/opstack/build.py --artifacts /workspace/kona \
+  --runner-reference /workspace/runners/rv64-execution
 python3 tools/opstack/mainnet.py --output /workspace/kona-mainnet \
   --cache /workspace/kona-archive-cache --host /workspace/kona/host
 python3 tools/opstack/benchmark.py --fixtures /workspace/kona-mainnet \
@@ -65,6 +66,10 @@ The default Kona build uses `canonical-glv` with SHA service enabled, and
 the benchmark defaults to the matching v3 execution profile. An explicit
 software replay uses `build.py --variant software` and
 `benchmark.py --profile software`.
+
+For benchmark execution, supply a qualified RV64 execution runner that
+accepts the OP guest ABI. The S1 product CLI owns native proving and
+verification. Its `execute` command remains gated.
 
 The tested user-transaction block uses a larger batch, four proof workers and a
 separately bounded single setup worker:

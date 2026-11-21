@@ -22,10 +22,10 @@ const Prover = @import("../../fri_family.zig").ForField(Secure).FriProver(Host, 
 const Verifier = FRI.FriVerifier(Hash, Mix);
 const Column = @import("../../secure_column.zig").SecureColumnByCoordsFor(Secure);
 const alloc = std.testing.allocator;
-const width = 4;
+const width = 8;
 const rows = 16;
-const degree_log = 6;
-const domain_log = 8;
+const degree_log = std.math.log2_int(usize, rows * width);
+const domain_log = degree_log + 2;
 const domain = core.poly.circle.canonic.CanonicCoset.new(domain_log).circleDomain();
 const groups = 3;
 const direct_log = domain_log - 2;
@@ -131,7 +131,7 @@ fn receive(roots: [2]Hash.Hash, samples: *const Samples, direct_sample: Secure, 
     try verifier.decommit(alloc, answers[0..queries.len]);
 }
 
-test "stacked Circle opening authenticates both siblings and verifies a two-mask OM31 FRI proof" {
+test "stacked Circle width eight authenticates both siblings and verifies a two-mask OM31 FRI proof" {
     var columns: [groups * width][rows]Base = undefined;
     for (&columns, 0..) |*c, j| for (c, 0..) |*v, i| {
         v.* = Base.fromU64((j + 13) * (i + 5) * (i + 101) + 311 * j * j);
