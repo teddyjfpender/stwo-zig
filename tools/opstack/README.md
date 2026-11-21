@@ -104,6 +104,11 @@ recursion harness when selecting configurations. It includes cold setup,
 proof production and independent root admission. Artifact hashing and
 corruption diagnostics run afterward.
 
+The larger `cpu-18workers-3lanes.json` preset pairs with `--workers 18`.
+It admits three six-worker lanes under a 29 GiB schedule estimate and
+was faster on OP 121,003,241 in a bounded comparison. Use the smaller
+two-lane preset when its memory envelope fits the host better.
+
 Batch geometry comes from the request unless `--batch-steps` overrides it. The
 benchmark-generated request uses 4,194,303; use the measured 1,048,575-step setting
 above on a memory-constrained CPU host. Preserve the same geometry in comparisons.

@@ -767,6 +767,85 @@ build packed INTER from the same logical coefficients used by composition,
 and bind both to the shared-FRI transcript. The exact-stage counts do not
 qualify that new proof carrier or establish its end-to-end wall time.
 
+### Composed runs on OP 121,003,241
+
+The service-backed guest, 4,194,303-step shard cap and grouped recursion
+authority were pinned for these runs. Wall time includes native proof
+production, recursive production and a fresh process admitting the root.
+
+| Configuration | Native s | Recursion s | Fresh receive s | Total s |
+|---|---:|---:|---:|---:|
+| Two eight-worker native lanes | 52.43 | 102.00 | 11.63 | 166.06 |
+| Three six-worker native lanes, 18 recursion workers | 46.81 | 93.99 | 11.67 | 152.51 |
+| Three six-worker lanes and scoped raw-mod grinding | 49.74 | 96.38 | 11.38 | 157.53 |
+| Three six-worker lanes and mixed native-tail root | 44.72 | 94.53 | 10.76 | 150.01 |
+| Mixed native-tail root with cap log five | 47.40 | 97.73 | 10.75 | 155.91 |
+| Mixed native-tail root with packed terminals and 64-entry arithmetic-tail cap | 49.11 | 102.95 | 11.48 | 163.57 |
+
+The three-lane preset produced identical native and recursive proof
+artifacts and cut end-to-end time by 8.2% in this comparison. Native
+peak RSS moved from 14.87 to 19.70 GiB. Recursive peak RSS was 31.40 GiB.
+The scoped-grinding experiment reused the lane pool and preserved the
+canonical nonce in both raw-mod field profiles. The complete run was
+5.02 s slower than the three-lane control, so that experiment stays in
+the study artifacts. These are single observations at each setting.
+
+The mixed-tail experiment uses its own outer transcript and places the
+last arithmetic service proof directly in the root circuit. The receiver
+independently derives its ordinal and checks contiguous coverage of all
+eight workers. It accepted five leaves and two folds and rejected an
+altered native tail index. Native proof bytes match the other three-lane
+run. The mixed root used 4,022,037 raw QM31 rows and 4,401,920 Blake
+G gates, crossing the 2²² Blake boundary by 207,616. Its recursion
+stage was 0.54 s slower than the three-lane grouped control in this
+comparison. The fastest complete total includes variation in native
+production and fresh reception.
+
+The grouped control spent 53.97 s wrapping and 32.41 s folding, with
+5.54 s of setup before recursive production. Moving the arithmetic tail
+into the root reduced wrap time to 50.40 s and raised fold time to
+36.20 s. The larger root absorbed the saving from one fewer wrap.
+
+Raising the fold cap from log three to log five removed 195,040 Blake G
+gates from the mixed root. At 4,206,880 it still exceeded 2²² by 12,576,
+and QM31 work rose to 4,384,128 rows, 189,824 above 2²². Both domains
+rounded up to 2²³. The larger-cap root also passed a fresh receiver
+and rejected an altered tail index. Recursive wall time increased.
+
+Selecting two 32-bit terminal words in one QM31 element saved 26,096
+field rows for 108 queries into a 32-entry cap. The circuit rejected
+changes to either packed word, the query bits and the root. Applying that
+selection to the retained four-child fold removed 835,068 QM31 rows at
+identical Blake cost. The field domain still rounded up to 2²³.
+The first 64-entry arithmetic-tail attempt stopped at the native
+proof-capture cap-depth guard before producing a root.
+The separate packed-cap trial enabled the existing 64-slot sparse-cap
+layout for its native Blake profile. It produced a complete root, passed
+fresh reception and rejected an altered tail index. The root used
+4,018,524 QM31 rows and 4,203,760 Blake G gates. Its field domain reached
+2²², and the Blake component remained at 2²³ by 9,456 gates. End-to-end
+wall time was 163.57 s. These caps remain experimental.
+
+The compact width-eight source test reproduced both commitments and
+all authenticated opening bytes for the retained 3,951-call ADD worker.
+With 16 MiB LDE batches, sampled peak RSS moved from 150 to 74 MiB on
+MAIN and 348 to 181 MiB on INTER. This compact implementation took
+about 2.2× longer to build the commitments. It enables a lower-memory
+producer experiment. A latency benefit on a full CPU source is open.
+
+A separate keyed BLAKE3 experiment retains prefixed Blake2s leaves and
+uses a distinct internal-node hash domain. One node uses 56 Blake G
+gates versus 80. A fresh process accepted a small OM31 FRI proof,
+matched its captured path in the circuit and rejected six mutations
+covering the transcript, source tree and FRI tree. The retained
+three-child parent has enough composition path nodes to project below
+2²² Blake gates. Its physical recursive proof and timing are open.
+
+The half-latency target for the original 166.06 s result is 83.03 s.
+At the three-lane native and receiver times, that leaves 24.55 s for
+recursive production. Improvements to the native and receiver phases
+can increase that allowance.
+
 Start with independently pinned OP and Mantle inputs from this cohort. Keep
 the security profile and expected execution output fixed. Measure changes
 in segment size separately from changes to guest instructions or recursion
