@@ -166,12 +166,17 @@ impl<'a> Witness<'a> {
         let mut stats = self.stats.get();
         stats.lookups += 1;
         self.stats.set(stats);
+        let hash_bytes = hash.as_slice();
+        let prefix = hash_bytes[0];
         let mut low = 0;
         let mut high = self.records();
         while low < high {
             let mid = low + (high - low) / 2;
             let key = &self.descriptors[mid * DESCRIPTOR..mid * DESCRIPTOR + 32];
-            match key.cmp(hash.as_slice()) {
+            match key[0]
+                .cmp(&prefix)
+                .then_with(|| key[1..].cmp(&hash_bytes[1..]))
+            {
                 core::cmp::Ordering::Less => low = mid + 1,
                 core::cmp::Ordering::Greater => high = mid,
                 core::cmp::Ordering::Equal => {
@@ -234,4 +239,21 @@ fn encode_bounded(
         out.extend_from_slice(value);
     }
     Ok(out)
+}
+
+#[test]
+fn witness_lookup_compares_and_authenticates_the_full_digest() {
+    let value = vec![42];
+    let valid = keccak256(&value);
+    let mut invalid = valid;
+    invalid[31] ^= 1;
+    let mut missing = valid;
+    missing[31] ^= 2;
+    let mut records = [(valid, value), (invalid, vec![])];
+    records.sort_by_key(|entry| entry.0);
+    let input = encode(&[], &records).unwrap();
+    let witness = Witness::parse(&input, Validation::Lazy).unwrap();
+    assert_eq!(witness.get(valid), Ok(&[42][..]));
+    assert_eq!(witness.get(invalid), Err(Error::Hash));
+    assert_eq!(witness.get(missing), Err(Error::Missing(missing)));
 }

@@ -33,7 +33,11 @@ fn bounded_decoder_preserves_canonical_values_and_sibling_boundary() {
 
 #[test]
 fn bounded_decoder_rejects_empty_overlong_and_cross_list_paths_without_panics() {
+    let mut cross_list_digest = vec![0x80; 50];
+    cross_list_digest[0] = 0xd1; // Seventeen-byte branch body.
+    cross_list_digest[17] = BLINDED_STRING_CODE;
     let bad = [
+        cross_list_digest,
         vec![0xc2, 0x80, 0x80],       // empty compact path previously indexed path[0]
         vec![0xc1, 0x00, 0x80],       // second item outside declared list
         vec![0xc3, 0x00, 0xc1, 0x80], // malformed inline child

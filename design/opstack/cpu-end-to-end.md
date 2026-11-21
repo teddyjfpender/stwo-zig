@@ -132,7 +132,7 @@ its own guest and derives its symbols from that ELF.
 
 Across the seven inputs with a complete 1M-step control, the best observed
 configurations at the same native and outer proof settings reduced the sum
-from 1287.80 s to 595.47 s, a 53.8% reduction. The median paired reduction
+from 1287.80 s to 575.33 s, a 55.3% reduction. The median paired reduction
 was 56.3%. These are per-input selections. Two observations each on OP
 121,057,303 and Mantle 103,133,753 put their median reductions near 51%.
 All ten inputs completed fresh root verification in at least one of the
@@ -176,6 +176,38 @@ The lower blowup reduced native production by 30.64 s and added 50.47 s to
 recursion. The larger native opening workload has to be addressed before
 using this trade-off for end-to-end proving.
 
+The Kona trial inlines canonical empty and blinded trie references in both
+RLP directions and compares the first byte before the exact witness-key suffix.
+On OP 121,135,704 it retired 16,758,270 steps with SHA service calls, down
+from 20,085,743 on the matched pre-optimization build. The witness comparison
+alone removed 120,703 steps and put the request below the four-shard limit of
+16,777,212. The accepted recursive route used four CPU proofs and six wraps.
+
+| Chain and block | Trial | Native s | Recursion s | Fresh receive s | Total s |
+|---|---|---:|---:|---:|---:|
+| OP 121,135,704 | Smaller Kona guest, software SHA, classic outer | 79.12 | 119.63 | 14.86 | 213.61 |
+| OP 121,135,704 | Maintained Kona guest, SHA service, classic outer | 72.74 | 109.89 | 13.57 | 196.20 |
+| OP 121,135,704 | Smaller Kona guest, SHA service, grouped outer | 71.73 | 99.51 | 12.84 | 184.08 |
+| OP 121,003,241 | Smaller Kona guest, software SHA, grouped outer | 63.69 | 98.39 | 12.07 | 174.15 |
+| Mantle 103,133,433 | Maintained guest, grouped outer | 27.57 | 63.51 | 5.96 | 97.04 |
+
+These are fresh complete runs. The 184.08 s result combines the guest change,
+shard threshold and grouped wrapper. It uses 16.9% less time than the earlier
+221.50 s run. The 174.15 s result uses 18.4% less time than 213.29 s. For
+the largest OP case, grouping on the same smaller software-SHA guest ran
+in 227.34 s versus 213.61 s for the classic outer profile. Grouping depends
+on the actual roster and padded row counts.
+
+The maintained guest kept the four-shard geometry at 16,758,770 steps.
+Its full run used the normal current CPU compatibility executable with the
+classic outer profile. The previously built software-SHA guest used 231.64 s
+on that executable. The optimized maintained source reduces this elapsed time
+by 15.3% and peak recursive RSS was 31.59 GiB. The locked encoder and decoder
+tests passed 18 cases. The full-digest lookup test passed with equal key
+prefixes, an invalid preimage and a missing suffix. The maintained ELF matched
+the pinned output in the native host, RV64 and independent Unicorn comparison
+on all five inputs.
+
 The next latency targets are 110.75 s for OP 121,135,704, 106.65 s for OP
 121,003,241 and 56.68 s for Mantle 103,133,433, half of the corresponding
 221.50 s, 213.29 s and 113.36 s completed references.
@@ -184,6 +216,80 @@ alone. Work on source openings needs to reduce native commitment cost and
 recursive verifier work together. A useful acceptance gate is a complete
 leaf and parent below their next padded row boundary, followed by a fresh
 block run with the same guest and security parameters.
+
+## Recursion architecture review
+
+The largest OP block's improved guest on the current CPU build used 79.12 s
+for native production, 119.63 s for recursion and 14.86 s for fresh reception.
+Holding the native and receiver stages fixed leaves only 16.77 s for recursion
+at the 110.75 s target. The largest useful change must cut work in both native
+production and recursive verification.
+
+Start with the native source openings inside a recursive leaf. Keep the existing
+AIR and public worker statements. Derive the commitment layout from the admitted
+role, original degree and the ordered, globally lifted masks. Pack power-of-two
+groups of compatible short columns. Authenticate both adjacent circle rows and
+derive the original DEEP contribution from their even and odd parts. Bind the
+packing layout, commitments and original OODS samples before drawing the DEEP
+weights. The current `stacked_deep.zig` and engine tests exercise this algebra.
+The [S-two whitepaper](https://eprint.iacr.org/2026/532) supplies the correlated
+agreement framework for composing different domains. The soundness review must
+cover pair agreement in the packed scheme. One candidate is to view a uniform
+conjugate-pair position as a line-code symbol and retain separate degree
+corrections for its even and odd coordinates.
+
+The retained proofs show 11.20M Blake G gates for source row hashing on the
+large OP blowup-four arm and 22.40M on blowup two. The tuned Kona software-SHA
+guest still opens source rows costing 10.96M. These counts exclude paths, FRI
+and padding. Applying the packed layout to the archived Ethereum shapes
+predicts 89% fewer opened-row compressions across its seven CPU workers and
+59% fewer across its full roster. On Mantle 103,133,433 the service proofs use
+74% of the source row hashes. CPU packing alone has a lower ceiling on that
+workload. Pair a complete CPU INTER opening with an independently qualified
+service layout, starting from the retained arith256 proof and a secp shard.
+The engine and circuit must agree on logical column and mask ordering before
+changing MAIN, which the local GKR proof already authenticates.
+
+Batching native FRI across workers is a separate protocol experiment. Retain
+independent FIXED authority and each worker's composition identity. Freeze the
+ordered workers, individual commitments, OODS samples and local DEEP transcripts
+before drawing the group mixing challenge. Bind each recomputed prefix digest
+and its draw counter. For a first gate use two adjacent CPU workers with an
+identical top Circle domain, FRI degree, lifting and rate. Prove FRI once for their mixed DEEP
+oracle and check both authenticated source answers at every shared query. The
+group transcript draws its queries after committing the FRI oracles and grinding.
+Every worker still has its original degree bound and a checked local statement.
+Establish a separate correlated-agreement and transcript budget before comparing
+different degrees or claiming a block-wide security target. Budget field sampling
+bias, the number of groups and outer nodes, and the proof-of-work grinding term.
+Further deferral of low-degree tests to the final root is a separate protocol
+change. [Circle STARKs](https://eprint.iacr.org/2024/278),
+[DEEP commitments](https://eprint.iacr.org/2024/1752).
+
+A bounded engine fixture produced one shared Circle FRI proof for two synthetic
+same-height sources with separate OODS transcripts and authenticated openings.
+The verifier rejected a reordered member, an altered OODS sample and a corrupted
+source opening. All 139 polynomial tests passed including this fixture. The
+fixture uses smaller parameters. The real-shard protocol and its composed
+security argument are the next experimental gates.
+
+The fresh receiver continues to derive the exact worker and circuit authorities
+from the pinned request. Root acceptance checks the complete ordered spans,
+execution manifest, initial and terminal statements, and separate RAM, Keccak
+and service claim closure. A portable root-only receiver needs an independently
+established authority for its verification-key table. Fold circuits and the
+receiver must agree on the child class and exact span digest. Test an honestly
+produced proof for the wrong span, order or verifier key, alongside byte-level
+opening and framing mutations.
+
+The comparison gate is a full physical CPU leaf and a complete parent at the
+same proof settings, followed by fresh complete OP and Ethereum blocks. Track
+source opened words, Blake G and field rows before and after padding, native
+commitment cost, peak memory, recursive proof size and full request wall time.
+For Mantle also measure one service leaf, since the sha and secp roles dominate
+its opened width. Apply a lower native blowup only once the recursed opening
+cost is in budget. Keep distinct domains for the experiments and reject
+cross-profile proofs.
 
 ## Performance gates
 

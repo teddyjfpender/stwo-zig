@@ -3,7 +3,9 @@
 use super::{BRANCH_LIST_LENGTH, LEAF_OR_EXTENSION_LIST_LENGTH, TrieNode};
 use alloc::vec::Vec;
 use alloy_primitives::B256;
-use alloy_rlp::{Buf, Decodable, Header};
+use alloy_rlp::{Buf, Decodable, EMPTY_STRING_CODE, Header};
+
+const BLINDED_STRING_CODE: u8 = EMPTY_STRING_CODE + 32;
 
 impl Decodable for TrieNode {
     fn decode(buf: &mut &[u8]) -> alloy_rlp::Result<Self> {
@@ -36,7 +38,16 @@ impl Decodable for TrieNode {
         } else {
             let mut stack = Vec::with_capacity(BRANCH_LIST_LENGTH);
             for _ in 0..BRANCH_LIST_LENGTH {
-                stack.push(Self::decode(&mut body)?);
+                match body.first().copied() {
+                    Some(EMPTY_STRING_CODE) => {
+                        body.advance(1);
+                        stack.push(Self::Empty);
+                    }
+                    Some(BLINDED_STRING_CODE) => {
+                        stack.push(Self::new_blinded(B256::decode(&mut body)?));
+                    }
+                    _ => stack.push(Self::decode(&mut body)?),
+                }
             }
             Self::Branch { stack }
         };
