@@ -7,6 +7,12 @@ use alloy_rlp::{Buf, Decodable, EMPTY_STRING_CODE, Header};
 
 const BLINDED_STRING_CODE: u8 = EMPTY_STRING_CODE + 32;
 
+fn blinded_reference(buf: &mut &[u8]) -> alloy_rlp::Result<TrieNode> {
+    let digest = buf.get(1..33).ok_or(alloy_rlp::Error::InputTooShort)?;
+    *buf = &buf[33..];
+    Ok(TrieNode::new_blinded(B256::from_slice(digest)))
+}
+
 impl Decodable for TrieNode {
     fn decode(buf: &mut &[u8]) -> alloy_rlp::Result<Self> {
         let mut payload = *buf;
@@ -44,7 +50,7 @@ impl Decodable for TrieNode {
                         stack.push(Self::Empty);
                     }
                     Some(BLINDED_STRING_CODE) => {
-                        stack.push(Self::new_blinded(B256::decode(&mut body)?));
+                        stack.push(blinded_reference(&mut body)?);
                     }
                     _ => stack.push(Self::decode(&mut body)?),
                 }

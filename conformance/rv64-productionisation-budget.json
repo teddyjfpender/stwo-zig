@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "opstack_cpu_guest_shard_cut",
+      "net_code_budget": 48,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 491: index the authenticated witness by digest prefix, reuse the sealed parent commitment, decode canonical branch-child references directly and specialize service admission to the copy caller's overlap contract. Preserve digest, range, RLP and overlap validation at their existing owners. Revert the guest slice to restore the previous guest."
+    },
+    {
       "id": "opstack_cpu_om31_checkpoint_reuse",
       "net_code_budget": 47,
       "flags_added_budget": 0,

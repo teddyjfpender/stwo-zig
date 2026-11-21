@@ -77,5 +77,17 @@ fn optional_fields_and_multiple_payloads_keep_the_owned_wire_format() {
     input.expected_block_hashes.push([0x5a; 32].into());
     let expected = postcard::to_allocvec(&stream::legacy(&input)).unwrap();
     assert_eq!(encode(&input).unwrap(), expected);
-    assert_eq!(encode(&decode(&expected).unwrap()).unwrap(), expected);
+    let decoded = decode(&expected).unwrap();
+    assert_eq!(encode(&decoded).unwrap(), expected);
+    let commitment = input_commitment(&decoded).unwrap();
+    let parent = alloy_primitives::Sealable::seal_slow(decoded.parent_header);
+    assert_eq!(
+        payload_commitment_with_parent_hash(
+            &decoded.rollup_config,
+            parent.hash(),
+            &decoded.payloads
+        )
+        .unwrap(),
+        commitment
+    );
 }

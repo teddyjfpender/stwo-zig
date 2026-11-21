@@ -655,6 +655,84 @@ The subsequent control reproduced the same native bytes in 104.77 s
 while other builds ran on the host. That observation does not establish
 a matched full-block latency gain.
 
+### Guest shard thresholds and SHA placement
+
+The guest reuses the sealed parent hash, narrows witness searches to the
+authenticated digest prefix, decodes canonical blinded trie children directly,
+and avoids the overlap branch for disjoint C `memcpy` calls. The `memmove`
+caller still checks overlap before using the bulk service. Both rebuilt ELFs
+matched the host output and independent Unicorn execution on all five pinned
+OP inputs. Each ELF uses its own ABI symbol addresses.
+
+| OP block | Prior retirements | Updated with SHA service | Updated with software SHA |
+|---|---:|---:|---:|
+| 120,794,432 | 645,734 | 590,275 | 718,201 |
+| 121,049,889 | 4,534,881 | 4,219,144 | 4,431,037 |
+| 121,057,303 | 4,767,095 | 4,372,128 | 4,585,857 |
+| 121,003,241 | 13,090,332 | 12,203,836 | 12,725,100 |
+| 121,135,704 | 16,758,770 | 15,590,691 | 16,191,729 |
+
+The CPU shard cap is 4,194,303 retirements. OP 121,003,241 now fits three
+shards with the service. Software SHA requires four there. On OP 121,135,704
+both builds fit four shards. Software SHA removes 158 calls and one native
+service proof on that block. The service build saves 1,168,079 retirements
+(7.0%) on the largest input and needs another 3,007,782 to fit three shards.
+The software build was a matched experiment using the existing software SHA
+implementation. The maintained guest retains its SHA service.
+
+| OP 121,135,704 | CPU + service proofs | Leaves / folds | Native s | Recursion s | Fresh receive s | Total s |
+|---|---:|---:|---:|---:|---:|---:|
+| Earlier fastest reference | 4 + 4 | 6 / 3 | 63.53 | 102.34 | 13.41 | 179.29 |
+| Updated guest, service SHA | 4 + 4 | 6 / 3 | 61.86 | 110.01 | 14.08 | 185.96 |
+| Updated guest, software SHA | 4 + 3 | 6 / 3 | 59.38 | 106.82 | 13.82 | 180.03 |
+
+Each updated run completed and passed fresh root verification against the
+same expected output. The comparison used the same fused native producer,
+grouped recursion runner, shard cap and two eight-worker lanes for both
+updated guests. Peak sampled group RSS was 31.53 GiB with the service and
+31.28 GiB with software SHA. Removing the SHA proof saved 1,963,778 native
+artifact bytes and 2,494,400 raw Blake G gates in the combined service leaf.
+Both service-leaf circuits still pad Blake and QM31 to 8,388,608 rows each.
+The 5.92 s difference is one comparison; the earlier 179.29 s reference
+remains the fastest accepted result for this input.
+
+The updated service guest also completed OP 121,003,241 with three CPU
+proofs and five service proofs, including 34 arithmetic calls in their own
+provider. The fresh receiver accepted the exact output and all eight workers
+through six leaves and three folds. The native, recursive and fresh-receiver
+stages took 52.43 s, 102.00 s and 11.63 s, for a 166.06 s stage sum at a
+31.64 GiB peak. This improves on the earlier 174.15 s run by 4.6%. That
+reference used an earlier software-SHA guest, so the comparison covers the
+whole configuration. The stage sum was recovered from the three successful
+process receipts after the study script initially expected four service
+proofs for this input.
+
+### Packed source openings for paired CPU leaves
+
+A fresh inspection of two retained workers recovered each source column's
+height and ordered mask tuple. Their ordinary paired graph uses 5,618,400
+Blake G gates and 8,314,134 QM31 rows. Crossing the next Blake padding
+boundary requires removing 1,424,096 gates. The existing field domain has
+74,474 rows of headroom.
+
+| Lifted MAIN and INTER layout | Modeled Blake G reduction | Margin against Blake boundary |
+|---|---:|---:|
+| Width four, both signs | 1,308,960 | −115,136 |
+| Width eight, both signs | 1,974,240 | +550,144 before framing |
+
+Width eight uses groups with the same tree, height and complete ordered mask
+tuple. Both source signs must be authenticated. The Merkle index determines
+orientation, and the distinct periodic sample keeps its own shifted
+coordinate and denominator. The coefficient-first design reuses its folded
+coefficient with a slot power. Recomputing that basis would add an estimated
+456,000 field rows. Both the separate-coefficient and periodic-reuse algebra
+checks matched 64 oriented queries with three shifts, including an independent
+scalar implementation of the M31 extension tower through OM31. The checks rejected
+alterations to the opposite opening, orientation, shift, reused coefficient
+and slot power. The packed circuit still needs a physical graph count of
+the removed and replacement operations, followed by proof and receiver
+qualification.
+
 Start with independently pinned OP and Mantle inputs from this cohort. Keep
 the security profile and expected execution output fixed. Measure changes
 in segment size separately from changes to guest instructions or recursion

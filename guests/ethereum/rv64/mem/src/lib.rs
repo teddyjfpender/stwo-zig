@@ -155,9 +155,10 @@ mod admitted {
     }
     /// Copies `n` bytes through the service when the destination has at least
     /// one whole word and the touched words are disjoint; returns false
-    /// otherwise (the caller copies in software).
+    /// otherwise (the caller copies in software). If `may_overlap` is false,
+    /// the caller must ensure the byte ranges do not overlap.
     #[inline(always)]
-    pub unsafe fn copy(dest: *mut u8, src: *const u8, n: usize) -> bool {
+    pub unsafe fn copy(dest: *mut u8, src: *const u8, n: usize, may_overlap: bool) -> bool {
         let (d, s) = (dest as usize, src as usize);
         let min = if (d ^ s) & 7 == 0 { COPY_MIN } else { UCOPY_MIN };
         if n < min {
@@ -171,7 +172,7 @@ mod admitted {
         // Overlapping moves stay in software. Byte-disjoint ranges never
         // share a service word: the destination body is word-aligned, so the
         // source words holding body bytes end before it or start after it.
-        if d < s + n && s < d + n {
+        if may_overlap && d < s + n && s < d + n {
             return false;
         }
         unsafe {
@@ -239,7 +240,7 @@ mod admitted {
 #[cfg_attr(target_arch = "riscv64", unsafe(no_mangle))]
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     #[cfg(all(feature = "admitted-bulk", target_arch = "riscv64"))]
-    if (admitted::COPY_MIN != usize::MAX || admitted::UCOPY_MIN != usize::MAX) && unsafe { admitted::copy(dest, src, n) } {
+    if (admitted::COPY_MIN != usize::MAX || admitted::UCOPY_MIN != usize::MAX) && unsafe { admitted::copy(dest, src, n, false) } {
         return dest;
     }
     #[cfg(all(feature = "candidate-services", target_arch = "riscv64"))]
@@ -255,7 +256,7 @@ pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut
 pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     // The admitted service requires disjoint words; overlapping moves stay in software.
     #[cfg(all(feature = "admitted-bulk", target_arch = "riscv64"))]
-    if (admitted::COPY_MIN != usize::MAX || admitted::UCOPY_MIN != usize::MAX) && unsafe { admitted::copy(dest, src, n) } {
+    if (admitted::COPY_MIN != usize::MAX || admitted::UCOPY_MIN != usize::MAX) && unsafe { admitted::copy(dest, src, n, true) } {
         return dest;
     }
     // The candidate service is memmove-safe for any overlap.
@@ -769,7 +770,7 @@ mod tests {
                     sb.copy_from_slice(&src);
                     let db = unsafe { core::slice::from_raw_parts_mut(d64.as_mut_ptr() as *mut u8, len + 48) };
                     db.copy_from_slice(&dst);
-                    let ok = unsafe { admitted::copy(db.as_mut_ptr().add(doff), sb.as_ptr().add(so), len) };
+                    let ok = unsafe { admitted::copy(db.as_mut_ptr().add(doff), sb.as_ptr().add(so), len, false) };
                     routed += ok as usize;
                     dst[doff..doff + len].copy_from_slice(&src[so..so + len]);
                     if ok {
@@ -790,16 +791,17 @@ mod tests {
         for d in 0..48usize {
             for s in 0..48usize {
                 for n in 0..64usize {
-                    if d < s + n && s < d + n {
-                        continue;
-                    }
                     let mut words = [0u64; 20];
                     let buffer = unsafe { core::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, 160) };
                     buffer.copy_from_slice(&base_pattern);
                     let mut reference = base_pattern.clone();
                     reference.copy_within(s..s + n, d);
                     let base = buffer.as_mut_ptr();
-                    routed += unsafe { admitted::copy(base.add(d), base.add(s), n) } as usize;
+                    if d < s + n && s < d + n {
+                        assert!(!unsafe { admitted::copy(base.add(d), base.add(s), n, true) });
+                    } else {
+                        routed += unsafe { admitted::copy(base.add(d), base.add(s), n, false) } as usize;
+                    }
                     unsafe { memmove(base.add(d), base.add(s), n) };
                     assert_eq!(buffer, &reference[..], "d {d} s {s} n {n}");
                 }

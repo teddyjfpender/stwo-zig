@@ -108,7 +108,12 @@ pub fn execute(witness: &Witness<'_>) -> Result<ResultSummary, String> {
         return Err("block number overflow".into());
     }
     let chain_id: u64 = input.rollup_config.l2_chain_id.into();
-    let input_commitment = crate::metadata::input_commitment(&input)?;
+    let parent = input.parent_header.seal_slow();
+    let input_commitment = crate::metadata::payload_commitment_with_parent_hash(
+        &input.rollup_config,
+        parent.hash(),
+        &input.payloads,
+    )?;
     let mut digest = execution_digest(input_commitment);
     #[cfg(feature = "host")]
     let last_hint = core::cell::Cell::new(None);
@@ -122,7 +127,7 @@ pub fn execute(witness: &Witness<'_>) -> Result<ResultSummary, String> {
         OpAlloyReceiptBuilder::default(),
         Provider(witness),
         hinter,
-        input.parent_header.seal_slow(),
+        parent,
     );
     let mut hashes = Vec::with_capacity(count);
     let mut gas_used = 0u64;
