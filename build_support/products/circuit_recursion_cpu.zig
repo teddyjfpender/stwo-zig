@@ -260,10 +260,13 @@ fn createProductModuleAt(context: Context, product_descriptor: graph.Product, ro
 /// tools) reuse it so there is one construction of these modules.
 pub fn addCircuitStack(context: Context, product_descriptor: graph.Product, root: *std.Build.Module) void {
     const b = context.b;
-    const cpu_backend = graph.addCpuBackendImport(b, context.protocol, product_descriptor, context.target, context.optimize, root);
+    const cpu_backend = root.import_table.get("stwo_cpu_backend") orelse graph.addCpuBackendImport(b, context.protocol, product_descriptor, context.target, context.optimize, root);
     const cairo_frontend = graph.addCairoFrontendImport(b, context.protocol, product_descriptor, context.target, context.optimize, root);
     _ = integration_graph.addCairoCpuImport(b, context.protocol, product_descriptor, context.target, context.optimize, cpu_backend, cairo_frontend, root);
-    addCircuitProviders(.{ .b = b, .protocol = context.protocol, .target = context.target, .optimize = context.optimize }, product_descriptor, root, cpu_backend, cairo_frontend);
+    if (root.import_table.get("stwo_riscv_cpu_integration")) |riscv| {
+        inline for (.{ "stwo_circuit_frontend", "stwo_circuit_cpu_integration" }) |name|
+            root.addImport(name, riscv.import_table.get(name).?);
+    } else addCircuitProviders(.{ .b = b, .protocol = context.protocol, .target = context.target, .optimize = context.optimize }, product_descriptor, root, cpu_backend, cairo_frontend);
 
     for (embedded_assets) |asset| root.addAnonymousImport(asset.name, .{ .root_source_file = b.path(asset.path) });
 }

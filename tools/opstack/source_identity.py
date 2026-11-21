@@ -27,6 +27,7 @@ def compile_sources(root, execution_crate="guests/opstack/kona"):
         guests / "vendor",
         rv64 / "src",
         rv64 / "mem",
+        rv64 / "service_abi",
         root / "src",
         root / "tools/opstack/build.py",
         root / "tools/opstack/source_identity.py",

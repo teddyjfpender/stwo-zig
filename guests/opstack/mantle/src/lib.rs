@@ -102,10 +102,9 @@ fn exact<T: Decodable + Encodable>(bytes: &[u8]) -> Result<T, Error> {
 #[derive(Debug, Clone, Copy)]
 struct Provider<'a>(&'a BTreeMap<B256, Bytes>);
 impl Provider<'_> {
-    fn get(&self, hash: B256) -> Result<&[u8], Error> {
+    fn get(&self, hash: B256) -> Result<&Bytes, Error> {
         self.0
             .get(&hash)
-            .map(|b| b.as_ref())
             .ok_or_else(|| format!("missing preimage {hash}"))
     }
 }
@@ -117,7 +116,7 @@ impl TrieProvider for Provider<'_> {
 }
 impl TrieDBProvider for Provider<'_> {
     fn bytecode_by_hash(&self, hash: B256) -> Result<Bytes, Error> {
-        Ok(Bytes::copy_from_slice(self.get(hash)?))
+        self.get(hash).cloned()
     }
     fn header_by_hash(&self, hash: B256) -> Result<Header, Error> {
         exact(self.get(hash)?)
@@ -185,7 +184,7 @@ pub fn execute(
         OpEvmFactory::<alloy_op_evm::OpTx>::default(),
         provider,
         NoopTrieHinter,
-        fixture.parent_header.seal_slow(),
+        fixture.parent_header.seal_unchecked(parent_hash),
     );
     let outcome = builder
         .build_block(fixture.payload)
@@ -254,7 +253,6 @@ pub fn guest_execute_with_receipt(raw: &[u8]) -> Result<([u8; 43], Receipt), Err
 mod tests {
     use super::*;
     use alloc::vec;
-    use alloc::vec;
     fn record(data: &'static [u8]) -> Preimage {
         Preimage {
             hash: keccak256(data),
@@ -268,6 +266,13 @@ mod tests {
         invalid.hash = B256::ZERO;
         assert!(checked_preimages(vec![invalid]).is_err());
         assert!(exact::<u64>(&[0x81, 1]).is_err());
+        let data = Bytes::from(vec![1, 2, 3]);
+        let hash = keccak256(&data);
+        let owner = checked_preimages(vec![Preimage { hash, data }]).unwrap();
+        let bytecode = Provider(&owner.0).bytecode_by_hash(hash).unwrap();
+        assert_eq!(bytecode.as_ptr(), owner.0[&hash].as_ptr());
+        drop(owner);
+        assert_eq!(bytecode.as_ref(), &[1, 2, 3]);
     }
     fn fixture() -> Fixture {
         serde_json::from_str(include_str!("../tests/fixtures/block-103132217.json")).unwrap()

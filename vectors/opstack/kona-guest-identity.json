@@ -11,7 +11,7 @@
   "cargo_lock_sha256": {
     "guests/opstack/kona/Cargo.lock": "54cde5e66e97e3a8a74c828e84351021a78c213b896f785e64d3916bad19eeec",
     "guests/opstack/kona/lean/Cargo.lock": "cf3ae157bd6a083e9fc30a611bca026dbdfa9af824a59f271f37e7f096b9ed6a",
-    "guests/opstack/mantle/Cargo.lock": "c538e693165cdfdeac711fe12e776189cf243aafafe911566c8739b3704c62cb"
+    "guests/opstack/mantle/Cargo.lock": "da6705c70bce28dba4283c0c2be1b49a18d74f52d078ae9a7e024dd227b3341c"
   },
   "variants": {
     "sha": {

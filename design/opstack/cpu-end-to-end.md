@@ -46,8 +46,12 @@ row includes fresh root verification.
 | OP 121,049,889 | One per family | 2 / 4 | 33.32 | 99.48 | 10.12 | 142.92 |
 | OP 121,057,303 | Baseline | 2 / 7 | 28.57 | 111.17 | 11.50 | 151.24 |
 | OP 121,057,303 | One per family | 2 / 5 | 33.94 | 107.85 | 10.12 | 151.91 |
+| OP 121,003,241 | Baseline | 4 / 7 | 86.00 | 188.92 | 19.05 | 293.97 |
 | OP 121,135,704 | Baseline | 5 / 6 | 121.22 | 205.26 | 23.82 | 350.30 |
 | OP 121,135,704 | One per family | 5 / 4 | 105.60 | 159.80 | 18.84 | 284.25 |
+| Mantle 103,132,217 | Baseline | 1 / 2 | 18.85 | 47.08 | 4.61 | 70.54 |
+| Mantle 103,132,921 | Baseline | 1 / 2 | 19.11 | 47.69 | 4.64 | 71.44 |
+| Mantle 103,133,561 | Baseline | 1 / 2 | 18.77 | 47.46 | 4.54 | 70.77 |
 | Mantle 103,133,753 | Baseline | 3 / 2 | 38.27 | 75.72 | 9.04 | 123.02 |
 
 The Mantle contract-creation block took 53.6% less time through its fresh
@@ -58,12 +62,57 @@ it provides a lower bound on the elapsed work and no completed baseline.
 Grouping also reduced the number of service shards on 121,057,303 but its
 native producer took longer and overall latency did not improve.
 
+The capped Mantle block 103,133,433 completed at 2,097,151 steps per shard.
+Its six CPU proofs and three service proofs took 50.74 s, recursive
+production took 130.90 s and the fresh receiver took 13.38 s, for 195.02 s
+total. Its 4M-step attempt exceeded the GKR allocation limit. Both 8M-step
+OP attempts failed statement validation before proof production. The larger
+geometry needs a compatible statement, packet, clock and recursion rollout.
+
 The opt-in [16-worker preset](../../tools/opstack/presets/cpu-16workers-single-lane.json)
 uses the trial's component admissions and native schedule. Native and
 recursive producers were separately guarded at 24 and 46 GiB RSS and a
 10 GiB free-disk floor. The largest accepted 4M-step grouped run peaked at
 35.71 GiB sampled RSS during recursion. The preset is a native resource
 configuration. The recursive runs retain their archive binary provenance.
+
+## Guest and proof roster trade-offs
+
+The archived Kona guest that computes SHA-256 in software retains the same
+public output on all five inputs. With 4M-step shards and one proof per
+remaining service family, the complete timings were as follows.
+
+| OP block | RV64 steps | Native s | Recursion s | Root verification s | Total s | Lower than 1M baseline |
+|---|---:|---:|---:|---:|---:|---:|
+| 120,794,432 | 923,894 | 6.95 | 29.84 | 3.44 | 40.24 | 35.2% |
+| 121,049,889 | 5,710,492 | 34.44 | 81.63 | 8.47 | 124.54 | 47.1% |
+| 121,057,303 | 6,141,333 | 35.10 | 94.08 | 9.31 | 138.49 | 52.7% |
+| 121,135,704 | 20,684,774 | 106.07 | 148.53 | 18.33 | 272.93 | Capped control |
+
+Comparing the same 4M-step grouping, software SHA reduced OP 121,049,889
+from 142.92 s to 124.54 s and OP 121,057,303 from 151.91 s to 138.49 s.
+Both requests retired more guest instructions while using one fewer native
+service proof. The recursive prover and fresh receiver used the original
+outer proof profile. This is evidence for selecting services by their total
+production and recursion cost.
+
+The optimized Mantle guest reuses authenticated bytecode and parent header
+hashes. Its existing `crypto-services` build uses the shared RV64 secp256k1
+public recovery implementation. The guest outputs matched all five pinned
+inputs, and the larger samples produced freshly verified roots.
+
+| Mantle block | Guest steps before / after | Service grouping | Native s | Recursion s | Root verification s | Total s |
+|---|---:|---|---:|---:|---:|---:|
+| 103,133,433 | 11,534,260 / 6,044,132 | Baseline | 29.02 | 99.29 | 8.45 | 136.77 |
+| 103,133,433 | 11,534,260 / 6,044,132 | One per family | 25.68 | 80.76 | 6.92 | 113.36 |
+| 103,133,753 | 10,253,419 / 7,506,644 | Baseline | 31.10 | 81.96 | 7.55 | 120.61 |
+
+On block 103,133,433 the grouped guest used two CPU proofs and four service
+proofs. It used 41.9% less time than the accepted 2M-step configuration and
+completed within 35.03 GiB sampled RSS. The original attempt consumed 361 s
+before stopping. The 4M-step bulk-memory trial cut guest steps on 103,133,753
+and took 145.46 s overall, versus 123.02 s for the matching control. Bulk
+memory was kept out of the Mantle guest configuration.
 
 ## Performance gates
 

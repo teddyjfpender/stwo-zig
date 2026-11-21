@@ -17,8 +17,9 @@ stwo-mantle-native guest-input INPUT.json
 
 Native execution receipts explicitly report no STARK/derivation acceptance.
 `build.py --variant mantle-services --guest-opt-level s` builds the alloc-only
-RV64 guest using existing v3 Keccak-sponge/SHA services; `mantle-software` is the
-software control. Use the existing `tools/opstack/benchmark.py --network mantle` and
+RV64 guest with the existing v3 Keccak sponge, SHA-256 and secp256k1 public
+recovery services. `mantle-software` is the software control. Use the existing
+`tools/opstack/benchmark.py --network mantle` and
 `tools/opstack/cpu.py` entrypoints for agreement and complete CPU proof reception.
 No new AIR, service opcode, proof wire or top-level launcher is introduced.
 
@@ -41,6 +42,10 @@ never weaken the expected header or proof checks.
   `305d78b348748e47bd0fe2d4d95bb29ddb10f9ba` (MIT OR Apache-2.0).
 - All thirteen revm-family patches: `mantle-xyz/revm` at
   `835cb4eb742698c5884248f546c68c9d716cc995` (MIT).
+- `k256` 0.13.4 and `ecdsa` 0.16.9 use the repository's existing vendored crates.
+  The guest's `crypto-services` feature selects the RV64 path for public
+  signature recovery. Rebuild the ELF and regenerate request symbols when
+  switching between the software and services guests.
 - The graph is contained in this unpublished crate. Removing the crate and its
   CI command rolls it back without changing OP/Ethereum dependencies. Hosted
   dependency-policy checks remain required; source pinning is not an advisory
@@ -119,8 +124,9 @@ builds pin `x86_64_v3` and record CPU features. Native-target artifacts must not
 be reused on a different CPU from their byte hash alone. Benchmark the Mac
 cohort locally using its pinned native binary and recorded resources.
 
-The security label is **128-bit target under documented assumptions**, not
-certified whole-protocol security. Other four recursive roots, broader sample
-coverage and L1-anchored Mantle derivation remain open. The five-point multivariate
-native timing fit fails leave-one-block-out validation and must not forecast
-new blocks. The OP chain-10 guard and default Ethereum route remain unchanged.
+The [newer CPU cohort](../../../design/opstack/cpu-end-to-end.md) includes a
+freshly accepted root for each of the five inputs and measures the public
+recovery service on larger inputs. The security label is **128-bit target under
+documented assumptions**. L1-anchored Mantle derivation and settlement remain
+open. The five-point multivariate native timing fit fails leave-one-block-out
+validation. The OP chain-10 guard and default Ethereum route remain unchanged.

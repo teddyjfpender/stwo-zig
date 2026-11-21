@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "opstack_cpu_recursion_and_mantle_guest_reuse",
+      "net_code_budget": 13,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 491: reuse one CPU circuit provider graph in the recursion build, test that authenticated bytecode survives its original owner, and pin the existing shared service ABI in build source snapshots. Keep prover behavior and public execution authority in their existing owners. Revert the build or guest slice independently."
+    },
+    {
       "id": "typed_riscv_fixture_test_options_issue332",
       "net_code_budget": 24,
       "flags_added_budget": 0,

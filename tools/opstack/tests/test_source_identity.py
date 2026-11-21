@@ -17,8 +17,12 @@ class SourceIdentity(unittest.TestCase):
             linker = root / "guests/opstack/kona/guest/linker.ld"
             linker.parent.mkdir(parents=True)
             linker.write_text("shared ABI")
+            service = root / "guests/ethereum/rv64/service_abi/src/lib.rs"
+            service.parent.mkdir(parents=True)
+            service.write_text("shared service ABI")
             before = compile_sources(root, "guests/opstack/mantle")
             self.assertIn("guests/opstack/mantle/src/lib.rs", before)
+            self.assertIn(str(service.relative_to(root)), before)
             self.assertNotIn("guests/opstack/mantle/src/lib.rs", compile_sources(root))
             linker.write_text("changed ABI")
             with self.assertRaisesRegex(ValueError, "linker.ld"):
