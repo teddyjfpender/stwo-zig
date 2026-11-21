@@ -19,6 +19,7 @@ fn Reader(comptime S: type) type {
         zero_den: bool = false,
         fail_len: usize = 0,
         oom: bool = false,
+        reads: ?*std.atomic.Value(usize) = null,
         fn source(self: *const @This()) GP.ForField(S).MultiplicitiesSource {
             return .{ .variables = self.variables, .context = self, .read_fn = read };
         }
@@ -32,6 +33,7 @@ fn Reader(comptime S: type) type {
             const self: *const @This() = @ptrCast(@alignCast(ctx));
             if (n.len > 64 or n.len != d.len) return error.ShapeMismatch;
             if (self.fail_len != 0 and n.len == self.fail_len) return if (self.oom) error.OutOfMemory else error.ShapeMismatch;
+            if (self.reads) |count| _ = count.fetchAdd(n.len, .monotonic);
             for (n, d, first..) |*nv, *dv, i| {
                 nv.* = self.numerator(i);
                 dv.* = self.denominator(i);
@@ -57,7 +59,9 @@ pub fn checkWithBaseline(comptime S: type, comptime Baseline: type, workers: ?us
     const Channel = if (S == core.fields.om31.OM31) core.channel.raw_mod_m31.Om31Channel else core.channel.raw_mod_m31.Qm31Channel;
     const G = GP.ForField(S);
     const V = GV.ForField(S);
-    var readers = [_]Reader(S){ .{ .variables = 1 }, .{ .variables = 2, .seed = 31 }, .{ .variables = 16, .seed = 61 }, .{ .variables = 13, .seed = 91 } };
+    var larger_reads = std.atomic.Value(usize).init(0);
+    var cached_reads = std.atomic.Value(usize).init(0);
+    var readers = [_]Reader(S){ .{ .variables = 1 }, .{ .variables = 2, .seed = 31 }, .{ .variables = 16, .seed = 61, .reads = &larger_reads }, .{ .variables = 13, .seed = 91, .reads = &cached_reads } };
     var sources: [readers.len]G.MultiplicitiesSource = undefined;
     var layers: [readers.len]G.Layer = undefined;
     var done: usize = 0;
@@ -82,8 +86,15 @@ pub fn checkWithBaseline(comptime S: type, comptime Baseline: type, workers: ?us
             var lease = if (held and workers != null) try pool.acquire(try Pools.WorkerBudget.init(workers.?)) else null;
             defer if (lease) |*l| l.deinit();
             var channel = Channel.init();
+            larger_reads.store(0, .monotonic);
+            cached_reads.store(0, .monotonic);
             var actual = if (checkpointed) try G.proveBatchSourceCheckpointed(a, &channel, &sources) else try G.proveBatchSource(a, &channel, &sources);
             defer actual.deinit(a);
+            // The larger role exceeds half the fact mass and still streams
+            // h1 in checkpoint mode. The admitted role reads h1 just once.
+            try std.testing.expectEqual(@as(usize, if (checkpointed) 5 else 3) << 16, larger_reads.load(.monotonic));
+            const guarded_reads: usize = if (checkpointed and S != core.fields.om31.OM31) 5 else 3;
+            try std.testing.expectEqual(guarded_reads << 13, cached_reads.load(.monotonic));
             const old = try std.json.Stringify.valueAlloc(a, .{ expected.proof, expected.artifact }, .{});
             defer a.free(old);
             const new = try std.json.Stringify.valueAlloc(a, .{ actual.proof, actual.artifact }, .{});

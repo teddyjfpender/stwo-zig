@@ -41,19 +41,26 @@ pub fn ForField(comptime Secure: type, comptime GkrProverError: type, comptime C
                 d[i] = value.denominator;
             }
         }
-        pub fn firstSourceCheckpoint(a: std.mem.Allocator, source: MultiplicitiesSource, levels: usize) !Layer {
+        pub fn firstSourceCheckpoint(a: std.mem.Allocator, source: MultiplicitiesSource, levels: usize, retain_first: ?*Layer) !Layer {
             try source.validate();
             if (levels < 1 or levels > 2 or levels > source.variables) return error.InvalidLayerStructure;
+            if (retain_first != null and levels != 2) return error.InvalidLayerStructure;
             const len = source.len() >> @intCast(levels);
             const n = try a.alloc(Secure, len);
             errdefer a.free(n);
             const d = try a.alloc(Secure, len);
             errdefer a.free(d);
+            const first_n: []Secure = if (retain_first != null) try a.alloc(Secure, 2 * len) else &.{};
+            errdefer a.free(first_n);
+            const first_d: []Secure = if (retain_first != null) try a.alloc(Secure, 2 * len) else &.{};
+            errdefer a.free(first_d);
             const Context = struct {
                 source: MultiplicitiesSource,
                 levels: usize,
                 n: []Secure,
                 d: []Secure,
+                first_n: []Secure,
+                first_d: []Secure,
                 errors: [rows.MAX_SHARDS]?GkrProverError = @splat(null),
                 pub fn runRange(ctx: *@This(), ordinal: usize, first: usize, end: usize) void {
                     ctx.process(first, end) catch |err| {
@@ -69,10 +76,12 @@ pub fn ForField(comptime Secure: type, comptime GkrProverError: type, comptime C
                         const on = ctx.n[start..][0..count];
                         const od = ctx.d[start..][0..count];
                         if (ctx.levels == 1) try readSourceReduced(ctx.source, start, on, od) else {
-                            try readSourceReduced(ctx.source, 2 * start, ns[0 .. 2 * count], ds[0 .. 2 * count]);
-                            const tail = Packed.nextLogup(Secure, ns[0 .. 2 * count], ds[0 .. 2 * count], on, od, 0, count);
+                            const lower_n = if (ctx.first_n.len == 0) ns[0 .. 2 * count] else ctx.first_n[2 * start ..][0 .. 2 * count];
+                            const lower_d = if (ctx.first_d.len == 0) ds[0 .. 2 * count] else ctx.first_d[2 * start ..][0 .. 2 * count];
+                            try readSourceReduced(ctx.source, 2 * start, lower_n, lower_d);
+                            const tail = Packed.nextLogup(Secure, lower_n, lower_d, on, od, 0, count);
                             for (tail..count) |i| {
-                                const value = fraction.Fraction(Secure, Secure).new(ns[2 * i], ds[2 * i]).add(fraction.Fraction(Secure, Secure).new(ns[2 * i + 1], ds[2 * i + 1]));
+                                const value = fraction.Fraction(Secure, Secure).new(lower_n[2 * i], lower_d[2 * i]).add(fraction.Fraction(Secure, Secure).new(lower_n[2 * i + 1], lower_d[2 * i + 1]));
                                 on[i] = value.numerator;
                                 od[i] = value.denominator;
                             }
@@ -81,10 +90,15 @@ pub fn ForField(comptime Secure: type, comptime GkrProverError: type, comptime C
                     }
                 }
             };
-            var context = Context{ .source = source, .levels = levels, .n = n, .d = d };
+            var context = Context{ .source = source, .levels = levels, .n = n, .d = d, .first_n = first_n, .first_d = first_d };
             const jobs = rows.forEachRange(len, &context, .{});
             for (context.errors[0..jobs]) |err| if (err) |failure| return failure;
-            return .{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(n), .denominators = try MleSecure.initOwned(d) } };
+            const checkpoint = Layer{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(n), .denominators = try MleSecure.initOwned(d) } };
+            if (retain_first) |first| first.* = .{ .LogUpGeneric = .{
+                .numerators = try MleSecure.initOwned(first_n),
+                .denominators = try MleSecure.initOwned(first_d),
+            } };
+            return checkpoint;
         }
         pub fn evalSourceSum(comptime reduced: bool, eq: *const EqEvals, source: MultiplicitiesSource, terms: usize, lambda: Secure) GkrProverError![2]Secure {
             const F = if (reduced) Secure else M31;

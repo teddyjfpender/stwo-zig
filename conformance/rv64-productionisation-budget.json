@@ -12,6 +12,13 @@
   },
   "entries": [
     {
+      "id": "opstack_cpu_om31_checkpoint_reuse",
+      "net_code_budget": 47,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 491: fuse two reductions in the existing OM31 source checkpoint owner and retain the first plane within the same 52-byte-per-fact bound. Proof and allocator tests cover the freed plane, exact transcript and raw source read count. Revert the slice to restore on-demand first-layer recomputation."
+    },
+    {
       "id": "opstack_cpu_recursion_and_mantle_guest_reuse",
       "net_code_budget": 13,
       "flags_added_budget": 0,

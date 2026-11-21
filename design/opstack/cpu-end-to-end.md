@@ -579,6 +579,82 @@ and Mantle requests across the established cohort within the same memory
 and security bounds. Grouped FRI and packed MAIN need their reviewed
 transcripts and authority framing before entering that comparison.
 
+### Large-block authority handoff
+
+On OP 121,135,704, the in-process producer passed its four CPU and four
+service proofs directly to recursion with their live, independently
+derived authority. Both arms used the same research runner with grouped
+DEEP and a grouped service leaf. Both independently received the complete
+root. Their native files match the 179.29 s reference, and the two new
+arms match each other's tree and recursive proof bytes. Grouped DEEP
+changes the circuit authority from the earlier reference.
+
+| Producer | Native and recursive s | Fresh receive s | End to end s | Producer peak RSS |
+|---|---:|---:|---:|---:|
+| Split with cold recursion setup | 223.99 | 19.86 | 243.85 | 31.65 GiB |
+| Live authority handoff | 279.52 | 13.84 | 293.36 | 28.53 GiB |
+
+The live route saved the second producer's authority build and used
+16.35 GiB peak through native bundle publication. Concurrent local
+workloads changed between the runs. Native proving alone took 125.40 s
+in the live arm and 62.41 s in the split arm. These observations qualify
+fit and equivalence and leave the latency comparison open.
+
+The maintained wrapper reuses its independently admitted inventory and
+decoded stage-one data for root closure. Both closure passes remain in
+place. Fresh separate receivers agree on OP 120,794,432's output, root,
+authority, manifest and coverage. Both reject a stage-one execution ID
+mutation with an updated transport hash, a changed exported root proof,
+and a changed closure frame in the published tree. The input artifacts
+retain their original hashes.
+
+The exact maintained guest's PC census attributes all 16,758,770
+retirements. It accounts for 2.96M in `memcpy`, 2.74M in secp field
+squaring and inversion, and 1.45M in trie decode. Reaching three shards
+at the 4,194,303-step limit needs 4.18M fewer retirements. Service work
+also matters. The 158 SHA compressions add a 1.95 MB truth proof and
+about 2.02M Blake G gates in source-row hashing. Replacing those calls
+requires binding the same canonical payload digest before execution.
+Switching the current guest to software SHA pushes it above four
+shards on this input.
+
+The authenticated pair's next Blake boundary is 2²². It needs to remove
+1,424,096 Blake G gates and can spend at most 74,474 additional QM31
+operations before losing its 2²³ field shape. Packing INTER alone can
+remove at most 989,280 source-row gates. A combined MAIN and INTER
+layout needs a real graph census with the original masks and both
+source openings before a full-block timing.
+
+### Streamed GKR checkpoint reuse
+
+The OM31 prover can emit the first and second reduced lookup layers in
+the same pass. It retains the first layer for one source covering up to
+half the padded fact mass. The shared working-plane bound stays at 52
+bytes per fact. Eligible sources use three raw reads per fact instead of
+five. The 55 engine tests cover the proof, transcript, terminal binding,
+read count and allocation failure paths.
+
+| One log-22 CPU worker with service proofs | Numerical GKR s | Native producer s | Numerical GKR requested peak |
+|---|---:|---:|---:|
+| Control, candidate ran first | 8.84 | 29.70 | 2.96 GiB |
+| Fused checkpoints, candidate ran first | 6.34 | 25.38 | 4.96 GiB |
+| Control, control ran first | 6.02 | 23.68 | 2.96 GiB |
+| Fused checkpoints, control ran first | 5.58 | 23.35 | 4.96 GiB |
+
+Both rotated pairs produced byte-identical native proof files and
+passed fresh prefix verification. Sampled native peak RSS was 8.35–8.39
+GiB. The separately built-layer version used the same extra requested
+memory and ran slightly slower than its matched GKR control.
+
+On the complete OP 121,135,704 request, the fused native producer
+followed by the pinned grouped recursion and fresh receiver took
+65.43 s, 117.78 s and 13.79 s respectively, for 197.02 s total. All
+native and recursive proof artifacts match the 179.29 s reference byte
+for byte. The reference remains the fastest complete result.
+The subsequent control reproduced the same native bytes in 104.77 s
+while other builds ran on the host. That observation does not establish
+a matched full-block latency gain.
+
 Start with independently pinned OP and Mantle inputs from this cohort. Keep
 the security profile and expected execution output fixed. Measure changes
 in segment size separately from changes to guest instructions or recursion

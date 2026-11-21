@@ -292,9 +292,9 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     // concurrently with the DAG and must succeed before root publication.
     const arity = try foldArity();
     if (parallel) |options| if (try Pipe.Options.fromEnv(a, options)) |pipe| return runPreparedParallel(.{ .allocator = a, .setups = setups, .truths = truths, .bundle = bundle, .expected = expected, .config = config, .fixed = fixed, .dir = dir, .allow_resume = allow_resume, .inventory = &inventory, .stages = &stages, .manifest = &manifest, .words = words, .frames = frames, .timer = &timer }, options, pipe, arity);
-    // Early rejection only. Acceptance still requires every freshly verified
-    // leaf, every parent, the root and this exact metadata check again below.
-    const metadata = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, frames, .{});
+    // Reuse the admitted inventory and stage decode. Check frame closure here
+    // for early refusal and again after freshly verifying the recursive tree.
+    const metadata = try Root.checkPrepared(a, setups, truths, bundle.requests, &inventory, stages.stages, frames, .{}, 1);
     const prepared = PreparedExecution{ .allocator = a, .setups = setups, .truths = truths, .bundle = bundle, .expected = expected, .config = config, .fixed = fixed, .dir = dir, .allow_resume = allow_resume, .inventory = &inventory, .stages = &stages, .manifest = &manifest, .words = words, .frames = frames, .timer = &timer, .existing_only = existing_only, .factory = factory };
     if (parallel) |options| return runPreparedParallel(prepared, options, null, arity);
     // m3 k-ary trees use the plan-driven path; binary r1 keeps the original
@@ -404,7 +404,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     try Outer.requireDigest(final.proof.produced.outputs, info.digest);
     var fresh = try final.proof.verifyFresh(a);
     defer fresh.deinit(a);
-    _ = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, frames, .{});
+    _ = try Root.checkPrepared(a, setups, truths, bundle.requests, &inventory, stages.stages, frames, .{}, 1);
     const verify_ns = timer.read() - verify_start;
     const bytes = try final.proof.serialize(a);
     defer a.free(bytes);

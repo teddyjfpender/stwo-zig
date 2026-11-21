@@ -121,10 +121,11 @@ pub fn ForField(comptime Secure: type) type {
                 allocator.free(layers_by_instance);
             }
 
+            const retained_first: ?usize = if (source_input and checkpointed and Secure == @import("stwo_core").fields.om31.OM31) firstLayerReuseIndex(sources) else null;
             for (input_layer_by_instance, 0..) |input_layer, i| {
                 if (checkpointed) {
                     if (owned_input) input_transferred += 1;
-                    const stored = if (source_input) try buildSourceCheckpointed(allocator, sources[i]) else try buildCheckpointed(owned_input, allocator, input_layer);
+                    const stored = if (source_input) try buildSourceCheckpointed(allocator, sources[i], retained_first == i) else try buildCheckpointed(owned_input, allocator, input_layer);
                     layers_by_instance[i] = stored.layers;
                     present_by_instance[i] = stored.present;
                 } else layers_by_instance[i] = if (source_input) try buildSourceDense(allocator, sources[i]) else try gkr_circuit_field.buildLayersBorrowedInput(allocator, input_layer);
@@ -363,14 +364,33 @@ pub fn ForField(comptime Secure: type) type {
             layers[0] = .{ .LogUpMultiplicities = .{ .numerators = .{ .evals = &.{}, .owns_evals = false }, .denominators = .{ .evals = &.{}, .owns_evals = false } } };
             var initialized: usize = 1;
             errdefer for (layers[0..initialized]) |*layer| layer.deinit(a);
-            layers[1] = try gkr_circuit_field.firstSourceCheckpoint(a, source, 1);
+            layers[1] = try gkr_circuit_field.firstSourceCheckpoint(a, source, 1, null);
             initialized = 2;
             while (initialized < layers.len) : (initialized += 1) {
                 layers[initialized] = (try layers[initialized - 1].nextLayer(a)) orelse return error.InvalidLayerStructure;
             }
             return layers;
         }
-        fn buildSourceCheckpointed(a: std.mem.Allocator, source: MultiplicitiesSource) !struct { layers: []Layer, present: []bool } {
+        /// Reuse the largest first layer that occupies at most half of the
+        /// raw fact mass. For N facts and field width s, the cached plane is
+        /// at most sN/2. Construction and dormant sources cost at most s
+        /// per fact, including their odd top plane. With A active facts at
+        /// h>=2, the even bank, first folds, resize and Eq cost at most
+        /// (2/3 + 1/4 + 1/16 + 3/32)sA. At h1 this is at most
+        /// (1/2 + 1/8 + 3/16)sA. Adding dormant mass and the cache in both
+        /// phases stays within 13sN/8. The cache is consumed before h0.
+        fn firstLayerReuseIndex(sources: []const MultiplicitiesSource) ?usize {
+            var facts: usize = 0;
+            for (sources) |source| facts = std.math.add(usize, facts, source.len()) catch return null;
+            var best: ?usize = null;
+            for (sources, 0..) |source, i| {
+                if (source.variables < 2 or source.len() > facts / 2) continue;
+                if (best == null or source.variables > sources[best.?].variables) best = i;
+            }
+            return best;
+        }
+
+        fn buildSourceCheckpointed(a: std.mem.Allocator, source: MultiplicitiesSource, retain_first: bool) !struct { layers: []Layer, present: []bool } {
             const count: usize = source.variables + 1;
             const layers = try a.alloc(Layer, count);
             errdefer a.free(layers);
@@ -381,7 +401,8 @@ pub fn ForField(comptime Secure: type) type {
                 if (owns) layer.deinit(a);
             };
             var height: usize = @min(@as(usize, 2), source.variables);
-            layers[height] = try gkr_circuit_field.firstSourceCheckpoint(a, source, height);
+            layers[height] = try gkr_circuit_field.firstSourceCheckpoint(a, source, height, if (retain_first) &layers[1] else null);
+            present[1] = retain_first;
             present[height] = true;
             while (height + 1 < count) {
                 const jump: usize = if (height + 2 < count) 2 else 1;

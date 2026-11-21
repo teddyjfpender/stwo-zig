@@ -238,7 +238,7 @@ pub fn finishPlanned(shared: *ParallelExecution, plan: *const Dag.Plan, backend:
     try Outer.requireDigest(final.proof.produced.outputs, info.digest);
     var fresh = try final.proof.verifyFresh(a);
     defer fresh.deinit(a);
-    const metadata = try Root.check(a, input.setups, input.truths, input.bundle.requests, input.expected, input.config, input.fixed, input.bundle.stage_one_bytes, input.frames, .{});
+    const metadata = try Root.checkPrepared(a, input.setups, input.truths, input.bundle.requests, input.inventory, input.stages.stages, input.frames, .{}, 1);
     const verify_ns = input.timer.read() - verify_start;
     const bytes = try final.proof.serialize(a);
     defer a.free(bytes);
