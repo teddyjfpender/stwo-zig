@@ -7,6 +7,7 @@ const P = @import("protocol.zig");
 const O = P.O;
 const Q = P.Q;
 const M = P.M;
+const M31 = core.fields.m31;
 const T = circuit.witness.trace;
 const List = circuit.common.component_list;
 const C = circuit.witness.components;
@@ -31,6 +32,68 @@ pub const Elements = struct {
         return result.sub(self.z);
     }
 };
+
+const PackedElements = struct {
+    const width = M31.PACK_WIDTH;
+    const pack_count = 8 / width;
+    const enabled = width > 1 and 8 % width == 0;
+    const Pack = M31.PackedM31;
+
+    neg_z: [pack_count]Pack,
+    powers: [pack_count][C.MAX_TUPLE - 1]Pack,
+
+    comptime {
+        if (C.MAX_TUPLE != 6) @compileError("update the packed lookup dot products for the new tuple width");
+    }
+
+    fn init(elements: *const Elements) PackedElements {
+        var result: PackedElements = undefined;
+        const neg_z = elements.z.neg().toM31Array();
+        for (&result.neg_z, 0..) |*pack, i| pack.* = M31.loadPacked(neg_z[i * width ..].ptr);
+        for (elements.powers[1..], 0..) |power, term| {
+            const coordinates = power.toM31Array();
+            for (&result.powers, 0..) |*pack, i| pack[term] = M31.loadPacked(coordinates[i * width ..].ptr);
+        }
+        return result;
+    }
+
+    fn combine(self: *const PackedElements, tuple: []const M) O {
+        return switch (tuple.len) {
+            inline 0...C.MAX_TUPLE => |n| self.combineWidth(n, tuple[0..n]),
+            else => unreachable,
+        };
+    }
+
+    inline fn combineWidth(self: *const PackedElements, comptime n: usize, tuple: *const [n]M) O {
+        var coordinates: [8]M = undefined;
+        inline for (0..pack_count) |i| {
+            var sum = self.neg_z[i];
+            if (n > 0 and i == 0) {
+                // The first tuple value has coefficient one in the base field.
+                var head: Pack = @splat(0);
+                head[0] = tuple[0].toU32();
+                sum = M31.addPacked(sum, head);
+            }
+            if (n > 1) {
+                var values: [4]Pack = @splat(@splat(0));
+                var powers: [4]Pack = @splat(@splat(0));
+                inline for (0..@min(n - 1, 4)) |term| {
+                    values[term] = @splat(tuple[term + 1].toU32());
+                    powers[term] = self.powers[i][term];
+                }
+                sum = M31.addPacked(sum, M31.dot4Packed(values, powers));
+            }
+            if (n > 5) {
+                const tail = M31.mulPacked(@splat(tuple[5].toU32()), self.powers[i][4]);
+                sum = M31.addPacked(sum, tail);
+            }
+            M31.storePacked(coordinates[i * width ..].ptr, sum);
+        }
+        return O.fromM31Array(coordinates);
+    }
+};
+
+const TraceElements = if (PackedElements.enabled) PackedElements else Elements;
 pub const Interaction = struct {
     allocator: std.mem.Allocator,
     columns: []Col,
@@ -46,6 +109,9 @@ pub const Interaction = struct {
     }
 };
 pub fn pairFractions(elements: *const Elements, lookups: []const C.Lookup, out: []L.Fraction) !void {
+    return pairFractionsUsing(elements, lookups, out);
+}
+fn pairFractionsUsing(elements: anytype, lookups: []const C.Lookup, out: []L.Fraction) !void {
     if (out.len != (lookups.len + 1) / 2) return error.InvalidOm31LookupWidth;
     for (out, 0..) |*fraction, i| {
         const first = &lookups[2 * i];
@@ -60,10 +126,10 @@ pub fn pairFractions(elements: *const Elements, lookups: []const C.Lookup, out: 
 const Row = struct {
     raw: *const T.RawLookupRows,
     kind: List.ComponentList,
-    elements: *const Elements,
+    elements: *const TraceElements,
     fn fill(self: @This(), row: usize, out: []L.Fraction) !void {
         var storage: [T.RawLookupRows.MAX_LOOKUPS]C.Lookup = undefined;
-        try pairFractions(self.elements, try self.raw.fill(self.kind, row, &storage), out);
+        try pairFractionsUsing(self.elements, try self.raw.fill(self.kind, row, &storage), out);
     }
 };
 pub fn outputTerm(elements: *const Elements, address: usize, output: Q) !O {
@@ -88,12 +154,13 @@ pub fn writeReleasing(a: std.mem.Allocator, base: *T.BaseTrace, pp: *const circu
 fn writeImpl(a: std.mem.Allocator, base: *T.BaseTrace, pp: *const circuit.common.preprocessed.PreprocessedCircuit, z: O, alpha: O, release: bool) !Interaction {
     const rows = try T.RawLookupRows.init(base.columns, pp);
     const elements = Elements.init(z, alpha);
+    const trace_elements = if (PackedElements.enabled) PackedElements.init(&elements) else elements;
     var outputs: [List.N_COMPONENTS]?L.Output = @splat(null);
     defer for (outputs) |maybe| if (maybe) |out| T.freeColumns(a, out.columns);
     var total: usize = 0;
     var claims: [List.N_COMPONENTS]O = undefined;
     for (std.enums.values(List.ComponentList), base.log_sizes.toArray(), 0..) |kind, log, i| {
-        const out = try L.build(a, log, (T.RawLookupRows.count(kind) + 1) / 2, Row{ .raw = &rows, .kind = kind, .elements = &elements }, Row.fill);
+        const out = try L.build(a, log, (T.RawLookupRows.count(kind) + 1) / 2, Row{ .raw = &rows, .kind = kind, .elements = &trace_elements }, Row.fill);
         outputs[i] = out;
         if (out.columns.len != 8 * ((T.RawLookupRows.count(kind) + 1) / 2)) return error.InvalidOm31InteractionWidth;
         claims[i] = out.claimed_sum;
@@ -112,4 +179,23 @@ fn writeImpl(a: std.mem.Allocator, base: *T.BaseTrace, pp: *const circuit.common
     }
     if (release) T.freeColumns(base.allocator, base.takeColumns());
     return .{ .allocator = a, .columns = columns, .claimed_sums = sums };
+}
+
+test "packed lookup denominators match all scalar tuple widths at the field edge" {
+    if (!PackedElements.enabled) return error.SkipZigTest;
+    const z = O.fromM31Array(@splat(M.fromCanonical(M31.Modulus - 1)));
+    const alpha = O.fromM31Array(.{
+        M.fromCanonical(19), M.fromCanonical(17), M.fromCanonical(13), M.fromCanonical(11),
+        M.fromCanonical(7),  M.fromCanonical(5),  M.fromCanonical(3),  M.fromCanonical(2),
+    });
+    const scalar = Elements.init(z, alpha);
+    const packed_elements = PackedElements.init(&scalar);
+    var random = std.Random.DefaultPrng.init(7041);
+    var tuple: [C.MAX_TUPLE]M = @splat(M.fromCanonical(M31.Modulus - 1));
+    for (0..256) |_| {
+        for (0..tuple.len + 1) |n| {
+            try std.testing.expectEqual(scalar.combine(tuple[0..n]), packed_elements.combine(tuple[0..n]));
+        }
+        for (&tuple) |*value| value.* = M.fromU64(random.random().int(u64));
+    }
 }
