@@ -12,6 +12,27 @@
   },
   "entries": [
     {
+      "id": "opstack_cpu_guest_shard_cut",
+      "net_code_budget": 48,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 491: index the authenticated witness by digest prefix, reuse the sealed parent commitment, decode canonical branch-child references directly and specialize service admission to the copy caller's overlap contract. Preserve digest, range, RLP and overlap validation at their existing owners. Revert the guest slice to restore the previous guest."
+    },
+    {
+      "id": "opstack_cpu_om31_checkpoint_reuse",
+      "net_code_budget": 47,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 491: fuse two reductions in the existing OM31 source checkpoint owner and retain the first plane within the same 52-byte-per-fact bound. Proof and allocator tests cover the freed plane, exact transcript and raw source read count. Revert the slice to restore on-demand first-layer recomputation."
+    },
+    {
+      "id": "opstack_cpu_recursion_and_mantle_guest_reuse",
+      "net_code_budget": 13,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue 491: reuse one CPU circuit provider graph in the recursion build, test that authenticated bytecode survives its original owner, and pin the existing shared service ABI in build source snapshots. Keep prover behavior and public execution authority in their existing owners. Revert the build or guest slice independently."
+    },
+    {
       "id": "typed_riscv_fixture_test_options_issue332",
       "net_code_budget": 24,
       "flags_added_budget": 0,

@@ -133,12 +133,24 @@ pub(crate) fn payload_commitment(
     parent: &alloy_consensus::Header,
     payloads: &[OpPayloadAttributes],
 ) -> Result<[u8; 32], String> {
+    payload_commitment_with_parent_hash(
+        config,
+        alloy_primitives::Sealable::hash_slow(parent),
+        payloads,
+    )
+}
+
+pub(crate) fn payload_commitment_with_parent_hash(
+    config: &kona_genesis::RollupConfig,
+    parent_hash: B256,
+    payloads: &[OpPayloadAttributes],
+) -> Result<[u8; 32], String> {
     let mut hash = Sha256::new();
     hash.update(b"stwo/opstack/payload-range/v1\0");
     hash.update(Sha256::digest(
         serde_json::to_vec(config).map_err(|_| "config encode")?,
     ));
-    hash.update(alloy_primitives::Sealable::hash_slow(parent));
+    hash.update(parent_hash);
     hash.update((payloads.len() as u32).to_le_bytes());
     for a in payloads {
         let view = stream::PayloadView::new(a);

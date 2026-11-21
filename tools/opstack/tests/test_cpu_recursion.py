@@ -6,6 +6,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from opstack import cpu_recursion as recursion
 from opstack.native_profiles import D2_NATIVE_PROFILE
@@ -51,7 +52,10 @@ class CpuRecursionTests(unittest.TestCase):
     def test_fresh_native_and_recursive_authority_is_required(self):
         expected = bytes(range(43))
         report = self.received(expected)
-        result, commands, rows = self.exercise(report)
+        with patch.object(recursion.time, "monotonic_ns", side_effect=[10, 20]):
+            result, commands, rows = self.exercise(report)
+        self.assertEqual(result["root_ready_monotonic_ns"], 10)
+        self.assertEqual(result["root_received_monotonic_ns"], 20)
         self.assertEqual(result["admitted"]["native_profile"], D2_NATIVE_PROFILE)
         self.assertEqual(result["admitted"]["recursive_leaves"], 3)
         self.assertEqual([c[0][3] for c in commands], [
@@ -63,6 +67,13 @@ class CpuRecursionTests(unittest.TestCase):
         self.assertNotIn("--setup-cache", receive)
         self.assertFalse(any(key.startswith("STWO_") for _, env in commands for key in env))
         self.assertEqual(set(rows), {"recursive_produce", "recursive_receive"})
+        neutral = copy.deepcopy(report)
+        for layer in (neutral, neutral["native"]):
+            layer["completed_block"] = layer.pop("completed_ethereum_block")
+        self.exercise(neutral)
+        neutral["native"]["completed_ethereum_block"] = False
+        with self.assertRaises(ValueError):
+            self.exercise(neutral)
         for field in (
             "completed_ethereum_block", "existing_recursive_proofs_only",
             "trace_only_recursive_graphs", "native_verified_before_recursion",

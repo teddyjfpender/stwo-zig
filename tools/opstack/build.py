@@ -116,7 +116,7 @@ def execution_requirements(features):
     selected = set(",".join(features).split(","))
     if "crypto-services" in selected:
         return {"required_execution_profile": "ethereum_services_v3",
-                "op_service_abi": None, "extra_service_tags": [0x0003_0010, 0x0003_0130]}
+                "op_service_abi": None, "extra_service_tags": [0x0002_0011, 0x0002_0012, 0x0003_0010, 0x0003_0130]}
     sparse = bool(selected & {"pairing-sparse-service", "pairing-packet-batching", "pairing-dense-service", "pairing-dense-probe"})
     return {
         "required_execution_profile": "ethereum_services_op_v1" if sparse else None,
@@ -179,7 +179,7 @@ def main():
     parser.add_argument(
         "--variant",
         choices=(*VARIANTS, *LEAN_VARIANTS),
-        default="software",
+        default="canonical-glv",
     )
     parser.add_argument("--eager", action="store_true")
     parser.add_argument("--allocator-check", action="store_true")

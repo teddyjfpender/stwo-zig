@@ -51,6 +51,7 @@ pub struct Witness<'a> {
     metadata: &'a [u8],
     descriptors: &'a [u8],
     payload: &'a [u8],
+    prefix_starts: [u32; 257],
     verified: RefCell<Vec<u64>>,
     stats: Cell<Stats>,
 }
@@ -96,11 +97,18 @@ impl<'a> Witness<'a> {
         }
         let descriptors = &bytes[table_start..table_end];
         let payload = &bytes[table_end..];
+        let mut prefix_starts = [count as u32; 257];
+        let mut next_prefix = 0;
         let mut end = 0usize;
         for i in 0..count {
             let d = &descriptors[i * DESCRIPTOR..(i + 1) * DESCRIPTOR];
             if i > 0 && descriptors[(i - 1) * DESCRIPTOR..(i - 1) * DESCRIPTOR + 32] >= d[..32] {
                 return Err(Error::Order);
+            }
+            let past_prefix = usize::from(d[0]) + 1;
+            if next_prefix < past_prefix {
+                prefix_starts[next_prefix..past_prefix].fill(i as u32);
+                next_prefix = past_prefix;
             }
             if u32_at(d, 32) != end {
                 return Err(Error::Offset);
@@ -117,6 +125,7 @@ impl<'a> Witness<'a> {
             metadata: &bytes[HEADER..table_start],
             descriptors,
             payload,
+            prefix_starts,
             verified: RefCell::new(vec![0; count.div_ceil(64)]),
             stats: Cell::new(Stats::default()),
         };
@@ -166,12 +175,14 @@ impl<'a> Witness<'a> {
         let mut stats = self.stats.get();
         stats.lookups += 1;
         self.stats.set(stats);
-        let mut low = 0;
-        let mut high = self.records();
+        let hash_bytes = hash.as_slice();
+        let prefix = usize::from(hash_bytes[0]);
+        let mut low = self.prefix_starts[prefix] as usize;
+        let mut high = self.prefix_starts[prefix + 1] as usize;
         while low < high {
             let mid = low + (high - low) / 2;
-            let key = &self.descriptors[mid * DESCRIPTOR..mid * DESCRIPTOR + 32];
-            match key.cmp(hash.as_slice()) {
+            let key = &self.descriptors[mid * DESCRIPTOR + 1..mid * DESCRIPTOR + 32];
+            match key.cmp(&hash_bytes[1..]) {
                 core::cmp::Ordering::Less => low = mid + 1,
                 core::cmp::Ordering::Greater => high = mid,
                 core::cmp::Ordering::Equal => {
@@ -234,4 +245,26 @@ fn encode_bounded(
         out.extend_from_slice(value);
     }
     Ok(out)
+}
+
+#[test]
+fn witness_lookup_compares_and_authenticates_the_full_digest() {
+    let value = vec![42];
+    let valid = keccak256(&value);
+    let mut invalid = valid;
+    invalid[31] ^= 1;
+    let mut missing = valid;
+    missing[31] ^= 2;
+    let mut records = [(valid, value), (invalid, vec![])];
+    records.sort_by_key(|entry| entry.0);
+    let input = encode(&[], &records).unwrap();
+    let witness = Witness::parse(&input, Validation::Lazy).unwrap();
+    assert_eq!(witness.get(valid), Ok(&[42][..]));
+    assert_eq!(witness.get(invalid), Err(Error::Hash));
+    assert_eq!(witness.get(missing), Err(Error::Missing(missing)));
+    for prefix in [0, valid[0].wrapping_add(1), 255] {
+        let mut absent = missing;
+        absent[0] = prefix;
+        assert_eq!(witness.get(absent), Err(Error::Missing(absent)));
+    }
 }

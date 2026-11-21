@@ -22,10 +22,10 @@ const Prover = @import("../../fri_family.zig").ForField(Secure).FriProver(Host, 
 const Verifier = FRI.FriVerifier(Hash, Mix);
 const Column = @import("../../secure_column.zig").SecureColumnByCoordsFor(Secure);
 const alloc = std.testing.allocator;
-const width = 4;
+const width = 8;
 const rows = 16;
-const degree_log = 6;
-const domain_log = 8;
+const degree_log = std.math.log2_int(usize, rows * width);
+const domain_log = degree_log + 2;
 const domain = core.poly.circle.canonic.CanonicCoset.new(domain_log).circleDomain();
 const groups = 3;
 const direct_log = domain_log - 2;
@@ -131,7 +131,7 @@ fn receive(roots: [2]Hash.Hash, samples: *const Samples, direct_sample: Secure, 
     try verifier.decommit(alloc, answers[0..queries.len]);
 }
 
-test "stacked Circle opening authenticates both siblings and verifies a two-mask OM31 FRI proof" {
+test "stacked Circle width eight authenticates both siblings and verifies a two-mask OM31 FRI proof" {
     var columns: [groups * width][rows]Base = undefined;
     for (&columns, 0..) |*c, j| for (c, 0..) |*v, i| {
         v.* = Base.fromU64((j + 13) * (i + 5) * (i + 101) + 311 * j * j);
@@ -176,23 +176,41 @@ test "stacked Circle opening authenticates both siblings and verifies a two-mask
     var values = try Column.uninitialized(alloc, traces[0].len);
     var owns_values = true;
     defer if (owns_values) values.deinit(alloc);
-    // Use separate group equations on the prover and the shared projection on the receiver.
-    for (0..traces[0].len) |i| {
-        const w = domain.at(core.utils.bitReverseIndex(i, domain_log));
-        var answer = Secure.zero();
-        for (trace_columns, 0..) |trace, g| {
-            answer = answer.add(alpha[0][g].mulM31(trace[i]));
-            for (z, samples, alpha[1..]) |point, mask, coefficient| {
-                answer = answer.add(coefficient[g].mul(try stack.quotient(w, trace[i], trace[i ^ 1], point, mask[g * width ..][0..width])));
-            }
+    var first = try stack.Batch.init(alloc, width, &alpha[1], z[0], &samples[0]);
+    defer first.deinit(alloc);
+    var second = try stack.Batch.init(alloc, width, &alpha[2], z[1], &samples[1]);
+    defer second.deinit(alloc);
+    for (0..traces[0].len / 2) |pair| {
+        const i = pair * 2;
+        const point = domain.at(core.utils.bitReverseIndex(i, domain_log));
+        var even: Row = undefined;
+        var odd: Row = undefined;
+        for (trace_columns, &even, &odd) |trace, *lhs, *rhs| {
+            lhs.* = trace[i];
+            rhs.* = trace[i + 1];
         }
-        const index = (i >> (domain_log - direct_log + 1) << 1) | (i & 1);
-        const p = direct_domain.at(core.utils.bitReverseIndex(index, direct_log));
-        try std.testing.expectEqual(p, w.repeatedDouble(domain_log - direct_log));
-        const v = small_trace[index];
-        const d = core.constraints.quadraticLineDenominator(Secure, z[0], p);
-        const q = line.c.mulM31(v).sub(line.a.mulM31(p.y)).sub(line.b).mulInner(try d.inv());
-        values.set(i, answer.add(q).add(direct_raw.mulM31(v)));
+        const current = try first.answerPair(point, &even, &odd);
+        const shifted = try second.answerPair(point, &even, &odd);
+        const paired = [2]Secure{ current.value.add(shifted.value), current.conjugate.add(shifted.conjugate) };
+        for (paired, 0..) |answer, sign| {
+            const position = i + sign;
+            const w = if (sign == 0) point else point.conjugate();
+            var expected = rawAnswer(if (sign == 0) even else odd, alpha[0]);
+            for (trace_columns, 0..) |trace, g| {
+                for (z, samples, alpha[1..]) |mask_point, mask, coefficient| {
+                    expected = expected.add(coefficient[g].mul(try stack.quotient(w, trace[position], trace[position ^ 1], mask_point, mask[g * width ..][0..width])));
+                }
+            }
+            const raw = rawAnswer(if (sign == 0) even else odd, alpha[0]);
+            try std.testing.expectEqual(expected, answer.add(raw));
+            const index = (position >> (domain_log - direct_log + 1) << 1) | sign;
+            const p = direct_domain.at(core.utils.bitReverseIndex(index, direct_log));
+            try std.testing.expectEqual(p, w.repeatedDouble(domain_log - direct_log));
+            const v = small_trace[index];
+            const d = core.constraints.quadraticLineDenominator(Secure, z[0], p);
+            const q = line.c.mulM31(v).sub(line.a.mulM31(p.y)).sub(line.b).mulInner(try d.inv());
+            values.set(position, answer.add(raw).add(q).add(direct_raw.mulM31(v)));
+        }
     }
     owns_values = false; // commit takes ownership, including on errors.
     const prover = try Prover.commit(alloc, &channel, config(), domain, values);

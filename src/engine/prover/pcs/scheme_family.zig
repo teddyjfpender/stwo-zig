@@ -539,6 +539,30 @@ pub fn ForField(comptime Secure: type) type {
                         );
                         defer fri_quotient_stage.end();
 
+                        if (comptime Secure == @import("stwo_core").fields.om31.OM31 and H == @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher) {
+                            if (scheme.config.lifting_log_size == null and scheme.revision_config == null and work_recorder == null) {
+                                if (try @import("base_domain_quotient.zig").produce(
+                                    B,
+                                    allocator,
+                                    scheme.trees.items,
+                                    sampled_points_owned,
+                                    sampled_values_owned,
+                                    random_coeff,
+                                    lifting_log_size,
+                                    scheme.config.fri_config.log_blowup_factor,
+                                    scheme.wide_quotient_group_byte_limit,
+                                )) |quotient| {
+                                    break :blk try prover_fri.FriProver(FriBackend, H, MC).commit(
+                                        allocator,
+                                        channel,
+                                        scheme.config.fri_config,
+                                        domain,
+                                        quotient,
+                                    );
+                                }
+                            }
+                        }
+
                         const borrowed_columns_items = try allocator.alloc([]const ColumnEvaluation, scheme.trees.items.len);
                         defer allocator.free(borrowed_columns_items);
                         for (scheme.trees.items, 0..) |tree, i| {

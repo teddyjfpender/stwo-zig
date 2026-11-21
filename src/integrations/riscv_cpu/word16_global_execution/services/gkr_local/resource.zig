@@ -5,9 +5,10 @@ const Instance = @import("frame.zig").Instance;
 const Numerical = @import("stwo_prover_engine").lookups.resource.ForField(@import("stwo_core").fields.om31.OM31);
 /// Source-checkpoint (streamed bottom + stride-two bank) working planes per
 /// padded fact, s = secure size. All instances sit at the same height h in each
-/// outer layer, and no raw N/D plane exists. Construction retains only even
-/// levels h>=2 (2s*N/4^k summed: 2s/3 per fact; nextLayerTwice writes no odd
-/// level). At height h the bank below h is <2s/3 and the oracle's first fold
+/// outer layer, and no raw N/D plane exists. Construction retains the stride-two
+/// bank and top outputs, with an optional h1 plane for one source covering up
+/// to half the facts. The engine bounds the overlap and releases h1 before h0.
+/// At height h the active bank below h is <2s/3 and the oracle's first fold
 /// allocates s/2^h (h=0: foldSourceLayer, h=1: lazy reduced source fold, h=2
 /// with an empty bank: s/4). The bottom dominates: even unstaggered first folds
 /// of every instance total s per fact; a nonresizing allocator's half-copy adds

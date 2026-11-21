@@ -155,6 +155,11 @@ class CPUReceiptTests(unittest.TestCase):
             "output": [255] * 43,
         }
         cpu.accept(report, "ff" * 43)
+        canonical = dict(report, completed_block=report["completed_ethereum_block"])
+        del canonical["completed_ethereum_block"]
+        cpu.accept(canonical, "ff" * 43)
+        with self.assertRaises(ValueError):
+            cpu.accept(dict(canonical, completed_ethereum_block=False), "ff" * 43)
         for field, value in (
             ("accepted", False),
             ("completed_ethereum_block", False),

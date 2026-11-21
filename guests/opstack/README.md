@@ -25,8 +25,10 @@ would retire it.
 ## Toolchain and builds
 
 `rust-toolchain.toml` pins `nightly-2026-08-08` with `rust-src`. Build guests
-through `tools/opstack/build.py --variant <name>`. It records source and binary
-identities and checks pinned ones in `vectors/opstack/kona-guest-identity.json`.
+through `tools/opstack/build.py`. It defaults to the `canonical-glv` Kona guest
+with SHA-256 delegated to the service. Use `--variant` to select another guest.
+The build records source and binary identities and checks pinned ones in
+`vectors/opstack/kona-guest-identity.json`.
 
 Rebuild the ABI probe and compare it with `vectors/opstack/abi-probe.json`:
 

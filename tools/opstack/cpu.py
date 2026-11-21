@@ -21,6 +21,7 @@ sys.path[:0] = [str(ROOT / "tools"), str(ROOT)]
 from opstack.process_metrics import peak_rss_bytes
 from opstack.native_profiles import DEFAULT_NATIVE_PROFILE, NATIVE_PROFILES
 from opstack import cpu_recursion
+from opstack.recursive_transition import completed_block
 
 PROFILE = DEFAULT_NATIVE_PROFILE
 
@@ -114,7 +115,7 @@ def measured(command, prefix, timeout, env, allow_failure=False):
 def accept(report, expected, profile=None):
     if (
         report.get("accepted") is not True
-        or report.get("completed_ethereum_block") is not True
+        or not completed_block(report)
     ):
         raise ValueError("fresh receiver did not accept complete execution")
     if report.get("security_qualified") is not False:
@@ -492,6 +493,13 @@ def main():
                 recursive.pop("root_ready_monotonic_ns") - native_produce_start
             ) / 1e9,
             "scope": "execution/capture/native setup/proving plus recursive setup/wrap/fold; fresh reception and corruption trials follow root production",
+        }
+        receipt["verified_timing"] = {
+            "native_start_to_verified_root_seconds": (
+                recursive.pop("root_received_monotonic_ns") - native_produce_start
+            ) / 1e9,
+            "fresh_receiver_seconds": receipt["stages"]["recursive_receive"]["wall_ns"] / 1e9,
+            "scope": "native production through independent root admission, before artifact hashing and corruption trials",
         }
     else:
         received = json.loads((root / "receive.stdout").read_text())

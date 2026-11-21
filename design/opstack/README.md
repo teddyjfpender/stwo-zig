@@ -4,6 +4,8 @@
   shared RV64 pipeline, and remaining migration obligations.
 - [Integration map](integration-map.tsv) records the placement decision for
   each path imported from PR #372.
+- [CPU proof latency](cpu-end-to-end.md) records the OP Mainnet and Mantle
+  baseline through independent root verification.
 - [Product guide](../../src/products/opstack/statement/README.md) documents
   the live native producer and receiver.
 

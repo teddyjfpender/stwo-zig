@@ -1076,8 +1076,6 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 [[package]]
 name = "ecdsa"
 version = "0.16.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee27f32b5c5292967d2d4a9d7f1e0b0aed2c15daded5a60300e4abb9d8020bca"
 dependencies = [
  "der",
  "digest 0.10.7",
@@ -1400,14 +1398,13 @@ dependencies = [
 [[package]]
 name = "k256"
 version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6e3919bbaa2945715f0bb6d3934a173d1e9a59ac23767fbaaef277265a7411b"
 dependencies = [
  "cfg-if",
  "ecdsa",
  "elliptic-curve",
  "serdect",
  "sha2",
+ "stwo-rv64-service-abi",
 ]
 
 [[package]]
@@ -2528,6 +2525,8 @@ dependencies = [
  "alloy-op-evm",
  "alloy-primitives",
  "alloy-rlp",
+ "ecdsa",
+ "k256",
  "kona-executor",
  "kona-genesis",
  "kona-mpt",
@@ -2549,6 +2548,10 @@ dependencies = [
 
 [[package]]
 name = "stwo-rv64-mem"
+version = "0.1.0"
+
+[[package]]
+name = "stwo-rv64-service-abi"
 version = "0.1.0"
 
 [[package]]

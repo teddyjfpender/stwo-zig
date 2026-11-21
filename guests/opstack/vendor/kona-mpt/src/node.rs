@@ -156,10 +156,11 @@ impl TrieNode {
     }
 
     fn encode_reference(&self, out: &mut dyn alloy_rlp::BufMut) {
-        if self.blinded_length() == B256::ZERO.length() {
-            self.blind().encode(out);
-        } else {
-            self.encode(out);
+        match self {
+            Self::Empty => out.put_u8(EMPTY_STRING_CODE),
+            Self::Blinded { commitment } => commitment.encode(out),
+            _ if self.blinded_length() == B256::ZERO.length() => self.blind().encode(out),
+            _ => self.encode(out),
         }
     }
 
