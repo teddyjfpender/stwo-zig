@@ -10,6 +10,12 @@ const BasePoint = core.circle.CirclePointM31;
 const SamplePoint = core.circle.CirclePoint(Secure);
 const max_log = core.poly.circle.domain.MAX_CIRCLE_DOMAIN_LOG_SIZE;
 const half = Base.fromCanonical(1 << 30);
+const Inner = Secure.InnerField;
+
+pub const Pair = struct {
+    value: Secure,
+    conjugate: Secure,
+};
 
 fn validWidth(width: usize) bool {
     return width >= 2 and std.math.isPowerOfTwo(width) and std.math.log2_int(usize, width) < max_log;
@@ -60,11 +66,12 @@ pub fn quotient(w: BasePoint, opened: Base, sibling: Base, z: SamplePoint, sampl
     const fiber = try Fiber.init(w, factors[0..log]);
     const sample = sampleAtQuery(samples, factors[0..log]);
     const line = try core.constraints.quadraticConjugateLineCoeffs(Secure, z, sample, Secure.one());
-    return fiber.combine(z, line.c.mulM31(opened), line.c.mulM31(sibling), line.a, line.b);
+    return (try fiber.combine(z, line.c.mulM31(opened), line.c.mulM31(sibling), line.a, line.b)).value;
 }
 
 const Fiber = struct {
     folded: BasePoint,
+    y: Base,
     ratio: Base,
 
     fn init(w: BasePoint, factors: []Base) !Fiber {
@@ -77,19 +84,24 @@ const Fiber = struct {
         }
         const folded = BasePoint{ .x = x, .y = w.y.mul(ratio) };
         if (folded.y.isZero()) return error.SingularFiber;
-        return .{ .folded = folded, .ratio = ratio };
+        return .{ .folded = folded, .y = w.y, .ratio = ratio };
     }
 
-    fn combine(f: Fiber, z: SamplePoint, opened: Secure, sibling: Secure, a: Secure, b: Secure) !Secure {
-        const d0 = core.constraints.quadraticLineDenominator(Secure, z, f.folded);
-        const d1 = core.constraints.quadraticLineDenominator(Secure, z, f.folded.conjugate());
-        const inv = try d0.mul(d1).inv();
-        const center = opened.add(sibling).mulM31(half);
-        const delta = opened.sub(sibling).mulM31(half.mul(f.ratio));
-        const ay = a.mulM31(f.folded.y);
-        const q0 = center.add(delta).sub(ay).sub(b).mulInner(d1.mul(inv));
-        const q1 = center.sub(delta).add(ay).sub(b).mulInner(d0.mul(inv));
-        return q0.add(q1).add(q0.sub(q1).mulM31(try f.ratio.inv())).mulM31(half);
+    fn combine(f: Fiber, z: SamplePoint, opened: Secure, sibling: Secure, a: Secure, b: Secure) !Pair {
+        const d = z.x.c0.sub(Inner.fromBase(f.folded.x)).mul(z.y.c1).sub(z.y.c0.mul(z.x.c1));
+        const slope = z.x.c1.mul(Inner.fromBase(f.y));
+        const e = slope.mul(Inner.fromBase(f.ratio));
+        const inv = try d.square().sub(e.square()).inv();
+        const center = opened.add(sibling).mulM31(half).sub(b);
+        const delta = opened.sub(sibling).mulM31(half).sub(a.mulM31(f.y));
+        // The original denominators are d +/- e. Keep delta at the packed
+        // y coordinate so the odd projection cancels the fold ratio.
+        const diag = d.mul(inv);
+        const upper = slope.mul(inv);
+        const lower = upper.mul(Inner.fromBase(f.ratio.square()));
+        const even = center.mulInner(diag).sub(delta.mulInner(lower));
+        const odd = delta.mulInner(diag).sub(center.mulInner(upper));
+        return .{ .value = even.add(odd), .conjugate = even.sub(odd) };
     }
 };
 
@@ -132,28 +144,49 @@ pub const Batch = struct {
     }
 
     pub fn answer(batch: Batch, w: BasePoint, opened: []const Base, siblings: []const Base) !Secure {
+        if (batch.real.len != 1) return (try batch.answerPair(w, opened, siblings)).value;
         if (opened.len != batch.weights.len or siblings.len != batch.weights.len) return error.InvalidStackShape;
         if (!w.isOnCircle()) return error.InvalidCirclePoint;
-        var plus = Secure.zero();
-        for (batch.weights, opened) |alpha, v| plus = plus.add(alpha.mulM31(v));
+        return batch.direct(w, opened);
+    }
+
+    fn direct(batch: Batch, w: BasePoint, opened: []const Base) !Secure {
+        var value = Secure.zero();
+        for (batch.weights, opened) |alpha, word| value = value.add(alpha.mulM31(word));
         const y = batch.point.y;
-        // With quadratic generator u, factor -2u out of the native line.
-        // Its remaining coefficients are Im(s), Re(s) Im(y) - Im(s) Re(y), Im(y).
-        const scale = Secure{ .c0 = Secure.InnerField.zero(), .c1 = Secure.InnerField.fromBase(Base.fromCanonical(2).neg()) };
-        if (batch.real.len == 1) {
-            const d = core.constraints.quadraticLineDenominator(Secure, batch.point, w);
-            const line = plus.sub(batch.real[0]).mulInner(y.c1).add(batch.imaginary[0].mulInner(y.c0.sub(Secure.InnerField.fromBase(w.y))));
-            return line.mulInner(try d.inv()).mul(scale);
-        }
+        const d = core.constraints.quadraticLineDenominator(Secure, batch.point, w);
+        const line = value.sub(batch.real[0]).mulInner(y.c1).add(batch.imaginary[0].mulInner(y.c0.sub(Inner.fromBase(w.y))));
+        return scaleLine(line.mulInner(try d.inv()));
+    }
+
+    /// Evaluate the two orientations together. Both source rows use the
+    /// same post-sample weights and must be authenticated by the caller.
+    pub fn answerPair(batch: Batch, w: BasePoint, opened: []const Base, siblings: []const Base) !Pair {
+        if (opened.len != batch.weights.len or siblings.len != batch.weights.len or batch.real.len == 1) return error.InvalidStackShape;
+        if (!w.isOnCircle()) return error.InvalidCirclePoint;
         const log = std.math.log2_int(usize, batch.real.len);
         var factors: [max_log]Base = undefined;
         const fiber = try Fiber.init(w, factors[0..log]);
         const re = sampleAtQuery(batch.real, factors[0..log]);
         const im = sampleAtQuery(batch.imaginary, factors[0..log]);
+        const y = batch.point.y;
         const b = re.mulInner(y.c1).sub(im.mulInner(y.c0));
+        var plus = Secure.zero();
         var minus = Secure.zero();
-        for (batch.weights, siblings) |alpha, v| minus = minus.add(alpha.mulM31(v));
+        for (batch.weights, opened, siblings) |alpha, v, sibling| {
+            plus = plus.add(alpha.mulM31(v));
+            minus = minus.add(alpha.mulM31(sibling));
+        }
         const q = try fiber.combine(batch.point, plus.mulInner(y.c1), minus.mulInner(y.c1), im, b);
-        return q.mul(scale);
+        return .{ .value = scaleLine(q.value), .conjugate = scaleLine(q.conjugate) };
     }
 };
+
+// The quadratic generator sends (real, imaginary) to (nr * imaginary, real).
+fn scaleLine(value: Secure) Secure {
+    const nonresidue = core.fields.om31.NONRESIDUE;
+    return .{
+        .c0 = value.c1.mul(nonresidue.add(nonresidue).neg()),
+        .c1 = value.c0.add(value.c0).neg(),
+    };
+}

@@ -176,23 +176,41 @@ test "stacked Circle width eight authenticates both siblings and verifies a two-
     var values = try Column.uninitialized(alloc, traces[0].len);
     var owns_values = true;
     defer if (owns_values) values.deinit(alloc);
-    // Use separate group equations on the prover and the shared projection on the receiver.
-    for (0..traces[0].len) |i| {
-        const w = domain.at(core.utils.bitReverseIndex(i, domain_log));
-        var answer = Secure.zero();
-        for (trace_columns, 0..) |trace, g| {
-            answer = answer.add(alpha[0][g].mulM31(trace[i]));
-            for (z, samples, alpha[1..]) |point, mask, coefficient| {
-                answer = answer.add(coefficient[g].mul(try stack.quotient(w, trace[i], trace[i ^ 1], point, mask[g * width ..][0..width])));
-            }
+    var first = try stack.Batch.init(alloc, width, &alpha[1], z[0], &samples[0]);
+    defer first.deinit(alloc);
+    var second = try stack.Batch.init(alloc, width, &alpha[2], z[1], &samples[1]);
+    defer second.deinit(alloc);
+    for (0..traces[0].len / 2) |pair| {
+        const i = pair * 2;
+        const point = domain.at(core.utils.bitReverseIndex(i, domain_log));
+        var even: Row = undefined;
+        var odd: Row = undefined;
+        for (trace_columns, &even, &odd) |trace, *lhs, *rhs| {
+            lhs.* = trace[i];
+            rhs.* = trace[i + 1];
         }
-        const index = (i >> (domain_log - direct_log + 1) << 1) | (i & 1);
-        const p = direct_domain.at(core.utils.bitReverseIndex(index, direct_log));
-        try std.testing.expectEqual(p, w.repeatedDouble(domain_log - direct_log));
-        const v = small_trace[index];
-        const d = core.constraints.quadraticLineDenominator(Secure, z[0], p);
-        const q = line.c.mulM31(v).sub(line.a.mulM31(p.y)).sub(line.b).mulInner(try d.inv());
-        values.set(i, answer.add(q).add(direct_raw.mulM31(v)));
+        const current = try first.answerPair(point, &even, &odd);
+        const shifted = try second.answerPair(point, &even, &odd);
+        const paired = [2]Secure{ current.value.add(shifted.value), current.conjugate.add(shifted.conjugate) };
+        for (paired, 0..) |answer, sign| {
+            const position = i + sign;
+            const w = if (sign == 0) point else point.conjugate();
+            var expected = rawAnswer(if (sign == 0) even else odd, alpha[0]);
+            for (trace_columns, 0..) |trace, g| {
+                for (z, samples, alpha[1..]) |mask_point, mask, coefficient| {
+                    expected = expected.add(coefficient[g].mul(try stack.quotient(w, trace[position], trace[position ^ 1], mask_point, mask[g * width ..][0..width])));
+                }
+            }
+            const raw = rawAnswer(if (sign == 0) even else odd, alpha[0]);
+            try std.testing.expectEqual(expected, answer.add(raw));
+            const index = (position >> (domain_log - direct_log + 1) << 1) | sign;
+            const p = direct_domain.at(core.utils.bitReverseIndex(index, direct_log));
+            try std.testing.expectEqual(p, w.repeatedDouble(domain_log - direct_log));
+            const v = small_trace[index];
+            const d = core.constraints.quadraticLineDenominator(Secure, z[0], p);
+            const q = line.c.mulM31(v).sub(line.a.mulM31(p.y)).sub(line.b).mulInner(try d.inv());
+            values.set(position, answer.add(raw).add(q).add(direct_raw.mulM31(v)));
+        }
     }
     owns_values = false; // commit takes ownership, including on errors.
     const prover = try Prover.commit(alloc, &channel, config(), domain, values);

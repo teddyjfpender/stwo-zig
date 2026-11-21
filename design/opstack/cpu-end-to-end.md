@@ -889,6 +889,55 @@ At the three-lane native and receiver times, that leaves 24.55 s for
 recursive production. Improvements to the native and receiver phases
 can increase that allowance.
 
+### Degree-domain quotient
+
+The coefficient-backed OM31 prover can evaluate the DEEP quotient on its
+degree-bound Circle domain and extend the resulting polynomial once for
+FRI. For the blowup-four profile this evaluates one quarter as many
+quotient rows. Lowering the lifting and source logs together preserves
+the shifted mask's period. The original AIR sample points still determine
+the quotient lines. The focused test compares every output coordinate
+with full-domain evaluation on mixed heights and with a shifted mask.
+
+| OP 121,003,241, three native lanes | Control | Degree-domain quotient |
+|---|---:|---:|
+| Summed quotient and FRI commit | 13.57 s | 6.18 s |
+| Native production wall | 46.81 s | 44.74 s |
+| Recursive production wall | 93.99 s | 92.57 s |
+| Fresh root verification | 11.67 s | 11.45 s |
+| End-to-end wall | 152.51 s | 148.79 s |
+
+This matched observation exercised the degree-domain route on all eight
+workers. The native proof files and every recursive artifact matched
+the control byte for byte. The quotient and FRI commit stage decreased
+54.5% in summed worker time. End-to-end wall time decreased 2.4%.
+The latest half-latency target is about 76.26 s on the same block.
+At the measured native and receiver times, that leaves about 20 s
+for recursive production.
+
+A paired leaf schedule with two nine-worker pools also reproduced
+the native and recursive proof bytes. It ran the first two CPU
+leaves together, paired the next CPU leaf with the Keccak leaf,
+and paired the last two service leaves. Recursive wall was 93.08 s
+and peak RSS was 39.59 GiB, versus 92.57 s and 31.49 GiB with the
+sequential leaf schedule. The complete run took 150.59 s. The paired
+schedule remains a benchmark experiment.
+
+Extending the degree-domain route to blowup two exercised all nine
+recursive nodes. Proof bytes again matched the control. Recursive wall
+rose to 97.36 s and end-to-end wall rose to 159.02 s. The implementation
+selects the measured blowup-four route.
+
+The width-eight native quotient kernel now evaluates both conjugates
+together and cancels the fold-ratio inverse algebraically. The
+physical FRI fixture builds its quotient with that kernel, checks
+each result against separate group equations, and rejects corrupted
+source and FRI data. A standalone ReleaseFast run over 262,144 rows
+and 64 packed groups took 66.6 ms versus 138.3 ms for separate
+orientations, with matching checksums. This measures arithmetic on a
+repeated set of rows. The full packed CPU proof still needs the new
+suffix and receiver wiring.
+
 Start with independently pinned OP and Mantle inputs from this cohort. Keep
 the security profile and expected execution output fixed. Measure changes
 in segment size separately from changes to guest instructions or recursion
