@@ -2511,6 +2511,7 @@
       "lanes": [
         "riscv_air_lang_package",
         "riscv_frontend",
+        "riscv_frontend_releasefast",
         "script_contracts",
         "static"
       ],
