@@ -767,6 +767,49 @@ build packed INTER from the same logical coefficients used by composition,
 and bind both to the shared-FRI transcript. The exact-stage counts do not
 qualify that new proof carrier or establish its end-to-end wall time.
 
+#### Live CPU source commitments
+
+A guarded probe used the retained coefficients of worker zero during a
+complete OP 121,003,241 native run. It derived the ordered masks from the
+admitted CPU geometry and built both packed commitments on the live worker.
+The packed trees used log 24 and a 256 MiB cap per LDE batch. Each opened
+54 conjugate pairs and authenticated them with the native Merkle verifier.
+Changing either packed root caused authentication to fail.
+
+| Live CPU worker zero | Logical columns | Packed columns | Build s | Open s |
+|---|---:|---:|---:|---:|
+| MAIN | 3,379 | 487 | 7.190 | 0.301 |
+| INTER | 1,880 | 255 | 4.181 | 0.205 |
+
+Using the existing worker pool for dyadic extensions preserved both
+roots and brought the packed builds down to 3.203 s for MAIN and
+2.026 s for INTER. A separate local GKR proof took 9.396 s against
+that packed MAIN root. Its local verifier accepted it in 1.93 ms and
+rejected the original MAIN root with `InvalidSumcheck`. This checks
+receipt scope before the terminal PCS binding.
+
+The probe added separate commitments while the ordinary transcript owned
+execution acceptance. Native production with the probe took 55.32 s.
+Recursive production on those ordinary proof bytes took 92.88 s and a
+fresh receiver took 11.73 s. The guarded stage sum was 159.94 s. All
+native and recursive proof bytes matched the three-lane control.
+
+The stage-one experiment then used packed MAIN as the challenge authority
+for all three CPU workers. It reduced their combined MAIN width from
+9,851 to 1,417 columns. The coordinator sealed all three CPU and five
+service workers, decoded the serialized manifest and reverified its
+digest. Changing any of the three packed roots failed its GKR sumcheck.
+The guarded run took 25.57 s and peaked at 16.00 GiB. It stopped before
+stage two. The run still built the ordinary MAIN commitments to retain
+their logical coefficient owners, so it measures integration rather
+than the cost of a replacement producer.
+
+The new physical worker proof needs a packed DEEP/FRI suffix that keeps
+the original ordered AIR samples and authenticates both packed signs.
+The CPU receiver and recursive leaf must independently replay that same
+suffix and derive its layout. Until that gate passes, the 159.94 s
+observation measures the ordinary proof with an extra source probe.
+
 ### Composed runs on OP 121,003,241
 
 The service-backed guest, 4,194,303-step shard cap and grouped recursion
