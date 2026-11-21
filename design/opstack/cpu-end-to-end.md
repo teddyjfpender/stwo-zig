@@ -438,8 +438,8 @@ Using the best earlier complete observation per block as the reference,
 the cohort's 10× targets range from 3.25 to 17.93 s. Removing all recursive
 production would give at most 2.30–3.39× because native production and the
 fresh receiver remain. On the largest OP input those two phases already
-take 76.95 s. A 10× improvement needs native work reduction and cheaper
-independent admission in addition to less work in wraps and folds.
+take 76.95 s, so they need a further 4.29× reduction even with instant
+recursive production.
 
 The fresh receiver continues to derive the exact worker and circuit authorities
 from the pinned request. Root acceptance checks the complete ordered spans,
@@ -460,6 +460,111 @@ cost is in budget. Keep distinct domains for the experiments and reject
 cross-profile proofs.
 
 ## Performance gates
+
+### Complete candidate comparisons
+
+The 4M-step, grouped-outer run on OP 121,135,704 used the same request,
+guest, verifier authority and hardware guards as the earlier native schedule
+test. The three-by-six schedule produced identical native files and the
+same recursive root bytes. Other local build and test processes were observed
+during these runs, so the repeated observation establishes fit and outcome
+and supplies no isolated scheduling speedup.
+
+| Native profile and schedule | Native s | Recursive s | Fresh verification s | End to end s |
+|---|---:|---:|---:|---:|
+| Blowup four, two by eight, earlier control | 63.53 | 102.34 | 13.41 | 179.29 |
+| Blowup four, three by six | 64.73 | 109.70 | 14.20 | 188.65 |
+| Blowup two, three by six | 52.28 | 152.37 to stop | — | — |
+
+The low-blowup run stopped at an allocation error on the three-service
+grouped leaf. Its field graph rose to 14.40M operations and
+padded to 2²⁴. Sampled RSS was 33.70 GiB when the producer returned an
+allocation error. The comparison retains the same caps and charges native,
+outer and independent admission costs separately.
+
+The coefficient-first packed ADD opener reduces the weighted projections
+before evaluating them on the query domain. Sharing the twiddles used to
+materialize the source trees brings its native suffix from 4.344 s to
+1.367 s and peak RSS from 1.314 GiB to 0.674 GiB. Each of the nine timed
+outputs matches the 1,174,608-byte control, and a fresh process accepted
+both optimized outputs against the existing fused outer proof. Source
+materialization and OODS evaluation take 1.068 s of the 1.295 s internal
+fast-path span.
+
+Retaining the packed source trees in the producer avoids serializing
+115,228,672 coefficient bytes and rebuilding their authority at the opening
+handoff. In three paired native runs, production plus fresh leaf reception
+fell from 5.917 s to 5.397 s. A separate pair starting from captured packets
+also generated a new recursive leaf and freshly received it in both arms.
+That comparison took 13.702 s for split processes and 13.083 s with retained
+trees. Native and outer proof bytes matched. Sampled native RSS moved from
+0.674 GiB to 0.782 GiB. An altered source packet or packed MAIN authority
+failed before witness publication. These are service-fixture measurements.
+
+Specializing the outer circuit's OM31 arithmetic by literal wire shape
+removes another 201,073 QM31 operations across the two large OP CPU worker
+graphs after DEEP grouping. Public digests and Blake G counts match the
+controls. The guessed-zero tests pin the same circuit topology as a
+nonzero witness. Both individual graphs still pad to 2²³.
+
+The authenticated paired graph checks both retained prefixes, both sets
+of source paths at the shared query positions, and a single FRI suffix.
+It preserves both independent public digests. It used 8,314,134 raw
+QM31 operations, 74,474 below 2²³. The original independent graphs use
+two padded 2²³ QM31 components. The paired graph keeps one 2²³ component.
+It has 5,618,400 raw Blake G gates and the same total 2²³ Blake padding
+as the two separate graphs. A changed right MAIN opening failed with
+`RootMismatch`. A swapped roster failed with `JointSnapshotShape`. The
+value-mode graph was checked on both real prefixes under the pinned
+fixture authority. Two physical wrap attempts stopped at the diagnostic
+allocator's 24 GiB requested-live limit. The instrumented run spent
+24.07 s and reached 27.18 GiB sampled RSS. The separate 46 GiB
+producer RSS guard did not fire.
+
+The scratch runner then used the outer producer's 48 GiB requested-live
+budget, kept the 46 GiB external RSS guard, and released captured sources
+before wrapping. It produced a 751,192-byte proof in 27.63 s including
+graph construction, with 31.85 GiB sampled peak RSS. A fresh process
+rebuilt the fixture authority and accepted the proof in 8.15 s at a
+sampled peak of 8.81 GiB. A proof-byte mutation failed with
+`RootMismatch`.
+
+Both independent leaves passed the same binary's producer and fresh
+receiver sequentially. The paired proof reduced the complete two-worker
+fixture from 51.58 s to 35.77 s and from 1,501,648 to 751,192 bytes.
+Peak producer RSS increased from 22.46 to 31.85 GiB. Time inside the
+outer wrapper moved from 19.87 s to 19.17 s. The larger wall saving
+comes from the combined process doing one admission and graph rebuild
+per phase. This comparison excludes the parent fold and the rest of
+the block.
+
+### Neutral product admission
+
+A bounded OP-owned CLI experiment used the neutral RV64 pipeline for native
+production, recursion and independent root verification. Both requests used
+the same binary and a four-child outer policy with the existing cap-three
+commitment layout. Both native bundles match the corresponding compatibility
+runner's binary files. The OP root proof matches its control byte for byte.
+The earlier Mantle control used the outer GKR profile.
+
+| Block | Native s | Recursive s | Fresh verification s | End to end s |
+|---|---:|---:|---:|---:|
+| OP 120,794,432 | 7.79 | 18.56 | 2.94 | 29.29 |
+| Mantle 103,132,217 | 14.66 | 37.49 | 4.10 | 56.26 |
+
+`WideBundleFileChanged` and `RootMismatch` rejected the plain and rehashed
+OP native-proof mutations. A changed published root failed with
+`RecursiveReceiverArtifactMismatch`. The CLI wiring is experimental. The
+benchmark now accepts the neutral completion field and records verified
+end-to-end latency directly.
+
+The product integration decision should bind the outer proof policy before
+opening input or proof files, through the existing neutral pipeline and the
+OP hooks. Keep the current admitted native and outer proof identity for the
+first maintained comparison. Choose the default after comparing cold OP
+and Mantle requests across the established cohort within the same memory
+and security bounds. Grouped FRI and packed MAIN need their reviewed
+transcripts and authority framing before entering that comparison.
 
 Start with independently pinned OP and Mantle inputs from this cohort. Keep
 the security profile and expected execution output fixed. Measure changes
