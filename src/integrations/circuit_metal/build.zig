@@ -90,6 +90,9 @@ pub fn build(b: *std.Build) void {
     r7_root.addImport("stwo_circuit_recursion_wire", wire);
     r7_root.addImport("circuit_testing", circuit_testing);
     r7_root.addImport("circuit_provers_under_test", metal_provers);
+    const r7_options = b.addOptions();
+    r7_options.addOption(?[]const u8, "emit_dir", null);
+    r7_root.addOptions("circuit_test_options", r7_options);
     const r7_tests = b.addTest(.{ .root_module = r7_root, .filters = filters });
     linkMetal(r7_tests);
     const run_r7 = b.addRunArtifact(r7_tests);
