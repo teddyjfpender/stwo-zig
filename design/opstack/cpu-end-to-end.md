@@ -938,6 +938,92 @@ orientations, with matching checksums. This measures arithmetic on a
 repeated set of rows. The full packed CPU proof still needs the new
 suffix and receiver wiring.
 
+### Shared CPU recursion measurements
+
+The shared OM31 circuit witness builder evaluates the lookup denominators
+with packed base-field dot products. Four products fit in a 64-bit
+accumulator because every factor is a canonical M31 representative. The
+eight field coordinates keep their original order. The native receiver
+still uses the scalar tuple calculation.
+
+A focused benchmark over 524,288 tuples measured 1.56× to 2.04× faster
+denominator evaluation at widths two, four, five and six. The package
+witness, physical-proof and serial-versus-pool tests passed. A complete
+run on OP 121,003,241 matched the retained control's native proof files,
+recursive proof files and tree metadata byte for byte. This comparison
+ran on a shared host and includes variability between runs.
+
+| OP 121,003,241 | Native s | Recursion s | Fresh receive s | Measured wall s |
+|---|---:|---:|---:|---:|
+| Scalar lookup, retained native proofs | Retained | 127.40 | 12.00 | 139.41 |
+| Packed lookup, complete run | 58.26 | 117.08 | 12.58 | 187.92 |
+| Compact tree, depth-six cap, packed lookup, retained native proofs | Retained | 110.30 | 12.06 | 122.37 |
+
+The complete run peaked at 31.57 GiB. Recursive proof production spent
+39.71 s committing interaction columns and 11.62 s generating them,
+summed across nine nodes. MAIN commitment took 9.52 s and the remaining
+prover engine took 38.45 s. These measurements favor cutting committed
+interaction work and crossing padding boundaries over further tuning a
+single lookup multiplication.
+
+The compact planner preserved order and used two folds for six OP
+leaves. It also passed on retained native proofs for Ethereum block
+24,628,607 with 11 leaves and four folds, taking 238.11 s to produce
+recursion and 32.99 s to receive it. Both receivers rejected reordered
+children. The Ethereum three-service wrap crossed to 2²⁴ field rows.
+Fold count alone missed that cost.
+
+The depth-six cap uses a read-only permutation to match each path
+terminal to its authenticated index. A second permutation requires
+every queried pair to stay open. A focused circuit rejected digest-word
+changes, changed query bits, a wrong root, a hidden queried pair and a
+non-Boolean occupancy flag. The resulting OP root used 4,141,241 raw
+QM31 operations, fitting 2²² field rows. Its 4,944,880 Blake G gates
+still pad to 2²³. The two-fold run spent 41.94 s folding versus 40.81 s
+for the three-fold control. The cap candidate still needs a measured improvement in fold time
+before adoption.
+
+### Direct arithmetic service certificate
+
+An independent OP emulator recorded all 34 arithmetic packets for
+block 121,003,241 and reproduced the expected execution output. A
+bounded circuit proved those packets directly. It kept the integer
+carry bounds, remainder comparison and modulus-zero rules and
+recomputed the six Wire35 terms per call. Its public packet digest and
+octic claim matched independent calculations. The fixture rebuilt the
+receiver topology from the admitted span and checked the serialized
+proof, then rejected a changed claim.
+
+| Direct certificate, 34 calls | Raw rows | Padded rows |
+|---|---:|---:|
+| QM31 operations | 163,163 | 262,144 |
+| Blake G | 22,000 | 32,768 |
+
+A serial fixture took 9.30 s to build authority and prove, and 0.56 s to
+rebuild the receiver authority and verify 633,520 proof bytes. It uses
+the shared fixed tables. The architectural target is to emit these
+constraints into an existing recursion leaf or fold and amortize that
+setup. The fixture uses a separately chosen Wire35 challenge. The
+execution path must derive it from its admitted manifest and close
+against the CPU-side claims before the native arithmetic proof can be
+retired.
+
+The circuit commits the entire packet, quotient, carry and range
+witness before drawing its octic challenge. Even and odd coefficients
+evaluate separately at the same challenge. For a product, the grouped
+residual is
+`A_even B_even + t A_odd B_odd + 256 (A_even B_odd + A_odd B_even)`.
+Adding `(t - 65536) CARRY(t)` checks the original 48 carried
+coefficient identities as one polynomial of degree at most 47. Byte
+and signed-carry bounds keep each coefficient residual below the
+characteristic in absolute value. Production admission needs the same
+argument bound composed with the manifest and proof-system assumptions.
+
+The segmented software inverse candidate matched both secp256k1
+moduli in host tests. All five OP guest replays preserved the expected
+output and service counts, but retirements increased by up to 189,608.
+The RV64 guest keeps the original inverse routine.
+
 Start with independently pinned OP and Mantle inputs from this cohort. Keep
 the security profile and expected execution output fixed. Measure changes
 in segment size separately from changes to guest instructions or recursion
