@@ -538,6 +538,19 @@ comes from the combined process doing one admission and graph rebuild
 per phase. This comparison excludes the parent fold and the rest of
 the block.
 
+In a second comparison, both independent leaves shared one request,
+bundle and setup admission per phase. Each arm used the same binary and
+reproduced its earlier proof bytes. Fresh receivers accepted both arms.
+
+| Two-worker fixture | Wrap s | Fresh reception s | Total s | Peak wrap RSS |
+|---|---:|---:|---:|---:|
+| Independent leaves, shared request | 28.46 | 10.79 | 39.25 | 22.34 GiB |
+| Paired proof, shared FRI | 26.87 | 9.12 | 35.99 | 31.33 GiB |
+
+Sharing FRI reduced the two-worker total by 8.3% against the
+shared-request control. The two outer prove spans summed to 19.22 s
+in the control and took 17.83 s in the paired arm.
+
 ### Neutral product admission
 
 A bounded OP-owned CLI experiment used the neutral RV64 pipeline for native
