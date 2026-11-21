@@ -34,6 +34,37 @@ Gas alone gave 54.1 s leave-one-block-out error for native wall time, versus
 7.9 s for RV64 steps and 4.5 s after adding SHA-256 and Keccak counters.
 The richer fit transferred poorly in whole-chain holdouts.
 
+## Larger shard results
+
+The larger-shard arm uses the same D2/M7 executables, inputs, guests, workers
+and watchdogs. It raises the limit to 4,194,303 steps. The optional
+one-proof-per-service-family arm uses the existing geometry planner. Each
+row includes fresh root verification.
+
+| Chain and block | Service grouping | CPU / service shards | Native s | Recursion s | Root verification s | Total s |
+|---|---|---:|---:|---:|---:|---:|
+| OP 121,049,889 | One per family | 2 / 4 | 33.32 | 99.48 | 10.12 | 142.92 |
+| OP 121,057,303 | Baseline | 2 / 7 | 28.57 | 111.17 | 11.50 | 151.24 |
+| OP 121,057,303 | One per family | 2 / 5 | 33.94 | 107.85 | 10.12 | 151.91 |
+| OP 121,135,704 | Baseline | 5 / 6 | 121.22 | 205.26 | 23.82 | 350.30 |
+| OP 121,135,704 | One per family | 5 / 4 | 105.60 | 159.80 | 18.84 | 284.25 |
+| Mantle 103,133,753 | Baseline | 3 / 2 | 38.27 | 75.72 | 9.04 | 123.02 |
+
+The Mantle contract-creation block took 53.6% less time through its fresh
+receiver. OP 121,057,303 took 48.4% less time. On OP 121,135,704 service
+grouping saved another 18.9% relative to the matching 4M-step run. Its
+capped 1M-step control already spent 430 s before root verification, so
+it provides a lower bound on the elapsed work and no completed baseline.
+Grouping also reduced the number of service shards on 121,057,303 but its
+native producer took longer and overall latency did not improve.
+
+The opt-in [16-worker preset](../../tools/opstack/presets/cpu-16workers-single-lane.json)
+uses the trial's component admissions and native schedule. Native and
+recursive producers were separately guarded at 24 and 46 GiB RSS and a
+10 GiB free-disk floor. The largest accepted 4M-step grouped run peaked at
+35.71 GiB sampled RSS during recursion. The preset is a native resource
+configuration. The recursive runs retain their archive binary provenance.
+
 ## Performance gates
 
 Start with independently pinned OP and Mantle inputs from this cohort. Keep

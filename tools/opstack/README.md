@@ -83,6 +83,13 @@ block 121057303 uses `tools/opstack/presets/cpu-8workers-single-lane.json` with
 `--batch-steps 2097151 --workers 8 --setup-workers 2`. See the
 [mainnet checkpoint](https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-cpu-20261107/README.md).
 
+For a CPU host with 64 GiB, the bounded execution-root study used
+`tools/opstack/presets/cpu-16workers-single-lane.json` with
+`--batch-steps 4194303 --workers 16`. It used an external RSS and free-disk
+watchdog alongside the component budgets. The measured recursion route and
+separate producer and receiver times are in the
+[CPU proof latency study](../../design/opstack/cpu-end-to-end.md).
+
 Batch geometry comes from the request unless `--batch-steps` overrides it. The
 benchmark-generated request uses 4,194,303; use the measured 1,048,575-step setting
 above on a memory-constrained CPU host. Preserve the same geometry in comparisons.
