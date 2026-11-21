@@ -104,6 +104,16 @@ matched byte for byte. The two-lane run measured 221.50 s through the fresh
 receiver. Recursion also ran faster during that sample, so the scheduling
 comparison attributes 20.91 s to native production.
 
+On the same earlier software-SHA input, the two-lane scheduler estimated
+more than 16 GiB for most pairs of first-stage workers. An explicit 21 GiB
+estimate cap admitted those pairs. Stage one fell from 43.03 s to 27.65 s
+and averaged 1.89 busy lanes instead of 1.09. Native production fell from
+85.16 s to 68.28 s, with matching native proof and authority bytes. Sampled
+native RSS was 16.70 and 16.69 GiB, respectively, under the same 24 GiB
+RSS watchdog. The experiment sets `schedule.memory_cap_bytes` to 22548578304
+with two lanes and eight workers per lane. The estimate cap is specific to
+the measured host and input geometry.
+
 The optimized Mantle guest reuses authenticated bytecode and parent header
 hashes. Its existing `crypto-services` build uses the shared RV64 secp256k1
 public recovery implementation. The guest outputs matched all five pinned
@@ -158,6 +168,28 @@ The direct circuit for Mantle 103,133,433 used 19.21M raw QM31 rows. OP
 121,135,704 used 31.65M QM31 rows and 21.24M Blake G rows. Both padded to
 2²⁵ QM31 rows and exceeded the experiment's 2²⁴ row admission.
 
+Pairing the first four CPU workers on the earlier OP 121,135,704 guest reduced
+three folds to two. The two paired leaves used 9.22M and 9.52M raw QM31
+operations, each padding to 2²⁴. The paired route took 227.56 s including
+retained native production and a fresh receiver, versus 216.89 s for the
+service-only grouping. The pairs need cuts of 834,754 and 1,128,686 QM31
+operations to reach 2²³ before testing this route again.
+
+The flat-coset FRI and seven-level cap experiment reduced the three-child
+OP parent's raw QM31 work to 4,139,841, inside 2²². Its 4,252,160 Blake G
+gates missed the same boundary by 57,856. The four-child parent stayed at
+2²³ for both components. The complete retained-native comparison took
+220.05 s on OP 121,135,704 and 88.14 s on Mantle 103,133,433. Both roots
+passed fresh verification under the separate experimental outer profile.
+The later terminal-degree trial stopped at the first four-child parent with
+`MerkleCapMismatch`. It produced no accepted root or latency result.
+
+Overlapping leaf wraps with two pools of eight preserved all eleven recursive
+proof files byte for byte. On the large OP control's native bytes, recursive
+production took 114.52 s versus 116.55 s, and peak sampled recursive RSS rose
+from 31.53 GiB to 38.59 GiB. This observed scheduling gain is small beside the
+work targeted by source packing.
+
 Compact final folds reduced the fold count from three to two on six-worker
 OP 121,057,303 and Mantle 103,133,433. Fold work increased from 31.27 s to
 38.85 s on OP and from 33.22 s to 38.16 s on Mantle. These results favor
@@ -188,6 +220,7 @@ alone removed 120,703 steps and put the request below the four-shard limit of
 | OP 121,135,704 | Smaller Kona guest, software SHA, classic outer | 79.12 | 119.63 | 14.86 | 213.61 |
 | OP 121,135,704 | Maintained Kona guest, SHA service, classic outer | 72.74 | 109.89 | 13.57 | 196.20 |
 | OP 121,135,704 | Smaller Kona guest, SHA service, grouped outer | 71.73 | 99.51 | 12.84 | 184.08 |
+| OP 121,135,704 | Maintained Kona guest, 21 GiB scheduler estimate, grouped outer | 63.53 | 102.34 | 13.41 | 179.29 |
 | OP 121,003,241 | Smaller Kona guest, software SHA, grouped outer | 63.69 | 98.39 | 12.07 | 174.15 |
 | Mantle 103,133,433 | Maintained guest, grouped outer | 27.57 | 63.51 | 5.96 | 97.04 |
 
@@ -208,6 +241,12 @@ prefixes, an invalid preimage and a missing suffix. The maintained ELF matched
 the pinned output in the native host, RV64 and independent Unicorn comparison
 on all five inputs.
 
+The 179.29 s run produced the same ten native proof and authority binary files
+as the 196.20 s run using this exact maintained ELF. The grouped circuit
+combined the eight native workers into six wraps and three folds. Sampled peak
+RSS was 16.34 GiB native and 31.53 GiB recursive. This reduces the 221.50 s
+reference by 19.1%.
+
 The next latency targets are 110.75 s for OP 121,135,704, 106.65 s for OP
 121,003,241 and 56.68 s for Mantle 103,133,433, half of the corresponding
 221.50 s, 213.29 s and 113.36 s completed references.
@@ -219,11 +258,10 @@ block run with the same guest and security parameters.
 
 ## Recursion architecture review
 
-The largest OP block's improved guest on the current CPU build used 79.12 s
-for native production, 119.63 s for recursion and 14.86 s for fresh reception.
-Holding the native and receiver stages fixed leaves only 16.77 s for recursion
-at the 110.75 s target. The largest useful change must cut work in both native
-production and recursive verification.
+The largest OP block's best complete run used 63.53 s for native production,
+102.34 s for recursion and 13.41 s for fresh reception. Holding the native
+and receiver stages fixed leaves about 33.8 s for recursion at the 110.75 s
+target. Cutting native and recursive work together reduces that requirement.
 
 Start with the native source openings inside a recursive leaf. Keep the existing
 AIR and public worker statements. Derive the commitment layout from the admitted
@@ -249,6 +287,17 @@ workload. Pair a complete CPU INTER opening with an independently qualified
 service layout, starting from the retained arith256 proof and a secp shard.
 The engine and circuit must agree on logical column and mask ordering before
 changing MAIN, which the local GKR proof already authenticates.
+
+Mantle also has a specific opportunity to remove a service proof. The guest
+hashes the entire raw input for its public output. Standard SHA-256 padding
+yields 1,669 compression blocks for the 106,772-byte input to 103,133,433.
+The measured count is 1,690. The same difference of 21 holds for all five
+inputs. A new input ABI could initialize the digest alongside the original
+bytes from the receiver's independently checked input identity. Bind both
+to the same initial memory authority. The guest would then hash its remaining
+small values in software and could avoid the SHA service proof. Qualification
+would require the same output and complete proof acceptance, and rejection of
+an altered digest or raw input with an otherwise consistent proof envelope.
 
 Batching native FRI across workers is a separate protocol experiment. Retain
 independent FIXED authority and each worker's composition identity. Freeze the
