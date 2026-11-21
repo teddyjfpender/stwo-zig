@@ -129,4 +129,4 @@ freshly accepted root for each of the five inputs and measures the public
 recovery service on larger inputs. The security label is **128-bit target under
 documented assumptions**. L1-anchored Mantle derivation and settlement remain
 open. The five-point multivariate native timing fit fails leave-one-block-out
-validation. The OP chain-10 guard and default Ethereum route remain unchanged.
+validation.
