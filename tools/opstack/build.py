@@ -179,7 +179,7 @@ def main():
     parser.add_argument(
         "--variant",
         choices=(*VARIANTS, *LEAN_VARIANTS),
-        default="software",
+        default="canonical-glv",
     )
     parser.add_argument("--eager", action="store_true")
     parser.add_argument("--allocator-check", action="store_true")

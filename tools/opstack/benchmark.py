@@ -61,7 +61,7 @@ def main():
     )
     parser.add_argument("--isolated-only", action="store_true")
     parser.add_argument(
-        "--profile", choices=("software", "ethereum_services_v3", "ethereum_services_op_v1"), default="software"
+        "--profile", choices=("software", "ethereum_services_v3", "ethereum_services_op_v1"), default="ethereum_services_v3"
     )
     args = parser.parse_args()
     args.host = args.host or ROOT / (

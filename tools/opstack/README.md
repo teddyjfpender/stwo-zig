@@ -47,13 +47,12 @@ used only to import the upstream host fixtures, never in the guest.
 ```sh
 rustup toolchain install nightly-2026-08-08 --profile minimal --component rust-src
 python3 -m pip install -r tools/opstack/requirements-host.txt
-python3 tools/opstack/build.py --variant sha --artifacts /workspace/kona-sha
+python3 tools/opstack/build.py --artifacts /workspace/kona
 python3 tools/opstack/mainnet.py --output /workspace/kona-mainnet \
-  --cache /workspace/kona-archive-cache --host /workspace/kona-sha/host
+  --cache /workspace/kona-archive-cache --host /workspace/kona/host
 python3 tools/opstack/benchmark.py --fixtures /workspace/kona-mainnet \
-  --artifacts /workspace/kona-mainnet-bench --host /workspace/kona-sha/host \
-  --guest /workspace/kona-sha/guest.elf --runner /workspace/kona-sha/rv64-execution \
-  --profile ethereum_services_v3 --oracle
+  --artifacts /workspace/kona-mainnet-bench --host /workspace/kona/host \
+  --guest /workspace/kona/guest.elf --runner /workspace/kona/rv64-execution --oracle
 zig build --build-file src/products/opstack/statement/build.zig opstack-native -Doptimize=ReleaseFast -j1
 python3 tools/opstack/cpu.py \
   --request /workspace/kona-mainnet-bench/120794432-proof-config.json \
@@ -61,6 +60,11 @@ python3 tools/opstack/cpu.py \
   --runner src/products/opstack/statement/zig-out/bin/stwo-opstack-native \
   --artifacts /workspace/kona-mainnet-cpu
 ```
+
+The default Kona build uses `canonical-glv` with SHA service enabled, and
+the benchmark defaults to the matching v3 execution profile. An explicit
+software replay uses `build.py --variant software` and
+`benchmark.py --profile software`.
 
 The tested user-transaction block uses a larger batch, four proof workers and a
 separately bounded single setup worker:
@@ -84,9 +88,10 @@ block 121057303 uses `tools/opstack/presets/cpu-8workers-single-lane.json` with
 [mainnet checkpoint](https://github.com/starknet-innovation/stwo-zig/blob/089bc2437/vectors/reports/rv64-opstack-cpu-20261107/README.md).
 
 For a CPU host with 64 GiB, the bounded execution-root study used
-`tools/opstack/presets/cpu-16workers-single-lane.json` with
+`tools/opstack/presets/cpu-16workers-2lanes.json` with
 `--batch-steps 4194303 --workers 16`. It used an external RSS and free-disk
-watchdog alongside the component budgets. The measured recursion route and
+watchdog alongside the component budgets, which include a 21 GiB schedule
+estimate cap. The measured recursion route and
 separate producer and receiver times are in the
 [CPU proof latency study](../../design/opstack/cpu-end-to-end.md). Use
 `verified_timing.native_start_to_verified_root_seconds` from the CPU
